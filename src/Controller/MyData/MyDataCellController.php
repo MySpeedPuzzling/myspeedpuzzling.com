@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Controller\MyData;
 use NumberFormatter;
 use SpeedPuzzling\Web\Exceptions\CollectionItemNotFound;
 use SpeedPuzzling\Web\Message\EditCollectionItemComment;
+use SpeedPuzzling\Web\Message\SaveMyDataResultCell;
 use SpeedPuzzling\Web\Query\GetMyDataResultContext;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Results\CustomFieldsForm;
+use SpeedPuzzling\Web\Results\MyData\MyDataCellSave;
 use SpeedPuzzling\Web\Results\MyData\MyDataResultEdit;
 use SpeedPuzzling\Web\Results\MyData\MyDataRowCustomFields;
 use SpeedPuzzling\Web\Results\PlayerProfile;
@@ -27,6 +29,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Csrf\CsrfToken;
@@ -40,7 +43,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * comment, the existing messages for a collection item's comment and for the player's own fields.
  *
  * Three-way: the request says what the cell showed when its editor opened (`from`). When the stored value is another
- * one by now, nothing is saved and the answer (409) carries the current value. A refusal (422) carries the reason in
+ * one by now, nothing is saved and the answer (409) carries the current value. For a result - saved as a whole row -
+ * the compare happens under the result's lock, as part of the write (SaveMyDataResultCell). A result somebody else
+ * registered is on is not edited here at all (its row sheet: one save, one notification to them). A refusal (422) carries the reason in
  * the row sheet's words; one that is a question (the first try is elsewhere, the same time saved already, a time far
  * off the player's own) says so (`row: true`) - it is answered in the row sheet, never here.
  *
@@ -122,33 +127,19 @@ final class MyDataCellController extends AbstractController
             return $this->refuse($this->translator->trans('my_data.edit.not_saved'));
         }
 
-        if ($time->isEditableBy($viewer->playerId) === false || ($time->time === null && in_array($column, [MyDataResultEdit::TIME, MyDataResultEdit::FIRST_TRY], true))) {
-            return $this->refuse($this->translator->trans('my_data.edit.read_only'), Response::HTTP_FORBIDDEN);
-        }
+        // The compare with what the cell showed is part of the write: under the result's lock (SaveMyDataResultCell)
+        $save = $this->messageBus->dispatch(new SaveMyDataResultCell($viewer, $timeId, $column, $from, $value))->last(HandledStamp::class)?->getResult();
+        assert($save instanceof MyDataCellSave);
 
-        $stored = MyDataResultEdit::ofStored($time);
-
-        if (self::same($stored->cell($column), $from) === false) {
-            return $this->changedMeanwhile($this->resultCells($viewer, $timeId)[$column]);
-        }
-
-        $edit = $stored->withCell($column, $value);
-
-        if ($edit === null) {
-            return $this->refuse($this->translator->trans($column === MyDataResultEdit::TIME ? 'my_data.edit.time_invalid' : 'my_data.edit.not_saved'));
-        }
-
-        // Never an answer to a question here: no "move the first try", no "it's another solve", no "yes, it's right"
-        $outcome = $this->editor->save($viewer, $time, $edit);
-
-        if ($outcome->isRefused()) {
-            return $this->refuse((string) $outcome->firstError(), row: $outcome->asksAQuestion);
-        }
-
-        return new JsonResponse([
-            'status' => $outcome->saved ? 'saved' : 'unchanged',
-            'cells' => $this->resultCells($viewer, $timeId),
-        ]);
+        return match ($save->status) {
+            MyDataCellSave::READ_ONLY => $this->refuse($this->translator->trans('my_data.edit.read_only'), Response::HTTP_FORBIDDEN),
+            // Edited through the row sheet: one save, one notification to the others on the result
+            MyDataCellSave::IN_SHEET_ONLY => $this->refuse($this->translator->trans('my_data.edit.in_sheet_only'), Response::HTTP_FORBIDDEN, row: true),
+            MyDataCellSave::CHANGED_MEANWHILE => $this->changedMeanwhile($this->resultCells($viewer, $timeId)[$column]),
+            MyDataCellSave::INVALID => $this->refuse($this->translator->trans($column === MyDataResultEdit::TIME ? 'my_data.edit.time_invalid' : 'my_data.edit.not_saved')),
+            MyDataCellSave::REFUSED => $this->refuse((string) $save->outcome?->firstError(), row: $save->outcome?->asksAQuestion === true),
+            default => new JsonResponse(['status' => $save->status, 'cells' => $this->resultCells($viewer, $timeId)]),
+        };
     }
 
     private function puzzleCell(PlayerProfile $viewer, string $itemId, string $column, bool $ownField, string $from, string $value): JsonResponse
@@ -183,6 +174,12 @@ final class MyDataCellController extends AbstractController
         }
 
         $comment = trim($value);
+        // The comment form's own limit, in its words
+        $tooLong = MyDataPuzzleRowController::commentRefusal($comment, $this->translator);
+
+        if ($tooLong !== null) {
+            return $this->refuse($tooLong);
+        }
 
         if ($comment !== $stored) {
             $this->messageBus->dispatch(new EditCollectionItemComment(

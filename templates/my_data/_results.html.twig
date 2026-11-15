@@ -5,7 +5,8 @@
 
     On the table a cell of an editable column is edited in place (my_data_edit_controller.js): `data-edit` says with
     which input, `data-value` what the cell holds - sent back as `from`. A value of several lines is edited in the
-    row sheet only.
+    row sheet only. So is every field of a result somebody else registered is on (one save of the
+    sheet = one notification to them); the player's own fields are always edited in place - they are nobody else's.
 
     The cells of the player's own fields are texts OwnFieldsInMyData worded for the signed-in player alone.
 #}
@@ -77,12 +78,12 @@
                             {% elseif column == 'pieces' %}
                                 <td data-column="pieces" class="text-end text-nowrap">{{ row.puzzle.piecesCount|format_number }}</td>
                             {% elseif column == 'time' %}
-                                <td data-column="time" class="text-end text-nowrap fw-medium"{% if row.editable and row.seconds is not null %}{{ _self.edit('time', row.editValue('time')) }}{% endif %}>
+                                <td data-column="time" class="text-end text-nowrap fw-medium"{% if row.editableInPlace and row.seconds is not null %}{{ _self.edit('time', row.editValue('time')) }}{% endif %}>
                                     {%- if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif -%}
                                     {%- if row.suspicious %} <span class="badge bg-warning text-dark fw-normal">{{ 'my_data.cell.needs_verification'|trans }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'date' %}
-                                <td data-column="date" class="text-nowrap"{% if row.editable %}{{ _self.edit('date', row.editValue('date')) }}{% endif %}><time datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time></td>
+                                <td data-column="date" class="text-nowrap"{% if row.editableInPlace %}{{ _self.edit('date', row.editValue('date')) }}{% endif %}><time datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time></td>
                             {% elseif column == 'group' %}
                                 <td data-column="group">
                                     {{ ('my_data.type.' ~ row.solvingType)|trans }}
@@ -90,9 +91,9 @@
                                     {%- if row.coPuzzlers is not empty %}<span class="d-block fs-xs text-muted" data-testid="my-data-with">{{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'first_try' %}
-                                <td data-column="first_try" class="text-center"{% if row.editable and row.seconds is not null %}{{ _self.edit('check', row.editValue('first_try')) }}{% endif %}>{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
+                                <td data-column="first_try" class="text-center"{% if row.editableInPlace and row.seconds is not null %}{{ _self.edit('check', row.editValue('first_try')) }}{% endif %}>{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
                             {% elseif column == 'comment' %}
-                                <td data-column="comment" class="my-data-text"{% if row.editable %}{{ _self.edit('text', row.editValue('comment')) }}{% endif %}>{{ row.comment }}</td>
+                                <td data-column="comment" class="my-data-text"{% if row.editableInPlace %}{{ _self.edit('text', row.editValue('comment')) }}{% endif %}>{{ row.comment }}</td>
                             {% elseif column == 'photo' %}
                                 <td data-column="photo" class="text-center">{% if row.hasPhoto %}<i class="bi bi-image" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
                             {% elseif column == 'source' %}

@@ -80,9 +80,9 @@
                 <legend class="form-label fs-base mb-1">{{ 'my_data.column.time'|trans }}</legend>
                 <div class="d-flex align-items-end gap-2">
                     {% for part in [
-                        {name: 'hours', label: 'forms.time_hours', max: 999, value: edit.hours},
-                        {name: 'minutes', label: 'forms.time_minutes', max: 59, value: edit.minutes},
-                        {name: 'seconds', label: 'forms.time_seconds', max: 59, value: edit.seconds},
+                        {name: 'hours', label: 'forms.hours_short', max: 999, value: edit.hours},
+                        {name: 'minutes', label: 'forms.minutes_short', max: 59, value: edit.minutes},
+                        {name: 'seconds', label: 'forms.seconds_short', max: 59, value: edit.seconds},
                     ] %}
                         <div style="flex: 1 1 0; max-width: 110px;">
                             <label class="form-label fs-xs text-muted mb-0" for="my-data-row-{{ part.name }}">{{ part.label|trans }}</label>

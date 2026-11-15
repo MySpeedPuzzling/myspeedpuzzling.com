@@ -12799,3 +12799,5 @@ my_data:
         collection_unknown: "Elige una de tus colecciones."
         collection_holds_it: "Esa colección ya tiene este puzzle."
         cell_hint: "Enter guarda, Esc cancela."
+        in_sheet_only: "En este resultado hay más puzzleros - abre la fila para editarlo, así se les avisa una sola vez."
+        not_moved: "El puzzle no se movió: ya no está en esa colección, o la otra colección ya lo tiene."

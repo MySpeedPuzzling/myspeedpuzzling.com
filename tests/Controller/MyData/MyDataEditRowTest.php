@@ -6,6 +6,11 @@ namespace SpeedPuzzling\Web\Tests\Controller\MyData;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
+use SpeedPuzzling\Web\Message\SaveMyDataResultCell;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\HandledOutsideTransaction;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Tests\CustomFieldsScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -17,6 +22,8 @@ use SpeedPuzzling\Web\Value\CustomFieldType;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * "My data", editing one row (docs/features/my-data.md "Editing one row"): the row sheet of a result and of a
@@ -109,9 +116,145 @@ final class MyDataEditRowTest extends WebTestCase
         self::assertSame($before['seconds_to_solve'], $after['seconds_to_solve']);
 
         TestingLogin::asPlayer($browser, self::ME);
-        $browser->request('POST', '/en/my-data/cell/result/' . $timeId, ['column' => 'comment', 'from' => 'The partner fixed it', 'value' => 'The tracker too'], [], self::JSON);
-        self::assertResponseIsSuccessful();
+        $browser->request('POST', '/en/my-data/result/' . $timeId, [...$this->sheetFields($browser->request('GET', '/en/my-data/result/' . $timeId)), 'comment' => 'The tracker too'], [], self::SAME_ORIGIN);
+        self::assertResponseStatusCodeSame(303);
         self::assertSame('The tracker too', $this->stored($timeId)['comment']);
+    }
+
+    /**
+     * Every save of a result tells the other registered people on it. Cell by cell that would be one notification per
+     * cell - so such a result is edited through its row sheet only: one save, one notification.
+     */
+    public function testAResultWithOtherRegisteredPeopleIsEditedThroughItsSheetOnly(): void
+    {
+        $browser = self::createClient();
+        // One kernel for the whole test: the events of its requests stay in the in-memory transport
+        $browser->disableReboot();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::ME, 'Quokka ledger');
+        $pair = $scenario->result(self::ME_USER, ['#player3']);
+        $withGuest = $scenario->result(self::ME_USER, ['A guest'], time: '06:00:00');
+        $solo = $scenario->result(self::ME_USER, time: '07:00:00');
+        $scenario->forgetLoadedEntities();
+        // GroupSolvingTimeEdited is handled by the worker (one notification per other registered person) - counted as sent
+        $transport = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+        $told = static fn (): int => count(array_filter($transport->getSent(), static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof GroupSolvingTimeEdited));
+        $day = TestClock::now()->modify('-3 days')->format('Y-m-d');
+
+        // The tracker's table: the pair's cells are not edited in place - but for the tracker's own field
+        TestingLogin::asPlayer($browser, self::ME);
+        $table = $browser->request('GET', '/en/my-data');
+
+        foreach (['time', 'date', 'first_try', 'comment'] as $column) {
+            self::assertNull($table->filter('tr[data-row-id="' . $pair . '"] td[data-column="' . $column . '"]')->attr('data-edit'), $column);
+            // Alone or with a guest there is nobody to tell
+            self::assertNotNull($table->filter('tr[data-row-id="' . $withGuest . '"] td[data-column="' . $column . '"]')->attr('data-edit'), $column);
+            self::assertNotNull($table->filter('tr[data-row-id="' . $solo . '"] td[data-column="' . $column . '"]')->attr('data-edit'), $column);
+        }
+
+        self::assertSame('text', $table->filter('tr[data-row-id="' . $pair . '"] td[data-column="f:' . $notes . '"]')->attr('data-edit'));
+
+        // ... and the endpoint says the same, for the tracker and for the partner: the way to the row sheet
+        $before = $this->stored($pair);
+        $toldBefore = $told();
+
+        foreach ([self::ME, self::PARTNER] as $editor) {
+            TestingLogin::asPlayer($browser, $editor);
+
+            foreach ([['time', '5:00:00', '5:00:01'], ['comment', '', 'In a cell'], ['first_try', '0', '1'], ['date', $day, '2020-01-01']] as [$column, $from, $value]) {
+                $answer = $this->cell($browser, '/en/my-data/cell/result/' . $pair, ['column' => $column, 'from' => $from, 'value' => $value]);
+                self::assertResponseStatusCodeSame(403, $column);
+                self::assertSame(['refused', true, 'Other puzzlers are on this result - open the row to edit it, so they are told once.'], [$answer['status'], $answer['row'], $answer['message']]);
+            }
+        }
+
+        self::assertSame($before, $this->stored($pair));
+        self::assertSame($toldBefore, $told());
+
+        // The tracker's own field is nobody else's: saved in place, nobody told
+        TestingLogin::asPlayer($browser, self::ME);
+        $this->cell($browser, '/en/my-data/cell/result/' . $pair, ['column' => 'f:' . $notes, 'my_fields' => ['from' => '', 'value' => 'mine']]);
+        self::assertResponseIsSuccessful();
+        self::assertSame($toldBefore, $told());
+
+        // The row sheet: comment and first try in one save - the partner is told once
+        $this->saveSheet($browser, $pair, [...$this->sheetFields($browser->request('GET', '/en/my-data/result/' . $pair)), 'comment' => 'Both of us', 'first_try' => '1']);
+        self::assertResponseStatusCodeSame(303);
+        self::assertSame(['Both of us', true], [$this->stored($pair)['comment'], $this->stored($pair)['first_attempt']]);
+        self::assertSame($toldBefore + 1, $told());
+
+        // A result with a guest: its cells are saved in place
+        $this->cell($browser, '/en/my-data/cell/result/' . $withGuest, ['column' => 'comment', 'from' => '', 'value' => 'With a guest']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('With a guest', $this->stored($withGuest)['comment']);
+    }
+
+    /**
+     * A result is saved as a whole row, so the compare with what the cell showed is part of the write: the save of a
+     * cell is a message of its own, serialized per result (SaveMyDataResultCell) - two cells of one result can not put
+     * each other's field back.
+     */
+    public function testTwoStaleCellsOfOneResultTheSecondIsRefused(): void
+    {
+        $browser = self::createClient();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $timeId = $scenario->result(self::ME_USER, daysAgo: 0);
+        $other = $scenario->result(self::ME_USER, time: '06:00:00');
+        $scenario->forgetLoadedEntities();
+        TestingLogin::asPlayer($browser, self::ME);
+        $url = '/en/my-data/cell/result/' . $timeId;
+
+        // Two editors opened on the same cell while it held nothing: the first one saves ...
+        $first = $this->cell($browser, $url, ['column' => 'comment', 'from' => '', 'value' => 'From the first tab']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('saved', $first['status']);
+
+        // ... the second one, as stale as the first was fresh, saves nothing and is shown what is there now
+        $second = $this->cell($browser, $url, ['column' => 'comment', 'from' => '', 'value' => 'From the second tab']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(['changed', 'From the first tab'], [$second['status'], $second['cell']['value']]);
+        self::assertSame('From the first tab', $this->stored($timeId)['comment']);
+
+        // Another field of the same result, with what its own cell showed: saved - and the comment stays what it is
+        $this->cell($browser, $url, ['column' => 'first_try', 'from' => '0', 'value' => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['From the first tab', true], [$this->stored($timeId)['comment'], $this->stored($timeId)['first_attempt']]);
+
+        // One lock per result: cells of one result wait for each other, another result's do not
+        $viewer = self::getContainer()->get(GetPlayerProfile::class)->byId(self::ME);
+        $message = new SaveMyDataResultCell($viewer, strtoupper($timeId), 'comment', '', 'x');
+        self::assertContains(SerializedByLock::class, class_implements($message));
+        // Outside a transaction: the lock outlives the commit of the edit it sends
+        self::assertContains(HandledOutsideTransaction::class, class_implements($message));
+        self::assertSame(new SaveMyDataResultCell($viewer, $timeId, 'time', '5:00:00', '4:00:00')->lockKey(), $message->lockKey());
+        self::assertNotSame(new SaveMyDataResultCell($viewer, $other, 'comment', '', 'x')->lockKey(), $message->lockKey());
+    }
+
+    public function testTheSheetsLabelsAreWordsNeverTranslationKeys(): void
+    {
+        $browser = self::createClient();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $scenario->field(self::ME, 'Quokka ledger');
+        $timeId = $scenario->result(self::ME_USER);
+        $scenario->forgetLoadedEntities();
+        TestingLogin::asPlayer($browser, self::ME);
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $locale) {
+            $crawler = $browser->request('GET', '/' . $locale . '/my-data/result/' . $timeId);
+            self::assertResponseIsSuccessful($locale);
+            $form = $crawler->filter('[data-testid="my-data-row-form"]');
+            $labels = $form->filter('label, legend, .form-text, button, p, dt')->each(static fn (Crawler $node): string => trim($node->text()));
+            self::assertGreaterThan(8, count($labels));
+
+            foreach ($labels as $label) {
+                self::assertDoesNotMatchRegularExpression('/\b[a-z_]+\.[a-z_]+(\.[a-z_]+)+\b|\bforms\.[a-z_]+/', $label, $locale . ': an untranslated key is printed');
+            }
+        }
+
+        // The three boxes of the time carry the edit form's own short labels
+        $crawler = $browser->request('GET', '/en/my-data/result/' . $timeId);
+        self::assertSame(['hrs', 'min', 'sec'], $crawler->filter('fieldset label')->each(static fn (Crawler $label): string => trim($label->text())));
     }
 
     public function testAnImportedEventResultIsReadOnly(): void
@@ -641,6 +784,21 @@ final class MyDataEditRowTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSame('That collection already holds this puzzle.', trim($refused->filter('[data-testid="my-data-row-collection-error"]')->text()));
         self::assertSame('Missing one piece', $database->fetchOne('SELECT comment FROM collection_item WHERE id = :id', ['id' => $itemId]));
+
+        // The comment form's own limit (500 characters), in its words - on the sheet and in the cell
+        $tooLong = str_repeat('ž', 501);
+        $refused = $browser->request('POST', '/en/my-data/puzzle/' . $itemId, ['_token' => 'csrf-token', 'comment' => $tooLong], [], self::SAME_ORIGIN);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('This value is too long. It should have 500 characters or less.', trim($refused->filter('[data-testid="my-data-row-comment-error"]')->text()));
+        $answer = $this->cell($browser, '/en/my-data/cell/puzzle/' . $itemId, ['column' => 'comment', 'from' => 'Missing one piece', 'value' => $tooLong]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('This value is too long. It should have 500 characters or less.', $answer['message']);
+        self::assertSame('Missing one piece', $database->fetchOne('SELECT comment FROM collection_item WHERE id = :id', ['id' => $itemId]));
+        // Exactly 500 are taken
+        $browser->request('POST', '/en/my-data/puzzle/' . $itemId, ['_token' => 'csrf-token', 'comment' => str_repeat('ž', 500)], [], self::SAME_ORIGIN);
+        self::assertResponseStatusCodeSame(303);
+        $browser->request('POST', '/en/my-data/puzzle/' . $itemId, ['_token' => 'csrf-token', 'comment' => 'Missing one piece'], [], self::SAME_ORIGIN);
+        self::assertResponseStatusCodeSame(303);
 
         // In place: the comment and the owner's own field
         $url = '/en/my-data/cell/puzzle/' . $itemId;

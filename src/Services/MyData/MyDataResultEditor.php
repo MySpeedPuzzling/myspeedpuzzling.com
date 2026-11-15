@@ -74,6 +74,26 @@ readonly final class MyDataResultEditor
     }
 
     /**
+     * The viewer tracked the result and nobody else registered is on it (solo, or a group with guests only). Every
+     * save of a result with other registered people tells them (GroupSolvingTimeEdited, by the edit's handler) - so
+     * only such a result is edited cell by cell; the others through their row sheet, one save = one notification.
+     */
+    public static function isOnlyRegisteredMember(PlayerProfile $viewer, SolvedPuzzleDetail $time): bool
+    {
+        if ($time->playerId !== $viewer->playerId) {
+            return false;
+        }
+
+        foreach ($time->players ?? [] as $puzzler) {
+            if ($puzzler->playerId !== null && $puzzler->playerId !== $viewer->playerId) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * The co-puzzler inputs of the stored result, as the edit form fills them when it opens.
      *
      * @return list<string>

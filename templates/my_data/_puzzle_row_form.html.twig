@@ -8,7 +8,7 @@
     The action is explicit: in the modal frame a form without one posts to the page under the modal.
 
     Variables: item (CollectionItem - the signed-in player's own), comment, collections (value => name, empty for a
-    player who is no member), picked_collection, collection_error, solved (null|ExportablePuzzleSolveSummary),
+    player who is no member), picked_collection, collection_error, comment_error, solved (null|ExportablePuzzleSolveSummary),
     my_fields (CustomFieldsForm), return_url, in_modal
 #}
 <form action="{{ path('my_data_puzzle_row', {itemId: item.id}) }}" method="post" data-testid="my-data-row-form">
@@ -36,7 +36,10 @@
 
     <div class="mb-3">
         <label class="form-label" for="my-data-row-comment">{{ 'my_data.column.comment'|trans }}</label>
-        <textarea class="form-control" name="comment" id="my-data-row-comment" rows="3" maxlength="500" style="font-size: 16px; min-height: 44px;">{{ comment }}</textarea>
+        <textarea class="form-control{{ comment_error ? ' is-invalid' }}" name="comment" id="my-data-row-comment" rows="3" maxlength="{{ constant('SpeedPuzzling\\Web\\Controller\\MyData\\MyDataPuzzleRowController::COMMENT_MAX_LENGTH') }}" style="font-size: 16px; min-height: 44px;">{{ comment }}</textarea>
+        {% if comment_error %}
+            <div class="invalid-feedback d-block" data-testid="my-data-row-comment-error">{{ comment_error }}</div>
+        {% endif %}
     </div>
 
     {% if collections is not empty %}

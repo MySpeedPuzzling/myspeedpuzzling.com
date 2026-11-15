@@ -330,7 +330,7 @@ export default class extends Controller {
 
         const note = document.createElement('div');
 
-        note.className = 'my-data-cell-note';
+        note.className = this.noteClass(editing.cell);
         note.setAttribute('role', 'alert');
         note.textContent = message;
 
@@ -351,9 +351,18 @@ export default class extends Controller {
     remark(cell, message) {
         const note = document.createElement('div');
 
-        note.className = 'my-data-cell-note';
+        note.className = this.noteClass(cell);
         note.setAttribute('role', 'alert');
         note.textContent = message;
         cell.append(note);
+    }
+
+    // The note hangs under the cell and is as wide as its text needs, never as narrow as the cell: it opens to the
+    // left from a cell in the right half of the table, so it stays inside the table's box
+    noteClass(cell) {
+        const table = cell.closest('table');
+        const atTheEnd = table !== null && cell.offsetLeft + cell.offsetWidth / 2 > table.offsetWidth / 2;
+
+        return atTheEnd ? 'my-data-cell-note my-data-cell-note-end' : 'my-data-cell-note';
     }
 }

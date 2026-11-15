@@ -182,7 +182,9 @@ an empty "Exact day (if you know it)" field: left empty the result keeps what it
 **Saving** - everything is checked before anything is written, so a refusal leaves nothing half-saved:
 
 1. the player's own values (`SubmittedValuesChange::problems()` - a value that can not be stored refuses the save as
-   a whole, the result's fields too), a collection item's target collection (one of the player's own, and not holding
+   a whole, the result's fields too), a collection item's comment (the comment form's `Length(max: 500)`, in its
+   words - on the sheet and in the cell; a result's comment has no limit in the edit form, so none here), a
+   collection item's target collection (one of the player's own, and not holding
    the puzzle already - two items becoming one would take this item and the comment just typed away);
 2. the result: `MyDataResultEditor::save()` → **`EditPuzzleSolvingTime`** (below); a collection item:
    `EditCollectionItemComment`;
@@ -190,7 +192,9 @@ an empty "Exact day (if you know it)" field: left empty the result keeps what it
    `CustomFieldsOfMyDataRow` (takes no player id, never throws - what was saved before it stays saved and a warning
    says the fields were not);
 4. a collection item's move: `MovePuzzlesToCollection` with the one puzzle - the item keeps its id, its added date,
-   its comment and its values (`CollectionItem::moveTo()`).
+   its comment and its values (`CollectionItem::moveTo()`). Its answer is read (`SelectedPuzzlesOutcome`): a move the
+   handler skipped (the puzzle left the collection meanwhile, or the other one holds it by now) is told as it is
+   ("The puzzle was not moved …"), and "Saved." is flashed only for what was saved.
 
 **Nothing changed = nothing dispatched.** A sheet saved as it opened, or with only the player's own fields changed,
 never sends `EditPuzzleSolvingTime`: a pair partner noting something in their own field does not "edit the shared
@@ -243,6 +247,15 @@ as a date input, yes/no, a choice and a rating as a select). Not editable in pla
 several lines (a comment or a text field with a line break is edited in the sheet's textarea only), a result without
 a time for its time and first try, every cell of an imported event result.
 
+**A result with other registered people on it is edited through its row sheet only** (its own fields excepted - they
+are nobody else's). Every save of such a result tells the others (`GroupSolvingTimeEdited`, recorded by
+`EditPuzzleSolvingTimeHandler`); cell by cell that would be one notification per cell, and collapsing them would mean
+changing the edit path's handler, which My data does not touch. So the cells of a result are edited in place only
+where the player tracked it and nobody else registered is on it - solo, or with guests
+(`MyDataResultRow::isEditableInPlace()` from the page's query, `MyDataResultEditor::isOnlyRegisteredMember()` at the
+endpoint: 403 with `row: true` and "open the row to edit it, so they are told once"). One save of the sheet = one
+notification.
+
 `assets/controllers/my_data_edit_controller.js` - plain Stimulus, no grid library:
 
 - the cell carries how it is edited and what it holds (`data-edit`, `data-value`; a select's options once, on the
@@ -253,10 +266,21 @@ a time for its time and first try, every cell of an imported event result.
   `my_fields[from]` / `my_fields[value]` - the name `OwnFieldsSentryScrubber` withholds from every event;
 - **three-way:** when the stored value is no longer `from`, nothing is saved and the answer (409) carries the current
   value - the cell shows it and says "This was changed in the meantime";
+- **for a result the compare is part of the write.** A result is saved as a whole row (`EditPuzzleSolvingTime` takes
+  every field), so two cells of one result saved at the same moment would each send the other's field as they read
+  it. The cell's save is a message of My data's own, `SaveMyDataResultCell`: `SerializedByLock` on
+  `my-data-result-<id>` and `HandledOutsideTransaction` - under the lock its handler reads the result again, compares
+  `from`, and only then saves through `MyDataResultEditor` (the edit message in a transaction of its own, committed
+  before the lock is released; a refused edit rolls back nothing around it). `EditPuzzleSolvingTime` has no lock of
+  its own, so a save of the full edit form at that very moment is not held back - it writes the whole form, as it
+  always did. A collection puzzle's comment and the own fields are single-field writes (their messages change only
+  what they are given);
 - the endpoint saves through the row sheet's code (`MyDataResultEditor`, `CustomFieldsOfMyDataRow`,
   `EditCollectionItemComment`) and answers the row's cells as stored now - the time's "Needs verification" label and
   the pieces per minute follow a changed time;
-- a refusal keeps the editor open with what was typed and the reason under it. A refusal that is a **question** (the
+- a refusal keeps the editor open with what was typed and the reason in a small box hanging under the cell - as wide
+  as its text needs, over the rows below, opening to the left from a cell in the right half of the table (a narrow
+  cell would cut it off). A refusal that is a **question** (the
   first try is elsewhere, the same time saved already, a time far off the player's own) says so (`row: true`): the
   cell offers "Open the row" and the question is answered in the sheet - **never silently, never in the cell** (the
   endpoint reads no answer at all);

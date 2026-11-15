@@ -19,10 +19,12 @@ use SpeedPuzzling\Web\Services\CustomFields\SubmittedCustomValues;
 use SpeedPuzzling\Web\Services\MyData\CustomFieldsOfMyDataRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ReturnUrl;
+use SpeedPuzzling\Web\Value\SelectedPuzzlesOutcome;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -42,6 +44,12 @@ final class MyDataPuzzleRowController extends AbstractController
 {
     /** The main collection in the collection select - a custom one is its uuid */
     public const string MAIN_COLLECTION = 'main';
+
+    /** The comment form's own limit (EditCollectionItemCommentFormData: `Length(max: 500)`) */
+    public const int COMMENT_MAX_LENGTH = 500;
+
+    /** Symfony's message of that constraint (the `validators` domain) */
+    private const string COMMENT_TOO_LONG = 'This value is too long. It should have {{ limit }} character or less.|This value is too long. It should have {{ limit }} characters or less.';
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -103,6 +111,7 @@ final class MyDataPuzzleRowController extends AbstractController
         $inputs = $ownFields->storedInputs();
         $problems = [];
         $collectionError = null;
+        $commentError = null;
 
         if ($request->isMethod('POST')) {
             if ($this->isCsrfTokenValid(MyDataResultRowController::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
@@ -110,6 +119,7 @@ final class MyDataPuzzleRowController extends AbstractController
             }
 
             $comment = trim($request->request->getString('comment'));
+            $commentError = self::commentRefusal($comment, $this->translator);
             $inputs = $ownFields->inputsAfter(SubmittedCustomValues::of($request));
             $problems = $ownFields->problems($inputs);
 
@@ -123,8 +133,10 @@ final class MyDataPuzzleRowController extends AbstractController
                 $collectionError = $this->collectionRefusal($pickedCollection, $collections, $item);
             }
 
-            if ($problems === [] && $collectionError === null) {
-                if ($comment !== trim($storedComment)) {
+            if ($problems === [] && $collectionError === null && $commentError === null) {
+                $commentChanged = $comment !== trim($storedComment);
+
+                if ($commentChanged) {
                     $this->messageBus->dispatch(new EditCollectionItemComment(
                         collectionItemId: $itemId,
                         playerId: $viewer->playerId,
@@ -132,17 +144,23 @@ final class MyDataPuzzleRowController extends AbstractController
                     ));
                 }
 
-                $this->addFlash('success', $this->translator->trans('my_data.edit.saved'));
-
                 // After the comment: neither can lose it. The fields never throw (CustomFieldsOfMyDataRow)
                 $changedFields = $ownFields->changed($inputs);
-                $allSaved = $changedFields === [] || $this->customFieldsOfMyDataRow->saveOnCollectionItemOfSignedInViewer($itemId, $changedFields);
+                $fieldsSaved = $changedFields === [] || $this->customFieldsOfMyDataRow->saveOnCollectionItemOfSignedInViewer($itemId, $changedFields);
+                // null = no move asked for; false = it failed; 0 = the handler moved nothing (the puzzle left the
+                // collection meanwhile, or the other one holds it by now)
+                $moved = $pickedCollection !== $storedCollection ? $this->move($viewer->playerId, $puzzleId, $storedCollection, $pickedCollection) : null;
 
-                if ($pickedCollection !== $storedCollection) {
-                    $allSaved = $this->move($viewer->playerId, $puzzleId, $storedCollection, $pickedCollection) && $allSaved;
+                // "Saved" only for what was saved
+                if ($commentChanged || ($changedFields !== [] && $fieldsSaved) || ($moved !== null && $moved !== false && $moved > 0)) {
+                    $this->addFlash('success', $this->translator->trans('my_data.edit.saved'));
                 }
 
-                if ($allSaved === false) {
+                if ($moved === 0) {
+                    $this->addFlash('warning', $this->translator->trans('my_data.edit.not_moved'));
+                }
+
+                if ($fieldsSaved === false || $moved === false) {
                     $this->addFlash('warning', $this->translator->trans('my_data.edit.partly_saved'));
                 }
 
@@ -162,6 +180,7 @@ final class MyDataPuzzleRowController extends AbstractController
             'collections' => $collections,
             'picked_collection' => $pickedCollection,
             'collection_error' => $collectionError,
+            'comment_error' => $commentError,
             'solved' => $this->getExportablePuzzleSolveSummary->forPuzzles($viewer->playerId, [$puzzleId])[$puzzleId] ?? null,
             'my_fields' => new CustomFieldsForm($ownFields->fields, $inputs, $problems),
             'return_url' => $returnUrl,
@@ -169,7 +188,7 @@ final class MyDataPuzzleRowController extends AbstractController
         ]);
 
         // A refused save is never a 200: Turbo Drive drops a 200 answer to a form submission
-        if ($problems !== [] || $collectionError !== null) {
+        if ($problems !== [] || $collectionError !== null || $commentError !== null) {
             $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -204,19 +223,33 @@ final class MyDataPuzzleRowController extends AbstractController
     }
 
     /**
-     * Never throws: the comment is saved and answered.
+     * The comment form's limit, in its words - null = the comment can be stored. Shared with the cell edited in place.
      */
-    private function move(string $playerId, string $puzzleId, string $storedCollection, string $pickedCollection): bool
+    public static function commentRefusal(string $comment, TranslatorInterface $translator): null|string
+    {
+        if (mb_strlen($comment) <= self::COMMENT_MAX_LENGTH) {
+            return null;
+        }
+
+        return $translator->trans(self::COMMENT_TOO_LONG, ['%count%' => self::COMMENT_MAX_LENGTH, '{{ limit }}' => self::COMMENT_MAX_LENGTH], 'validators');
+    }
+
+    /**
+     * Never throws: the comment is saved and answered.
+     *
+     * @return false|int how many items the handler moved (SelectedPuzzlesOutcome::$changed) - false = it failed
+     */
+    private function move(string $playerId, string $puzzleId, string $storedCollection, string $pickedCollection): false|int
     {
         try {
-            $this->messageBus->dispatch(new MovePuzzlesToCollection(
+            $outcome = $this->messageBus->dispatch(new MovePuzzlesToCollection(
                 playerId: $playerId,
                 puzzleIds: [$puzzleId],
                 sourceCollectionId: $storedCollection === self::MAIN_COLLECTION ? null : $storedCollection,
                 targetCollectionId: $pickedCollection === self::MAIN_COLLECTION ? null : $pickedCollection,
-            ));
+            ))->last(HandledStamp::class)?->getResult();
 
-            return true;
+            return $outcome instanceof SelectedPuzzlesOutcome ? $outcome->changed : false;
         } catch (\Throwable $exception) {
             $this->logger->warning('A puzzle could not be moved to another collection from My data - its comment was saved', [
                 'puzzleId' => $puzzleId,

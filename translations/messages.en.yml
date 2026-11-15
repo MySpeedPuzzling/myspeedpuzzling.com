@@ -13045,3 +13045,5 @@ my_data:
         collection_unknown: "Choose one of your collections."
         collection_holds_it: "That collection already holds this puzzle."
         cell_hint: "Press Enter to save, Esc to cancel."
+        in_sheet_only: "Other puzzlers are on this result - open the row to edit it, so they are told once."
+        not_moved: "The puzzle was not moved: it is no longer in that collection, or the other collection already holds it."

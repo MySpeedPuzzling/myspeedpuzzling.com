@@ -35,6 +35,8 @@ readonly final class MyDataResultRow
         public null|string $teamName,
         public null|SolvingTimeSource $source,
         public bool $suspicious,
+        // The player tracked it and nobody else registered is on it (solo, or a group with guests only)
+        public bool $onlyRegisteredMember = true,
     ) {
     }
 
@@ -61,6 +63,17 @@ readonly final class MyDataResultRow
      * MyDataResultEdit::cell() makes of the stored result: the time as `h:mm:ss`, the exact day as `Y-m-d` ('' while
      * only the month or year is known).
      */
+    /**
+     * Whether its cells are edited in place: only where the player is the only registered person of the result. Every
+     * save of a pair's or team's result tells the other registered members (GroupSolvingTimeEdited) - one cell after
+     * another would be one notification each, so such a result is edited through its row sheet: one save, one
+     * notification (docs/features/my-data.md "Editing in place").
+     */
+    public function isEditableInPlace(): bool
+    {
+        return $this->isEditable() && $this->onlyRegisteredMember;
+    }
+
     public function editValue(string $field): string
     {
         return match ($field) {
@@ -117,6 +130,7 @@ readonly final class MyDataResultRow
          *     team_name: null|string,
          *     created_via: null|string,
          *     suspicious: bool,
+         *     only_registered_member: bool,
          * } $row
          */
         return new self(
@@ -136,6 +150,7 @@ readonly final class MyDataResultRow
             teamName: $row['team_name'],
             source: SolvingTimeSource::tryFrom($row['created_via'] ?? ''),
             suspicious: $row['suspicious'],
+            onlyRegisteredMember: $row['only_registered_member'],
         );
     }
 }

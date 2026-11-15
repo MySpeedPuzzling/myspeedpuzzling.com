@@ -12794,3 +12794,5 @@ my_data:
         collection_unknown: "Choisissez l'une de vos collections."
         collection_holds_it: "Cette collection contient déjà ce puzzle."
         cell_hint: "Entrée enregistre, Échap annule."
+        in_sheet_only: "D'autres puzzleurs figurent sur ce résultat - ouvrez la ligne pour le modifier, ils ne seront ainsi prévenus qu'une fois."
+        not_moved: "Le puzzle n'a pas été déplacé : il n'est plus dans cette collection, ou l'autre collection le contient déjà."

@@ -23,7 +23,7 @@ sandbox from the stage that can read them.
 | 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
 | 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
-| 2a-c | My data | not started | | | |
+| 2a-c | My data | **2a live 2026-11-15** (#365, read-only); 2b (edit a row) building; 2c (many at once) not started | #365 | yes | sandbox: 1,466 results, 890 puzzles |
 | 8 | Entry points and the guide | not started | | | |
 
 ## How every stage is built
@@ -55,6 +55,17 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 2a live** (#365): My data `/{_locale}/my-data` - the player's own results, puzzles and wish
+  list as a table (≥ 992 px) or a compact list (phone), search, filters, sort, paging in SQL, own fields as
+  columns, a column chooser remembered per player; read-only. Production plans before the merge: the results page
+  13-18 ms for the heaviest accounts, 39 ms with search + year + first tries, the puzzles page 8 ms for the largest
+  library. Review: merge; fixed first - a private teammate was named in clear (now masked as on the profile); the
+  year filter, the chooser forgetting own-field choices, filters folded behind "Filters" on phones. On the sandbox
+  with the imported history: 1,466 results and 890 puzzles, pages in 0.2-0.4 s. Loose: the results EXPORT still
+  names a private teammate in clear (older behaviour, left alone - Jan's call).
+- 2026-11-15 - building: stage 8 (entry points and the public guide - the step that makes the import
+  discoverable) and 2b (editing one row of My data through the edit form's messages and checks).
 
 - 2026-11-15 - **stage 7 live** (#363): unlisted puzzles in their own tables (`unlisted_puzzle`, `unlisted_result`,
   `unlisted_ownership`, `unlisted_pairing` - nothing unlisted is ever a row of `puzzle`, `puzzle_solving_time`,

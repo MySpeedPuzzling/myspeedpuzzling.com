@@ -70,7 +70,8 @@ final class SearchImportPuzzleController extends AbstractController
                 $card,
                 $this->getImportPuzzleScreen->rowsOf($importId, $player->playerId, $importPuzzleId, ImportPuzzleChooserController::ROWS_SHOWN),
                 $typed,
-                $this->getImportPuzzleScreen->search($player->playerId, $typed, $card->piecesCount),
+                $this->getImportPuzzleScreen->search($player->playerId, $typed, $card->piecesCount, $card->manufacturerId),
+                searchTooShort: GetImportPuzzleScreen::isSearchable($typed) === false,
             ),
             new Response(status: $request->headers->get('Turbo-Frame') === self::FRAME ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY),
         );

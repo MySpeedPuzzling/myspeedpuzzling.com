@@ -154,6 +154,15 @@ class DataImport
     public null|DateTimeImmutable $pairedAt = null;
 
     /**
+     * The pairing's own sign of life: when a run was last asked for, started or wrote a chunk of its search. What a
+     * page's "the pairing runs" and the safety net's "the run is standing" read - never `lastActivityAt`, which
+     * every decision and answer of the player moves too (a failed run must not look alive because the player works).
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $pairingAliveAt = null;
+
+    /**
      * How often the safety net asked for the pairing again because a run did not come to rest (it failed - a puzzle
      * merge beside it, a fault of ours; the queue has no retries). Bounded like a sheet's set-up attempts; back to
      * zero when a run ends.
@@ -416,6 +425,7 @@ class DataImport
     {
         $this->pairingRun++;
         $this->pairedAt = null;
+        $this->pairingAliveAt = $now;
         $this->lastActivityAt = $now;
 
         return $this->pairingRun;
@@ -429,6 +439,16 @@ class DataImport
     public function pairingDue(DateTimeImmutable $now): void
     {
         $this->pairedAt = null;
+        $this->pairingAliveAt = $now;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * A chunk of the run's similar-name search was written: the run is alive.
+     */
+    public function pairingGoesOn(DateTimeImmutable $now): void
+    {
+        $this->pairingAliveAt = $now;
         $this->lastActivityAt = $now;
     }
 
@@ -483,6 +503,7 @@ class DataImport
     {
         $this->pairingCounters = $counters;
         $this->pairedAt = $now;
+        $this->pairingAliveAt = $now;
         $this->pairingRequeues = 0;
         $this->lastActivityAt = $now;
     }
@@ -499,6 +520,7 @@ class DataImport
         }
 
         $this->pairingRequeues++;
+        $this->pairingAliveAt = $now;
         $this->lastActivityAt = $now;
 
         return true;

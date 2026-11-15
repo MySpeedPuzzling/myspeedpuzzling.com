@@ -205,7 +205,8 @@ final class ImportPuzzleMatcherTest extends KernelTestCase
         self::assertInstanceOf(InMemoryTransport::class, $transport);
         $asked = static fn (): int => count(array_filter($transport->getSent(), static fn ($envelope): bool => $envelope->getMessage() == new BuildImportPuzzles($importId)));
         $rest = fn () => $this->pairingDatabase()->executeStatement(
-            'UPDATE data_import SET last_activity_at = :at WHERE id = :id',
+            // The pairing's own sign of life is what counts - set once a run was asked for (pairing-screens.md "The live line")
+            'UPDATE data_import SET last_activity_at = :at, pairing_alive_at = CASE WHEN pairing_alive_at IS NULL THEN NULL ELSE CAST(:at AS TIMESTAMP) END WHERE id = :id',
             ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId],
         );
         $this->pairingEntityManager()->clear();

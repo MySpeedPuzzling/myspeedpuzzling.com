@@ -11822,6 +11822,7 @@ data_import:
         group_all_done: "Puzzles: %total% · Nichts wartet auf dich"
         pieces_differ: "Andere Teilezahl: In deiner Datei steht %file%, dieses Puzzle hat %puzzle%."
         pieces_differ_confirm: "In deiner Datei stehen %file% Teile, dieses Puzzle hat %puzzle%. Trotzdem auswählen?"
+        brand_differs: "Andere Marke: %brand%"
         live:
             pairing: "Wir suchen deine Puzzles in der Datenbank…"
             searching: "Wir suchen ähnliche Namen… Verbleibende Puzzles: %left%"
@@ -11898,6 +11899,9 @@ data_import:
             search_label: "Name, Teil eines Namens oder Barcode"
             search_button: "Suchen"
             search_empty: "Nichts gefunden. Versuche es mit weniger Wörtern oder dem Barcode."
+            search_short: "Gib mindestens zwei Zeichen oder einen Barcode ein."
+            confirm_yes: "Ja, auswählen"
+            confirm_no: "Nein, zurück zu den Puzzles"
             none_title: "Keines davon"
             unlisted: "Als nicht gelistetes Puzzle behalten"
             unlisted_hint: "Seine Zeilen bleiben bei deinem Import und nichts geht verloren. Nicht gelistete Puzzles - nur für dich sichtbar - kommen mit einem späteren Schritt."

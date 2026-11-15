@@ -213,7 +213,7 @@ SELECT
         data_import.paired_at IS NULL
         AND data_import.cells_wiped_at IS NULL
         AND data_import.pairing_requeues < :maxRequeues
-        AND data_import.last_activity_at > :pairingAliveSince
+        AND COALESCE(data_import.pairing_alive_at, data_import.last_activity_at) > :pairingAliveSince
         AND EXISTS (SELECT 1 FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.parsed_version IS NOT NULL)
     ) AS pairing_running,
     (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id) AS puzzles,

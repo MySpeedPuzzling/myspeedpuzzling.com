@@ -167,6 +167,60 @@ SQL, ['sheetId' => $sheetId, 'after' => $afterRowNumber, 'through' => $throughRo
     }
 
     /**
+     * One column's cells of a sheet, in the sheet's order, streamed - nothing else of the rows (what a puzzle list's
+     * names are read from when only a few of them are needed).
+     *
+     * @return \Generator<int, array<string, mixed>> row number => the cell
+     */
+    public function cellsOfColumn(string $sheetId, int $column): \Generator
+    {
+        $rows = $this->database->executeQuery(
+            'SELECT row_number, cells -> CAST(:column AS TEXT) AS cell FROM data_import_row WHERE sheet_id = :sheetId AND jsonb_exists(cells, CAST(:column AS TEXT)) ORDER BY row_number',
+            ['sheetId' => $sheetId, 'column' => (string) $column],
+        );
+
+        foreach ($rows->iterateAssociative() as $row) {
+            $cell = is_string($row['cell']) ? self::json($row['cell']) : null;
+
+            if ($cell !== null && is_int($row['row_number'])) {
+                /** @var array<string, mixed> $cell */
+                yield $row['row_number'] => $cell;
+            }
+        }
+    }
+
+    /**
+     * Some rows of a sheet by their numbers, as they are stored.
+     *
+     * @param list<int> $rowNumbers
+     *
+     * @return array<int, array<int, array<string, mixed>>> row number => cells by column
+     */
+    public function rowsByNumbers(string $sheetId, array $rowNumbers): array
+    {
+        if ($rowNumbers === []) {
+            return [];
+        }
+
+        /** @var list<array{row_number: int, cells: null|string}> $rows */
+        $rows = $this->database->executeQuery(
+            'SELECT row_number, cells FROM data_import_row WHERE sheet_id = :sheetId AND row_number IN (:numbers) ORDER BY row_number',
+            ['sheetId' => $sheetId, 'numbers' => $rowNumbers],
+            ['numbers' => ArrayParameterType::INTEGER],
+        )->fetchAllAssociative();
+
+        $byNumber = [];
+
+        foreach ($rows as $row) {
+            /** @var array<int, array<string, mixed>> $cells */
+            $cells = self::json($row['cells']) ?? [];
+            $byNumber[$row['row_number']] = $cells;
+        }
+
+        return $byNumber;
+    }
+
+    /**
      * The keys several rows of a sheet are equal by, in the keys' order after one of them - a page of whole
      * groups, never a cut one.
      *

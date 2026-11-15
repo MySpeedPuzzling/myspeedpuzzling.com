@@ -180,7 +180,7 @@ WHERE data_import.status = :status
                 )
             )
     )
-ORDER BY data_import.last_activity_at
+ORDER BY COALESCE(data_import.pairing_alive_at, data_import.last_activity_at)
 LIMIT :limit
 SQL, [
             'status' => DataImportStatus::SettingUp->value,
@@ -210,7 +210,8 @@ WHERE data_import.status = :status
     AND data_import.paired_at IS NULL
     AND data_import.cells_wiped_at IS NULL
     AND data_import.pairing_requeues < :maxRequeues
-    AND data_import.last_activity_at < :since
+    -- The pairing's own sign of life - the player's decisions and answers move last_activity_at, not this
+    AND COALESCE(data_import.pairing_alive_at, data_import.last_activity_at) < :since
     AND data_import.read_finished_at > :readAfter
     AND EXISTS (
         SELECT 1

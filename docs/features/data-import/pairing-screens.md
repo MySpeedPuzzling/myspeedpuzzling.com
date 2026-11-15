@@ -110,9 +110,12 @@ One puzzle per screen, top to bottom on a phone (560 px at most on a desktop):
    opens its row sheet).
 2. When it is decided: how, with "Take the decision back".
 3. **"Is it one of these?"** - the candidates as large cards: a big picture on top, name, brand, pieces, why. **The
-   whole card is the button**; a tap chooses. A candidate with another piece count carries the red line and asks
-   once more before it is taken ("Your file says 500 pieces, this puzzle has 1,000. Choose it anyway?") - it can
-   only be chosen here, one by one.
+   whole card is the button**; a tap chooses. A candidate with another piece count carries the red line, and a tap
+   on it writes nothing: **the server asks once more** (the chooser again with a 422 and "Your file says 500 pieces,
+   this puzzle has 1,000. Choose it anyway?" - `DecideImportPuzzles` refuses it without `confirmedOtherPieces`, so
+   it is asked without a script too). Only "Yes, choose it" takes it - here, one by one. A candidate of **another
+   brand** than the file's (the file's brand text stands for a catalogue brand, the puzzle is another one's) says
+   so as prominently, "Another brand: Jumbo" - on the lists' cards too; no extra question.
 4. **Search the database** (below).
 5. **None of these**, folded: "Keep it as an unlisted puzzle" (stored as the `unlisted` decision - "Its rows stay
    with your import and nothing is lost. Unlisted puzzles - visible only to you - arrive with a later step.") and
@@ -132,7 +135,8 @@ A text field prefilled with the puzzle's name as the file writes it; a name, a p
 code - `PuzzleTextSearch`, as the site's search - among the puzzles that may be a candidate for this player
 (`GetImportPuzzleCandidates::sqlCandidate()`: never hidden, secret or somebody else's unapproved puzzle). The best
 match first, the file's piece count first among equals, then the most solved; 20 results, the same cards, each a
-button. Whatever is picked goes through `DecideImportPuzzles`, which checks it again.
+button. **Two characters at least** (a barcode is longer anyway) - checked by the server; less searches nothing and
+says what to type. Whatever is picked goes through `DecideImportPuzzles`, which checks it again.
 
 **It is a POST** although it changes nothing: nothing of a file - and the field is prefilled with it - may stand in
 an address. The form targets its own frame (`<turbo-frame id="import-puzzle-search">`): with the `Turbo-Frame` header
@@ -155,6 +159,7 @@ Every button posts to `data_import_puzzles_decide`:
 | saved, from a list | 302 to the list's page, at the card (`#puzzle-<id>`) |
 | saved, in "Do the next 20" | 302 to the next puzzle that waits |
 | `ImportPuzzleDecidedMeanwhile` (another tab, a run of the pairing) | nothing written; 302 to the page as it stands now, "This was decided meanwhile …" |
+| `ImportPuzzleChoiceRefused` `other_piece_count_unconfirmed` (another piece count, tapped) | nothing written; **422**: the chooser with the question and "Yes, choose it" (`confirmed_other_pieces=1`) |
 | `ImportPuzzleChoiceRefused` (a hidden puzzle sent by hand, another piece count in a group) | nothing written; 302 with a plain notice |
 
 "Not this one" is `Undecided` on an automatic "found": the puzzle stays undecided through every later run of the
@@ -173,6 +178,11 @@ the sheet decides - **grouped by field, what is unclear and the value as the she
 - "Look at one of these rows" opens a row sheet.
 - A group whose field can not be answered here (a brand code, "solved with") says so and offers the row and the
   sheet's columns.
+- **A group without a value never gets one answer**: rows without a name (`no_name`) or a status whose date could
+  not be read share a problem, not a puzzle or a day - one name for 37 nameless rows would make them one puzzle.
+  Such a group offers only "Leave these rows out" and a row to open; the handler refuses a shared answer for it,
+  and one for another field than the group's.
+- "Rows fixed: N" counts the rows whose problem went away, not the rows that were touched.
 
 A group is named by a key in its form - `md5(field:code:value)`, `ImportRowAnswers::problemKey()`, the same in SQL -
 never by its value.
@@ -192,6 +202,9 @@ mapping gives it and a player can answer - the file's own text beside an input:
 | Solo / pair / team | select | solo · pair · team |
 | First try, solved without the box, I own it | select | yes · no |
 | Status | select | a result · a puzzle I own · both · wish list |
+
+A "Completed" column that carried a date we could not read, on a sheet without a date column, gets a "Solved on"
+input here: the day settles it, an answer about the status never would.
 
 What the player types becomes the row's answer; a field left as it is changes nothing; **an emptied field takes its
 answer back** (the cell's own value is read again). "Leave this row out" / "Take this row in again". The page
@@ -213,7 +226,9 @@ import's lock, **everything checked before anything is written**:
 | `ImportRowsChangedMeanwhile` (409) | the row's sheet is not parsed for its current mapping (it is just being read again), something was already made of the row, or its stamp is not what the page showed |
 
 With `onlyWithProblem` (a group of "To fix") a row that does not carry the group's problem any more is passed over
-instead of refusing - the handler answers how many rows it changed.
+instead of refusing; a typed value is taken only for the group's own field and only when the group has a value
+(`not_answerable` otherwise). The handler answers how many rows it changed - for a group's answer: the rows whose
+problem went away.
 
 **What an answer is.** `data_import_row.answers`:
 `{"time": {"text": "1:15:00", "value": 4500}, "pieces": {"text": "1000", "value": 1000}, "leftOut": true}` - the
@@ -233,8 +248,11 @@ of it (keys included: an answered name is another puzzle key). Then:
 - once that is committed (`DispatchAfterCurrentBusStamp`): `LinkEqualImportRows` (the same result on two sheets)
   and `BuildImportPuzzles` (the import's puzzles and their pairing).
 
-A sheet that looks brand and pieces up in a puzzle list builds that lookup once per message (the list's rows are
-read - up to the import's row limit).
+A sheet that looks brand and pieces up in a puzzle list asks the list **about the names of the answered rows
+only**: the list's name cells are read alone (`GetImportSheetRows::cellsOfColumn()`, one light statement, streamed),
+folded like a key's, and only the rows that hold one of the names are read whole and given to `SheetLookupFactory` -
+the same answer as the whole list's for those names (a name the list has twice differently is still a question),
+without building a 50,000-row lookup in a request under the import's lock.
 
 ## The live line
 
@@ -255,6 +273,10 @@ The payload gained, numbers only:
   one together, and whenever it changes every `<turbo-frame data-import-live>` is loaded again;
 - `running` = the import is being set up, is not paired, has a parsed sheet, and its run gave a sign of life in the
   last 20 minutes and was not given up - so a run that failed is not polled for ever (the safety net tries it again).
+- **The sign of life is the pairing's own**: `data_import.pairing_alive_at` (a generated migration), set when a run
+  is due (`pairingDue()`), starts, writes a chunk of its search, comes to rest or is asked for again. `running` and
+  the safety net (`DataImportRepository::idsPairingStandingSince()`) read it - not `last_activity_at`, which every
+  decision and answer of the player moves: a failed run no longer looks alive because the player keeps working.
 
 While it runs the line says "Looking up your puzzles in the database…", then "Looking for similar names… Puzzles
 left: 120" (from the payload, without loading anything again).

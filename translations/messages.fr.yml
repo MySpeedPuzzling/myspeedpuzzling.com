@@ -11818,6 +11818,7 @@ data_import:
         group_all_done: "Puzzles : %total% · Rien ne vous attend"
         pieces_differ: "Autre nombre de pièces : votre fichier indique %file%, ce puzzle en a %puzzle%."
         pieces_differ_confirm: "Votre fichier indique %file% pièces, ce puzzle en a %puzzle%. Le choisir quand même ?"
+        brand_differs: "Autre marque : %brand%"
         live:
             pairing: "Recherche de vos puzzles dans la base de données…"
             searching: "Recherche de noms similaires… Puzzles restants : %left%"
@@ -11894,6 +11895,9 @@ data_import:
             search_label: "Nom, partie du nom ou code-barres"
             search_button: "Rechercher"
             search_empty: "Rien trouvé. Essayez avec moins de mots, ou avec le code-barres."
+            search_short: "Saisissez au moins deux caractères, ou un code-barres."
+            confirm_yes: "Oui, le choisir"
+            confirm_no: "Non, retour aux puzzles"
             none_title: "Aucun de ceux-ci"
             unlisted: "Le conserver comme puzzle hors catalogue"
             unlisted_hint: "Ses lignes restent dans votre import et rien n'est perdu. Les puzzles hors catalogue - visibles uniquement par vous - arriveront dans une étape ultérieure."

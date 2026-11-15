@@ -71,11 +71,21 @@ final class ImportPuzzleChooserController extends AbstractController
     /**
      * @param list<ImportSheetRow> $rows
      * @param null|list<ImportCataloguePuzzle> $found what the player's search found - null: nothing was searched
+     * @param null|ImportCataloguePuzzle $askOtherPieces the puzzle of another piece count the player tapped - asked about once more
      *
      * @return array<string, mixed>
      */
-    public static function parameters(string $flow, int $done, DataImportOverview $import, ImportPuzzleCard $card, array $rows, null|string $searched, null|array $found): array
-    {
+    public static function parameters(
+        string $flow,
+        int $done,
+        DataImportOverview $import,
+        ImportPuzzleCard $card,
+        array $rows,
+        null|string $searched,
+        null|array $found,
+        bool $searchTooShort = false,
+        null|ImportCataloguePuzzle $askOtherPieces = null,
+    ): array {
         $flow = in_array($flow, GetImportPuzzleScreen::GROUPS, true) ? $flow : null;
 
         return [
@@ -87,6 +97,9 @@ final class ImportPuzzleChooserController extends AbstractController
             'portion' => NextImportPuzzleController::PORTION,
             'searched' => $searched,
             'found' => $found,
+            'search_too_short' => $searchTooShort,
+            // "Your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" (DecideImportPuzzlesController)
+            'ask_other_pieces' => $askOtherPieces,
         ];
     }
 }

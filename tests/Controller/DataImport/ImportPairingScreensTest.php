@@ -10,6 +10,8 @@ use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\ImportRowAnswerRefused;
+use SpeedPuzzling\Web\Message\AnswerImportRows;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
@@ -20,8 +22,10 @@ use SpeedPuzzling\Web\Message\StartImport;
 use SpeedPuzzling\Web\MessageHandler\ParseImportSheetHandler;
 use SpeedPuzzling\Web\MessageHandler\ProposeImportMappingsHandler;
 use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
+use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowAnswers;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\Services\DataImport\ImportPairingScenario;
@@ -32,6 +36,7 @@ use SpeedPuzzling\Web\Value\DataImportFileKind;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -121,6 +126,16 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertStringNotContainsString('does not update by itself', (string) $this->browser->getResponse()->getContent());
         $this->browser->request('GET', '/en/import/' . $importId . '/progress');
         self::assertStringContainsString('"running":true', (string) $this->browser->getResponse()->getContent());
+
+        // The run gave no sign of life for an hour while the player kept working (decisions and answers move the
+        // import's last activity, not the pairing's): it is not "running" for the page any more
+        $this->database->executeStatement("UPDATE data_import SET pairing_alive_at = :then, last_activity_at = :now WHERE id = :id", ['id' => $importId, 'then' => TestClock::now()->modify('-1 hour')->format('Y-m-d H:i:s'), 'now' => TestClock::FROZEN_NOW]);
+        $this->browser->request('GET', '/en/import/' . $importId . '/progress');
+        self::assertStringContainsString('"running":false', (string) $this->browser->getResponse()->getContent());
+        // ... and the safety net sees it standing
+        self::assertContains($importId, self::getContainer()->get(DataImportRepository::class)->idsPairingStandingSince(TestClock::now()->modify('-15 minutes'), TestClock::now()->modify('-1 day'), 10));
+        $this->database->executeStatement('UPDATE data_import SET pairing_alive_at = :now WHERE id = :id', ['id' => $importId, 'now' => TestClock::FROZEN_NOW]);
+        self::assertNotContains($importId, self::getContainer()->get(DataImportRepository::class)->idsPairingStandingSince(TestClock::now()->modify('-15 minutes'), TestClock::now()->modify('-1 day'), 10));
 
         // The import's own page follows too, and leads here
         $detail = $this->browser->request('GET', '/en/import/' . $importId);
@@ -410,6 +425,11 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-testid="import-chooser-search-result"]'));
         self::assertCount(1, $crawler->filter('[data-testid="import-chooser-search-empty"]'));
 
+        // One letter is most of the catalogue: nothing is searched, and the page says what to type
+        $crawler = $this->browser->request('POST', $url . '/search', ['_token' => $token, 'search' => 'Z'], server: ['HTTP_TURBO_FRAME' => 'import-puzzle-search']);
+        self::assertCount(0, $crawler->filter('[data-testid="import-chooser-search-result"]'));
+        self::assertStringContainsString('at least two characters', $crawler->filter('[data-testid="import-chooser-search-short"]')->text());
+
         // A barcode finds its puzzle
         $crawler = $this->browser->request('POST', $url . '/search', ['_token' => $token, 'search' => $scenario['ean']], server: ['HTTP_TURBO_FRAME' => 'import-puzzle-search']);
         self::assertSame([$scenario['probably']], $crawler->filter('[data-testid="import-chooser-search-result"]')->each(static fn (Crawler $result): string => (string) $result->attr('data-puzzle-id')));
@@ -428,7 +448,7 @@ final class ImportPairingScreensTest extends WebTestCase
             self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
         }
 
-        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $nothing['id'], 'version' => '0', 'catalogue' => $scenario['ownUnapproved'], 'from' => 'chooser', 'group' => 'not-found']);
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $nothing['id'], 'version' => '0', 'catalogue' => $scenario['ownUnapproved'], 'from' => 'chooser', 'group' => 'not-found', 'confirmed_other_pieces' => '1']);
         self::assertResponseRedirects($url);
         $crawler = $this->browser->followRedirect();
         self::assertSame(['catalogue', $scenario['ownUnapproved']], [$this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice'], $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['puzzle_id']]);
@@ -449,7 +469,7 @@ final class ImportPairingScreensTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'old' => $merged, 'survivor' => $survivor, 'now' => TestClock::FROZEN_NOW],
         );
         $this->database->executeStatement(
-            "UPDATE data_import_puzzle SET tier = 'choose', candidates = CAST(:candidates AS JSONB) WHERE id = :id",
+            "UPDATE data_import_puzzle SET tier = 'choose', manufacturer_id = (SELECT id FROM manufacturer WHERE name = 'Zq5bbrand'), candidates = CAST(:candidates AS JSONB) WHERE id = :id",
             ['id' => $nothing['id'], 'candidates' => json_encode([['puzzleId' => $merged, 'how' => 'similar_name', 'score' => 0.7, 'piecesDiffer' => false], ['puzzleId' => $scenario['hidden'], 'how' => 'name', 'score' => null, 'piecesDiffer' => false]])],
         );
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
@@ -463,7 +483,9 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('Zq5b Survivor Castle', self::spaced($candidates->filter('[data-testid="catalogue-puzzle-name"]')->text()));
         self::assertSame('Similar name.', self::spaced($candidates->filter('[data-testid="catalogue-puzzle-why"]')->text()));
         self::assertSame('Another piece count: your file says 300, this puzzle has 2,000.', self::spaced($candidates->filter('[data-testid="catalogue-puzzle-pieces-differ"]')->text()));
-        self::assertStringContainsString('Choose it anyway?', (string) $candidates->attr('data-turbo-confirm'));
+        // ... and the file's brand is another one than the candidate's: said as prominently
+        self::assertSame('Another brand: Zq5bsurvivor', self::spaced($candidates->filter('[data-testid="catalogue-puzzle-brand-differs"]')->text()));
+        self::assertNull($candidates->attr('data-turbo-confirm'));
 
         // On its list the card does not offer a tick: "Have a look"
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/choose');
@@ -471,8 +493,18 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertCount(0, $card->filter('[data-testid="import-puzzle-tick"]'));
         self::assertSame('Have a look', self::spaced($card->filter('[data-testid="import-puzzle-choose"]')->text()));
 
-        // Chosen alone, after the warning, it is the survivor that is stored
-        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $nothing['id'], 'version' => '0', 'catalogue' => $survivor, 'group' => 'choose', 'page' => '1']);
+        // A tap on it writes nothing: the server asks once more - with or without a script
+        $choice = ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $nothing['id'], 'version' => '0', 'catalogue' => $survivor, 'from' => 'chooser', 'group' => 'choose'];
+        $crawler = $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', $choice);
+        self::assertResponseStatusCodeSame(422);
+        $question = $crawler->filter('[data-testid="import-chooser-ask-pieces"]');
+        self::assertStringContainsString('Your file says 300 pieces, this puzzle has 2,000. Choose it anyway?', self::spaced($question->text()));
+        self::assertSame('1', $question->filter('input[name="confirmed_other_pieces"]')->attr('value'));
+        self::assertSame($survivor, $question->filter('input[name="catalogue"]')->attr('value'));
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
+
+        // Only the button that says yes takes it - and it is the survivor that is stored
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', [...$choice, 'confirmed_other_pieces' => '1']);
         self::assertResponseRedirects();
         self::assertSame($survivor, $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['puzzle_id']);
     }
@@ -783,6 +815,109 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('waiting', $this->database->fetchOne('SELECT state FROM data_import_row WHERE id = :id', ['id' => $rowId]));
     }
 
+    public function testRowsWithoutAValueNeverGetOneSharedAnswer(): void
+    {
+        $importId = $this->imported();
+        // Two rows that share a problem without a value - as rows without a name do
+        $this->database->executeStatement(
+            "UPDATE data_import_row SET problems = '[{\"field\": \"puzzle_name\", \"code\": \"no_name\"}]'::jsonb WHERE import_id = :id AND row_number IN (2, 3)",
+            ['id' => $importId],
+        );
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/to-fix');
+        $group = $crawler->filter('[data-testid="import-to-fix-group"][data-code="no_name"]');
+        self::assertSame('2', $group->attr('data-rows'));
+        // No shared answer: only "Leave these rows out" and a row to open
+        self::assertCount(0, $group->filter('[data-testid="import-to-fix-answer"]'));
+        self::assertCount(1, $group->filter('[data-testid="import-to-fix-not-answerable"]'));
+        self::assertCount(1, $group->filter('[data-testid="import-to-fix-leave-out"]'));
+        self::assertCount(1, $group->filter('[data-testid="import-to-fix-open-row"]'));
+        $key = (string) $group->filter('input[name="group"]')->first()->attr('value');
+
+        // Sent by hand: refused by the page ...
+        $this->browser->request('POST', '/en/import/' . $importId . '/to-fix', ['_token' => $this->token($crawler), 'group' => $key, 'page' => '1', 'action' => 'answer', 'answer' => 'Zq5b One Name For All']);
+        self::assertResponseStatusCodeSame(422);
+
+        // ... and by the handler itself
+        try {
+            $this->bus->dispatch(new AnswerImportRows($importId, PlayerFixture::PLAYER_REGULAR, [$this->rowId($importId, 2), $this->rowId($importId, 3)], ['puzzle_name' => 'Zq5b One Name For All'], onlyWithProblem: $key));
+            self::fail('A shared answer for rows without a value must be refused.');
+        } catch (HandlerFailedException $refused) {
+            $cause = $refused->getPrevious();
+            self::assertInstanceOf(ImportRowAnswerRefused::class, $cause);
+            self::assertSame(ImportRowAnswerRefused::NOT_ANSWERABLE, $cause->reason);
+        }
+
+        // An answer for another field than the group's is refused the same way
+        $timeKey = ImportRowAnswers::problemKey('pieces', 'pieces_unreadable', 'lots');
+
+        try {
+            $this->bus->dispatch(new AnswerImportRows($importId, PlayerFixture::PLAYER_REGULAR, [$this->rowId($importId, 5)], ['puzzle_name' => 'Zq5b Renamed'], onlyWithProblem: $timeKey));
+            self::fail('A group is answered in its own field only.');
+        } catch (HandlerFailedException $refused) {
+            self::assertInstanceOf(ImportRowAnswerRefused::class, $refused->getPrevious());
+        }
+
+        self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND answers IS NOT NULL', ['id' => $importId]));
+    }
+
+    public function testAnAnsweredRowLooksItsBrandAndPiecesUpOnThePuzzleListByItsNameOnly(): void
+    {
+        $text = RawXlsx::inline(...);
+        $number = static fn (int $value): string => RawXlsx::n((string) $value);
+        $time = static fn (int $seconds): string => RawXlsx::n((string) ($seconds / 86400), 1);
+        $date = static fn (string $day): string => RawXlsx::n((string) (intdiv((int) (new \DateTimeImmutable($day . ' UTC'))->format('U'), 86400) + 25569), 2);
+        $importId = $this->imported(sheets: [
+            'Puzzle List' => [
+                1 => [$text('Puzzle'), $text('Brand'), $text('Pieces')],
+                2 => [$text('Zq5b List Alpha'), $text('Ravensburger'), $number(500)],
+                3 => [$text('Zq5b List Beta'), $text('Jumbo'), $number(1000)],
+                4 => [$text('Zq5b List Gamma'), $text('Trefl'), $number(1500)],
+                5 => [$text('Zq5b List Twice'), $text('Trefl'), $number(500)],
+                6 => [$text('Zq5b List Twice'), $text('Jumbo'), $number(2000)],
+            ],
+            'Results' => [
+                1 => [$text('Puzzle'), $text('Date'), $text('Time')],
+                2 => [$text('Zq5b List Alpha'), $date('2026-01-10'), $time(2893)],
+                3 => [$text('Zq5b List Beta'), $date('2026-01-11'), $time(2750)],
+                4 => [$text('Zq5b List Gamma'), $date('2026-01-12'), $time(2411)],
+                5 => [$text('Zq5b List Alpha'), $date('2026-01-13'), $time(2380)],
+                6 => [$text('Zq5b List Gamma'), $date('2026-01-14'), $text('about an hour')],
+            ],
+        ]);
+        $results = $this->database->fetchOne("SELECT id FROM data_import_sheet WHERE import_id = :id AND title = 'Results'", ['id' => $importId]);
+        self::assertIsString($results);
+        $rowId = $this->database->fetchOne('SELECT id FROM data_import_row WHERE sheet_id = :sheet AND row_number = 6', ['sheet' => $results]);
+        self::assertIsString($rowId);
+        // The results name their puzzle only: brand and pieces come from the list
+        self::assertSame(['Trefl', '1500'], array_values((array) $this->database->fetchAssociative("SELECT parsed ->> 'brand' AS brand, parsed ->> 'pieces' AS pieces FROM data_import_row WHERE id = :id", ['id' => $rowId])));
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $url = '/en/import/' . $importId . '/rows/' . $rowId;
+        $crawler = $this->browser->request('GET', $url);
+        $token = $this->token($crawler);
+        $save = function (array $answers) use ($url, $token): void {
+            $stamp = (string) $this->browser->request('GET', $url)->filter('input[name="stamp"]')->first()->attr('value');
+            $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'save', 'answers' => $answers]);
+            self::assertResponseRedirects($url);
+        };
+
+        // Only the time is answered: the list is still asked about the row's name
+        $save(['time' => '1:02:03']);
+        self::assertSame(['Trefl', '1500', '3723'], array_values((array) $this->database->fetchAssociative("SELECT parsed ->> 'brand' AS brand, parsed ->> 'pieces' AS pieces, parsed ->> 'seconds' AS seconds FROM data_import_row WHERE id = :id", ['id' => $rowId])));
+
+        // The name is answered: the list's word on the answered name
+        $save(['puzzle_name' => 'zq5b list  BETA']);
+        self::assertSame(['Jumbo', '1000', null], array_values((array) $this->database->fetchAssociative("SELECT parsed ->> 'brand' AS brand, parsed ->> 'pieces' AS pieces, problems::text AS problems FROM data_import_row WHERE id = :id", ['id' => $rowId])));
+
+        // A name the list has twice, differently, is still a question of the row - found although only that name was read
+        $save(['puzzle_name' => 'Zq5b List Twice']);
+        $problems = $this->database->fetchOne('SELECT problems::text FROM data_import_row WHERE id = :id', ['id' => $rowId]);
+        self::assertIsString($problems);
+        self::assertStringContainsString('lookup_ambiguous', $problems);
+    }
+
     public function testRowsThatBecomeEqualByAnAnswerAreOneResultAndNumbered(): void
     {
         $importId = $this->imported();
@@ -948,9 +1083,10 @@ final class ImportPairingScreensTest extends WebTestCase
      * which two rows have a time nobody can read (the same text), one a piece count nobody can read, and two are
      * plain. Every puzzle is invented.
      *
+     * @param null|array<string, array<int, list<string>>> $sheets the workbook's sheets instead: title => row number => cells from column A
      * @param int $more rows on top that each have an unreadable time of their own (and six times as many plain rows) - for the statement budgets
      */
-    private function imported(int $more = 0): string
+    private function imported(int $more = 0, null|array $sheets = null): string
     {
         $text = RawXlsx::inline(...);
         $number = static fn (int $value): string => RawXlsx::n((string) $value);
@@ -985,7 +1121,22 @@ final class ImportPairingScreensTest extends WebTestCase
         }
 
         $workbook = (new RawXlsx())->styles(['[h]:mm:ss', 'yyyy-mm-dd']);
-        $workbook->sheet('Results', RawXlsx::worksheet($cells));
+
+        foreach ($sheets ?? [] as $title => $sheetRows) {
+            $sheetCells = [];
+
+            foreach ($sheetRows as $rowNumber => $row) {
+                foreach ($row as $index => $cell) {
+                    $sheetCells[$rowNumber][['A', 'B', 'C', 'D'][$index]] = $cell;
+                }
+            }
+
+            $workbook->sheet($title, RawXlsx::worksheet($sheetCells));
+        }
+
+        if ($sheets === null) {
+            $workbook->sheet('Results', RawXlsx::worksheet($cells));
+        }
 
         $path = tempnam(sys_get_temp_dir(), 'msp-import-test');
         assert($path !== false);

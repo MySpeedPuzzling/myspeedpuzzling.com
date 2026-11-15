@@ -32,5 +32,11 @@
                 <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.pieces_differ'|trans({'%file%': file_pieces|format_number, '%puzzle%': puzzle.piecesCount|format_number}) }}
             </span>
         {% endif %}
+        {% if puzzle.brandDiffers and puzzle.brandName is not null %}
+            {# The file names another brand: as prominent as another piece count - no extra question #}
+            <span class="d-block fs-sm fw-semibold text-danger mt-1" data-testid="catalogue-puzzle-brand-differs">
+                <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.brand_differs'|trans({'%brand%': puzzle.brandName}) }}
+            </span>
+        {% endif %}
     </span>
 </span>

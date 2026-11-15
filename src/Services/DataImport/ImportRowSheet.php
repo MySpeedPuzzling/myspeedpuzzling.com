@@ -65,6 +65,28 @@ final class ImportRowSheet
             ];
         }
 
+        // A "Completed" column that carries a date we could not read, on a sheet without a date column: the day is
+        // asked here - an answer about the status would never settle it
+        if (isset($fields['solved_on']) === false) {
+            foreach ($detail->row->problems as $problem) {
+                if ($problem['field'] === 'status' && $problem['code'] === 'date_unreadable') {
+                    $fields['solved_on'] = [
+                        'field' => 'solved_on',
+                        'input' => 'date',
+                        'choices' => [],
+                        'header' => '',
+                        'original' => '',
+                        'answer' => $typed['solved_on'] ?? ImportRowAnswers::typed($detail->answers, 'solved_on') ?? '',
+                        'understood' => self::understood($detail, 'solved_on'),
+                        'problems' => [['code' => $problem['code'], 'value' => $problem['value']]],
+                        'error' => $errors['solved_on'] ?? null,
+                    ];
+
+                    break;
+                }
+            }
+        }
+
         return array_values($fields);
     }
 

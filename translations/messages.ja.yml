@@ -11812,6 +11812,7 @@ data_import:
         group_all_done: "パズル: %total% · 対応待ちはありません"
         pieces_differ: "ピース数が異なります: ファイルでは %file%、このパズルは %puzzle% です。"
         pieces_differ_confirm: "ファイルでは %file% ピース、このパズルは %puzzle% ピースです。それでも選択しますか？"
+        brand_differs: "ブランドが異なります: %brand%"
         live:
             pairing: "パズルをデータベースで検索しています…"
             searching: "似た名前を検索しています… 残りのパズル: %left%"
@@ -11888,6 +11889,9 @@ data_import:
             search_label: "名前、名前の一部、またはバーコード"
             search_button: "検索"
             search_empty: "見つかりませんでした。語数を減らすか、バーコードでお試しください。"
+            search_short: "2文字以上、またはバーコードを入力してください。"
+            confirm_yes: "はい、選択します"
+            confirm_no: "いいえ、パズルに戻る"
             none_title: "どれでもない"
             unlisted: "未掲載パズルとして保持する"
             unlisted_hint: "このパズルの行はインポートに残り、何も失われません。未掲載パズル(自分だけに表示)は、今後のステップで対応します。"

@@ -31,6 +31,7 @@ readonly final class GetImportPuzzleScreen
     /** The lists of the screen, by what the rules said - a card stays on its list when it is decided */
     public const array GROUPS = ['found', 'probably', 'choose', 'not-found', 'remembered'];
     public const int SEARCH_RESULTS = 20;
+    public const int SEARCH_MIN_CHARACTERS = 2;
 
     private const array GROUP_CONDITION = [
         'found' => "import_puzzle.tier = 'found'",
@@ -241,11 +242,11 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImpor
      *
      * @return list<ImportCataloguePuzzle>
      */
-    public function search(string $playerId, string $typed, null|int $filePieces): array
+    public function search(string $playerId, string $typed, null|int $filePieces, null|string $fileManufacturerId = null): array
     {
         $textSearch = PuzzleTextSearch::fromUserInput(mb_substr($typed, 0, 200));
 
-        if ($textSearch->isEmpty() || Uuid::isValid($playerId) === false) {
+        if (self::isSearchable($typed) === false || $textSearch->isEmpty() || Uuid::isValid($playerId) === false) {
             return [];
         }
 
@@ -254,7 +255,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImpor
         $condition = $textSearch->condition('puzzle');
         $score = $textSearch->score('puzzle');
 
-        /** @var list<array{puzzle_id: string, puzzle_name: string, alternative_names: null|string, puzzle_pieces: int, image: null|string, image_ratio: null|float|string, brand_name: null|string}> $rows */
+        /** @var list<array{puzzle_id: string, puzzle_name: string, alternative_names: null|string, puzzle_pieces: int, image: null|string, image_ratio: null|float|string, manufacturer_id: null|string, brand_name: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -263,6 +264,7 @@ SELECT
     puzzle.pieces_count AS puzzle_pieces,
     puzzle.image,
     puzzle.image_ratio,
+    puzzle.manufacturer_id,
     manufacturer.name AS brand_name
 FROM puzzle
 LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
@@ -285,6 +287,7 @@ SQL, [
         ])->fetchAllAssociative();
 
         return array_map(static fn (array $row): ImportCataloguePuzzle => new ImportCataloguePuzzle(
+            brandDiffers: self::brandDiffers($fileManufacturerId, $row['manufacturer_id']),
             puzzleId: $row['puzzle_id'],
             name: $row['puzzle_name'],
             alternativeNames: PuzzleNames::fromJson($row['alternative_names']),
@@ -295,6 +298,69 @@ SQL, [
             how: 'search',
             piecesDiffer: $filePieces !== null && abs($row['puzzle_pieces'] - $filePieces) > 1,
         ), $rows);
+    }
+
+    /**
+     * Whether a typed search is searched at all: two characters at least - or a number (a barcode). One letter
+     * would be most of the catalogue.
+     */
+    public static function isSearchable(string $typed): bool
+    {
+        $typed = trim($typed);
+
+        return mb_strlen($typed) >= self::SEARCH_MIN_CHARACTERS;
+    }
+
+    /**
+     * One catalogue puzzle the player picked, as the screens show it - null when it may not be offered to them.
+     * What "choose it anyway?" names. One statement.
+     */
+    public function offered(string $playerId, string $puzzleId, null|int $filePieces, null|string $fileManufacturerId): null|ImportCataloguePuzzle
+    {
+        if (Uuid::isValid($playerId) === false || Uuid::isValid($puzzleId) === false) {
+            return null;
+        }
+
+        $candidate = GetImportPuzzleCandidates::sqlCandidate('puzzle');
+
+        /** @var false|array{puzzle_id: string, puzzle_name: string, alternative_names: null|string, puzzle_pieces: int, image: null|string, image_ratio: null|float|string, manufacturer_id: null|string, brand_name: null|string} $row */
+        $row = $this->database->executeQuery(<<<SQL
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_names,
+    puzzle.pieces_count AS puzzle_pieces,
+    puzzle.image,
+    puzzle.image_ratio,
+    puzzle.manufacturer_id,
+    manufacturer.name AS brand_name
+FROM puzzle
+LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+WHERE puzzle.id = :puzzleId
+    AND {$candidate}
+SQL, ['puzzleId' => $puzzleId, 'playerId' => $playerId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')])->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        return new ImportCataloguePuzzle(
+            puzzleId: $row['puzzle_id'],
+            name: $row['puzzle_name'],
+            alternativeNames: PuzzleNames::fromJson($row['alternative_names']),
+            brandName: $row['brand_name'],
+            piecesCount: $row['puzzle_pieces'],
+            image: $row['image'],
+            imageRatio: $row['image_ratio'] === null ? null : (float) $row['image_ratio'],
+            how: 'chosen',
+            piecesDiffer: $filePieces !== null && abs($row['puzzle_pieces'] - $filePieces) > 1,
+            brandDiffers: self::brandDiffers($fileManufacturerId, $row['manufacturer_id']),
+        );
+    }
+
+    private static function brandDiffers(null|string $fileManufacturerId, null|string $puzzleManufacturerId): bool
+    {
+        return $fileManufacturerId !== null && $puzzleManufacturerId !== null && strtolower($fileManufacturerId) !== strtolower($puzzleManufacturerId);
     }
 
     /**
@@ -411,6 +477,7 @@ SQL;
                     imageRatio: $row['image_ratio'] === null ? null : (float) $row['image_ratio'],
                     how: $how,
                     piecesDiffer: $row['pieces_count'] !== null && abs($row['puzzle_pieces'] - $row['pieces_count']) > 1,
+                    brandDiffers: self::brandDiffers($row['said_manufacturer_id'], $row['puzzle_manufacturer_id']),
                 ),
             ];
         }
@@ -444,6 +511,7 @@ SQL;
                     $decided->imageRatio,
                     $found !== null ? $found->how : ($row['decided_how'] === 'remembered' ? 'remembered' : 'chosen'),
                     $decided->piecesDiffer,
+                    $decided->brandDiffers,
                 );
             }
 
@@ -461,6 +529,7 @@ SQL;
                 decisionVersion: $row['decision_version'],
                 decided: $decided,
                 candidates: array_values($candidates),
+                manufacturerId: $row['said_manufacturer_id'],
             );
         }
 

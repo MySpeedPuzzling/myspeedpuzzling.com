@@ -28,6 +28,11 @@ readonly final class ImportCataloguePuzzle
         public string $how,
         /** The file says another piece count (more than one apart) - shown prominently, never chosen in a group */
         public bool $piecesDiffer,
+        /**
+         * The file names another brand: its brand text stands for a catalogue brand, and this puzzle is another
+         * one's - shown as prominently as another piece count (no extra question: brands are often written loosely)
+         */
+        public bool $brandDiffers = false,
     ) {
     }
 }

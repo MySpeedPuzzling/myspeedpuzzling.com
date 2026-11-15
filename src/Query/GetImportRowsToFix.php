@@ -108,7 +108,9 @@ SQL, array_filter([
                 value: $group['value'] ?? '',
                 rows: $group['rows'],
                 sampleRowId: $group['sample_row_id'],
-                input: ImportRowAnswers::INPUTS[$field] ?? null,
+                // One answer only for rows that share what the sheet says: a group without a value (rows without a
+                // name, a status that carries no readable date) is not one thing - each row is answered on its own
+                input: ($group['value'] ?? '') === '' ? null : ImportRowAnswers::INPUTS[$field] ?? null,
                 proposal: $proposal,
             );
         }

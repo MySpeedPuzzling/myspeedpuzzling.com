@@ -3,7 +3,7 @@
 {#
     The chooser: one puzzle of the import per screen (docs/features/data-import/pairing-screens.md "The chooser").
     Top to bottom on a phone: what the file says and a few of its rows, the catalogue puzzles it could be as large
-    picture cards - the whole card is the button, a tap chooses - "Search the database" (results as the same cards,
+    picture cards - the whole card is the button, a tap chooses (another piece count is asked about once more, by the server) - "Search the database" (results as the same cards,
     in a frame of their own), "None of these" (keep as unlisted / leave out), and Skip. Inside "Do the next 20" a
     choice leads on to the next puzzle that waits.
 
@@ -47,6 +47,23 @@
             <span class="fs-sm text-muted text-nowrap" data-testid="import-chooser-portion">{{ 'data_import.puzzles.chooser.portion'|trans({'%done%': done|format_number, '%portion%': portion|format_number}) }}</span>
         {% endif %}
     </div>
+
+    {% if ask_other_pieces is not null %}
+        {# A puzzle of another piece count was tapped: asked once more, by the server - only "Yes" takes it #}
+        <div class="alert alert-warning" role="alert" data-testid="import-chooser-ask-pieces">
+            <p class="fw-semibold mb-2">{{ 'data_import.puzzles.pieces_differ_confirm'|trans({'%file%': card.piecesCount|format_number, '%puzzle%': ask_other_pieces.piecesCount|format_number}) }}</p>
+            {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: ask_other_pieces, file_pieces: card.piecesCount}, with_context = false) }}
+            <form action="{{ decide }}" method="post" class="d-flex flex-wrap gap-2 mt-3">
+                {{ _self.hidden(card, csrf, flow, done) }}
+                <input type="hidden" name="catalogue" value="{{ ask_other_pieces.puzzleId }}">
+                <input type="hidden" name="confirmed_other_pieces" value="1">
+                <button type="submit" name="action" value="catalogue" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-chooser-ask-pieces-yes">
+                    <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.confirm_yes'|trans }}
+                </button>
+                <a href="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId}|merge(flow is not null ? {flow: flow, done: done} : {})) }}" class="btn btn-outline-secondary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-chooser-ask-pieces-no">{{ 'data_import.puzzles.chooser.confirm_no'|trans }}</a>
+            </form>
+        </div>
+    {% endif %}
 
     {# The file's puzzle, as the file wrote it #}
     <div class="card card-body shadow-sm mb-3">
@@ -92,8 +109,7 @@
                 <input type="hidden" name="catalogue" value="{{ puzzle.puzzleId }}">
                 <button type="submit" name="action" value="catalogue"
                         class="btn {{ is_chosen ? 'btn-outline-success' : 'btn-outline-primary' }} w-100 p-3 text-body bg-body shadow-sm" style="min-height: 44px; white-space: normal;"
-                        data-testid="import-chooser-candidate" data-puzzle-id="{{ puzzle.puzzleId }}"
-                        {% if puzzle.piecesDiffer and card.piecesCount is not null %}data-turbo-confirm="{{ 'data_import.puzzles.pieces_differ_confirm'|trans({'%file%': card.piecesCount|format_number, '%puzzle%': puzzle.piecesCount|format_number}) }}"{% endif %}>
+                        data-testid="import-chooser-candidate" data-puzzle-id="{{ puzzle.puzzleId }}">
                     {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: puzzle, file_pieces: card.piecesCount, large: true}, with_context = false) }}
                     <span class="d-block mt-2 fw-semibold {{ is_chosen ? 'text-success' : 'text-primary' }}">
                         <i class="bi {{ is_chosen ? 'bi-check-circle-fill' : 'bi-check-lg' }} me-1" aria-hidden="true"></i>{{ (is_chosen ? 'data_import.puzzles.chooser.chosen' : 'data_import.puzzles.chooser.choose_this')|trans }}
@@ -124,7 +140,9 @@
         <turbo-frame id="import-puzzle-search" target="_top">
             {% if found is not null %}
                 <div class="mt-3" data-testid="import-chooser-search-results">
-                    {% if found is empty %}
+                    {% if search_too_short %}
+                        <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-short">{{ 'data_import.puzzles.chooser.search_short'|trans }}</p>
+                    {% elseif found is empty %}
                         <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-empty">{{ 'data_import.puzzles.chooser.search_empty'|trans }}</p>
                     {% endif %}
                     {% for puzzle in found %}
@@ -132,8 +150,7 @@
                             {{ _self.hidden(card, csrf, flow, done) }}
                             <input type="hidden" name="catalogue" value="{{ puzzle.puzzleId }}">
                             <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary w-100 p-2 text-body bg-body" style="min-height: 44px; white-space: normal;"
-                                    data-testid="import-chooser-search-result" data-puzzle-id="{{ puzzle.puzzleId }}"
-                                    {% if puzzle.piecesDiffer and card.piecesCount is not null %}data-turbo-confirm="{{ 'data_import.puzzles.pieces_differ_confirm'|trans({'%file%': card.piecesCount|format_number, '%puzzle%': puzzle.piecesCount|format_number}) }}"{% endif %}>
+                                    data-testid="import-chooser-search-result" data-puzzle-id="{{ puzzle.puzzleId }}">
                                 {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: puzzle, file_pieces: card.piecesCount}, with_context = false) }}
                             </button>
                         </form>

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleChoiceRefused;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleDecidedMeanwhile;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
+use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleDecisionChange;
@@ -30,6 +31,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - saved in "Do the next 20": on to the next puzzle that waits;
  * - decided meanwhile in another tab (or by a run of the pairing): nothing is written, the page as it stands now
  *   with a plain notice - never a silent overwrite;
+ * - a puzzle of another piece count, tapped: nothing is written - the chooser with a 422 and "choose it anyway?";
+ *   only the button that says yes (`confirmed_other_pieces`) takes it;
  * - a puzzle that may not be chosen: nothing is written, a notice.
  *
  * Another player's import is a 404 (the handler checks it).
@@ -38,6 +41,8 @@ final class DecideImportPuzzlesController extends AbstractController
 {
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetDataImports $getDataImports,
+        readonly private GetImportPuzzleScreen $getImportPuzzleScreen,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
@@ -72,7 +77,7 @@ final class DecideImportPuzzlesController extends AbstractController
             : $this->redirectToRoute('data_import_puzzle_group', ['importId' => $importId, 'group' => $group, 'page' => max(1, $form->getInt('page', 1)), '_fragment' => $importPuzzleId !== '' ? 'puzzle-' . $importPuzzleId : null]);
 
         $decisions = match ($action) {
-            'catalogue' => [new ImportPuzzleDecisionChange($importPuzzleId, ImportPuzzleChoice::Catalogue, $form->getString('catalogue'), $form->getInt('version'))],
+            'catalogue' => [new ImportPuzzleDecisionChange($importPuzzleId, ImportPuzzleChoice::Catalogue, $form->getString('catalogue'), $form->getInt('version'), $form->getString('confirmed_other_pieces') === '1')],
             'undecided' => [new ImportPuzzleDecisionChange($importPuzzleId, ImportPuzzleChoice::Undecided, null, $form->getInt('version'))],
             'unlisted' => [new ImportPuzzleDecisionChange($importPuzzleId, ImportPuzzleChoice::Unlisted, null, $form->getInt('version'))],
             'left_out' => [new ImportPuzzleDecisionChange($importPuzzleId, ImportPuzzleChoice::LeftOut, null, $form->getInt('version'))],
@@ -95,6 +100,10 @@ final class DecideImportPuzzlesController extends AbstractController
                 $this->addFlash('warning', $this->translator->trans('data_import.puzzles.flash.decided_meanwhile'));
 
                 return $here;
+            }
+
+            if ($cause instanceof ImportPuzzleChoiceRefused && $cause->reason === ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_UNCONFIRMED) {
+                return $this->askAboutTheOtherPieceCount($importId, $player->playerId, $importPuzzleId, $form->getString('catalogue'), (string) $flow, $form->getInt('done')) ?? $here;
             }
 
             if ($cause instanceof ImportPuzzleChoiceRefused) {
@@ -124,6 +133,36 @@ final class DecideImportPuzzlesController extends AbstractController
         $this->addFlash('success', $this->translator->trans($action === 'undecided' ? 'data_import.puzzles.flash.taken_back' : 'data_import.puzzles.flash.saved'));
 
         return $here;
+    }
+
+    /**
+     * A puzzle of another piece count was tapped: nothing is written - the chooser again, with a 422, the question
+     * "your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" and the button that says yes. Asked by
+     * the server, so it is asked without a script too.
+     */
+    private function askAboutTheOtherPieceCount(string $importId, string $playerId, string $importPuzzleId, string $cataloguePuzzleId, string $flow, int $done): null|Response
+    {
+        $card = $this->getImportPuzzleScreen->one($importId, $playerId, $importPuzzleId);
+        $asked = $this->getImportPuzzleScreen->offered($playerId, $cataloguePuzzleId, $card->piecesCount, $card->manufacturerId);
+
+        if ($asked === null) {
+            return null;
+        }
+
+        return $this->render(
+            'data_import/puzzle_choose.html.twig',
+            ImportPuzzleChooserController::parameters(
+                $flow,
+                $done,
+                $this->getDataImports->byIdOfPlayer($importId, $playerId),
+                $card,
+                $this->getImportPuzzleScreen->rowsOf($importId, $playerId, $importPuzzleId, ImportPuzzleChooserController::ROWS_SHOWN),
+                null,
+                null,
+                askOtherPieces: $asked,
+            ),
+            new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY),
+        );
     }
 
     /**

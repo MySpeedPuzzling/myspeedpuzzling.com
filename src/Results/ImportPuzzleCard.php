@@ -32,6 +32,8 @@ readonly final class ImportPuzzleCard
         public int $decisionVersion,
         public null|ImportCataloguePuzzle $decided,
         public array $candidates,
+        /** The catalogue brand the file's brand text stands for - null: no brand, or one we do not know */
+        public null|string $manufacturerId = null,
     ) {
     }
 

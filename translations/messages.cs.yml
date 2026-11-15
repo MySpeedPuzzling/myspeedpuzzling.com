@@ -11825,6 +11825,7 @@ data_import:
         group_all_done: "Puzzle: %total% · Nic na vás nečeká"
         pieces_differ: "Jiný počet dílků: ve vašem souboru je %file%, toto puzzle má %puzzle%."
         pieces_differ_confirm: "Ve vašem souboru je %file% dílků, toto puzzle má %puzzle%. Přesto ho vybrat?"
+        brand_differs: "Jiná značka: %brand%"
         live:
             pairing: "Hledáme vaše puzzle v databázi…"
             searching: "Hledáme podobné názvy… Zbývá puzzle: %left%"
@@ -11901,6 +11902,9 @@ data_import:
             search_label: "Název, část názvu nebo čárový kód"
             search_button: "Hledat"
             search_empty: "Nic jsme nenašli. Zkuste méně slov nebo čárový kód."
+            search_short: "Napište alespoň dva znaky nebo čárový kód."
+            confirm_yes: "Ano, vybrat ho"
+            confirm_no: "Ne, zpět na puzzle"
             none_title: "Žádné z nich"
             unlisted: "Ponechat jako puzzle mimo databázi"
             unlisted_hint: "Jeho řádky zůstanou u vašeho importu a nic se neztratí. Puzzle mimo databázi - viditelná jen pro vás - přijdou s dalším krokem."

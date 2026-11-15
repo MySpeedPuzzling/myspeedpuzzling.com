@@ -49,7 +49,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * docs/features/data-import/columns.md - a read import is recognised and its rows are parsed by themselves; a sheet
- * with a question waits; a confirmed mapping parses only its sheet (and the sheets that look puzzles up in it); a
+ * with a question is parsed too, only the rows its question decides wait; a confirmed mapping parses only its sheet (and the sheets that look puzzles up in it); a
  * job of an older mapping writes nothing; equal rows are linked. Every file here is made up.
  *
  * The `imports` queue is in memory in tests: the worker is played by work(), which hands every queued message to
@@ -74,9 +74,10 @@ final class ImportParsingTest extends WebTestCase
         $importId = $this->uploaded('Training.xlsx', self::workbook());
         $handled = $this->work();
 
-        // Read → recognised → every sheet that asks nothing parsed (the rows of "Stats" are left out); "2023" waits
+        // Read → recognised → every sheet parsed (the rows of "Stats" are left out; of "2023", which asks how its
+        // times are read, the rows that question decides wait)
         self::assertSame(
-            ['read', 'propose', 'parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1'],
+            ['read', 'propose', 'parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1', 'parse 2023 v1'],
             $this->named($importId, $handled),
         );
         self::assertSame('setting_up', $this->database->fetchOne('SELECT status FROM data_import WHERE id = :id', ['id' => $importId]));
@@ -87,7 +88,7 @@ final class ImportParsingTest extends WebTestCase
                 'Results' => ['results', 1, 1, 5, 1, 2, 0, 'A1:E'],
                 'Competitions' => ['results', 1, 1, 2, 0, 1, 0, 'A1:C'],
                 'Stats' => ['not_puzzles', 1, 1, 0, 0, 2, 0, 'A1:B'],
-                '2023' => ['results', 1, null, 0, 0, 0, 1, 'A1:C'],
+                '2023' => ['results', 1, 1, 0, 0, 1, 1, 'A1:C'],
             ],
             $this->sheets($importId),
         );
@@ -113,8 +114,12 @@ final class ImportParsingTest extends WebTestCase
         self::assertSame(['owned', $kites], [$rows['Puzzle List'][2]['kind'], $rows['Puzzle List'][2]['puzzle_key']]);
         self::assertSame(ImportSourceKey::owned($kites), $rows['Puzzle List'][2]['source_key']);
 
-        // A sheet that waits: nothing parsed. A sheet that is not puzzles: its rows are left out, as after a confirm
-        self::assertSame([null, 'waiting'], [$rows['2023'][2]['kind'], $rows['2023'][2]['state']]);
+        // A sheet with a question: the rows the question decides wait for the answer - not ready, not "need a look".
+        // A sheet that is not puzzles: its rows are left out, as after a confirm
+        self::assertSame(['result', 'waiting'], [$rows['2023'][2]['kind'], $rows['2023'][2]['state']]);
+        self::assertEquals([['field' => 'time', 'code' => 'time_two_readings', 'value' => '45:10', 'choices' => ['minutes_seconds', 'hours_minutes'], 'waiting' => true]], $rows['2023'][2]['problems']);
+        self::assertArrayNotHasKey('seconds', $rows['2023'][2]['parsed']);
+        self::assertSame(2, $this->database->fetchOne("SELECT rows_waiting FROM data_import_sheet WHERE import_id = :id AND title = '2023'", ['id' => $importId]));
         self::assertSame(['not_a_puzzle', 'left_out', ['leftOut' => 'sheet_left_out']], [$rows['Stats'][2]['kind'], $rows['Stats'][2]['state'], $rows['Stats'][2]['parsed']]);
 
         // The page says it - read only
@@ -136,7 +141,7 @@ final class ImportParsingTest extends WebTestCase
 
         // And the player's own topic was told - numbers only
         $published = $this->lastPublished($importId);
-        self::assertSame([5, 4, 1], [$published['sheetsMapped'], $published['sheetsParsed'], $published['sheetsWaiting']]);
+        self::assertSame([5, 5, 1], [$published['sheetsMapped'], $published['sheetsParsed'], $published['sheetsWaiting']]);
     }
 
     public function testEqualRowsAreNumberedAndLinkedOnTheirSheetAndAcrossSheets(): void
@@ -387,7 +392,7 @@ final class ImportParsingTest extends WebTestCase
         self::assertSame(ImportPuzzleKey::of('Circle of Kites', 500, null), $rows['Results'][2]['puzzle_key']);
         // ... and the same result on two sheets is still one
         self::assertSame($rows['Results'][2]['id'], $rows['Competitions'][2]['same_as_row_id']);
-        self::assertSame([1, null], array_slice($this->sheets($importId)['2023'], 1, 2));
+        self::assertSame([1, 1], array_slice($this->sheets($importId)['2023'], 1, 2));
     }
 
     public function testWhatIsNotThePlayersToConfirmIsRefusedAndChangesNothing(): void
@@ -536,9 +541,9 @@ final class ImportParsingTest extends WebTestCase
         $this->queue()->reset();
         $standing($this->database);
         $this->bus->dispatch(new ReadWaitingImports());
-        self::assertEqualsCanonicalizing(['parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1'], $this->named($importId, $this->queued()));
+        self::assertEqualsCanonicalizing(['parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1', 'parse 2023 v1'], $this->named($importId, $this->queued()));
 
-        // Everything done (a sheet that waits for an answer is nobody's lost step): nothing is queued
+        // Everything done (a sheet that still asks something is parsed too, and is nobody's lost step): nothing is queued
         $this->work();
         $standing($this->database);
         $this->bus->dispatch(new ReadWaitingImports());

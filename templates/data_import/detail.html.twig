@@ -129,6 +129,17 @@
             </div>
         </div>
     {% elseif sheets is not empty %}
+        {% if status == 'setting_up' %}
+            {# Where the import stands, and the way to its "Sheets and columns" screen (docs/features/data-import/columns-screen.md) #}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-columns-summary">
+                <p class="fw-medium mb-1" data-testid="import-summary">
+                    {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
+                </p>
+                <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="btn btn-primary w-100 mt-2 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-open-columns">
+                    <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.open'|trans }}
+                </a>
+            </div>
+        {% endif %}
         <div class="card shadow-sm mb-3" data-testid="import-sheets">
             <div class="card-body pb-2">
                 <h2 class="h5 mb-0">{{ 'data_import.sheets.title'|trans }}</h2>
@@ -160,7 +171,7 @@
                                             {% if sheet.kind is not null %}
                                                 <span class="fw-medium" data-testid="import-sheet-kind" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
                                             {% endif %}
-                                            {% if sheet.waitsForAnAnswer %}
+                                            {% if sheet.state == 'waiting' %}
                                                 <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
                                             {% elseif not sheet.parsed %}
                                                 <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
@@ -168,7 +179,8 @@
                                                 {% if sheet.parsed %}
                                                     <div data-testid="import-sheet-parsed">
                                                         {{ 'data_import.sheets.understood'|trans({'%understood%': sheet.rowsUnderstood|format_number, '%look%': sheet.rowsNeedLook|format_number}) }}
-                                                        {%- if sheet.rowsLeftOut > 0 %} · {{ 'data_import.sheets.left_out'|trans({'%count%': sheet.rowsLeftOut|format_number}) }}{% endif %}
+                                                        {%- if sheet.rowsWaiting > 0 %} · {{ 'data_import.columns.state.waiting_rows'|trans({'%number%': sheet.rowsWaiting|format_number}) }}{% endif %}
+                                                        {%- if sheet.rowsLeftOut > 0 %} · {{ 'data_import.columns.state.rows_left_out'|trans({'%number%': sheet.rowsLeftOut|format_number}) }}{% endif %}
                                                     </div>
                                                 {% else %}
                                                     <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
@@ -184,7 +196,7 @@
                     </tbody>
                 </table>
             </div>
-            {% if sheets|filter(sheet => not sheet.failed and (not sheet.mapped or (not sheet.parsed and not sheet.waitsForAnAnswer)))|length > 0 %}
+            {% if sheets|filter(sheet => not sheet.failed and (not sheet.mapped or not sheet.parsed))|length > 0 %}
                 <div class="card-body pt-2 fs-sm text-muted" data-testid="import-sheets-working">
                     <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.sheets.refresh_hint'|trans }}
                     <a href="{{ path('data_import_detail', {importId: import.importId}) }}" data-turbo="false">{{ 'data_import.reading.refresh'|trans }}</a>
@@ -201,7 +213,7 @@
         <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
             <i class="bi bi-info-circle flex-shrink-0"></i>
             <span>
-                {{ 'data_import.soon'|trans }}
+                {{ (status == 'setting_up' ? 'data_import.columns.soon' : 'data_import.soon')|trans }}
                 {% if import.fileKeptUntil is not null %}
                     {{ 'data_import.detail.kept'|trans({'%date%': import.fileKeptUntil|format_date('long')}) }}
                 {% elseif import.fileRemovedAt is not null %}

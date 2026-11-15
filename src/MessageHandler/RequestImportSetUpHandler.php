@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Message\RequestImportSetUp;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -73,7 +72,7 @@ readonly final class RequestImportSetUpHandler
             // A parse somebody is at (its claim is fresh) is left alone; the job itself counts its starts
             $claimed = $sheet->parsingVersion === $sheet->mappingVersion && $sheet->parsingStartedAt !== null && $sheet->parsingStartedAt > $deadBefore;
 
-            if ($sheet->waitsForItsParse() && $claimed === false && ImportMapping::fromArray($sheet->mapping ?? [])->needsAnAnswer() === false) {
+            if ($sheet->waitsForItsParse() && $claimed === false) {
                 $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
                 $queued = true;
             }

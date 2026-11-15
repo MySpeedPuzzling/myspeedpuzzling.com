@@ -14,7 +14,7 @@ final readonly class ParsedImportRow
 {
     /**
      * @param array<string, mixed> $parsed
-     * @param list<array{field: null|string, code: string, value?: string, choices?: list<int|string>}> $problems
+     * @param list<array{field: null|string, code: string, value?: string, choices?: list<int|string>, waiting?: bool}> $problems
      */
     public function __construct(
         public DataImportRowKind $kind,
@@ -41,6 +41,29 @@ final readonly class ParsedImportRow
     public function isUnderstood(): bool
     {
         return $this->leftOut === null && $this->problems === [];
+    }
+
+    /**
+     * Whether a question of the sheet that is not answered yet decides the row (PendingQuestionRows): it is neither
+     * ready nor "needs a look" until the player answers.
+     */
+    public function isWaiting(): bool
+    {
+        foreach ($this->problems as $problem) {
+            if (($problem['waiting'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{field: null|string, code: string, value?: string, choices?: list<int|string>, waiting?: bool}> $problems
+     */
+    public function withProblems(array $problems): self
+    {
+        return new self($this->kind, $this->parsed, $problems, $this->puzzleKey, $this->sourceKey, $this->sourceRowId, $this->leftOut);
     }
 
     /**

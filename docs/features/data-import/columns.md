@@ -23,7 +23,7 @@ RecordImportRead  (3b: the file is read, `reading` → `setting_up`)
        3. per sheet, over up to 5,000 rows: how its times and dates are read, what must be asked
                                                                                        (ImportColumnDecisions)
        └─ RecordImportMappings    one transaction: mapping_version 1 for every sheet; queues, in the same transaction,
-            └─ ParseImportSheet   imports queue, one per sheet that is data and asks nothing
+            └─ ParseImportSheet   imports queue, one per sheet (since 4b-2 also one that asks something)
                  pages of 500 rows: ImportRowParser → RecordParsedImportRows (one short transaction each)
                  └─ RecordImportSheetParsed   counts; the sheet's equal rows numbered and linked (ImportEqualRows)
                       └─ LinkEqualImportRows  the same row on two sheets linked, across the import
@@ -178,8 +178,11 @@ layout's patterns.
 
 ### Questions - what a sheet can ask
 
-A question is asked only when neither the values nor the header nor the sheet's name settled it. **A sheet with a
-question is not parsed**; its page line says "Waiting for your answer".
+A question is asked only when neither the values nor the header nor the sheet's name settled it. **Since stage
+4b-2 a sheet with a question is parsed too**: only the rows the question decides wait (`rows_waiting`, a problem
+with `waiting: true` - [columns-screen.md](columns-screen.md) "A question and its rows"); the sheet is "Waiting for
+your answer" as a whole only when that is at least half of its rows. A time reading beyond 99 hours for an example
+row is not offered, and a single reading left is taken unasked.
 
 | `type` (`id`) | Asked when | Answers |
 |---|---|---|
@@ -299,7 +302,7 @@ itself yet; the screen of the next slice will).
 
 `myspeedpuzzling:read-waiting-imports` (every 5 minutes, 3b) also finds imports in `setting_up` that wrote nothing
 for 15 minutes while a sheet still waits for a step that runs by itself - no mapping yet, or not parsed for its
-version, no question and no fresh claim - and queues that step again (`RequestImportSetUp`), for a week after the read (a step
+version and no fresh claim - and queues that step again (`RequestImportSetUp`), for a week after the read (a step
 that fails every time is not tried for ever). It covers a lost message and the imports read before this stage
 shipped.
 

@@ -1,0 +1,44 @@
+{#
+    One row of a sheet as it was understood (docs/features/data-import/columns-screen.md "The preview", "Rows that
+    need a look"): the puzzle, pieces, time and date as understood, and - in plain words, with the value as the sheet
+    has it - what could not be read. Everything here is the player's own text: escaped, never part of a URL.
+
+    Variables: row (ImportSheetRow).
+#}
+<div class="card card-body shadow-sm mb-2 py-2 px-3" data-testid="parsed-row" data-row="{{ row.rowNumber }}">
+    <div class="d-flex justify-content-between align-items-baseline gap-2">
+        <div class="fw-medium text-break" data-testid="parsed-row-name">
+            {%- if row.text('name') is not null %}{{ row.text('name') }}{% else %}<span class="text-muted fw-normal">{{ 'data_import.columns.row.no_name'|trans }}</span>{% endif -%}
+        </div>
+        <div class="fs-xs text-muted text-nowrap flex-shrink-0">{{ 'data_import.columns.row.number'|trans({'%number%': row.rowNumber|format_number}) }}</div>
+    </div>
+    <div class="fs-sm text-muted text-break">
+        {%- set facts = [] -%}
+        {%- if row.text('brand') is not null %}{% set facts = facts|merge([row.text('brand')]) %}{% endif -%}
+        {%- if row.pieces is not null %}{% set facts = facts|merge(['data_import.columns.row.pieces'|trans({'%number%': row.pieces|format_number})]) %}{% endif -%}
+        {%- if row.time is not null %}{% set facts = facts|merge(['data_import.columns.row.time'|trans({'%time%': row.time})]) %}{% endif -%}
+        {%- if row.day is not null %}
+            {%- set facts = facts|merge(['data_import.columns.row.solved_on'|trans({'%date%': row.day|format_date('medium', timezone='UTC')})]) -%}
+        {%- elseif row.text('date') is not null %}
+            {%- set facts = facts|merge(['data_import.columns.row.solved_on'|trans({'%date%': row.text('date')})]) -%}
+        {%- endif -%}
+        {%- if row.people is not empty %}{% set facts = facts|merge(['data_import.columns.row.with'|trans({'%people%': row.people|join(', ')})]) %}{% endif -%}
+        <span class="badge bg-faded-primary text-primary me-1" data-testid="parsed-row-kind">{{ ('data_import.columns.row.kind.' ~ row.kind)|trans }}</span>
+        {{ facts|join(' · ') }}
+    </div>
+    {% for problem in row.problems %}
+        <div class="fs-sm mt-2 d-flex gap-2" data-testid="parsed-row-problem" data-code="{{ problem.code }}"{% if problem.waiting %} data-waiting="true"{% endif %}>
+            <i class="bi {{ problem.waiting ? 'bi-question-circle' : 'bi-eye' }} text-warning flex-shrink-0" aria-hidden="true"></i>
+            <span class="text-break">
+                {% if problem.value != '' %}<mark class="px-1 rounded" data-testid="parsed-row-problem-value">{{ problem.value }}</mark>{% endif %}
+                {% if problem.waiting %}
+                    {# Not a problem of the row: a question of its sheet decides it #}
+                    {{ 'data_import.columns.problem.waiting'|trans }}
+                {% else %}
+                    {% set sentence = ('data_import.columns.problem.' ~ problem.code)|trans %}
+                    {{ sentence == 'data_import.columns.problem.' ~ problem.code ? 'data_import.columns.problem.other'|trans : sentence }}
+                {% endif %}
+            </span>
+        </div>
+    {% endfor %}
+</div>

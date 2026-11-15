@@ -151,7 +151,7 @@ readonly final class DataImportRepository
 
     /**
      * Read imports that wrote nothing since the moment given although a sheet of theirs still waits for a step that
-     * runs by itself: it has no mapping yet, or its rows are not parsed for its mapping and it asks nothing. Only
+     * runs by itself: it has no mapping yet, or its rows are not parsed for its mapping. Only
      * imports read after `$readAfter`: a step that fails every time is not tried for ever. A read in SQL: the sheet's
      * questions live in its mapping's JSON.
      *
@@ -175,7 +175,6 @@ WHERE data_import.status = :status
                 sheet.mapping_version = 0
                 OR (
                     sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
-                    AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0
                     AND (sheet.parsing_started_at IS NULL OR sheet.parsing_started_at < :since)
                 )
             )

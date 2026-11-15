@@ -37,7 +37,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *    columns inside the table, never two on one single-valued field. What the player changed is "certain, by the
  *    player"; nothing a browser sends about certainty, reasons, roles or a known export is taken;
  * 3. how times and dates are read is settled again for the new mapping (answers kept) - what is left is asked;
- * 4. the sheet gets its next `mapping_version`; without a question its parsing is queued - and that of every sheet
+ * 4. the sheet gets its next `mapping_version` and its parsing is queued (the rows a question that is left decides
+ *    wait - PendingQuestionRows) - and that of every sheet
  *    that looks puzzles up in it, each with a new version of its own, so no older job of theirs writes on.
  *
  * Nothing but this sheet (and those) is parsed again.
@@ -102,10 +103,9 @@ readonly final class ConfirmImportMappingHandler
         $mapping = $mapping->withQuestions($questions);
         $sheet->mappingConfirmed($mapping, $options, $valueAnswers);
 
-        if ($mapping->needsAnAnswer() === false) {
-            // Also for a sheet that is "not puzzles" now: its rows are left out by the same job
-            $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
-        }
+        // Also for a sheet that is "not puzzles" now (its rows are left out by the same job) and for one that still
+        // asks something: the rows its questions decide wait, the others are read (PendingQuestionRows)
+        $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
 
         foreach ($sheets as $other) {
             if ($other === $sheet || $other->mappingVersion === 0 || ($other->options['lookupSheetId'] ?? null) !== $sheet->id->toString()) {
@@ -115,9 +115,7 @@ readonly final class ConfirmImportMappingHandler
             // A new version of its own: an older job of that sheet, still reading the old list, writes nothing more
             $other->lookedUpSheetChanged();
 
-            if (ImportMapping::fromArray($other->mapping ?? [])->needsAnAnswer() === false) {
-                $this->messageBus->dispatch(new ParseImportSheet($message->importId, $other->id->toString(), $other->mappingVersion));
-            }
+            $this->messageBus->dispatch(new ParseImportSheet($message->importId, $other->id->toString(), $other->mappingVersion));
         }
 
         $import->workedOn($this->clock->now());

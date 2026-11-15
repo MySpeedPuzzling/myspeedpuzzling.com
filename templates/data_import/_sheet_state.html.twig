@@ -1,0 +1,31 @@
+{#
+    How one sheet of an import stands, in the words of the "Sheets and columns" screen
+    (docs/features/data-import/columns-screen.md "What each state shows").
+
+    Variables: state (failed | recognising | waiting | left_out | parsing | parsed), understood, look, left_out,
+    waiting (rows a question that is not answered yet decides).
+#}
+<div class="fs-sm" data-testid="sheet-state" data-state="{{ state }}">
+    {% if state == 'failed' %}
+        <span class="badge bg-faded-danger text-danger text-wrap text-start"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.sheets.failed'|trans }}</span>
+    {% elseif state == 'recognising' %}
+        <span class="text-muted"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{{ 'data_import.sheets.recognising'|trans }}</span>
+    {% elseif state == 'waiting' %}
+        <span class="badge bg-faded-warning text-warning text-wrap text-start"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+    {% elseif state == 'left_out' %}
+        <span class="badge bg-secondary text-wrap text-start"><i class="bi bi-dash-circle me-1"></i>{{ 'data_import.columns.state.left_out'|trans }}</span>
+    {% elseif state == 'parsing' %}
+        <span class="text-muted"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{{ 'data_import.sheets.parsing'|trans }}</span>
+    {% else %}
+        <span class="fw-medium">{{ 'data_import.columns.state.understood'|trans({'%number%': understood|format_number}) }}</span>
+        <span class="text-muted">·</span>
+        <span class="{{ look > 0 ? 'fw-medium text-warning' : 'text-muted' }}">{{ 'data_import.columns.state.need_look'|trans({'%number%': look|format_number}) }}</span>
+        {% if waiting|default(0) > 0 %}
+            <span class="text-muted">·</span>
+            <span class="fw-medium text-warning" data-testid="sheet-state-waiting">{{ 'data_import.columns.state.waiting_rows'|trans({'%number%': waiting|format_number}) }}</span>
+        {% endif %}
+        {% if left_out > 0 %}
+            <span class="text-muted">· {{ 'data_import.columns.state.rows_left_out'|trans({'%number%': left_out|format_number}) }}</span>
+        {% endif %}
+    {% endif %}
+</div>

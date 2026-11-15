@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Sheets and columns" of one import (docs/features/data-import/columns-screen.md): every sheet of the file as a
+    card - its name, what MySpeedPuzzling takes it for (one tap changes it), how its rows fared - the sheets that
+    wait for an answer first. Phone first: one column of cards, every target 44 px.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.columns.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-columns-page">
+    <h1 class="h3 mb-2">{{ 'data_import.columns.title'|trans }}</h1>
+    <p class="text-muted fs-sm">{{ 'data_import.columns.intro'|trans }}</p>
+
+    {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: summary.working, revision: revision}) }}
+
+    <turbo-frame id="import-sheets-live" data-import-live target="_top">
+        <p class="fs-sm fw-medium mb-3" data-testid="import-summary">
+            {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
+        </p>
+
+        {% for sheet in sheets %}
+            {% set state = sheet.state %}
+            <div class="card shadow-sm mb-3{{ sheet.asksThePlayer ? ' border-warning' : '' }}" data-testid="sheet-card" data-sheet-state="{{ state }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h2 class="h5 mb-1 text-break" data-testid="sheet-card-title">
+                            {%- if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif -%}
+                        </h2>
+                        <span class="fs-xs text-muted text-nowrap flex-shrink-0 pt-1">{{ 'data_import.columns.card.rows'|trans({'%number%': sheet.rows|format_number}) }}</span>
+                    </div>
+                    {% if sheet.hidden %}
+                        <span class="badge bg-faded-warning text-warning mb-1"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
+                    {% endif %}
+
+                    {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
+
+                    {% if sheet.mapped and sheet.kind is not null %}
+                        {# One tap changes what the sheet is: the choices fold out, each a button of the same form #}
+                        <details class="mt-3" data-testid="sheet-card-kind">
+                            <summary class="d-flex align-items-center gap-2" style="min-height: 44px; cursor: pointer;">
+                                <span class="text-muted fs-sm">{{ 'data_import.columns.card.this_is'|trans }}</span>
+                                <span class="fw-medium" data-testid="sheet-card-kind-name" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
+                                <span class="ms-auto fs-sm text-primary text-nowrap"><i class="bi bi-pencil me-1"></i>{{ 'data_import.columns.change'|trans }}</span>
+                            </summary>
+                            <form action="{{ path('data_import_sheet_confirm', {importId: import.importId, sheetId: sheet.sheetId}) }}" method="post" class="d-grid gap-2 mt-2">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="version" value="{{ sheet.mappingVersion }}">
+                                <input type="hidden" name="back" value="list">
+                                {% for kind in ['results', 'owned', 'wish_list', 'puzzle_list', 'not_puzzles', 'somebody_else'] %}
+                                    <button type="submit" name="kind" value="{{ kind }}"
+                                            class="btn {{ kind == sheet.kind.value ? 'btn-primary' : 'btn-outline-primary' }} text-wrap text-start"
+                                            style="min-height: 44px;" data-testid="sheet-card-kind-{{ kind }}"
+                                            {% if kind == sheet.kind.value %}aria-pressed="true"{% endif %}>
+                                        {{ ('data_import.sheets.kind.' ~ kind)|trans }}
+                                    </button>
+                                {% endfor %}
+                            </form>
+                        </details>
+
+                        <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) }}"
+                           class="btn {{ sheet.asksThePlayer ? 'btn-primary' : 'btn-outline-primary' }} w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
+                           style="min-height: 44px;" data-testid="sheet-card-open">
+                            {% if state == 'waiting' %}
+                                <i class="bi bi-question-circle me-1"></i>{{ 'data_import.columns.card.answer'|trans }}
+                            {% elseif sheet.asksThePlayer and state == 'parsed' %}
+                                {# A question that decides a few rows: the rest of the sheet is read already #}
+                                <i class="bi bi-question-circle me-1"></i><span data-testid="sheet-card-answer-some">{{ 'data_import.columns.card.answer_some'|trans({'%questions%': sheet.questions|format_number, '%rows%': sheet.rowsWaiting|format_number}) }}</span>
+                            {% else %}
+                                <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.card.open'|trans }}
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </turbo-frame>
+
+    <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
+        <i class="bi bi-info-circle flex-shrink-0"></i>
+        <span>{{ 'data_import.columns.soon'|trans }}</span>
+    </div>
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

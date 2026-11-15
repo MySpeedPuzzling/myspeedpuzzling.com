@@ -43,7 +43,7 @@ readonly final class RecordImportSheetParsedHandler
             return false;
         }
 
-        $sheet->parsed($message->mappingVersion, $message->rowsUnderstood, $message->rowsNeedLook, $message->rowsLeftOut);
+        $sheet->parsed($message->mappingVersion, $message->rowsUnderstood, $message->rowsNeedLook, $message->rowsLeftOut, $message->rowsWaiting);
 
         $import->workedOn($this->clock->now());
 

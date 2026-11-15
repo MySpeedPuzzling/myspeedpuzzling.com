@@ -61,9 +61,12 @@ final class ImportDetailController extends AbstractController
             return $this->redirectToRoute('data_import_detail', ['importId' => $sameFile]);
         }
 
+        $sheets = $this->getDataImports->sheetsOfPlayer($importId, $player->playerId);
+
         return $this->render('data_import/detail.html.twig', [
             'import' => $import,
-            'sheets' => $this->getDataImports->sheetsOfPlayer($importId, $player->playerId),
+            'sheets' => $sheets,
+            'summary' => ImportColumnsController::summary($sheets),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,
             'limits' => [
                 '%megabytes%' => intdiv(DataImportLimits::MAX_FILE_BYTES, 1024 * 1024),

@@ -12700,6 +12700,7 @@ data_import:
                 keep_rest_button: "Keep them just for me"
             chooser:
                 undo_last: "Undo the last one"
+                back_to_last: "Go back to the previous puzzle"
             flash:
                 matched: "{1}1 matched.|[0,Inf[%number% matched."
                 kept: "{1}1 puzzle kept just for you.|[0,Inf[%number% puzzles kept just for you."
@@ -13260,6 +13261,7 @@ data_import:
             leave_out: "Don't import any"
             confirm: "{1}Don't import the 1 row of “%title%”? You can change this in step 2.|[0,Inf[Don't import the %number% rows of “%title%”? You can change this in step 2."
             confirm_button: "Yes, don't import this sheet"
+            confirm_button_file: "Yes, don't import this file"
         row:
             leave_out: "Don't import this row"
             not_imported: "Not imported"
@@ -13284,6 +13286,7 @@ data_import:
             left_out_puzzle: "{1}1 row is not imported. You can put it back.|[0,Inf[%number% rows are not imported. You can put each of them back."
             left_out_sheet: "The rows of “%title%” are not imported. You can change this in step 2, “How we read your file”."
             left_out_file: "The rows of the whole file are not imported. You can change this in step 2, “How we read your file”."
+            put_back_sheet: "Put back. Its rows are read again and are in the list in a moment."
             changed_meanwhile: "This changed in the meantime - here is how it stands now. Nothing was saved."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

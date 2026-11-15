@@ -12449,6 +12449,7 @@ data_import:
                 keep_rest_button: "Les garder rien que pour moi"
             chooser:
                 undo_last: "Annuler le dernier"
+                back_to_last: "Revenir au puzzle précédent"
             flash:
                 matched: "{1}1 associé.|[0,Inf[%number% associés."
                 kept: "{1}1 puzzle conservé rien que pour vous.|[0,Inf[%number% puzzles conservés rien que pour vous."
@@ -13009,6 +13010,7 @@ data_import:
             leave_out: "N'en importer aucune"
             confirm: "{0,1}Ne pas importer la ligne de « %title% » ? Vous pouvez le modifier à l'étape 2.|[2,Inf[Ne pas importer les %number% lignes de « %title% » ? Vous pouvez le modifier à l'étape 2."
             confirm_button: "Oui, ne pas importer cette feuille"
+            confirm_button_file: "Oui, ne pas importer ce fichier"
         row:
             leave_out: "Ne pas importer cette ligne"
             not_imported: "Non importée"
@@ -13033,6 +13035,7 @@ data_import:
             left_out_puzzle: "{0,1}%number% ligne n'est pas importée. Vous pouvez la remettre.|[2,Inf[%number% lignes ne sont pas importées. Vous pouvez remettre chacune d'elles."
             left_out_sheet: "Les lignes de « %title% » ne sont pas importées. Vous pouvez le modifier à l'étape 2, « Comment nous avons lu votre fichier »."
             left_out_file: "Les lignes du fichier entier ne sont pas importées. Vous pouvez le modifier à l'étape 2, « Comment nous avons lu votre fichier »."
+            put_back_sheet: "Remis. Ses lignes sont relues et seront dans la liste dans un instant."
             changed_meanwhile: "Cela a changé entre-temps - voici où on en est maintenant. Rien n'a été enregistré."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

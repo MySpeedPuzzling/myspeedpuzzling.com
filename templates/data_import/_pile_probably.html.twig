@@ -38,6 +38,12 @@
                 {{ 'data_import.puzzles.bulk.grid.left_for_later'|trans({'%count%': waiting, '%number%': waiting|format_number}) }}
                 <a href="{{ path('data_import_puzzle_group', here) }}" class="alert-link d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow" data-testid="import-grid-again">{{ 'data_import.puzzles.bulk.grid.again'|trans }}</a>
             </p>
+        {% elseif not is_same and counts.same > 0 %}
+            {# Nothing to look at closer - but tiles of the grid were left for later: they still wait, said with the way to them #}
+            <p class="alert alert-info fs-sm mb-2" data-testid="import-grid-left-for-later">
+                {{ 'data_import.puzzles.bulk.grid.left_for_later'|trans({'%count%': counts.same, '%number%': counts.same|format_number}) }}
+                <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: 'probably', part: 'same'}) }}" class="alert-link d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow" data-testid="import-grid-again">{{ 'data_import.puzzles.bulk.grid.again'|trans }}</a>
+            </p>
         {% else %}
             <p class="alert alert-success fs-sm mb-2" data-testid="import-pile-nothing-left"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.nothing_left'|trans }}</p>
         {% endif %}

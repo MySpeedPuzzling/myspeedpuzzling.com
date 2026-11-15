@@ -12454,6 +12454,7 @@ data_import:
                 keep_rest_button: "Guardarlos solo para mí"
             chooser:
                 undo_last: "Deshacer el último"
+                back_to_last: "Volver al puzzle anterior"
             flash:
                 matched: "{1}1 emparejado.|[0,Inf[%number% emparejados."
                 kept: "{1}1 puzzle guardado solo para ti.|[0,Inf[%number% puzzles guardados solo para ti."
@@ -13014,6 +13015,7 @@ data_import:
             leave_out: "No importar ninguna"
             confirm: "{1}¿No importar la fila de «%title%»? Puedes cambiarlo en el paso 2.|[0,Inf[¿No importar las %number% filas de «%title%»? Puedes cambiarlo en el paso 2."
             confirm_button: "Sí, no importar esta hoja"
+            confirm_button_file: "Sí, no importar este archivo"
         row:
             leave_out: "No importar esta fila"
             not_imported: "No se importa"
@@ -13038,6 +13040,7 @@ data_import:
             left_out_puzzle: "{1}1 fila no se importa. Puedes volver a incluirla.|[0,Inf[%number% filas no se importan. Puedes volver a incluir cada una."
             left_out_sheet: "Las filas de «%title%» no se importan. Puedes cambiarlo en el paso 2, «Cómo hemos leído tu archivo»."
             left_out_file: "Las filas de todo el archivo no se importan. Puedes cambiarlo en el paso 2, «Cómo hemos leído tu archivo»."
+            put_back_sheet: "Recuperado. Sus filas se leen de nuevo y estarán en la lista en un momento."
             changed_meanwhile: "Esto ha cambiado mientras tanto - así está ahora. No se ha guardado nada."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

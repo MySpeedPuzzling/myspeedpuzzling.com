@@ -314,6 +314,64 @@ final class ImportAddListTest extends WebTestCase
         self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND batch_id IS NOT NULL', ['id' => $second]));
     }
 
+    public function testASheetThatWasJustLeftOutIsPutBackFromTheListsBar(): void
+    {
+        $player = $this->seedPairingPlayer('listsheetback');
+        $puzzles = [
+            'Zq Sheetback Harbour' => $this->seedCataloguePuzzle('Zq Sheetback Harbour', 500, $this->seedBrand('Zqsheetback')),
+            'Zq Sheetback Meadow' => $this->seedCataloguePuzzle('Zq Sheetback Meadow', 1000, $this->seedBrand('Zqsheetbackmeadow')),
+        ];
+        $importId = $this->importedSheets($player, [
+            'Solo 500' => [
+                ['Zq Sheetback Harbour', 500, '2023-03-01', 3000],
+                ['Zq Sheetback Meadow', 1000, '2023-03-02', 5000],
+            ],
+            'Older' => [
+                ['Zq Sheetback Harbour', 500, '2022-03-01', 3200],
+                ['Zq Sheetback Meadow', 1000, '2022-03-02', 5100],
+            ],
+        ]);
+        $this->matched($importId, $puzzles);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $path = '/en/import/' . $importId . '/add/list';
+
+        $crawler = $this->browser->request('GET', $path);
+        $token = (string) $crawler->filter('input[name="_token"]')->first()->attr('value');
+        $sheet = $crawler->filter('[data-testid="import-add-list-sheet-heading"]')->eq(1)->filter('[data-testid="import-add-list-sheet-leave-out"]');
+        self::assertSame("Yes, don't import this sheet", self::spaced($sheet->filter('[data-testid="import-add-list-sheet-confirm"]')->text()));
+        $sheetId = (string) $sheet->filter('input[name="sheet"]')->attr('value');
+        $kind = fn (): mixed => $this->database->fetchOne('SELECT kind FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]);
+
+        $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out_sheet', 'sheet' => $sheetId, 'version' => (string) $sheet->filter('input[name="version"]')->attr('value')]);
+        self::assertSame('not_puzzles', $kind());
+        $bar = $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-bar"]');
+        $putBack = $bar->filter('form[data-testid="import-add-list-sheet-put-back"]');
+        self::assertSame('Put back', self::spaced($putBack->filter('button')->text()));
+        // Shown once, with the answer it belongs to
+        self::assertCount(0, $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-sheet-put-back"]'));
+
+        // A kind that is none, "not puzzles" itself, a sheet that is not left out, and no token: nothing is put back
+        foreach (['nonsense', 'not_puzzles'] as $crafted) {
+            $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => $crafted]);
+            self::assertResponseRedirects($path . '?page=1');
+            self::assertSame('not_puzzles', $kind(), $crafted);
+            self::assertStringContainsString('Nothing was saved.', $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-flash"]')->text());
+        }
+
+        $this->browser->request('POST', $path, ['action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => 'results']);
+        self::assertResponseStatusCodeSame(403);
+
+        // "Put back": the sheet is what it was - its rows are read again
+        $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => 'results']);
+        self::assertResponseRedirects($path . '?page=1');
+        self::assertSame('results', $kind());
+        $bar = $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-bar"]');
+        self::assertStringContainsString('Put back. Its rows are read again', $bar->filter('[data-testid="import-add-list-flash"]')->text());
+        self::assertCount(0, $bar->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => 'results']);
+        self::assertSame('results', $kind());
+    }
+
     public function testCheckAndAddSaysWhatEverySheetIsAddedAsAndHowItWasRead(): void
     {
         $player = $this->seedPairingPlayer('listread');

@@ -120,7 +120,7 @@
                                     <input type="hidden" name="version" value="{{ sheet_line.mappingVersion }}">
                                     {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
                                     <p class="fs-sm mb-2 text-break">{{ 'data_import.add_list.sheet.confirm'|trans({'%count%': sheet_line.ready, '%number%': sheet_line.ready|format_number, '%title%': item.sheetTitle != '' ? item.sheetTitle : 'data_import.sheets.untitled'|trans}) }}</p>
-                                    <button type="submit" name="action" value="leave_out_sheet" class="btn btn-outline-secondary btn-sm text-wrap align-self-start" style="min-height: 44px;" data-testid="import-add-list-sheet-confirm">{{ 'data_import.add_list.sheet.confirm_button'|trans }}</button>
+                                    <button type="submit" name="action" value="leave_out_sheet" class="btn btn-outline-secondary btn-sm text-wrap align-self-start" style="min-height: 44px;" data-testid="import-add-list-sheet-confirm">{{ (item.sheetTitle != '' ? 'data_import.add_list.sheet.confirm_button' : 'data_import.add_list.sheet.confirm_button_file')|trans }}</button>
                                 </form>
                             </details>
                         {% endif %}
@@ -190,6 +190,18 @@
                frame - a notice at the top of the list moved every row under the finger #}
             {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
                 <p class="fs-sm mb-1" role="status" data-testid="import-add-list-flash"><i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i>{{ message }}</p>
+            {% endfor %}
+            {# A sheet that was just set to "not imported": put back right here, as what it was #}
+            {% for left_out in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH_SHEET')) : [] %}
+                <form action="{{ change_url }}" method="post" class="mb-2" data-turbo-frame="import-add-list" data-testid="import-add-list-sheet-put-back">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="sheet" value="{{ left_out.sheet }}">
+                    <input type="hidden" name="kind" value="{{ left_out.kind }}">
+                    {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
+                    <button type="submit" name="action" value="put_back_sheet" class="btn btn-outline-primary btn-sm text-nowrap" style="min-height: 44px;">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.add_list.row.put_back'|trans }}
+                    </button>
+                </form>
             {% endfor %}
             <p class="fw-semibold mb-2" data-testid="import-add-list-will-add">{{ 'data_import.add_list.bar.will_add'|trans({'%count%': add.toAdd, '%number%': add.toAdd|format_number}) }}</p>
             <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-add-list-done">

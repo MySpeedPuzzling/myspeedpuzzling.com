@@ -80,7 +80,8 @@ final class ImportAnswersScriptTest extends TestCase
         self::assertSame(1, $fresh['calls']);
         // The next puzzle took the place: the address is its address, its beginning is in view and focused
         self::assertSame('/en/import/1/puzzle/2?flow=choose&done=1', $fresh['location']);
-        self::assertSame(['import-pile h1 Next puzzle', '-1', false, ['import-pile']], [$fresh['focused'], $fresh['tabindex'], $fresh['shown'], $fresh['scrolledTo']]);
+        // (it stood at 300 px, below the header: nothing is scrolled)
+        self::assertSame(['import-pile h1 Next puzzle', '-1', false, []], [$fresh['focused'], $fresh['tabindex'], $fresh['shown'], $fresh['scrolledBy']]);
 
         // A redirect (the screen is another one): the page that was fetched is handed to Turbo - one request
         self::assertSame(['disabled' => true, 'busy' => 'true'], $page['waiting']);
@@ -112,6 +113,22 @@ final class ImportAnswersScriptTest extends TestCase
 
         // A typed code picks its answer
         self::assertSame(['answer' => 'code', 'code' => '#abc123'], $code['body']);
+    }
+
+    public function testTheLineAtTheBottomNeverCoversWhatIsAnsweredNext(): void
+    {
+        ['room' => $room] = $this->scenarios(['room']);
+
+        // The next card's button stood at 650-694 of 700 px, the line is 90 px: the page keeps room for the line
+        // and scrolls by what brings the button above it (694 - (700 - 90 - 8)), no more
+        self::assertSame(['scrolledBy' => [92], 'padding' => '98px', 'room' => '90px', 'focused' => 'two button Yes, this is it'], self::at($room, 'under'));
+        // "Close": the room is given back and focus returns to that button - not to the page
+        self::assertSame(['focused' => 'two button Yes, this is it', 'padding' => '', 'room' => ''], self::at($room, 'closed'));
+        // A button that is in view already: nothing moves
+        self::assertSame([], self::at($room, 'inView'));
+        // An answer that was not taken, its notice under the site's header (at 40 px, header 90 + 20): brought
+        // below the header and focused
+        self::assertSame(['scrolledBy' => [-70], 'focused' => 'two div No player has this code.'], self::at($room, 'refused'));
     }
 
     public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void

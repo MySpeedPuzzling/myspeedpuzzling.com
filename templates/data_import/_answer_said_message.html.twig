@@ -13,36 +13,29 @@
       step_done   (optional) no puzzle of the import waits any more
 #}
 {% set colours = {success: 'border-success', warning: 'border-warning', info: 'border-primary'} %}
-<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-2" data-testid="import-answer-said-message" data-type="{{ said.type }}" data-import-answers-dismissable>
+<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-1" data-testid="import-answer-said-message" data-type="{{ said.type }}" data-import-answers-dismissable>
     <div class="card-body py-1 px-3">
-        <div class="d-flex align-items-center gap-2">
-            <div class="flex-grow-1 fs-sm" style="min-width: 0;">
-                <span class="fw-medium" data-testid="import-answer-said-text">
-                    <i class="bi {{ said.type == 'success' ? 'bi-check-circle text-success' : (said.type == 'warning' ? 'bi-exclamation-triangle text-warning' : 'bi-info-circle text-primary') }} me-1" aria-hidden="true"></i>{{ said.text }}
-                </span>
-                {% if said.kept|default(false) %}
-                    {# One short line on a phone: where the puzzle will be is a tap away, not three lines over the next puzzle #}
-                    <details class="d-inline-block align-top" data-testid="import-kept-where">
-                        <summary class="text-decoration-underline" style="cursor: pointer;">{{ 'data_import.puzzles.said.where'|trans }}</summary>
-                        <span class="d-block text-muted">
-                            {{ 'data_import.puzzles.said.kept_where'|trans }}
-                            <a href="{{ path('unlisted_puzzles') }}">{{ 'unlisted_puzzles.link'|trans }}</a>
-                        </span>
-                    </details>
-                {% endif %}
-            </div>
+        {# Row 1: the sentence, the whole width, two lines at most. Row 2: what can be done, to the right. #}
+        <div class="fs-sm fw-medium" style="line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" data-testid="import-answer-said-text">
+            <i class="bi {{ said.type == 'success' ? 'bi-check-circle text-success' : (said.type == 'warning' ? 'bi-exclamation-triangle text-warning' : 'bi-info-circle text-primary') }} me-1" aria-hidden="true"></i>{{ said.text }}
+            {%- if said.kept|default(false) %}
+                {# Where a kept puzzle will be: its page, in a new tab - the round is not left #}
+                <a href="{{ path('unlisted_puzzles') }}" target="_blank" rel="noopener" class="fw-normal" data-testid="import-kept-where">{{ 'data_import.puzzles.said.where'|trans }}</a>
+            {%- endif %}
+        </div>
+        <div class="d-flex justify-content-end align-items-center gap-2">
             {% if said.undo|default(null) is not null %}
-                <form action="{{ path('data_import_puzzles_decide', {importId: said.import_id}) }}" method="post" class="flex-shrink-0" data-import-answer data-testid="import-answer-undo">
+                <form action="{{ path('data_import_puzzles_decide', {importId: said.import_id}) }}" method="post" data-import-answer data-testid="import-answer-undo">
                     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
                     {% for name, value in said.undo %}
                         <input type="hidden" name="{{ name }}" value="{{ value }}">
                     {% endfor %}
-                    <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary btn-sm text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-answer-undo-button">
+                    <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary btn-sm text-nowrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-answer-undo-button">
                         <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.undo_last'|trans }}
                     </button>
                 </form>
             {% endif %}
-            <button type="button" class="btn-close flex-shrink-0" style="min-width: 44px; min-height: 44px; background-size: 0.75em;" aria-label="{{ 'data_import.in_place.close'|trans }}" data-action="data-import-answers#dismiss" data-testid="import-answer-said-close"></button>
+            <button type="button" class="btn btn-link btn-sm text-nowrap px-2 d-inline-flex align-items-center" style="min-height: 44px; min-width: 44px;" data-action="data-import-answers#dismiss" data-testid="import-answer-said-close">{{ 'data_import.in_place.close'|trans }}</button>
         </div>
         {% if said.step_done|default(false) %}
             <p class="fs-sm fw-medium mt-2 mb-2" data-testid="import-answer-step-done">{{ 'data_import.puzzles.next.nothing'|trans }}</p>

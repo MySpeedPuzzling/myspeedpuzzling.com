@@ -223,9 +223,18 @@ not an undo: a match taken back is remembered as "not this puzzle", and such a p
 with others (`ImportPuzzleBulkConfirm`) - the twenty would come back as cards to look at closer, not as the grid
 they were. An answer for a pile can run on the worker for thousands. Each puzzle is taken back on its own card.
 
-The line lies over the screen, so it is **one or two short lines on a phone** and has a "Close" button (the script's
-`dismiss`): where a kept puzzle will be is behind "Where do I find it?" (a `<details>`), not three lines over the
-next puzzle's pictures.
+The line lies over the screen, so it is small (≤ ~96 px at 390 px): row 1 the sentence, the whole width, two lines
+at most; row 2 the actions to the right - "Undo the last one", "Close" (the script's `dismiss`; focus returns to the
+card that is answered next). Where a kept puzzle will be is a short link in the sentence ("Where do I find it?" →
+`unlisted_puzzles`, a new tab, so a round is not left). **It never covers what is answered next:** while it is
+shown the script gives the page `scroll-padding-bottom` and the screen's element a bottom padding of the line's
+real height (`room()`), and after every answer brings the element focus goes to wholly into view - below the site's
+header (`--header-height`), above the line - without moving anything that already is (`reveal()`). A notice on a
+card (`data-import-answers-attention`, a refused code) and the beginning of a new screen are revealed the same way;
+a screen that only says "Nothing left here" gets its Continue focused, not its heading.
+
+The chooser's own link under "Later" leads to the previous puzzle's screen and is called that ("Go back to the
+previous puzzle"); "Undo the last one" is only the line's button, which takes the answer back at once.
 
 **Found in a real browser (2026-11), and why the script reads attributes:** every answer form holds
 `<button name="action">`, and in a browser a control's name shadows the form's property - `form.action` is the

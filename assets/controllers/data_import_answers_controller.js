@@ -42,6 +42,8 @@ export default class extends Controller {
         // Cards an answer is on its way for (their ids), and whether an answer for the whole screen is
         this.waiting = new Set();
         this.screenWaits = false;
+        // The card focus was put on last - where it returns when the line at the bottom is closed
+        this.last = null;
 
         this.onSubmit = (event) => this.submit(event);
         this.element.addEventListener('submit', this.onSubmit);
@@ -49,6 +51,7 @@ export default class extends Controller {
 
     disconnect() {
         this.element.removeEventListener('submit', this.onSubmit);
+        document.documentElement.style.scrollPaddingBottom = '';
     }
 
     submit(event) {
@@ -264,13 +267,26 @@ export default class extends Controller {
 
         event.preventDefault();
 
-        const back = part.closest('#import-answer-said') === null ? this.element.querySelector('#import-chooser h1, #import-chooser h2') : null;
+        const line = part.closest('#import-answer-said') !== null;
 
         part.remove();
         this.address();
+        this.room();
 
-        if (back !== null) {
-            this.focus(back);
+        if (!line) {
+            this.focus(this.element.querySelector('#import-chooser h1, #import-chooser h2'));
+
+            return;
+        }
+
+        // The line is closed: focus goes back to what is answered next - the card focus was on, else the first
+        // thing on the screen that can be answered
+        const card = this.last ? document.getElementById(this.last) : null;
+        const next = (card === null ? null : card.querySelector('button:not([disabled]), a[href]'))
+            || this.element.querySelector('[data-import-answers-scope] button:not([disabled]), form[data-import-answer] button:not([disabled])');
+
+        if (next !== null) {
+            next.focus({ preventScroll: true });
         }
     }
 
@@ -359,31 +375,53 @@ export default class extends Controller {
     }
 
     afterAddress(key, around) {
-        // A new screen: its beginning is brought into view and focused
+        this.room();
+
+        // A new screen: its beginning is brought into view, below the site's header
         const fresh = this.element.querySelector('[data-import-answers-show]');
 
         if (fresh !== null) {
             fresh.removeAttribute('data-import-answers-show');
-            fresh.style.scrollMarginTop = `${HEADER_PX}px`;
+            this.reveal(fresh, true);
 
-            if (fresh.getBoundingClientRect().top < HEADER_PX) {
-                fresh.scrollIntoView({ block: 'start' });
-            }
-
-            this.focus(fresh.querySelector('h1, h2') || fresh);
+            // A screen that only says what was done and where to go ("Nothing left here", the step is done): its
+            // ONE way on is focused - else the screen's heading
+            const ended = fresh.querySelector('[data-testid="import-pile-nothing-left"], [data-testid="import-step-done"]') !== null;
+            const wayOn = ended ? fresh.querySelector('a.btn-primary') : null;
+            this.focus(wayOn || fresh.querySelector('[role="alert"]') || fresh.querySelector('h1, h2') || fresh);
+            this.last = null;
 
             return;
         }
 
-        // The card where it stands, else the one that moved up, else the one before - its first button or link
+        // The card where it stands, else the one that moved up, else the one before
         const ids = key === null ? [] : [key, ...around];
 
         for (const id of ids) {
             const card = document.getElementById(id);
-            const action = card === null ? null : card.querySelector('button:not([disabled]), a[href]');
+
+            if (card === null) {
+                continue;
+            }
+
+            // An answer that was not taken says why on the card: that is shown, below the header, and focused
+            const attention = card.querySelector('[data-import-answers-attention]');
+
+            if (attention !== null) {
+                this.reveal(attention, false);
+                this.focus(attention);
+                this.last = id;
+
+                return;
+            }
+
+            const action = card.querySelector('button:not([disabled]), a[href]');
 
             if (action !== null) {
+                // Its first button or link - wholly in view, above the line that stays at the bottom
+                this.reveal(action, false);
                 action.focus({ preventScroll: true });
+                this.last = id;
 
                 return;
             }
@@ -405,6 +443,37 @@ export default class extends Controller {
 
         if (said !== null && said.childElementCount > 0) {
             this.focus(said.querySelector('a.btn, button') || said);
+        }
+    }
+
+    /**
+     * The line that stays in view lies over the bottom of the screen: the page keeps that much room free - for
+     * the browser's own scrolling (`scroll-padding-bottom`) and under the screen's last element.
+     */
+    room() {
+        const said = this.element.querySelector('#import-answer-said');
+        const height = said === null || said.childElementCount === 0 ? 0 : Math.ceil(said.getBoundingClientRect().height);
+
+        document.documentElement.style.scrollPaddingBottom = height > 0 ? `${height + 8}px` : '';
+        this.element.style.paddingBottom = height > 0 ? `${height}px` : '';
+
+        return height;
+    }
+
+    /**
+     * The element is wholly in view - below the site's header, above the line at the bottom. Nothing moves when it
+     * already is. `toTop`: a new screen is shown from its beginning.
+     */
+    reveal(element, toTop) {
+        const header = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || HEADER_PX;
+        const top = header + 20;
+        const bottom = window.innerHeight - this.room() - 8;
+        const box = element.getBoundingClientRect();
+
+        if (box.top < top) {
+            window.scrollBy({ top: box.top - top, behavior: 'auto' });
+        } else if (!toTop && box.bottom > bottom) {
+            window.scrollBy({ top: Math.min(box.bottom - bottom, box.top - top), behavior: 'auto' });
         }
     }
 
@@ -442,6 +511,7 @@ export default class extends Controller {
         if (said !== null && !said.contains(scope)) {
             line.className = 'card shadow border-warning my-2 py-2 px-3 fs-sm fw-medium';
             said.replaceChildren(line);
+            this.room();
         } else {
             line.className = 'alert alert-warning fs-sm py-2 mt-2 mb-0';
             scope.append(line);

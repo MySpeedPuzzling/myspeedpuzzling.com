@@ -170,6 +170,8 @@ final class ImportPeopleScreenTest extends WebTestCase
         $offer = $crawler->filter('[data-testid="import-person-remembered"]');
         self::assertSame(['player', $friend->id->toString()], [$offer->attr('data-remembered'), $offer->attr('data-player')]);
         self::assertStringContainsString('Last time “Zq Pagefriend” was Zq Pagefriend - still right?', $offer->text());
+        // What an earlier file remembered is offered - the answer that is selected is the stored one: a guest
+        self::assertSame(['guest'], $crawler->filter('[data-testid="import-person"][data-name="Zq Pagefriend"] input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
         $this->browser->submit($offer->selectButton('Yes, still right')->form());
         self::assertResponseRedirects();
         $crawler = $this->browser->followRedirect();

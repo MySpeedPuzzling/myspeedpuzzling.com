@@ -61,7 +61,7 @@
     {% endif %}
 
     {% if refused_person_id == person.personId %}
-        <div class="alert alert-warning fs-sm py-2" role="alert" data-testid="import-person-refused">
+        <div class="alert alert-warning fs-sm py-2" role="alert" data-testid="import-person-refused" data-import-answers-attention>
             {{ ('data_import.people.refused.' ~ (refusal in ['unknown_player', 'invalid'] ? refusal : 'invalid'))|trans }}
         </div>
     {% endif %}
@@ -69,7 +69,8 @@
     <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="border-top pt-2" data-import-answer data-testid="import-person-form">
         <input type="hidden" name="_token" value="{{ csrf }}">
         <input type="hidden" name="person" value="{{ person.personId }}">
-        {# The code answer as it stands: the code that could not be taken (kept, to be corrected) - or the code of
+        {# The answer that is selected is the one that is stored - never one an earlier file remembered (that one is
+           offered above, with its own button). The code answer as it stands: the code that could not be taken (kept, to be corrected) - or the code of
            the player this person is, when that player is none of the ones offered above #}
         {% set is_refused = refused_person_id == person.personId and (refused_code|default('')) != '' %}
         {% set offered_ids = person.suggestions|map(suggestion => suggestion.playerId) %}
@@ -81,7 +82,7 @@
             {% for suggestion in person.suggestions %}
                 {% set suggestion_label = suggestion.name ?? ('#' ~ suggestion.code|upper) %}
                 <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;" data-testid="import-person-suggestion" data-player="{{ suggestion.playerId }}" data-exact="{{ suggestion.exact ? 'true' : 'false' }}">
-                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ not is_refused and (person.playerId == suggestion.playerId or (person.rememberedPlayerId == suggestion.playerId and person.rememberedChoice is not null)) ? 'checked' }}>
+                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ not is_refused and person.isPlayer and person.playerId == suggestion.playerId ? 'checked' }}>
                     <span class="text-break">
                         {{ 'data_import.people.answer.player'|trans({'%player%': suggestion_label, '%code%': suggestion.code|upper}) }}
                         {% if not suggestion.exact %}<span class="badge bg-light text-dark border ms-1">{{ 'data_import.people.maybe'|trans }}</span>{% endif %}
@@ -91,7 +92,7 @@
             {% endfor %}
 
             <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not by_code and not person.isPlayer and person.choice.value != 'me' and person.rememberedChoice is null ? 'checked' }}>
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not by_code and not person.isPlayer and person.choice.value != 'me' ? 'checked' }}>
                 <span>{{ 'data_import.people.answer.guest'|trans }}</span>
             </label>
 
@@ -104,7 +105,7 @@
             </div>
 
             <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ not is_refused and (person.choice.value == 'me' or (person.rememberedChoice is not null and person.rememberedChoice.value == 'me')) ? 'checked' }}>
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ not is_refused and person.choice.value == 'me' ? 'checked' }}>
                 <span>{{ 'data_import.people.answer.me'|trans }}</span>
             </label>
         </fieldset>

@@ -184,7 +184,7 @@
         {% if last is not null %}
             {# The puzzle decided just before: its own screen says what was decided and takes it back #}
             <a href="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: last, flow: flow, done: max(0, done - 1)}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow" data-testid="import-chooser-undo-last">
-                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.undo_last'|trans }}
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.back_to_last'|trans }}
             </a>
         {% endif %}
         {% if flow is not null %}

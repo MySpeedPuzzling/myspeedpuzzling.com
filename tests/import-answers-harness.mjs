@@ -65,7 +65,21 @@ window.Element.prototype.scrollIntoView = function scrollIntoView() {
     globalThis.world.scrolledTo.push(this.id);
 };
 
+// ... so a scenario says where things are: `data-top` / `data-height` on an element are its box, the window is 700 px
+// high, and what the script scrolls by is recorded
+window.Element.prototype.getBoundingClientRect = function getBoundingClientRect() {
+    const top = Number(this.getAttribute('data-top') ?? 300);
+    const height = Number(this.getAttribute('data-height') ?? 0);
+
+    return { top, bottom: top + height, height, left: 0, right: 0, width: 0, x: 0, y: top };
+};
+Object.defineProperty(window, 'innerHeight', { value: 700, configurable: true });
+window.scrollBy = (options) => {
+    globalThis.world.scrolledBy.push(Math.round(options.top));
+};
+
 const world = {
+    scrolledBy: [],
     scrolledTo: [],
     calls: [],
     visits: [],
@@ -112,7 +126,7 @@ const { default: AnswersController } = await import('../assets/controllers/data_
 const application = Application.start(window.document.documentElement);
 application.register('data-import-answers', AnswersController);
 
-const settle = (ms = 60) => new Promise((resolve) => setTimeout(resolve, ms));
+const settle = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const card = (id) => `
     <div class="card" id="${id}" data-import-answers-scope>
@@ -132,6 +146,7 @@ async function mount() {
     world.visits = [];
     world.pending = [];
     world.scrolledTo = [];
+    world.scrolledBy = [];
     window.history.replaceState(null, '', '/en/import/1/puzzles/probably?part=differs');
     document.body.innerHTML = `
         <div data-controller="data-import-answers" data-data-import-answers-failed-value="NOT SAVED" data-data-import-answers-working-value="SAVING">
@@ -255,7 +270,7 @@ const scenarios = {
         await settle();
         const screen = document.getElementById('import-pile');
 
-        return { calls, location: window.location.pathname + window.location.search, focused: focused(), shown: screen.hasAttribute('data-import-answers-show'), scrolledTo: world.scrolledTo, tabindex: screen.querySelector('h1').getAttribute('tabindex') };
+        return { calls, location: window.location.pathname + window.location.search, focused: focused(), shown: screen.hasAttribute('data-import-answers-show'), scrolledBy: world.scrolledBy, tabindex: screen.querySelector('h1').getAttribute('tabindex') };
     },
     // Two cards tapped one after the other: sent in that order, the second only when the first is answered - and
     // while the screen is rendered again for the first, the second card stays switched off
@@ -314,6 +329,40 @@ const scenarios = {
         await settle();
 
         return { sent, kept, counted, focused: focusedAfter, fresh: state() };
+    },
+    // The line that stays in view lies over the bottom of the screen: the page keeps room for it, the next card's
+    // first button is brought wholly above it - and nothing moves when it already is; "Close" gives focus back
+    async room() {
+        await mount();
+        const line = (height) => `<turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>1 matched.</span><button type="button" data-action="data-import-answers#dismiss" data-close>Close</button></div></template></turbo-stream>`;
+        document.getElementById('import-answer-said').setAttribute('data-height', '90');
+        // The next card's button is at 650-694 of a 700 px window: under the 90 px line
+        document.querySelector('#two [data-yes]').setAttribute('data-top', '650');
+        document.querySelector('#two [data-yes]').setAttribute('data-height', '44');
+        tap('#one [data-yes]');
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${line()}`));
+        await settle();
+        const under = { scrolledBy: [...world.scrolledBy], padding: document.documentElement.style.scrollPaddingBottom, room: document.querySelector('[data-controller]').style.paddingBottom, focused: focused() };
+        document.querySelector('[data-close]').focus();
+        tap('[data-close]');
+        await settle();
+        const closed = { focused: focused(), padding: document.documentElement.style.scrollPaddingBottom, room: document.querySelector('[data-controller]').style.paddingBottom };
+        // In view already (300-344): nothing moves
+        await mount();
+        document.querySelector('#two [data-yes]').setAttribute('data-height', '44');
+        tap('#one [data-yes]');
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${line()}`));
+        await settle();
+        // An answer that was not taken says why on the card, under the header (at 40): shown below it and focused
+        tap('#two [data-no]');
+        await settle();
+        const before = world.scrolledBy.length;
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="two"><template><div class="card" id="two" data-import-answers-scope><div role="alert" data-import-answers-attention data-top="40" data-height="60">No player has this code.</div><form data-import-answer><button>Save</button></form></div></template></turbo-stream>`));
+        await settle();
+
+        return { under, closed, inView: world.scrolledBy.slice(0, before), refused: { scrolledBy: world.scrolledBy.slice(before), focused: focused() } };
     },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {

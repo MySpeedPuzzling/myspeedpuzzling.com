@@ -12456,6 +12456,7 @@ data_import:
                 keep_rest_button: "Ponechat je jen pro mě"
             chooser:
                 undo_last: "Vrátit zpět to poslední"
+                back_to_last: "Zpět na předchozí puzzle"
             flash:
                 matched: "{1}1 puzzle přiřazeno.|[2,4]%number% puzzle přiřazena.|[0,Inf[%number% puzzle přiřazeno."
                 kept: "{1}1 puzzle ponecháno jen pro vás.|[2,4]%number% puzzle ponechána jen pro vás.|[0,Inf[%number% puzzle ponecháno jen pro vás."
@@ -13016,6 +13017,7 @@ data_import:
             leave_out: "Neimportovat žádný"
             confirm: "{1}Neimportovat 1 řádek listu „%title%“? Můžete to změnit v kroku 2.|[2,4]Neimportovat %number% řádky listu „%title%“? Můžete to změnit v kroku 2.|[0,Inf[Neimportovat %number% řádků listu „%title%“? Můžete to změnit v kroku 2."
             confirm_button: "Ano, tento list neimportovat"
+            confirm_button_file: "Ano, tento soubor neimportovat"
         row:
             leave_out: "Tento řádek neimportovat"
             not_imported: "Neimportuje se"
@@ -13040,6 +13042,7 @@ data_import:
             left_out_puzzle: "{1}1 řádek se neimportuje. Můžete ho vrátit.|[2,4]%number% řádky se neimportují. Každý můžete vrátit.|[0,Inf[%number% řádků se neimportuje. Každý můžete vrátit."
             left_out_sheet: "Řádky listu „%title%“ se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
             left_out_file: "Řádky celého souboru se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
+            put_back_sheet: "Vráceno. Řádky se čtou znovu a za chvíli budou v seznamu."
             changed_meanwhile: "Mezitím se to změnilo - takto to vypadá teď. Nic se neuložilo."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

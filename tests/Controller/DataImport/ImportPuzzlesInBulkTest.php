@@ -797,7 +797,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $chooser = $this->browser->followRedirect();
         self::assertSame(['catalogue', $editions['Zq9m Twin Zebra'][1]], [$this->importPuzzle($importId, 'Zq9m Twin Zebra')['choice'], $this->importPuzzle($importId, 'Zq9m Twin Zebra')['puzzle_id']]);
         $undo = $chooser->filter('[data-testid="import-chooser-undo-last"]');
-        self::assertSame('Undo the last one', self::spaced($undo->text()));
+        self::assertSame('Go back to the previous puzzle', self::spaced($undo->text()));
         self::assertSame($base . '/puzzle/' . $zebra['id'] . '?flow=choose&done=0', $undo->attr('href'));
         // "Later" keeps what can be undone
         self::assertSame($base . '/puzzles/choose/next?after=' . $mango['id'] . '&done=1&last=' . $zebra['id'], $chooser->filter('[data-testid="import-chooser-skip"]')->attr('href'));
@@ -1007,6 +1007,10 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $pile = $streams['import-pile']['part'];
         self::assertCount(0, $pile->filter('[data-testid="import-puzzle-card"]'));
         self::assertCount(1, $pile->filter('[data-testid="import-grid-end"]'));
+        // ... and it does not say "Nothing left here" while the three tiles of the grid still wait: it says so, with the way to them
+        self::assertCount(0, $pile->filter('[data-testid="import-pile-nothing-left"]'));
+        self::assertStringContainsString('3 puzzles you left for later still wait.', $pile->filter('[data-testid="import-grid-left-for-later"]')->text());
+        self::assertSame($base . '?part=same', $pile->filter('[data-testid="import-grid-again"]')->attr('href'));
         self::assertSame('false', $pile->filter('#import-pile')->attr('data-step-done'));
         self::assertCount(1, $pile->filter('a.btn-primary'));
         // The link to the guide comes back to the screen - not to the address the form was posted to
@@ -1082,10 +1086,11 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $streams = self::streams($this->browser);
         self::assertSame('unlisted', $streams['import-chooser']['part']->filter('#import-chooser')->attr('data-choice'));
         $said = $streams['import-answer-said']['part'];
-        self::assertSame('1 puzzle kept just for you.', self::spaced($said->filter('[data-testid="import-answer-said-text"]')->text()));
-        self::assertStringContainsString('under My data → Unlisted puzzles', $said->filter('[data-testid="import-kept-where"]')->text());
-        self::assertStringContainsString('match them with a puzzle in our database, or add them to our database later', $said->filter('[data-testid="import-kept-where"]')->text());
-        self::assertSame('/en/unlisted-puzzles', $said->filter('[data-testid="import-kept-where"] a')->attr('href'));
+        // One short sentence with a short link to where it will be - in a new tab, the screen is not left
+        self::assertSame('1 puzzle kept just for you. Where do I find it?', self::spaced($said->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertSame(['/en/unlisted-puzzles', '_blank'], [$said->filter('a[data-testid="import-kept-where"]')->attr('href'), $said->filter('a[data-testid="import-kept-where"]')->attr('target')]);
+        self::assertCount(1, $said->filter('button[data-testid="import-answer-said-close"][data-action="data-import-answers#dismiss"]'));
+        self::assertCount(0, $said->filter('details'));
         self::assertSame(['unlisted', 'player'], $this->choices($importId)['Zq9s Nobody Knows Qxv 1']);
 
         // Its card in the pile's folded list: "Take back" - the pile's screen as it stands, the list still open,
@@ -1227,7 +1232,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         // "Keep it just for me" on the chooser: where it will be is said with the answer
         $this->browser->request('POST', $decide, ['action' => 'unlisted', 'puzzle' => $zebra['id'], 'version' => '2', 'done' => '0'] + $round, server: self::AS_TURBO);
         $streams = self::streams($this->browser);
-        self::assertSame('/en/unlisted-puzzles', $streams['import-answer-said']['part']->filter('[data-testid="import-kept-where"] a')->attr('href'));
+        self::assertSame('/en/unlisted-puzzles', $streams['import-answer-said']['part']->filter('a[data-testid="import-kept-where"]')->attr('href'));
         self::assertSame('Zq9t Twin Mango', self::spaced($streams['import-chooser']['part']->filter('[data-testid="import-puzzle-name"]')->text()));
 
         // Outside a round (opened from a card): the same puzzle, as it stands now

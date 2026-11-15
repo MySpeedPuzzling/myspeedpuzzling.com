@@ -12443,6 +12443,7 @@ data_import:
                 keep_rest_button: "自分専用に保持する"
             chooser:
                 undo_last: "直前の選択を元に戻す"
+                back_to_last: "前のパズルに戻る"
             flash:
                 matched: "%number% 件を照合しました。"
                 kept: "%number% 件のパズルを自分専用に保持しました。"
@@ -13003,6 +13004,7 @@ data_import:
             leave_out: "すべてインポートしない"
             confirm: "「%title%」の %number% 行をインポートしませんか？ステップ2で変更できます。"
             confirm_button: "はい、このシートはインポートしない"
+            confirm_button_file: "はい、このファイルはインポートしません"
         row:
             leave_out: "この行をインポートしない"
             not_imported: "インポートしません"
@@ -13027,6 +13029,7 @@ data_import:
             left_out_puzzle: "%number% 行をインポートしません。それぞれ元に戻せます。"
             left_out_sheet: "「%title%」の行はインポートしません。ステップ2「ファイルの読み取り方」で変更できます。"
             left_out_file: "ファイル全体の行はインポートしません。ステップ2「ファイルの読み取り方」で変更できます。"
+            put_back_sheet: "元に戻しました。行を読み直しています。まもなく一覧に表示されます。"
             changed_meanwhile: "その間に変更がありました - 現在の状態を表示しています。何も保存されていません。"
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

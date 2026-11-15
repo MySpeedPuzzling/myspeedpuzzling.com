@@ -1,11 +1,13 @@
 {% extends 'base.html.twig' %}
 
 {#
-    The chooser: one puzzle of the import per screen (docs/features/data-import/pairing-screens.md "The chooser").
-    Top to bottom on a phone: what the file says and a few of its rows, the catalogue puzzles it could be as large
-    picture cards - the whole card is the button, a tap chooses (another piece count is asked about once more, by the server) - "Search the database" (results as the same cards,
-    in a frame of their own), "None of these" (keep as unlisted / leave out), and Skip. Inside "Do the next 20" a
-    choice leads on to the next puzzle that waits.
+    The chooser: one puzzle of the import per screen (docs/features/data-import/pairing-screens.md "The chooser",
+    guided-flow.md §6.2). Top to bottom on a phone: how far the round is, what the file says and a few of its rows,
+    the puzzles of our database it could be as large picture cards - **the whole card is the button, a tap is the
+    answer**; none is highlighted or chosen beforehand, the best fit only stands first (another piece count is asked
+    about once more, by the server) - then "None of these" (folded: search our database, keep it just for me, don't
+    import it), "Later" (nothing is saved), "Undo the last one" and "Stop here". Inside a round a choice leads on to
+    the next puzzle that waits - the puzzles with the most rows first.
 
     Every form posts to its own route with the version the page showed; nothing of the file is in an address (the
     search is a POST for that reason).
@@ -42,6 +44,11 @@
             <span class="fs-sm text-muted text-nowrap" data-testid="import-chooser-portion">{{ 'data_import.puzzles.chooser.portion'|trans({'%done%': done|format_number, '%portion%': portion|format_number}) }}</span>
         {% endif %}
     </div>
+    {% if flow is not null %}
+        <div class="progress mb-2" style="height: 6px;" aria-hidden="true">
+            <div class="progress-bar" style="width: {{ (min(done, portion) * 100 / portion)|round(0, 'floor') }}%;"></div>
+        </div>
+    {% endif %}
 
     {% if ask_other_pieces is not null %}
         {# A puzzle of another piece count was tapped: asked once more, by the server - only "Yes" takes it #}
@@ -91,8 +98,12 @@
         </div>
     {% endif %}
 
-    {# Candidates: the whole card is the button #}
-    <h2 class="h6 mt-3">{{ 'data_import.puzzles.chooser.candidates_title'|trans }}</h2>
+    {# What it could be: the whole card is the button - a tap is the answer, nothing is chosen beforehand #}
+    <h2 class="h6 mt-3 mb-0">{{ 'data_import.puzzles.chooser.candidates_title'|trans }}</h2>
+    {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.pick_the_right_one'|trans, fold: true, summary: 'data_import.explain.pick_summary'|trans, testid: 'import-explain-pick'}, with_context = false) }}
+    {% if card.candidates|filter(puzzle => puzzle.piecesDiffer or puzzle.brandDiffers)|length > 0 %}
+        {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.another_brand_or_pieces'|trans, fold: true, summary: 'data_import.explain.another_brand_summary'|trans, testid: 'import-explain-another-brand'}, with_context = false) }}
+    {% endif %}
     {% if card.candidates is empty %}
         <p class="fs-sm text-muted" data-testid="import-chooser-no-candidates">{{ 'data_import.puzzles.chooser.no_candidates'|trans }}</p>
     {% endif %}
@@ -103,63 +114,63 @@
                 {{ _self.hidden(card, csrf, flow, done) }}
                 <input type="hidden" name="catalogue" value="{{ puzzle.puzzleId }}">
                 <button type="submit" name="action" value="catalogue"
-                        class="btn {{ is_chosen ? 'btn-outline-success' : 'btn-outline-primary' }} w-100 p-3 text-body bg-body shadow-sm" style="min-height: 44px; white-space: normal;"
+                        class="btn {{ is_chosen ? 'btn-outline-success' : 'btn-outline-secondary' }} w-100 p-3 text-body bg-body shadow-sm" style="min-height: 44px; white-space: normal;"
                         data-testid="import-chooser-candidate" data-puzzle-id="{{ puzzle.puzzleId }}">
                     {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: puzzle, file_pieces: card.piecesCount, large: true}, with_context = false) }}
-                    <span class="d-block mt-2 fw-semibold {{ is_chosen ? 'text-success' : 'text-primary' }}">
-                        <i class="bi {{ is_chosen ? 'bi-check-circle-fill' : 'bi-check-lg' }} me-1" aria-hidden="true"></i>{{ (is_chosen ? 'data_import.puzzles.chooser.chosen' : 'data_import.puzzles.chooser.choose_this')|trans }}
-                    </span>
+                    {% if is_chosen %}
+                        <span class="d-block mt-2 fw-semibold text-success"><i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.chosen'|trans }}</span>
+                    {% endif %}
                 </button>
             </form>
         {% endfor %}
     </div>
 
-    {# The search: a POST into its own frame - the typed text never stands in an address #}
-    <div class="card card-body shadow-sm my-3" data-testid="import-chooser-search">
-        <h2 class="h6">{{ 'data_import.puzzles.chooser.search_title'|trans }}</h2>
-        <form action="{{ path('data_import_puzzle_search', {importId: import.importId, importPuzzleId: card.importPuzzleId}) }}" method="post" data-turbo-frame="import-puzzle-search" role="search">
-            <input type="hidden" name="_token" value="{{ csrf }}">
-            {% if flow is not null %}
-                <input type="hidden" name="flow" value="{{ flow }}">
-                <input type="hidden" name="done" value="{{ done }}">
-            {% endif %}
-            <label for="import-puzzle-search-input" class="form-label fs-sm text-muted mb-1">{{ 'data_import.puzzles.chooser.search_label'|trans }}</label>
-            <div class="d-flex gap-2">
-                <input type="search" id="import-puzzle-search-input" name="search" value="{{ searched ?? card.name }}" class="form-control" style="font-size: 16px; min-height: 44px;" maxlength="200" autocomplete="off" enterkeyhint="search" data-testid="import-chooser-search-input">
-                <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-chooser-search-button">
-                    <i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">{{ 'data_import.puzzles.chooser.search_button'|trans }}</span>
-                </button>
-            </div>
-        </form>
-
-        <turbo-frame id="import-puzzle-search" target="_top">
-            {% if found is not null %}
-                <div class="mt-3" data-testid="import-chooser-search-results">
-                    {% if search_too_short %}
-                        <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-short">{{ 'data_import.puzzles.chooser.search_short'|trans }}</p>
-                    {% elseif found is empty %}
-                        <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-empty">{{ 'data_import.puzzles.chooser.search_empty'|trans }}</p>
-                    {% endif %}
-                    {% for puzzle in found %}
-                        <form action="{{ decide }}" method="post" class="mb-2">
-                            {{ _self.hidden(card, csrf, flow, done) }}
-                            <input type="hidden" name="catalogue" value="{{ puzzle.puzzleId }}">
-                            <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary w-100 p-2 text-body bg-body" style="min-height: 44px; white-space: normal;"
-                                    data-testid="import-chooser-search-result" data-puzzle-id="{{ puzzle.puzzleId }}">
-                                {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: puzzle, file_pieces: card.piecesCount}, with_context = false) }}
-                            </button>
-                        </form>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </turbo-frame>
-    </div>
-
-    {# None of these #}
-    <details class="card card-body shadow-sm mb-3" data-testid="import-chooser-none">
+    {# None of these: search our database, keep it just for me, don't import it - open by itself when nothing fits
+       and when a search was made #}
+    <details class="card card-body shadow-sm my-3" data-testid="import-chooser-none"{% if found is not null or card.candidates is empty %} open{% endif %}>
         <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
             <i class="bi bi-slash-circle me-2" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.none_title'|trans }}
         </summary>
+        {# The search: a POST into its own frame - the typed text never stands in an address #}
+        <div class="mb-3" data-testid="import-chooser-search">
+            <h2 class="h6">{{ 'data_import.puzzles.chooser.search_title'|trans }}</h2>
+            <form action="{{ path('data_import_puzzle_search', {importId: import.importId, importPuzzleId: card.importPuzzleId}) }}" method="post" data-turbo-frame="import-puzzle-search" role="search">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                {% if flow is not null %}
+                    <input type="hidden" name="flow" value="{{ flow }}">
+                    <input type="hidden" name="done" value="{{ done }}">
+                {% endif %}
+                <label for="import-puzzle-search-input" class="form-label fs-sm text-muted mb-1">{{ 'data_import.puzzles.chooser.search_label'|trans }}</label>
+                <div class="d-flex gap-2">
+                    <input type="search" id="import-puzzle-search-input" name="search" value="{{ searched ?? card.name }}" class="form-control" style="font-size: 16px; min-height: 44px;" maxlength="200" autocomplete="off" enterkeyhint="search" data-testid="import-chooser-search-input">
+                    <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-chooser-search-button">
+                        <i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">{{ 'data_import.puzzles.chooser.search_button'|trans }}</span>
+                    </button>
+                </div>
+            </form>
+
+            <turbo-frame id="import-puzzle-search" target="_top">
+                {% if found is not null %}
+                    <div class="mt-3" data-testid="import-chooser-search-results">
+                        {% if search_too_short %}
+                            <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-short">{{ 'data_import.puzzles.chooser.search_short'|trans }}</p>
+                        {% elseif found is empty %}
+                            <p class="fs-sm text-muted mb-0" data-testid="import-chooser-search-empty">{{ 'data_import.puzzles.chooser.search_empty'|trans }}</p>
+                        {% endif %}
+                        {% for puzzle in found %}
+                            <form action="{{ decide }}" method="post" class="mb-2">
+                                {{ _self.hidden(card, csrf, flow, done) }}
+                                <input type="hidden" name="catalogue" value="{{ puzzle.puzzleId }}">
+                                <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary w-100 p-2 text-body bg-body" style="min-height: 44px; white-space: normal;"
+                                        data-testid="import-chooser-search-result" data-puzzle-id="{{ puzzle.puzzleId }}">
+                                    {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: puzzle, file_pieces: card.piecesCount}, with_context = false) }}
+                                </button>
+                            </form>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </turbo-frame>
+        </div>
         <form action="{{ decide }}" method="post" class="mt-2">
             {{ _self.hidden(card, csrf, flow, done) }}
             <button type="submit" name="action" value="unlisted" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="import-chooser-unlisted">
@@ -175,15 +186,30 @@
         </form>
     </details>
 
-    <div class="d-flex flex-wrap gap-2 mb-4">
+    <div class="d-flex flex-wrap gap-2 mb-2">
         {% if flow is not null %}
-            <a href="{{ path('data_import_puzzle_next', {importId: import.importId, group: flow, after: card.importPuzzleId, done: done}) }}" class="btn btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center" style="min-height: 44px;" rel="nofollow" data-testid="import-chooser-skip">
+            {# "Later": the next puzzle - nothing is saved, this one still waits #}
+            <a href="{{ path('data_import_puzzle_next', {importId: import.importId, group: flow, after: card.importPuzzleId, done: done}|merge(last is not null ? {last: last} : {})) }}" class="btn btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center" style="min-height: 44px;" rel="nofollow" data-testid="import-chooser-skip">
                 {{ 'data_import.puzzles.chooser.skip'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
             </a>
         {% endif %}
-        <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: list_group}) }}" class="btn btn-link d-flex align-items-center" style="min-height: 44px;" data-testid="import-chooser-back">
-            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.back_to_list'|trans }}
-        </a>
+    </div>
+    <div class="d-flex flex-column align-items-start mb-4">
+        {% if last is not null %}
+            {# The puzzle decided just before: its own screen says what was decided and takes it back #}
+            <a href="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: last, flow: flow, done: max(0, done - 1)}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow" data-testid="import-chooser-undo-last">
+                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.undo_last'|trans }}
+            </a>
+        {% endif %}
+        {% if flow is not null %}
+            <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: flow}|merge(done > 0 ? {done: done} : {})) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-chooser-back">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.choose.stop'|trans }}
+            </a>
+        {% else %}
+            <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: list_group}|merge(list_group in ['found', 'remembered'] ? {} : {page: 1})) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-chooser-back">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.back_to_list'|trans }}
+            </a>
+        {% endif %}
     </div>
 
     {# A tap on a puzzle's card is the answer here - the screen has no other primary button #}

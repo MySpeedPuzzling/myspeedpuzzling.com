@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\ImportCataloguePuzzle;
 use SpeedPuzzling\Web\Results\ImportPuzzleCard;
 use SpeedPuzzling\Web\Results\ImportPuzzlesOverview;
 use SpeedPuzzling\Web\Results\ImportSheetRow;
+use SpeedPuzzling\Web\Services\DataImport\ImportPuzzleBulkConfirm;
 use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -32,6 +33,19 @@ readonly final class GetImportPuzzleScreen
     public const array GROUPS = ['found', 'probably', 'choose', 'not-found', 'remembered'];
     public const int SEARCH_RESULTS = 20;
     public const int SEARCH_MIN_CHARACTERS = 2;
+
+    /**
+     * The two parts of "Looks like a match" (docs/features/data-import/guided-flow.md §6.1): the same puzzle with
+     * less proof - confirmed a screen at a time - and everything else, confirmed one by one
+     */
+    public const string PART_SAME = 'same';
+    public const string PART_DIFFERS = 'differs';
+
+    /** The piles one answer can be given for (§6.2, §6.3) => the tier of their puzzles */
+    public const array PILES = ['not-found' => 'none', 'choose' => 'choose'];
+
+    /** The order of "one puzzle per screen": the puzzles with the most rows first, then by name */
+    private const string SQL_ROWS = '(import_puzzle.rows_results + import_puzzle.rows_owned + import_puzzle.rows_wish_list)';
 
     private const array GROUP_CONDITION = [
         'found' => "import_puzzle.tier = 'found'",
@@ -68,6 +82,7 @@ SELECT
     data_import.status,
     data_import.paired_at IS NOT NULL AS paired,
     counts.*,
+    answered.piles AS piles_answered,
     (
         SELECT COALESCE(SUM(sheet.rows_need_look), 0)
         FROM data_import_sheet sheet
@@ -101,17 +116,25 @@ LEFT JOIN LATERAL (
         COUNT(*) FILTER (WHERE tier = 'none' AND choice = 'undecided') AS none_open,
         COUNT(*) FILTER (WHERE tier IS NULL AND choice <> 'undecided') AS remembered,
         COUNT(*) FILTER (WHERE tier IS NULL AND choice = 'undecided') AS searching,
+        COUNT(*) FILTER (WHERE choice = 'catalogue') AS matched,
         COUNT(*) FILTER (WHERE choice = 'unlisted') AS unlisted,
         COUNT(*) FILTER (WHERE choice = 'left_out') AS left_out
     FROM data_import_puzzle
     WHERE data_import_puzzle.import_id = data_import.id
 ) counts ON TRUE
+LEFT JOIN LATERAL (
+    -- One answer for a whole pile that still runs (DataImportPileAnswer)
+    SELECT string_agg(DISTINCT pile_answer.pile, ',') AS piles
+    FROM data_import_pile_answer pile_answer
+    WHERE pile_answer.import_id = data_import.id
+        AND pile_answer.ended_as IS NULL
+) answered ON TRUE
 WHERE data_import.id = :importId
     AND data_import.player_id = :playerId
     AND data_import.status <> :discarded
 SQL;
 
-        /** @var false|array{status: string, paired: bool, puzzles: int, found: int, found_open: int, probably: int, probably_open: int, choose: int, choose_open: int, none: int, none_open: int, remembered: int, searching: int, unlisted: int, left_out: int, rows_need_look: int|string, rows_already_yours: int} $row */
+        /** @var false|array{status: string, paired: bool, puzzles: int, found: int, found_open: int, probably: int, probably_open: int, choose: int, choose_open: int, none: int, none_open: int, remembered: int, searching: int, matched: int, unlisted: int, left_out: int, piles_answered: null|string, rows_need_look: int|string, rows_already_yours: int} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -138,6 +161,8 @@ SQL;
             leftOut: $row['left_out'],
             rowsAlreadyYours: $row['rows_already_yours'],
             rowsNeedLook: (int) $row['rows_need_look'],
+            matched: $row['matched'],
+            pilesBeingAnswered: $row['piles_answered'] === null ? [] : explode(',', $row['piles_answered']),
         );
     }
 
@@ -198,8 +223,9 @@ SQL, ['importPuzzleId' => $importPuzzleId, 'importId' => $importId, 'playerId' =
     }
 
     /**
-     * The next puzzle of a group that waits for the player, in the lists' order, after a puzzle - or the first one.
-     * One statement.
+     * The next puzzle of a group that waits for the player, after a puzzle - or the first one: **the puzzles with
+     * the most rows first** (the first twenty of a collector's file settle far more than twenty rows), then by
+     * name. One statement.
      */
     public function nextUndecided(string $importId, string $playerId, string $group, null|string $afterImportPuzzleId): null|string
     {
@@ -209,6 +235,8 @@ SQL, ['importPuzzleId' => $importPuzzleId, 'importId' => $importId, 'playerId' =
 
         $after = $afterImportPuzzleId !== null && Uuid::isValid($afterImportPuzzleId) ? $afterImportPuzzleId : null;
         $condition = self::GROUP_CONDITION[$group];
+        $rows = self::SQL_ROWS;
+        $rowsOfShown = str_replace('import_puzzle.', 'shown.', $rows);
 
         $id = $this->database->executeQuery(<<<SQL
 SELECT import_puzzle.id
@@ -221,18 +249,186 @@ WHERE import_puzzle.import_id = :importId
     AND import_puzzle.choice = 'undecided'
     AND (
         CAST(:after AS UUID) IS NULL
-        OR (lower(import_puzzle.name), import_puzzle.id) > (
-            SELECT lower(shown.name), shown.id
+        OR (-{$rows}, lower(import_puzzle.name), import_puzzle.id) > (
+            SELECT -{$rowsOfShown}, lower(shown.name), shown.id
             FROM data_import_puzzle shown
             WHERE shown.id = CAST(:after AS UUID)
                 AND shown.import_id = :importId
         )
     )
-ORDER BY lower(import_puzzle.name), import_puzzle.id
+ORDER BY {$rows} DESC, lower(import_puzzle.name), import_puzzle.id
 LIMIT 1
 SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImportStatus::Discarded->value, 'after' => $after])->fetchOne();
 
         return is_string($id) ? $id : null;
+    }
+
+    /**
+     * How many puzzles of "Looks like a match" still wait in each part - and how many of them stand at or before
+     * the puzzle a screen continues after (for "21-40 of 54"). One statement.
+     *
+     * @return array{same: int, differs: int, sameBefore: int, differsBefore: int}
+     */
+    public function partCounts(string $importId, string $playerId, null|string $afterImportPuzzleId): array
+    {
+        if (Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return ['same' => 0, 'differs' => 0, 'sameBefore' => 0, 'differsBefore' => 0];
+        }
+
+        $partA = ImportPuzzleBulkConfirm::sqlPartA('import_puzzle');
+
+        /** @var array{same: int, differs: int, same_before: int, differs_before: int} $row */
+        $row = $this->database->executeQuery(<<<SQL
+SELECT
+    COUNT(*) FILTER (WHERE waiting.part_a) AS same,
+    COUNT(*) FILTER (WHERE NOT waiting.part_a) AS differs,
+    COUNT(*) FILTER (WHERE waiting.part_a AND waiting.before) AS same_before,
+    COUNT(*) FILTER (WHERE NOT waiting.part_a AND waiting.before) AS differs_before
+FROM (
+    SELECT
+        {$partA} AS part_a,
+        (
+            CAST(:after AS UUID) IS NOT NULL
+            AND (lower(import_puzzle.name), import_puzzle.id) <= (
+                SELECT lower(shown.name), shown.id
+                FROM data_import_puzzle shown
+                WHERE shown.id = CAST(:after AS UUID)
+                    AND shown.import_id = :importId
+            )
+        ) AS before
+    FROM data_import_puzzle import_puzzle
+    INNER JOIN data_import ON data_import.id = import_puzzle.import_id
+    WHERE import_puzzle.import_id = :importId
+        AND data_import.player_id = :playerId
+        AND data_import.status <> :discarded
+        AND import_puzzle.tier = 'probably'
+        AND import_puzzle.choice = 'undecided'
+) waiting
+SQL, [
+            'importId' => $importId,
+            'playerId' => $playerId,
+            'discarded' => DataImportStatus::Discarded->value,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'after' => self::validId($afterImportPuzzleId),
+        ])->fetchAssociative();
+
+        return ['same' => $row['same'], 'differs' => $row['differs'], 'sameBefore' => $row['same_before'], 'differsBefore' => $row['differs_before']];
+    }
+
+    /**
+     * A screen of one part of "Looks like a match": the puzzles that still wait, by name, after the puzzle the
+     * screen before ended with - each with its one catalogue puzzle and its picture. **The part is a condition of
+     * the statement** (ImportPuzzleBulkConfirm::sqlPartA()), never a filter over a page: `same` holds no puzzle
+     * whose brand or piece count differs, whatever the page's size. One statement.
+     *
+     * @return list<ImportPuzzleCard>
+     */
+    public function partPage(string $importId, string $playerId, string $part, int $limit, null|string $afterImportPuzzleId): array
+    {
+        if ($part !== self::PART_SAME && $part !== self::PART_DIFFERS) {
+            return [];
+        }
+
+        $partA = ImportPuzzleBulkConfirm::sqlPartA('import_puzzle');
+        $condition = "import_puzzle.tier = 'probably' AND import_puzzle.choice = 'undecided' AND " . ($part === self::PART_SAME ? $partA : 'NOT ' . $partA);
+        $after = self::validId($afterImportPuzzleId);
+
+        if ($after !== null) {
+            $condition .= <<<SQL
+ AND (lower(import_puzzle.name), import_puzzle.id) > (
+    SELECT lower(shown.name), shown.id
+    FROM data_import_puzzle shown
+    WHERE shown.id = CAST(:after AS UUID)
+        AND shown.import_id = :importId
+)
+SQL;
+        }
+
+        return $this->cards($importId, $playerId, $condition, $after === null ? [] : ['after' => $after], $limit, 0);
+    }
+
+    /**
+     * The puzzles of a pile that wait **now**, by id, after one of them - with the version each has: what one
+     * answer for a whole pile is given to (ImportPuzzlePile). Never ids from a form. `$inThePileSince`: only puzzles
+     * that were in the pile at that moment - one built or looked up afterwards was not on the screen the player
+     * answered. One statement.
+     *
+     * @return list<array{id: string, version: int}>
+     */
+    public function waitingOfPile(string $importId, string $playerId, string $pile, int $limit, null|string $afterImportPuzzleId, null|\DateTimeImmutable $inThePileSince = null): array
+    {
+        if (isset(self::PILES[$pile]) === false || Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return [];
+        }
+
+        /** @var list<array{id: string, version: int}> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT import_puzzle.id, import_puzzle.decision_version AS version
+FROM data_import_puzzle import_puzzle
+INNER JOIN data_import ON data_import.id = import_puzzle.import_id
+WHERE import_puzzle.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> :discarded
+    AND import_puzzle.tier = :tier
+    AND import_puzzle.choice = 'undecided'
+    AND (CAST(:after AS UUID) IS NULL OR import_puzzle.id > CAST(:after AS UUID))
+    AND (
+        CAST(:since AS TIMESTAMP) IS NULL
+        OR (import_puzzle.created_at <= CAST(:since AS TIMESTAMP) AND (import_puzzle.searched_at IS NULL OR import_puzzle.searched_at <= CAST(:since AS TIMESTAMP)))
+    )
+ORDER BY import_puzzle.id
+LIMIT :limit
+SQL, [
+            'importId' => $importId,
+            'playerId' => $playerId,
+            'discarded' => DataImportStatus::Discarded->value,
+            'tier' => self::PILES[$pile],
+            'after' => self::validId($afterImportPuzzleId),
+            'since' => $inThePileSince?->format('Y-m-d H:i:s'),
+            'limit' => $limit,
+        ])->fetchAllAssociative();
+
+        return $rows;
+    }
+
+    /**
+     * The next round of "one puzzle per screen": how many puzzles it holds (at most `$limit`) and how many rows of
+     * the file they are - "The next 20 puzzles are 143 of your rows". One statement.
+     *
+     * @return array{puzzles: int, rows: int}
+     */
+    public function nextRound(string $importId, string $playerId, string $group, int $limit): array
+    {
+        if (isset(self::GROUP_CONDITION[$group]) === false || Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return ['puzzles' => 0, 'rows' => 0];
+        }
+
+        $condition = self::GROUP_CONDITION[$group];
+        $rows = self::SQL_ROWS;
+
+        /** @var array{puzzles: int, rows: int|string} $round */
+        $round = $this->database->executeQuery(<<<SQL
+SELECT COUNT(*) AS puzzles, COALESCE(SUM(next.rows), 0) AS rows
+FROM (
+    SELECT {$rows} AS rows
+    FROM data_import_puzzle import_puzzle
+    INNER JOIN data_import ON data_import.id = import_puzzle.import_id
+    WHERE import_puzzle.import_id = :importId
+        AND data_import.player_id = :playerId
+        AND data_import.status <> :discarded
+        AND {$condition}
+        AND import_puzzle.choice = 'undecided'
+    ORDER BY {$rows} DESC, lower(import_puzzle.name), import_puzzle.id
+    LIMIT :limit
+) next
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImportStatus::Discarded->value, 'limit' => $limit])->fetchAssociative();
+
+        return ['puzzles' => $round['puzzles'], 'rows' => (int) $round['rows']];
+    }
+
+    private static function validId(null|string $id): null|string
+    {
+        return $id !== null && Uuid::isValid($id) ? strtolower($id) : null;
     }
 
     /**
@@ -427,7 +623,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
     puzzle.manufacturer_id AS puzzle_manufacturer_id,
-    manufacturer.name AS brand_name
+    manufacturer.name AS brand_name,
+    rejected.id IS NOT NULL AS rejected
 FROM page
 LEFT JOIN offered ON offered.import_puzzle_id = page.id
 LEFT JOIN puzzle
@@ -435,10 +632,16 @@ LEFT JOIN puzzle
     -- A decided puzzle is shown as decided; a candidate only while it may be offered
     AND (offered.position = 0 OR {$candidate})
 LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+-- The player's own "this is not it" about a puzzle of this key (a match they took off)
+LEFT JOIN import_puzzle_decision rejected
+    ON rejected.player_id = :playerId
+    AND rejected.puzzle_key = page.puzzle_key
+    AND rejected.choice = 'not_this_puzzle'
+    AND rejected.puzzle_id = puzzle.id
 ORDER BY lower(page.name), page.id, offered.position
 SQL;
 
-        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, said_manufacturer_id: null|string, rows_results: int, rows_owned: int, rows_wish_list: int, tier: null|string, choice: string, decided_how: null|string, decision_version: int, position: null|int, how: null|string, puzzle_id: null|string, puzzle_name: null|string, alternative_names: null|string, puzzle_pieces: null|int, image: null|string, image_ratio: null|float|string, puzzle_manufacturer_id: null|string, brand_name: null|string}> $rows */
+        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, said_manufacturer_id: null|string, rows_results: int, rows_owned: int, rows_wish_list: int, tier: null|string, choice: string, decided_how: null|string, decision_version: int, position: null|int, how: null|string, puzzle_id: null|string, puzzle_name: null|string, alternative_names: null|string, puzzle_pieces: null|int, image: null|string, image_ratio: null|float|string, puzzle_manufacturer_id: null|string, brand_name: null|string, rejected: bool}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -478,6 +681,7 @@ SQL;
                     how: $how,
                     piecesDiffer: $row['pieces_count'] !== null && abs($row['puzzle_pieces'] - $row['pieces_count']) > 1,
                     brandDiffers: self::brandDiffers($row['said_manufacturer_id'], $row['puzzle_manufacturer_id']),
+                    rejected: $row['rejected'],
                 ),
             ];
         }
@@ -514,6 +718,12 @@ SQL;
                     $decided->brandDiffers,
                 );
             }
+
+            // What the player said it is not comes last - the order of the others is the rules'
+            $candidates = [
+                ...array_filter($candidates, static fn (ImportCataloguePuzzle $puzzle): bool => $puzzle->rejected === false),
+                ...array_filter($candidates, static fn (ImportCataloguePuzzle $puzzle): bool => $puzzle->rejected),
+            ];
 
             $cards[] = new ImportPuzzleCard(
                 importPuzzleId: $id,

@@ -4,8 +4,11 @@
     can do here: "Not this one" (Found), "Yes, this is it" (Probably - never ticked for the player), "Choose"
     (opens the chooser), and for a decided card its state with "Change".
 
-    Variables: card (ImportPuzzleCard), import_id, group, page, csrf.
+    Variables: card (ImportPuzzleCard), import_id, group, page, csrf; part, after (optional) - the card stands on a
+    screen of "Looks like a match" (the cards to look at closer): its answer leads back to that screen.
 #}
+{% set part = part|default(null) %}
+{% set after = after|default(null) %}
 {% set shown = card.shown %}
 {% set chooser = path('data_import_puzzle_choose', {importId: import_id, importPuzzleId: card.importPuzzleId}) %}
 <div class="card shadow-sm mb-2{{ card.isDecided ? '' : ' border-warning' }}" id="puzzle-{{ card.importPuzzleId }}" style="scroll-margin-top: 90px;"
@@ -42,6 +45,8 @@
                     <input type="hidden" name="version" value="{{ card.decisionVersion }}">
                     <input type="hidden" name="group" value="{{ group }}">
                     <input type="hidden" name="page" value="{{ page }}">
+                    {% if part is not null %}<input type="hidden" name="part" value="{{ part }}">{% endif %}
+                    {% if part is not null and after is not null %}<input type="hidden" name="after" value="{{ after }}">{% endif %}
                     <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-untick">
                         <i class="bi bi-x-lg me-1" aria-hidden="true"></i>
                         {%- if card.choice != 'catalogue' %}{{ 'data_import.puzzles.card.take_back'|trans }}
@@ -60,6 +65,8 @@
                     <input type="hidden" name="catalogue" value="{{ shown.puzzleId }}">
                     <input type="hidden" name="group" value="{{ group }}">
                     <input type="hidden" name="page" value="{{ page }}">
+                    {% if part is not null %}<input type="hidden" name="part" value="{{ part }}">{% endif %}
+                    {% if part is not null and after is not null %}<input type="hidden" name="after" value="{{ after }}">{% endif %}
                     <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-tick">
                         <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.yes'|trans }}
                     </button>

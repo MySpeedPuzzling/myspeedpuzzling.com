@@ -1,0 +1,16 @@
+{#
+    The cards of one pile, fifty a page (docs/features/data-import/pairing-screens.md "The lists"): what the file
+    says, the puzzle of our database it is matched with - or the best one that fits - and what can be done with it.
+    The page number is the only thing in the address.
+
+    Variables (the screen's own): cards, import, group, page, pages, csrf, group_title.
+#}
+{% if cards is empty %}
+    <p class="alert alert-info fs-sm" data-testid="import-puzzle-group-empty">{{ 'data_import.puzzles.list.empty'|trans }}</p>
+{% else %}
+    {% for card in cards %}
+        {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: group, page: page, csrf: csrf}, with_context = false) }}
+    {% endfor %}
+
+    {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_puzzle_group', parameters: {importId: import.importId, group: group}, label: group_title}, with_context = false) }}
+{% endif %}

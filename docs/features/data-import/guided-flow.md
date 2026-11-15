@@ -1281,3 +1281,86 @@ tightened (a sheet must be settled - below); apart from it an "Add" adds exactly
 | §5.9 "Quick questions before adding" | Not built. | Slice 6. |
 | §5.9 "What adding does" open "on a player's first import" | Open until this import's first Add. | The page does not count the player's imports. |
 | §7 "What this import added" with search, filters, "Undo the ticked" | Not built. | Slice 5. |
+
+## As built - slice 3 (puzzles in bulk)
+
+What shipped with slice 3 (3a, 3b and 3c together), and where it differs from §5.7 and §6 - each with its reason.
+One table (`data_import_pile_answer`, a generated migration); the matching rules (`ImportPuzzleMatcher`, `ImportPuzzleTierRules`) and what "matched"
+decides by itself are untouched - this slice only presents the piles and collects the player's decisions.
+
+**The rule that outranks every convenience** is the server's, not the template's: a wrong match puts a real result
+on the wrong puzzle's public leaderboard. Three places enforce it:
+
+| Bulk action | What a form may send | What makes it safe on the server |
+|---|---|---|
+| **"Yes, these N are right"** (`tick_all`) | the tiles of one screen whose box is still ticked: id, the version and the catalogue puzzle the tile showed | `DecideImportPuzzles::$bulkConfirm` - and any message with more than one catalogue decision, flagged or not: `DecideImportPuzzlesHandler` refuses the **whole** message (`needs_a_closer_look`) unless every puzzle is part A by `ImportPuzzleBulkConfirm::isPartA()`; versions are checked as before; at most one screen (20) is taken from a form |
+| **"Keep them just for me" / "Don't import them"** for "Not in our database" (`all_in_pile`, pile `not-found`) | the pile and the answer - never a puzzle | `ImportPuzzlePile` works out the pile's puzzles of **that import of that player that wait now** (`GetImportPuzzleScreen::waitingOfPile()`), 200 a chunk, each chunk one `DecideImportPuzzles`; a puzzle decided between the read and the lock is skipped and counted. **An answer is a row** (`DataImportPileAnswer`) written under the import's lock (`StartImportPuzzlePileAnswer`): one open answer per import and pile - a second is told "still being saved" and nothing of it is applied; none starts while puzzles are still looked up or on a stale screen (`revision`). Every turn re-reads the row and the import's revision (another one ends the answer as `changed`) and answers **only puzzles that were in the pile when the answer was given** (built and looked up before `started_at`). The sweeper ends an answer without a sign of life for 15 minutes. It matches nothing |
+| **"Keep the other N just for me"** (`all_in_pile`, pile `choose`) | the same | the same service; the pile allows **only** "keep" (`ImportPuzzlePile::CHOICES`) - never "don't import" in bulk, and never a match |
+
+**Part A in SQL** (`ImportPuzzleBulkConfirm::sqlPartA()`, the condition of the grid's statement - never a filter over
+a page): the rules said "probably" and the puzzle waits · **the player has said no word about it** - it is not
+undecided by the player's own decision (`decided_how = 'player'`: a match they took off with "Wrong puzzle"), and
+no remembered "not this puzzle" names its candidate · **exactly one** candidate · found by the whole name with
+the file's piece count (`name`), the barcode (`barcode`) or the brand's own code (`brand_code`) · the candidate's
+`piecesDiffer` is false and the catalogue puzzle's piece count **now** is exactly the file's (499 against 500 is
+part B - the rules' "one apart" suggests a puzzle, it does not confirm twenty), or the file has none - a match by name always has one · the file names **no brand at all**, or the brand it names is the
+puzzle's (a brand text we do not know is not "no brand") · the puzzle may be offered to the player now
+(`GetImportPuzzleCandidates::sqlCandidate()`: not hidden, not secret, not somebody else's unapproved one; a candidate
+merged into another puzzle since is not part A either). The same rule in PHP is `isPartA()`;
+`ImportPuzzleBulkConfirmTest` pins that both give the same answer puzzle by puzzle, and that part A never holds a
+card whose brand or piece count differs.
+
+**Built**
+
+- **Overview** (`puzzles.html.twig`): "We matched 353 of your 786 puzzles." with a bar, "433 puzzles wait for you",
+  a card per pile that waits (count, one sentence of what it costs, its explanation of §12 always visible), ONE
+  primary (the first pile that waits), then as links: "Matched (N) - see them", "Matched like last time (N)", "Kept
+  just for you (N) - change", "Not imported: N". `ImportPuzzlesOverview::$matched` (one more `FILTER` in the same
+  statement).
+- **"Not in our database"** (`_pile_not_found.html.twig`): the two radio cards ("Keep them just for me" selected on
+  the screen, applied on **Continue** only), "What is not kept", the puzzles folded below (fifty a page, each with
+  its way to the search). While puzzles are still looked up the button is disabled and reads "Still looking for N of
+  them…".
+- **The picture grid** (`_pile_probably.html.twig`, `_puzzle_tile.html.twig`, `data_import_ticks_controller.js`):
+  twenty tiles a screen, 2 columns at 360 px and 3 from 576 px; a tile is the label of its box. The boxes are
+  **ticked on the screen** (§6.1) - nothing is stored for a tick, an unticked tile is simply not sent; the sticky
+  bar's button counts the ticks with a script and reads "Yes, the ticked ones are right" without one. A screen goes
+  on after the last tile of the one before (`after`, an id), so what was unticked or left for later stays behind and
+  is offered again at the pile's end.
+- **The chooser** (`puzzle_choose.html.twig`): the card is the answer (no "This one" line, every card looks the
+  same, none first-as-chosen); "None of these" folds the search, "Keep it just for me" and "Don't import it";
+  "Later"; "Undo the last one"; "Stop here". `nextUndecided()` goes by the puzzles with the most rows, then by name.
+- **The rest screen** is the pile's own screen (`_pile_choose.html.twig`, `?done=20`): "20 done.", "176 puzzles left
+  in this pile.", "Rows of your file with the next 20 puzzles: 143", **Do 20 more**, "Or add what is ready now
+  (614)", "Stop here - I'll come back", and "Keep the other 176 just for me" folded.
+- A pile over 200 puzzles is answered on the `imports` worker (`AnswerImportPuzzlePile`, a chunk a turn, the job
+  sending itself again). The pile's screen then shows "Saving your answer… Puzzles left: N" and loads that part
+  again every three seconds (`data_import_pile_controller.js`; a refresh link without a script).
+- Explanations in place (§12) with the exact texts: Matched, Looks like a match, Pick the right one, Not in our
+  database, Another brand / another piece count, Wrong puzzle (+ unlisted under both "keep" answers).
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §6.1 part B: boxes empty, "Match the ticked ones (N)", "None of these 20" | Part B is **cards confirmed one by one** ("Yes, this is it" per card, "It is something else"), twenty a screen - there is no button for several, and the server refuses several at once. | The slice's brief: a candidate of another brand or another piece count is never inside a bulk confirm. A brand that differs is exactly where a tap on twenty at once goes wrong. |
+| §6.1 part A: `name` with the brand missing; `barcode`; `brand_code` | The same three - with two narrowings: a brand text we could not resolve to a brand is part B, and a match by name needs the file's piece count. | "The file has no brand" must be true, not "we do not know the brand it names"; a name alone is not the same puzzle. |
+| §6.1 "tap-and-hold / the small i opens the chooser" | A plain link under each tile: "It is something else". | Tap-and-hold is not discoverable and needs a script. |
+| §6.1 after the tap: "19 matched. 35 to go." | "19 matched." as the notice; the next screen says "2-6 of 6" itself. | One count, in one place. |
+| §6.2 "Undo the last one" takes the decision back at once | It leads to the last puzzle's own screen, which says what was decided and takes it back with **the version it shows**. | Taking a decision back without the version the player saw would overwrite what another tab changed. Two taps instead of one. |
+| §6.2 round header "These 20 puzzles are 143 of your rows" | On the pile's start / rest screen: "Rows of your file with the next 20 puzzles: 143". | One statement where a round starts, instead of one on every chooser screen (the chooser stays at three). |
+| §6.2 rest screen "20 done - 143 rows are ready." | "20 done." and the "add what is ready now (N)" line. | Which rows a round made ready is not kept; the number that can be added is. |
+| §6.3 `all_in_pile` over 1,000 puzzles on the queue | Over **200** (as the rows' group answers do it). | The brief; a chunk is 200 either way. |
+| §6.3 the queued answer "with the live line" | The answer's row says that it runs (read with the overview - no statement more); the screen polls its own part every three seconds instead of following the Mercure line. | The live line follows reading and matching; a pile answer lasts seconds. |
+| §6.3 "the set the player saw" | The answer stores no ids: it stores the moment it was given and the import's revision. A turn answers only puzzles built and looked up before that moment, and ends the answer when the revision is another one (which is what brings new puzzles into a pile). | A thousand ids in a row would be a second copy of the pile; the two together say the same set - `ImportPuzzlesInBulkTest` adds puzzles to a pile under a running answer and they stay as they are. |
+| A match taken off | A puzzle the player said "Wrong puzzle" about is never on the grid again: it is a card of part B (or of "Matches you took off"), and the candidate they rejected stands last, marked "You said this is not it." | Else the next "Yes, these N are right" would store exactly what the player rejected. |
+| §6.3 `choice = left_out` for the pile `choose` | Refused - only "keep". | §6.2: "the only bulk answer keeps things private". |
+| §6.3 "guarded by the pairing revision" | As specified - and besides it the per-puzzle version inside each chunk. | Both: the revision catches a re-read file, the version a decision in another tab. |
+| §5.7 "Rows already on your profile move to step 5", "rows we could not read" | Both stay on the overview as quiet lines (the second only when there are some). | Step 5 is slice 2's screen. |
+| §5.7 a fourth pile | "Matches you took off (N)" appears when a matched puzzle got "Wrong puzzle" and still waits. | Those puzzles wait for the player and belonged to no pile of the mock-up. |
+| The pile's list | `…/puzzles/{pile}?page=N` is the list of every card of a pile (decided ones too); the pile's screen itself has no page. "Looks like a match" links to it ("See the whole pile"). | A decided card needs a place to be changed; the grid shows only what waits. |
+
+**Not verified:** nothing of this slice was run in a browser - no screen was looked at at 360 px, and neither
+script (`data_import_ticks_controller.js`, `data_import_pile_controller.js`) was executed; both were only parsed.
+The screens are covered by `ImportPuzzlesInBulkTest`, `ImportPuzzleBulkConfirmTest`, `ImportPairingScreensTest` and
+`ImportFlowScreensTest` as a browser without scripts sees them.

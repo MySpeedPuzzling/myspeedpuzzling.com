@@ -50,6 +50,15 @@ readonly final class DataImportProgress
     }
 
     /**
+     * The import as a puzzles' screen shows it: another one whenever a sheet was read again or the puzzles were
+     * looked up again - what one answer for a whole pile is given for (DataImportPileAnswer).
+     */
+    public function puzzlesRevision(): string
+    {
+        return $this->revision . '|' . $this->pairing['revision'];
+    }
+
+    /**
      * Whether the page still waits for something to happen by itself.
      */
     public function isMoving(): bool

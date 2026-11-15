@@ -27,6 +27,12 @@
         </span>
         {% set why = ('data_import.puzzles.why.' ~ puzzle.how)|trans %}
         <span class="d-block fs-sm mt-1" data-testid="catalogue-puzzle-why"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ why == 'data_import.puzzles.why.' ~ puzzle.how ? 'data_import.puzzles.why.chosen'|trans : why }}</span>
+        {% if puzzle.rejected %}
+            {# The player's own earlier word: it is shown, never offered as if nothing was said #}
+            <span class="d-block fs-sm fw-semibold text-danger mt-1" data-testid="catalogue-puzzle-rejected">
+                <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.rejected'|trans }}
+            </span>
+        {% endif %}
         {% if puzzle.piecesDiffer and file_pieces is not null %}
             <span class="d-block fs-sm fw-semibold text-danger mt-1" data-testid="catalogue-puzzle-pieces-differ">
                 <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.pieces_differ'|trans({'%file%': file_pieces|format_number, '%puzzle%': puzzle.piecesCount|format_number}) }}

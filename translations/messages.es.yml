@@ -11773,6 +11773,12 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    pairing:
+        title: "Puzzles"
+        puzzles: "Puzzles distintos en tu archivo: %number%"
+        summary: "Encontrados en la base de datos: %found% · Probablemente: %probably% · Para elegir: %choose% · No encontrados: %not_found%"
+        searching: "Aún buscamos nombres parecidos: %number%"
+        running: "Estamos buscando los puzzles de tu archivo en la base de datos…"
     columns:
         title: "Hojas y columnas"
         intro: "Esto es lo que hemos entendido de cada hoja de tu archivo. Responde lo que no pudimos averiguar y cambia lo que hayamos interpretado mal."

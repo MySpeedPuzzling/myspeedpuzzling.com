@@ -11,6 +11,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 
 readonly final class DataImportRepository
@@ -185,6 +186,45 @@ SQL, [
             'status' => DataImportStatus::SettingUp->value,
             'since' => $since->format('Y-m-d H:i:s'),
             'readAfter' => $readAfter->format('Y-m-d H:i:s'),
+            'limit' => $limit,
+        ])->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
+     * Imports being set up whose pairing did not come to rest (docs/features/data-import/pairing.md "When a run
+     * fails") although a sheet of theirs is parsed and nothing was written since the moment given: a run failed (a
+     * puzzle merge beside it), its message was lost - or the import was parsed before the pairing existed. Asked for
+     * a bounded number of times, and only for imports read after `$readAfter`.
+     *
+     * @return list<string> ids
+     */
+    public function idsPairingStandingSince(DateTimeImmutable $since, DateTimeImmutable $readAfter, int $limit): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
+SELECT data_import.id
+FROM data_import
+WHERE data_import.status = :status
+    AND data_import.paired_at IS NULL
+    AND data_import.cells_wiped_at IS NULL
+    AND data_import.pairing_requeues < :maxRequeues
+    AND data_import.last_activity_at < :since
+    AND data_import.read_finished_at > :readAfter
+    AND EXISTS (
+        SELECT 1
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND sheet.parsed_version IS NOT NULL
+    )
+ORDER BY data_import.last_activity_at
+LIMIT :limit
+SQL, [
+            'status' => DataImportStatus::SettingUp->value,
+            'since' => $since->format('Y-m-d H:i:s'),
+            'readAfter' => $readAfter->format('Y-m-d H:i:s'),
+            'maxRequeues' => DataImportLimits::MAX_SET_UP_ATTEMPTS,
             'limit' => $limit,
         ])->fetchFirstColumn();
 

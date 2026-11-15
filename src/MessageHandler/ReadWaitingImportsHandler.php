@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ReadWaitingImports;
 use SpeedPuzzling\Web\Message\RecordImportFetchFailed;
 use SpeedPuzzling\Web\Message\RecordImportReadFailed;
+use SpeedPuzzling\Web\Message\RequestImportPairing;
 use SpeedPuzzling\Web\Message\RequestImportRead;
 use SpeedPuzzling\Web\Message\RequestImportSetUp;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
@@ -32,7 +33,9 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  *   was lost, or its worker died (a fetch itself never takes more than a minute) - is failed the same way: the
  *   fetching state always ends too (docs/features/data-import/google-sheets.md);
  * - a read import one of whose sheets still waits for its mapping or its parse, with nothing written for the same
- *   quarter of an hour, gets that step queued again (RequestImportSetUp).
+ *   quarter of an hour, gets that step queued again (RequestImportSetUp);
+ * - a parsed import whose pairing with the catalogue did not come to rest for the same quarter of an hour gets it
+ *   queued again, at most DataImportLimits::MAX_SET_UP_ATTEMPTS times (RequestImportPairing).
  */
 #[AsMessageHandler]
 readonly final class ReadWaitingImportsHandler
@@ -93,6 +96,15 @@ readonly final class ReadWaitingImportsHandler
 
         foreach ($this->dataImportRepository->idsSetUpStandingSince($since, $readAfter, self::PER_RUN) as $importId) {
             if ($this->messageBus->dispatch(new RequestImportSetUp($importId))->last(HandledStamp::class)?->getResult() === true) {
+                $queued++;
+            }
+        }
+
+        // Parsed, but the pairing of its puzzles did not come to rest and nothing moved for a quarter of an hour: a
+        // run failed (a puzzle merge beside it - the queue has no retries) or its message was lost. Asked for again,
+        // a bounded number of times (docs/features/data-import/pairing.md "When a run fails")
+        foreach ($this->dataImportRepository->idsPairingStandingSince($since, $readAfter, self::PER_RUN) as $importId) {
+            if ($this->messageBus->dispatch(new RequestImportPairing($importId))->last(HandledStamp::class)?->getResult() === true) {
                 $queued++;
             }
         }

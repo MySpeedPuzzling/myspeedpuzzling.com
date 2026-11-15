@@ -12019,6 +12019,12 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    pairing:
+        title: "Puzzles"
+        puzzles: "Different puzzles in your file: %number%"
+        summary: "Found in the database: %found% · Probably: %probably% · To choose: %choose% · Not found: %not_found%"
+        searching: "Still looking for similar names: %number%"
+        running: "We are looking up the puzzles of your file in the database…"
     columns:
         title: "Sheets and columns"
         intro: "Here is what we understood of each sheet of your file. Answer what we could not work out, and change anything we got wrong."

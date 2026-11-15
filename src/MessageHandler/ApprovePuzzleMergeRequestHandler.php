@@ -40,6 +40,8 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
+use SpeedPuzzling\Web\Repository\DataImportPuzzleRepository;
+use SpeedPuzzling\Web\Repository\ImportPuzzleDecisionRepository;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
@@ -82,6 +84,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private PuzzleChangeRequestRepository $puzzleChangeRequestRepository,
         private OutdatedPuzzleRequests $outdatedPuzzleRequests,
         private MessageBusInterface $messageBus,
+        private DataImportPuzzleRepository $dataImportPuzzleRepository,
+        private ImportPuzzleDecisionRepository $importPuzzleDecisionRepository,
     ) {
     }
 
@@ -415,6 +419,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'borrowRequestItems' => ['moved' => [], 'droppedAsDuplicate' => []],
             'listingRequestItems' => [],
             'listingRequestOffers' => [],
+            'importPuzzles' => [],
+            'importPuzzleDecisions' => [],
             'tags' => [],
         ];
         // What this merge already moved onto the survivor, by the key of each unique constraint: with several merged
@@ -635,6 +641,20 @@ readonly final class ApprovePuzzleMergeRequestHandler
             foreach ($this->entityManager->getRepository(ListingRequestOffer::class)->findBy(['puzzle' => $puzzleToMerge]) as $listingRequestOffer) {
                 $listingRequestOffer->puzzleMergedInto($survivorPuzzle);
                 $inventory['listingRequestOffers'][] = $listingRequestOffer->id->toString();
+            }
+
+            // A player's import paired a puzzle of their file with this one, and their remembered pairings name it:
+            // both mean the survivor now (docs/features/data-import/pairing.md "A puzzle merge"). No unique key to
+            // clash on - an import's puzzle and a remembered decision are one per puzzle key, whatever they point at.
+            // Without this the delete fails for the first (no cascade) and forgets the second (cascade)
+            foreach ($this->dataImportPuzzleRepository->decidedToBe($puzzleToMerge) as $importPuzzle) {
+                $importPuzzle->puzzleMergedInto($survivorPuzzle);
+                $inventory['importPuzzles'][] = $importPuzzle->id->toString();
+            }
+
+            foreach ($this->importPuzzleDecisionRepository->forPuzzle($puzzleToMerge) as $importPuzzleDecision) {
+                $importPuzzleDecision->puzzleMergedInto($survivorPuzzle);
+                $inventory['importPuzzleDecisions'][] = $importPuzzleDecision->id->toString();
             }
 
             // Tags also cascade-delete through the join table

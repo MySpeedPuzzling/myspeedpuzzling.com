@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Exceptions\InvalidImportMapping;
 use SpeedPuzzling\Web\Message\ConfirmImportMapping;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\DiscardImport;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
+use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
@@ -73,6 +75,13 @@ final class ImportParsingTest extends WebTestCase
     {
         $importId = $this->uploaded('Training.xlsx', self::workbook());
         $handled = $this->work();
+
+        // Every sheet's parse asked for the import's puzzles to be built and paired (docs/features/data-import/pairing.md) -
+        // messages this test's worker leaves on the queue
+        self::assertEquals(
+            array_fill(0, 5, new BuildImportPuzzles($importId)),
+            array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()),
+        );
 
         // Read → recognised → every sheet parsed (the rows of "Stats" are left out; of "2023", which asks how its
         // times are read, the rows that question decides wait)
@@ -670,11 +679,17 @@ final class ImportParsingTest extends WebTestCase
     }
 
     /**
+     * What waits on the queue - without the pairing's own messages (BuildImportPuzzles after every parse, and the
+     * search it asks for): those are ImportPuzzleMatcherTest's, and the worker of this test lets them go.
+     *
      * @return list<object>
      */
     private function queued(): array
     {
-        return array_values(array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()));
+        return array_values(array_filter(
+            array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()),
+            static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false,
+        ));
     }
 
     private function read(string $importId): void

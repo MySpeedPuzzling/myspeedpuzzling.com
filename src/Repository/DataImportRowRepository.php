@@ -10,6 +10,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
+use SpeedPuzzling\Web\Value\DataImportRowState;
 
 readonly final class DataImportRowRepository
 {
@@ -170,6 +171,84 @@ FROM (
 WHERE linked.id = found.id
     AND linked.same_as_row_id IS DISTINCT FROM found.twin_id
 SQL, ['importId' => $import->id->toString()]);
+    }
+
+    /**
+     * The pairing's hint "already yours" starts over for every waiting row of the import, and rows whose key made a
+     * result in **another import of the player** - a result that still exists - are marked `earlier_import` with
+     * that result ("the same data in another file", README "Never twice"). Rows that are no longer waiting keep what
+     * they have. The hint for results typed by hand is storeProfileHints().
+     *
+     * A bulk statement on purpose, in native SQL: every waiting row of an import (up to 50,000) is compared with
+     * every row the player's other imports made a result of; it writes nothing but the two hint columns. It reads
+     * puzzle_solving_time only to ask whether a result exists - whatever its state (a result waiting for verification
+     * exists too), with or without a tracker.
+     */
+    public function markRowsOfEarlierImports(DataImport $import): int
+    {
+        return (int) $this->entityManager->getConnection()->executeStatement(<<<SQL
+UPDATE data_import_row
+SET already_yours_how = found.how, already_yours_solving_time_id = found.solving_time_id
+FROM (
+    SELECT waiting.id, CASE WHEN made.solving_time_id IS NULL THEN NULL ELSE 'earlier_import' END AS how, made.solving_time_id
+    FROM data_import_row waiting
+    LEFT JOIN (
+        SELECT DISTINCT ON (earlier.source_key) earlier.source_key, earlier.solving_time_id
+        FROM data_import other
+        INNER JOIN data_import_row earlier ON earlier.import_id = other.id
+        INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = earlier.solving_time_id
+        WHERE other.player_id = :playerId
+            AND other.id <> :importId
+            AND earlier.source_key IS NOT NULL
+        ORDER BY earlier.source_key, earlier.id
+    ) AS made ON made.source_key = waiting.source_key
+    WHERE waiting.import_id = :importId
+        AND waiting.state = :waiting
+) AS found
+WHERE data_import_row.id = found.id
+    AND (
+        data_import_row.already_yours_how IS DISTINCT FROM found.how
+        OR data_import_row.already_yours_solving_time_id IS DISTINCT FROM found.solving_time_id
+    )
+SQL, [
+            'importId' => $import->id->toString(),
+            'playerId' => $import->player->id->toString(),
+            'waiting' => DataImportRowState::Waiting->value,
+        ]);
+    }
+
+    /**
+     * Rows that meet a result on the player's profile (ImportPuzzleMatcher worked out which) are marked `profile`
+     * with that result - one statement for all of them, only rows that wait and carry no hint yet. Bulk for the
+     * reason markRowsOfEarlierImports() gives.
+     *
+     * @param array<string, string> $solvingTimeIdByRowId
+     */
+    public function storeProfileHints(DataImport $import, array $solvingTimeIdByRowId): void
+    {
+        if ($solvingTimeIdByRowId === []) {
+            return;
+        }
+
+        $hints = [];
+
+        foreach ($solvingTimeIdByRowId as $rowId => $solvingTimeId) {
+            $hints[] = ['id' => $rowId, 'solvingTimeId' => $solvingTimeId];
+        }
+
+        $this->entityManager->getConnection()->executeStatement(<<<SQL
+UPDATE data_import_row
+SET already_yours_how = 'profile', already_yours_solving_time_id = said."solvingTimeId"
+FROM jsonb_to_recordset(CAST(:hints AS JSONB)) AS said(id UUID, "solvingTimeId" UUID)
+WHERE data_import_row.id = said.id
+    AND data_import_row.import_id = :importId
+    AND data_import_row.state = :waiting
+    AND data_import_row.already_yours_how IS NULL
+SQL, [
+            'importId' => $import->id->toString(),
+            'hints' => json_encode($hints, JSON_THROW_ON_ERROR),
+            'waiting' => DataImportRowState::Waiting->value,
+        ]);
     }
 
     /**

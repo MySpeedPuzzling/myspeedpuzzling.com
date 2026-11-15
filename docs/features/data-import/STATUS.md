@@ -23,7 +23,7 @@ sandbox from the stage that can read them.
 | 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
 | 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
-| 2a-c | My data | **2a live 2026-11-15** (#365, read-only); 2b (edit a row) building; 2c (many at once) not started | #365 | yes | sandbox: 1,466 results, 890 puzzles |
+| 2a-c | My data | **2a live 2026-11-15** (#365, read-only); **2b live 2026-11-15** (#367: edit a row); 2c (many at once) not started | #365, #367 | yes | sandbox: 1,466 results, 890 puzzles |
 | 8 | Entry points and the guide | not started | | | |
 
 ## How every stage is built
@@ -55,6 +55,15 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 2b live** (#367): My data - edit a row. The row sheet (a result: time, day, first try,
+  comment, own fields; a collection puzzle: comment, own fields, collection) and editing in place on the wide table
+  (results where the player is the only registered member), through the edit form's messages and checks
+  (`FirstTryFormCheck`, `SuspiciousTimeFormCheck`; a parity test runs the same cases through `EditTimeController`
+  and through My data); the edit form's files untouched. Review: merge; fixed first - the three-way check moved
+  under a per-result lock, the collection comment's 500 limit, raw label keys in the sheet, the clipped refusal
+  note. On the sandbox: an impossible time typed in a cell is refused with a note and "Open the row"; the sheet's
+  labels read hrs / min / sec. Loose: the note says "confirm it below" in a table that has no below.
 
 - 2026-11-15 - **Jan on the experience** ("it is very complex it should have outstanding UX for everyone, even non
   tech person understand it"; "am i able to manually skip rows"; "add small font with info icon explaining

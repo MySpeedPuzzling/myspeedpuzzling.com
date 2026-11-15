@@ -75,6 +75,15 @@ readonly final class ResultReviewEmailComposer
             DuplicateSets::group(array_map(static fn (ResultReviewEmailCase $case): array => [$case->timeAId, $case->timeBId], $cases)),
         );
 
+        // Results of one spreadsheet import that were set aside together are told as ONE item - "N results from your
+        // spreadsheet import" - never a line per result (docs/features/suspicious-time-review.md "Import cards")
+        $perImport = array_count_values(array_filter(array_map(static fn (ResultReviewEmailMarkedTime $markedTime): null|string => $markedTime->importBatchId, $markedTimes)));
+        $markedImportGroups = array_values(array_filter($perImport, static fn (int $results): bool => $results >= 2));
+        $markedSingly = array_values(array_filter(
+            $markedTimes,
+            static fn (ResultReviewEmailMarkedTime $markedTime): bool => $markedTime->importBatchId === null || ($perImport[$markedTime->importBatchId] ?? 0) < 2,
+        ));
+
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
             ->to($emailAddress)
@@ -90,8 +99,10 @@ readonly final class ResultReviewEmailComposer
                 'moreSets' => max(0, count($sets) - self::LISTED_MAX),
                 'removals' => array_slice($removals, 0, self::LISTED_MAX),
                 'moreRemovals' => max(0, count($removals) - self::LISTED_MAX),
-                'markedTimes' => array_slice($markedTimes, 0, self::LISTED_MAX),
-                'moreMarkedTimes' => max(0, count($markedTimes) - self::LISTED_MAX),
+                'markedTimes' => array_slice($markedSingly, 0, self::LISTED_MAX),
+                'moreMarkedTimes' => max(0, count($markedSingly) - self::LISTED_MAX),
+                'markedImportGroups' => $markedImportGroups,
+                'hasMarkedTimes' => $markedTimes !== [],
                 // Every answer gets its line - each was asked for by the player
                 'verificationAnswers' => $verificationAnswers,
                 'reviewFragment' => $markedTimes !== [] || $verificationAnswers !== [] ? self::VERIFICATION_ANCHOR : null,

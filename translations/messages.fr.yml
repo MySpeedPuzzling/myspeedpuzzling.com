@@ -7411,6 +7411,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "Résultats de votre import de tableur mis de côté ensemble : %number%. Ils sont listés ci-dessous - vous pouvez répondre pour chacun."
         title: "En attente de vérification"
         intro: "Nous regardons de plus près les résultats bien plus rapides ou bien plus lents que vos temps habituels – le plus souvent, il s’agit d’une faute de frappe, comme une case des heures laissée vide. Tant que ce n’est pas réglé, le résultat reste dans vos résultats mais ne compte pas dans les classements ni les statistiques. Corrigez-le en un instant, ou dites-nous que le temps est correct."
         pair_result: "Résultat en duo"
@@ -11787,6 +11788,7 @@ data_import:
             slower_range: "Les plus lents sont entre %from%× et %to%× plus lents que ce que nous attendions."
             most_faster: "La plupart des temps de ce fichier sont plus rapides que vos résultats sur MySpeedPuzzling jusqu'ici - si ce fichier est votre propre historique, c'est normal."
             most_slower: "La plupart des temps de ce fichier sont plus lents que vos résultats sur MySpeedPuzzling jusqu'ici - si ce fichier est votre propre historique, c'est normal."
+            most_mixed: "La plupart des temps de ce fichier sont inhabituels par rapport à vos résultats sur MySpeedPuzzling jusqu'ici - si ce fichier est votre propre historique, c'est normal."
             examples: "Par exemple"
             expected: "Nous attendions environ %expected%."
             none_now: "Aucun des temps examinés ne semble plus inhabituel, maintenant que d'autres lignes du fichier sont sur votre profil."
@@ -11807,11 +11809,13 @@ data_import:
             before_add: "Elles sont prêtes - vérifiez-les et ajoutez-les."
             left_out: "Elles sont laissées de côté. Vous pouvez reprendre une ligne dans « À corriger »."
             not_added: "Votre réponse est enregistrée. L'ajout n'a pas pu démarrer pour le moment - les lignes sont prêtes et peuvent être ajoutées depuis la vérification."
+            failed: "Cette réponse s'est arrêtée avant la fin. Ce qu'elle a réglé est enregistré ; les autres lignes attendent comme avant et peuvent recevoir une nouvelle réponse."
             none: "Aucune ligne n'a pris la réponse - elles ont changé entre-temps."
             stale: "Cela semble ne plus avancer."
             continue: "Continuer"
         flash:
             nothing: "Plus aucune ligne n'attend cette réponse."
+            busy: "Une autre réponse parcourt déjà ces lignes - voici où elle en est."
     nothing_until_add: "Rien n'est ajouté à votre profil tant que vous ne l'avez pas vérifié et appuyé sur Ajouter."
     add:
         title: "Vérifier avant d'ajouter"

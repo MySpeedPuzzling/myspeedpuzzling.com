@@ -373,6 +373,7 @@ result_review:
     intro_verification_answered: "ご連絡ありがとうございます。もう一度確認しましたので、結果をお知らせします。"
     verification_heading: "確認待ち"
     verification_text: "いつものタイムよりかなり速い、またはかなり遅い記録は入力ミスであることが多いため、確認が済むまでランキングと統計から外しています。"
+    verification_import_group: "スプレッドシートのインポートによる記録(まとめて保留中): %number%"
     verification_action: "確認ページでは、タイムをすぐに修正できます。正しい場合はそのことをお知らせください。"
     verification_answers_heading: "改めて確認しました"
     verification_answer_trusted: "%puzzleName%のタイム%time%を確認しました。再び集計に含まれます。"

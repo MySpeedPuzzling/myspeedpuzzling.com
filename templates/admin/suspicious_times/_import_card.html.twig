@@ -1,0 +1,148 @@
+{# An import card (docs/features/suspicious-time-review.md "Import cards"): the pending cases of one direction on
+   results that one "Add" of a player's spreadsheet import made - shown and decided together. Expects: card
+   (SuspiciousTimeImportCard), tab, page, note_max_length. English only, like the rest of the queue.
+   First whose import and how much of it, then what a moderator needs to judge a history brought in at once - how
+   far off, examples, how the imported times stand to the player's typed ones - then one decision for all, or the
+   single cases. #}
+{% set faster = card.direction.value == 'fast' %}
+{% set way = faster ? 'faster' : 'slower' %}
+{% set player_label = card.playerName ?? ('#' ~ card.playerCode) %}
+{% set comparison = card.comparison %}
+<article class="card tv-puzzle shadow-sm mb-4" id="import-{{ card.batchId }}" data-testid="time-verification-import-card"
+         data-batch-id="{{ card.batchId }}" data-cases="{{ card.cases }}" data-comparison="{{ comparison }}" aria-labelledby="import-{{ card.batchId }}-title">
+    <div class="card-header d-flex gap-3 align-items-start p-3">
+        <span class="tv-thumb bg-white" aria-hidden="true"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+        <div class="flex-grow-1 min-w-0">
+            <h3 class="h5 mb-1 text-break" id="import-{{ card.batchId }}-title">
+                {{ card.cases }} results of one spreadsheet import by
+                <a href="{{ path('player_profile', {playerId: card.playerId}) }}">{{ player_label }}</a>{% if card.playerName %} <span class="text-muted">#{{ card.playerCode }}</span>{% endif %}
+                {% if card.playerPrivate %}<span class="badge bg-light text-dark border"><i class="bi bi-lock-fill" aria-hidden="true"></i> Private profile</span>{% endif %}
+            </h3>
+            <div class="small text-break" data-testid="time-verification-import-player">
+                Member since {{ card.registeredAt|date('j M Y') }}
+                &middot; <strong>{{ card.resultsTotal }}</strong> {{ card.resultsTotal == 1 ? 'result' : 'results' }} on the profile:
+                {{ card.resultsTyped }} typed or timed, {{ card.resultsImported }} from spreadsheets
+            </div>
+            <div class="small text-break" data-testid="time-verification-import-file">
+                The import: a <strong>{{ card.fileKind }}</strong> file &middot; this adding put {{ card.resultsAdded }} {{ card.resultsAdded == 1 ? 'result' : 'results' }} on the profile ({{ card.rowsAdded }} rows) on {{ card.addedAt|date('j M Y') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body px-2 py-3 p-sm-3 p-md-4">
+        <p class="fs-lg mb-1" data-testid="time-verification-import-distribution">
+            <strong>
+                {{ card.cases }} of them are much {{ way }} than expected{% if card.factorFrom is not null %}
+                    ({{ card.factorFrom|number_format(1) }}{% if card.factorTo|number_format(1) != card.factorFrom|number_format(1) %}-{{ card.factorTo|number_format(1) }}{% endif %}× {{ way }}){% endif %}.
+            </strong>
+        </p>
+        <p class="small mb-3">
+            The player confirmed these times when adding the import ("these times are right").
+            {% if card.otherDirectionCases > 0 %}
+                Another {{ card.otherDirectionCases }} of the same import are much {{ faster ? 'slower' : 'faster' }} - on the
+                <a href="{{ path('admin_time_verification', {tab: faster ? 'slow' : 'fast'}) }}">{{ faster ? 'Too slow' : 'Too fast' }}</a> tab.
+            {% endif %}
+        </p>
+
+        {# What a moderator needs for a history import: do the imported times fit the player's own typed ones? #}
+        <h4 class="tv-section-title"><span>Imported against typed, solo, by piece count</span></h4>
+        <p class="small mb-2" data-testid="time-verification-import-comparison">
+            {% if comparison == 'consistent' %}
+                <span class="badge bg-success">Consistent</span> On every piece count both have, the imported pace is within {{ constant('SpeedPuzzling\\Web\\Results\\SuspiciousTimeImportCard::CONSISTENT_WITHIN') }}× of the typed one.
+            {% elseif comparison == 'nothing' %}
+                <span class="badge bg-secondary">Nothing to compare</span> The player has no typed solo results on the piece counts of this import - the history is all there is.
+            {% else %}
+                <span class="badge bg-warning text-dark">Not consistent</span> On at least one piece count the imported results are more than {{ constant('SpeedPuzzling\\Web\\Results\\SuspiciousTimeImportCard::CONSISTENT_WITHIN') }}× {{ comparison }} than the typed ones.
+            {% endif %}
+        </p>
+        {% if card.paces is not empty %}
+            <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle mb-0 small" data-testid="time-verification-import-paces">
+                    <thead>
+                        <tr>
+                            <th scope="col">Pieces</th>
+                            <th scope="col" class="text-end">Imported (median pcs/min)</th>
+                            <th scope="col" class="text-end">Typed (median pcs/min)</th>
+                            <th scope="col" class="text-end">Imported ÷ typed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pace in card.paces|slice(0, 8) %}
+                            <tr>
+                                <td>{{ pace.pieces }}</td>
+                                <td class="text-end">{{ pace.importedPpm|number_format(1) }} <span class="text-muted">({{ pace.imported }})</span></td>
+                                <td class="text-end">{% if pace.typedPpm is not null %}{{ pace.typedPpm|number_format(1) }} <span class="text-muted">({{ pace.typed }})</span>{% else %}<span class="text-muted">none</span>{% endif %}</td>
+                                <td class="text-end">{% if pace.typedPpm is not null and pace.typedPpm > 0 %}{{ (pace.importedPpm / pace.typedPpm)|number_format(2) }}×{% else %}-{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <h4 class="tv-section-title"><span>Examples</span><span class="badge bg-secondary">{{ card.examples|length }} of {{ card.cases }}</span></h4>
+        <div class="table-responsive mb-3">
+            <table class="table table-sm align-middle mb-0 small" data-testid="time-verification-import-examples">
+                <thead>
+                    <tr>
+                        <th scope="col">Puzzle</th>
+                        <th scope="col" class="text-end">Entered</th>
+                        <th scope="col" class="text-end">Expected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for example in card.examples %}
+                        <tr data-testid="time-verification-import-example">
+                            <td class="text-break">
+                                <a href="{{ path('puzzle_detail', {puzzleId: example.puzzle_id}) }}">{{ example.puzzle_name }}</a>
+                                <span class="text-muted">&middot; {{ example.pieces }} pcs{% if example.type != 'solo' %} &middot; {{ example.type == 'duo' ? 'pair' : 'team' }}{% endif %}</span>
+                            </td>
+                            <td class="text-end text-nowrap">{{ example.seconds is not null ? example.seconds|puzzlingTime : '-' }}</td>
+                            <td class="text-end text-nowrap">{{ example.expected_seconds is not null ? example.expected_seconds|puzzlingTime : '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tv-decide">
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <form method="post" action="{{ path('admin_time_verification_import', {batchId: card.batchId, decision: 'trust'}) }}" class="tv-option h-100" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-import-' ~ card.batchId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="direction" value="{{ card.direction.value }}">
+                        <input type="hidden" name="seen" value="{{ card.seen }}">
+                        <div class="tv-option-title"><i class="bi bi-check2-circle" aria-hidden="true"></i>A real history</div>
+                        <p class="mb-0">Every one of them is verified fine and never raised again - each recorded as its own decision.</p>
+                        <div class="tv-option-action">
+                            <button type="submit" class="btn btn-sm btn-success" data-testid="time-verification-import-trust">Looks fine - all {{ card.cases }}</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" action="{{ path('admin_time_verification_import', {batchId: card.batchId, decision: 'mark'}) }}" class="tv-option h-100" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-import-' ~ card.batchId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="direction" value="{{ card.direction.value }}">
+                        <input type="hidden" name="seen" value="{{ card.seen }}">
+                        <div class="tv-option-title"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Does not add up</div>
+                        <p class="mb-2">All of them are set aside until checked. The player is told once, for the whole import - not per result.</p>
+                        <label class="form-label mb-1" for="import-note-{{ card.batchId }}">A note the player reads (optional)</label>
+                        <textarea class="form-control form-control-sm" id="import-note-{{ card.batchId }}" name="note" rows="2" maxlength="{{ note_max_length }}"></textarea>
+                        <div class="tv-option-action">
+                            <button type="submit" class="btn btn-sm btn-warning" data-testid="time-verification-import-mark">Mark all {{ card.cases }} as needing verification</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <p class="small mt-3 mb-0">
+                Not all of one kind?
+                <a href="{{ path('admin_time_verification', {tab: tab.value, import: card.batchId}) }}" data-testid="time-verification-import-open">Open them one by one</a>
+                - each as its own case, like any other.
+            </p>
+        </div>
+    </div>
+</article>

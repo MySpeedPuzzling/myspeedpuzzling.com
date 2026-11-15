@@ -38,6 +38,11 @@ readonly final class PlayerSuspiciousTime
         public null|SuspiciousTimeReplyAnswer $answer,
         public null|string $answerNote,
         public null|DateTimeImmutable $answeredAt,
+        /**
+         * The "Add" of the player's spreadsheet import that made the result - null for a typed one. Results of one
+         * import that were set aside together are shown as one group (suspicious-time-review.md "Import cards")
+         */
+        public null|string $importBatchId = null,
     ) {
     }
 

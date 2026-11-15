@@ -27,7 +27,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *    "the file says it is on MySpeedPuzzling" ("they are missing" / "leave them out"). Rows that may be a duplicate
  *    of a result that exists (`similar_result_exists`, `somebody_elses_result`) are never answered as a group -
  *    anything else is "not found": a page never sends it;
- * 4. the group is counted; an empty group answers null.
+ * 4. one answer at a time per reason: while another answer goes through the rows of this reason, that one answers
+ *    (`busy`) - "add all" and "leave them out" side by side would split the group;
+ * 5. the group is counted; an empty group answers null.
  *
  * Nothing is confirmed here: the answer is gone through by ProcessImportGroupAnswer - at once when it is small
  * (`atOnce`), on the `imports` queue otherwise.
@@ -51,7 +53,7 @@ readonly final class AnswerImportRowsGroupHandler
     }
 
     /**
-     * @return null|array{id: string, atOnce: bool, started: bool}
+     * @return null|array{id: string, atOnce: bool, started: bool, busy: bool}
      *
      * @throws DataImportNotFound
      */
@@ -70,7 +72,7 @@ readonly final class AnswerImportRowsGroupHandler
                 throw new DataImportNotFound();
             }
 
-            return ['id' => $same->id->toString(), 'atOnce' => false, 'started' => false];
+            return ['id' => $same->id->toString(), 'atOnce' => false, 'started' => false, 'busy' => false];
         }
 
         if ($import->isBeingSetUp() === false || $import->cellsWipedAt !== null) {
@@ -85,6 +87,13 @@ readonly final class AnswerImportRowsGroupHandler
             || ($message->beforeAdd && $message->code !== ImportRowRefusal::UnusualTime->value)
         ) {
             throw new DataImportNotFound();
+        }
+
+        // One answer at a time per reason: "add all" and "leave them out" side by side would split the rows
+        $open = $this->batchRepository->findRunningGroupAnswer($import, $message->code);
+
+        if ($open !== null) {
+            return ['id' => $open->id->toString(), 'atOnce' => false, 'started' => false, 'busy' => true];
         }
 
         $rows = $message->beforeAdd
@@ -113,6 +122,7 @@ readonly final class AnswerImportRowsGroupHandler
             // Before an "Add" every row is shown to the time verification - never in a request
             'atOnce' => $message->beforeAdd === false && $rows <= self::AT_ONCE,
             'started' => true,
+            'busy' => false,
         ];
     }
 }

@@ -63,6 +63,29 @@
     {% elseif tab.value == 'log' %}
         {{ include('admin/suspicious_times/_decision_log.html.twig') }}
     {% else %}
+        {% if only_import_batch is not null %}
+            <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center" data-testid="time-verification-only-import">
+                <span>The results of one spreadsheet import, one by one.</span>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value}) }}">Back to the queue</a>
+            </div>
+        {% endif %}
+
+        {% if import_cards is not empty %}
+            <section aria-labelledby="tv-imports-title" class="mb-4">
+                <h2 class="tv-section-title" id="tv-imports-title">
+                    <span>Spreadsheet imports</span>
+                    <span class="badge bg-secondary">{{ import_cards|length }}</span>
+                </h2>
+                <p class="small mb-3">
+                    A history brought in at once: the player confirmed these times when adding their spreadsheet.
+                    Judge the import as a whole - do the imported times fit the player's own? - or open its results one by one.
+                </p>
+                {% for card in import_cards %}
+                    {{ include('admin/suspicious_times/_import_card.html.twig') }}
+                {% endfor %}
+            </section>
+        {% endif %}
+
         {% if puzzle_cards is not empty %}
             <section aria-labelledby="tv-puzzles-title" class="mb-4">
                 <h2 class="tv-section-title" id="tv-puzzles-title">
@@ -79,7 +102,7 @@
             </section>
         {% endif %}
 
-        {% if cases is empty and puzzle_cards is empty %}
+        {% if cases is empty and puzzle_cards is empty and import_cards is empty %}
             <div class="alert alert-success d-flex gap-2 align-items-center">
                 <i class="bi bi-check2-circle fs-4" aria-hidden="true"></i>
                 <span>Nothing here.</span>
@@ -88,7 +111,7 @@
 
         {% if cases is not empty %}
             <section aria-labelledby="tv-cases-title">
-                {% if puzzle_cards is not empty %}
+                {% if puzzle_cards is not empty or import_cards is not empty %}
                     <h2 class="tv-section-title" id="tv-cases-title">
                         <span>Other times</span>
                         <span class="badge bg-secondary">{{ total|plain_number }}</span>
@@ -106,7 +129,7 @@
     {% if pages > 1 %}
         <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Pages">
             {% if page > 1 %}
-                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page - 1}) }}">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page - 1, import: only_import_batch}) }}">
                     <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
                 </a>
             {% else %}
@@ -114,7 +137,7 @@
             {% endif %}
             <span class="small">Page {{ page }} of {{ pages }}</span>
             {% if page < pages %}
-                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page + 1}) }}">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page + 1, import: only_import_batch}) }}">
                     Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </a>
             {% else %}

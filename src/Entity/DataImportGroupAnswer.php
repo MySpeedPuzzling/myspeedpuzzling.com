@@ -33,6 +33,8 @@ class DataImportGroupAnswer
 {
     public const string ADD_ANYWAY = 'add_anyway';
     public const string LEAVE_OUT = 'leave_out';
+    /** `addStatus` of an answer that could not go on: it ended with what it had confirmed by then */
+    public const string FAILED = 'failed';
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 16, enumType: DataImportBatchState::class)]

@@ -297,6 +297,47 @@ Page title "Time verification". **Tabs**: **Too fast** · **Too slow** (pending 
   side, each with one line saying what happens; the note is folded). A puzzle card offers its choices as option boxes,
   a compact table of its times with short reason labels (`SuspiciousTimeReasonCode::moderatorLabel()`), then the cases.
 
+### Import cards (2026-11-15)
+
+A player who brings years of history in a spreadsheet may confirm hundreds of unusual times with one answer
+(`docs/features/data-import/group-answers.md`); each confirmed result is raised with `confirmed_while_saving` like
+any time confirmed while saving. The check stays - an import must never be a way to put fast times on leaderboards -
+but **one import is one card**, not hundreds of cases:
+
+- **How a case finds its import** (read side only, `GetSuspiciousTimeQueue`): the result is
+  `created_via = spreadsheet_import` and a row of the import names it as the result it made
+  (`data_import_row.solving_time_id`, `result_made`, state `added`); the row's `batch_id` is the "Add". A typed
+  result is no row's result - its case is never in an import card. Nothing is stored on the case.
+- **A card** = the pending cases of one direction of one "Add" (`IMPORT_CARD_MIN` = 2 or more), on top of the first
+  page of its tab, before the puzzle cards; its cases are neither cards of the list nor lines of a puzzle card. It
+  shows: the player (member since, results on the profile - typed or timed / from spreadsheets), the import (the
+  file's kind, what the adding put on the profile - never the file's name), N results and how far off (the range of
+  expected ÷ entered), 10 examples (strong first, then the furthest off) with puzzle, time and what was expected -
+  and **imported against typed**: per piece count the median pace (pieces a minute) of the solo results the "Add"
+  made beside the player's solo results that did not come from a spreadsheet, with "Consistent" (within 1.5× on every
+  piece count both have), "Not consistent" or "Nothing to compare".
+- **Looks fine - all N** / **Mark all N as needing verification** (`DecideImportTimeCases`, `POST
+  /admin/time-verification/imports/{batchId}/{trust|mark}`): the handler works the card's pending cases out and
+  sends, **per case, the very message the single card sends** (`TrustSolvingTime` / `MarkSolvingTimeSuspicious` with
+  the case's own fingerprint) - **only for the cases the card showed**: the form carries a mark per case and the
+  entry it was raised for (`SuspiciousTimeImportCard::seenMark()`), so a case raised since the card was rendered, or
+  one whose time changed, is not decided unseen ("2 changed meanwhile… More of this import are left") - each in its
+  own transaction, under its own lock, with its own "changed meanwhile"
+  (passed over and counted) and **its own line in the decision log**: the audit trail keeps its shape. A mark shows
+  the player the reasons of each case a player may read, with the one note typed for the group. At most 200 cases a
+  press; the card stays with the rest.
+- **Open them one by one** (`?import=<batchId>`): the import's cases as the single cases they are. A case decided there
+  comes back to that view.
+- **The player is told once for the group.** Notices are per result as for any mark (the notice run, once per
+  mark); what the player meets is one thing: the banner is one count, the "Your results" e-mail carries **one item**
+  for the import ("Results from your spreadsheet import, set aside together: 187" - `ResultReviewEmailComposer`
+  groups marks of one "Add"), and "Review your results" says it once above the results, each of which can still be
+  fixed or answered. The import wording is the importer's alone (`data_import.player_id` = the notice's
+  person) - another registered person of a result reads the plain lines.
+- **An import that is taken back**: Undo deletes the results, and a case goes with its result
+  (`suspicious_time_case.time_id` cascades - as for any deleted result). No case stays open for a result that is
+  not there; a decision that arrives meanwhile decides nothing.
+
 **Actions** (POST + CSRF, each a Messenger handler writing the decision log; serialized per case - the handlers read
 the case under its row lock (`SuspiciousTimeCaseRepository::getForUpdate()`), the scan and an edit's re-check take the
 same lock before they write to a case, so nobody writes over a decision taken meanwhile):

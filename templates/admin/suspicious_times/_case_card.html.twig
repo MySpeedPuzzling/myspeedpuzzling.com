@@ -22,6 +22,7 @@
     <input type="hidden" name="_token" value="{{ csrf_token('time-verification-' ~ case.caseId) }}">
     <input type="hidden" name="tab" value="{{ tab.value }}">
     <input type="hidden" name="page" value="{{ page }}">
+    {% if only_import_batch|default(null) is not null %}<input type="hidden" name="import" value="{{ only_import_batch }}">{% endif %}
     <input type="hidden" name="fingerprint" value="{{ case.currentFingerprint }}">
 {% endset %}
 <article class="card tv-case {{ in_puzzle_card ? 'tv-case-nested' : 'shadow-sm' }} mb-3" id="case-{{ case.caseId }}" data-testid="time-verification-case" aria-labelledby="case-{{ case.caseId }}-title">

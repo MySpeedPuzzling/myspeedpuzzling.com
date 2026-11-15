@@ -373,6 +373,7 @@ result_review:
     intro_verification_answered: "Díky za odpověď. Podívali jsme se na to znovu – tady je, co jsme zjistili."
     verification_heading: "Čeká na ověření"
     verification_text: "Výsledek mnohem rychlejší nebo pomalejší než tvé obvyklé bývá překlep, a tak takové výsledky odkládáme stranou – mimo žebříčky a statistiky – dokud je neověříme."
+    verification_import_group: "Výsledky z vašeho importu tabulky, odložené společně: %number%"
     verification_action: "Na stránce kontroly čas za chvilku opravíš – nebo nám napíšeš, že je správně."
     verification_answers_heading: "Podívali jsme se na to znovu"
     verification_answer_trusted: "Tvůj čas %time% na puzzle %puzzleName% jsme zkontrolovali – zase se počítá."

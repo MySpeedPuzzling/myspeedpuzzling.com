@@ -6,15 +6,16 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\DataImportGroupAnswer;
 use SpeedPuzzling\Web\Message\RecordImportGroupAnswer;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Writes down what a turn of a group answer did (RecordImportGroupAnswer) - under the answer's lock, so of two turns
- * that ran side by side (a job delivered twice, a second chain) only the one that began where the answer stands
- * counts, and the answer ends once: only the turn that ended it starts the "Add".
+ * Ends a group answer (RecordImportGroupAnswer) - under the answer's lock, so of two turns that both saw its last
+ * chunk only one ends it, and only that one starts the "Add". What each chunk did is written by the chunk itself
+ * (AnswerImportGroupChunkHandler).
  */
 #[AsMessageHandler]
 readonly final class RecordImportGroupAnswerHandler
@@ -27,7 +28,7 @@ readonly final class RecordImportGroupAnswerHandler
     }
 
     /**
-     * @return bool whether the write was this turn's to make
+     * @return bool whether this call ended the answer (or wrote down its "Add")
      */
     public function __invoke(RecordImportGroupAnswer $message): bool
     {
@@ -50,15 +51,11 @@ readonly final class RecordImportGroupAnswerHandler
             return true;
         }
 
-        if ($answer->isRunning() === false || $answer->lastRowId?->toString() !== ($message->from === null ? null : strtolower($message->from))) {
+        if ($answer->isRunning() === false) {
             return false;
         }
 
-        $answer->turnDone($message->rows, $message->answeredRowIds, $message->cursor === null ? null : Uuid::fromString($message->cursor), $now);
-
-        if ($message->finish) {
-            $answer->finished(null, null, $now);
-        }
+        $answer->finished(null, $message->failed ? DataImportGroupAnswer::FAILED : null, $now);
 
         return true;
     }

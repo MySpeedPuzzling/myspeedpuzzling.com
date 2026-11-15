@@ -41,18 +41,23 @@ final class TimeVerificationController extends AbstractController
         $counts = $this->getSuspiciousTimeQueue->counts();
         $direction = $tab->direction();
         $puzzleCards = [];
+        $importCards = [];
+        // One import's cases opened one by one ("Open them one by one" of an import card)
+        $onlyImportBatch = preg_match('/^' . self::ID_REQUIREMENT . '$/i', $request->query->getString('import')) === 1 ? strtolower($request->query->getString('import')) : null;
         $puzzleCardCases = [];
         $caseIds = [];
         $total = 0;
         $perPage = GetSuspiciousTimeQueue::PER_PAGE;
 
         if ($direction !== null) {
-            $pending = $this->getSuspiciousTimeQueue->pending($direction, $page);
+            $pending = $this->getSuspiciousTimeQueue->pending($direction, $page, $onlyImportBatch);
             $caseIds = $pending->caseIds;
             $total = $pending->total;
 
             // One decision about the puzzle settles many cases - on top of the first page, each case decided right in it
-            if ($page === 1) {
+            if ($page === 1 && $onlyImportBatch === null) {
+                // A history brought in at once is judged at once: one card per "Add" of a spreadsheet import
+                $importCards = $this->getSuspiciousTimeQueue->importCards($direction);
                 $puzzleCards = $this->getSuspiciousTimeQueue->puzzleCards($direction);
                 $cardCaseIds = [];
 
@@ -82,6 +87,8 @@ final class TimeVerificationController extends AbstractController
             'pages' => max(1, (int) ceil($total / $perPage)),
             'total' => $total,
             'puzzle_cards' => $puzzleCards,
+            'import_cards' => $importCards,
+            'only_import_batch' => $onlyImportBatch,
             'puzzle_card_cases' => $puzzleCardCases,
             'cases' => $this->getSuspiciousTimeCaseDetail->cards($caseIds),
             'log' => $tab === SuspiciousTimeQueueTab::Log ? $this->getSuspiciousTimesOverview->log($page) : [],
@@ -92,16 +99,23 @@ final class TimeVerificationController extends AbstractController
     }
 
     /**
-     * Where an action sends the moderator back to: the tab and page the form was on.
+     * Where an action sends the moderator back to: the tab and page the form was on - and the one import whose
+     * cases were opened one by one, when the form was in that view.
      *
-     * @return array{tab: string, page: null|int}
+     * @return array{tab: string, page: null|int, import: null|string}
      */
     public static function returnParameters(Request $request): array
     {
         $tab = SuspiciousTimeQueueTab::tryFrom($request->request->getString('tab')) ?? SuspiciousTimeQueueTab::Fast;
         $page = max(1, $request->request->getInt('page', 1));
 
-        return ['tab' => $tab->value, 'page' => $page > 1 ? $page : null];
+        $import = $request->request->getString('import');
+
+        return [
+            'tab' => $tab->value,
+            'page' => $page > 1 ? $page : null,
+            'import' => preg_match('/^' . self::ID_REQUIREMENT . '$/', $import) === 1 ? strtolower($import) : null,
+        ];
     }
 
     /**

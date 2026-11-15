@@ -7418,6 +7418,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "Výsledky z vašeho importu tabulky, které byly odloženy společně: %number%. Jsou uvedené níže - ke každému se můžete vyjádřit."
         title: "Čeká na ověření"
         intro: "Výsledky, které jsou mnohem rychlejší nebo pomalejší než tvé obvyklé časy, si prohlížíme podruhé – nejčastěji jde o překlep, třeba prázdné políčko pro hodiny. Než se to vyjasní, výsledek zůstane v tvých výsledcích, ale nepočítá se do žebříčků a statistik. Opravit ho zvládneš za chvilku, nebo nám napiš, že je čas správný."
         pair_result: "Výsledek dvojice"
@@ -11794,6 +11795,7 @@ data_import:
             slower_range: "Ty pomalejší jsou %from%× až %to%× pomalejší, než jsme čekali."
             most_faster: "Většina časů v tomto souboru je rychlejší než vaše dosavadní výsledky na MySpeedPuzzling - pokud je soubor vaší vlastní historií, je to v pořádku."
             most_slower: "Většina časů v tomto souboru je pomalejší než vaše dosavadní výsledky na MySpeedPuzzling - pokud je soubor vaší vlastní historií, je to v pořádku."
+            most_mixed: "Většina časů v tomto souboru je oproti vašim dosavadním výsledkům na MySpeedPuzzling neobvyklá - pokud je soubor vaší vlastní historií, je to v pořádku."
             examples: "Například"
             expected: "Čekali jsme přibližně %expected%."
             none_now: "Žádný z prohlédnutých časů už nevypadá neobvykle - na vašem profilu jsou teď další řádky souboru."
@@ -11814,11 +11816,13 @@ data_import:
             before_add: "Teď jsou připravené - zkontrolujte je a přidejte."
             left_out: "Jsou vynechané. Řádek můžete vrátit zpět v části „K opravě“."
             not_added: "Vaše odpověď je uložena. Přidávání teď nešlo spustit - řádky jsou připravené a lze je přidat z kontroly."
+            failed: "Tato odpověď se zastavila dřív, než byla hotová. Co stihla vyřešit, je uloženo; ostatní řádky čekají jako předtím a lze na ně odpovědět znovu."
             none: "Odpověď se nedotkla žádného řádku - mezitím se změnily."
             stale: "Vypadá to, že se nic neděje."
             continue: "Pokračovat"
         flash:
             nothing: "Na tuto odpověď už nečeká žádný řádek."
+            busy: "Tyto řádky už prochází jiná odpověď - tady vidíte, jak je daleko."
     nothing_until_add: "Na váš profil se nic nepřidá, dokud si to neprohlédnete a nestisknete Přidat."
     add:
         title: "Kontrola před přidáním"

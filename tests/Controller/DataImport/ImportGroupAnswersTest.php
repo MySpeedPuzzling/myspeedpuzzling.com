@@ -11,9 +11,11 @@ use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Message\AnswerImportGroupChunk;
 use SpeedPuzzling\Web\Message\AnswerImportRows;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
+use SpeedPuzzling\Web\Message\ContinueImportBatches;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
@@ -27,11 +29,14 @@ use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -185,10 +190,37 @@ SQL, ['rowId' => $said[0]]);
         self::assertSame(['id' => $answerId, 'running' => true, 'paused' => false, 'total' => 205, 'done' => 200], json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
         self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_batch WHERE import_id = :id', ['id' => $importId]));
 
-        // The second turn ends it and starts the "Add" of exactly the rows that took the answer; a turn delivered
+        // Another answer for the same group while this one runs ("Leave them out" from a second tab) would split
+        // the rows: it is not started - the player is told, and led to the one that runs
+        $this->browser->request('POST', '/en/import/' . $importId . '/group-answers', [
+            '_token' => (string) $form->filter('input[name="_token"]')->attr('value'),
+            'request_id' => '0193e7a0-0000-7000-8000-0000000000b1',
+            'code' => 'said_already_on_profile',
+            'action' => 'leave_out',
+        ]);
+        self::assertResponseRedirects('/en/import/' . $importId . '/group-answers/' . $answerId);
+        self::assertStringContainsString('Another answer is already going through these rows', $this->browser->followRedirect()->text());
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM data_import_group_answer WHERE import_id = :id', ['id' => $importId]));
+        self::assertSame(0, $this->pairingCount("SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND state = 'left_out'", ['id' => $importId]));
+
+        // Two turns at the same place (a job delivered twice, "Go on" pressed while a turn runs): a chunk is claimed
+        // and answered in one transaction under the answer's lock, so the second finds the cursor moved - the last
+        // five rows are taken once, the next chunk is empty
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        self::assertSame(['rows' => 5, 'ends' => true], self::chunk($bus->dispatch(new AnswerImportGroupChunk($answerId))));
+        self::assertSame(['rows' => 0, 'ends' => true], self::chunk($bus->dispatch(new AnswerImportGroupChunk($answerId))));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_batch WHERE import_id = :id', ['id' => $importId]));
+
+        // The next turn ends it and starts the "Add" of exactly the rows that took the answer; a turn delivered
         // again does nothing
         $handler(new ProcessImportGroupAnswer($answerId));
         $handler(new ProcessImportGroupAnswer($answerId));
+        // Every row was confirmed by exactly one turn, and the answer's list is exactly the confirmed rows
+        self::assertSame(
+            [205, 205],
+            array_values((array) $this->database->fetchAssociative('SELECT jsonb_array_length(answered_row_ids) AS listed, (SELECT COUNT(DISTINCT listed.id) FROM jsonb_array_elements_text(answered_row_ids) AS listed(id)) AS different FROM data_import_group_answer WHERE id = :id', ['id' => $answerId])),
+        );
+        self::assertSame(205, $this->pairingCount("SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND answers -> 'addAnyway' ->> 'said_already_on_profile' IS NOT NULL", ['id' => $importId]));
         $batchId = $this->database->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id', ['id' => $importId]);
         self::assertIsString($batchId);
         self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM data_import_batch WHERE import_id = :id', ['id' => $importId]));
@@ -338,6 +370,61 @@ SQL, ['rowId' => $said[0]]);
 
         $this->addAndWork($importId, $player);
         self::assertSame(['added', 'added', 'added'], [$this->rowNow($usual)['state'], $this->rowNow($fastOne)['state'], $this->rowNow($fastTwo)['state']]);
+    }
+
+    public function testAnAnswerThatCanNotGoOnEndsAsFailedAndItsReasonIsFreeAgain(): void
+    {
+        $player = $this->seedPairingPlayer('groupfailed');
+        $puzzle = $this->seedCataloguePuzzle('Zq Group Failed Puzzle', 1000, $this->seedBrand('Zqgroupfailed'));
+        $this->typedResult($player, $puzzle, '2023-01-01', 10801);
+        $this->typedResult($player, $puzzle, '2023-02-01', 10501);
+        $this->typedResult($player, $puzzle, '2023-03-01', 10201);
+        [$import, $sheet] = $this->importOf($player);
+        $fast = $this->resultRow($import, $sheet, 'Zq Group Failed Puzzle', 1000, 'Zqgroupfailed', '2023-04-01', 1711);
+        $this->pair($import);
+        $importId = $import->id->toString();
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 1, mapping_version = 1 WHERE import_id = :id', ['id' => $importId]);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $token = (string) $this->browser->request('GET', '/en/import/' . $importId . '/add/times')->filter('[data-testid="import-add-times-group"] input[name="_token"]')->first()->attr('value');
+        $start = fn (string $requestId): string => (function () use ($requestId, $importId, $token): string {
+            $this->browser->request('POST', '/en/import/' . $importId . '/group-answers', ['_token' => $token, 'request_id' => $requestId, 'code' => 'unusual_time', 'action' => 'add_anyway', 'before_add' => '1']);
+
+            return (string) $this->browser->getResponse()->headers->get('Location');
+        })();
+        $handler = self::getContainer()->get(ProcessImportGroupAnswerHandler::class);
+
+        // --- A chunk that fails every time (the import left the stage rows are answered in, under the answer) ---
+        $first = '0193e7a0-0000-7000-8000-0000000000c1';
+        self::assertSame('/en/import/' . $importId . '/group-answers/' . $first, $start($first));
+        $this->database->update('data_import', ['status' => 'done'], ['id' => $importId]);
+        $handler(new ProcessImportGroupAnswer($first));
+
+        // Tried a few times, then ended as failed - not left running for ever
+        self::assertSame(['finished', 'failed', 0], array_values((array) $this->database->fetchAssociative('SELECT state, add_status, rows_answered FROM data_import_group_answer WHERE id = :id', ['id' => $first])));
+        self::assertSame([], $this->wavedThrough($fast));
+        $this->database->update('data_import', ['status' => 'setting_up'], ['id' => $importId]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/group-answers/' . $first);
+        self::assertStringContainsString('This answer stopped before it was through.', $crawler->filter('[data-testid="import-group-answer-outcome"]')->text());
+
+        // The reason is free again: another answer starts - it is not "already being answered"
+        $second = '0193e7a0-0000-7000-8000-0000000000c2';
+        self::assertSame('/en/import/' . $importId . '/group-answers/' . $second, $start($second));
+        self::assertSame('running', $this->database->fetchOne('SELECT state FROM data_import_group_answer WHERE id = :id', ['id' => $second]));
+
+        // --- An answer without a sign of life (a worker restarted, its job lost): the sweeper ends it the same way ---
+        $this->database->update('data_import_group_answer', ['last_activity_at' => TestClock::now()->modify('-14 minutes')->format('Y-m-d H:i:s')], ['id' => $second]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ContinueImportBatches());
+        self::assertSame('running', $this->database->fetchOne('SELECT state FROM data_import_group_answer WHERE id = :id', ['id' => $second]));
+        $this->database->update('data_import_group_answer', ['last_activity_at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s')], ['id' => $second]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ContinueImportBatches());
+        self::assertSame(['finished', 'failed'], array_values((array) $this->database->fetchAssociative('SELECT state, add_status FROM data_import_group_answer WHERE id = :id', ['id' => $second])));
+
+        // ... and a third answer goes through as usual
+        $third = '0193e7a0-0000-7000-8000-0000000000c3';
+        $start($third);
+        $handler(new ProcessImportGroupAnswer($third));
+        self::assertSame(['finished', null, 1], array_values((array) $this->database->fetchAssociative('SELECT state, add_status, rows_answered FROM data_import_group_answer WHERE id = :id', ['id' => $third])));
+        self::assertSame(['unusual_time'], $this->wavedThrough($fast));
     }
 
     public function testLeaveThemOutLeavesEveryRowOfTheReasonOut(): void
@@ -513,6 +600,14 @@ SQL, ['rowId' => $said[0]]);
         $entityManager->clear();
 
         return $waved;
+    }
+
+    private static function chunk(Envelope $handled): mixed
+    {
+        $stamp = $handled->last(HandledStamp::class);
+        self::assertInstanceOf(HandledStamp::class, $stamp);
+
+        return $stamp->getResult();
     }
 
     private static function spaced(string $text): string

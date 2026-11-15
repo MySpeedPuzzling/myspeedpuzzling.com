@@ -373,6 +373,7 @@ result_review:
     intro_verification_answered: "Merci de nous avoir répondu. Nous avons regardé à nouveau – voici ce que nous avons constaté."
     verification_heading: "En attente de vérification"
     verification_text: "Un résultat bien plus rapide ou bien plus lent que vos résultats habituels est souvent une faute de frappe ; ces résultats sont donc mis de côté – hors des classements et des statistiques – jusqu’à leur vérification."
+    verification_import_group: "Résultats de votre import de tableur, mis de côté ensemble : %number%"
     verification_action: "Sur la page de vérification, vous pouvez corriger un temps en un instant – ou nous dire qu’il est juste."
     verification_answers_heading: "Nous avons regardé à nouveau"
     verification_answer_trusted: "Votre temps %time% sur %puzzleName% a été vérifié – il compte de nouveau."

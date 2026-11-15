@@ -7936,6 +7936,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "Results of your spreadsheet import that were set aside together: %number%. They are listed below - you can answer each of them."
         title: "Awaiting verification"
         intro: "We take a second look at results that are much faster or much slower than your usual times – most often it is a typo, like an empty hours box. Until it is sorted out, the result stays in your own results but does not count in rankings and statistics. Fix it in a moment, or tell us the time is correct."
         pair_result: "Pair result"
@@ -12038,6 +12039,7 @@ data_import:
             slower_range: "The slower ones are between %from%× and %to%× slower than we expected."
             most_faster: "Most of the times in this file are faster than your results on MySpeedPuzzling so far - if this file is your own history, that is expected."
             most_slower: "Most of the times in this file are slower than your results on MySpeedPuzzling so far - if this file is your own history, that is expected."
+            most_mixed: "Most of the times in this file are unusual compared with your results on MySpeedPuzzling so far - if this file is your own history, that is expected."
             examples: "For example"
             expected: "We expected about %expected%."
             none_now: "None of the times we looked at seems unusual any more, now that other rows of the file are on your profile."
@@ -12058,11 +12060,13 @@ data_import:
             before_add: "They are ready now - review them and add them."
             left_out: "They are left out. You can take a row in again in “To fix”."
             not_added: "Your answer is saved. Adding could not start right now - the rows are ready and can be added from the review."
+            failed: "This answer stopped before it was through. What it did settle is saved; the other rows wait as before and can be answered again."
             none: "No row took the answer - they changed meanwhile."
             stale: "This seems to stand still."
             continue: "Go on"
         flash:
             nothing: "No row waits for this answer any more."
+            busy: "Another answer is already going through these rows - here is how far it is."
     nothing_until_add: "Nothing is added to your profile until you have looked at it and pressed Add."
     add:
         title: "Review before adding"

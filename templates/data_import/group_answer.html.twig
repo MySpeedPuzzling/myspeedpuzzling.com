@@ -51,7 +51,9 @@
         <div class="card card-body shadow-sm mb-3" data-testid="import-group-answer-outcome" data-answered="{{ answer.answered }}" data-total="{{ answer.total }}">
             <p class="fw-medium mb-1">{{ 'data_import.group.done.answered'|trans({'%answered%': answer.answered|format_number, '%total%': answer.total|format_number}) }}</p>
             <p class="fs-sm text-muted mb-0">
-                {% if answer.action == 'leave_out' %}
+                {% if answer.addStatus == 'failed' %}
+                    {{ 'data_import.group.done.failed'|trans }}
+                {% elseif answer.action == 'leave_out' %}
                     {{ 'data_import.group.done.left_out'|trans }}
                 {% elseif answer.beforeAdd %}
                     {{ 'data_import.group.done.before_add'|trans }}

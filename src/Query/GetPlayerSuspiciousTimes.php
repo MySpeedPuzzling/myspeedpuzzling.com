@@ -118,12 +118,20 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.pieces_count AS puzzle_pieces_count,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > CAST(:now AS TIMESTAMP) THEN NULL ELSE puzzle.image END AS puzzle_image,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    import_row.batch_id AS import_batch_id
 FROM suspicious_time_notice notice
 INNER JOIN suspicious_time_case stc ON stc.id = notice.case_id
 INNER JOIN puzzle_solving_time pst ON pst.id = stc.time_id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN data_import_row import_row
+    ON import_row.solving_time_id = pst.id
+    AND import_row.result_made
+    AND import_row.state = 'added'
+    AND pst.created_via = 'spreadsheet_import'
+    -- "Your spreadsheet import" is said to the importer only - never to another person of the result
+    AND EXISTS (SELECT 1 FROM data_import importing WHERE importing.id = import_row.import_id AND importing.player_id = notice.player_id)
 
 SQL;
     }
@@ -134,7 +142,7 @@ SQL;
      */
     private function fetch(string $query, array $parameters): array
     {
-        /** @var list<array{case_id: string, reasons_shown: string, moderator_note: null|string, marked_at: string, response: null|string, response_text: null|string, answer: null|string, answer_note: null|string, answered_at: null|string, time_id: string, tracker_id: string, seconds_to_solve: null|int, solved_at: string, puzzling_type: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string}> $rows */
+        /** @var list<array{case_id: string, reasons_shown: string, moderator_note: null|string, marked_at: string, response: null|string, response_text: null|string, answer: null|string, answer_note: null|string, answered_at: null|string, time_id: string, tracker_id: string, seconds_to_solve: null|int, solved_at: string, puzzling_type: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string, import_batch_id: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             ...$parameters,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
@@ -176,6 +184,7 @@ SQL;
                 answer: $row['answer'] !== null ? SuspiciousTimeReplyAnswer::from($row['answer']) : null,
                 answerNote: $row['answer_note'],
                 answeredAt: $row['answered_at'] !== null ? new DateTimeImmutable($row['answered_at']) : null,
+                importBatchId: $row['import_batch_id'],
             );
         }, $rows);
     }

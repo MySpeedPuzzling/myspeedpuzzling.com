@@ -187,11 +187,19 @@ SELECT
     CAST(notice.id AS text) AS notice_id,
     puzzle.name AS puzzle_name,
     t.seconds_to_solve,
-    COALESCE(t.finished_at, t.tracked_at) AS solved_at
+    COALESCE(t.finished_at, t.tracked_at) AS solved_at,
+    import_row.batch_id AS import_batch_id
 FROM suspicious_time_notice notice
 INNER JOIN suspicious_time_case suspicion ON suspicion.id = notice.case_id
 INNER JOIN puzzle_solving_time t ON t.id = suspicion.time_id
 INNER JOIN puzzle ON puzzle.id = t.puzzle_id
+LEFT JOIN data_import_row import_row
+    ON import_row.solving_time_id = t.id
+    AND import_row.result_made
+    AND import_row.state = 'added'
+    AND t.created_via = 'spreadsheet_import'
+    -- "Your spreadsheet import" is said to the importer only - never to another person of the result
+    AND EXISTS (SELECT 1 FROM data_import importing WHERE importing.id = import_row.import_id AND importing.player_id = notice.player_id)
 WHERE notice.id IN (:noticeIds)
     AND notice.player_id = :playerId
     AND notice.via = :run
@@ -205,7 +213,7 @@ WHERE notice.id IN (:noticeIds)
 ORDER BY notice.marked_at DESC, COALESCE(t.finished_at, t.tracked_at) DESC, notice.id
 SQL;
 
-        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string}> $rows */
+        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, import_batch_id: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'noticeIds' => $noticeIds,
             'playerId' => $playerId,
@@ -220,6 +228,7 @@ SQL;
             puzzleName: $row['puzzle_name'],
             secondsToSolve: $row['seconds_to_solve'],
             solvedAt: new DateTimeImmutable($row['solved_at']),
+            importBatchId: $row['import_batch_id'],
         ), $rows);
     }
 

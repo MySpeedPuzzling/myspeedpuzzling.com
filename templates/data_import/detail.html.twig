@@ -150,6 +150,32 @@
                                     {% if sheet.hidden %}
                                         <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-hidden"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
                                     {% endif %}
+                                    {# What the import takes the sheet for and how its rows fared (docs/features/data-import/columns.md) - read only #}
+                                    <div class="fs-sm text-muted" data-testid="import-sheet-state">
+                                        {% if sheet.failed %}
+                                            <span class="badge bg-faded-danger text-danger" data-testid="import-sheet-failed"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.sheets.failed'|trans }}</span>
+                                        {% elseif not sheet.mapped %}
+                                            <span data-testid="import-sheet-recognising">{{ 'data_import.sheets.recognising'|trans }}</span>
+                                        {% else %}
+                                            {% if sheet.kind is not null %}
+                                                <span class="fw-medium" data-testid="import-sheet-kind" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
+                                            {% endif %}
+                                            {% if sheet.waitsForAnAnswer %}
+                                                <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+                                            {% elseif not sheet.parsed %}
+                                                <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
+                                            {% elseif sheet.kind is not null and sheet.kind.value not in ['not_puzzles', 'somebody_else'] %}
+                                                {% if sheet.parsed %}
+                                                    <div data-testid="import-sheet-parsed">
+                                                        {{ 'data_import.sheets.understood'|trans({'%understood%': sheet.rowsUnderstood|format_number, '%look%': sheet.rowsNeedLook|format_number}) }}
+                                                        {%- if sheet.rowsLeftOut > 0 %} · {{ 'data_import.sheets.left_out'|trans({'%count%': sheet.rowsLeftOut|format_number}) }}{% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td class="text-end text-nowrap" data-testid="import-sheet-rows">{{ sheet.rows|format_number }}</td>
                                 <td class="text-end text-nowrap pe-3" data-testid="import-sheet-columns">{{ sheet.columns|format_number }}</td>
@@ -158,6 +184,12 @@
                     </tbody>
                 </table>
             </div>
+            {% if sheets|filter(sheet => not sheet.failed and (not sheet.mapped or (not sheet.parsed and not sheet.waitsForAnAnswer)))|length > 0 %}
+                <div class="card-body pt-2 fs-sm text-muted" data-testid="import-sheets-working">
+                    <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.sheets.refresh_hint'|trans }}
+                    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" data-turbo="false">{{ 'data_import.reading.refresh'|trans }}</a>
+                </div>
+            {% endif %}
         </div>
     {% endif %}
 

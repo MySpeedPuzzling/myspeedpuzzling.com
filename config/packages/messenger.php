@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\ParseImportSheet;
+use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
@@ -141,6 +143,10 @@ return App::config([
                 // transaction (HandledOutsideTransaction), writes through small messages of its own - not routed:
                 // handled at once, each in its transaction (docs/features/data-import/reading.md)
                 ReadImportFile::class => 'imports',
+                // Recognising a read import's sheets and parsing their rows (docs/features/data-import/columns.md): both
+                // read thousands of rows outside a transaction and write through small messages of their own
+                ProposeImportMappings::class => 'imports',
+                ParseImportSheet::class => 'imports',
                 // Fetching a Google sheet's export for an import: waits for Google outside a transaction, then hands
                 // the file to the reading above (docs/features/data-import/google-sheets.md)
                 StartImportFromGoogleSheet::class => 'imports',

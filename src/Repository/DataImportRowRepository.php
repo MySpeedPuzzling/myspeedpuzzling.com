@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportRow;
+use SpeedPuzzling\Web\Entity\DataImportSheet;
 
 readonly final class DataImportRowRepository
 {
@@ -18,6 +19,84 @@ readonly final class DataImportRowRepository
     public function save(DataImportRow $row): void
     {
         $this->entityManager->persist($row);
+    }
+
+    /**
+     * @param list<string> $rowIds
+     *
+     * @return array<string, DataImportRow> by id
+     */
+    public function ofSheetByIds(DataImportSheet $sheet, array $rowIds): array
+    {
+        if ($rowIds === []) {
+            return [];
+        }
+
+        /** @var list<DataImportRow> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.sheet = :sheet')
+            ->andWhere('r.id IN (:ids)')
+            ->setParameter('sheet', $sheet)
+            ->setParameter('ids', $rowIds)
+            ->getQuery()
+            ->getResult();
+
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $byId[$row->id->toString()] = $row;
+        }
+
+        return $byId;
+    }
+
+    /**
+     * A row by its id without loading it - for pointing another row at it.
+     */
+    public function reference(string $rowId): DataImportRow
+    {
+        return $this->entityManager->getReference(DataImportRow::class, $rowId)
+            ?? throw new \LogicException('A reference is always given.');
+    }
+
+    /**
+     * Links every row of the import to the row with the same key on an earlier sheet ("the same result on two
+     * sheets is one result" - README D6) and unlinks rows whose twin is gone or changed. A row linked to an equal row
+     * of its own sheet (ImportEqualRows) keeps that link.
+     *
+     * A bulk statement on purpose, in native SQL: it compares every row of an import (up to 50,000) with every
+     * other by its key - loading them as objects to set one reference each would hold the import's lock for seconds
+     * and the rows in memory. It writes nothing but `same_as_row_id`.
+     */
+    public function linkEqualRowsAcrossSheets(DataImport $import): int
+    {
+        return (int) $this->entityManager->getConnection()->executeStatement(<<<SQL
+UPDATE data_import_row AS linked
+SET same_as_row_id = found.twin_id
+FROM (
+    SELECT
+        r.id,
+        (
+            SELECT twin.id
+            FROM data_import_row twin
+            INNER JOIN data_import_sheet twin_sheet ON twin_sheet.id = twin.sheet_id
+            WHERE twin.import_id = r.import_id
+                AND twin.source_key = r.source_key
+                AND twin_sheet.position < sheet.position
+            ORDER BY twin_sheet.position, twin.row_number
+            LIMIT 1
+        ) AS twin_id
+    FROM data_import_row r
+    INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
+    LEFT JOIN data_import_row current ON current.id = r.same_as_row_id
+    WHERE r.import_id = :importId
+        AND (current.id IS NULL OR current.sheet_id <> r.sheet_id)
+) AS found
+WHERE linked.id = found.id
+    AND linked.same_as_row_id IS DISTINCT FROM found.twin_id
+SQL, ['importId' => $import->id->toString()]);
     }
 
     /**

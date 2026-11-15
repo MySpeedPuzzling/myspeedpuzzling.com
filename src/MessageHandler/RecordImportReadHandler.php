@@ -6,10 +6,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\RecordImportRead;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class RecordImportReadHandler
@@ -17,6 +19,7 @@ readonly final class RecordImportReadHandler
     public function __construct(
         private DataImportRepository $dataImportRepository,
         private IdLock $idLock,
+        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
     }
@@ -34,6 +37,8 @@ readonly final class RecordImportReadHandler
         }
 
         $import->readingFinished($this->clock->now());
+        // In this transaction, on the queue's own connection: the message exists exactly when the import is read
+        $this->messageBus->dispatch(new ProposeImportMappings($message->importId));
 
         return true;
     }

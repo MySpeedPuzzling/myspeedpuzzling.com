@@ -25,6 +25,12 @@ readonly final class DataImportProgress
         public int $rowsRead,
         public null|string $readFailure,
         public null|string $sameFileAsImportId,
+        /** Sheets the import has proposed a mapping for (docs/features/data-import/columns.md) */
+        public int $sheetsMapped = 0,
+        /** Of those: sheets whose rows are parsed for their current mapping */
+        public int $sheetsParsed = 0,
+        /** Of those: sheets that wait for the player's answer */
+        public int $sheetsWaiting = 0,
     ) {
     }
 
@@ -39,7 +45,7 @@ readonly final class DataImportProgress
     /**
      * What travels to the page - by the JSON endpoint and by the player's private topic alike.
      *
-     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int}
+     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int, sheetsMapped: int, sheetsParsed: int, sheetsWaiting: int}
      */
     public function toArray(): array
     {
@@ -51,6 +57,9 @@ readonly final class DataImportProgress
             'sheetsTotal' => $this->sheetsTotal,
             'sheetsRead' => $this->sheetsRead,
             'rowsRead' => $this->rowsRead,
+            'sheetsMapped' => $this->sheetsMapped,
+            'sheetsParsed' => $this->sheetsParsed,
+            'sheetsWaiting' => $this->sheetsWaiting,
         ];
     }
 }

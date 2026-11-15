@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\DataImportProgress;
 use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportReadFailure;
+use SpeedPuzzling\Web\Value\DataImportSheetKind;
 use SpeedPuzzling\Web\Value\DataImportSource;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use SpeedPuzzling\Web\Value\GoogleSheetFetchFailure;
@@ -191,7 +192,10 @@ SELECT
     data_import.sheets_total,
     data_import.sheets_read,
     data_import.rows_read,
-    same_file.id AS same_file_as
+    same_file.id AS same_file_as,
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0) AS sheets_mapped,
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND sheet.parsed_version = sheet.mapping_version) AS sheets_parsed,
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) > 0) AS sheets_waiting
 FROM data_import
 LEFT JOIN data_import same_file
     ON same_file.id = data_import.same_file_as_import_id
@@ -200,7 +204,7 @@ LEFT JOIN data_import same_file
 WHERE data_import.id = :importId
 SQL;
 
-        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string} $row */
+        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'discarded' => DataImportStatus::Discarded->value,
@@ -225,6 +229,9 @@ SQL;
             rowsRead: $row['rows_read'],
             readFailure: $row['status'] === DataImportStatus::ReadFailed->value ? DataImportReadFailure::shown($row['read_error']) : null,
             sameFileAsImportId: $discarded ? $row['same_file_as'] : null,
+            sheetsMapped: $row['sheets_mapped'],
+            sheetsParsed: $row['sheets_parsed'],
+            sheetsWaiting: $row['sheets_waiting'],
         );
     }
 
@@ -245,7 +252,15 @@ SELECT
     data_import_sheet.title,
     data_import_sheet.hidden,
     data_import_sheet.rows_total,
-    data_import_sheet.columns_total
+    data_import_sheet.columns_total,
+    data_import_sheet.kind,
+    data_import_sheet.mapping_version,
+    data_import_sheet.parsed_version,
+    data_import_sheet.rows_understood,
+    data_import_sheet.rows_need_look,
+    data_import_sheet.rows_left_out,
+    data_import_sheet.set_up_failure IS NOT NULL AS failed,
+    jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions
 FROM data_import_sheet
 INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
 WHERE data_import_sheet.import_id = :importId
@@ -254,7 +269,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int}> $rows */
+        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, failed: bool, questions: int}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -267,6 +282,14 @@ SQL;
             hidden: $row['hidden'],
             rows: $row['rows_total'],
             columns: $row['columns_total'],
+            kind: $row['kind'] === null ? null : DataImportSheetKind::tryFrom($row['kind']),
+            mapped: $row['mapping_version'] > 0,
+            waitsForAnAnswer: $row['questions'] > 0,
+            parsed: $row['mapping_version'] > 0 && $row['parsed_version'] === $row['mapping_version'],
+            rowsUnderstood: $row['rows_understood'],
+            rowsNeedLook: $row['rows_need_look'],
+            rowsLeftOut: $row['rows_left_out'],
+            failed: $row['failed'],
         ), $rows);
     }
 }

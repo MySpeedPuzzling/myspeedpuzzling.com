@@ -1660,3 +1660,9 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   their own - take them if players paste them often.
 - [ ] A Google sheet whose fetch failed and that is never tried again or discarded keeps its place of the three
   forever (like a file whose reading failed) - decide with the prune of abandoned imports.
+
+## Tests
+
+- [ ] `AssetFailureScriptTest::testHealRepairsAPoisonedStylesheetAndReportsItOnce` fails now and then in CI with
+  `'refetch' => 'timeout'` instead of `'intact'` (twice on 2026-11-14/15, on main and on a pull request; passes on
+  re-run) - the node harness's refetch races its timer on a loaded runner.

@@ -24,7 +24,7 @@ sandbox from the stage that can read them.
 | 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
 | 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
 | 2a-c | My data | **2a live 2026-11-15** (#365, read-only); **2b live 2026-11-15** (#367: edit a row); 2c (many at once) not started | #365, #367 | yes | sandbox: 1,466 results, 890 puzzles |
-| 8 | Entry points and the guide | not started | | | |
+| 8 | Entry points and the guide | **live 2026-11-15** - the import is linked for everybody | #366 | yes (deploy green) | before the merge, on the branch at phone width: guide in 6 languages, welcome page, Getting started, add form intact, the flow's "How this step works" links; after: guide 200 on production, the sandbox flow carries the links |
 
 ## How every stage is built
 
@@ -56,6 +56,26 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-15 - **stage 8 live: the import is discoverable** (#366). Entry points (welcome page "Import your data
+  from elsewhere", Getting started, user menu, FAQ, one static line outside the add form, footer) and the public
+  guide `import_guide` in six languages ("How the import works": one small made-up spreadsheet followed through the
+  five steps), linked from every step ("How this step works", with a return link). Walked before the merge on the
+  branch at 390 px with three of the real files (the fourth correctly refused by the three-in-progress limit): no
+  horizontal overflow, the add form's page keeps one form and the import line sits outside it, no untranslated key
+  in any language. After the deploy: guide 200 on production in the localized addresses; on the sandbox the flow
+  shows the guide links. My test imports of the sample files on the sandbox were undone (Undo everything: 248 and
+  1,484 items; the two imports closed with "I'm done", the two without anything added discarded - the closed
+  ones keep their file until the 30-day prune, visible to that made-up account only). Not done: illustrations / og:image of the guide (guided-flow slice 9), nothing on a
+  real phone, non-English texts unread by native speakers.
+- 2026-11-15 - **guided flow complete: slices 3, 6, 4 + 5 live** (#372, #373, #374). Slice 3 - puzzles in bulk:
+  one answer for a pile (`data_import_pile_answer`), the picture grid for "Looks like a match" (exact pieces, brand
+  agrees or absent, a single candidate, no earlier word of the player), a faster chooser. Slice 6 - a question is
+  asked once per file: every waivable doubt of a row is collected in one pass (closes the "asked twice" item).
+  Slices 4 + 5 - the Check step folded into one screen, and after the Add: what was added, with Undo per row /
+  adding / import. Known limit: the bulk grid helps little when the file's brands differ from the catalogue's
+  (about 100 of 156 puzzles in one sample file went one by one).
+- 2026-11-15 - **the asset self-heal test no longer races its timer** (#375): `tests/asset-failure-harness.js`
+  waits until the page is quiet instead of a fixed 20 ms; it had turned main red five times in two days.
 - 2026-11-15 - **guided flow, slices 1 and 2 live** (#370, #371). Slice 1 - the spine: the step header on every
   import screen, "Where you are" (five steps, one status sentence each, ONE primary button, "or add what is ready
   now"), the vocabulary of guided-flow.md §8 in six languages, the first explanations in place; no query, message

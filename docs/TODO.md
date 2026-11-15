@@ -1670,16 +1670,8 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   counter on the sheet moved by `RecordParsedImportRows`. See `docs/features/data-import/columns-screen.md`
   "Performance".
 
-## Tests
-
-- [ ] `AssetFailureScriptTest::testHealRepairsAPoisonedStylesheetAndReportsItOnce` fails now and then in CI with
-  `'refetch' => 'timeout'` instead of `'intact'` (twice on 2026-11-14/15, on main and on a pull request; passes on
-  re-run) - the node harness's refetch races its timer on a loaded runner.
-
 ## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
 
-- [ ] A row with two doubts is asked twice, one round after the other (unusual time, then "the file says it is on
-  MySpeedPuzzling"): collect every waivable question of a row in one pass and ask them together.
 - [ ] 13 of 21 "Probably" puzzles of Puzzle Tracker's export carried "Another brand" - look at them: a re-release, or
   the file writing a brand the catalogue spells differently (then `ImportBrandResolver` needs the alias; a player's
   own brand shorthand "MB" is not remembered yet).

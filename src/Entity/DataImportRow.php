@@ -24,13 +24,14 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
  * kept for ever; `cells` and `parsed` can be wiped. Written when the file is read: `cells` in the shape of
  * Services\DataImport\ImportRowCells (docs/features/data-import/reading.md "What a row keeps").
  *
- * `importPuzzleId` and `batchId` point at tables of later stages (`data_import_puzzle`, `data_change_batch`): plain
- * ids until those exist.
+ * `importPuzzleId` names the row's distinct puzzle (`data_import_puzzle`, written set-based by the pairing -
+ * DataImportPuzzleRepository::linkRows()); `batchId` points at a table of a later stage (`data_change_batch`). Plain ids.
  */
 #[Entity]
 #[Index(columns: ['sheet_id', 'row_number'])]
 #[Index(columns: ['import_id', 'state'])]
 #[Index(columns: ['import_id', 'source_key'])]
+#[Index(columns: ['import_puzzle_id'])]
 // The database's last word on "a result is one row's": two rows can never name the same result (NULLs are distinct)
 #[UniqueConstraint(columns: ['solving_time_id'])]
 class DataImportRow
@@ -112,6 +113,19 @@ class DataImportRow
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: UuidType::NAME, nullable: true)]
     public null|UuidInterface $solvingTimeId = null;
+
+    /**
+     * A hint of the pairing, worked out again by every run while the row waits (docs/features/data-import/pairing.md
+     * "Already yours"): `profile` = a result on the player's profile has the row's day, time and kind on a puzzle of
+     * the same piece count; `earlier_import` = a row with the same key in an import of the player made a result that
+     * still exists. The row's `state` is not touched - it is settled when the row is added ("Never twice").
+     */
+    #[Column(length: 16, nullable: true)]
+    public null|string $alreadyYoursHow = null;
+
+    /** The result the hint is about - a plain id, the result may go */
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $alreadyYoursSolvingTimeId = null;
 
     public function __construct(
         #[Id]

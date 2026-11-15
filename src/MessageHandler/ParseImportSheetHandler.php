@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\BeginImportSheetParse;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\LinkEqualImportRows;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\RecordEqualImportRows;
@@ -32,8 +33,9 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  * read, parsed in memory (ImportRowParser - pure) and written by RecordParsedImportRows in one short transaction;
  * memory does not grow with the sheet. Every write is checked against the sheet's current mapping version under the
  * import's lock, on fresh state: a job of an older version stops at its next batch and has overwritten nothing a
- * newer one wrote. RecordImportSheetParsed ends it - the counts, the sheet's equal rows numbered and linked - and
- * LinkEqualImportRows links what is the same on two sheets.
+ * newer one wrote. RecordImportSheetParsed ends it - the counts, the sheet's equal rows numbered and linked -
+ * LinkEqualImportRows links what is the same on two sheets, and BuildImportPuzzles (queued) builds and pairs the
+ * import's distinct puzzles.
  *
  * A sheet that still has a question is not parsed. Nothing is thrown on (the queue has no retries): a failure is
  * ours, logged as an error - the sheet stays "not parsed for this version".
@@ -119,6 +121,9 @@ readonly final class ParseImportSheetHandler
 
             if ($this->ask(new RecordImportSheetParsed($message->importId, $message->sheetId, $message->mappingVersion, $understood, $needLook, $leftOut, $waiting)) === true) {
                 $this->messageBus->dispatch(new LinkEqualImportRows($message->importId));
+                // The import's distinct puzzles, from the rows as they are parsed now - and their pairing with the
+                // catalogue (docs/features/data-import/pairing.md). On the queue: a job of its own
+                $this->messageBus->dispatch(new BuildImportPuzzles($message->importId));
             }
         } catch (\Throwable $e) {
             $this->logger->error('Parsing a sheet of an import failed on our side', [

@@ -136,6 +136,32 @@ class DataImport
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $cellsWipedAt = null;
 
+    /**
+     * Raised every time the import's puzzles are built again (BuildImportPuzzles): the similar-name search carries its
+     * number, so a search of an older run stops (docs/features/data-import/pairing.md "The flow").
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $pairingRun = 0;
+
+    /**
+     * When the pairing last came to rest: every puzzle has its tier. Null while it runs, or before the first run.
+     * The import stays `setting_up` - a mapping can still change, and then the pairing runs again.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $pairedAt = null;
+
+    /**
+     * "Where the rules end" - numbers only (ImportPairingCounters): puzzles per tier as the rules left them, and how
+     * often the player decided otherwise.
+     *
+     * @var null|array<mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $pairingCounters = null;
+
     private function __construct(
         #[Id]
         #[Immutable]
@@ -368,6 +394,74 @@ class DataImport
      */
     public function workedOn(DateTimeImmutable $now): void
     {
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * The import's puzzles are built and paired again.
+     *
+     * @return int the run's number
+     */
+    public function pairingStarted(DateTimeImmutable $now): int
+    {
+        $this->pairingRun++;
+        $this->pairedAt = null;
+        $this->lastActivityAt = $now;
+
+        return $this->pairingRun;
+    }
+
+    public function isPairingRun(int $run): bool
+    {
+        return $this->pairingRun === $run && $this->isBeingSetUp();
+    }
+
+    /**
+     * @param array<string, mixed> $counters ImportPairingCounters::toArray()
+     */
+    public function pairingCounted(array $counters): void
+    {
+        $this->pairingCounters = $counters;
+    }
+
+    /**
+     * A decision of the player moved counters (DecideImportPuzzlesHandler).
+     *
+     * @param array<string, int> $moved by counter - `remembered` or `player.<name>` - how much up or down
+     */
+    public function pairingCountersMoved(array $moved): void
+    {
+        $counters = $this->pairingCounters ?? [];
+
+        foreach ($moved as $counter => $by) {
+            if ($by === 0) {
+                continue;
+            }
+
+            if ($counter === 'remembered') {
+                $counters['remembered'] = max(0, (is_int($counters['remembered'] ?? null) ? $counters['remembered'] : 0) + $by);
+
+                continue;
+            }
+
+            $name = substr($counter, strlen('player.'));
+            $player = is_array($counters['player'] ?? null) ? $counters['player'] : [];
+            $player[$name] = max(0, (is_int($player[$name] ?? null) ? $player[$name] : 0) + $by);
+            $counters['player'] = $player;
+        }
+
+        $this->pairingCounters = $counters;
+    }
+
+    /**
+     * Every puzzle of the run has its tier.
+     *
+     * @param array<string, mixed> $counters ImportPairingCounters::toArray()
+     */
+    public function paired(array $counters, DateTimeImmutable $now): void
+    {
+        $this->pairingCounters = $counters;
+        $this->pairedAt = $now;
         $this->lastActivityAt = $now;
     }
 

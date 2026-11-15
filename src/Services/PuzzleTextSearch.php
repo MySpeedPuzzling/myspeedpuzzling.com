@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleSearchQuery;
+use SpeedPuzzling\Web\Value\SearchText;
 
 /**
  * The one SQL fragment of the puzzle text search (docs/features/puzzle-names/README.md, "Search"): what a typed
@@ -105,6 +106,104 @@ readonly final class PuzzleTextSearch
         }
 
         return "({$alias}.search_codes LIKE :ptsEanLineEnd AND strpos({$alias}.search_codes, :ptsEanLine) > 0)";
+    }
+
+    /**
+     * **Batch lookups** - many texts against the keys in one statement, each text a column of a joined row instead of
+     * a bound parameter (the data import's pairing, docs/features/data-import/pairing.md). The patterns are the typed
+     * search's own (PuzzleSearchQuery), so a batch and a typed search agree on what "the same name" and "the same
+     * code" are; whether a puzzle may be shown at all (hidden, secret) is the caller's condition.
+     *
+     * The pattern of "a name of the puzzle is exactly this text" - null for a text that folds to nothing.
+     */
+    public static function wholeNamePattern(string $name): null|string
+    {
+        return PuzzleSearchQuery::fromUserInput($name)->namesWhole;
+    }
+
+    /**
+     * `$patternExpression` is an SQL expression holding a wholeNamePattern().
+     */
+    public static function batchWholeNameCondition(string $alias, string $patternExpression): string
+    {
+        return "{$alias}.search_names LIKE {$patternExpression}";
+    }
+
+    /**
+     * The two texts of the exact barcode lookup (barcodeCondition()) for one number - null when it is no number.
+     *
+     * @return null|array{lineEnd: string, line: string}
+     */
+    public static function barcodePatterns(string $number): null|array
+    {
+        $query = PuzzleSearchQuery::fromUserInput($number);
+
+        return $query->eanLine === null || $query->eanLineEnd === null ? null : ['lineEnd' => $query->eanLineEnd, 'line' => $query->eanLine];
+    }
+
+    /**
+     * barcodeCondition() with the two texts of barcodePatterns() as SQL expressions.
+     */
+    public static function batchBarcodeCondition(string $alias, string $lineEndExpression, string $lineExpression): string
+    {
+        return "({$alias}.search_codes LIKE {$lineEndExpression} AND strpos({$alias}.search_codes, {$lineExpression}) > 0)";
+    }
+
+    /**
+     * The pattern of "a brand code of the puzzle is exactly this" - with or without the EAN's check digit, since the
+     * key holds both (BrandCodeCheckDigit). Null for a text without a letter or digit.
+     */
+    public static function brandCodePattern(string $code): null|string
+    {
+        return PuzzleSearchQuery::fromUserInput($code)->codeExact;
+    }
+
+    /**
+     * `$patternExpression` is an SQL expression holding a brandCodePattern().
+     */
+    public static function batchBrandCodeCondition(string $alias, string $patternExpression): string
+    {
+        return "{$alias}.search_codes LIKE {$patternExpression}";
+    }
+
+    /**
+     * A text as the similar-name lookup compares it: the search's fold. '' when nothing is left.
+     */
+    public static function foldedName(string $name): string
+    {
+        return SearchText::fold($name);
+    }
+
+    /**
+     * The index part of "a name of the puzzle is similar to this text": the folded text is similar to some stretch
+     * of the names key (pg_trgm's word similarity, served by custom_puzzle_search_names_trgm). The stretch need not
+     * be one name - nameSimilarity() is the measure, this only narrows the rows. The threshold is the session's
+     * `pg_trgm.word_similarity_threshold`: set it with similarNameThresholdStatement() in the same transaction.
+     *
+     * `$foldedExpression` is an SQL expression holding a foldedName().
+     */
+    public static function batchSimilarNameCondition(string $alias, string $foldedExpression): string
+    {
+        return "{$foldedExpression} <% {$alias}.search_names";
+    }
+
+    /**
+     * How similar the puzzle's most similar name is to the text (0 - 1, pg_trgm's similarity of two whole texts):
+     * every line of the names key is compared on its own, so a puzzle's other names neither help nor dilute.
+     */
+    public static function nameSimilarity(string $alias, string $foldedExpression): string
+    {
+        return "(SELECT MAX(similarity(pts_name_line, {$foldedExpression}))"
+            . " FROM unnest(string_to_array(btrim({$alias}.search_names, E'\\n'), E'\\n')) AS pts_name_line)";
+    }
+
+    /**
+     * Sets the threshold batchSimilarNameCondition() reads, for the running transaction only. Lower than the
+     * similarity asked of a name: the stretch the index finds is measured a little differently than a whole name.
+     */
+    public static function similarNameThresholdStatement(float $similarity): string
+    {
+        return sprintf("SELECT set_config('pg_trgm.word_similarity_threshold', '%.2F', true)", max(0.1, $similarity - 0.1));
     }
 
     /**

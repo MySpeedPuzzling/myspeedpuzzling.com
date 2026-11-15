@@ -9,6 +9,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
+use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
@@ -19,6 +21,7 @@ use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\Services\DataImport\ImportPairingScenario;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
@@ -37,6 +40,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 final class ImportColumnsScreenTest extends WebTestCase
 {
     use QueryCountAssertions;
+    use ImportPairingScenario;
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -90,6 +94,44 @@ final class ImportColumnsScreenTest extends WebTestCase
         self::assertSame('Rows ready: 9 · Need a look: 1 · Waiting for your answer: 2 · Sheets left out: 1', self::spaced($detail->filter('[data-testid="import-summary"]')->text()));
         self::assertSame('/en/import/' . $importId . '/columns', $detail->filter('[data-testid="import-open-columns"]')->attr('href'));
         self::assertStringContainsString('arrive soon', $detail->filter('[data-testid="import-soon"]')->text());
+    }
+
+    public function testTheImportsPageSaysWhereThePairingOfItsPuzzlesStands(): void
+    {
+        $importId = $this->imported();
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        // Nothing is said before the import's puzzles are built
+        self::assertCount(0, $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="import-pairing-summary"]'));
+
+        // The worker's next jobs: the puzzles of the parsed rows, paired with the catalogue (docs/features/data-import/pairing.md)
+        $this->pair($importId);
+
+        // Four puzzles on the list, named by five result rows and owned four times - none of them a catalogue puzzle
+        self::assertSame(
+            [['name' => 'Circle of Kites', 'brand_text' => 'Ravensburger', 'pieces_count' => 500, 'tier' => 'none', 'choice' => 'undecided']],
+            $this->database->fetchAllAssociative("SELECT name, brand_text, pieces_count, tier, choice FROM data_import_puzzle WHERE import_id = :id AND name = 'Circle of Kites'", ['id' => $importId]),
+        );
+        $puzzles = $this->pairingCount('SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id', ['id' => $importId]);
+        self::assertGreaterThanOrEqual(4, $puzzles);
+        // Every row that is a puzzle names its puzzle, no other row does
+        self::assertSame(0, $this->pairingCount(
+            "SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND (import_puzzle_id IS NULL) = (puzzle_key IS NOT NULL AND kind <> 'not_a_puzzle' AND state <> 'left_out')",
+            ['id' => $importId],
+        ));
+        self::assertNotNull($this->database->fetchOne('SELECT paired_at FROM data_import WHERE id = :id', ['id' => $importId]));
+        self::assertSame('setting_up', $this->database->fetchOne('SELECT status FROM data_import WHERE id = :id', ['id' => $importId]));
+
+        $detail = $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Different puzzles in your file: ' . $puzzles, self::spaced($detail->filter('[data-testid="import-pairing-puzzles"]')->text()));
+        self::assertSame('Found in the database: 0 · Probably: 0 · To choose: 0 · Not found: ' . $puzzles, self::spaced($detail->filter('[data-testid="import-pairing-counts"]')->text()));
+        self::assertCount(0, $detail->filter('[data-testid="import-pairing-searching"]'));
+
+        // Somebody else's import says nothing to anybody else
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testASheetShowsItsQuestionWithTheSheetsOwnExamplesReadEachWay(): void
@@ -611,11 +653,17 @@ final class ImportColumnsScreenTest extends WebTestCase
     }
 
     /**
+     * What waits on the queue - without the pairing's own messages (BuildImportPuzzles after every parse, and the
+     * search it asks for): those are ImportPuzzleMatcherTest's, and the worker of this test lets them go.
+     *
      * @return list<object>
      */
     private function queued(): array
     {
-        return array_values(array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()));
+        return array_values(array_filter(
+            array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()),
+            static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false,
+        ));
     }
 
     private function queue(): InMemoryTransport

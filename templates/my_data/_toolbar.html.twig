@@ -1,7 +1,8 @@
 {#
     Search, filters and the sort of "My data" - one GET form, so the address carries the state. The piece-count chips
     are links (PiecesRange's quick picks); a chosen one travels with the form as a hidden input. The direction of the
-    sort is a link beside the select (and the wide table's headers).
+    sort is a link beside the select (and the wide table's headers). On a phone only the search is in sight; the rest
+    is behind "Filters".
 #}
 {% set pieces_param = criteria.pieces is not null ? criteria.pieces.toParam : '' %}
 <form method="get" action="{{ path('my_data') }}" class="my-data-toolbar mb-2" data-testid="my-data-filters" data-turbo-action="advance">
@@ -9,10 +10,25 @@
     {% if pieces_param != '' %}<input type="hidden" name="pieces" value="{{ pieces_param }}">{% endif %}
 
     <div class="row g-2 align-items-end">
-        <div class="col-12 col-md-5 col-lg-4">
+        <div class="col-12 col-lg-4">
             <label class="form-label fs-sm mb-1" for="my-data-q">{{ 'my_data.filter.search_label'|trans }}</label>
             <input type="search" class="form-control" id="my-data-q" name="q" maxlength="100" value="{{ criteria.search }}" placeholder="{{ 'my_data.filter.search_placeholder'|trans }}" autocomplete="off">
         </div>
+    </div>
+
+    {#
+        Below 992 px everything but the search folds behind one "Filters" disclosure, so the rows start on the first
+        screen; open by itself while a filter is on. From 992 px it is always open and has no summary (CSS,
+        `::details-content` - a browser without it keeps the disclosure, still usable).
+    #}
+    {% set active_filters = criteria.activeFilterCount %}
+    <details class="my-data-more mt-2" data-testid="my-data-more" {{ active_filters > 0 ? 'open' }}>
+        <summary class="btn btn-outline-secondary btn-sm my-data-tap align-items-center">
+            <i class="bi bi-funnel me-1" aria-hidden="true"></i>{{ 'my_data.filter.more'|trans }}
+            {% if active_filters > 0 %}<span class="badge bg-primary ms-2" data-testid="my-data-active-filters">{{ active_filters }}</span>{% endif %}
+        </summary>
+
+    <div class="row g-2 align-items-end my-data-more-first">
 
         {% if tab == 'results' %}
             <div class="col-6 col-md-3 col-lg-2">
@@ -101,4 +117,5 @@
             <button type="submit" class="btn btn-primary btn-sm my-data-tap px-3">{{ 'my_data.filter.submit'|trans }}</button>
         </div>
     </div>
+    </details>
 </form>

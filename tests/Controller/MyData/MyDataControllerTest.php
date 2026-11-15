@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\MyData;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Message\AllowPrivateProfileViewer;
 use SpeedPuzzling\Web\Message\ArchiveCustomField;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\CustomFieldsScenario;
@@ -34,6 +35,7 @@ final class MyDataControllerTest extends WebTestCase
     private const string ME_USER = PlayerFixture::PLAYER_REGULAR_USER_ID;
     private const string PARTNER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string COLLECTOR = PlayerFixture::PLAYER_WITH_STRIPE;
+    private const array SAME_ORIGIN = ['HTTP_ORIGIN' => 'http://localhost'];
 
     /**
      * Every result the player tracked or is a registered member of - written another way than the page's query (the
@@ -359,10 +361,12 @@ final class MyDataControllerTest extends WebTestCase
 
         self::assertSame(['brand', 'pieces', 'time', 'date', 'group', 'first_try', 'comment', 'photo', 'source', 'ppm', 'f:' . $notes], $offered);
 
-        // A wrong token saves nothing
-        $browser->request('POST', '/en/my-data/columns', ['_token' => 'nope', 'state' => $state, 'columns' => $offered, 'shown' => ['time']]);
-        self::assertResponseRedirects();
-        self::assertNull($this->storedColumns(self::ME));
+        // The form is stateless (config/packages/csrf.php): a post from another site saves nothing
+        foreach ([['HTTP_REFERER' => 'https://evil.example/page'], ['HTTP_ORIGIN' => 'https://evil.example', 'HTTP_REFERER' => 'https://evil.example/']] as $server) {
+            $browser->request('POST', '/en/my-data/columns', ['_token' => $token, 'state' => $state, 'columns' => $offered, 'shown' => ['time']], [], $server);
+            self::assertResponseRedirects();
+            self::assertNull($this->storedColumns(self::ME));
+        }
 
         $browser->request('POST', '/en/my-data/columns', [
             '_token' => $token,
@@ -370,7 +374,7 @@ final class MyDataControllerTest extends WebTestCase
             // What the chooser offered, and things it never did
             'columns' => [...$offered, 'collection', 'password', 'f:not-a-field', '<script>', ''],
             'shown' => ['time', 'date', 'ppm', 'f:' . $notes, 'email'],
-        ]);
+        ], [], self::SAME_ORIGIN);
 
         self::assertResponseRedirects('/en/my-data?sort=time');
         self::assertSame(['results' => ['brand', 'pieces', 'group', 'first_try', 'comment', 'photo', 'source']], $this->storedColumns(self::ME));
@@ -384,12 +388,127 @@ final class MyDataControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/my-data?tab=puzzles');
         self::assertCount(1, $crawler->filter('[data-testid="my-data-table"] th[data-column="collection"]'));
 
-        $browser->request('POST', '/en/my-data/columns', ['_token' => $token, 'state' => 'tab=puzzles', 'columns' => ['brand', 'lent'], 'shown' => ['brand']]);
+        $browser->request('POST', '/en/my-data/columns', ['_token' => $token, 'state' => 'tab=puzzles', 'columns' => ['brand', 'lent'], 'shown' => ['brand']], [], self::SAME_ORIGIN);
         self::assertResponseRedirects('/en/my-data?tab=puzzles');
         self::assertEquals(['results' => ['brand', 'pieces', 'group', 'first_try', 'comment', 'photo', 'source'], 'puzzles' => ['lent']], $this->storedColumns(self::ME));
 
         // Nobody else's columns moved
         self::assertNull($this->storedColumns(self::PARTNER));
+    }
+
+    /**
+     * The choice of a field's column outlives the field being away: archived (not offered by the chooser), the
+     * chooser saved meanwhile - and the column is still switched off when the field is back.
+     */
+    public function testSavingTheChooserKeepsTheChoiceOfAFieldItDidNotOffer(): void
+    {
+        $browser = self::createClient();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::ME, 'Quokka ledger');
+        $other = $scenario->field(self::ME, 'Ocelot stars', CustomFieldType::Rating);
+        $scenario->result(self::ME_USER);
+        TestingLogin::asPlayer($browser, self::ME);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        $columns = ['brand', 'pieces', 'time', 'date', 'group', 'first_try', 'comment', 'photo', 'source', 'ppm'];
+        $browser->request('POST', '/en/my-data/columns', ['_token' => 'csrf-token', 'state' => '', 'columns' => [...$columns, 'f:' . $notes, 'f:' . $other], 'shown' => [...$columns, 'f:' . $other]], [], self::SAME_ORIGIN);
+        self::assertSame(['results' => ['f:' . $notes]], $this->storedColumns(self::ME));
+
+        $bus->dispatch(new ArchiveCustomField($notes, self::ME));
+        $scenario->forgetLoadedEntities();
+
+        $crawler = $browser->request('GET', '/en/my-data');
+        $offered = $crawler->filter('[data-testid="my-data-columns"] input[name="columns[]"]')->each(static fn (Crawler $input): string => (string) $input->attr('value'));
+        self::assertNotContains('f:' . $notes, $offered, 'an archived field is not offered');
+
+        // Saved without it: brand goes, the archived field's choice stays, a ticked column comes back
+        $browser->request('POST', '/en/my-data/columns', ['_token' => 'csrf-token', 'state' => '', 'columns' => $offered, 'shown' => array_values(array_diff($offered, ['brand']))], [], self::SAME_ORIGIN);
+        self::assertSame(['results' => ['brand', 'f:' . $notes]], $this->storedColumns(self::ME));
+
+        // The same when the fields could not be read at all and the form offered the built-in columns only
+        $browser->request('POST', '/en/my-data/columns', ['_token' => 'csrf-token', 'state' => '', 'columns' => $columns, 'shown' => $columns], [], self::SAME_ORIGIN);
+        self::assertSame(['results' => ['f:' . $notes]], $this->storedColumns(self::ME));
+
+        $bus->dispatch(new ArchiveCustomField($notes, self::ME, archived: false));
+        $scenario->forgetLoadedEntities();
+
+        $crawler = $browser->request('GET', '/en/my-data');
+        self::assertCount(0, $crawler->filter('[data-testid="my-data-table"] th[data-column="f:' . $notes . '"]'), 'back, and still switched off');
+        self::assertCount(1, $crawler->filter('[data-testid="my-data-table"] th[data-column="f:' . $other . '"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="my-data-columns"] input[name="shown[]"][value="f:' . $notes . '"][checked]'));
+    }
+
+    /**
+     * A teammate is named exactly as the player's own profile results name them: one with a private profile is
+     * "Hidden Puzzler" - unless they put this player on their allow list.
+     */
+    public function testATeammateWithAPrivateProfileIsNotNamedUnlessTheyLetThePlayerSeeThem(): void
+    {
+        $browser = self::createClient();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $timeId = $scenario->result(self::ME_USER, ['#player3', 'Guest Gwen']);
+        TestingLogin::asPlayer($browser, self::ME);
+        $with = static fn (Crawler $page): string => $page->filter('tr[data-row-id="' . $timeId . '"] [data-testid="my-data-with"]')->text();
+
+        self::assertSame('with ' . PlayerFixture::PLAYER_WITH_FAVORITES_NAME . ', Guest Gwen', $with($browser->request('GET', '/en/my-data')));
+
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => self::PARTNER]);
+
+        $crawler = $browser->request('GET', '/en/my-data');
+        self::assertSame('with Hidden Puzzler, Guest Gwen', $with($crawler));
+        self::assertStringContainsString('Hidden Puzzler, Guest Gwen', $crawler->filter('[data-testid="my-data-item"][data-row-id="' . $timeId . '"]')->text());
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $crawler->filter('[data-testid="my-data"]')->text(), 'the name is nowhere in the table or the list');
+        // The result itself stays the player's own row
+        self::assertContains($timeId, $this->rowIds($crawler));
+
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AllowPrivateProfileViewer(self::PARTNER, self::ME));
+        $scenario->forgetLoadedEntities();
+
+        self::assertSame('with ' . PlayerFixture::PLAYER_WITH_FAVORITES_NAME . ', Guest Gwen', $with($browser->request('GET', '/en/my-data')));
+    }
+
+    public function testTheYearFilterTakesEveryYearItOffers(): void
+    {
+        $browser = self::createClient();
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $old = $scenario->result(self::ME_USER);
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE puzzle_solving_time SET finished_at = '1985-07-01 10:00:00', tracked_at = '1985-07-01 10:00:00' WHERE id = :id", ['id' => $old]);
+        TestingLogin::asPlayer($browser, self::ME);
+
+        $crawler = $browser->request('GET', '/en/my-data');
+        $years = $crawler->filter('#my-data-year option')->each(static fn (Crawler $option): string => (string) $option->attr('value'));
+
+        self::assertSame('1985', end($years));
+        self::assertSame([$old], $this->rowIds($browser->request('GET', '/en/my-data?year=1985')));
+
+        // A result dated before the years the filter takes: the select stops where the filter does
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE puzzle_solving_time SET finished_at = '1850-07-01 10:00:00', tracked_at = '1850-07-01 10:00:00' WHERE id = :id", ['id' => $old]);
+        $years = $browser->request('GET', '/en/my-data')->filter('#my-data-year option')->each(static fn (Crawler $option): string => (string) $option->attr('value'));
+
+        self::assertSame((string) MyDataCriteria::MIN_YEAR, end($years));
+    }
+
+    public function testOnAPhoneOnlyTheSearchIsInSightAndTheFiltersFoldBehindOneDisclosure(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::ME);
+
+        $crawler = $browser->request('GET', '/en/my-data?q=moon&sort=time');
+        $more = $crawler->filter('[data-testid="my-data-filters"] details[data-testid="my-data-more"]');
+
+        self::assertCount(1, $more);
+        self::assertNull($more->attr('open'), 'a search and a sort are no filters - folded');
+        self::assertCount(0, $crawler->filter('[data-testid="my-data-active-filters"]'));
+        self::assertCount(0, $more->filter('#my-data-q'), 'the search is outside the disclosure');
+        self::assertCount(1, $crawler->filter('[data-testid="my-data-filters"] #my-data-q'));
+
+        foreach (['#my-data-type', '#my-data-year', '#my-data-sort', '[data-testid="my-data-pieces"]', '#my-data-first', 'button[type="submit"]'] as $inside) {
+            self::assertCount(1, $more->filter($inside), $inside);
+        }
+
+        $crawler = $browser->request('GET', '/en/my-data?type=solo&first=1&pieces=500');
+        self::assertNotNull($crawler->filter('details[data-testid="my-data-more"]')->attr('open'));
+        self::assertSame('3', trim($crawler->filter('[data-testid="my-data-active-filters"]')->text()));
     }
 
     public function testThePuzzlesOfTheCollectionsWithTheOwnersFieldsAndTheWishList(): void

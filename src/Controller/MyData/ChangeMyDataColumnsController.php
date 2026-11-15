@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The column chooser of "My data" (docs/features/my-data.md): which columns of one tab the signed-in player sees,
  * remembered on their player. The form posts every column the chooser offered (`columns[]`) and the ticked ones
- * (`shown[]`); the rest is hidden. Always answers with a redirect back to the table in the state it was in (`state`
+ * (`shown[]`); the rest of what it offered is hidden, a hidden column it did not offer stays hidden. Always answers with a redirect back to the table in the state it was in (`state`
  * is the table's own query string, read through MyDataCriteria - never an address).
  */
 final class ChangeMyDataColumnsController extends AbstractController
@@ -59,7 +59,8 @@ final class ChangeMyDataColumnsController extends AbstractController
         $this->messageBus->dispatch(new ChangeMyDataColumns(
             playerId: $player->playerId,
             tab: $criteria->tab,
-            hiddenColumns: array_values(array_diff($offered, $shown)),
+            offeredColumns: array_values($offered),
+            shownColumns: array_values($shown),
         ));
 
         return $this->redirectToRoute('my_data', $criteria->query(['page' => $criteria->page > 1 ? $criteria->page : null]), Response::HTTP_SEE_OTHER);

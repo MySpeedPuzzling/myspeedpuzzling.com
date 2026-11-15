@@ -20,7 +20,7 @@ use SpeedPuzzling\Web\Entity\Collection;
  * - `dir` = `asc` | `desc` (default: the newest first for `date` / `added`, ascending for the others)
  * - `pieces` = PiecesRange's grammar (`N` | `A-B` | `A-` | `-B`)
  * - `page` = 1…
- * - results only: `type` = `solo` | `duo` | `team`, `year` = 1990…2100, `first=1` (first tries only), `imported=1`
+ * - results only: `type` = `solo` | `duo` | `team`, `year` = 1900…2100, `first=1` (first tries only), `imported=1`
  *   (from the player's spreadsheets only), `comment=1`, `photo=1`
  * - puzzles only: `collection` = a collection's uuid | `main` (the main collection), `comment=1`
  */
@@ -30,6 +30,9 @@ readonly final class MyDataCriteria
     public const int MAX_SEARCH_LENGTH = 100;
     public const int MAX_PAGE = 100_000;
     public const string MAIN_COLLECTION = 'main';
+    // The one rule of the year filter: what the address takes and what the select offers
+    public const int MIN_YEAR = 1900;
+    public const int MAX_YEAR = 2100;
     public const array SOLVING_TYPES = ['solo', 'duo', 'team'];
 
     private function __construct(
@@ -101,7 +104,7 @@ readonly final class MyDataCriteria
             descending: $descending,
             pieces: PiecesRange::parse(self::text($query, 'pieces')),
             solvingType: $isResults && in_array($solvingType, self::SOLVING_TYPES, true) ? $solvingType : null,
-            year: $isResults && $year !== null && $year >= 1990 && $year <= 2100 ? $year : null,
+            year: $isResults && $year !== null && $year >= self::MIN_YEAR && $year <= self::MAX_YEAR ? $year : null,
             firstTryOnly: $isResults && self::flag($query, 'first'),
             importedOnly: $isResults && self::flag($query, 'imported'),
             withComment: ($isResults || $isPuzzles) && self::flag($query, 'comment'),
@@ -138,6 +141,14 @@ readonly final class MyDataCriteria
     public function hasFilters(): bool
     {
         return $this->query(['tab' => null, 'sort' => null, 'dir' => null, 'page' => null]) !== [];
+    }
+
+    /**
+     * How many filters narrow the rows - the search (it has its own field), the sort and the page are none.
+     */
+    public function activeFilterCount(): int
+    {
+        return count($this->query(['tab' => null, 'q' => null, 'sort' => null, 'dir' => null, 'page' => null]));
     }
 
     public function collectionParam(): null|string

@@ -32,6 +32,33 @@
         }
     }
 
+    // Phone: the filters fold behind "Filters" so the rows start on the first screen
+    .my-data-more > summary {
+        display: inline-flex;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .my-data-more[open] > summary {
+        margin-bottom: .5rem;
+    }
+
+    // Wide: always open, no summary. A browser without ::details-content keeps the disclosure - still usable
+    @media (min-width: 992px) {
+        @supports selector(::details-content) {
+            .my-data-more::details-content {
+                content-visibility: visible;
+            }
+
+            .my-data-more > summary {
+                display: none;
+            }
+        }
+    }
+
     .my-data-puzzle {
         min-width: 16rem;
         max-width: 24rem;

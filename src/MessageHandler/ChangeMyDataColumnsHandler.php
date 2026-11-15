@@ -26,7 +26,7 @@ readonly final class ChangeMyDataColumnsHandler
         $player = $this->playerRepository->get($message->playerId);
 
         $player->changeMyDataColumns(
-            MyDataColumns::fromStored($player->myDataColumns)->withHidden($message->tab, $message->hiddenColumns),
+            MyDataColumns::fromStored($player->myDataColumns)->withChoice($message->tab, $message->offeredColumns, $message->shownColumns),
         );
     }
 }

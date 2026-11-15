@@ -28,8 +28,10 @@ readonly final class MyDataResultRow
         public null|string $comment,
         public string $solvingType,
         public int $puzzlersCount,
-        // The other people of a pair/team result, "Anna, Ben"
-        public null|string $withWhom,
+        // The other people of a pair/team result, in their order; `name` null = hidden from this player (a private
+        // profile they are not let into) - worded by the template like everywhere else
+        /** @var list<array{name: null|string, hidden: bool}> */
+        public array $coPuzzlers,
         public null|string $teamName,
         public null|SolvingTimeSource $source,
         public bool $suspicious,
@@ -43,6 +45,30 @@ readonly final class MyDataResultRow
         }
 
         return new SolvingTime($this->seconds)->calculatePpm($this->puzzle->piecesCount, $this->puzzlersCount);
+    }
+
+    /**
+     * @return list<array{name: null|string, hidden: bool}>
+     */
+    private static function coPuzzlers(null|string $json): array
+    {
+        $decoded = $json !== null ? json_decode($json, true) : null;
+        $people = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $person) {
+            if (is_array($person) === false) {
+                continue;
+            }
+
+            $hidden = ($person['hidden'] ?? false) === true;
+            $name = is_string($person['name'] ?? null) ? $person['name'] : null;
+
+            if ($hidden || $name !== null) {
+                $people[] = ['name' => $hidden ? null : $name, 'hidden' => $hidden];
+            }
+        }
+
+        return $people;
     }
 
     /**
@@ -63,7 +89,7 @@ readonly final class MyDataResultRow
          *     comment: null|string,
          *     puzzling_type: string,
          *     puzzlers_count: int,
-         *     with_whom: null|string,
+         *     co_puzzlers: null|string,
          *     team_name: null|string,
          *     created_via: null|string,
          *     suspicious: bool,
@@ -82,7 +108,7 @@ readonly final class MyDataResultRow
             comment: $row['comment'] !== null && trim($row['comment']) !== '' ? $row['comment'] : null,
             solvingType: $row['puzzling_type'],
             puzzlersCount: $row['puzzlers_count'],
-            withWhom: $row['with_whom'],
+            coPuzzlers: self::coPuzzlers($row['co_puzzlers']),
             teamName: $row['team_name'],
             source: SolvingTimeSource::tryFrom($row['created_via'] ?? ''),
             suspicious: $row['suspicious'],

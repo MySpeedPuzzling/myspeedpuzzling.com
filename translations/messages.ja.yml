@@ -12699,6 +12699,7 @@ my_data:
         imported: "インポートしたもののみ"
         comment: "コメントあり"
         photo: "写真あり"
+        more: "フィルター"
         submit: "表示"
         clear: "フィルターを解除"
     dir:

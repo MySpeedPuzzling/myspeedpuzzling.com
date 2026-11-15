@@ -15,6 +15,9 @@
     {% endif %}
 {% endmacro %}
 
+{# "Anna, Hidden Puzzler" - a teammate hidden from this player is worded like on the profile, never named #}
+{% set hidden_name = 'secret_puzzler_name'|trans %}
+
 {% set sorts = {brand: 'brand', pieces: 'pieces', time: 'time', date: 'date'} %}
 
 <div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table">
@@ -66,7 +69,7 @@
                                 <td data-column="group">
                                     {{ ('my_data.type.' ~ row.solvingType)|trans }}
                                     {%- if row.teamName is not null %} · {{ row.teamName }}{% endif -%}
-                                    {%- if row.withWhom is not null %}<span class="d-block fs-xs text-muted">{{ 'my_data.cell.with'|trans({'%names%': row.withWhom}) }}</span>{% endif -%}
+                                    {%- if row.coPuzzlers is not empty %}<span class="d-block fs-xs text-muted" data-testid="my-data-with">{{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'first_try' %}
                                 <td data-column="first_try" class="text-center">{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
@@ -99,7 +102,7 @@
                     <span class="d-block fs-xs text-muted text-truncate">
                         {%- if row.puzzle.brandName is not null %}{{ row.puzzle.brandName }} · {% endif -%}
                         {{ row.puzzle.piecesCount|format_number }}
-                        {%- if row.solvingType != 'solo' %} · {{ ('my_data.type.' ~ row.solvingType)|trans }}{% if row.withWhom is not null %} {{ 'my_data.cell.with'|trans({'%names%': row.withWhom}) }}{% endif %}{% endif -%}
+                        {%- if row.solvingType != 'solo' %} · {{ ('my_data.type.' ~ row.solvingType)|trans }}{% if row.coPuzzlers is not empty %} {{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}{% endif %}{% endif -%}
                         {%- if row.firstAttempt %} · {{ 'my_data.column.first_try'|trans }}{% endif -%}
                         {%- if row.source is not null and row.source.value == 'spreadsheet_import' %} · {{ 'my_data.source.spreadsheet_import'|trans }}{% endif -%}
                     </span>

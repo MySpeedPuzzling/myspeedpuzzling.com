@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\Export\ExportablePuzzle;
 use SpeedPuzzling\Web\Results\MyData\MyDataPage;
 use SpeedPuzzling\Web\Results\MyData\MyDataResultRow;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\MyDataCriteria;
 use SpeedPuzzling\Web\Value\MyDataSort;
@@ -27,6 +28,10 @@ use SpeedPuzzling\Web\Value\SolvingTimeSource;
  * - A result without a tracker (an organiser's sheet, nobody's yet) has no member, so it is never anybody's row; a
  *   claimed one is read through the membership like every pair/team result.
  * - No event is shown or joined: a series pick needs nothing here.
+ * - The people of a pair/team result are named as the player's own profile results name them: a teammate with a
+ *   private profile is masked (PrivateProfileAccess - named only when this player is on their allow list); a teammate
+ *   the player blocks stays on the row, because the player took part (HiddenPlayers::sqlExcludeTeam keeps the viewer's
+ *   own history whole) - so no result is left out here either.
  * - The date is `finished_at` with its precision, `tracked_at` (always a day) for a result without one.
  *
  * One statement per page whatever the number of results; filtered, sorted and paged in SQL.
@@ -36,6 +41,7 @@ readonly final class GetMyDataResults
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private PrivateProfileAccess $privateProfileAccess,
         private string $uploadedAssetsBaseUrl,
     ) {
     }
@@ -179,6 +185,9 @@ SQL;
 
         $mine = self::MINE;
         $puzzleColumns = ExportablePuzzle::SQL_COLUMNS;
+        // A teammate with a private profile is shown as on the player's own profile results: not by name, unless
+        // they let this player see them (the allow list). Their name never leaves the database then
+        $otherIsPrivate = $this->privateProfileAccess->sqlIsPrivate('other');
         $limit = MyDataCriteria::PAGE_SIZE;
         $offset = $criteria->offset();
 
@@ -198,20 +207,22 @@ SELECT
     pst.created_via,
     pst.suspicious,
     (
-        SELECT string_agg(
-            COALESCE(
-                other.name,
-                player_elem.player ->> 'player_name',
-                CASE WHEN other.code IS NOT NULL THEN '#' || UPPER(other.code) ELSE NULL END
-            ),
-            ', '
+        SELECT json_agg(
+            json_build_object(
+                'hidden', COALESCE({$otherIsPrivate}, false),
+                'name', CASE WHEN COALESCE({$otherIsPrivate}, false) THEN NULL ELSE COALESCE(
+                    other.name,
+                    player_elem.player ->> 'player_name',
+                    CASE WHEN other.code IS NOT NULL THEN '#' || UPPER(other.code) ELSE NULL END
+                ) END
+            )
             ORDER BY player_elem.ordinality
         )
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
         LEFT JOIN player other ON other.id = (player_elem.player ->> 'player_id')::UUID
         WHERE (player_elem.player ->> 'player_id') IS DISTINCT FROM :playerId
             AND COALESCE(other.name, player_elem.player ->> 'player_name', other.code) IS NOT NULL
-    ) AS with_whom,
+    ) AS co_puzzlers,
     (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
     {$puzzleColumns},
     COUNT(*) OVER () AS total

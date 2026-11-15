@@ -12709,6 +12709,7 @@ my_data:
         imported: "Nur importierte"
         comment: "Mit Kommentar"
         photo: "Mit Foto"
+        more: "Filter"
         submit: "Anzeigen"
         clear: "Filter zurücksetzen"
     dir:

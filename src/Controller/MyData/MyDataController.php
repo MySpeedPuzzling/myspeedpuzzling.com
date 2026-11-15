@@ -68,7 +68,10 @@ final class MyDataController extends AbstractController
 
             $parameters = [
                 'all_rows' => $facts['total'],
-                'years' => $facts['oldestYear'] !== null ? range($thisYear, min($thisYear, $facts['oldestYear'])) : [],
+                // The years the filter takes (MyDataCriteria) - never one it would silently drop
+                'years' => $facts['oldestYear'] !== null
+                    ? range($thisYear, max(MyDataCriteria::MIN_YEAR, min($thisYear, $facts['oldestYear'])))
+                    : [],
             ];
         } else {
             $facts = $this->getMyDataPuzzles->facts($player->playerId);

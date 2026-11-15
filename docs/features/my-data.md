@@ -35,7 +35,7 @@ anything but the page starts at the first page again.
 | `pieces` | `PiecesRange`'s grammar: `N` · `A-B` · `A-` · `-B` (the chips are `pieces_presets()`: "500" = 495-505) | - |
 | `page` | 1… (50 rows a page, `MyDataCriteria::PAGE_SIZE`); a page behind the last row shows the first page | 1 |
 | `type` (results) | `solo` · `duo` · `team` | - |
-| `year` (results) | 1990…2100 - the year of `COALESCE(finished_at, tracked_at)` | - |
+| `year` (results) | 1900…2100 (`MyDataCriteria::MIN_YEAR` / `MAX_YEAR` - the one rule: the select offers the years from the oldest result on, never one the address would drop) - the year of `COALESCE(finished_at, tracked_at)` | - |
 | `first=1` (results) | first tries only | - |
 | `imported=1` (results) | `created_via = spreadsheet_import` only | - |
 | `comment=1` (results, puzzles) | rows with a comment | - |
@@ -64,13 +64,19 @@ membership, like the profile and the export):
 | `brand`, `pieces` | brand, piece count | shown |
 | `time` | the time, "No time" for a relax result, the label "Needs verification" on a marked result (it is the player's own) | shown |
 | `date` | `result_date()` with the stored precision (`finished_at_precision`: "Mar 2021", "2021"); `tracked_at` for a result without a finish date | shown |
-| `group` | Solo / Pair / Team, the team's name, "with Anna, Ben" (the other people, guests included) | shown |
+| `group` | Solo / Pair / Team, the team's name, "with Anna, Ben" (the other people, guests included) - see "Teammates" | shown |
 | `first_try` | a tick | shown |
 | `comment` | the result's comment | shown |
 | `source` | how it was added: Typed in / Stopwatch / App / Event / Import (`created_via`; empty for results older than the column) | shown |
 | `photo` | a picture icon when the result has a photo | hidden |
 | `ppm` | pieces per minute per person (`SolvingTime::calculatePpm()`, like the website and the export) | hidden |
 | `f:<field id>` | every own field in use for results, in the player's order (below) | shown |
+
+**Teammates are named as the player's own profile results name them.** A teammate with a private profile is
+"Hidden Puzzler" (`secret_puzzler_name`, the profile's text) unless they put this player on their allow list
+(`PrivateProfileAccess::sqlIsPrivate()` - the name is not even selected then). A teammate the player blocks stays on
+the row, as on the profile: `HiddenPlayers::sqlExcludeTeam()` never drops a result the viewer took part in, so no own
+result is missing from the table. (The results export still names a private teammate - see "Loose ends".)
 
 **Puzzles** - one row per collection item (main collection and custom ones, private ones and those of a lapsed
 membership included): the puzzle (opens its page), `brand`, `pieces`, `collection`, `added`, `comment`, `solved`
@@ -106,7 +112,10 @@ shown. Stored as the **hidden** columns per tab in `player.my_data_columns` (jso
 `Value\MyDataColumns`): `{"results": ["photo", "ppm"], "puzzles": ["lent"]}`. Hidden, not shown, so a field the player
 adds later shows up by itself. A tab the player never chose anything on shows `MyDataTab::hiddenByDefault()`.
 
-The form posts what the chooser offered (`columns[]`) and what is ticked (`shown[]`); the rest is hidden. An id that
+The form posts what the chooser offered (`columns[]`) and what is ticked (`shown[]`); the rest of what it offered is
+hidden. **A hidden column the form did not offer stays hidden** (`MyDataColumns::withChoice()`): the choice of an
+archived field's column is still there when the field is unarchived, and a page whose own fields could not be read
+(fail open - only the built-in columns are offered) can not wipe the fields' choices by being saved. An id that
 is no built-in column of the tab and no `f:<uuid>` is dropped - by the handler and again when the column is read; at
 most 60 per tab. Stateless CSRF `my_data_columns`; always answers with a 303 back to the table in its state (`state`
 = the table's own query string, read through `MyDataCriteria` - never an address to go to).
@@ -119,8 +128,13 @@ Both are in the HTML; CSS shows one (`d-none d-lg-block` / `d-lg-none`), so no J
   name, a second line (brand · pieces · pair/team with whom · first try · "Import"), on the right the time with the
   date under it (puzzles: "Solved N× · best …" with the day it was added). When the row has own fields filled, a third
   small line names up to three of them ("Shelf: top"). A tap opens the existing result detail (in the modal frame) or
-  the puzzle's page. Search, filters, the sort select with the direction link and the pager (44 px buttons) are the
-  same form as on a wide screen, stacked.
+  the puzzle's page. **Only the tabs and the search field stand above the rows**: everything else of the form (Solved,
+  Year / Collection, the sort with its direction link, the piece chips, the checkboxes, "Show") is folded behind one
+  "Filters" disclosure (`<details class="my-data-more">`), open by itself while a filter is on and showing how many
+  are (`MyDataCriteria::activeFilterCount()` - the search, the sort and the page are no filters). Folded controls
+  still travel with the form, so a search keeps the filters.
+- **From 992 px the disclosure is always open and has no summary** (`::details-content`, like the footer's groups; a
+  browser without it keeps the "Filters" button - still usable).
 - **From 992 px - a real `<table>`** inside `.my-data-scroll`: it scrolls both ways inside its own box
   (`max-height: calc(100vh - 140px)`), so the header row stays in sight (`position: sticky`) and **the page body never
   scrolls sideways** whatever the number of columns. Sortable headers are links (`aria-sort` on the sorted one).
@@ -184,79 +198,19 @@ the player's index → 2,328 primary key lookups → top-N heapsort), search + y
 from a parallel scan of `puzzle` for a short search word), puzzles page 9.0 ms. Cold (first run after a restart):
 180 ms / 115 ms.
 
-### To be explained on production by the orchestrator before merge
+### On production
 
-With the heaviest account's id for `:playerId` (2,456 results at the time of the design) and a member of many
-pairs/teams as a second run.
+Explained on production before the merge (2026-11-15), the two main statements with the heaviest accounts:
 
-1. **Results page** (`GetMyDataResults::fetch()`), default state and the worst filter mix:
+| Statement | Execution |
+|---|---|
+| results page, newest first (`GetMyDataResults::fetch()`), the heaviest accounts | 13-18 ms |
+| results page with search + year + first tries, by time | 39 ms |
+| puzzles page (`GetMyDataPuzzles::fetch()`), the largest library | 8 ms |
 
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-WITH mine AS (
-    SELECT pst.id FROM puzzle_solving_time pst
-    WHERE pst.player_id = :playerId AND pst.puzzling_team_id IS NULL
-    UNION
-    SELECT pst.id FROM puzzling_team_member member
-    INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = member.team_id
-    WHERE member.player_id = :playerId
-)
-SELECT pst.id AS time_id, pst.seconds_to_solve, pst.finished_at, pst.finished_at_precision, pst.tracked_at,
-    pst.first_attempt, pst.finished_puzzle_photo IS NOT NULL AS has_photo, pst.comment, pst.puzzling_type,
-    pst.puzzlers_count, pst.created_via, pst.suspicious,
-    (SELECT string_agg(COALESCE(other.name, player_elem.player ->> 'player_name',
-            CASE WHEN other.code IS NOT NULL THEN '#' || UPPER(other.code) ELSE NULL END), ', ' ORDER BY player_elem.ordinality)
-        FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
-        LEFT JOIN player other ON other.id = (player_elem.player ->> 'player_id')::UUID
-        WHERE (player_elem.player ->> 'player_id') IS DISTINCT FROM :playerId
-            AND COALESCE(other.name, player_elem.player ->> 'player_name', other.code) IS NOT NULL) AS with_whom,
-    (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
-    p.id AS puzzle_id, p.name AS puzzle_name, p.name_language AS puzzle_name_language,
-    p.alternative_names AS puzzle_alternative_names, m.name AS puzzle_brand_name, p.pieces_count AS puzzle_pieces_count,
-    p.ean AS puzzle_ean, p.identification_number AS puzzle_identification_number,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > now()::timestamp THEN NULL ELSE p.image END AS puzzle_image,
-    COUNT(*) OVER () AS total
-FROM mine
-INNER JOIN puzzle_solving_time pst ON pst.id = mine.id
-INNER JOIN puzzle p ON p.id = pst.puzzle_id
-LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
--- run 1: no WHERE. Run 2 (search + year + first tries, by time, page 2):
--- WHERE (p.search_names LIKE '%cat%' OR m.name ILIKE '%cat%')
---     AND COALESCE(pst.finished_at, pst.tracked_at) >= '2025-01-01 00:00:00'
---     AND COALESCE(pst.finished_at, pst.tracked_at) < '2026-01-01 00:00:00'
---     AND pst.first_attempt = true
--- ORDER BY pst.seconds_to_solve ASC NULLS LAST, pst.id LIMIT 50 OFFSET 50
-ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC, pst.id
-LIMIT 50 OFFSET 0;
-```
-
-   (`'%cat%'` stands for `PuzzleTextSearch`'s `:ptsNamesContains`; a search of 5+ letters or digits adds its code
-   tests on `search_codes`.)
-
-2. **Puzzles page** (`GetMyDataPuzzles::fetch()`), with the id of the largest library (1,722 items at the time of
-   the export's design):
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-SELECT item.id AS item_id, item.added_at, item.collection_id, c.name AS collection_name, item.comment,
-    EXISTS (SELECT 1 FROM lent_puzzle lp WHERE lp.owner_player_id = :playerId AND lp.puzzle_id = item.puzzle_id) AS lent_out,
-    p.id AS puzzle_id, p.name AS puzzle_name, p.name_language AS puzzle_name_language,
-    p.alternative_names AS puzzle_alternative_names, m.name AS puzzle_brand_name, p.pieces_count AS puzzle_pieces_count,
-    p.ean AS puzzle_ean, p.identification_number AS puzzle_identification_number,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > now()::timestamp THEN NULL ELSE p.image END AS puzzle_image,
-    COUNT(*) OVER () AS total
-FROM collection_item item
-LEFT JOIN collection c ON c.id = item.collection_id
-INNER JOIN puzzle p ON p.id = item.puzzle_id
-LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
-WHERE item.player_id = :playerId
-ORDER BY item.added_at DESC, item.id
-LIMIT 50 OFFSET 0;
-```
-
-Expected: both narrowed by the player's index first, a top-N sort of that player's rows, no scan of
-`puzzle_solving_time` or `collection_item` as a whole. If the search run starts from `puzzle` on production too and
-is slow for a heavy account, the fix is `MATERIALIZED` on a CTE of the player's rows before the text condition.
+Both are narrowed by the player's index first, then a top-N sort of that player's rows - no scan of
+`puzzle_solving_time` or `collection_item` as a whole. The search run is fast enough as it is: the `mine` CTE needs no
+`MATERIALIZED`.
 
 ## Guards
 
@@ -264,7 +218,9 @@ is slow for a heavy account, the fix is `MATERIALIZED` on a CTE of the player's 
   signed-in player's rows whatever the address says; broken addresses; every filter against an independently written
   count (the snapshot's JSON instead of the membership rows); every sort both ways; paging (stable total, no row on
   two pages, the state in every link); own fields as columns, archived / other-place / the partner's fields absent;
-  date precision; the column chooser (persisted, validated, wrong token); puzzles + wish list; the statement budget.
+  date precision; a private teammate masked and named again from the allow list; the year filter takes every year it
+  offers; the column chooser (persisted, validated, a post from another site, the choice of a field it did not offer
+  kept); the phone's "Filters" disclosure; puzzles + wish list; the statement budget.
 - `tests/Value/MyDataCriteriaTest.php`: the grammar, the canonical address, `MyDataColumns`.
 - `CustomValuesCoverageTest`, `CustomValuesPrivacyCanaryTest` (pair partner, another player, the owner of a public
   collection), `BlocklistQueryCoverageTest` (own data; co-puzzlers of own results are bilateral history, like the
@@ -281,6 +237,13 @@ is slow for a heavy account, the fix is `MATERIALIZED` on a CTE of the player's 
   log and Undo.
 - Later (stage 7 / 8): the Unlisted tab, entry points from the profile's results, collection pages and the user menu,
   "Download what I see".
+
+## Loose ends
+
+- **The results export names a private teammate in clear** (`GetExportableSolvingTimes`: `team_members` takes the
+  live `player.name` without the private-profile rule) - the same question this page had, left alone here; to be
+  decided for the export on its own.
+- The entry points (profile results, collection pages, user menu) - stage 8.
 
 ## Left out of 2a on purpose
 

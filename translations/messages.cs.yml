@@ -12712,6 +12712,7 @@ my_data:
         imported: "Jen importované"
         comment: "S komentářem"
         photo: "S fotkou"
+        more: "Filtry"
         submit: "Zobrazit"
         clear: "Zrušit filtry"
     dir:

@@ -45,6 +45,7 @@ final class MyDataCriteriaTest extends TestCase
         yield 'unknown values' => [['tab' => 'all', 'sort' => 'price', 'dir' => 'up', 'type' => 'quartet', 'year' => '12', 'pieces' => 'lots', 'first' => 'yes', 'page' => '0'], []];
         yield 'arrays and numbers' => [['tab' => ['results'], 'q' => ['x'], 'sort' => 5, 'page' => ['2'], 'first' => 1], []];
         yield 'a year out of range' => [['year' => '1850'], []];
+        yield 'an old year' => [['year' => '1985'], ['year' => '1985']];
         yield 'a sort of another tab' => [['tab' => 'puzzles', 'sort' => 'time'], ['tab' => 'puzzles']];
         yield 'filters of the results mean nothing on the puzzles' => [
             ['tab' => 'puzzles', 'type' => 'duo', 'year' => '2024', 'first' => '1', 'imported' => '1', 'photo' => '1', 'comment' => '1', 'collection' => 'main', 'sort' => 'brand'],
@@ -135,6 +136,22 @@ final class MyDataCriteriaTest extends TestCase
         // The wish list has no own fields; nothing ticked off = an empty list, which is not "never chose"
         self::assertSame(['results' => ['brand', strtolower($field)], 'wishlist' => ['solved']], $chosen->withHidden(MyDataTab::WishList, ['solved', $field])->toStored());
         self::assertSame(['results' => []], $columns->withHidden(MyDataTab::Results, [])->toStored());
+    }
+
+    public function testTheChoosersFormKeepsAHiddenColumnItDidNotOffer(): void
+    {
+        $away = 'f:018d0008-0000-0000-0000-000000000001';
+        $here = 'f:018d0008-0000-0000-0000-000000000002';
+        $columns = MyDataColumns::fromStored(['results' => ['brand', $away]]);
+
+        // brand is offered and ticked again, time is offered and not ticked, the field that is away keeps its choice
+        self::assertSame(['results' => ['time', strtolower($here), $away]], $columns->withChoice(MyDataTab::Results, ['brand', 'time', 'f:' . strtoupper(substr($here, 2)), 'nope'], ['brand', 'x'])->toStored());
+        // Offered again and ticked: shown
+        self::assertSame(['results' => []], $columns->withChoice(MyDataTab::Results, ['brand', $away], ['brand', $away])->toStored());
+        // Never chose before: the defaults are what the form did not offer
+        self::assertSame(['results' => ['brand', 'photo', 'ppm']], MyDataColumns::fromStored(null)->withChoice(MyDataTab::Results, ['brand', 'time'], ['time'])->toStored());
+        self::assertSame(3, MyDataCriteria::fromUserInput(['q' => 'x', 'sort' => 'time', 'type' => 'solo', 'first' => '1', 'pieces' => '500', 'page' => '2'])->activeFilterCount());
+        self::assertSame(0, MyDataCriteria::fromUserInput(['q' => 'x', 'sort' => 'time', 'tab' => 'puzzles'])->activeFilterCount());
     }
 
     public function testWhatIsStoredIsReadAgainAndAnythingElseIsDropped(): void

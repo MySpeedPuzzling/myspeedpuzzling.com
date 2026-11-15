@@ -35,6 +35,7 @@ answers a redirect (never a 200, never a page).
 | `data_import_batch_progress` | `GET …/batches/{batchId}/progress` | JSON for the live line |
 | `data_import_added` | `GET …/added?batch=&page=` | the rows the import added |
 | `data_import_not_added` | `GET …/not-added?batch=&page=` | the rows that could not be added, with the reason |
+| `data_import_not_added_people` | `POST …/not-added/people` | one answer for all rows that say pair or team and name nobody |
 | `data_import_undo` | `GET …/undo?row=` / `?batch=` / nothing | the step before an Undo: what is removed, what is kept |
 | `data_import_undo_start` | `POST …/undo` | Undo → `UndoImportRows` |
 | `data_import_undo_progress` | `GET …/undos/{undoId}?row=` | one Undo: the live line, then what happened |
@@ -47,7 +48,8 @@ Ways in: the "Adding to your profile" card on the import's own page and on the P
 Code: `src/Controller/DataImport/{ImportAddReview,ImportAddTimes,ConfirmImportRows,StartImportAdd,ImportBatch,ImportBatchProgress,ImportAddedRows,ImportNotAddedRows,ImportUndoConfirm,StartImportUndo,ImportUndo,ImportUndoProgress,ForgetImportPairing}Controller.php`,
 `src/Query/GetImportAddScreen.php`, `src/Results/ImportAddSummary.php`, `ImportAddRow.php`,
 `src/Message/ConfirmImportRows.php` + handler, `DataImportRow::addAnyway()` / `countOnItsOwn()`,
-`DataImportRowRepository::equalRowsOf()`, templates `templates/data_import/add`, `add_times`, `batch`, `added_rows`,
+`DataImportRowRepository::equalRowsOf()` / `cataloguePuzzleIdsOf()` / `sqlReadyRows()`, `SettleImportRowsPeopleController`,
+`data_import_times_frame_controller.js`, templates `templates/data_import/add`, `add_times`, `batch`, `added_rows`,
 `not_added_rows`, `undo_confirm`, `undo`, `_ready_card`, `_not_ready`, `_add_row`, `_adding_live`,
 `assets/controllers/data_import_adding_controller.js`. No new styles: Bootstrap utilities only. No migration.
 
@@ -76,15 +78,17 @@ Below: **Not ready yet**, each line with where it is settled, and "Added so far 
 | Results without an exact day - "arrive with a later step, nothing is lost" | - (stage 6c) |
 | Results that wait for tomorrow (the daily guard of 2,000) | - |
 
-**The numbers** are `GetImportAddScreen::summary()` - one statement. "Ready" mirrors the engine's one statement that
-queues (`DataImportRowRepository::queueReadyRows()`, adding.md "Ready") and what a row would make mirrors
-`ImportRowAdder`, **for showing only**:
+**The numbers** are `GetImportAddScreen::summary()` - one statement that builds the ready set once and counts it in
+one pass. "Ready" **is the engine's own definition**: `DataImportRowRepository::sqlReadyRows()`, the CTEs the "Add"
+itself queues with - not a copy. What a ready row would make mirrors `ImportRowAdder`, **for showing only**:
 
 - a new result = a ready row with a result that is not the same result as another row (one result unless the
   player says otherwise) and that the pairing did not find on the profile (its hint, counted as the Puzzles summary
   counts it: the result exists, on the very puzzle);
 - a puzzle for the collection = not in the player's collection yet; a wish = not on the list, not owned, not solved;
-- a row that would make none of them is "already yours".
+  **several rows that own (or wish) the same puzzle make one item** - the first of them counts;
+- a row that would make none of them is "already yours";
+- **the daily guard is applied**: the numbers are what this "Add" takes; what waits for tomorrow is said apart.
 
 The engine decides again, row by row, under the player's lock: a result typed after the pairing ran, a similar
 result, a time that turns out unusual are found there and shown on the done page. The test compares the review's
@@ -118,6 +122,10 @@ row), so it is **not** part of the review page: the review holds
 `<turbo-frame id="import-add-times" src="…/add/times" loading="lazy">` with a plain link inside for a browser
 without a script; `…/add/times` is a full page that holds the same frame.
 
+The frame's wrapper carries `data_import_times_frame_controller.js`: an answer that does not hold the frame (signed
+out meanwhile, the import gone, an error page) becomes a full visit instead of a frame left as it is; a request that
+fails outright leaves the plain link in place.
+
 It checks the first **100** ready results that have a time and no "it is right" yet (`ROWS_CHECKED`), and lists the
 unusual ones: the row, why ("Much faster than your other results suggest - we expected about 2:55:00" / "Much
 slower…" / "Unusually fast / slow for this puzzle" when nothing was expected), **It is right**, **Leave out**, "Fix
@@ -142,22 +150,28 @@ Always a redirect back to the review (`#unusual-times` / `#equal-rows`) with wha
 the times frame leave the frame (`data-turbo-frame="_top"`).
 
 **`ConfirmImportRows`** (`importId, playerId, rowIds, addAnyway, equalGroupOf, separate`) - under the import's lock
-(the one `AnswerImportRows` takes), everything checked before anything is written:
+(the one `AnswerImportRows` takes). Refused whole (404) only for what a page never sends: somebody else's import, an
+import rows can not be added from, a row that is not the import's, a code outside the four a player may wave
+through (`GetImportAddScreen::WAVABLE`). Otherwise **each row on its own** - it answers
+`{confirmed, skipped}` and the page says "Confirmed: 12 · changed meanwhile, not confirmed: 1":
 
-- the import is the player's, is being set up, its content not wiped; every row and the group's row are the
-  import's - else `DataImportNotFound` (404);
-- `addAnyway` takes only the four codes a player may wave through (`GetImportAddScreen::WAVABLE`:
-  `similar_result_exists`, `somebody_elses_result`, `said_already_on_profile`, `unusual_time`) - anything else is a
-  404, a page never sends it;
-- a row that an "Add" holds or that made something is past its words: `ImportRowsChangedMeanwhile` - nothing is
-  written, the page says "these rows changed meanwhile".
+- a row that does not wait any more (an "Add" holds it, it made something) is passed over; "one result or three"
+  touches only the equal rows that still wait (`equalRowsOf()`);
+- **"add it anyway" is taken only for the question the row was really asked**: the reason it waits with
+  (`failure`), or - before any "Add" - an unusual time the time verification itself finds unusual now. A made-up
+  form can not wave `similar_result_exists` through on rows nobody asked it about;
+- **the word is given for what the row says now**: it is stored with a fingerprint of the row's time, day, kind,
+  people and paired puzzle and honoured only while that matches. Confirm 1:10:00, then change the time (or the
+  mapping, or the puzzle): the next "Add" asks again.
 
 It only writes the answer. Nothing is added by it - "Add" reads the answers (`ImportRowAdder`).
 
 ## The button
 
-**Add N to my profile** - N is what would be made (results + collection puzzles + wishes); "Go through these rows
-(N)" when everything ready is already the player's. It is not shown while adding is paused, while an "Add" of the
+**Add N to my profile** - N is what **this tap** makes (results + collection puzzles + wishes, after the daily
+guard): with more ready than today's guard allows it reads **"Add 2,000 of 5,000 now - the rest tomorrow"**. "Go
+through these rows (N)" when everything ready is already the player's. Below it: "Everything that is ready when you
+press it is added" - the selection is resolved when the form arrives, not when the page was rendered. It is not shown while adding is paused, while an "Add" of the
 import runs, or when nothing is ready.
 
 `POST …/add` with `_token` and **`request_id`** - a UUIDv7 made when the page was rendered. The same form sent again
@@ -188,6 +202,9 @@ through and what is owed for the results is being done: "Finishing…".
 **Done**:
 
 - Rows added (Results · Puzzles you own · Wish list), Already yours, Could not be added;
+- **what explains the numbers** - the rows that added nothing, by how they were the player's already: "Rows whose
+  puzzle you already had - from another row of the file, or from before: 46", "Rows that repeat another row of the
+  file - one result: N", "Results that were on your profile already: N", "…an earlier import of yours had added";
 - **Why rows could not be added**: per reason code the number of rows and a plain sentence
   ([below](#a-sentence-per-reason)), and "Rows that could not be added" (the list);
 - "Not taken this time": what the "Add" left where it was (`skipped`: unlisted, no exact day, over today's limit);
@@ -223,6 +240,20 @@ helps:
 
 Every row's form has its own `request_id`.
 
+**Beside a "similar result" / "somebody else's result" row** stands the result the question is about - time, day,
+solo / pair / team - before "Add it anyway": the player's own result for the first, a pair/team result with the
+row's very day and time for the second (nobody's name).
+
+### Who did you solve these with?
+
+An export that marks pair / team by a tag and names nobody leaves dozens of rows with `people_do_not_fit_type`. On
+top of the list, one card for all of them (up to 500, of the "Add" the list is about): **names** (commas; guests -
+one name makes the rows pair results, more make them team results) → "Use for these rows and add them (14)", or
+**"They were solo - add them (14)"**. `POST …/not-added/people` (`data_import_not_added_people`): the rows are worked
+out by the server (never sent by the form), answered through the pairing screens' own message
+(`AnswerImportRows`: `solved_with` - answerable since this stage, also on the row sheet - and `solving_type`), then
+added by their ids (`AddImportRows`); the form's `request_id` makes a resent form answer the same batch.
+
 ## Undo
 
 **No `confirm()` dialog.** Every "Take back" is a link to a step that says what happens, and the Undo is the POST
@@ -257,6 +288,10 @@ offers **Forget the pairing and choose again**: `DecideImportPuzzles` with `Unde
 also forgets the remembered decision (it is remembered as "not this puzzle", so the next file does not repeat it) -
 and the player lands in that puzzle's chooser. After a batch's or an import's take-back the page leads to the
 Puzzles summary instead ("use 'Not this one' on the wrong ones").
+
+**A taken-back row is as before its "Add"**: the engine's `undone()` clears the link to the result that is gone
+(6a's compare-and-set expects "nothing, or a result that is gone" - nothing is the clean state), so the row sheet
+takes it again: Undo → correct the time → "Add" again is one loop (tested).
 
 The player's own Undo tells nobody anything (no notification, no e-mail - the engine's rule).
 
@@ -338,23 +373,37 @@ Statements on top of what every signed-in page loads, whatever the number of row
 
 | Page | |
 |---|---|
-| the review | 6 - the import, the summary, the sheets, the sample, the equal rows, the rows already yours |
+| the review | 4 - the import, the summary (the ready set built once: counts, rows per sheet, which rows are shown first), those rows, the equal rows |
 | the times frame | bounded by 100 rows, several statements a row - why it is a request of its own |
 | one "Add" | 2 - the import, the batch (+1: the reasons, when rows could not be added) |
-| its progress | 1 |
-| a list | 3 - the import, its counts, a page of rows |
+| its progress | 1 - the batch's row and how many of its rows still wait (an index range on `(batch_id, state)` that shrinks as it goes; never an aggregate over the batch's rows). Asked every 3 s, every 10 s while adding is paused |
+| a list | 3 - the import, its counts, a page of rows (+1 on "not added": the rows one answer would settle; +1 when a row has a result to show beside it) |
 | the step before an Undo | 3 at most |
 | one Undo | 2 (+1: the results it kept; +1: the row's pairing) |
 | Imports home | +1 - what each import added |
 | the import's page, the Puzzles summary | +1 each - the ready card's summary |
 
-To look at on production before many use it (none of these was run there):
+**Measured** (2026-11-15, the stage's test database, Postgres 16 in Docker on a laptop): an import of **50,000
+rows** - all ready, 100 distinct puzzles, a mix of results / owned / both / wish rows, the daily guard biting -
+`summary()` takes **128 ms** (median of 7; 145 ms with the review's parts). It was 243 ms with a window per kind and
+the per-row look-ups. How it is built:
 
-- **The summary** reads every waiting row of the import with its puzzle's decision once (the `(import_id, state)`
-  index) and asks three small `EXISTS` per ready row (collection, wish list, solved) - for a 50,000-row import this
-  is the heaviest statement of the screens, and it runs on the import's page and the Puzzles summary too.
-- **The equal rows** group the import's waiting rows that point at another row.
-- **The times frame**: up to 100 rows × the classifier's statements in one request.
+- the ready set is built **once** (the engine's CTEs), judged in one pass, counted by one aggregate with `FILTER`s;
+- what the player already has (collection, wish list, solved puzzles, the pairing's hints) is read once each and
+  asked through hashed sub-plans (`IN (SELECT …)` in the select list); the first row per puzzle comes from one sort
+  (`WINDOW by_puzzle`);
+- **no join between two derived sets**: the first rewrite joined `ready` to a "first owned row per puzzle" set and
+  ran 176 ms - until the planner, guessing the sizes, chose a nested loop over 50,000 × 15,000 rows and the same
+  statement ran for minutes. A plan must not hang on a guess;
+- **no new index**: the rows are read by `import_id` (the existing `(import_id, state)` index; a sequential scan in
+  the test database, which holds little else), and nothing else in the plan would use one.
+
+Still to look at on production (not run there):
+
+- the same statement next to rows that carry their cells (1-3 KB a row: `parsed` is read for every row with a
+  result);
+- **the equal rows** of the review group the import's waiting rows that point at another row;
+- **the times frame**: up to 100 rows × the classifier's statements in one request.
 
 ## Where the README and the screens differ
 
@@ -392,6 +441,13 @@ only there, nothing left → no form; forgetting a pairing; every route a 404 fo
 every POST a 403 without its token; the statement budgets at 3 and at 60 rows, a list's pages; Imports home and the
 import that is kept instead of discarded.
 
+After the review of the stage: "It is right" said about 1:10:00, the time changed → asked again, answered where the
+row waits, added; **Undo → correct on the row sheet → "Add" again** as one loop; a row passed over by "It is right"
+is counted ("Confirmed: 1 · changed meanwhile, not confirmed: 1"); a made-up form can not wave a question through
+that the row was never asked; the similar result beside its row; the done page's lines that explain rows which
+added nothing; one answer for all rows that name nobody (guests / solo, a resent form → the same batch); the button
+under the daily guard ("Add 3 of 5 now - the rest tomorrow") and the batch the engine then queues (3 rows).
+
 The tests of the screens before were updated where the "arrives soon" line stood (`ImportColumnsScreenTest`,
 `ImportPairingScreensTest`, `ImportReadingTest`, `ImportUploadTest`, `ImportGoogleSheetTest`) and where a pinned
 budget gained the card's statement.
@@ -405,13 +461,13 @@ unusual times and how the pages look on a phone are to be tried on the branch wi
 - **Adding chosen puzzles only** (`AddImportRows::$importPuzzleIds`) has no button - "Add all Found" of the README.
 - **The pre-check of times covers the first 100 results**; the rest is asked after the "Add" (never added without
   the word).
-- **Results the profile has "similar"** are asked after the "Add", not before.
+- **Results the profile has "similar"** are asked after the "Add", not before - with the result shown beside the row.
+- **A word about a time that changed is asked again by the "Add"** (the row then waits under "could not be
+  added"); the pre-check of times does not list a row that carries an older "it is right".
+- "Who did you solve these with?" gives every row of the reason the same people; rows that need different people
+  are answered on their row sheets.
 - **"Leave out" needs a sheet whose rows are read for its current mapping** (the pairing screens' own rule): while
   a sheet is being read again the answer is "these rows changed meanwhile".
-- **A row that was added and taken back can be added again and its puzzle chosen again, but its fields can not be
-  answered on the row sheet**: `AnswerImportRows` refuses a row that ever linked a result (`solvingTimeId` stays
-  after an Undo - 5b's rule met 6b-1's). The texts therefore say "can be added again", not "fix them". To settle
-  between the two stages.
 - The notification of a finished "Add" leads to the import's page, not to the batch.
 - The import's status stays `setting_up` after an "Add" (`reviewing` / `done` are not used by anything yet).
-- The summary statement on a 50,000-row import was not measured on production.
+- The summary statement was measured in the test database (128 ms at 50,000 rows), not on production.

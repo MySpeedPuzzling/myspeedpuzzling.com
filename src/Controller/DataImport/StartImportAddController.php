@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\ImportRowsChangedMeanwhile;
 use SpeedPuzzling\Web\Message\AddImportRows;
 use SpeedPuzzling\Web\Message\ConfirmImportRows;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
@@ -15,7 +14,6 @@ use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
@@ -81,15 +79,8 @@ final class StartImportAddController extends AbstractController
         }
 
         if ($named && in_array($anyway, GetImportAddScreen::WAVABLE, true)) {
-            try {
-                $this->messageBus->dispatch(new ConfirmImportRows($importId, $player->playerId, $rowIds, [$anyway]));
-            } catch (HandlerFailedException $exception) {
-                // The rows are not waiting any more - most often this very press, sent twice: the "Add" below answers
-                // the same batch then, and says "nothing is ready" otherwise
-                if ($exception->getPrevious() instanceof ImportRowsChangedMeanwhile === false) {
-                    throw $exception;
-                }
-            }
+            // Written only on rows that wait with this very question - a row this press already queued is passed over
+            $this->messageBus->dispatch(new ConfirmImportRows($importId, $player->playerId, $rowIds, [$anyway]));
         }
 
         $outcome = $this->messageBus->dispatch(new AddImportRows($requestId, $importId, $player->playerId, $named ? $rowIds : null))

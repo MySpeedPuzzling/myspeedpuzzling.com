@@ -26,6 +26,29 @@
     <h1 class="h3 mb-2">{{ 'data_import.not_added.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.not_added.intro'|trans({'%number%': counts.notAdded|format_number}) }}</p>
 
+    {% if people_rows > 0 %}
+        {# One answer for all rows that say pair or team and name nobody - never one tap per row #}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-not-added-people" data-rows="{{ people_rows }}">
+            <h2 class="h6 mb-1">{{ 'data_import.not_added.people.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.not_added.people.hint'|trans({'%number%': people_rows|format_number}) }}</p>
+            <form action="{{ path('data_import_not_added_people', {importId: import.importId}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <input type="hidden" name="request_id" value="{{ people_request_id }}">
+                {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+                <label for="import-people-names" class="form-label fs-sm fw-medium">{{ 'data_import.not_added.people.names'|trans }}</label>
+                <input type="text" id="import-people-names" name="names" class="form-control mb-2" style="font-size: 16px; min-height: 44px;" maxlength="300" autocomplete="off">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" name="action" value="guests" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-guests">
+                        <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'data_import.not_added.people.submit'|trans({'%number%': people_rows|format_number}) }}
+                    </button>
+                    <button type="submit" name="action" value="solo" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-solo">
+                        {{ 'data_import.not_added.people.solo'|trans({'%number%': people_rows|format_number}) }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+
     {% if rows is empty %}
         <p class="text-muted" data-testid="import-not-added-none">{{ 'data_import.not_added.none'|trans }}</p>
     {% else %}
@@ -38,6 +61,18 @@
                     <p class="fs-sm mt-2 mb-2" data-testid="import-not-added-why">
                         <i class="bi bi-eye me-1 text-warning" aria-hidden="true"></i>{{ sentence == 'data_import.reason.' ~ code ? 'data_import.reason.error'|trans : sentence }}
                     </p>
+                    {% if beside[row.rowId] is defined %}
+                        {# What the question is about: the result that is there already - before "Add it anyway" #}
+                        <div class="fs-sm border rounded-3 p-2 mb-2" data-testid="import-not-added-beside">
+                            <div class="text-muted">{{ (code == 'similar_result_exists' ? 'data_import.not_added.beside_own' : 'data_import.not_added.beside_other')|trans }}</div>
+                            {% for result in beside[row.rowId] %}
+                                <div class="fw-medium" data-testid="import-not-added-beside-result">
+                                    {%- if result.seconds is not null %}{{ '%d:%02d:%02d'|format(result.seconds // 3600, (result.seconds % 3600) // 60, result.seconds % 60) }} · {% endif -%}
+                                    {{ result.day|format_date('medium', timezone='UTC') }} · {{ ('data_import.add.type.' ~ result.type)|trans }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     <div class="d-flex flex-wrap gap-2">
                         {% if code != 'unlisted_not_yet' %}
                             <form action="{{ path('data_import_add_start', {importId: import.importId}) }}" method="post" class="d-flex flex-wrap gap-2">

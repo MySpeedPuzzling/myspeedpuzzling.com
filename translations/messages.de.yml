@@ -11789,8 +11789,9 @@ data_import:
         with_guests: "mit %people% (als Gäste)"
         first_try: "erster Versuch"
         button: "%number% zu meinem Profil hinzufügen"
+        button_part: "Jetzt %number% von %total% hinzufügen - der Rest morgen"
         button_settle: "Diese Zeilen durchgehen (%number%)"
-        button_hint: "Es läuft im Hintergrund - du kannst die Seite verlassen. Danach kannst du es zurücknehmen."
+        button_hint: "Hinzugefügt wird alles, was in dem Moment bereit ist, in dem du drückst. Es läuft im Hintergrund - du kannst die Seite verlassen. Danach kannst du es zurücknehmen."
         ready:
             title: "Zu deinem Profil hinzufügen"
             adding: "Zeilen dieses Imports werden gerade deinem Profil hinzugefügt."
@@ -11857,6 +11858,7 @@ data_import:
             nothing_chosen: "Es wurde nichts ausgewählt."
             changed_meanwhile: "Diese Zeilen haben sich inzwischen geändert - es wurde nichts gespeichert. So stehen sie jetzt."
             confirmed: "Gespeichert - die Zeit gilt als richtig."
+            confirmed_some: "Bestätigt: %confirmed% · inzwischen geändert, nicht bestätigt: %skipped%"
             left_out: "Weggelassen. Unter „Zu korrigieren“ kannst du die Zeile wieder aufnehmen."
             separate: "Gespeichert - jede Zeile zählt als eigenes Ergebnis."
             one: "Gespeichert - die Zeilen zählen als ein Ergebnis."
@@ -11867,6 +11869,12 @@ data_import:
             not_addable: "Aus diesem Import können im Moment keine Zeilen hinzugefügt werden."
             daily_limit: "Die %number% Ergebnisse aus Tabellen für heute sind aufgebraucht. Der Rest ist morgen bereit - nichts geht verloren."
     batch:
+        how:
+            owned: "Zeilen, deren Puzzle du schon hattest - aus einer anderen Zeile der Datei oder von früher: %number%"
+            equal_row: "Zeilen, die eine andere Zeile der Datei wiederholen - ein Ergebnis: %number%"
+            profile: "Ergebnisse, die schon auf deinem Profil waren: %number%"
+            earlier_import: "Ergebnisse, die ein früherer Import von dir hinzugefügt hatte: %number%"
+            this_row: "Ergebnisse, die diese Zeilen schon früher hinzugefügt hatten: %number%"
         title: "Wird deinem Profil hinzugefügt"
         title_done: "Deinem Profil hinzugefügt"
         line: "Wird hinzugefügt… %done% von %total%"
@@ -11918,6 +11926,16 @@ data_import:
         see_result: "Ergebnis ansehen"
         being_taken_back: "Wird zurückgenommen…"
     not_added:
+        beside_own: "Schon auf deinem Profil:"
+        beside_other: "Schon von jemand anderem eingetragen:"
+        people:
+            title: "Mit wem hast du sie gepuzzelt?"
+            hint: "Zeilen, die Paar oder Team sagen und niemanden nennen: %number%. Eine Antwort für alle - danach werden sie hinzugefügt."
+            names: "Namen, durch Kommas getrennt - sie werden als Gäste hinzugefügt"
+            submit: "Für diese Zeilen übernehmen und hinzufügen (%number%)"
+            solo: "Es war Solo - hinzufügen (%number%)"
+            no_names: "Bitte gib mindestens einen Namen ein - oder wähle Solo."
+            saved_not_added: "Deine Antwort ist gespeichert. Die Zeilen konnten gerade nicht hinzugefügt werden - versuche es in einer Weile noch einmal."
         title: "Zeilen, die nicht hinzugefügt werden konnten"
         intro: "Zeilen, die hier warten: %number%. Bei jeder steht, warum - der Rest deines Imports ist nicht betroffen."
         none: "Hier wartet keine Zeile."

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,13 +23,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * button. Nothing is added by opening it and nothing starts by itself. The times that may need a word are looked
  * up apart (ImportAddTimesController, a frame of this page).
  *
- * Another player's import is a 404. Six statements, whatever the import's size.
+ * Another player's import is a 404. Four statements, whatever the import's size - the ready rows are worked out
+ * once (the summary), which also names the rows shown first.
  */
 final class ImportAddReviewController extends AbstractController
 {
-    public const int SAMPLE = 5;
     public const int EQUAL_GROUPS_SHOWN = 20;
-    public const int KNOWN_SHOWN = 20;
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -50,19 +50,22 @@ final class ImportAddReviewController extends AbstractController
         assert($player !== null);
 
         $import = $this->getDataImports->byIdOfPlayer($importId, $player->playerId);
-        $add = $this->getImportAddScreen->summary($importId, $player->playerId);
+        $add = $this->getImportAddScreen->summary($importId, $player->playerId, forReview: true);
 
         if ($add->canAdd === false) {
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
         }
 
+        // The rows the review shows first - named by the summary, read in one statement
+        $shown = $this->getImportAddScreen->rowsByIds($importId, $player->playerId, [...$add->sampleIds, ...$add->knownIds]);
+
         return $this->render('data_import/add.html.twig', [
             'import' => $import,
             'add' => $add,
-            'sheets' => $this->getImportAddScreen->readyBySheet($importId, $player->playerId),
-            'sample' => $this->getImportAddScreen->readyRows($importId, $player->playerId, 'results', self::SAMPLE),
+            'sheets' => $add->sheets,
+            'sample' => array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $shown[$id] ?? null, $add->sampleIds))),
             'equal_groups' => $this->getImportAddScreen->equalGroups($importId, $player->playerId, self::EQUAL_GROUPS_SHOWN),
-            'known' => $this->getImportAddScreen->readyRows($importId, $player->playerId, 'known', self::KNOWN_SHOWN),
+            'known' => array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $shown[$id] ?? null, $add->knownIds))),
             // One id per press of "Add": the same form sent again (a double tap, a resent form) answers the same batch
             'request_id' => Uuid::uuid7()->toString(),
             'daily_limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,

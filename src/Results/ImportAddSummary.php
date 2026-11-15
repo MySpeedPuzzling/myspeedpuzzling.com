@@ -22,15 +22,17 @@ readonly final class ImportAddSummary
         /** An "Add" of this import that still runs */
         public null|string $runningBatchId,
         public null|string $latestBatchId,
-        /** Rows an "Add" of everything would take - before the daily guard */
+        /** Rows that are ready - before the daily guard */
         public int $rowsReady,
-        /** Of them, rows that carry a result (what the daily guard counts) */
-        public int $readyResultRows,
-        /** New results, puzzles for the collection and wish-list puzzles those rows would make */
+        /** Of them, the rows this "Add" takes: all but the results over today's guard */
+        public int $rowsTaken,
+        /** What this "Add" would make: new results, puzzles for the collection, wish-list puzzles */
         public int $results,
         public int $owned,
         public int $wishList,
-        /** Ready rows that would add nothing: everything they say is the player's already */
+        /** What is ready and waits for tomorrow (the daily guard): results, and puzzles of rows that are both */
+        public int $later,
+        /** Rows this "Add" takes that would add nothing: everything they say is the player's already */
         public int $alreadyYours,
         /** Ready rows that are the same result as another row of the file (one result unless the player says two) */
         public int $equalRows,
@@ -53,22 +55,33 @@ readonly final class ImportAddSummary
         public int $collectionItemsAdded,
         public int $wishListItemsAdded,
         public null|DateTimeImmutable $lastAddedAt,
+        /**
+         * The review's own parts (GetImportAddScreen::summary() with $forReview): the ready rows per sheet, and the
+         * rows it shows first
+         *
+         * @var list<array{title: string, ready: int}>
+         */
+        public array $sheets = [],
+        /** @var list<string> the first new results */
+        public array $sampleIds = [],
+        /** @var list<string> the first rows that add nothing - already the player's */
+        public array $knownIds = [],
     ) {
     }
 
-    /** Results that are ready and wait for tomorrow: the daily guard */
+    /** Rows that are ready and wait for tomorrow: the daily guard */
     public function overDailyLimit(): int
     {
-        return max(0, $this->readyResultRows - max(0, $this->resultsLeftToday));
+        return $this->rowsReady - $this->rowsTaken;
     }
 
     /** Rows "Add" would take now */
     public function rowsToTake(): int
     {
-        return $this->rowsReady - $this->overDailyLimit();
+        return $this->rowsTaken;
     }
 
-    /** What the button's number is: the things an "Add" would make */
+    /** What the button's number is: the things this "Add" would make */
     public function toAdd(): int
     {
         return $this->results + $this->owned + $this->wishList;

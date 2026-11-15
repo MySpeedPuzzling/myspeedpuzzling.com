@@ -51,7 +51,7 @@ final class ImportAddTimesController extends AbstractController
         assert($player !== null);
 
         $import = $this->getDataImports->byIdOfPlayer($importId, $player->playerId);
-        $rows = $this->getImportAddScreen->readyRows($importId, $player->playerId, 'timed', self::ROWS_CHECKED);
+        $rows = $this->getImportAddScreen->timedRows($importId, $player->playerId, self::ROWS_CHECKED);
         $unusual = [];
 
         if ($rows !== []) {

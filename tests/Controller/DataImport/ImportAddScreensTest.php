@@ -9,7 +9,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Message\AnswerImportRows;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ChangeImportAddingPaused;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
@@ -26,6 +28,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
@@ -187,6 +190,7 @@ final class ImportAddScreensTest extends WebTestCase
         $form = $crawler->filter('[data-testid="import-add-form"]');
         self::assertSame(['/en/import/' . $importId . '/add', 'post'], [$form->attr('action'), strtolower((string) $form->attr('method'))]);
         self::assertSame('Add 7 to my profile', self::spaced($form->filter('[data-testid="import-add-button"]')->text()));
+        self::assertStringContainsString('Everything that is ready when you press it is added.', $form->text());
         $requestId = (string) $form->filter('input[name="request_id"]')->attr('value');
 
         $this->browser->request('POST', '/en/import/' . $importId . '/add', ['_token' => $this->token($crawler), 'request_id' => $requestId]);
@@ -233,6 +237,16 @@ final class ImportAddScreensTest extends WebTestCase
             [$outcome->attr('data-added'), $outcome->attr('data-already-yours'), $outcome->attr('data-not-added'), $outcome->attr('data-results'), $outcome->attr('data-owned'), $outcome->attr('data-wish-list')],
         );
         self::assertSame('Results: 4 · Puzzles you own: 2 · Wish list: 1', self::spaced($outcome->filter('[data-testid="import-batch-made"]')->text()));
+        // ... and what explains the gap between rows and things: how the other rows were the player's already
+        $how = [];
+        $outcome->filter('[data-testid="import-batch-how"]')->each(static function (Crawler $line) use (&$how): void {
+            $how[(string) $line->attr('data-how')] = self::spaced($line->text());
+        });
+        ksort($how);
+        self::assertSame(
+            ['equal_row' => 'Rows that repeat another row of the file - one result: 2', 'profile' => 'Results that were on your profile already: 1'],
+            $how,
+        );
         self::assertSame('/en/my-profile', $crawler->filter('[data-testid="import-batch-profile"]')->attr('href'));
         self::assertSame('/en/import/' . $importId . '/added?batch=' . $batchId, $crawler->filter('[data-testid="import-batch-added-link"]')->attr('href'));
         self::assertSame('/en/import/' . $importId . '/undo?batch=' . $batchId, $crawler->filter('[data-testid="import-undo-batch"]')->attr('href'));
@@ -363,9 +377,11 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertSame('They are all right (2)', self::spaced($crawler->filter('[data-testid="import-add-unusual-all-right"]')->text()));
 
         // "It is right" for one, "Leave out" for the other
-        $this->browser->request('POST', '/en/import/' . $importId . '/add/confirm', ['_token' => $token, 'action' => 'right', 'rows' => [$right]]);
+        // (sent with a row whose time is nothing to confirm: each row on its own - that one is passed over and counted)
+        $this->browser->request('POST', '/en/import/' . $importId . '/add/confirm', ['_token' => $token, 'action' => 'right', 'rows' => [$right, $usual]]);
         self::assertResponseRedirects('/en/import/' . $importId . '/add#unusual-times');
-        self::assertSame('{"addAnyway": ["unusual_time"]}', $this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $right]));
+        self::assertStringContainsString('Confirmed: 1 · changed meanwhile, not confirmed: 1', self::spaced($this->browser->followRedirect()->text()));
+        self::assertSame([['unusual_time'], []], [$this->wavedThrough($right), $this->wavedThrough($usual)]);
         $this->browser->request('POST', '/en/import/' . $importId . '/add/confirm', ['_token' => $token, 'action' => 'leave_out', 'rows' => [$leftOut]]);
         self::assertResponseRedirects('/en/import/' . $importId . '/add#unusual-times');
         self::assertStringContainsString('Left out.', $this->browser->followRedirect()->text());
@@ -388,6 +404,184 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertSame(6, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id', ['id' => $player->id->toString()]));
         // "It is right" is stored the way the add form's answer is
         self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM suspicious_time_confirmation WHERE player_id = :id', ['id' => $player->id->toString()]));
+    }
+
+    public function testItIsRightIsGivenForTheTimeAsItReadsAndATakenBackRowCanBeCorrectedAndAddedAgain(): void
+    {
+        $player = $this->seedPairingPlayer('waiver');
+        $puzzle = $this->seedCataloguePuzzle('Zq Waiver Puzzle', 1000, $this->seedBrand('Zqwaiver'));
+        $this->typedResult($player, $puzzle, '2023-01-01', 10800);
+        $this->typedResult($player, $puzzle, '2023-02-01', 10500);
+        $this->typedResult($player, $puzzle, '2023-03-01', 10200);
+        $importId = $this->importedWorkbook($player, [
+            ['Zq Waiver Puzzle', 1000, '2023-03-20', 10000],
+            ['Zq Waiver Puzzle', 1000, '2023-03-21', 10100],
+            ['Zq Waiver Puzzle', 1000, '2023-04-01', 4200],
+        ]);
+        $this->pair($importId);
+        $this->database->update('data_import_puzzle', ['choice' => 'catalogue', 'puzzle_id' => $puzzle], ['import_id' => $importId]);
+        $row = $this->rowId($importId, 4);
+        $playerId = $player->id->toString();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        TestingLogin::asPlayer($this->browser, $playerId);
+        $token = $this->token($this->browser->request('GET', '/en/import/' . $importId . '/add'));
+
+        // "It is right" - said about 1:10:00
+        $this->browser->request('POST', '/en/import/' . $importId . '/add/confirm', ['_token' => $token, 'action' => 'right', 'rows' => [$row]]);
+        self::assertSame(['unusual_time'], $this->wavedThrough($row));
+
+        // The time is changed afterwards (the row sheet's own message): the word was about another time
+        $bus->dispatch(new AnswerImportRows($importId, $playerId, [$row], ['time' => '0:27:00']));
+        self::assertSame(1620, $this->database->fetchOne("SELECT CAST(parsed ->> 'seconds' AS INTEGER) FROM data_import_row WHERE id = :id", ['id' => $row]));
+        self::assertSame([], $this->wavedThrough($row));
+
+        // ... so "Add" asks again instead of adding 0:27:00 on the strength of a word about 1:10:00
+        $this->addAndWork($importId, $player);
+        self::assertSame(['waiting', 'unusual_time'], [$this->rowNow($row)['state'], $this->rowNow($row)['failure']]);
+        self::assertSame(5, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]));
+
+        // Asked where the row waits: "It is right - add it" - about the time as it reads now
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/not-added');
+        $waiting = $crawler->filter('[data-testid="import-not-added-row"][data-row-id="' . $row . '"]');
+        self::assertSame('It is right - add it', self::spaced($waiting->filter('[data-testid="import-not-added-anyway"]')->text()));
+        $this->browser->request('POST', '/en/import/' . $importId . '/add', ['_token' => $token, 'request_id' => (string) $waiting->filter('input[name="request_id"]')->attr('value'), 'rows' => [$row], 'anyway' => 'unusual_time']);
+        self::assertResponseStatusCodeSame(302);
+        $this->work($this->latestBatchId($importId));
+        self::assertSame('added', $this->rowNow($row)['state']);
+        $first = $this->rowNow($row)['solving_time_id'];
+        self::assertSame(1620, $this->database->fetchOne('SELECT seconds_to_solve FROM puzzle_solving_time WHERE id = :id', ['id' => $first]));
+
+        // --- Taken back: the row is as before its "Add" - it names no result, so it can be corrected ---
+        $this->undo($importId, $player, DataImportUndoScope::Rows, rowIds: [$row]);
+        self::assertSame(['waiting', null, null], [$this->rowNow($row)['state'], $this->rowNow($row)['failure'], $this->rowNow($row)['solving_time_id']]);
+
+        // The row sheet opens and takes the correction (it used to answer "changed meanwhile" for ever)
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/rows/' . $row);
+        self::assertResponseIsSuccessful();
+        $this->browser->request('POST', '/en/import/' . $importId . '/rows/' . $row, [
+            '_token' => $token,
+            'stamp' => (string) $crawler->filter('input[name="stamp"]')->first()->attr('value'),
+            'action' => 'save',
+            'answers' => ['time' => '2:55:10'],
+        ]);
+        self::assertResponseStatusCodeSame(302);
+        self::assertSame(10510, $this->database->fetchOne("SELECT CAST(parsed ->> 'seconds' AS INTEGER) FROM data_import_row WHERE id = :id", ['id' => $row]));
+
+        // ... and it is added again, as corrected - a new result, the one taken back stays gone
+        $this->addAndWork($importId, $player);
+        $again = $this->rowNow($row);
+        self::assertSame('added', $again['state']);
+        self::assertNotSame($first, $again['solving_time_id']);
+        self::assertSame(10510, $this->database->fetchOne('SELECT seconds_to_solve FROM puzzle_solving_time WHERE id = :id', ['id' => $again['solving_time_id']]));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE id = :id', ['id' => $first]));
+        self::assertSame(6, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]));
+    }
+
+    public function testRowsThatSayPairOrTeamAndNameNobodyGetOneAnswerForAllOfThem(): void
+    {
+        $player = $this->seedPairingPlayer('people');
+        $puzzle = $this->seedCataloguePuzzle('Zq People Puzzle', 500, $this->seedBrand('Zqpeople'));
+        $playerId = $player->id->toString();
+        $imports = [];
+
+        foreach (['guests', 'solo'] as $index => $answer) {
+            $importId = $this->importedWorkbook($player, [
+                ['Zq People Puzzle', 500, '2023-0' . ($index + 4) . '-01', 3001],
+                ['Zq People Puzzle', 500, '2023-0' . ($index + 4) . '-02', 3101],
+                ['Zq People Puzzle', 500, '2023-0' . ($index + 4) . '-03', 3201],
+                ['Zq People Puzzle', 500, '2023-0' . ($index + 4) . '-04', 3301],
+            ]);
+            $this->pair($importId);
+            $this->database->update('data_import_puzzle', ['choice' => 'catalogue', 'puzzle_id' => $puzzle], ['import_id' => $importId]);
+            // As an export leaves them that marks pair / team by a tag and names nobody: three rows an "Add" refused
+            $this->database->executeStatement("UPDATE data_import_row SET parsed = jsonb_set(parsed, '{type}', '\"duo\"'), failure = 'people_do_not_fit_type' WHERE import_id = :id AND row_number > 2", ['id' => $importId]);
+            $imports[$answer] = $importId;
+        }
+
+        TestingLogin::asPlayer($this->browser, $playerId);
+
+        // One card for all of them - not a tap per row
+        $crawler = $this->browser->request('GET', '/en/import/' . $imports['guests'] . '/not-added');
+        $card = $crawler->filter('[data-testid="import-not-added-people"]');
+        self::assertSame('3', $card->attr('data-rows'));
+        self::assertStringContainsString('Who did you solve these with?', $card->text());
+        self::assertSame('Use for these rows and add them (3)', self::spaced($card->filter('[data-testid="import-not-added-people-guests"]')->text()));
+        self::assertSame('They were solo - add them (3)', self::spaced($card->filter('[data-testid="import-not-added-people-solo"]')->text()));
+        $fields = ['_token' => $this->token($crawler), 'request_id' => (string) $card->filter('input[name="request_id"]')->attr('value')];
+
+        // Without a name nothing is guessed
+        $this->browser->request('POST', '/en/import/' . $imports['guests'] . '/not-added/people', [...$fields, 'action' => 'guests', 'names' => ' , ']);
+        self::assertResponseRedirects('/en/import/' . $imports['guests'] . '/not-added');
+        self::assertStringContainsString('Please type at least one name', $this->browser->followRedirect()->text());
+
+        // One name: the rows are pair results with that guest - answered and added in one go
+        $this->browser->request('POST', '/en/import/' . $imports['guests'] . '/not-added/people', [...$fields, 'action' => 'guests', 'names' => 'Ben <i>Bold</i>']);
+        self::assertResponseStatusCodeSame(302);
+        $batchId = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id', ['id' => $imports['guests']]);
+        self::assertIsString($batchId);
+        self::assertResponseRedirects('/en/import/' . $imports['guests'] . '/batches/' . $batchId);
+        self::assertStringNotContainsString('Ben', (string) $this->browser->getResponse()->headers->get('Location'));
+        // The same form again: the same batch
+        $this->browser->request('POST', '/en/import/' . $imports['guests'] . '/not-added/people', [...$fields, 'action' => 'guests', 'names' => 'Ben <i>Bold</i>']);
+        self::assertResponseRedirects('/en/import/' . $imports['guests'] . '/batches/' . $batchId);
+        $this->work($batchId);
+        self::assertSame([3, 3], [$this->batchNow($batchId)['rows_requested'], $this->batchNow($batchId)['results_added']]);
+        $pairs = $this->pairingDatabase()->fetchAllAssociative("SELECT puzzling_type, team FROM puzzle_solving_time WHERE player_id = :id AND seconds_to_solve >= 3101 AND finished_at < '2023-05-01'", ['id' => $playerId]);
+        self::assertCount(3, $pairs);
+
+        foreach ($pairs as $pair) {
+            self::assertSame('duo', $pair['puzzling_type']);
+            self::assertIsString($pair['team']);
+            self::assertStringContainsString('Ben <i>Bold<\/i>', $pair['team']);
+        }
+
+        // The card is gone with the rows
+        self::assertCount(0, $this->browser->request('GET', '/en/import/' . $imports['guests'] . '/not-added')->filter('[data-testid="import-not-added-people"]'));
+
+        // "They were solo"
+        $crawler = $this->browser->request('GET', '/en/import/' . $imports['solo'] . '/not-added');
+        $this->browser->request('POST', '/en/import/' . $imports['solo'] . '/not-added/people', [
+            '_token' => $fields['_token'],
+            'request_id' => (string) $crawler->filter('[data-testid="import-not-added-people"] input[name="request_id"]')->attr('value'),
+            'action' => 'solo',
+        ]);
+        self::assertResponseStatusCodeSame(302);
+        $soloBatch = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id', ['id' => $imports['solo']]);
+        self::assertIsString($soloBatch);
+        $this->work($soloBatch);
+        self::assertSame(3, $this->batchNow($soloBatch)['results_added']);
+        self::assertSame(3, $this->pairingCount("SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id AND puzzling_type = 'solo' AND finished_at >= '2023-05-01'", ['id' => $playerId]));
+
+        // Somebody else's import: a 404, and without the token a 403
+        $other = $this->seedPairingPlayer('peopleother');
+        TestingLogin::asPlayer($this->browser, $other->id->toString());
+        $this->browser->request('POST', '/en/import/' . $imports['solo'] . '/not-added/people', ['action' => 'solo', 'request_id' => '0193e7a0-0000-7000-8000-000000000021']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testTheButtonSaysWhatThisTapAddsWhenTheDailyGuardBites(): void
+    {
+        [$player, $importId] = $this->importWithResults('guard', 5);
+        // The player's imports added 1,997 results today already: three are left of the day's 2,000
+        $this->database->executeStatement(<<<SQL
+INSERT INTO data_import_row (id, import_id, sheet_id, row_number, first_seen_version, last_seen_version, kind, parsed_version, state, add_as_separate, result_made, added_at, solving_time_id, batch_id)
+SELECT gen_random_uuid(), base.import_id, base.sheet_id, 100000 + n, 1, 1, 'result', 1, 'added', false, false, :now, gen_random_uuid(), gen_random_uuid()
+FROM (SELECT import_id, sheet_id FROM data_import_row WHERE import_id = :importId LIMIT 1) base
+CROSS JOIN generate_series(1, 1997) AS n
+SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add');
+        $counts = $crawler->filter('[data-testid="import-add-counts"]');
+        self::assertSame(['3', '3', '2'], [$counts->attr('data-rows'), $counts->attr('data-results'), $counts->attr('data-later')]);
+        self::assertSame('Add 3 of 5 now - the rest tomorrow', self::spaced($crawler->filter('[data-testid="import-add-button"]')->text()));
+        self::assertStringContainsString('At most 2,000 results a day are added from spreadsheets. Today: 3.', self::spaced($crawler->filter('[data-testid="import-add-daily-limit"]')->text()));
+
+        $this->browser->request('POST', '/en/import/' . $importId . '/add', ['_token' => $this->token($crawler), 'request_id' => (string) $crawler->filter('input[name="request_id"]')->attr('value')]);
+        $batchId = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id', ['id' => $importId]);
+        self::assertIsString($batchId);
+        // ... and that is what the engine queues
+        self::assertSame(3, $this->batchNow($batchId)['rows_requested']);
     }
 
     public function testEqualRowsAreOneResultUntilThePlayerSaysThree(): void
@@ -490,6 +684,9 @@ final class ImportAddScreensTest extends WebTestCase
         });
         self::assertSame([$pairOfNobody, $said, $similar], array_keys($rows), 'Grouped by the reason');
         self::assertSame('Add it anyway', self::spaced($rows[$similar]->filter('[data-testid="import-not-added-anyway"]')->text()));
+        // The result the question is about stands beside the row: the player's own, typed before
+        self::assertSame('Already on your profile: 0:30:00 · Jan 5, 2024 · solo', self::spaced($rows[$similar]->filter('[data-testid="import-not-added-beside"]')->text()));
+        self::assertCount(0, $rows[$said]->filter('[data-testid="import-not-added-beside"]'));
         self::assertSame('similar_result_exists', $rows[$similar]->filter('[data-testid="import-not-added-anyway"]')->attr('value'));
         self::assertCount(0, $rows[$pairOfNobody]->filter('[data-testid="import-not-added-anyway"]'));
         self::assertSame('/en/import/' . $importId . '/rows/' . $pairOfNobody, $rows[$pairOfNobody]->filter('[data-testid="import-not-added-open"]')->attr('href'));
@@ -513,7 +710,7 @@ final class ImportAddScreensTest extends WebTestCase
         $second = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id AND id <> :first', ['id' => $importId, 'first' => $batchId]);
         self::assertIsString($second);
         self::assertResponseRedirects('/en/import/' . $importId . '/batches/' . $second);
-        self::assertSame(['queued', '{"addAnyway": ["similar_result_exists"]}'], [$this->rowNow($similar)['state'], $this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $similar])]);
+        self::assertSame(['queued', ['similar_result_exists']], [$this->rowNow($similar)['state'], $this->wavedThrough($similar)]);
         self::assertSame(1, $this->batchNow($second)['rows_requested']);
         // The same press again: the same batch
         $this->browser->request('POST', '/en/import/' . $importId . '/add', $fields);
@@ -532,7 +729,19 @@ final class ImportAddScreensTest extends WebTestCase
             'anyway' => 'people_do_not_fit_type',
         ]);
         self::assertResponseStatusCodeSame(302);
-        self::assertNull($this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $pairOfNobody]));
+        self::assertSame([], $this->wavedThrough($pairOfNobody));
+
+        // ... and a question the row was never asked is not waved through either, however the form is made up: the
+        // row waits with "the file says it is on MySpeedPuzzling" - "a similar result exists" is not its question
+        $this->work($this->latestBatchId($importId));
+        $this->browser->request('POST', '/en/import/' . $importId . '/add', [
+            '_token' => $fields['_token'],
+            'request_id' => '0193e7a0-0000-7000-8000-000000000004',
+            'rows' => [$said],
+            'anyway' => 'similar_result_exists',
+        ]);
+        self::assertResponseStatusCodeSame(302);
+        self::assertSame([], $this->wavedThrough($said));
     }
 
     public function testEveryRefusalCodeHasItsSentenceInEveryLanguage(): void
@@ -855,7 +1064,7 @@ final class ImportAddScreensTest extends WebTestCase
         // the Undo (2; +1 with results it kept); Imports home - the imports and what each added (2)
         $signedIn = $budgets['few']['home'] - 2;
         self::assertSame(
-            ['review' => $signedIn + 6, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 3, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
+            ['review' => $signedIn + 4, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 4, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
             array_intersect_key($budgets['few'], ['review' => 1, 'done' => 1, 'added' => 1, 'not-added' => 1, 'undo-step' => 1, 'undone' => 1]),
         );
         // The progress the live line asks for: one statement on top of the session's own
@@ -991,6 +1200,14 @@ final class ImportAddScreensTest extends WebTestCase
         return $importId;
     }
 
+    private function latestBatchId(string $importId): string
+    {
+        $id = $this->database->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id ORDER BY started_at DESC, id DESC LIMIT 1', ['id' => $importId]);
+        self::assertIsString($id);
+
+        return $id;
+    }
+
     private function rowId(string $importId, int $rowNumber): string
     {
         $id = $this->database->fetchOne('SELECT id FROM data_import_row WHERE import_id = :id AND row_number = :row', ['id' => $importId, 'row' => $rowNumber]);
@@ -1036,6 +1253,27 @@ final class ImportAddScreensTest extends WebTestCase
         );
 
         return array_values(array_filter($addresses, static fn (string $address): bool => array_any($words, static fn (string $word): bool => str_contains($address, $word))));
+    }
+
+    /**
+     * The questions the player waved through on the row - for the row as it reads now.
+     *
+     * @return list<string>
+     */
+    private function wavedThrough(string $rowId): array
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $row = $entityManager->find(DataImportRow::class, $rowId);
+        self::assertNotNull($row);
+        $puzzleId = $this->database->fetchOne('SELECT puzzle_id FROM data_import_puzzle WHERE id = :id', ['id' => $row->importPuzzleId?->toString()]);
+        $waved = array_values(array_filter(
+            ['similar_result_exists', 'somebody_elses_result', 'said_already_on_profile', 'unusual_time'],
+            static fn (string $code): bool => $row->isWavedThrough($code, is_string($puzzleId) ? $puzzleId : null),
+        ));
+        $entityManager->clear();
+
+        return $waved;
     }
 
     private function token(Crawler $page): string

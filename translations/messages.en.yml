@@ -12036,8 +12036,9 @@ data_import:
         with_guests: "with %people% (as guests)"
         first_try: "first try"
         button: "Add %number% to my profile"
+        button_part: "Add %number% of %total% now - the rest tomorrow"
         button_settle: "Go through these rows (%number%)"
-        button_hint: "It runs in the background - you can leave the page. You can take it back afterwards."
+        button_hint: "Everything that is ready when you press it is added. It runs in the background - you can leave the page. You can take it back afterwards."
         ready:
             title: "Adding to your profile"
             adding: "Rows of this import are being added to your profile right now."
@@ -12104,6 +12105,7 @@ data_import:
             nothing_chosen: "Nothing was chosen."
             changed_meanwhile: "These rows changed meanwhile - nothing was saved. Here is how they stand now."
             confirmed: "Saved - the time is taken as right."
+            confirmed_some: "Confirmed: %confirmed% · changed meanwhile, not confirmed: %skipped%"
             left_out: "Left out. You can take the row in again in “To fix”."
             separate: "Saved - each row is counted as its own result."
             one: "Saved - the rows are counted as one result."
@@ -12114,6 +12116,12 @@ data_import:
             not_addable: "Rows can not be added from this import right now."
             daily_limit: "Today's %number% results from spreadsheets are used up. The rest is ready tomorrow - nothing is lost."
     batch:
+        how:
+            owned: "Rows whose puzzle you already had - from another row of the file, or from before: %number%"
+            equal_row: "Rows that repeat another row of the file - one result: %number%"
+            profile: "Results that were on your profile already: %number%"
+            earlier_import: "Results an earlier import of yours had added: %number%"
+            this_row: "Results these rows had added before: %number%"
         title: "Adding to your profile"
         title_done: "Added to your profile"
         line: "Adding… %done% of %total%"
@@ -12165,6 +12173,16 @@ data_import:
         see_result: "See the result"
         being_taken_back: "Being taken back…"
     not_added:
+        beside_own: "Already on your profile:"
+        beside_other: "Already logged by somebody else:"
+        people:
+            title: "Who did you solve these with?"
+            hint: "Rows that say pair or team and name nobody: %number%. One answer for all of them - they are then added."
+            names: "Names, separated by commas - they are added as guests"
+            submit: "Use for these rows and add them (%number%)"
+            solo: "They were solo - add them (%number%)"
+            no_names: "Please type at least one name - or choose solo."
+            saved_not_added: "Your answer is saved. The rows could not be added right now - try again in a while."
         title: "Rows that could not be added"
         intro: "Rows waiting here: %number%. Each says why - nothing else of your import is affected."
         none: "No row waits here."

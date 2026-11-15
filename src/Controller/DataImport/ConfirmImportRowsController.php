@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -28,8 +29,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - `leave_out`: the rows are left out (AnswerImportRows - the pairing screens' own "leave out");
  * - `separate` / `one`: the rows that are the same result as `group` count each on its own / are one result again.
  *
- * Nothing is added here. Rows that changed meanwhile (an "Add" took them, the sheet is being read again): nothing
- * is written, the review as it stands now with a plain notice. Another player's import is a 404 (the handlers
+ * Nothing is added here. "It is right" is taken row by row - rows that changed meanwhile are passed over and
+ * counted ("Confirmed: 12 · changed meanwhile: 1"); "Leave out" is all or nothing (a sheet being read again:
+ * nothing is written, a plain notice). Another player's import is a 404 (the handlers
  * check it).
  */
 final class ConfirmImportRowsController extends AbstractController
@@ -76,7 +78,7 @@ final class ConfirmImportRowsController extends AbstractController
         }
 
         try {
-            $this->messageBus->dispatch($message);
+            $answer = $this->messageBus->dispatch($message)->last(HandledStamp::class)?->getResult();
         } catch (HandlerFailedException $exception) {
             if ($exception->getPrevious() instanceof ImportRowsChangedMeanwhile) {
                 $this->addFlash('warning', $this->translator->trans('data_import.add.flash.changed_meanwhile'));
@@ -85,6 +87,16 @@ final class ConfirmImportRowsController extends AbstractController
             }
 
             throw $exception;
+        }
+
+        // Each row on its own: what was passed over - changed meanwhile, or never asked that question - is said too
+        $confirmed = is_array($answer) && is_int($answer['confirmed'] ?? null) ? $answer['confirmed'] : 0;
+        $skipped = is_array($answer) && is_int($answer['skipped'] ?? null) ? $answer['skipped'] : 0;
+
+        if ($action === 'right' && $skipped > 0) {
+            $this->addFlash('info', $this->translator->trans('data_import.add.flash.confirmed_some', ['%confirmed%' => $confirmed, '%skipped%' => $skipped]));
+
+            return $review;
         }
 
         $this->addFlash('success', $this->translator->trans(match ($action) {

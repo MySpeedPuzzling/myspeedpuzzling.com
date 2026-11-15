@@ -51,6 +51,7 @@ final readonly class ImportRowAnswers
         'barcode' => 'code',
         'solved_on' => 'date',
         'time' => 'time',
+        'solved_with' => 'text',
         'solving_type' => 'type',
         'attempt_number' => 'number',
         'first_try' => 'yes_no',
@@ -96,6 +97,7 @@ final readonly class ImportRowAnswers
             ImportField::Barcode => $this->barcodes($text),
             ImportField::SolvedOn => $this->day($text),
             ImportField::Time => $this->seconds($text),
+            ImportField::SolvedWith => self::people($text),
             ImportField::SolvingType => PuzzlingType::tryFrom($text)?->value,
             ImportField::AttemptNumber => preg_match('/^\d{1,4}$/', $text) === 1 && (int) $text >= 1 ? (int) $text : null,
             ImportField::FirstTry, ImportField::SolvedWithoutBox, ImportField::Owned => match ($text) {
@@ -169,6 +171,20 @@ final readonly class ImportRowAnswers
         return count($problems) === count($row->problems) ? $row : $row->withProblems($problems);
     }
 
+    /**
+     * The people a result was solved with, as typed: names separated by commas or semicolons - each a guest
+     * (README D12), at most eight, as the parser reads a "solved with" cell.
+     *
+     * @return null|list<string>
+     */
+    private static function people(string $text): null|array
+    {
+        $names = array_map(static fn (string $name): string => mb_substr(trim($name), 0, 100), preg_split('/[,;\n]/u', $text) ?: []);
+        $names = array_slice(array_values(array_unique(array_filter($names, static fn (string $name): bool => $name !== ''))), 0, 8);
+
+        return $names === [] ? null : $names;
+    }
+
     private static function take(ImportField $field, mixed $value, ImportRowDraft $row): bool
     {
         switch ($field) {
@@ -229,6 +245,16 @@ final readonly class ImportRowAnswers
                 if (is_int($value) && $value > 0) {
                     $row->seconds = $value;
                     unset($row->from['seconds']);
+
+                    return true;
+                }
+
+                return false;
+            case ImportField::SolvedWith:
+                $people = is_array($value) ? array_values(array_filter($value, static fn (mixed $name): bool => is_string($name) && $name !== '')) : [];
+
+                if ($people !== []) {
+                    $row->people = $people;
 
                     return true;
                 }

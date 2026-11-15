@@ -47,7 +47,10 @@ final class ImportBatchController extends AbstractController
         return $this->render('data_import/batch.html.twig', [
             'import' => $import,
             'batch' => $batch,
-            'reasons' => $batch['notAdded'] > 0 ? $this->getImportAddScreen->reasonsOfBatch($importId, $player->playerId, $batchId) : [],
+            // Why rows could not be added, and how rows were already the player's - what explains the numbers
+            'outcomes' => $batch['notAdded'] + $batch['alreadyYours'] > 0
+                ? $this->getImportAddScreen->outcomesOfBatch($importId, $player->playerId, $batchId)
+                : ['reasons' => [], 'alreadyYours' => []],
         ]);
     }
 }

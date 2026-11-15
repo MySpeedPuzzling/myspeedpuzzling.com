@@ -15,7 +15,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * How far one "Add" of the signed-in player's import is, as JSON - what its page asks every few seconds when no
  * event of the player's private topic arrives (data_import_adding_controller.js). Numbers and states only; another
- * player's batch is a 404. One read, no write.
+ * player's batch is a 404. One light read (the batch's row and how many of its rows still wait - never an
+ * aggregate over all of them), no write.
  */
 final class ImportBatchProgressController extends AbstractController
 {
@@ -37,14 +38,9 @@ final class ImportBatchProgressController extends AbstractController
         $player = $this->retrieveLoggedUserProfile->getProfile();
         assert($player !== null);
 
-        $batch = $this->getImportAddScreen->batch($importId, $player->playerId, $batchId);
-
-        return new JsonResponse([
-            'id' => $batch['id'],
-            'running' => $batch['running'],
-            'paused' => $batch['paused'],
-            'total' => $batch['rows'],
-            'done' => $batch['done'],
-        ], headers: ['Cache-Control' => 'private, no-store']);
+        return new JsonResponse(
+            $this->getImportAddScreen->batchProgress($importId, $player->playerId, $batchId),
+            headers: ['Cache-Control' => 'private, no-store'],
+        );
     }
 }

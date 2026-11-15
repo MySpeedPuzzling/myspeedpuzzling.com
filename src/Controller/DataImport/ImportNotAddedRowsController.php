@@ -7,7 +7,10 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Results\ImportAddRow;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowAnswers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +22,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * The rows an "Add" took and could not add (docs/features/data-import/adding-screens.md "The lists") - of one "Add"
  * (`?batch=`) or of all - fifty a page, grouped by the reason, each with the reason in a plain sentence and, where
  * it helps, the way to settle it: the row's sheet, the puzzle's chooser, "It is right" / "Add it anyway", "Try
- * again". Another player's import is a 404. Three statements, whatever the number of rows.
+ * again" - with the result a "similar result" question is about beside its row, and one answer for all rows that
+ * say pair or team and name nobody. Another player's import is a 404. Five statements at most, whatever the number
+ * of rows.
  */
 final class ImportNotAddedRowsController extends AbstractController
 {
@@ -61,6 +66,11 @@ final class ImportNotAddedRowsController extends AbstractController
             'counts' => $counts,
             'rows' => $rows,
             'request_ids' => $requestIds,
+            // The results a "similar result" / "somebody else's result" question is about, beside their rows
+            'beside' => $this->getImportAddScreen->resultsBeside($importId, $player->playerId, array_values(array_map(static fn (ImportAddRow $row): string => $row->rowId, array_filter($rows, static fn (ImportAddRow $row): bool => in_array($row->failure, ['similar_result_exists', 'somebody_elses_result'], true))))),
+            // One answer for all rows that say pair or team and name nobody
+            'people_rows' => count($this->getImportAddScreen->rowIdsNotAddedFor($importId, $player->playerId, ImportRowRefusal::PeopleDoNotFitType->value, $batchId, ImportRowAnswers::MAX_ROWS)),
+            'people_request_id' => Uuid::uuid7()->toString(),
             'page' => $page,
             'pages' => $pages,
             'wavable' => GetImportAddScreen::WAVABLE,

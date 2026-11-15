@@ -16,6 +16,8 @@ import { Controller } from '@hotwired/stimulus';
  */
 
 const ASK_EVERY_MS = 3000;
+// While adding is paused nothing moves: asked seldom, until it goes on
+const ASK_EVERY_PAUSED_MS = 10000;
 const QUIET_MS = 3000;
 const BACK_OFF_MS = [3000, 6000, 12000, 30000];
 const GIVE_UP_AFTER_MS = 10 * 60 * 1000;
@@ -42,6 +44,7 @@ export default class extends Controller {
         this.stopped = false;
         this.failures = 0;
         this.failingSince = 0;
+        this.paused = false;
         this.numbers = new Intl.NumberFormat(document.documentElement.lang || undefined);
 
         this.onMessage = (event) => {
@@ -81,7 +84,9 @@ export default class extends Controller {
 
         this.timer = window.setTimeout(async () => {
             await this.ask(false);
-            this.askLater(this.failures > 0 ? BACK_OFF_MS[Math.min(this.failures, BACK_OFF_MS.length) - 1] : ASK_EVERY_MS);
+            this.askLater(this.failures > 0
+                ? BACK_OFF_MS[Math.min(this.failures, BACK_OFF_MS.length) - 1]
+                : (this.paused ? ASK_EVERY_PAUSED_MS : ASK_EVERY_MS));
         }, ms);
     }
 
@@ -179,8 +184,10 @@ export default class extends Controller {
             this.barTarget.parentElement.setAttribute('aria-valuenow', String(percent));
         }
 
+        this.paused = data.paused === true;
+
         if (this.hasPausedTarget) {
-            this.pausedTarget.hidden = data.paused !== true;
+            this.pausedTarget.hidden = !this.paused;
         }
     }
 

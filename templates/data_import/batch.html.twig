@@ -13,6 +13,7 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
+{% set reasons = outcomes.reasons %}
 {{ include('_page_crumbs.html.twig', {levels: [
     {name: 'data_import.home.title'|trans, url: path('data_imports')},
     {name: import_name, url: path('data_import_detail', {importId: import.importId})},
@@ -50,6 +51,17 @@
                 <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-person-check me-2 text-muted" aria-hidden="true"></i>{{ 'data_import.batch.already_yours'|trans }}</span><strong>{{ batch.alreadyYours|format_number }}</strong></li>
                 <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-eye me-2 {{ batch.notAdded > 0 ? 'text-warning' : 'text-muted' }}" aria-hidden="true"></i>{{ 'data_import.batch.not_added'|trans }}</span><strong>{{ batch.notAdded|format_number }}</strong></li>
             </ul>
+            {# What explains the numbers: rows that added nothing because the player had it already, and how #}
+            {% if outcomes.alreadyYours is not empty %}
+                <ul class="list-unstyled fs-sm text-muted border-top mt-2 pt-2 mb-0" data-testid="import-batch-already-yours">
+                    {% for how, count in outcomes.alreadyYours %}
+                        {% set line = ('data_import.batch.how.' ~ how)|trans({'%number%': count|format_number}) %}
+                        <li class="py-1" data-testid="import-batch-how" data-how="{{ how }}" data-rows="{{ count }}">
+                            {{- line == 'data_import.batch.how.' ~ how ? 'data_import.batch.how.owned'|trans({'%number%': count|format_number}) : line -}}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
             {% if batch.undoneAt is not null %}
                 <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-batch-undone">{{ 'data_import.batch.undone'|trans({'%date%': batch.undoneAt|format_date('long')}) }}</p>
             {% endif %}

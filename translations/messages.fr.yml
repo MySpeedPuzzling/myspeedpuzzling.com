@@ -11785,8 +11785,9 @@ data_import:
         with_guests: "avec %people% (en invités)"
         first_try: "premier essai"
         button: "Ajouter %number% à mon profil"
+        button_part: "Ajouter %number% sur %total% maintenant - le reste demain"
         button_settle: "Passer ces lignes en revue (%number%)"
-        button_hint: "Cela se fait en arrière-plan - vous pouvez quitter la page. Vous pourrez le reprendre ensuite."
+        button_hint: "Tout ce qui est prêt au moment où vous appuyez est ajouté. Cela se fait en arrière-plan - vous pouvez quitter la page. Vous pourrez le reprendre ensuite."
         ready:
             title: "Ajout à votre profil"
             adding: "Des lignes de cet import sont en train d'être ajoutées à votre profil."
@@ -11853,6 +11854,7 @@ data_import:
             nothing_chosen: "Rien n'a été choisi."
             changed_meanwhile: "Ces lignes ont changé entre-temps - rien n'a été enregistré. Voici où elles en sont."
             confirmed: "Enregistré - le temps est considéré comme exact."
+            confirmed_some: "Confirmés : %confirmed% · modifiés entre-temps, non confirmés : %skipped%"
             left_out: "Laissée de côté. Vous pouvez reprendre la ligne dans « À corriger »."
             separate: "Enregistré - chaque ligne compte comme un résultat à part."
             one: "Enregistré - les lignes comptent comme un seul résultat."
@@ -11863,6 +11865,12 @@ data_import:
             not_addable: "Les lignes de cet import ne peuvent pas être ajoutées pour le moment."
             daily_limit: "Les %number% résultats du jour depuis des tableurs sont utilisés. Le reste sera prêt demain - rien n'est perdu."
     batch:
+        how:
+            owned: "Lignes dont vous aviez déjà le puzzle - par une autre ligne du fichier, ou d'avant : %number%"
+            equal_row: "Lignes qui répètent une autre ligne du fichier - un seul résultat : %number%"
+            profile: "Résultats déjà présents sur votre profil : %number%"
+            earlier_import: "Résultats qu'un de vos imports précédents avait ajoutés : %number%"
+            this_row: "Résultats que ces lignes avaient déjà ajoutés : %number%"
         title: "Ajout à votre profil"
         title_done: "Ajouté à votre profil"
         line: "Ajout… %done% sur %total%"
@@ -11914,6 +11922,16 @@ data_import:
         see_result: "Voir le résultat"
         being_taken_back: "Reprise en cours…"
     not_added:
+        beside_own: "Déjà sur votre profil :"
+        beside_other: "Déjà enregistré par quelqu'un d'autre :"
+        people:
+            title: "Avec qui les avez-vous faits ?"
+            hint: "Lignes qui indiquent duo ou équipe et ne nomment personne : %number%. Une réponse pour toutes - elles sont ensuite ajoutées."
+            names: "Noms séparés par des virgules - ils sont ajoutés en invités"
+            submit: "Utiliser pour ces lignes et les ajouter (%number%)"
+            solo: "C'était en solo - les ajouter (%number%)"
+            no_names: "Veuillez saisir au moins un nom - ou choisir solo."
+            saved_not_added: "Votre réponse est enregistrée. Les lignes n'ont pas pu être ajoutées pour le moment - réessayez dans un instant."
         title: "Lignes qui n'ont pas pu être ajoutées"
         intro: "Lignes en attente ici : %number%. Chacune dit pourquoi - le reste de votre import n'est pas concerné."
         none: "Aucune ligne n'attend ici."

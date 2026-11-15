@@ -11,6 +11,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
+use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Results\ImportAddSummary;
 use SpeedPuzzling\Web\Value\DataImportLimits;
@@ -28,13 +29,15 @@ use SpeedPuzzling\Web\Value\DataImportStatus;
  * here. Rows are the player's own (the import's player = the tracker), nobody else's identity is selected - a
  * result without a tracker is never the import's.
  *
- * "Ready" mirrors the one statement that queues (DataImportRowRepository::queueReadyRows(), adding.md "Ready") and
- * what a row would make mirrors ImportRowAdder - for showing only: the engine decides again, row by row, under the
- * player's lock. ImportAddScreensTest compares the numbers shown with what the real worker then adds.
+ * "Ready" is the engine's own definition - the SQL "Add" queues with (DataImportRowRepository::sqlReadyRows()), not
+ * a copy of it. What a ready row would make mirrors ImportRowAdder, for showing only: the engine decides again, row
+ * by row, under the player's lock. ImportAddScreensTest compares the numbers shown with what the real worker adds.
  */
 readonly final class GetImportAddScreen
 {
     public const int ROWS_PER_PAGE = 50;
+    public const int SAMPLE = 5;
+    public const int KNOWN_SHOWN = 20;
 
     /** The four questions a player may wave through per row (`answers.addAnyway`, adding.md "Refusals") */
     public const array WAVABLE = ['similar_result_exists', 'somebody_elses_result', 'said_already_on_profile', 'unusual_time'];
@@ -43,10 +46,21 @@ readonly final class GetImportAddScreen
     private const string NOT_ADDED = "(r.state = 'failed' OR (r.state = 'waiting' AND r.failure IS NOT NULL))";
 
     /**
-     * The rows "Add everything that is ready" may take, and of them (`ready`) the ones it does take - with what each
-     * would make. Parameters: importId, playerId.
+     * What each ready row would make, on top of the one definition of "ready" (DataImportRowRepository::
+     * sqlReadyRows() - the very CTEs "Add" queues with): `judged` = the ready rows with whether this "Add" takes them
+     * (the daily guard) and whether they make a new result, a puzzle for the collection, a wish. What the player
+     * already has is read once per statement and asked by a hash (`IN (SELECT …)` in the select list - a hashed
+     * sub-plan), the first row per puzzle comes from one sort: no join between two derived sets, whose plan would
+     * hang on the planner's guess of their sizes (a nested loop over 50,000 × 15,000 rows was measured - minutes).
+     * Several rows that own or wish the same puzzle make one item: the first of them counts.
+     *
+     * Parameters: importId, playerId, explicit (0), limit (the daily guard), startOfDay.
      */
-    private const string READY_CTE = <<<SQL
+    private static function sqlJudged(): string
+    {
+        $ready = DataImportRowRepository::sqlReadyRows();
+
+        return <<<SQL
 import AS (
     SELECT data_import.id, data_import.status, data_import.cells_wiped_at
     FROM data_import
@@ -54,63 +68,58 @@ import AS (
         AND data_import.player_id = :playerId
         AND data_import.status <> 'discarded'
 ),
-chosen AS (
-    SELECT
-        r.id,
-        r.sheet_id,
-        r.row_number,
-        sheet.position,
-        r.kind IN ('result', 'both') AS has_result,
-        r.kind IN ('owned', 'both') AS has_owned,
-        r.kind = 'wish_list' AS is_wish,
-        puzzle.choice,
-        puzzle.puzzle_id,
-        COALESCE(r.parsed ->> 'datePrecision', '') = 'day' AND r.parsed ->> 'date' IS NOT NULL AS exact_day,
-        r.same_as_row_id IS NOT NULL AND r.add_as_separate = FALSE AS equal_row,
-        -- The pairing's hint, as the Puzzles summary counts it: the result is there, on the very puzzle
-        r.state = 'waiting' AND r.already_yours_how IS NOT NULL AND EXISTS (
-            SELECT 1
-            FROM puzzle_solving_time known
-            WHERE known.id = r.already_yours_solving_time_id
-                AND (r.already_yours_how = 'earlier_import' OR known.puzzle_id = puzzle.puzzle_id)
-        ) AS result_known
-    FROM import
-    INNER JOIN data_import_row r ON r.import_id = import.id
-    INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
-    INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
-    WHERE sheet.included
-        AND r.kind IN ('result', 'owned', 'both', 'wish_list')
-        AND r.problems IS NULL
-        AND r.undo_id IS NULL
-        AND r.source_key IS NOT NULL
-        AND (
-            (r.state = 'waiting' AND r.failure IS NULL)
-            OR (
-                r.state = 'already_yours'
-                AND r.already_yours_solving_time_id IS NOT NULL
-                AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time gone WHERE gone.id = r.already_yours_solving_time_id)
-            )
-        )
+{$ready},
+-- What the daily guard counts (DataImportRowRepository::countResultsAddedOrQueuedSince())
+guard AS (
+    SELECT GREATEST(0, :limit - COUNT(*)) AS results_left
+    FROM data_import_row r
+    INNER JOIN data_import other ON other.id = r.import_id
+    WHERE other.player_id = :playerId
+        AND r.kind IN ('result', 'both')
+        AND (r.state = 'queued' OR (r.state = 'added' AND r.added_at >= :startOfDay AND r.solving_time_id IS NOT NULL))
 ),
-ready AS (
+judged AS (
     SELECT
-        chosen.*,
-        chosen.has_result AND chosen.equal_row = FALSE AND chosen.result_known = FALSE AS new_result,
-        chosen.has_owned AND NOT EXISTS (
-            SELECT 1 FROM collection_item owned
-            WHERE owned.player_id = :playerId AND owned.puzzle_id = chosen.puzzle_id AND owned.collection_id IS NULL
-        ) AS new_owned,
-        chosen.is_wish
-            AND NOT EXISTS (SELECT 1 FROM wish_list_item wished WHERE wished.player_id = :playerId AND wished.puzzle_id = chosen.puzzle_id)
-            AND NOT EXISTS (SELECT 1 FROM collection_item owned WHERE owned.player_id = :playerId AND owned.puzzle_id = chosen.puzzle_id)
-            AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time solved WHERE solved.player_id = :playerId AND solved.puzzle_id = chosen.puzzle_id)
-            AS new_wish
-    FROM chosen
-    WHERE chosen.choice = 'catalogue'
-        AND chosen.puzzle_id IS NOT NULL
-        AND (chosen.has_result = FALSE OR chosen.exact_day)
+        flagged.id,
+        flagged.sheet_id,
+        flagged.position,
+        flagged.row_number,
+        flagged.has_result,
+        flagged.equal_row,
+        flagged.has_result = FALSE OR flagged.results_so_far <= guard.results_left AS taken,
+        flagged.has_result AND flagged.equal_row = FALSE AND flagged.known = FALSE AS new_result,
+        -- Several rows that own (or wish) the same puzzle make one item: the first of them in the file's order
+        flagged.can_own AND SUM(CASE WHEN flagged.can_own THEN 1 ELSE 0 END) OVER by_puzzle = 1 AS new_owned,
+        flagged.can_wish AND SUM(CASE WHEN flagged.can_wish THEN 1 ELSE 0 END) OVER by_puzzle = 1 AS new_wish
+    FROM (
+        -- What the player already has is read once each and asked by a hash - whatever the planner thinks of the
+        -- sizes, no row of the file is ever compared with the rows of another set one by one
+        SELECT
+            ready.*,
+            -- The pairing's hint, as the Puzzles summary counts it: the result is there, on the very puzzle
+            ready.id IN (
+                SELECT hinted.id
+                FROM chosen hinted
+                INNER JOIN puzzle_solving_time result ON result.id = hinted.already_yours_solving_time_id
+                WHERE hinted.state = 'waiting'
+                    AND hinted.already_yours_how IS NOT NULL
+                    AND (hinted.already_yours_how = 'earlier_import' OR result.puzzle_id = hinted.puzzle_id)
+            ) AS known,
+            ready.has_owned AND ready.puzzle_id NOT IN (
+                SELECT item.puzzle_id FROM collection_item item WHERE item.player_id = :playerId AND item.collection_id IS NULL
+            ) AS can_own,
+            ready.is_wish
+                AND ready.puzzle_id NOT IN (SELECT wish.puzzle_id FROM wish_list_item wish WHERE wish.player_id = :playerId)
+                AND ready.puzzle_id NOT IN (SELECT item.puzzle_id FROM collection_item item WHERE item.player_id = :playerId)
+                AND ready.puzzle_id NOT IN (SELECT result.puzzle_id FROM puzzle_solving_time result WHERE result.player_id = :playerId)
+                AS can_wish
+        FROM ready
+    ) flagged
+    CROSS JOIN guard
+    WINDOW by_puzzle AS (PARTITION BY flagged.puzzle_id ORDER BY flagged.position, flagged.row_number, flagged.id)
 )
 SQL;
+    }
 
     public function __construct(
         private Connection $database,
@@ -119,34 +128,81 @@ SQL;
     }
 
     /**
-     * One statement, whatever the import's size.
+     * One statement, whatever the import's size: the ready set is built once, every number comes from one pass over
+     * it. With $forReview also the review's own parts - the ready rows per sheet and which rows it shows first (the
+     * first new results, the first rows already the player's) - so the review builds nothing a second time.
      *
      * @throws DataImportNotFound
      */
-    public function summary(string $importId, string $playerId): ImportAddSummary
+    public function summary(string $importId, string $playerId, bool $forReview = false): ImportAddSummary
     {
         self::assertIds($importId, $playerId);
 
-        $ready = self::READY_CTE;
+        $judged = self::sqlJudged();
         $notAdded = self::NOT_ADDED;
+        $review = $forReview ? <<<SQL
+(
+    SELECT jsonb_agg(jsonb_build_object('title', sheet.title, 'ready', per_sheet.rows) ORDER BY sheet.position)
+    FROM (SELECT judged.sheet_id, COUNT(*) AS rows FROM judged WHERE judged.taken GROUP BY judged.sheet_id) per_sheet
+    INNER JOIN data_import_sheet sheet ON sheet.id = per_sheet.sheet_id
+) AS sheets,
+(
+    SELECT jsonb_agg(first.id)
+    FROM (SELECT judged.id FROM judged WHERE judged.taken AND judged.new_result ORDER BY judged.position, judged.row_number, judged.id LIMIT :sample) first
+) AS sample_ids,
+(
+    SELECT jsonb_agg(first.id)
+    FROM (
+        SELECT judged.id FROM judged
+        WHERE judged.taken AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
+        ORDER BY judged.position, judged.row_number, judged.id LIMIT :known
+    ) first
+) AS known_ids
+SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, ready_result_rows: int, results: int, owned: int, wish_list: int, already_yours: int, equal_rows: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, results_today: int} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
-WITH {$ready}
+WITH {$judged},
+counts AS (
+    SELECT
+        COUNT(*) AS rows_ready,
+        COUNT(*) FILTER (WHERE judged.taken) AS rows_taken,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.new_result) AS results,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.new_owned) AS owned,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.new_wish) AS wish_list,
+        -- What waits for tomorrow: the results over today's guard (and the puzzle of a row that is both)
+        COUNT(*) FILTER (WHERE judged.taken = FALSE AND judged.new_result) + COUNT(*) FILTER (WHERE judged.taken = FALSE AND judged.new_owned) AS later,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS already_yours,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.has_result AND judged.equal_row) AS equal_rows
+    FROM judged
+),
+waiting AS (
+    SELECT
+        COUNT(*) FILTER (WHERE chosen.choice = 'unlisted') AS unlisted,
+        COUNT(*) FILTER (WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day,
+        COUNT(*) FILTER (WHERE chosen.choice = 'undecided') AS undecided
+    FROM chosen
+),
+-- The rows an "Add" ever took: what they made, and the ones that could not be added
+taken_before AS (
+    SELECT
+        COUNT(*) FILTER (WHERE {$notAdded}) AS not_added,
+        COUNT(*) FILTER (WHERE r.state = 'added') AS rows_added,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made) AS results_added,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items_added,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items_added,
+        MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at
+    FROM data_import_row r
+    WHERE r.import_id = :importId AND r.batch_id IS NOT NULL
+)
 SELECT
     import.status,
     import.cells_wiped_at IS NOT NULL AS wiped,
     COALESCE((SELECT settings.adding_paused FROM data_import_settings settings LIMIT 1), FALSE) AS paused,
-    (SELECT COUNT(*) FROM ready) AS rows_ready,
-    (SELECT COUNT(*) FROM ready WHERE ready.has_result) AS ready_result_rows,
-    (SELECT COUNT(*) FROM ready WHERE ready.new_result) AS results,
-    (SELECT COUNT(*) FROM ready WHERE ready.new_owned) AS owned,
-    (SELECT COUNT(*) FROM ready WHERE ready.new_wish) AS wish_list,
-    (SELECT COUNT(*) FROM ready WHERE ready.new_result = FALSE AND ready.new_owned = FALSE AND ready.new_wish = FALSE) AS already_yours,
-    (SELECT COUNT(*) FROM ready WHERE ready.has_result AND ready.equal_row) AS equal_rows,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'unlisted') AS unlisted,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'undecided') AS undecided,
+    counts.*,
+    guard.results_left,
+    waiting.*,
+    taken_before.*,
     (
         SELECT COALESCE(SUM(sheet.rows_need_look), 0)
         FROM data_import_sheet sheet
@@ -157,12 +213,6 @@ SELECT
         FROM data_import_sheet sheet
         WHERE sheet.import_id = import.id AND sheet.included AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
     ) AS sheets_not_set_up,
-    (SELECT COUNT(*) FROM data_import_row r WHERE r.import_id = import.id AND {$notAdded}) AS not_added,
-    (SELECT COUNT(*) FROM data_import_row r WHERE r.import_id = import.id AND r.state = 'added') AS rows_added,
-    (SELECT COUNT(*) FROM data_import_row r WHERE r.import_id = import.id AND r.state = 'added' AND r.result_made) AS results_added,
-    (SELECT COUNT(*) FROM data_import_row r WHERE r.import_id = import.id AND r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items_added,
-    (SELECT COUNT(*) FROM data_import_row r WHERE r.import_id = import.id AND r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items_added,
-    (SELECT MAX(r.added_at) FROM data_import_row r WHERE r.import_id = import.id AND r.state = 'added') AS last_added_at,
     (
         SELECT batch.id FROM data_import_batch batch
         WHERE batch.import_id = import.id AND batch.state = 'running'
@@ -173,24 +223,31 @@ SELECT
         WHERE batch.import_id = import.id
         ORDER BY batch.started_at DESC, batch.id DESC LIMIT 1
     ) AS latest_batch_id,
-    -- What the daily guard counts (DataImportRowRepository::countResultsAddedOrQueuedSince())
-    (
-        SELECT COUNT(*)
-        FROM data_import_row r
-        INNER JOIN data_import other ON other.id = r.import_id
-        WHERE other.player_id = :playerId
-            AND r.kind IN ('result', 'both')
-            AND (r.state = 'queued' OR (r.state = 'added' AND r.added_at >= :startOfDay AND r.solving_time_id IS NOT NULL))
-    ) AS results_today
+    {$review}
 FROM import
+CROSS JOIN counts
+CROSS JOIN guard
+CROSS JOIN waiting
+CROSS JOIN taken_before
 SQL, [
             'importId' => $importId,
             'playerId' => $playerId,
+            'explicit' => 0,
+            'limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
             'startOfDay' => $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0)->format('Y-m-d H:i:s'),
+            ...($forReview ? ['sample' => self::SAMPLE, 'known' => self::KNOWN_SHOWN] : []),
         ])->fetchAssociative();
 
         if ($row === false) {
             throw new DataImportNotFound();
+        }
+
+        $sheets = [];
+
+        foreach (self::decoded($row['sheets']) as $sheet) {
+            if (is_array($sheet) && is_string($sheet['title'] ?? null) && is_int($sheet['ready'] ?? null)) {
+                $sheets[] = ['title' => $sheet['title'], 'ready' => $sheet['ready']];
+            }
         }
 
         return new ImportAddSummary(
@@ -199,13 +256,14 @@ SQL, [
             runningBatchId: $row['running_batch_id'],
             latestBatchId: $row['latest_batch_id'],
             rowsReady: $row['rows_ready'],
-            readyResultRows: $row['ready_result_rows'],
+            rowsTaken: $row['rows_taken'],
             results: $row['results'],
             owned: $row['owned'],
             wishList: $row['wish_list'],
+            later: $row['later'],
             alreadyYours: $row['already_yours'],
             equalRows: $row['equal_rows'],
-            resultsLeftToday: max(0, DataImportLimits::MAX_RESULTS_ADDED_PER_DAY - $row['results_today']),
+            resultsLeftToday: $row['results_left'],
             unlisted: $row['unlisted'],
             needsExactDay: $row['needs_exact_day'],
             undecided: $row['undecided'],
@@ -217,64 +275,33 @@ SQL, [
             collectionItemsAdded: $row['collection_items_added'],
             wishListItemsAdded: $row['wish_list_items_added'],
             lastAddedAt: $row['last_added_at'] === null ? null : new DateTimeImmutable($row['last_added_at']),
+            sheets: $sheets,
+            sampleIds: array_values(array_filter(self::decoded($row['sample_ids']), is_string(...))),
+            knownIds: array_values(array_filter(self::decoded($row['known_ids']), is_string(...))),
         );
     }
 
     /**
-     * Per sheet: how many of its rows are ready. One statement.
-     *
-     * @return list<array{title: string, ready: int}>
-     */
-    public function readyBySheet(string $importId, string $playerId): array
-    {
-        if (self::areIds($importId, $playerId) === false) {
-            return [];
-        }
-
-        $ready = self::READY_CTE;
-
-        /** @var list<array{title: string, ready: int}> $sheets */
-        $sheets = $this->database->executeQuery(<<<SQL
-WITH {$ready}
-SELECT sheet.title, COUNT(ready.id) AS ready
-FROM import
-INNER JOIN data_import_sheet sheet ON sheet.import_id = import.id
-INNER JOIN ready ON ready.sheet_id = sheet.id
-GROUP BY sheet.id, sheet.title, sheet.position
-ORDER BY sheet.position
-SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAllAssociative();
-
-        return $sheets;
-    }
-
-    /**
-     * Ready rows of one kind of the review, in the file's order: `results` (new results - the sample), `known`
-     * (rows that add nothing: already the player's), `timed` (results with a time the player has not said "it is
-     * right" about - what the time verification is asked about). One statement.
+     * The ready results with a time the player has not said "it is right" about - what the time verification is
+     * asked about (ImportAddTimesController), in the file's order. One statement.
      *
      * @return list<ImportAddRow>
      */
-    public function readyRows(string $importId, string $playerId, string $which, int $limit): array
+    public function timedRows(string $importId, string $playerId, int $limit): array
     {
         if (self::areIds($importId, $playerId) === false) {
             return [];
         }
 
-        $condition = match ($which) {
-            'results' => 'ready.new_result',
-            'known' => 'ready.new_result = FALSE AND ready.new_owned = FALSE AND ready.new_wish = FALSE AND ready.equal_row = FALSE',
-            'timed' => <<<SQL
-ready.new_result
-AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
-AND NOT (COALESCE(r.answers -> 'addAnyway', '[]'::jsonb) @> '"unusual_time"'::jsonb)
-SQL,
-            default => 'FALSE',
-        };
-
         return $this->rows(
             'INNER JOIN ready ON ready.id = r.id',
-            $condition,
-            ['importId' => $importId, 'playerId' => $playerId],
+            <<<SQL
+ready.has_result
+AND ready.equal_row = FALSE
+AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
+AND r.answers -> 'addAnyway' ->> 'unusual_time' IS NULL
+SQL,
+            ['importId' => $importId, 'playerId' => $playerId, 'explicit' => 0],
             'sheet.position, r.row_number, r.id',
             $limit,
             0,
@@ -520,32 +547,184 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])-
     }
 
     /**
-     * Why the rows an "Add" took were not added: the reason code and how many rows carry it now. One statement.
+     * How far one "Add" is - what its page asks every few seconds: the batch's own row and the number of its rows
+     * that still wait for their turn (an index range on `(batch_id, state)` that shrinks as the batch goes on) -
+     * never an aggregate over all the batch's rows.
      *
-     * @return array<string, int>
+     * @return array{id: string, running: bool, paused: bool, total: int, done: int}
+     *
+     * @throws DataImportNotFound
      */
-    public function reasonsOfBatch(string $importId, string $playerId, string $batchId): array
+    public function batchProgress(string $importId, string $playerId, string $batchId): array
     {
+        self::assertIds($importId, $playerId, $batchId);
+
+        /** @var false|array{id: string, state: string, paused: bool, ended_by_undo: bool, rows_requested: int, queued: int} $row */
+        $row = $this->database->executeQuery(<<<SQL
+SELECT
+    batch.id,
+    batch.state,
+    COALESCE((SELECT settings.adding_paused FROM data_import_settings settings LIMIT 1), FALSE) AS paused,
+    batch.ended_by_undo,
+    batch.rows_requested,
+    (SELECT COUNT(*) FROM data_import_row r WHERE r.batch_id = batch.id AND r.state = 'queued') AS queued
+FROM data_import_batch batch
+INNER JOIN data_import ON data_import.id = batch.import_id
+WHERE batch.id = :batchId
+    AND batch.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])->fetchAssociative();
+
+        if ($row === false) {
+            throw new DataImportNotFound();
+        }
+
+        $running = $row['state'] === 'running';
+
+        return [
+            'id' => $row['id'],
+            'running' => $running,
+            'paused' => $running && $row['paused'] && $row['ended_by_undo'] === false,
+            'total' => $row['rows_requested'],
+            'done' => max(0, $row['rows_requested'] - $row['queued']),
+        ];
+    }
+
+    /**
+     * What became of the rows an "Add" took and did not add anything for, as they stand now: why rows could not be
+     * added (the reason code) and how rows were already the player's (`profile`, `earlier_import`, `this_row`,
+     * `equal_row`, `owned`) - each with its number of rows. One statement.
+     *
+     * @return array{reasons: array<string, int>, alreadyYours: array<string, int>}
+     */
+    public function outcomesOfBatch(string $importId, string $playerId, string $batchId): array
+    {
+        $outcomes = ['reasons' => [], 'alreadyYours' => []];
+
         if (self::areIds($importId, $playerId, $batchId) === false) {
-            return [];
+            return $outcomes;
         }
 
         $notAdded = self::NOT_ADDED;
 
-        /** @var array<string, int> $reasons */
-        $reasons = $this->database->executeQuery(<<<SQL
-SELECT COALESCE(r.failure, 'error') AS code, COUNT(*) AS rows
+        /** @var list<array{outcome: string, code: string, rows: int}> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT
+    CASE WHEN r.state = 'already_yours' THEN 'alreadyYours' ELSE 'reasons' END AS outcome,
+    CASE WHEN r.state = 'already_yours' THEN COALESCE(r.already_yours_how, 'owned') ELSE COALESCE(r.failure, 'error') END AS code,
+    COUNT(*) AS rows
 FROM data_import_row r
 INNER JOIN data_import ON data_import.id = r.import_id
 WHERE r.batch_id = :batchId
     AND r.import_id = :importId
     AND data_import.player_id = :playerId
-    AND {$notAdded}
-GROUP BY COALESCE(r.failure, 'error')
-ORDER BY COUNT(*) DESC, COALESCE(r.failure, 'error')
-SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])->fetchAllKeyValue();
+    AND (r.state = 'already_yours' OR {$notAdded})
+GROUP BY 1, 2
+ORDER BY COUNT(*) DESC, 2
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])->fetchAllAssociative();
 
-        return $reasons;
+        foreach ($rows as $row) {
+            $outcomes[$row['outcome'] === 'alreadyYours' ? 'alreadyYours' : 'reasons'][$row['code']] = $row['rows'];
+        }
+
+        return $outcomes;
+    }
+
+    /**
+     * The rows of the import (of one "Add", or of all) that could not be added for one reason - the ids one answer
+     * for all of them is given to.
+     *
+     * @return list<string>
+     */
+    public function rowIdsNotAddedFor(string $importId, string $playerId, string $code, null|string $batchId, int $limit): array
+    {
+        if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false)) {
+            return [];
+        }
+
+        /** @var list<string> $ids */
+        $ids = $this->database->executeQuery(<<<SQL
+SELECT r.id
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+    AND r.state = 'waiting'
+    AND r.failure = :code
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+ORDER BY sheet.position, r.row_number, r.id
+LIMIT :limit
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchId' => $batchId, 'limit' => $limit])->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
+     * For rows that wait with "a similar result exists" or "somebody else's result": the results the question is
+     * about, to be shown beside the row before "Add it anyway" - time, day and kind only. A similar result is the
+     * player's own (suspicious or not - it is theirs, and shown to nobody else); somebody else's is a pair/team
+     * result of the puzzle with the row's very day and time, shown without anybody's name. One statement.
+     *
+     * @param list<string> $rowIds
+     *
+     * @return array<string, list<array{seconds: null|int, day: DateTimeImmutable, type: string}>> by row id
+     */
+    public function resultsBeside(string $importId, string $playerId, array $rowIds): array
+    {
+        $rowIds = array_values(array_filter($rowIds, Uuid::isValid(...)));
+
+        if ($rowIds === [] || self::areIds($importId, $playerId) === false) {
+            return [];
+        }
+
+        /** @var list<array{row_id: string, seconds_to_solve: null|int, day: string, puzzling_type: string}> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT r.id AS row_id, beside.seconds_to_solve, beside.day, beside.puzzling_type
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+INNER JOIN data_import_puzzle import_puzzle ON import_puzzle.id = r.import_puzzle_id
+CROSS JOIN LATERAL (
+    SELECT result.seconds_to_solve, CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) AS day, result.puzzling_type
+    FROM puzzle_solving_time result
+    WHERE result.puzzle_id = import_puzzle.puzzle_id
+        AND (
+            (
+                r.failure = 'similar_result_exists'
+                AND result.player_id = :playerId
+                AND (
+                    (result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER))
+                    <> (CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) = CAST(r.parsed ->> 'date' AS DATE))
+                )
+            )
+            OR (
+                r.failure = 'somebody_elses_result'
+                AND result.player_id IS NOT NULL
+                AND result.player_id <> :playerId
+                AND result.puzzling_type <> 'solo'
+                AND result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER)
+                AND CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) = CAST(r.parsed ->> 'date' AS DATE)
+            )
+        )
+    ORDER BY COALESCE(result.finished_at, result.tracked_at), result.id
+    LIMIT 3
+) beside
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND r.id IN (:rowIds)
+    AND r.failure IN ('similar_result_exists', 'somebody_elses_result')
+    AND r.parsed ->> 'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['rowIds' => ArrayParameterType::STRING])->fetchAllAssociative();
+
+        $beside = [];
+
+        foreach ($rows as $row) {
+            $beside[$row['row_id']][] = ['seconds' => $row['seconds_to_solve'], 'day' => new DateTimeImmutable($row['day']), 'type' => $row['puzzling_type']];
+        }
+
+        return $beside;
     }
 
     /**
@@ -710,7 +889,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowId' => $rowId])->fet
      */
     private function rows(string $join, string $condition, array $parameters, string $order, int $limit, int $offset, bool $withReady = false, bool $equalGroups = false): array
     {
-        $with = $withReady ? 'WITH ' . self::READY_CTE : '';
+        $with = $withReady ? 'WITH ' . DataImportRowRepository::sqlReadyRows() : '';
         $equal = $equalGroups ? 'equal_group.equal_rows + 1' : '1';
         $separate = $equalGroups ? 'equal_group.separate' : 'r.add_as_separate';
 
@@ -783,6 +962,16 @@ SQL, [
             equalRows: $row['equal_rows'],
             addAsSeparate: $row['add_as_separate'],
         ), $rows);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private static function decoded(null|string $json): array
+    {
+        $decoded = $json === null ? null : json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     private static function areIds(string ...$ids): bool

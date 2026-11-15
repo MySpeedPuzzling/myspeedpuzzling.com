@@ -43,7 +43,7 @@
 
     {# --- What will be added --- #}
     <div class="card card-body shadow-sm mb-3" data-testid="import-add-counts"
-         data-rows="{{ add.rowsToTake }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
+         data-rows="{{ add.rowsToTake }}" data-later="{{ add.later }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
         <h2 class="h5 mb-2">{{ 'data_import.add.will_add'|trans }}</h2>
         {% if add.rowsReady == 0 %}
             <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
@@ -91,8 +91,9 @@
     {% endif %}
 
     {# --- Unusual times: looked up apart, into this frame (ImportAddTimesController) --- #}
-    {% if add.readyResultRows > 0 %}
-        <div id="unusual-times">
+    {% if add.rowsTaken > 0 %}
+        {# data_import_times_frame_controller.js: an answer without the frame (signed out, the import gone) becomes a full visit #}
+        <div id="unusual-times" data-controller="data-import-times-frame">
             <turbo-frame id="import-add-times" src="{{ path('data_import_add_times', {importId: import.importId}) }}" loading="lazy" data-testid="import-add-times-frame">
                 <div class="card card-body shadow-sm mb-3">
                     <h2 class="h6 mb-1">{{ 'data_import.add.times.title'|trans }}</h2>
@@ -175,7 +176,14 @@
             <input type="hidden" name="request_id" value="{{ request_id }}">
             <button type="submit" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-testid="import-add-button">
                 <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>
-                {%- if add.toAdd > 0 %}{{ 'data_import.add.button'|trans({'%number%': add.toAdd|format_number}) }}{% else %}{{ 'data_import.add.button_settle'|trans({'%number%': add.rowsToTake|format_number}) }}{% endif -%}
+                {%- if add.toAdd > 0 and add.later > 0 -%}
+                    {# The daily guard: the button says what this tap adds #}
+                    {{ 'data_import.add.button_part'|trans({'%number%': add.toAdd|format_number, '%total%': (add.toAdd + add.later)|format_number}) }}
+                {%- elseif add.toAdd > 0 -%}
+                    {{ 'data_import.add.button'|trans({'%number%': add.toAdd|format_number}) }}
+                {%- else -%}
+                    {{ 'data_import.add.button_settle'|trans({'%number%': add.rowsToTake|format_number}) }}
+                {%- endif -%}
             </button>
             <p class="fs-sm text-muted text-center mt-2 mb-0">{{ 'data_import.add.button_hint'|trans }}</p>
         </form>

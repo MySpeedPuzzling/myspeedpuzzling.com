@@ -11790,8 +11790,9 @@ data_import:
         with_guests: "con %people% (como invitados)"
         first_try: "primer intento"
         button: "Añadir %number% a mi perfil"
+        button_part: "Añadir ahora %number% de %total%: el resto mañana"
         button_settle: "Repasar estas filas (%number%)"
-        button_hint: "Se hace en segundo plano: puedes salir de la página. Después podrás deshacerlo."
+        button_hint: "Se añade todo lo que esté listo en el momento de pulsar. Se hace en segundo plano: puedes salir de la página. Después podrás deshacerlo."
         ready:
             title: "Añadir a tu perfil"
             adding: "Ahora mismo se están añadiendo filas de esta importación a tu perfil."
@@ -11858,6 +11859,7 @@ data_import:
             nothing_chosen: "No se eligió nada."
             changed_meanwhile: "Estas filas han cambiado entretanto: no se guardó nada. Así están ahora."
             confirmed: "Guardado: el tiempo se da por correcto."
+            confirmed_some: "Confirmados: %confirmed% · cambiaron entretanto, sin confirmar: %skipped%"
             left_out: "Se ha dejado fuera. Puedes volver a incluir la fila en «Por corregir»."
             separate: "Guardado: cada fila cuenta como un resultado propio."
             one: "Guardado: las filas cuentan como un solo resultado."
@@ -11868,6 +11870,12 @@ data_import:
             not_addable: "Ahora mismo no se pueden añadir filas de esta importación."
             daily_limit: "Los %number% resultados de hoy desde hojas de cálculo ya se han usado. El resto estará listo mañana; no se pierde nada."
     batch:
+        how:
+            owned: "Filas cuyo puzzle ya tenías, por otra fila del archivo o de antes: %number%"
+            equal_row: "Filas que repiten otra fila del archivo, un solo resultado: %number%"
+            profile: "Resultados que ya estaban en tu perfil: %number%"
+            earlier_import: "Resultados que ya había añadido una importación tuya anterior: %number%"
+            this_row: "Resultados que estas filas ya habían añadido antes: %number%"
         title: "Añadiendo a tu perfil"
         title_done: "Añadido a tu perfil"
         line: "Añadiendo… %done% de %total%"
@@ -11919,6 +11927,16 @@ data_import:
         see_result: "Ver el resultado"
         being_taken_back: "Deshaciendo…"
     not_added:
+        beside_own: "Ya en tu perfil:"
+        beside_other: "Ya registrado por otra persona:"
+        people:
+            title: "¿Con quién los montaste?"
+            hint: "Filas que dicen pareja o equipo y no nombran a nadie: %number%. Una respuesta para todas; después se añaden."
+            names: "Nombres separados por comas: se añaden como invitados"
+            submit: "Usar para estas filas y añadirlas (%number%)"
+            solo: "Fueron individuales: añadirlas (%number%)"
+            no_names: "Escribe al menos un nombre, o elige individual."
+            saved_not_added: "Tu respuesta está guardada. Las filas no se han podido añadir ahora; inténtalo de nuevo dentro de un rato."
         title: "Filas que no se pudieron añadir"
         intro: "Filas que esperan aquí: %number%. Cada una dice por qué; el resto de tu importación no se ve afectado."
         none: "Aquí no espera ninguna fila."

@@ -51,7 +51,8 @@ final class ImportRowAnswersTest extends TestCase
         yield 'what the row is' => [ImportField::Status, 'wish_list', 'wish_list'];
         yield 'a name' => [ImportField::PuzzleName, '  Zq Circle of  Kites ', 'Zq Circle of Kites'];
         yield 'nothing typed' => [ImportField::PuzzleName, '   ', null];
-        yield 'a field nobody answers' => [ImportField::SolvedWith, 'Anna', null];
+        yield 'people, each a guest' => [ImportField::SolvedWith, 'Anna, Ben ; Anna', ['Anna', 'Ben']];
+        yield 'a field nobody answers' => [ImportField::BrandCode, 'RB-123', null];
         yield 'a barcode' => [ImportField::Barcode, '4005556174812', ['4005556174812']];
     }
 

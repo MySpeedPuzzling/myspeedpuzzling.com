@@ -14,7 +14,6 @@ use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowState;
-use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 
 readonly final class DataImportRowRepository
 {
@@ -198,8 +197,8 @@ readonly final class DataImportRowRepository
     }
 
     /**
-     * The rows of the import that are the same result as this row - an equal row of its sheet, the same row on a
-     * later sheet, at most two steps away (README D6). The row that stands for them is not among them.
+     * The waiting rows of the import that are the same result as this row - an equal row of its sheet, the same row
+     * on a later sheet, at most two steps away (README D6). The row that stands for them is not among them.
      *
      * @return list<DataImportRow>
      */
@@ -216,14 +215,49 @@ readonly final class DataImportRowRepository
             ->join('r.sameAsRow', 'same')
             ->where('r.import = :import')
             ->andWhere('same.id = :standing OR IDENTITY(same.sameAsRow) = :standing')
+            // Only rows a word still makes sense for: an "Add" holds the others, or they made something already
+            ->andWhere('r.state = :waiting')
+            ->andWhere('r.kind IN (:kinds)')
             ->orderBy('r.id')
             ->setParameter('import', $import)
             ->setParameter('standing', $standingRowId)
+            ->setParameter('waiting', DataImportRowState::Waiting->value)
+            ->setParameter('kinds', [DataImportRowKind::Result->value, DataImportRowKind::Both->value])
             ->setMaxResults(500)
             ->getQuery()
             ->getResult();
 
         return $rows;
+    }
+
+    /**
+     * The catalogue puzzle each of the rows is paired with now - what a row's "add it anyway" is given for
+     * (DataImportRow::addAnyway()). Rows whose puzzle is not decided as a catalogue puzzle are not in the answer.
+     *
+     * @param list<string> $rowIds
+     *
+     * @return array<string, string> puzzle id by row id
+     */
+    public function cataloguePuzzleIdsOf(DataImport $import, array $rowIds): array
+    {
+        $rowIds = array_values(array_filter($rowIds, Uuid::isValid(...)));
+
+        if ($rowIds === []) {
+            return [];
+        }
+
+        /** @var array<string, string> $puzzleIds */
+        $puzzleIds = $this->entityManager->getConnection()->executeQuery(<<<SQL
+SELECT r.id, puzzle.puzzle_id
+FROM data_import_row r
+INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
+WHERE r.import_id = :importId
+    AND r.id IN (:rowIds)
+    AND puzzle.choice = 'catalogue'
+    AND puzzle.puzzle_id IS NOT NULL
+SQL, ['importId' => $import->id->toString(), 'rowIds' => $rowIds], ['rowIds' => ArrayParameterType::STRING])->fetchAllKeyValue();
+
+        return $puzzleIds;
     }
 
     /**
@@ -352,6 +386,77 @@ SQL, [
     }
 
     /**
+     * **The one definition of "ready"** (docs/features/data-import/adding.md "Ready") - two CTEs for whoever needs
+     * them: "Add" itself (queueReadyRows()) and the screens that say beforehand what an "Add" would take
+     * (Query\GetImportAddScreen), so the two can never drift apart.
+     *
+     * - `chosen`: the rows of the import an "Add" may look at - data without a problem on a sheet that is in, not
+     *   held by an Undo, waiting and not refused before (a refused or failed row only when it is asked for by name -
+     *   `:explicit = 1`), or settled as "already yours" with a result that is gone since ("already yours" is what
+     *   exists now; puzzle_solving_time is asked only whether the id exists - whatever the result's state, tracked
+     *   or not);
+     * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - whose day is
+     *   exact, in the file's order, with the running number of results (`results_so_far`: the daily guard takes
+     *   the first N).
+     *
+     * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
+     *
+     * @param string $selection more conditions on the row `r` (" AND r.id IN (:rowIds)")
+     */
+    public static function sqlReadyRows(string $selection = ''): string
+    {
+        return <<<SQL
+chosen AS (
+    SELECT
+        r.id,
+        r.sheet_id,
+        r.row_number,
+        sheet.position,
+        r.kind IN ('result', 'both') AS has_result,
+        r.kind IN ('owned', 'both') AS has_owned,
+        r.kind = 'wish_list' AS is_wish,
+        puzzle.choice,
+        puzzle.puzzle_id,
+        -- Only a row with a result has a day to ask about (`parsed` is the widest thing a row holds)
+        r.kind IN ('result', 'both') AND COALESCE(r.parsed ->> 'datePrecision', '') = 'day' AND r.parsed ->> 'date' IS NOT NULL AS exact_day,
+        -- The same result as another row of the file: one result unless the player says otherwise (README D6)
+        r.same_as_row_id IS NOT NULL AND r.add_as_separate = FALSE AS equal_row,
+        r.state,
+        r.already_yours_how,
+        r.already_yours_solving_time_id
+    FROM data_import_row r
+    INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
+    INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
+    WHERE r.import_id = :importId
+        AND sheet.included
+        AND r.kind IN ('result', 'owned', 'both', 'wish_list')
+        AND r.problems IS NULL
+        AND r.undo_id IS NULL
+        AND r.source_key IS NOT NULL
+        AND (
+            (r.state = 'waiting' AND (r.failure IS NULL OR :explicit = 1))
+            OR (r.state = 'failed' AND :explicit = 1)
+            OR (
+                r.state = 'already_yours'
+                AND r.already_yours_solving_time_id IS NOT NULL
+                AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time gone WHERE gone.id = r.already_yours_solving_time_id)
+            )
+        )
+        {$selection}
+),
+ready AS (
+    SELECT
+        chosen.*,
+        SUM(CASE WHEN chosen.has_result THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
+    FROM chosen
+    WHERE chosen.choice = 'catalogue'
+        AND chosen.puzzle_id IS NOT NULL
+        AND (chosen.has_result = FALSE OR chosen.exact_day)
+)
+SQL;
+    }
+
+    /**
      * "Add": the rows of the selection that are ready are queued for the batch, in the file's order - a row is ready
      * when it is data without a problem, its sheet is in, its puzzle is decided as a catalogue puzzle and, for a
      * result, its day is exact (docs/features/data-import/adding.md "Ready") - a row that waits, or one settled as
@@ -376,12 +481,7 @@ SQL, [
             'importId' => $import->id->toString(),
             'batchId' => $batchId,
             'resultsLeft' => max(0, $resultsLeft),
-            'catalogue' => ImportPuzzleChoice::Catalogue->value,
-            'unlisted' => ImportPuzzleChoice::Unlisted->value,
             'queued' => DataImportRowState::Queued->value,
-            'waiting' => DataImportRowState::Waiting->value,
-            'failed' => DataImportRowState::Failed->value,
-            'alreadyYours' => DataImportRowState::AlreadyYours->value,
             'explicit' => $explicit ? 1 : 0,
         ];
         $types = [];
@@ -398,64 +498,25 @@ SQL, [
             $types['importPuzzleIds'] = ArrayParameterType::STRING;
         }
 
+        $ready = self::sqlReadyRows($selection);
+
         /** @var false|array{queued: int|string, over_daily_limit: int|string, unlisted: int|string, needs_exact_day: int|string} $counts */
         $counts = $this->entityManager->getConnection()->executeQuery(<<<SQL
-WITH chosen AS (
-    SELECT
-        r.id,
-        r.kind IN ('result', 'both') AS has_result,
-        puzzle.choice,
-        puzzle.puzzle_id,
-        COALESCE(r.parsed ->> 'datePrecision', '') = 'day' AND r.parsed ->> 'date' IS NOT NULL AS exact_day,
-        sheet.position,
-        r.row_number
-    FROM data_import_row r
-    INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
-    INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
-    WHERE r.import_id = :importId
-        AND sheet.included
-        AND r.kind IN ('result', 'owned', 'both', 'wish_list')
-        AND r.problems IS NULL
-        AND r.undo_id IS NULL
-        AND r.source_key IS NOT NULL
-        -- Waiting and not refused before; a row that was refused or failed only when it is asked for by name; and a row
-        -- settled as "already yours" whose result is gone since (undone, deleted) - "already yours" is what exists now.
-        -- puzzle_solving_time is asked only whether the id exists - whatever the result's state, tracked or not
-        AND (
-            (r.state = :waiting AND (r.failure IS NULL OR :explicit = 1))
-            OR (r.state = :failed AND :explicit = 1)
-            OR (
-                r.state = :alreadyYours
-                AND r.already_yours_solving_time_id IS NOT NULL
-                AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time gone WHERE gone.id = r.already_yours_solving_time_id)
-            )
-        )
-        {$selection}
-),
-ready AS (
-    SELECT
-        chosen.id,
-        chosen.has_result,
-        SUM(CASE WHEN chosen.has_result THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
-    FROM chosen
-    WHERE chosen.choice = :catalogue
-        AND chosen.puzzle_id IS NOT NULL
-        AND (chosen.has_result = FALSE OR chosen.exact_day)
-),
+WITH {$ready},
 taken AS (
     UPDATE data_import_row
     SET state = :queued, batch_id = :batchId, failure = NULL
     FROM ready
     WHERE data_import_row.id = ready.id
         AND (ready.has_result = FALSE OR ready.results_so_far <= :resultsLeft)
-        AND data_import_row.state IN (:waiting, :failed, :alreadyYours)
+        AND data_import_row.state IN ('waiting', 'failed', 'already_yours')
     RETURNING data_import_row.id
 )
 SELECT
     (SELECT COUNT(*) FROM taken) AS queued,
     (SELECT COUNT(*) FROM ready WHERE ready.has_result AND ready.results_so_far > :resultsLeft) AS over_daily_limit,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = :unlisted) AS unlisted,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = :catalogue AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day
+    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'unlisted') AS unlisted,
+    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day
 SQL, $parameters, $types)->fetchAssociative();
 
         return [

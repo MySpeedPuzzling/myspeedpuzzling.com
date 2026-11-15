@@ -11792,8 +11792,9 @@ data_import:
         with_guests: "s: %people% (jako hosté)"
         first_try: "první pokus"
         button: "Přidat na můj profil (%number%)"
+        button_part: "Přidat teď %number% z %total% - zbytek zítra"
         button_settle: "Projít tyto řádky (%number%)"
-        button_hint: "Běží na pozadí - stránku můžete opustit. Potom to lze vzít zpět."
+        button_hint: "Přidá se vše, co je připraveno ve chvíli, kdy tlačítko stisknete. Běží na pozadí - stránku můžete opustit. Potom to lze vzít zpět."
         ready:
             title: "Přidání na váš profil"
             adding: "Řádky tohoto importu se právě přidávají na váš profil."
@@ -11860,6 +11861,7 @@ data_import:
             nothing_chosen: "Nic nebylo vybráno."
             changed_meanwhile: "Tyto řádky se mezitím změnily - nic se neuložilo. Takto vypadají teď."
             confirmed: "Uloženo - čas se bere jako správný."
+            confirmed_some: "Potvrzeno: %confirmed% · mezitím změněno, nepotvrzeno: %skipped%"
             left_out: "Vynecháno. Řádek můžete vrátit zpět v části „K opravě“."
             separate: "Uloženo - každý řádek se počítá jako samostatný výsledek."
             one: "Uloženo - řádky se počítají jako jeden výsledek."
@@ -11870,6 +11872,12 @@ data_import:
             not_addable: "Z tohoto importu teď nelze řádky přidávat."
             daily_limit: "Dnešních %number% výsledků z tabulek je vyčerpáno. Zbytek bude připraven zítra - nic se neztratí."
     batch:
+        how:
+            owned: "Řádky, jejichž puzzle jste už měli - z jiného řádku souboru nebo z dřívějška: %number%"
+            equal_row: "Řádky, které opakují jiný řádek souboru - jeden výsledek: %number%"
+            profile: "Výsledky, které už na vašem profilu byly: %number%"
+            earlier_import: "Výsledky, které přidal váš dřívější import: %number%"
+            this_row: "Výsledky, které tyto řádky přidaly už dříve: %number%"
         title: "Přidávání na váš profil"
         title_done: "Přidáno na váš profil"
         line: "Přidáváme… %done% z %total%"
@@ -11921,6 +11929,16 @@ data_import:
         see_result: "Zobrazit výsledek"
         being_taken_back: "Bere se zpět…"
     not_added:
+        beside_own: "Už máte na profilu:"
+        beside_other: "Už zapsal někdo jiný:"
+        people:
+            title: "S kým jste je skládali?"
+            hint: "Řádky, které uvádějí dvojici nebo tým a nikoho nejmenují: %number%. Jedna odpověď pro všechny - potom se přidají."
+            names: "Jména oddělená čárkami - přidají se jako hosté"
+            submit: "Použít pro tyto řádky a přidat je (%number%)"
+            solo: "Byly sólo - přidat je (%number%)"
+            no_names: "Napište prosím alespoň jedno jméno - nebo zvolte sólo."
+            saved_not_added: "Vaše odpověď je uložena. Řádky se teď nepodařilo přidat - zkuste to za chvíli znovu."
         title: "Řádky, které se nepodařilo přidat"
         intro: "Řádky, které tu čekají: %number%. U každého je uvedeno proč - zbytku importu se to netýká."
         none: "Nečeká tu žádný řádek."

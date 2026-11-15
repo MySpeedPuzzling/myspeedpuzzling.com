@@ -87,7 +87,6 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetGuestLinkRequests.php' => self::OWN,
         'Query/GetImageEstimateEvaluationRows.php' => self::SOLO,
         'Query/GetImportPuzzleCandidates.php' => 'The data import\'s pairing: whether the importing player solved a catalogue puzzle (`player_id = :playerId`) - a result nobody claimed is nobody\'s.',
-        'Query/GetImportAddScreen.php' => 'The data import\'s "Add" screens: whether a result exists - by the id a row of the player\'s own import kept, or tracked by the importing player (`player_id = :playerId`) - a result nobody claimed is neither; its tracker is never joined.',
         'Query/GetImportPuzzleScreen.php' => 'The data import\'s Puzzles summary: the result a row of the player\'s own import was paired with, by its id (the pairing reads only results tracked by the importing player, or made by their earlier import) - its tracker is never joined.',
         'Query/GetImportRowsOnProfile.php' => 'The data import\'s pairing: results tracked by the importing player (`player_id = :playerId`), and the result a row of an earlier import of theirs made, by its id - a result nobody claimed is neither.',
         'Query/GetInsightsActivity.php' => self::OWN,

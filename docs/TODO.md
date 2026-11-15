@@ -1675,3 +1675,24 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] `AssetFailureScriptTest::testHealRepairsAPoisonedStylesheetAndReportsItOnce` fails now and then in CI with
   `'refetch' => 'timeout'` instead of `'intact'` (twice on 2026-11-14/15, on main and on a pull request; passes on
   re-run) - the node harness's refetch races its timer on a loaded runner.
+
+## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
+
+- [ ] A row with two doubts is asked twice, one round after the other (unusual time, then "the file says it is on
+  MySpeedPuzzling"): collect every waivable question of a row in one pass and ask them together.
+- [ ] 13 of 21 "Probably" puzzles of Puzzle Tracker's export carried "Another brand" - look at them: a re-release, or
+  the file writing a brand the catalogue spells differently (then `ImportBrandResolver` needs the alias; a player's
+  own brand shorthand "MB" is not remembered yet).
+- [ ] The import pages follow a pairing by polling every 4 s (no Mercure for pairing); the progress statement counts
+  rows on every poll (docs/features/data-import/columns-screen.md "Performance").
+- [ ] "Keep all not-found puzzles as unlisted" in one go; "one result or two?" exists only before the Add.
+- [ ] XP awards of an import sit on the `imports` transport, which has no retries - a failed award is in `failed`.
+- [ ] An owned row always goes to the main collection; a "both" row (result + owned) carries one key.
+- [ ] Cron rows on lily take effect when pushed: push them AFTER the release that brings the command (three Sentry
+  issues on 2026-11-15 came from the other order), and a 5-minute cron can run on a new image before its migration.
+- [ ] The moderators' import card (`/admin/time-verification`) was never looked at in a browser - do it with the
+  first real import, on the sandbox as an admin.
+- [ ] The 0.6 similar-name threshold is unchecked against 200 labelled rows; a searched puzzle is not searched
+  again when the catalogue grows.
+- [ ] Reader: the 60 s CPU / 300 s wall budget and the blank-run cap are in; `too_slow` wording says "try again".
+  (The two older reader items above are done by #351.)

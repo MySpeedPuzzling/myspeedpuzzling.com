@@ -20,7 +20,7 @@ sandbox from the stage that can read them.
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
-| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); 6b-3 (group answers) building | #359, #360 | yes | sandbox: two real files added to a made-up player (see the log) |
+| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
 | 2a-c | My data | not started | | | |
@@ -55,6 +55,17 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **6b-3 and 6b-4 live** (#361, #362). One answer for a whole group of rows that were not added
+  ("These times are right - add all N" with an honest summary first; "They are missing - add all N" / leave out;
+  possible duplicates stay one by one), over 200 rows on the worker; then one Add of exactly those rows. In the
+  moderators' queue an import's confirmed unusual results are ONE card (the player's typed pace beside the
+  imported one; looks fine for all / mark all with one note / one by one) - the check stays, an import is not a way
+  around time verification; a marked group tells the player once (no bell, one e-mail line). On the sandbox: "they
+  are missing - add all 441" → 430 added, 11 kept by the first-try rule; "these times are right - add all 416" →
+  136 added, 259 came back with the next question (the file says they are on MySpeedPuzzling). The moderators' card
+  itself was not looked at in a browser (the sandbox player is no moderator).
+- 2026-11-15 - loose ends of stage 6 are in docs/TODO.md "Data import - after the first real runs".
 
 - 2026-11-15 - **stage 6b-2 live** (#360): "Review and add" - the review (counts, the first results as they will
   appear, unusual times, equal rows, already yours), "Add N to my profile", the live bar, the done page with every

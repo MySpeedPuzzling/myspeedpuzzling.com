@@ -28,7 +28,7 @@ ranked as a bare `#CODE`.
 | "Getting started" card | Hub **and the player's own profile**, `templates/onboarding/_getting_started_card.html.twig` | See below |
 | The guide | route `getting_started` (`/en/getting-started`, localized slugs), `templates/onboarding/getting_started.html.twig` | Public, indexable, all 6 locales. Linked from footer column 1, the user menu, the FAQ, the welcome screen, the Hub card |
 | Empty statistics | `templates/components/PlayerStatistics.html.twig` | The owner's own empty statistics get a "Log your first puzzle" button |
-| The spreadsheet path | welcome screen, the card's footer, the guide's step "Track", empty statistics | "Already tracking in a spreadsheet? Bring it over" → the import's own guide (`docs/features/data-import/entry-points.md`). A link only: the steps are derived as before, and what an import adds ticks them like typed data |
+| "Import your data from elsewhere" | welcome screen (a fourth big choice; first and highlighted after a sign-up from the import's guide), the guide's own item `#import` after the six steps; a quiet line in the card's footer and on empty statistics | `docs/features/data-import/entry-points.md`. Links only: the card's steps are derived as before, and what an import adds ticks them like typed data |
 
 Styles: `assets/styles/_onboarding.scss`. Mobile first: one column, every target ≥ 48 px.
 
@@ -64,7 +64,7 @@ asks nothing else - "Add your country" and "Complete your profile" (time zone, `
 - Layout: on a phone the step number sits **on the title line**, so text and buttons use the full width (a number column cost a fifth of the screen); from `lg` up the steps run in two columns and the tiles in three.
 - **No screenshots** - they go stale and are in one language. Icons only.
 - **All 6 locales**, unlike `/en/guides/*` (those are English-only SEO articles; this is product UI).
-- Anchors `#track #profile #library #statistics #compare #favorites #more` are linked from
+- Anchors `#track #profile #library #statistics #compare #favorites #import #more` are linked from
   elsewhere - `GettingStartedControllerTest` pins them.
 - Signed in, **every step shows a tick** from the same `GettingStartedProgress`. Steps 1, 2, 3 and 6 are
   derived from data (a time, name + country, a collection item, a favorite). Statistics and Leaderboard leave

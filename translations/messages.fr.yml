@@ -12582,7 +12582,7 @@ data_import:
         taken_back: "{0}Nous avons annulé ce que votre import de %file% avait ajouté.|{1}Nous avons annulé 1 résultat que votre import de %file% avait ajouté.|]1,Inf[Nous avons annulé %count% résultats que votre import de %file% avait ajoutés."
         taken_back_reason: "Raison : %reason%"
 
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
 import_guide:
     meta:
         title: "Importez votre tableur de puzzles - temps, collection, liste de souhaits"
@@ -12595,10 +12595,10 @@ import_guide:
     to_guide: "Comment fonctionne l'import"
     what:
         title: "Ce que vous pouvez apporter"
-        results: "<strong>Résultats</strong> - les puzzles que vous avez faits, avec ou sans temps et date."
-        owned: "<strong>Les puzzles que vous possédez</strong> - ils vont dans votre collection."
+        results: "<strong>Résultats</strong> - les puzzles que vous avez faits, avec ou sans temps. Un résultat a besoin d'une date - un jour, ou seulement le mois ou l'année ; sans aucune date, il attend que vous lui en donniez une."
+        owned: "<strong>Les puzzles que vous possédez</strong> - ils vont dans votre collection principale."
         wish_list: "<strong>Votre liste de souhaits</strong> - les lignes que votre fichier marque comme souhaitées."
-        formats: "<strong>Depuis</strong> un fichier Excel (.xlsx), un fichier CSV ou TSV, ou le lien d'une feuille Google Sheets."
+        formats: "<strong>Depuis</strong> un fichier Excel (.xlsx), un fichier CSV ou TSV, ou le lien d'une feuille Google Sheets. Un fichier peut faire jusqu'à 25 Mo, 50 000 lignes et 100 feuilles."
         apps: "<strong>Vous venez de l'application Puzzle Tracker ?</strong> Son export CSV est reconnu tout seul, comme l'export de résultats de MySpeedPuzzling - aucune colonne à régler."
         fields: "<strong>Vos propres notes</strong> - une note, un prix, le lieu d'achat : ces colonnes peuvent aller dans des champs privés prêts à l'emploi, que vous seul voyez."
     how:
@@ -12626,20 +12626,21 @@ import_guide:
         only_you: "Vous seul voyez votre fichier et ce que nous y avons lu."
         kept: "Le fichier lui-même est conservé %days% jours, puis supprimé. Ce que nous y avons lu reste avec votre import, pour que rien ne soit ajouté deux fois et que vous puissiez revenir en arrière."
         google: "Une feuille Google Sheets doit être partagée avec « Tous les utilisateurs disposant du lien » pendant que nous la récupérons. Une fois arrivée, vous pouvez couper le partage."
-        discard: "Vous pouvez abandonner un import à tout moment, et tout disparaît si vous supprimez votre compte."
+        discard: "Tant que vous n'avez pas appuyé sur Ajouter, vous pouvez abandonner un import et il disparaît aussitôt ; ensuite, vous annulez ce qu'il a ajouté. Tout disparaît si vous supprimez votre compte."
     never_twice:
         title: "Rien n'est jamais ajouté deux fois"
-        text: "Apportez le même fichier une seconde fois : rien de nouveau n'est ajouté. Ajoutez trente lignes à votre tableur et apportez-le de nouveau : les trente sont ajoutées. Les résultats déjà saisis sur MySpeedPuzzling sont reconnus eux aussi et laissés tels quels."
+        text: "Apportez le même fichier une seconde fois : rien de nouveau n'est ajouté. Ajoutez trente lignes à votre tableur et apportez-le de nouveau : les trente sont ajoutées. Un résultat déjà saisi sur MySpeedPuzzling avec le même jour et le même temps est reconnu lui aussi et n'est pas ajouté de nouveau."
     take_back:
         title: "Vous pouvez revenir en arrière"
         text: "Tout ce qu'un import a ajouté est listé sur sa page. Annulez une ligne, un « Ajouter » ou l'import entier - avant toute suppression, vous voyez ce qui part et ce qui reste. Un résultat que vous avez modifié ensuite est conservé, sauf si vous en décidez autrement."
     result:
         title: "Ce qu'est un résultat importé"
-        counts: "C'est un résultat comme ceux que vous saisissez : il compte dans vos statistiques et figure au classement du puzzle."
+        counts: "C'est un résultat comme ceux que vous saisissez : il compte dans vos statistiques et, avec un temps, il figure au classement du puzzle. Un résultat sans temps compte seulement comme puzzle terminé."
         dated: "Il porte le jour indiqué par votre fichier. Si le fichier ne connaît que le mois ou l'année, c'est ce qui est affiché - nous n'inventons jamais un jour."
         photo: "Il n'a pas de photo - un tableur n'en contient pas. Vous pouvez en ajouter une plus tard en modifiant le résultat."
         partners: "Les personnes avec qui vous avez fait le puzzle sont ajoutées comme invités, sous le nom de votre fichier - jamais comme joueurs inscrits. Un invité peut être relié plus tard à un joueur, avec son accord."
         unusual: "Un temps bien plus rapide ou plus lent que ce que nous attendrions de vous n'est pas ajouté en silence : nous vous demandons s'il est juste, comme dans le formulaire d'ajout."
+        limit: "Au plus 2 000 résultats par jour sont ajoutés depuis des tableurs. Le reste est prêt le lendemain : vous appuyez de nouveau sur Ajouter - rien n'est perdu."
     unlisted:
         title: "Les puzzles que nous n'avons pas encore"
         text: "Un puzzle de votre fichier absent de notre catalogue n'est pas perdu : gardez-le comme puzzle hors catalogue. Ses résultats et le fait que vous le possédiez restent sur une page que vous seul voyez, et ne comptent nulle part en public. Quand le puzzle sera trouvé dans le catalogue, vous l'associez et ses résultats passent sur votre profil."
@@ -12650,7 +12651,7 @@ import_guide:
         lists: "Les listes de prêts et de vente/échange - une note comme « prêté à … » reste une note."
         events: "L'événement ou la compétition d'un résultat - on peut l'indiquer plus tard en modifiant le résultat."
         own_columns: "Une colonne qui ne correspond à aucun des champs prêts à l'emploi est laissée de côté pour l'instant."
-        unlisted: "Un puzzle hors catalogue ne peut pas encore être modifié ni proposé au catalogue depuis sa page."
+        unlisted: "Un puzzle hors catalogue ne peut pas encore être modifié ni proposé au catalogue depuis sa page ; ses notes et ses champs personnels ne sont pas conservés, et un résultat sans date reste hors catalogue lors de l'association."
         sync: "Une feuille Google Sheets est lue une fois, quand vous l'apportez - ses changements ne sont pas suivis."
     start:
         title: "On y va ?"
@@ -12661,6 +12662,11 @@ import_guide:
         many_results: "Beaucoup de résultats dans un tableur ?"
         import_them: "Importez-les"
         puzzles_question: "Vous tenez vos puzzles dans un tableur ?"
+    newcomer:
+        title: "Importez vos données d'ailleurs"
+        hint: "Un tableur ou l'export d'une autre application - résultats, collection, liste de souhaits"
+        text: "Vous tenez déjà vos temps ou votre collection dans un tableur ou une autre application ? Inutile de tout retaper. Apportez un fichier Excel ou CSV ou une feuille Google Sheets, vérifiez ce que nous avons compris et ajoutez-le à votre profil - rien n'est ajouté deux fois et vous pouvez revenir en arrière."
+        where: "Votre menu, en haut de chaque page : <strong>Importer un tableur</strong>."
     export_card:
         title: "Apporter des données"
         text: "Vous teniez vos résultats ou votre collection dans un tableur ? Importez un fichier Excel ou CSV ou une feuille Google Sheets - vous vérifiez tout avant que quoi que ce soit soit ajouté."
@@ -12675,6 +12681,8 @@ import_guide:
         tracker:
             title: "Vous venez de Puzzle Tracker ?"
             text: "Exportez vos puzzles dans l'application en fichier CSV et apportez ce fichier ici. Nous connaissons ses colonnes - rien à régler."
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Puzzles hors catalogue"
     link: "Vos puzzles hors catalogue"

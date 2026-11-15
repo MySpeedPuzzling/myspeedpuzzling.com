@@ -94,7 +94,7 @@ final class ImportGuideControllerTest extends WebTestCase
         }
     }
 
-    public function testGuestStartsBySigningUpAndLandsOnTheImport(): void
+    public function testGuestStartButtonsCarryASafeReturnToTheImport(): void
     {
         $browser = self::createClient();
 

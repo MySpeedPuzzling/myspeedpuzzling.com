@@ -15,7 +15,7 @@ final class GettingStartedControllerTest extends WebTestCase
     /**
      * Anchors are linked from the Hub card and from empty states - renaming one breaks those links
      */
-    private const array ANCHORS = ['track', 'profile', 'library', 'statistics', 'compare', 'favorites', 'more'];
+    private const array ANCHORS = ['track', 'profile', 'library', 'statistics', 'compare', 'favorites', 'import', 'more'];
 
     #[DataProvider('provideLocalizedUrls')]
     public function testGuideIsPublicInEveryLocale(string $url): void

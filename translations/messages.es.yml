@@ -12587,7 +12587,7 @@ data_import:
         taken_back: "{0}Hemos deshecho lo que añadió tu importación de %file%.|{1}Hemos deshecho 1 resultado que añadió tu importación de %file%.|]1,Inf[Hemos deshecho %count% resultados que añadió tu importación de %file%."
         taken_back_reason: "Motivo: %reason%"
 
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
 import_guide:
     meta:
         title: "Importa tu hoja de cálculo de puzzles: tiempos, colección y lista de deseos"
@@ -12600,10 +12600,10 @@ import_guide:
     to_guide: "Cómo funciona la importación"
     what:
         title: "Qué puedes traer"
-        results: "<strong>Resultados</strong>: los puzzles que has resuelto, con o sin tiempo y fecha."
-        owned: "<strong>Puzzles que tienes</strong>: van a tu colección."
+        results: "<strong>Resultados</strong>: los puzzles que has resuelto, con o sin tiempo. Un resultado necesita una fecha: un día, o solo el mes o el año; uno sin fecha espera hasta que se la pongas."
+        owned: "<strong>Puzzles que tienes</strong>: van a tu colección principal."
         wish_list: "<strong>Tu lista de deseos</strong>: las filas que tu archivo marca como deseadas."
-        formats: "<strong>Desde</strong> un archivo de Excel (.xlsx), un archivo CSV o TSV, o el enlace de una hoja de Google."
+        formats: "<strong>Desde</strong> un archivo de Excel (.xlsx), un archivo CSV o TSV, o el enlace de una hoja de Google. Un archivo puede tener hasta 25 MB, 50.000 filas y 100 hojas."
         apps: "<strong>¿Vienes de la app Puzzle Tracker?</strong> Su exportación en CSV se reconoce sola, igual que la exportación de resultados de MySpeedPuzzling: no hay columnas que configurar."
         fields: "<strong>Tus propias notas</strong>: una valoración, un precio, dónde lo compraste. Esas columnas pueden ir a campos privados ya preparados que solo ves tú."
     how:
@@ -12631,20 +12631,21 @@ import_guide:
         only_you: "Solo tú ves tu archivo y lo que hemos leído de él."
         kept: "El archivo se guarda %days% días y luego se elimina. Lo que hemos leído de él se queda con tu importación, para que nada se añada dos veces y puedas deshacerlo."
         google: "Una hoja de Google tiene que estar compartida con «Cualquier persona con el enlace» mientras la obtenemos. Cuando ya esté aquí, puedes volver a desactivar el uso compartido."
-        discard: "Puedes descartar una importación en cualquier momento, y todo desaparece si eliminas tu cuenta."
+        discard: "Hasta que pulses Añadir puedes descartar una importación y desaparece al instante; después, deshaces lo que haya añadido. Todo desaparece si eliminas tu cuenta."
     never_twice:
         title: "Nunca añade nada dos veces"
-        text: "Si traes el mismo archivo otra vez, no se añade nada nuevo. Si añades treinta filas a tu hoja y la traes de nuevo, se añaden esas treinta. Los resultados que ya habías escrito en MySpeedPuzzling también se reconocen y no se tocan."
+        text: "Si traes el mismo archivo otra vez, no se añade nada nuevo. Si añades treinta filas a tu hoja y la traes de nuevo, se añaden esas treinta. Un resultado que ya habías escrito en MySpeedPuzzling con el mismo día y tiempo también se reconoce y no se añade otra vez."
     take_back:
         title: "Puedes deshacerlo"
         text: "Todo lo que añadió una importación aparece en su página. Deshaz una fila, un «Añadir» o la importación entera: antes de quitar nada, te mostramos qué se va y qué se queda. Un resultado que hayas editado después se conserva salvo que digas lo contrario."
     result:
         title: "Cómo es un resultado importado"
-        counts: "Es un resultado como los que escribes a mano: cuenta en tus estadísticas y aparece en la clasificación del puzzle."
+        counts: "Es un resultado como los que escribes a mano: cuenta en tus estadísticas y, si tiene tiempo, aparece en la clasificación del puzzle. Un resultado sin tiempo solo cuenta como resuelto."
         dated: "Lleva el día que dice tu archivo. Si el archivo solo sabe el mes o el año, eso es lo que se muestra: nunca inventamos un día."
         photo: "No tiene foto: una hoja de cálculo no lleva ninguna. Puedes añadirla más tarde editando el resultado."
         partners: "Las personas con las que hiciste el puzzle se añaden como invitados, con el nombre de tu archivo, nunca como jugadores registrados. Un invitado se puede vincular más tarde a un jugador, con su consentimiento."
         unusual: "Un tiempo mucho más rápido o más lento de lo que esperaríamos de ti no se añade sin más: te preguntamos si es correcto, igual que en el formulario de añadir."
+        limit: "Como máximo se añaden 2.000 resultados al día desde hojas de cálculo. El resto queda listo al día siguiente: vuelves a pulsar Añadir y no se pierde nada."
     unlisted:
         title: "Puzzles que aún no tenemos"
         text: "Un puzzle de tu archivo que no está en nuestro catálogo no se pierde: guárdalo como puzzle fuera del catálogo. Sus resultados y si lo tienes se quedan en una página que solo ves tú y no cuentan en ningún sitio público. Cuando el puzzle aparezca en el catálogo, lo emparejas y sus resultados pasan a tu perfil."
@@ -12655,7 +12656,7 @@ import_guide:
         lists: "Listas de préstamos y de venta/intercambio: una nota como «prestado a…» sigue siendo una nota."
         events: "El evento o la competición de un resultado: se puede indicar más tarde editando el resultado."
         own_columns: "Una columna que no encaje en ninguno de los campos preparados se deja fuera por ahora."
-        unlisted: "Un puzzle fuera del catálogo todavía no se puede editar ni proponer para el catálogo desde su página."
+        unlisted: "Un puzzle fuera del catálogo todavía no se puede editar ni proponer para el catálogo desde su página; sus notas y campos propios no se conservan, y un resultado sin fecha sigue fuera del catálogo al emparejarlo."
         sync: "Una hoja de Google se lee una vez, cuando la traes: no se vigilan sus cambios."
     start:
         title: "¿Empezamos?"
@@ -12666,6 +12667,11 @@ import_guide:
         many_results: "¿Tienes muchos resultados en una hoja de cálculo?"
         import_them: "Impórtalos"
         puzzles_question: "¿Llevas tus puzzles en una hoja de cálculo?"
+    newcomer:
+        title: "Importa tus datos desde otro sitio"
+        hint: "Una hoja de cálculo o la exportación de otra app: resultados, colección, lista de deseos"
+        text: "¿Ya llevas tus tiempos o tu colección en una hoja de cálculo o en otra app? No hace falta escribirlo otra vez. Trae un archivo de Excel o CSV o una hoja de Google, revisa lo que hemos entendido y añádelo a tu perfil: nada se añade dos veces y puedes deshacerlo."
+        where: "Tu menú, arriba en cada página: <strong>Importar una hoja de cálculo</strong>."
     export_card:
         title: "Traer datos"
         text: "¿Llevabas tus resultados o tu colección en una hoja de cálculo? Importa un archivo de Excel o CSV o una hoja de Google: lo revisas todo antes de que se añada nada."
@@ -12680,6 +12686,8 @@ import_guide:
         tracker:
             title: "¿Vienes de Puzzle Tracker?"
             text: "Exporta tus puzzles en la app como archivo CSV y trae ese archivo aquí. Conocemos sus columnas: no hay nada que configurar."
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Puzzles fuera del catálogo"
     link: "Tus puzzles fuera del catálogo"

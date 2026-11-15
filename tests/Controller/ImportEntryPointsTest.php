@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * Where the spreadsheet import, its guide, "My data" and the unlisted puzzles are linked from
@@ -86,19 +87,34 @@ final class ImportEntryPointsTest extends WebTestCase
         $line = $crawler->filter('[data-testid="add-form-import"]');
         self::assertCount(1, $line);
         self::assertSame([self::GUIDE], $line->filter('a')->extract(['href']));
+        // The form is all there next to it
+        $form = $crawler->filter('main form[method="post"]');
+        self::assertGreaterThan(0, $form->count());
+        self::assertGreaterThan(0, $form->filter('button[type="submit"]')->count());
+        self::assertGreaterThan(0, $form->filter('input[type="file"]')->count(), 'The photo field - it is the add form');
         // Never part of a form: it can not be submitted with it, nor change what the form sends
         self::assertCount(0, $crawler->filter('form [data-testid="add-form-import"]'));
         self::assertCount(0, $line->filter('input, button, select, textarea'));
     }
 
-    public function testGettingStartedGuideNamesTheSpreadsheetPath(): void
+    public function testGettingStartedGuideHasTheImportAsAnItemOfItsOwn(): void
     {
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/getting-started');
 
         self::assertResponseIsSuccessful();
-        self::assertSame([self::GUIDE], $crawler->filter('#track [data-testid="guide-import"] a')->extract(['href']));
+        // An item of its own, named like on the welcome screen
+        $item = $crawler->filter('#import');
+        self::assertStringContainsString('Import your data from elsewhere', $item->filter('h2')->text());
+        self::assertSame([self::GUIDE], $item->filter('a')->extract(['href']));
+        self::assertStringNotContainsString('import_guide.', $item->text());
+        // The six steps keep their numbers; nothing is tucked under "Track" any more
+        self::assertCount(0, $crawler->filter('#track a[href="' . self::GUIDE . '"]'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/getting-started');
+        self::assertSame([self::IMPORT, self::GUIDE], $crawler->filter('#import a')->extract(['href']));
     }
 
     public function testMyDataLeadsToTheUnlistedPuzzlesAndTheImport(): void
@@ -156,7 +172,14 @@ final class ImportEntryPointsTest extends WebTestCase
         // The first screen after signing up
         $crawler = $browser->request('GET', '/welcome');
         self::assertResponseIsSuccessful();
-        self::assertSame([self::GUIDE], $crawler->filter('[data-testid="welcome-import"] a')->extract(['href']));
+        $choices = $crawler->filter('.onboarding-welcome a.onboarding-choice');
+        self::assertCount(4, $choices, 'Log a puzzle, stopwatch, profile, import - equals');
+        $import = $crawler->filter('[data-testid="welcome-import"]');
+        self::assertSame(self::IMPORT, $import->attr('href'));
+        self::assertStringContainsString('Import your data from elsewhere', $import->text());
+        self::assertSame($import->attr('href'), $choices->last()->attr('href'));
+        self::assertStringContainsString('btn-outline-primary', (string) $import->attr('class'));
+        self::assertStringContainsString('btn-primary', (string) $choices->first()->attr('class'));
 
         // The Getting started card on the Hub: the steps are derived as before (1 of 5 - the account)
         $crawler = $browser->request('GET', '/en/hub');
@@ -182,6 +205,60 @@ final class ImportEntryPointsTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/wish-list/' . $playerId);
         self::assertResponseIsSuccessful();
         self::assertSame([self::GUIDE], $crawler->filter('[data-testid="empty-list-import"] a')->extract(['href']));
+    }
+
+    /**
+     * Signing up from the import's guide: the welcome screen stays the landing, with the import first and highlighted.
+     */
+    public function testSignUpFromTheGuideLandsOnTheWelcomeScreenWithTheImportFirst(): void
+    {
+        $browser = self::createClient();
+        // Registration is throttled per IP and the limiter's cache outlives a test
+        $browser->setServerParameter('REMOTE_ADDR', sprintf('198.51.100.%d', random_int(1, 254)));
+
+        $crawler = $browser->request('GET', '/register?return=/en/import');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Create account')->form();
+        self::assertSame('/en/import', $crawler->filter('form input[type="hidden"][name="return"]')->attr('value'));
+        $terms = $form[$form->getName() . '[termsAccepted]'];
+        self::assertInstanceOf(ChoiceFormField::class, $terms);
+        $terms->tick();
+
+        $browser->submit($form, [
+            $form->getName() . '[email]' => sprintf('import.guide+%s@example.com', bin2hex(random_bytes(4))),
+            $form->getName() . '[plainPassword]' => 'a-properly-long-passphrase',
+        ]);
+
+        self::assertResponseRedirects('/welcome?return=/en/import');
+        $crawler = $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+
+        $choices = $crawler->filter('.onboarding-welcome a.onboarding-choice');
+        self::assertCount(4, $choices, 'The usual choices stay');
+        $import = $crawler->filter('[data-testid="welcome-import"]');
+        self::assertCount(1, $import);
+        self::assertSame(self::IMPORT, $import->attr('href'));
+        self::assertSame(self::IMPORT, $choices->first()->attr('href'));
+        self::assertStringContainsString('btn-primary', (string) $import->attr('class'));
+        self::assertCount(1, $crawler->filter('.onboarding-welcome a.onboarding-choice.btn-primary'), 'One highlighted choice');
+    }
+
+    /**
+     * A return that is not the import (or not a path of ours) changes nothing on the welcome screen.
+     */
+    public function testWelcomeScreenIgnoresAnyOtherReturn(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        foreach (['//evil.example/en/import', 'https://evil.example/en/import', '/en/import/new', '/en/hub'] as $return) {
+            $crawler = $browser->request('GET', '/welcome?return=' . rawurlencode($return));
+            self::assertResponseIsSuccessful();
+            $import = $crawler->filter('[data-testid="welcome-import"]');
+            self::assertSame(self::IMPORT, $import->attr('href'), $return);
+            self::assertStringContainsString('btn-outline-primary', (string) $import->attr('class'), $return);
+            self::assertSame('/en/puzzle-add', $crawler->filter('.onboarding-welcome a.onboarding-choice')->first()->attr('href'), $return);
+        }
     }
 
     public function testImportsHomeWelcomesAFirstTimeVisitor(): void

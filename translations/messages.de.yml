@@ -12586,7 +12586,7 @@ data_import:
         taken_back: "{0}Wir haben zurückgenommen, was dein Import von %file% hinzugefügt hatte.|{1}Wir haben 1 Ergebnis zurückgenommen, das dein Import von %file% hinzugefügt hatte.|]1,Inf[Wir haben %count% Ergebnisse zurückgenommen, die dein Import von %file% hinzugefügt hatte."
         taken_back_reason: "Grund: %reason%"
 
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
 import_guide:
     meta:
         title: "Puzzle-Tabelle importieren - Zeiten, Sammlung, Wunschliste"
@@ -12599,10 +12599,10 @@ import_guide:
     to_guide: "So funktioniert der Import"
     what:
         title: "Was du mitbringen kannst"
-        results: "<strong>Ergebnisse</strong> - die Puzzles, die du gelegt hast, mit oder ohne Zeit und Datum."
-        owned: "<strong>Puzzles, die du besitzt</strong> - sie kommen in deine Sammlung."
+        results: "<strong>Ergebnisse</strong> - die Puzzles, die du gelegt hast, mit oder ohne Zeit. Ein Ergebnis braucht ein Datum - einen Tag oder nur den Monat oder das Jahr; eines ganz ohne wartet, bis du ihm eines gibst."
+        owned: "<strong>Puzzles, die du besitzt</strong> - sie kommen in deine Hauptsammlung."
         wish_list: "<strong>Deine Wunschliste</strong> - Zeilen, die deine Datei als Wunsch kennzeichnet."
-        formats: "<strong>Aus</strong> einer Excel-Datei (.xlsx), einer CSV- oder TSV-Datei oder über den Link zu einer Google-Tabelle."
+        formats: "<strong>Aus</strong> einer Excel-Datei (.xlsx), einer CSV- oder TSV-Datei oder über den Link zu einer Google-Tabelle. Eine Datei darf bis zu 25 MB, 50.000 Zeilen und 100 Blätter haben."
         apps: "<strong>Du kommst von der App Puzzle Tracker?</strong> Ihr CSV-Export wird von selbst erkannt, ebenso der eigene Ergebnis-Export von MySpeedPuzzling - du musst keine Spalten einrichten."
         fields: "<strong>Deine eigenen Notizen</strong> - eine Bewertung, ein Preis, wo du es gekauft hast: Solche Spalten können in vorbereitete private Felder gehen, die nur du siehst."
     how:
@@ -12630,20 +12630,21 @@ import_guide:
         only_you: "Nur du siehst deine Datei und das, was wir daraus gelesen haben."
         kept: "Die Datei selbst wird %days% Tage aufbewahrt und dann entfernt. Was wir daraus gelesen haben, bleibt bei deinem Import, damit nichts doppelt hinzugefügt wird und du es zurücknehmen kannst."
         google: "Eine Google-Tabelle muss für „Jeder mit dem Link“ freigegeben sein, während wir sie abrufen. Sobald sie hier ist, kannst du die Freigabe wieder ausschalten."
-        discard: "Du kannst einen Import jederzeit verwerfen, und mit dem Löschen deines Kontos verschwindet alles."
+        discard: "Bis du auf Hinzufügen drückst, kannst du einen Import verwerfen, und er ist sofort weg; danach nimmst du zurück, was er hinzugefügt hat. Mit dem Löschen deines Kontos verschwindet alles."
     never_twice:
         title: "Nichts wird je doppelt hinzugefügt"
-        text: "Bringst du dieselbe Datei noch einmal, wird nichts Neues hinzugefügt. Ergänzt du dreißig Zeilen in deiner Tabelle und bringst sie wieder, kommen die dreißig dazu. Ergebnisse, die du schon bei MySpeedPuzzling eingetragen hast, werden ebenfalls erkannt und bleiben unberührt."
+        text: "Bringst du dieselbe Datei noch einmal, wird nichts Neues hinzugefügt. Ergänzt du dreißig Zeilen in deiner Tabelle und bringst sie wieder, kommen die dreißig dazu. Ein Ergebnis, das du schon mit demselben Tag und derselben Zeit bei MySpeedPuzzling eingetragen hast, wird ebenfalls erkannt und nicht noch einmal hinzugefügt."
     take_back:
         title: "Du kannst es zurücknehmen"
         text: "Alles, was ein Import hinzugefügt hat, steht auf seiner Seite. Nimm eine Zeile, ein „Hinzufügen“ oder den ganzen Import zurück - bevor etwas entfernt wird, siehst du, was geht und was bleibt. Ein Ergebnis, das du danach bearbeitet hast, bleibt, sofern du nichts anderes sagst."
     result:
         title: "Was ein importiertes Ergebnis ist"
-        counts: "Es ist ein Ergebnis wie ein eingetipptes: Es zählt in deiner Statistik und steht in der Rangliste des Puzzles."
+        counts: "Es ist ein Ergebnis wie ein eingetipptes: Es zählt in deiner Statistik, und mit einer Zeit steht es in der Rangliste des Puzzles. Ein Ergebnis ohne Zeit zählt nur als gelegt."
         dated: "Es trägt den Tag, den deine Datei nennt. Kennt die Datei nur den Monat oder das Jahr, wird genau das angezeigt - wir erfinden nie einen Tag."
         photo: "Es hat kein Foto - eine Tabelle enthält keines. Du kannst später eines hinzufügen, indem du das Ergebnis bearbeitest."
         partners: "Menschen, mit denen du gepuzzelt hast, werden als Gäste mit dem Namen aus deiner Datei hinzugefügt - nie als registrierte Spieler. Ein Gast kann später mit einem Spieler verknüpft werden, mit dessen Zustimmung."
         unusual: "Eine Zeit, die viel schneller oder langsamer ist, als wir es bei dir erwarten würden, wird nicht stillschweigend hinzugefügt: Du wirst gefragt, ob sie stimmt - wie im Formular zum Eintragen."
+        limit: "Pro Tag werden höchstens 2.000 Ergebnisse aus Tabellen hinzugefügt. Der Rest ist am nächsten Tag bereit: Du drückst noch einmal auf Hinzufügen - nichts geht verloren."
     unlisted:
         title: "Puzzles, die wir noch nicht haben"
         text: "Ein Puzzle deiner Datei, das nicht in unserem Katalog steht, geht nicht verloren: Behalte es als nicht gelistetes Puzzle. Seine Ergebnisse und ob du es besitzt, bleiben auf einer Seite, die nur du siehst, und zählen nirgends öffentlich. Wird das Puzzle später im Katalog gefunden, verknüpfst du es, und seine Ergebnisse wandern in dein Profil."
@@ -12654,7 +12655,7 @@ import_guide:
         lists: "Verleih- und Verkaufs-/Tauschlisten - eine Notiz wie „verliehen an …“ bleibt eine Notiz."
         events: "Das Event oder der Wettbewerb eines Ergebnisses - lässt sich später beim Bearbeiten des Ergebnisses festlegen."
         own_columns: "Eine Spalte, die zu keinem der vorbereiteten Felder passt, bleibt vorerst außen vor."
-        unlisted: "Ein nicht gelistetes Puzzle lässt sich von seiner Seite aus noch nicht bearbeiten oder für den Katalog vorschlagen."
+        unlisted: "Ein nicht gelistetes Puzzle lässt sich von seiner Seite aus noch nicht bearbeiten oder für den Katalog vorschlagen; seine Notizen und eigenen Felder werden nicht aufbewahrt, und ein Ergebnis ohne Datum bleibt beim Verknüpfen nicht gelistet."
         sync: "Eine Google-Tabelle wird einmal gelesen, wenn du sie bringst - sie wird nicht auf Änderungen überwacht."
     start:
         title: "Bereit?"
@@ -12665,6 +12666,11 @@ import_guide:
         many_results: "Viele Ergebnisse in einer Tabelle?"
         import_them: "Importiere sie"
         puzzles_question: "Du führst deine Puzzles in einer Tabelle?"
+    newcomer:
+        title: "Daten von woanders importieren"
+        hint: "Eine Tabelle oder der Export einer anderen App - Ergebnisse, Sammlung, Wunschliste"
+        text: "Du führst deine Zeiten oder deine Sammlung schon in einer Tabelle oder einer anderen App? Du musst nichts noch einmal eintippen. Bring eine Excel- oder CSV-Datei oder eine Google-Tabelle, prüfe, was wir verstanden haben, und füge es deinem Profil hinzu - nichts wird doppelt hinzugefügt, und du kannst es zurücknehmen."
+        where: "Dein Menü oben auf jeder Seite: <strong>Tabelle importieren</strong>."
     export_card:
         title: "Daten mitbringen"
         text: "Du führst deine Ergebnisse oder deine Sammlung in einer Tabelle? Importiere eine Excel- oder CSV-Datei oder eine Google-Tabelle - du prüfst alles, bevor etwas hinzugefügt wird."
@@ -12679,6 +12685,8 @@ import_guide:
         tracker:
             title: "Du kommst von Puzzle Tracker?"
             text: "Exportiere deine Puzzles in der App als CSV-Datei und bring diese Datei hierher. Wir kennen ihre Spalten - es gibt nichts einzurichten."
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Nicht gelistete Puzzles"
     link: "Deine nicht gelisteten Puzzles"

@@ -35,18 +35,25 @@ Template `templates/data_import/guide.html.twig`, texts `import_guide.*`. Sectio
 | Anchor | Section | Keys |
 |---|---|---|
 | (top) | title, lead, the start button | `title`, `lead`, `free`, `start_guest`, `sign_in` |
-| `#what` | What you can bring: results, puzzles you own, wish list; Excel / CSV / TSV / Google Sheets; Puzzle Tracker's CSV and our own results export; ready-made private fields | `what.*` |
+| `#what` | What you can bring: results (a result needs a date - a day, a month or a year), puzzles you own (the main collection), wish list; Excel / CSV / TSV / Google Sheets, up to 25 MB, 50,000 rows, 100 sheets; Puzzle Tracker's CSV and our own results export; ready-made private fields | `what.*` |
 | `#how` | Six steps: bring the file → we read it → check the columns → we find your puzzles → review → add | `how.step1..6.*` |
-| `#your-file` | Only you see it; the file is kept 30 days, what was read stays with the import; Google sharing can be switched off again; discard, account deletion | `file.*` |
-| `#never-twice` | The same file again adds nothing; new rows are added; typed results are recognised | `never_twice.*` |
+| `#your-file` | Only you see it; the file is kept 30 days, what was read stays with the import; Google sharing can be switched off again; an import can be discarded until it added something (`DiscardImportHandler` refuses afterwards - then it is taken back); account deletion | `file.*` |
+| `#never-twice` | The same file again adds nothing; new rows are added; a typed result with the same day and time is recognised | `never_twice.*` |
 | `#take-back` | One row, one "Add" or the whole import; shown first what goes; an edited result is kept | `take_back.*` |
-| `#imported-result` | Counts like a typed one; its day, or only the month / year; no photo; partners are guests; unusual times are asked about | `result.*` |
+| `#imported-result` | Counts like a typed one (the leaderboard only with a time); its day, or only the month / year; no photo; partners are guests; unusual times are asked about; at most 2,000 results a day - the rest is ready the next day and the player presses Add again (an "Add" over the guard skips the rows as `over_daily_limit`; only the pairing of an unlisted puzzle goes on by itself) | `result.*` |
 | `#unlisted` | A puzzle we do not have is kept on a page only the player sees, and paired later | `unlisted.*` |
-| `#not-yet` | `.xls` / `.ods`, photos, lending and sell/swap lists, the event of a result, columns outside the ready-made fields, editing / proposing an unlisted puzzle, watching a Google sheet | `not_yet.*` |
+| `#not-yet` | `.xls` / `.ods`, photos, lending and sell/swap lists, the event of a result, columns outside the ready-made fields, editing / proposing an unlisted puzzle (its notes and own fields are not kept, an undated result stays unlisted when paired), watching a Google sheet | `not_yet.*` |
 | `#start` | The button again | `start.*` |
 
 The start button: a player → `data_imports`; a guest → `register` (and `login`) with `?return=` = the import's own
-path, validated where it is used (`docs/features/return-url.md`).
+path, validated where it is used (`docs/features/return-url.md`). **Sign-in lands on the import. Sign-up lands on
+the welcome screen, as always** - with the import as its first, highlighted choice: the registration form posts the
+return as a hidden field (and keeps it on its action, so a refused form still knows it), `RegisterController` passes
+a `ReturnUrl::tryFrom()`-valid one on as `/welcome?return=…`, and the welcome template highlights the import only
+for a return that is exactly the import's address (`safe_return_url()` + a pattern); any other return changes
+nothing there. Nothing else of the registration flow changed. **Social sign-up does not carry it**: the parked
+sign-up (`SocialRegisterConfirmController`) holds no return path, so it lands on the plain welcome screen - where
+the import is one of the four choices anyway.
 
 **Wording:** the guide promises only what is built - `#not-yet` is the docs' "left for later" lists; a feature that
 ships moves its line out of there. Czech and French address the reader formally, like the import's screens; the
@@ -61,9 +68,9 @@ catalogue is "databáze" in Czech and an unlisted puzzle is each locale's `unlis
 | Footer, column Track | `templates/_footer.html.twig` | "Import a spreadsheet" | the guide (a guest can read it) | `data_import.home.import_button` |
 | FAQ | `templates/faq.html.twig` (`faq_items`, anchor `#import-spreadsheet`, in the FAQ's JSON-LD like every item) | "I keep my times or my collection in a spreadsheet. Can I bring it in?" | the guide | `faq.question_import_spreadsheet`, `faq.answer_import_spreadsheet` |
 | Data export page | `templates/export-puzzler-data.html.twig` | card "Bring data in" above the downloads; "See your data as a table" stays | `data_imports`, the guide | `import_guide.export_card.*`, `import_guide.to_guide` |
-| Welcome screen | `templates/registration_welcome.html.twig` | "Already tracking in a spreadsheet? Bring it over" under the guide link | the guide | `import_guide.entry.question`, `.bring` |
-| Getting started card (Hub + own profile) | `templates/onboarding/_getting_started_card.html.twig` | the same line in the card's footer | the guide | the same |
-| Platform guide, step "Track" | `templates/onboarding/getting_started.html.twig` | the same line under the two buttons | the guide | the same |
+| Welcome screen | `templates/registration_welcome.html.twig` | **one of the big choices**, equal to the others: "Import your data from elsewhere" + "A spreadsheet or another app's export - results, collection, wish list" (the owner's call); last of four - first and the highlighted one after a sign-up from the guide | `data_imports` | `import_guide.newcomer.title`, `.hint` |
+| Getting started card (Hub + own profile) | `templates/onboarding/_getting_started_card.html.twig` | one quiet line in the card's footer: "Already tracking in a spreadsheet? Bring it over"; its five derived steps are untouched | the guide | `import_guide.entry.question`, `.bring` |
+| Platform guide | `templates/onboarding/getting_started.html.twig` | an **item of its own** after the six steps, anchor `#import` (pinned by `GettingStartedControllerTest`), the same title as on the welcome screen, three sentences, where to find it; no number and no tick - it is the other way to begin, not a seventh step | the guide (+ `data_imports` signed in) | `import_guide.newcomer.*`, `import_guide.to_guide` |
 | Add-result page | `templates/puzzle_add.html.twig` | "Have many results in a spreadsheet? Import them" after the form | the guide | `import_guide.entry.many_results`, `.import_them` |
 | Own statistics without a result | `templates/components/PlayerStatistics.html.twig` | the line under "Log your first puzzle" | the guide | `import_guide.entry.question`, `.bring` |
 | Own empty collection | `templates/collections/_empty_state.html.twig` (only with `own_collection`, passed by `collections/detail.html.twig`; the Turbo streams do not pass it) | "Kept your puzzles in a spreadsheet? Bring it over" | the guide | `import_guide.entry.puzzles_question`, `.bring` |
@@ -106,8 +113,10 @@ kept 30 days. Keys `import_guide.first.*`, `import_guide.file.only_you`, and the
   no statement of its own, and every `import_guide.*` + FAQ key in every catalogue (present, not empty, same
   placeholders, not the English sentence).
 - `ImportEntryPointsTest`: every place above for a player and, where public, a guest; somebody else's profile,
-  library and empty lists show none of it; a newcomer with nothing (welcome, Hub card with its five derived steps,
-  profile, statistics, collection, wish list); Imports home's first visit.
+  library and empty lists show none of it; a newcomer with nothing (the welcome screen's four choices, Hub card with
+  its five derived steps, profile, statistics, collection, wish list); a sign-up from the guide (the hidden return,
+  `/welcome?return=/en/import`, the import first and the one highlighted choice); any other return is ignored by the
+  welcome screen; Imports home's first visit; the add page still holds its form and submit button.
 - Budgets unchanged: `PuzzleAddPageQueryBudgetTest`, `PlayerProfileQueryBudgetTest`.
 
 ## For CLAUDE.md

@@ -27,7 +27,6 @@
                 <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'onboarding.guide.track.button_finished'|trans }}</a>
                 <a class="btn btn-outline-primary" rel="nofollow" href="{{ path('stopwatch') }}">{{ 'onboarding.guide.track.button_stopwatch'|trans }}</a>
             </div>
-            <p class="fs-sm mt-2 mb-0" data-testid="guide-import">{{ 'import_guide.entry.question'|trans }} <a href="{{ path('import_guide') }}">{{ 'import_guide.entry.bring'|trans }}</a></p>
             {% endblock %}
             {% block more %}
             <details class="guide-step-more">
@@ -117,6 +116,24 @@
             </div>
             {% endblock %}
         {% endembed %}
+
+        {# An item in its own right, not a seventh step: the other way to begin, for somebody whose history is in a
+           spreadsheet or another app (docs/features/data-import/entry-points.md). Its own texts, so no number and no tick #}
+        <section class="guide-step" id="import">
+            <h2 class="guide-step-head h5">
+                <span class="guide-step-marker" aria-hidden="true"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+                <span>{{ 'import_guide.newcomer.title'|trans }}</span>
+            </h2>
+
+            <p class="mb-2">{{ 'import_guide.newcomer.text'|trans }}</p>
+            <div class="d-grid gap-2">
+                {% if signed_in %}
+                    <a class="btn btn-outline-primary" href="{{ path('data_imports') }}">{{ 'data_import.home.import_button'|trans }}</a>
+                {% endif %}
+                <a class="btn btn-outline-primary" href="{{ path('import_guide') }}">{{ 'import_guide.to_guide'|trans }}</a>
+            </div>
+            <p class="guide-step-where"><i class="bi bi-geo-alt me-1"></i>{{ 'import_guide.newcomer.where'|trans|raw }}</p>
+        </section>
 
         </div>
 

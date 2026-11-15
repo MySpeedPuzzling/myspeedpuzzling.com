@@ -47,7 +47,11 @@
         {% endif %}
 
         <div id="register-email" class="auth-disclosure-panel" data-auth-disclosure-target="panel" {% if not email_open %}hidden{% endif %}>
-            {{ form_start(form, {'action': path('register'), 'attr': {'novalidate': 'novalidate'}}) }}
+            {{ form_start(form, {'action': path('register', return_params), 'attr': {'novalidate': 'novalidate'}}) }}
+                {# Where the visitor was heading (docs/features/return-url.md), like the sign-in form: the welcome screen offers it. The action keeps it too, so a refused form still knows it #}
+                {% if return_path %}
+                    <input type="hidden" name="return" value="{{ return_path }}">
+                {% endif %}
                 <div class="mb-3">
                     {{ form_label(form.email) }}
                     {{ form_widget(form.email) }}

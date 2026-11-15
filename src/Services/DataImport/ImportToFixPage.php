@@ -12,7 +12,7 @@ use SpeedPuzzling\Web\Results\ImportSheetRow;
 
 /**
  * What the "To fix" page of an import is rendered with (docs/features/data-import/pairing-screens.md "To fix") -
- * for its own page and for the same page again after a refused answer. Three statements whatever the import's size.
+ * for its own page and for the same page again after a refused answer. Four statements whatever the import's size.
  */
 readonly final class ImportToFixPage
 {
@@ -29,13 +29,15 @@ readonly final class ImportToFixPage
      * @param array<string, string> $errors by group key
      * @param array<string, string> $typed by group key
      *
-     * @return array{import: DataImportOverview, groups: list<ImportRowsToFixGroup>, total: int, page: int, pages: int, left_out: array{rows: list<ImportSheetRow>, total: int}, errors: array<string, string>, typed: array<string, string>, max_rows: int}
+     * @return array{import: DataImportOverview, groups: list<ImportRowsToFixGroup>, total: int, page: int, pages: int, left_out: array{rows: list<ImportSheetRow>, total: int}, errors: array<string, string>, typed: array<string, string>, max_rows: int, time_groups: array{groups: int, rows: int}}
      */
     public function parameters(string $importId, string $playerId, int $page, array $errors = [], array $typed = []): array
     {
         $import = $this->getDataImports->byIdOfPlayer($importId, $playerId);
         $page = max(1, $page);
         $found = $this->getImportRowsToFix->groups($importId, $playerId, self::GROUPS_PER_PAGE, ($page - 1) * self::GROUPS_PER_PAGE);
+
+        $timeGroups = $this->getImportRowsToFix->timeGroups($importId, $playerId);
 
         return [
             'import' => $import,
@@ -47,6 +49,8 @@ readonly final class ImportToFixPage
             'errors' => $errors,
             'typed' => $typed,
             'max_rows' => ImportRowAnswers::MAX_ROWS,
+            // "Import all of them without a time": offered while more than one group is about a time
+            'time_groups' => ['groups' => count($timeGroups), 'rows' => array_sum(array_column($timeGroups, 'rows'))],
         ];
     }
 }

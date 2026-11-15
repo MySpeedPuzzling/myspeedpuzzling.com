@@ -120,7 +120,11 @@ can be said at a field is checked first:
 Everything else is the handler's check (`InvalidImportMapping`) and is shown at the top of the form. **A refused
 submit answers 422 with the same page and the player's choices kept**; nothing is changed. A sheet changed meanwhile
 (`ImportMappingChangedMeanwhile`: another tab, another device) redirects to the sheet as it stands with a notice. A
-saved one redirects (PRG) to the sheet - or to the list for the one-tap change.
+saved one **moves on** (PRG): to "Where you are" (the import's page), which says "Saved - your rows are being read
+again", follows the reading with the live line and names the next step - the player never stays on the sheet
+wondering whether it worked. A sheet saved as it was ("Nothing was changed") moves on the same way. The one-tap
+change of the list leads back to the list (`back=list`), an answer on step 2's one-question screens to the next
+question (`back=check`).
 
 "A column says it for each row" is refused (422) on a sheet without a status column - the page never offers it
 there. **A save that changes nothing reads nothing again** (the notice "Nothing was changed") - except on a sheet

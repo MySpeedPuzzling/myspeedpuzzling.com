@@ -12470,6 +12470,11 @@ data_import:
         left_out_title: "Filas que decidiste no importar: %number%"
         take_in: "Importar de todos modos"
         row_of: "Fila %row% · %sheet%"
+        no_time: "Importar estas sin tiempo (%number%)"
+        groups_left: "Grupos que aún esperan respuesta: %number%"
+        all_no_time:
+            text: "Filas cuyo tiempo no hemos podido leer: %number%. Si no cronometraste estos puzzles, basta una respuesta para todas."
+            use: "Importar todas sin tiempo (%number%)"
         error:
             empty: "Escribe primero un valor."
             unreadable: "No pudimos leer esto con seguridad. Escríbelo de otra forma."
@@ -12484,6 +12489,7 @@ data_import:
             answered: "Filas corregidas: %number%"
             left_out: "Filas no importadas: %number%"
             taken_in: "La fila se ha vuelto a incluir."
+            no_time: "Filas que se importarán sin tiempo: %number%"
             more_remain: "Filas de este grupo que aún esperan: %number%. Da la respuesta una vez más."
     row:
         title: "Fila %number%"
@@ -12499,12 +12505,27 @@ data_import:
         left_out_note: "Esta fila no se importa."
         not_answerable: "Esta fila no se puede cambiar ahora mismo: su hoja se está leyendo de nuevo. Inténtalo en un momento."
         back: "Volver a «Filas que no hemos podido leer»"
+        back_to:
+            overview: "Volver a tu importación"
+            check: "Volver a «Cómo hemos leído tu archivo»"
+            sheet: "Volver a la hoja"
+            people: "Volver a «Personas en tu archivo»"
+            puzzles: "Volver a tus puzzles"
+            puzzle: "Volver a este puzzle"
+            add: "Volver a «Revisar y añadir»"
+            add_list: "Volver a «Qué se va a añadir»"
+            not_added: "Volver a «Filas que esperan tu respuesta»"
+            added: "Volver a «Lo que añadió esta importación»"
+        no_time: "Sin tiempo - este no lo cronometré"
+        save_next: "Guardar y corregir la siguiente"
         flash:
             nothing_changed: "No se ha cambiado nada."
             changed_meanwhile: "Esta fila ha cambiado mientras tanto. No se ha guardado nada; así está ahora."
-            saved: "La fila está guardada."
-            left_out: "La fila no se importa."
-            taken_in: "La fila se ha vuelto a incluir."
+            saved: "La fila %number% está guardada. Ahora podemos leerla entera."
+            saved_needs_look: "La fila %number% está guardada. Algo en ella todavía necesita una revisión."
+            puzzle_matched_again: "Estamos buscando de nuevo el puzzle de esta fila - tarda un momento."
+            left_out: "La fila %number% no se importa."
+            taken_in: "La fila %number% se ha vuelto a incluir."
     answer:
         choose: "Elige…"
         choice:
@@ -12537,7 +12558,7 @@ data_import:
             rows_left_out: "No importadas: %number%"
         flash:
             nothing_changed: "No se cambió nada, así que no se volvió a leer nada."
-            saved: "Guardado. Las filas de la hoja se están leyendo de nuevo."
+            saved: "Guardado - tus filas se están leyendo de nuevo."
             changed_meanwhile: "Esta hoja se cambió mientras tanto, en otra pestaña o en otro dispositivo. Así está ahora: por favor, haz tu cambio otra vez."
         error:
             refused: "No pudimos guardar esto, así que no se cambió nada. Revisa tus opciones e inténtalo de nuevo."

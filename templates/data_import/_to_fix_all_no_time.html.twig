@@ -1,0 +1,25 @@
+{#
+    One answer for every group about a time on "Rows we could not read" (to_fix.html.twig): the groups are told
+    apart by the cell's text, so "casual", "no timer" and "relaxed" are three groups of one row - and one thing to
+    say. Offered while more than one such group waits. Always the element `#import-to-fix-all-no-time` (empty
+    otherwise), kept up to date by an answer given in place (_to_fix.stream.html.twig).
+
+    Variables: import_id, page, csrf, time_groups ({groups: int, rows: int}), notice (optional - what was just done).
+#}
+<div id="import-to-fix-all-no-time">
+    {% if notice|default(null) is not null %}
+        <div class="alert alert-success fs-sm d-flex gap-2 mb-3" role="status" data-testid="import-to-fix-done">
+            <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i><span>{{ notice }}</span>
+        </div>
+    {% endif %}
+    {% if time_groups.groups > 1 %}
+        <form action="{{ path('data_import_rows_answer', {importId: import_id}) }}" method="post" class="card card-body shadow-sm mb-3 border-primary" data-testid="import-to-fix-all-no-time" data-rows="{{ time_groups.rows }}" data-groups="{{ time_groups.groups }}">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="page" value="{{ page }}">
+            <p class="mb-2">{{ 'data_import.to_fix.all_no_time.text'|trans({'%number%': time_groups.rows|format_number}) }}</p>
+            <button type="submit" name="action" value="no_time_all" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="import-to-fix-all-no-time-use">
+                <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.all_no_time.use'|trans({'%number%': time_groups.rows|format_number}) }}
+            </button>
+        </form>
+    {% endif %}
+</div>

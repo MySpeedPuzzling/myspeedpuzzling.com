@@ -107,7 +107,7 @@
                             </form>
                         {% endif %}
                         {% if code in to_row and row.state == 'waiting' %}
-                            <a href="{{ path('data_import_row', {importId: import.importId, rowId: row.rowId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-not-added-open">
+                            <a href="{{ path('data_import_row', {importId: import.importId, rowId: row.rowId, return: app.request.requestUri}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-not-added-open">
                                 <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'data_import.row.open'|trans }}
                             </a>
                         {% endif %}

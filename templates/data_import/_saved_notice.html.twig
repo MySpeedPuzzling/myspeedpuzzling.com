@@ -1,0 +1,13 @@
+{#
+    "Row 14 is saved" - what the row's editor says on the screen its save leads to (SaveImportRowController's
+    SAVED_FLASH; docs/features/data-import/pairing-screens.md "The way back"). That screen is scrolled to the row or
+    group the player came from, so the words are fixed in view right under the site header (`.import-saved-notice`
+    in assets/styles/_data-import.scss: never over a screen's bottom bar, fading by itself after six seconds). Included by the flow header: every screen of an import has it.
+    hasPreviousSession: reading flashes would start a session.
+#}
+{% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\SaveImportRowController::SAVED_FLASH')) : [] %}
+    <div class="import-saved-notice alert alert-success alert-dismissible fade show shadow d-flex gap-2" role="status" data-testid="import-saved-notice">
+        <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i><span>{{ message }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+{% endfor %}

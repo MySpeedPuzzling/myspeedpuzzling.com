@@ -12472,6 +12472,11 @@ data_import:
         left_out_title: "Řádky, které jste se rozhodli neimportovat: %number%"
         take_in: "Přece jen importovat"
         row_of: "Řádek %row% · %sheet%"
+        no_time: "Importovat tyto řádky bez času (%number%)"
+        groups_left: "Skupiny, které ještě čekají na odpověď: %number%"
+        all_no_time:
+            text: "Řádky, ve kterých se nám nepodařilo přečíst čas: %number%. Pokud jste si u těchto puzzle čas neměřili, stačí jedna odpověď pro všechny."
+            use: "Importovat všechny bez času (%number%)"
         error:
             empty: "Nejdřív prosím vyplňte hodnotu."
             unreadable: "Tohle jsme nedokázali přečíst s jistotou. Napište to prosím jinak."
@@ -12486,6 +12491,7 @@ data_import:
             answered: "Opravené řádky: %number%"
             left_out: "Neimportované řádky: %number%"
             taken_in: "Řádek je zpět v importu."
+            no_time: "Řádky, které se importují bez času: %number%"
             more_remain: "Řádky této skupiny, které ještě čekají: %number%. Odpovězte prosím ještě jednou."
     row:
         title: "Řádek %number%"
@@ -12501,12 +12507,27 @@ data_import:
         left_out_note: "Tento řádek se neimportuje."
         not_answerable: "Tento řádek teď nelze změnit - jeho list se znovu čte. Zkuste to prosím za chvíli."
         back: "Zpět na „Řádky, které se nám nepodařilo přečíst“"
+        back_to:
+            overview: "Zpět na váš import"
+            check: "Zpět na „Jak jsme váš soubor přečetli“"
+            sheet: "Zpět na list"
+            people: "Zpět na „Lidé ve vašem souboru“"
+            puzzles: "Zpět na vaše puzzle"
+            puzzle: "Zpět na toto puzzle"
+            add: "Zpět na „Zkontrolovat a přidat“"
+            add_list: "Zpět na „Co se přidá“"
+            not_added: "Zpět na „Řádky, které čekají na vaši odpověď“"
+            added: "Zpět na „Co tento import přidal“"
+        no_time: "Bez času - u tohoto puzzle se čas neměřil"
+        save_next: "Uložit a opravit další"
         flash:
             nothing_changed: "Nic se nezměnilo."
             changed_meanwhile: "Tento řádek se mezitím změnil. Nic se neuložilo; takhle vypadá teď."
-            saved: "Řádek je uložen."
-            left_out: "Řádek se neimportuje."
-            taken_in: "Řádek je zpět v importu."
+            saved: "Řádek %number% je uložen. Teď ho umíme přečíst celý."
+            saved_needs_look: "Řádek %number% je uložen. Něco v něm je ale ještě potřeba zkontrolovat."
+            puzzle_matched_again: "Puzzle tohoto řádku hledáme znovu - chvilku to potrvá."
+            left_out: "Řádek %number% se neimportuje."
+            taken_in: "Řádek %number% je zpět v importu."
     answer:
         choose: "Vyberte…"
         choice:
@@ -12539,7 +12560,7 @@ data_import:
             rows_left_out: "Neimportuje se: %number%"
         flash:
             nothing_changed: "Nic se nezměnilo, proto se nic nečetlo znovu."
-            saved: "Uloženo. Řádky listu se čtou znovu."
+            saved: "Uloženo - vaše řádky se čtou znovu."
             changed_meanwhile: "Tento list se mezitím změnil, v jiné záložce nebo na jiném zařízení. Takhle vypadá teď - udělejte prosím svou změnu znovu."
         error:
             refused: "Tohle se nepodařilo uložit, nic se tedy nezměnilo. Zkontrolujte prosím své volby a zkuste to znovu."

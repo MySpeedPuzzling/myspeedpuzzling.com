@@ -1,0 +1,77 @@
+{#
+    An answer on "Rows we could not read" given in place (AnswerImportRowsController, for a request that takes Turbo
+    Streams): the answered group gives way to a short confirmation where it stood - or stands again, with what is
+    left of it or with why the answer was refused; a row put back gives way to its confirmation and the groups are
+    listed anew (it may be in a group again); "Import all of them without a time" lists the groups anew under its
+    confirmation. The count, the pager (an answer may make the list a page shorter), the one answer for all times and
+    the rows not imported with their count follow; a block that became empty goes. Nothing else of the page moves.
+
+    Variables: those of to_fix.html.twig (ImportToFixPage) + notice, answered_key, answered_group, taken_in_row,
+    all_times (optional), refused (optional).
+#}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set all_times = all_times|default(false) %}
+{% if answered_key is not null %}
+    <turbo-stream action="replace" target="group-{{ answered_key }}">
+        <template>
+            {{ include('data_import/_to_fix_group.html.twig', {
+                import_id: import.importId, page: page, csrf: csrf, group_key: answered_key, group: answered_group,
+                error: errors[answered_key] ?? null, typed: typed[answered_key] ?? null, notice: notice,
+            }, with_context = false) }}
+        </template>
+    </turbo-stream>
+{% endif %}
+{% if not refused|default(false) %}
+    {% if taken_in_row is not null %}
+        {% if left_out.total > 0 %}
+            <turbo-stream action="replace" target="left-out-row-{{ taken_in_row }}">
+                <template>
+                    <div class="alert alert-success fs-sm d-flex gap-2 my-2" role="status" data-testid="import-to-fix-done">
+                        <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i><span>{{ notice }}</span>
+                    </div>
+                </template>
+            </turbo-stream>
+            <turbo-stream action="update" target="import-to-fix-left-out-title">
+                <template>{{ 'data_import.to_fix.left_out_title'|trans({'%number%': left_out.total|format_number}) }}</template>
+            </turbo-stream>
+        {% else %}
+            {# The last one was put back: the block goes, its confirmation stays #}
+            <turbo-stream action="replace" target="import-to-fix-left-out">
+                <template>
+                    {{ include('data_import/_to_fix_left_out.html.twig', {import_id: import.importId, page: page, csrf: csrf, left_out: left_out, notice: notice}, with_context = false) }}
+                </template>
+            </turbo-stream>
+        {% endif %}
+    {% elseif not all_times %}
+        <turbo-stream action="replace" target="import-to-fix-left-out">
+            <template>
+                {{ include('data_import/_to_fix_left_out.html.twig', {import_id: import.importId, page: page, csrf: csrf, left_out: left_out}, with_context = false) }}
+            </template>
+        </turbo-stream>
+    {% endif %}
+    {% if taken_in_row is not null or all_times %}
+        <turbo-stream action="update" target="import-to-fix-groups">
+            <template>
+                {% for group in groups %}
+                    {{ include('data_import/_to_fix_group.html.twig', {import_id: import.importId, page: page, csrf: csrf, group_key: group.key, group: group, typed: null}, with_context = false) }}
+                {% endfor %}
+            </template>
+        </turbo-stream>
+    {% endif %}
+    <turbo-stream action="replace" target="import-to-fix-all-no-time">
+        <template>
+            {{ include('data_import/_to_fix_all_no_time.html.twig', {import_id: import.importId, page: page, csrf: csrf, time_groups: time_groups, notice: all_times ? notice : null}, with_context = false) }}
+        </template>
+    </turbo-stream>
+    <turbo-stream action="update" target="import-to-fix-pages">
+        <template>
+            {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_to_fix', parameters: {importId: import.importId}, label: 'data_import.to_fix.title'|trans}, with_context = false) }}
+        </template>
+    </turbo-stream>
+    <turbo-stream action="replace" target="import-to-fix-count">
+        <template>
+            {# A page whose last group was just answered still shows its confirmation: "nothing to do" only for the whole list #}
+            {{ include('data_import/_to_fix_count.html.twig', {total: total, shown: total}, with_context = false) }}
+        </template>
+    </turbo-stream>
+{% endif %}

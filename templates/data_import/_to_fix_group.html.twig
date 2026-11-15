@@ -1,0 +1,90 @@
+{#
+    One group of "Rows we could not read" (to_fix.html.twig) - its card, or, once every row of it is answered, the
+    short confirmation that stands where the card stood (_to_fix.stream.html.twig). Always the element
+    `#group-<key>`, so an answer given in place finds it. The value is the player's own text, shown escaped.
+
+    Variables: import_id, page, csrf, group_key, group (ImportRowsToFixGroup, or null: answered - only the notice),
+    error (null|string), typed (null|string - what the refused form held), notice (null|string).
+#}
+{% set error = error|default(null) %}
+{% set notice = notice|default(null) %}
+{% if group is null %}
+    <div class="alert alert-success fs-sm d-flex gap-2 mb-3" id="group-{{ group_key }}" style="scroll-margin-top: 90px;" role="status" data-testid="import-to-fix-done">
+        <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i><span>{{ notice }}</span>
+    </div>
+{% else %}
+    {% set answer_url = path('data_import_rows_answer', {importId: import_id}) %}
+    {% set list_url = path('data_import_to_fix', page > 1 ? {importId: import_id, page: page} : {importId: import_id}) %}
+    {% set sentence = ('data_import.columns.problem.' ~ group.code)|trans %}
+    <div class="card shadow-sm mb-3{{ error is not null ? ' border-danger' : '' }}" id="group-{{ group.key }}" style="scroll-margin-top: 90px;"
+         data-testid="import-to-fix-group" data-code="{{ group.code }}" data-field="{{ group.field }}" data-rows="{{ group.rows }}">
+        <div class="card-body">
+            {% if notice is not null %}
+                <p class="alert alert-success fs-sm py-2" role="status" data-testid="import-to-fix-done">{{ notice }}</p>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <h2 class="h6 mb-1">
+                    {%- if group.field != '' %}{{ ('data_import.columns.field.' ~ group.field)|trans }}{% else %}{{ 'data_import.to_fix.no_field'|trans }}{% endif -%}
+                </h2>
+                <span class="badge bg-faded-warning text-warning flex-shrink-0" data-testid="import-to-fix-rows">{{ 'data_import.puzzles.card.rows'|trans({'%number%': group.rows|format_number}) }}</span>
+            </div>
+            <p class="mb-2 text-break">
+                {% if group.value != '' %}<mark class="px-1 rounded" data-testid="import-to-fix-value">{{ group.value }}</mark>{% endif %}
+                <span class="fs-sm">{{ sentence == 'data_import.columns.problem.' ~ group.code ? 'data_import.columns.problem.other'|trans : sentence }}</span>
+            </p>
+
+            {% if group.input is not null %}
+                <form action="{{ answer_url }}" method="post" class="mb-2" data-testid="import-to-fix-answer">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="group" value="{{ group.key }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <label for="answer-{{ group.key }}" class="form-label fs-sm fw-medium mb-1">{{ 'data_import.to_fix.answer_label'|trans }}</label>
+                    {{ include('data_import/_answer_input.html.twig', {
+                        name: 'answer',
+                        id: 'answer-' ~ group.key,
+                        input: group.input,
+                        value: typed ?? group.proposal ?? '',
+                        choices: {type: ['solo', 'duo', 'team'], yes_no: ['yes', 'no'], status: ['result', 'owned', 'both', 'wish_list']}[group.input] ?? [],
+                        empty_label: 'data_import.answer.choose'|trans,
+                        invalid: error is not null,
+                        described_by: 'answer-help-' ~ group.key,
+                    }, with_context = false) }}
+                    {% if error is not null %}
+                        <div class="text-danger fs-sm mt-1" role="alert" data-testid="import-to-fix-error">{{ ('data_import.to_fix.error.' ~ error)|trans }}</div>
+                    {% endif %}
+                    <div class="form-text" id="answer-help-{{ group.key }}">
+                        {% set hint = ('data_import.to_fix.hint.' ~ group.input)|trans %}
+                        {{ hint == 'data_import.to_fix.hint.' ~ group.input ? '' : hint }}
+                        {% if group.proposal is not null and typed is null %}{{ 'data_import.to_fix.proposal_hint'|trans }}{% endif %}
+                    </div>
+                    <button type="submit" name="action" value="answer" class="btn btn-outline-primary w-100 mt-2 text-wrap" style="min-height: 44px;" data-testid="import-to-fix-use">
+                        <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.use'|trans({'%number%': group.rows|format_number}) }}
+                    </button>
+                    {% if group.field == 'time' %}
+                        {# Solved, but not timed: every row of the group becomes a result without a time #}
+                        <button type="submit" name="action" value="no_time" class="btn btn-outline-secondary w-100 mt-2 text-wrap" style="min-height: 44px;" formnovalidate data-testid="import-to-fix-no-time">
+                            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.no_time'|trans({'%number%': group.rows|format_number}) }}
+                        </button>
+                    {% endif %}
+                </form>
+            {% else %}
+                <p class="fs-sm text-muted" data-testid="import-to-fix-not-answerable">{{ 'data_import.to_fix.not_answerable'|trans }}</p>
+            {% endif %}
+
+            <div class="d-flex flex-wrap gap-2">
+                <form action="{{ answer_url }}" method="post" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="group" value="{{ group.key }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <button type="submit" name="action" value="leave_out" class="btn btn-link text-wrap" style="min-height: 44px;" data-testid="import-to-fix-leave-out"
+                            data-turbo-confirm="{{ 'data_import.to_fix.leave_out_confirm'|trans({'%number%': group.rows|format_number}) }}">
+                        <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.leave_out'|trans }}
+                    </button>
+                </form>
+                <a href="{{ path('data_import_row', {importId: import_id, rowId: group.sampleRowId, return: list_url ~ '#group-' ~ group.key}) }}" class="btn btn-link d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-to-fix-open-row">
+                    <i class="bi bi-card-text me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.open_row'|trans }}
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}

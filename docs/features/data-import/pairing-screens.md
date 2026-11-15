@@ -183,6 +183,39 @@ the sheet decides - **grouped by field, what is unclear and the value as the she
   Such a group offers only "Leave these rows out" and a row to open; the handler refuses a shared answer for it,
   and one for another field than the group's.
 - "Rows fixed: N" counts the rows whose problem went away, not the rows that were touched.
+- **Import these without a time (N)** - beside the answer of a group of the time's field ("we could not read a
+  time" for a puzzle solved casually): every row of the group becomes a result without a time (the answer
+  `ImportRowAnswers::NO_TIME`, see "No time" below). Refused for a group of any other field.
+
+- **Import all of them without a time (N)** - one answer above the groups, offered while **more than one** group
+  is about a time: the groups are told apart by the cell's text, so "casual", "no timer" and "relaxed" are three
+  groups of one row and one thing to say. `action=no_time_all` gives the answer `NO_TIME` to every group about a
+  time that shares an answer (`GetImportRowsToFix::timeGroups()`: the cell holds a text) - a message a group, each
+  with the group's own guard, at most 500 rows a request; in place the groups are listed anew under the
+  confirmation (`#import-to-fix-all-no-time`).
+
+**Answered in place.** The forms are plain POSTs. Turbo sends them asking for streams, and
+`AnswerImportRowsController` then answers with `_to_fix.stream.html.twig` instead of a redirect - the page does not
+load again and does not jump:
+
+| The answer | What changes on the page |
+|---|---|
+| every answer | `#import-to-fix-pages` (the pager - an answer may make the list a page shorter) |
+| a value / "without a time" / "Don't import them" for a group | `#group-<key>` gives way to a short confirmation where the card stood ("Rows fixed: 14") - or to the card again with the confirmation in it, when rows of the group still wait (more than 500, or the answer did not settle all); `#import-to-fix-count` ("Groups still to answer: N", or "Nothing to do here."); `#import-to-fix-left-out` (the rows not imported, listed anew) |
+| "Import after all" on a row not imported | `#left-out-row-<id>` gives way to its confirmation and `#import-to-fix-left-out-title` counts anew - or, when it was the last one, the whole block gives way to the confirmation; `#import-to-fix-groups` is listed anew (the row may be in a group again); the count |
+| a value nobody can read | the group's card alone, with the reason at its field and what was typed - a **422** stream |
+| changed meanwhile | a redirect to the list as it stands, with the notice (for a stream request too) |
+
+**Nothing jumps under the finger** (`data_import_settle_controller.js`, on the page): what replaces a group's card
+or a row not imported keeps the height of what it replaced **until the player moves on by themselves** - the first
+scroll, a pointer moved more than 12 px, a touch outside the confirmation, a key (15 s at the latest) - and only
+then gives it up, slowly: a pointer resting where it tapped never finds another button under it. The confirmation
+is scrolled into view (`block: 'nearest'`) only when it is under the sticky header or below the screen.
+
+Without a script the same POST redirects back to the list (PRG) with the same words as a flash, and a refused value
+is the whole page with a 422 - as before. Known limit: a row that is in two groups (two things unclear) and is left
+out through one of them still counts in the other group's card until the page is loaded again; the handler passes
+such a row over, so nothing wrong is saved.
 
 A group is named by a key in its form - `md5(field:code:value)`, `ImportRowAnswers::problemKey()`, the same in SQL -
 never by its value.
@@ -209,6 +242,71 @@ input here: the day settles it, an answer about the status never would.
 What the player types becomes the row's answer; a field left as it is changes nothing; **an emptied field takes its
 answer back** (the cell's own value is read again). "Leave this row out" / "Take this row in again". The page
 carries the row's stamp (`DataImportRow::stamp()`: its parsed version and its answers).
+
+### No time
+
+Beside the time's input: **"No time - I didn't time this one"** (a tick; `data_import_no_time_controller.js`
+switches the input off while it is ticked - without a script the tick still wins over what is typed). It can be
+chosen for a row whose time nobody could read and for one whose time was read, and taken away again: with a time
+typed the answer is that time, with the field empty the answer is taken back and the cell is read as before.
+
+It is an answer of the time's field like any other, kept as `{"text": "no_time", "value": 0}`
+(`ImportRowAnswers::NO_TIME`; the form sends `no_time=1`, the controller makes it the time's text). The parser then
+reads the row **exactly as it reads a row whose time cell is empty**: no `seconds`, nothing unclear about the time,
+the same puzzle key, result key and equal-rows key (`ImportRowAnswersTest::testNoTimeMakesTheRowWhatAnEmptyTimeCellMakesIt`
+compares the two). One thing more: a row whose **time cell holds something** (a time, a text nobody could read)
+stays a **result** even when nothing but that cell said it was solved (`ImportRowDraft::$untimed`) - the player
+said "solved, just not timed". **"No time" never makes a row a result by itself**: with an empty time cell the
+answer changes nothing (a row of a shelf stays a row of a shelf), and the tick is offered only for a row that is a
+result already or whose time cell holds something (`ImportRowSheet`'s `canBeUntimed`; a tick sent all the same is
+not taken). A group of "Rows we could not read" about the time always has a text in the cell. From there on nothing is new: the adder
+writes a result with `seconds_to_solve` null through `ImportedResultWriter` as for any time-less row (it is on the
+profile as "solved"; like every result saved without a time it is in no leaderboard, average or statistic - those
+read `seconds_to_solve IS NOT NULL`; no new kind of result is written), "never twice" matches it against a time-less result of the same day, and two time-less rows of
+one puzzle and day are equal rows.
+
+### The way back
+
+Every link into a row's editor says where it leads back to: `?return=<path of the screen>` (with the screen's own
+page number / filter and, where the screen has one, the anchor of the row or group - `#group-<key>` on "Rows we
+could not read", `#row-<id>` on "What will be added"). `Value\DataImport\ImportRowOrigin::tryFrom()` takes it only
+when it is a same-site path (`ReturnUrl`) that is **one of the pages of this very import a player can come from** -
+a closed list of its GET pages (`ImportRowOrigin::SCREENS`: where you are, to-fix, columns, a sheet and its rows,
+people, the puzzles' overview and lists, one puzzle, check and add, what will be added, the rows that wait, what
+was added); never a POST-only address, a fragment a frame loads (the unusual-times card of "Check and add" links
+back to `/add`), another row's editor, or a path that merely starts like the import's - and names the screen
+(`data_import.row.back_to.<screen>`: "Back to your puzzles", "Back to “What will be added”" …). Anything else is no
+origin: the back link is "Back to “Rows we could not read”", as before. Both forms of the page carry the origin as a
+hidden `return`, so it survives a refused save (422) and the redirect after a save.
+
+**Said where the player lands.** The page a save leads to is scrolled to the row or group the player came from, so
+"Row 14 is saved" is a flash of its own (`SaveImportRowController::SAVED_FLASH`) that the flow header renders
+**fixed in view right under the sticky site header** (`_saved_notice.html.twig`, `.import-saved-notice`: `top` =
+`--header-height`, the header's measured height) - on every screen of an import, at any width, never over the
+buttons a screen keeps at its bottom. It fades by itself after six seconds (CSS; still in the page for a screen
+reader, × closes it at once). Anchored rows, groups and puzzles land below the header - and below the notice while
+it is shown (`assets/styles/_data-import.scss`: `scroll-margin-top` from `--header-height`). A group the player came
+from that is gone after the save (its last row was the one fixed) gives way to `#import-to-fix-count`, the line
+above the groups.
+
+**After a save** (PRG, the flash names the row - "Row 14 is saved. We can read all of it now." or "… Something in it
+still needs a look.", "Row 14 is not imported."):
+
+| | Where |
+|---|---|
+| Save / Don't import, with an origin | the origin (with its anchor) |
+| … without one | the row itself while it still needs a look (the flash says so); else the next row that needs a look (in the file's order after this one, then from the top - `GetImportRowsToFix::nextRowId()`), "Rows we could not read" when none is left |
+| "Save and fix the next one" (offered while another row needs a look) | the next row's editor, the origin carried along; the origin (or the list) when none is left |
+| "Put this row back" | the row stays open |
+| nothing was changed / changed meanwhile | the row, with the notice ("Save and fix the next one" moves on all the same) |
+| the origin is the page of one puzzle of the file (`…/puzzle/{id}`) and the save made the row another puzzle (name, brand or pieces changed, or it is not imported) | the puzzles' overview, with "We are matching this row's puzzle again" - that puzzle's page may be gone once the puzzles are built again |
+
+The editor has one primary button (Save); "Save and fix the next one" is the quiet second one.
+
+The editor's forms are sent by the browser itself (`data-turbo="false"`): a redirect followed by Turbo's fetch loses
+its anchor, and the anchor is what brings the player back to the very row or group they left. Nothing disables a
+button of such a form, so `data_import_submit_once_controller.js` does (the clicked button's name and value travel
+in a hidden field): a second click would send the old stamp again and be answered "changed meanwhile".
 
 `_answer_input.html.twig` and `ImportRowAnswers` are what a later "My data" row sheet reuses.
 
@@ -314,8 +412,8 @@ Statements on top of what every signed-in page loads, whatever the number of puz
 | the summary | 3 - the import, the overview (one statement: every count, the rows that need a look, the rows already yours), the live line's progress |
 | a list | 4 - those, and the page of cards with their catalogue puzzles (one statement) |
 | the chooser | 3 - the import, the puzzle with its candidates, three of its rows (+1 for a search) |
-| To fix | 3 - the import, a page of groups, the rows left out |
-| the row sheet | 2 - the row with its sheet's mapping, the import |
+| To fix | 4 - the import, a page of groups, the groups about a time, the rows left out |
+| the row sheet | 3 - the row with its sheet's mapping, the import, whether another row needs a look |
 
 To look at on production before it is opened to many (none of these was run there):
 

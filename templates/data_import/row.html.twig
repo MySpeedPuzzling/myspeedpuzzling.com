@@ -4,8 +4,15 @@
     The row sheet of one import row (docs/features/data-import/pairing-screens.md "The row sheet"): what was
     understood of the row, then every field its sheet's mapping gives it - the file's own text beside an input
     (_answer_input.html.twig, the editors a later "My data" row sheet reuses). What the player types becomes the
-    row's answer; an emptied field goes back to what the file says. Everything of the file is shown escaped and
-    never stands in an address.
+    row's answer; an emptied field goes back to what the file says. Beside the time: "No time - I didn't time this
+    one" (the row is then a result without a time). `origin` (ImportRowOrigin, or null) is the screen the player came
+    from: the back link is named after it, and both forms carry it so that a save leads back there. Everything of the
+    file is shown escaped and never stands in an address.
+
+    The forms are sent by the browser itself (`data-turbo="false"`): the way back after a save carries the anchor of
+    the row or group the player came from, and a redirect followed by Turbo's fetch loses its anchor. Nothing
+    disables their buttons then, so data_import_submit_once_controller.js does: a second click would send the old
+    stamp once more and be answered "changed meanwhile".
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -13,6 +20,9 @@
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 {% set sheet_name = detail.sheetTitle != '' ? detail.sheetTitle : 'data_import.sheets.untitled'|trans %}
 {% set save_url = path('data_import_row_save', {importId: import.importId, rowId: detail.rowId}) %}
+{% set origin = origin|default(null) %}
+{% set back_url = origin is not null ? origin.url : path('data_import_to_fix', {importId: import.importId}) %}
+{% set back_label = origin is not null and origin.screen != 'to_fix' ? ('data_import.row.back_to.' ~ origin.screen)|trans : 'data_import.row.back'|trans %}
 
 {% block title %}{{ 'data_import.row.title'|trans({'%number%': detail.row.rowNumber}) }} - {{ sheet_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -38,12 +48,13 @@
         {% endif %}
 
         {% if detail.state != 'left_out' and fields is not empty %}
-            <form action="{{ save_url }}" method="post" class="card card-body shadow-sm my-3" data-testid="import-row-form">
+            <form action="{{ save_url }}" method="post" class="card card-body shadow-sm my-3" data-turbo="false" data-controller="data-import-submit-once" data-action="submit->data-import-submit-once#lock" data-testid="import-row-form">
                 <input type="hidden" name="_token" value="{{ csrf }}">
                 <input type="hidden" name="stamp" value="{{ detail.stamp }}">
+                {% if origin is not null %}<input type="hidden" name="return" value="{{ origin.url }}">{% endif %}
 
                 {% for field in fields %}
-                    <div class="{{ loop.last ? 'mb-3' : 'mb-3 pb-3 border-bottom' }}" data-testid="import-row-field" data-field="{{ field.field }}">
+                    <div class="{{ loop.last ? 'mb-3' : 'mb-3 pb-3 border-bottom' }}" data-testid="import-row-field" data-field="{{ field.field }}"{% if field.canBeUntimed %} data-controller="data-import-no-time"{% endif %}>
                         <label for="row-field-{{ field.field }}" class="form-label fw-medium mb-1">{{ ('data_import.columns.field.' ~ field.field)|trans }}</label>
                         <div class="fs-sm text-muted text-break mb-1" id="row-field-help-{{ field.field }}">
                             {{ 'data_import.row.in_file'|trans }}
@@ -74,18 +85,32 @@
                         {% endif %}
                         {% set hint = ('data_import.to_fix.hint.' ~ field.input)|trans %}
                         {% if hint != 'data_import.to_fix.hint.' ~ field.input %}<div class="form-text">{{ hint }}</div>{% endif %}
+                        {% if field.canBeUntimed %}
+                            {# Offered only where it can not make a row of a shelf a result by itself (ImportRowSheet). Ticked: the time's input is switched off (data_import_no_time_controller.js) and the row is a result without a time; without a script the tick still wins over what is typed #}
+                            <label class="d-flex align-items-center gap-2 mt-2 mb-0" style="min-height: 44px; cursor: pointer;" for="row-no-time" data-testid="import-row-no-time-label">
+                                <input type="checkbox" class="form-check-input m-0 flex-shrink-0" style="width: 22px; height: 22px;" id="row-no-time" name="no_time" value="1"{{ field.noTime ? ' checked' : '' }}
+                                       data-data-import-no-time-target="toggle" data-action="data-import-no-time#toggle" data-testid="import-row-no-time">
+                                <span>{{ 'data_import.row.no_time'|trans }}</span>
+                            </label>
+                        {% endif %}
                     </div>
                 {% endfor %}
 
                 <p class="fs-sm text-muted">{{ 'data_import.row.empty_hint'|trans }}</p>
-                <button type="submit" name="action" value="save" class="btn btn-primary w-100 text-wrap" style="min-height: 48px;" data-testid="import-row-save">
+                <button type="submit" name="action" value="save" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-testid="import-row-save">
                     <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.row.save'|trans }}
                 </button>
+                {% if has_next|default(false) %}
+                    <button type="submit" name="action" value="save_next" class="btn btn-outline-primary w-100 text-wrap mt-2" style="min-height: 48px;" data-testid="import-row-save-next">
+                        {{ 'data_import.row.save_next'|trans }}<i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                    </button>
+                {% endif %}
             </form>
         {% endif %}
 
-        <form action="{{ save_url }}" method="post" class="mb-3">
+        <form action="{{ save_url }}" method="post" class="mb-3" data-turbo="false" data-controller="data-import-submit-once" data-action="submit->data-import-submit-once#lock">
             <input type="hidden" name="_token" value="{{ csrf }}">
+            {% if origin is not null %}<input type="hidden" name="return" value="{{ origin.url }}">{% endif %}
             <input type="hidden" name="stamp" value="{{ detail.stamp }}">
             {% if detail.state == 'left_out' %}
                 {% if detail.row.parsed.leftOut|default('') == 'by_player' %}
@@ -105,8 +130,8 @@
     {% set has_own_primary = detail.canBeAnswered and (detail.state == 'left_out' ? detail.row.parsed.leftOut|default('') == 'by_player' : fields is not empty) %}
     {{ include('data_import/_flow_footer.html.twig', {
         import: import,
-        primary: has_own_primary ? null : {label: 'data_import.row.back'|trans, url: path('data_import_to_fix', {importId: import.importId}), testid: 'import-flow-back-primary'},
-        back: has_own_primary ? {label: 'data_import.row.back'|trans, url: path('data_import_to_fix', {importId: import.importId})} : null,
+        primary: has_own_primary ? null : {label: back_label, url: back_url, testid: 'import-flow-back-primary'},
+        back: has_own_primary ? {label: back_label, url: back_url} : null,
     }, with_context = false) }}
 </div>
 {% endblock %}

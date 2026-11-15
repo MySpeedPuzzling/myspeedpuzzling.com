@@ -18,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * "To fix" of one import (docs/features/data-import/pairing-screens.md "To fix"): the rows that need a look, grouped
  * by what is unclear and the value as the sheet has it - one answer for all rows of a value, or "Leave these rows
  * out". The page number is the only thing in the address - never a cell's value. Another player's import is a 404.
- * Three statements whatever the import's size.
+ * Four statements whatever the import's size.
  */
 final class ImportRowsToFixController extends AbstractController
 {

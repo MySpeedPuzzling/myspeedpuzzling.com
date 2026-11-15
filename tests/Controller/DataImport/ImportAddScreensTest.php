@@ -744,7 +744,11 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertCount(0, $rows[$said]->filter('[data-testid="import-not-added-beside"]'));
         self::assertSame('similar_result_exists', $rows[$similar]->filter('[data-testid="import-not-added-anyway"]')->attr('value'));
         self::assertCount(0, $rows[$pairOfNobody]->filter('[data-testid="import-not-added-anyway"]'));
-        self::assertSame('/en/import/' . $importId . '/rows/' . $pairOfNobody, $rows[$pairOfNobody]->filter('[data-testid="import-not-added-open"]')->attr('href'));
+        // The row's editor, which leads back to this list
+        self::assertStringStartsWith(
+            '/en/import/' . $importId . '/rows/' . $pairOfNobody . '?return=/en/import/' . $importId . '/not-added?batch',
+            (string) $rows[$pairOfNobody]->filter('[data-testid="import-not-added-open"]')->attr('href'),
+        );
         self::assertSame('Try again', self::spaced($rows[$pairOfNobody]->filter('[data-testid="import-not-added-again"]')->text()));
         // Every row's button has an id of its own
         $requestIds = $crawler->filter('[data-testid="import-not-added-row"] input[name="request_id"]')->each(static fn (Crawler $input): null|string => $input->attr('value'));

@@ -436,7 +436,7 @@ final class ImportColumnsScreenTest extends WebTestCase
 
         // Saving it starts its set-up over
         $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $failed, ['_token' => $this->token($page), 'version' => '1']);
-        self::assertResponseRedirects('/en/import/' . $importId . '/sheets/' . $failed);
+        self::assertResponseRedirects('/en/import/' . $importId);
         $this->work();
         self::assertSame('parsed', $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $failed)->filter('[data-testid="sheet-state"]')->attr('data-state'));
 
@@ -462,13 +462,17 @@ final class ImportColumnsScreenTest extends WebTestCase
             'version' => '1',
             'answers' => ['duration_shape.two_part_text' => 'minutes_seconds'],
         ]);
-        self::assertResponseRedirects('/en/import/' . $importId . '/sheets/' . $sheetId);
+        // Saved: on to "Where you are", which says so and follows the reading live
+        self::assertResponseRedirects('/en/import/' . $importId);
         // The worker's turn comes later (the queue of a test is emptied with every request)
         $queued = $this->queued();
         self::assertCount(1, $queued);
+        $whereYouAre = $this->browser->followRedirect();
+        self::assertStringContainsString('Saved - your rows are being read again.', $whereYouAre->filter('body')->text());
+        self::assertSame('true', $whereYouAre->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-working-value'));
 
-        // Saved, not read yet: the page says so, and the progress the live line asks for counts the rows
-        $crawler = $this->browser->followRedirect();
+        // Saved, not read yet: the sheet's page says so, and the progress the live line asks for counts the rows
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $sheetId);
         self::assertSame('parsing', $crawler->filter('[data-testid="sheet-state"]')->attr('data-state'));
         self::assertCount(0, $crawler->filter('[data-testid="import-question"]'));
         $live = $crawler->filter('[data-testid="import-setup-live"]');
@@ -562,7 +566,7 @@ final class ImportColumnsScreenTest extends WebTestCase
 
         $form['columns']['5'] = 'public_comment';
         $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $sheetId, $form);
-        self::assertResponseRedirects('/en/import/' . $importId . '/sheets/' . $sheetId);
+        self::assertResponseRedirects('/en/import/' . $importId);
         $this->work();
 
         $mapping = $this->mapping($sheetId);
@@ -623,7 +627,8 @@ final class ImportColumnsScreenTest extends WebTestCase
 
         // A save that changes nothing reads nothing again
         $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $sheetId, ['_token' => $token, 'version' => '1', 'kind' => 'results', 'row_meaning' => 'result', 'solving_type' => '', 'columns' => ['3' => 'time']]);
-        self::assertResponseRedirects('/en/import/' . $importId . '/sheets/' . $sheetId);
+        // The sheet is fine as it is: on to "Where you are" all the same
+        self::assertResponseRedirects('/en/import/' . $importId);
         self::assertSame([], $this->queued());
         self::assertStringContainsString('Nothing was changed', (string) $this->browser->followRedirect()->filter('body')->text());
         self::assertSame(1, $version());

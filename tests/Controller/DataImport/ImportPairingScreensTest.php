@@ -765,7 +765,11 @@ final class ImportPairingScreensTest extends WebTestCase
         $sheetId = $this->database->fetchOne('SELECT id FROM data_import_sheet WHERE import_id = :id', ['id' => $importId]);
         self::assertIsString($sheetId);
         $list = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $sheetId . '/need-a-look');
-        self::assertContains('/en/import/' . $importId . '/rows/' . $rowId, $list->filter('[data-testid="parsed-row-open"]')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        // The link says where it leads back to
+        self::assertContains(
+            ['/en/import/' . $importId . '/rows/' . $rowId, '/en/import/' . $importId . '/sheets/' . $sheetId . '/need-a-look'],
+            $list->filter('[data-testid="parsed-row-open"]')->each(static fn (Crawler $link): array => self::linkAndReturn((string) $link->attr('href'))),
+        );
 
         $url = '/en/import/' . $importId . '/rows/' . $rowId;
         $crawler = $this->browser->request('GET', $url);
@@ -795,9 +799,10 @@ final class ImportPairingScreensTest extends WebTestCase
         // Saved: the answers stand instead of the cells, the row is read again, its key is another
         $keyBefore = $this->database->fetchOne('SELECT puzzle_key FROM data_import_row WHERE id = :id', ['id' => $rowId]);
         $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'save', 'answers' => ['pieces' => '500', 'puzzle_name' => '', 'solved_on' => '', 'time' => '']]);
-        self::assertResponseRedirects($url);
-        $crawler = $this->browser->followRedirect();
-        self::assertStringContainsString('The row is saved', $crawler->filter('body')->text());
+        // Saved, and no screen to go back to: on to the next row that needs a look, which says what was saved
+        self::assertResponseRedirects('/en/import/' . $importId . '/rows/' . $this->rowId($importId, 2));
+        self::assertStringContainsString('Row 5 is saved. We can read all of it now.', $this->browser->followRedirect()->filter('body')->text());
+        $crawler = $this->browser->request('GET', $url);
         $row = $this->database->fetchAssociative("SELECT parsed ->> 'pieces' AS pieces, problems, puzzle_key, answers FROM data_import_row WHERE id = :id", ['id' => $rowId]);
         self::assertIsArray($row);
         self::assertSame(['500', null], [$row['pieces'], $row['problems']]);
@@ -819,8 +824,10 @@ final class ImportPairingScreensTest extends WebTestCase
 
         // An emptied field goes back to what the file says - and needs a look again
         $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'save', 'answers' => ['pieces' => '']]);
+        // ... so the player stays with this row, although another one needs a look too
         self::assertResponseRedirects($url);
         $crawler = $this->browser->followRedirect();
+        self::assertStringContainsString('Row 5 is saved. Something in it still needs a look.', $crawler->filter('body')->text());
         self::assertNull($this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $rowId]));
         self::assertSame($keyBefore, $this->database->fetchOne('SELECT puzzle_key FROM data_import_row WHERE id = :id', ['id' => $rowId]));
         self::assertCount(1, $crawler->filter('[data-field="pieces"] [data-testid="import-row-problem"]'));
@@ -828,14 +835,325 @@ final class ImportPairingScreensTest extends WebTestCase
         // "Leave this row out", and back
         $stamp = (string) $crawler->filter('input[name="stamp"]')->first()->attr('value');
         $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'leave_out']);
-        self::assertResponseRedirects($url);
-        $crawler = $this->browser->followRedirect();
+        self::assertResponseRedirects();
+        self::assertStringContainsString('Row 5 is not imported.', $this->browser->followRedirect()->filter('body')->text());
+        $crawler = $this->browser->request('GET', $url);
         self::assertSame('left_out', $crawler->filter('[data-testid="import-row-page"]')->attr('data-state'));
         self::assertCount(0, $crawler->filter('[data-testid="import-row-form"]'));
         $stamp = (string) $crawler->filter('input[name="stamp"]')->first()->attr('value');
         $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'take_in']);
         self::assertResponseRedirects($url);
         self::assertSame('waiting', $this->database->fetchOne('SELECT state FROM data_import_row WHERE id = :id', ['id' => $rowId]));
+    }
+
+    public function testTheRowEditorLeadsBackToTheScreenThePlayerCameFrom(): void
+    {
+        $importId = $this->imported();
+        $base = '/en/import/' . $importId;
+        [$row2, $row3, $row5] = [$this->rowId($importId, 2), $this->rowId($importId, 3), $this->rowId($importId, 5)];
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        // "Rows we could not read" says where its links lead back to: the list, at the group
+        $toFix = $this->browser->request('GET', $base . '/to-fix');
+        $key = (string) $toFix->filter('[data-testid="import-to-fix-group"]')->eq(0)->filter('input[name="group"]')->first()->attr('value');
+        [$opened, $return] = self::linkAndReturn((string) $toFix->filter('[data-testid="import-to-fix-open-row"]')->eq(0)->attr('href'));
+        self::assertContains($opened, [$base . '/rows/' . $row2, $base . '/rows/' . $row3]);
+        self::assertSame($base . '/to-fix#group-' . $key, $return);
+
+        // The editor's back link is that screen, by its name - and the form carries it
+        $addList = $base . '/add/list?page=2#row-' . $row5;
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row5 . '?return=' . rawurlencode($addList));
+        self::assertResponseIsSuccessful();
+        self::assertSame($addList, $editor->filter('[data-testid="import-flow-back-link"]')->attr('href'));
+        self::assertStringContainsString('Back to “What will be added”', $editor->filter('[data-testid="import-flow-back-link"]')->text());
+        self::assertSame([$addList, $addList], $editor->filter('input[name="return"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')));
+
+        // Without one - or with one that is not a screen of this import - the way back is "Rows we could not read"
+        $othersImport = Uuid::uuid7()->toString();
+
+        foreach ([null, '//evil.example/x', 'https://evil.example' . $base, '/en/import/' . $othersImport . '/to-fix', $base . '/../../admin', $base . '/rows/' . $row2, '/en/hub'] as $hostile) {
+            $editor = $this->browser->request('GET', $base . '/rows/' . $row5 . ($hostile === null ? '' : '?return=' . rawurlencode($hostile)));
+            self::assertResponseIsSuccessful();
+            self::assertSame($base . '/to-fix', $editor->filter('[data-testid="import-flow-back-link"]')->attr('href'), (string) $hostile);
+            self::assertStringContainsString('Rows we could not read', $editor->filter('[data-testid="import-flow-back-link"]')->text());
+            self::assertCount(0, $editor->filter('input[name="return"]'));
+        }
+
+        $token = $this->token($editor);
+        $stampOf = fn (string $rowId): string => (string) $this->browser->request('GET', $base . '/rows/' . $rowId)->filter('input[name="stamp"]')->first()->attr('value');
+
+        // A value nobody can read: the same page with a 422 - the way back is still there
+        $refused = $this->browser->request('POST', $base . '/rows/' . $row5, ['_token' => $token, 'stamp' => $stampOf($row5), 'action' => 'save', 'return' => $return, 'answers' => ['pieces' => 'a few']]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($return, $refused->filter('[data-testid="import-flow-back-link"]')->attr('href'));
+        self::assertSame($return, $refused->filter('[data-testid="import-row-form"] input[name="return"]')->attr('value'));
+
+        // Saved: back to where the player came from, which names the row - fixed in view, the page being scrolled
+        // to the group. The row's own group (it was its only row) is gone by then: the list of groups it is
+        $piecesKey = (string) $toFix->filter('[data-testid="import-to-fix-group"]')->eq(1)->filter('input[name="group"]')->first()->attr('value');
+        $this->browser->request('POST', $base . '/rows/' . $row5, ['_token' => $token, 'stamp' => $stampOf($row5), 'action' => 'save', 'return' => $base . '/to-fix#group-' . $piecesKey, 'answers' => ['pieces' => '500']]);
+        self::assertResponseRedirects($base . '/to-fix#import-to-fix-count');
+        $back = $this->browser->followRedirect();
+        self::assertStringContainsString('Row 5 is saved. We can read all of it now.', $back->filter('[data-testid="import-saved-notice"]')->text());
+        self::assertCount(1, $back->filter('[data-testid="import-to-fix-page"] #import-to-fix-count'));
+        // Said once
+        self::assertCount(0, $this->browser->request('GET', $base . '/to-fix')->filter('[data-testid="import-saved-notice"]'));
+
+        // A group that is still there keeps its anchor (below: the way back travels on unchanged)
+        // "Save and fix the next one" is offered while another row needs a look, and takes the way back along
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row2 . '?return=' . rawurlencode($return));
+        self::assertSame(['save', 'save_next'], $editor->filter('[data-testid="import-row-form"] button[type="submit"]')->each(static fn (Crawler $button): string => (string) $button->attr('value')));
+        $this->browser->request('POST', $base . '/rows/' . $row2, ['_token' => $token, 'stamp' => $stampOf($row2), 'action' => 'save_next', 'return' => $return, 'answers' => ['time' => '1:00:00']]);
+        self::assertResponseRedirects();
+        self::assertSame([$base . '/rows/' . $row3, $return], self::linkAndReturn((string) $this->browser->getResponse()->headers->get('Location')));
+        $next = $this->browser->followRedirect();
+        self::assertStringContainsString('Row 2 is saved.', $next->filter('body')->text());
+        self::assertSame($return, $next->filter('[data-testid="import-flow-back-link"]')->attr('href'));
+        // The last row that needs a look has no next one
+        self::assertCount(0, $next->filter('[data-testid="import-row-save-next"]'));
+
+        // A way back that is not of this import is not followed on a save either: none is left, so the list it is
+        $this->browser->request('POST', $base . '/rows/' . $row3, ['_token' => $token, 'stamp' => $stampOf($row3), 'action' => 'save', 'return' => '//evil.example/x', 'answers' => ['time' => '1:00:00']]);
+        self::assertResponseRedirects($base . '/to-fix');
+        $list = $this->browser->followRedirect();
+        self::assertStringContainsString('Row 3 is saved.', $list->filter('body')->text());
+        self::assertCount(1, $list->filter('[data-testid="import-to-fix-empty"]'));
+    }
+
+    public function testNoTimeMakesARowAResultWithoutATimeAndBack(): void
+    {
+        $importId = $this->imported();
+        $base = '/en/import/' . $importId;
+        [$row2, $row4] = [$this->rowId($importId, 2), $this->rowId($importId, 4)];
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $state = fn (string $rowId): array => array_values((array) $this->database->fetchAssociative(
+            "SELECT kind, parsed ->> 'seconds' AS seconds, problems::text AS problems, answers ->> 'time' AS answer FROM data_import_row WHERE id = :id",
+            ['id' => $rowId],
+        ));
+        $save = function (string $rowId, array $form) use ($base): void {
+            $page = $this->browser->request('GET', $base . '/rows/' . $rowId);
+            $this->browser->request('POST', $base . '/rows/' . $rowId, ['_token' => $this->token($page), 'stamp' => (string) $page->filter('input[name="stamp"]')->first()->attr('value'), 'action' => 'save', ...$form]);
+            self::assertResponseRedirects();
+        };
+
+        // Beside the time's input - not ticked for a row whose time nobody could read
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row2);
+        $choice = $editor->filter('[data-field="time"] [data-testid="import-row-no-time"]');
+        self::assertCount(1, $choice);
+        self::assertNull($choice->attr('checked'));
+        self::assertStringContainsString("No time - I didn't time this one", $editor->filter('[data-testid="import-row-no-time-label"]')->text());
+        self::assertCount(0, $editor->filter('[data-field="pieces"] [data-testid="import-row-no-time"]'));
+        self::assertSame('result', $state($row2)[0]);
+        self::assertStringContainsString('time_unreadable', self::spaced(is_string($state($row2)[2]) ? $state($row2)[2] : ''));
+
+        // Ticked (the input is switched off, so no time is sent): a result without a time, nothing unclear
+        $save($row2, ['no_time' => '1']);
+        self::assertSame(['result', null, null, '{"text": "no_time", "value": 0}'], $state($row2));
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row2);
+        self::assertNotNull($editor->filter('[data-testid="import-row-no-time"]')->attr('checked'));
+        self::assertSame('', $editor->filter('[data-field="time"] [data-testid="import-answer-input"]')->attr('value'));
+        self::assertCount(0, $editor->filter('[data-testid="import-row-problem"]'));
+
+        // Saved once more as it is: nothing changes
+        $save($row2, ['no_time' => '1']);
+        self::assertStringContainsString('Nothing was changed', $this->browser->followRedirect()->filter('body')->text());
+
+        // Back to a time: typed instead
+        $save($row2, ['answers' => ['time' => '1:15:00']]);
+        self::assertSame(['result', '4500', null, '{"text": "1:15:00", "value": 4500}'], $state($row2));
+
+        // A row whose time was read: without a script the tick wins over what is typed
+        self::assertSame(['result', '2893', null, null], $state($row4));
+        $save($row4, ['no_time' => '1', 'answers' => ['time' => '0:40:00']]);
+        self::assertSame(['result', null, null, '{"text": "no_time", "value": 0}'], $state($row4));
+        // ... and the tick taken away with nothing typed: the file's own time again
+        $save($row4, ['answers' => ['time' => '']]);
+        self::assertSame(['result', '2893', null, null], $state($row4));
+
+        // A row of a shelf whose time cell is empty is never offered it - "No time" would say "solved" by itself -
+        // and a tick sent all the same is not taken
+        $row6 = $this->rowId($importId, 6);
+        $stored = $this->database->fetchOne('SELECT cells FROM data_import_row WHERE id = :id', ['id' => $row6]);
+        self::assertIsString($stored);
+        $cells = json_decode($stored, true);
+        self::assertIsArray($cells);
+        array_pop($cells);
+        $this->database->executeStatement("UPDATE data_import_row SET kind = 'owned', cells = :cells WHERE id = :id", ['cells' => json_encode($cells), 'id' => $row6]);
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row6);
+        self::assertCount(1, $editor->filter('[data-field="time"] [data-testid="import-answer-input"]'));
+        self::assertCount(0, $editor->filter('[data-testid="import-row-no-time"]'));
+        $save($row6, ['no_time' => '1']);
+        self::assertStringContainsString('Nothing was changed', $this->browser->followRedirect()->filter('body')->text());
+        self::assertNull($this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $row6]));
+    }
+
+    public function testAGroupOfUnreadableTimesIsImportedWithoutATime(): void
+    {
+        $importId = $this->imported();
+        $base = '/en/import/' . $importId;
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $this->browser->request('GET', $base . '/to-fix');
+        $groups = $crawler->filter('[data-testid="import-to-fix-group"]');
+        $token = $this->token($crawler);
+        [$timeKey, $piecesKey] = [(string) $groups->eq(0)->filter('input[name="group"]')->first()->attr('value'), (string) $groups->eq(1)->filter('input[name="group"]')->first()->attr('value')];
+
+        // Offered beside the answer of a group of times only
+        self::assertStringContainsString('Import these without a time (2)', $groups->eq(0)->filter('[data-testid="import-to-fix-no-time"]')->text());
+        self::assertCount(0, $groups->eq(1)->filter('[data-testid="import-to-fix-no-time"]'));
+
+        // A group of another field is never made time-less
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $piecesKey, 'page' => '1', 'action' => 'no_time']);
+        self::assertResponseRedirects($base . '/to-fix?page=1');
+        self::assertStringContainsString('These rows changed meanwhile', $this->browser->followRedirect()->filter('body')->text());
+        self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND answers IS NOT NULL', ['id' => $importId]));
+
+        // Without a script: back to the list, which says it
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $timeKey, 'page' => '1', 'action' => 'no_time', 'answer' => '']);
+        self::assertResponseRedirects($base . '/to-fix?page=1');
+        $crawler = $this->browser->followRedirect();
+        self::assertStringContainsString('Rows that will be imported without a time: 2', $crawler->filter('body')->text());
+        self::assertSame(['pieces_unreadable'], $crawler->filter('[data-testid="import-to-fix-group"]')->each(static fn (Crawler $group): string => (string) $group->attr('data-code')));
+
+        // Both rows are results without a time, with nothing unclear - what an empty time cell makes of a row
+        self::assertSame(
+            [[2, 'result', null, null, '{"text": "no_time", "value": 0}'], [3, 'result', null, null, '{"text": "no_time", "value": 0}']],
+            array_map(array_values(...), $this->database->fetchAllAssociative(
+                "SELECT row_number, kind, parsed ->> 'seconds' AS seconds, problems::text AS problems, answers ->> 'time' AS answer FROM data_import_row WHERE import_id = :id AND row_number IN (2, 3) ORDER BY row_number",
+                ['id' => $importId],
+            )),
+        );
+    }
+
+    public function testEveryGroupAboutATimeIsImportedWithoutATimeByOneAnswer(): void
+    {
+        // Three groups about a time, told apart by the cell's text: two rows of one text, and two texts of one row
+        $streamed = $this->imported(more: 2);
+        // (another file: the very same one again would be the first import)
+        $plain = $this->imported(more: 3);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $timeless = fn (string $importId): array => array_map(array_values(...), $this->database->fetchAllAssociative(
+            "SELECT kind, parsed ->> 'seconds' AS seconds, problems::text AS problems, answers ->> 'time' AS answer FROM data_import_row WHERE import_id = :id AND answers IS NOT NULL ORDER BY row_number",
+            ['id' => $importId],
+        ));
+        $asEmptyTimeCell = ['result', null, null, '{"text": "no_time", "value": 0}'];
+
+        $crawler = $this->browser->request('GET', '/en/import/' . $streamed . '/to-fix');
+        $all = $crawler->filter('[data-testid="import-to-fix-all-no-time"]');
+        self::assertSame(['3', '4'], [$all->attr('data-groups'), $all->attr('data-rows')]);
+        self::assertStringContainsString('Rows whose time we could not read: 4.', $all->text());
+        self::assertStringContainsString('Import all of them without a time (4)', $all->filter('[data-testid="import-to-fix-all-no-time-use"]')->text());
+        $token = $this->token($crawler);
+
+        // In place: the groups are listed anew under the confirmation - only the piece count is left
+        $this->browser->request('POST', '/en/import/' . $streamed . '/to-fix', ['_token' => $token, 'page' => '1', 'action' => 'no_time_all'], [], ['HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html']);
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $this->browser->getResponse()->headers->get('Content-Type'));
+        $answer = (string) $this->browser->getResponse()->getContent();
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-all-no-time">', $answer);
+        self::assertStringContainsString('Rows that will be imported without a time: 4', $answer);
+        self::assertStringNotContainsString('data-testid="import-to-fix-all-no-time"', $answer);
+        self::assertStringContainsString('<turbo-stream action="update" target="import-to-fix-groups">', $answer);
+        self::assertSame(1, substr_count($answer, 'data-testid="import-to-fix-group"'));
+        self::assertStringContainsString('data-code="pieces_unreadable"', $answer);
+        self::assertStringContainsString('Groups still to answer: 1', $answer);
+        // Every row whose time cell held a text is a result without a time - and no other row was touched
+        self::assertSame([$asEmptyTimeCell, $asEmptyTimeCell, $asEmptyTimeCell, $asEmptyTimeCell], $timeless($streamed));
+
+        // Without a script: back to the list, which says it
+        $this->browser->request('POST', '/en/import/' . $plain . '/to-fix', ['_token' => $token, 'page' => '1', 'action' => 'no_time_all']);
+        self::assertResponseRedirects('/en/import/' . $plain . '/to-fix?page=1');
+        $crawler = $this->browser->followRedirect();
+        self::assertStringContainsString('Rows that will be imported without a time: 5', $crawler->filter('body')->text());
+        self::assertCount(0, $crawler->filter('[data-testid="import-to-fix-all-no-time"]'));
+        self::assertCount(5, $timeless($plain));
+
+        // Asked once more with no group about a time left: nothing is changed
+        $this->browser->request('POST', '/en/import/' . $plain . '/to-fix', ['_token' => $token, 'page' => '1', 'action' => 'no_time_all']);
+        self::assertResponseRedirects('/en/import/' . $plain . '/to-fix?page=1');
+        self::assertStringContainsString('These rows changed meanwhile', $this->browser->followRedirect()->filter('body')->text());
+        self::assertCount(5, $timeless($plain));
+    }
+
+    public function testAnswersOnRowsWeCouldNotReadAreGivenInPlaceForTurboStreams(): void
+    {
+        $importId = $this->imported();
+        $base = '/en/import/' . $importId;
+        $row5 = $this->rowId($importId, 5);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $stream = ['HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml'];
+
+        $crawler = $this->browser->request('GET', $base . '/to-fix');
+        $groups = $crawler->filter('[data-testid="import-to-fix-group"]');
+        $token = $this->token($crawler);
+        [$timeKey, $piecesKey] = [(string) $groups->eq(0)->filter('input[name="group"]')->first()->attr('value'), (string) $groups->eq(1)->filter('input[name="group"]')->first()->attr('value')];
+
+        // Everything an answer changes has its place on the page
+        self::assertSame('2', $crawler->filter('#import-to-fix-count')->attr('data-total'));
+        self::assertStringContainsString('Groups still to answer: 2', $crawler->filter('#import-to-fix-count')->text());
+        self::assertCount(2, $crawler->filter('#import-to-fix-groups > [data-testid="import-to-fix-group"]'));
+        self::assertSame('group-' . $timeKey, $groups->eq(0)->attr('id'));
+        self::assertCount(1, $crawler->filter('#import-to-fix-left-out'));
+        self::assertCount(1, $crawler->filter('#import-to-fix-pages'));
+        // One group about a time: nothing to answer "for all of them"
+        self::assertCount(1, $crawler->filter('#import-to-fix-all-no-time'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-to-fix-all-no-time"]'));
+
+        // A value nobody can read: the group's card alone, with the reason and what was typed - a 422
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $timeKey, 'page' => '1', 'action' => 'answer', 'answer' => 'about an hour'], [], $stream);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $this->browser->getResponse()->headers->get('Content-Type'));
+        $refused = (string) $this->browser->getResponse()->getContent();
+        self::assertSame(1, substr_count($refused, '<turbo-stream'));
+        self::assertStringContainsString('<turbo-stream action="replace" target="group-' . $timeKey . '">', $refused);
+        self::assertStringContainsString('We could not read this for sure', $refused);
+        self::assertStringContainsString('value="about an hour"', $refused);
+        self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND answers IS NOT NULL', ['id' => $importId]));
+
+        // Answered: a short confirmation where the group stood, the count follows - nothing else of the page
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $timeKey, 'page' => '1', 'action' => 'answer', 'answer' => '1:15:00'], [], $stream);
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $this->browser->getResponse()->headers->get('Content-Type'));
+        $answered = (string) $this->browser->getResponse()->getContent();
+        self::assertStringContainsString('<turbo-stream action="replace" target="group-' . $timeKey . '">', $answered);
+        self::assertStringContainsString('id="group-' . $timeKey . '"', $answered);
+        self::assertStringContainsString('Rows fixed: 2', $answered);
+        self::assertStringNotContainsString('data-testid="import-to-fix-group"', $answered);
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-count">', $answered);
+        self::assertStringContainsString('Groups still to answer: 1', $answered);
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-left-out">', $answered);
+        self::assertStringContainsString('<turbo-stream action="update" target="import-to-fix-pages">', $answered);
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-all-no-time">', $answered);
+        self::assertSame(['4500', '4500'], $this->database->fetchFirstColumn("SELECT parsed ->> 'seconds' FROM data_import_row WHERE import_id = :id AND row_number IN (2, 3) ORDER BY row_number", ['id' => $importId]));
+
+        // "Don't import them": the rows not imported are listed anew, and nothing is left to answer
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $piecesKey, 'page' => '1', 'action' => 'leave_out'], [], $stream);
+        self::assertResponseIsSuccessful();
+        $leftOut = (string) $this->browser->getResponse()->getContent();
+        self::assertStringContainsString('<turbo-stream action="replace" target="group-' . $piecesKey . '">', $leftOut);
+        self::assertStringContainsString('Rows not imported: 1', $leftOut);
+        self::assertStringContainsString('id="left-out-row-' . $row5 . '"', $leftOut);
+        self::assertStringContainsString('<span id="import-to-fix-left-out-title">Rows you chose not to import: 1</span>', $leftOut);
+        self::assertStringContainsString('Nothing to do here.', $leftOut);
+        self::assertSame('left_out', $this->database->fetchOne('SELECT state FROM data_import_row WHERE id = :id', ['id' => $row5]));
+
+        // "Import after all": the row gives way to its confirmation, and its group is listed again
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'row' => $row5, 'page' => '1', 'action' => 'take_in'], [], $stream);
+        self::assertResponseIsSuccessful();
+        $takenIn = (string) $this->browser->getResponse()->getContent();
+        // It was the only row not imported: the block goes, its confirmation stays
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-left-out">', $takenIn);
+        self::assertStringNotContainsString('data-testid="import-to-fix-left-out"', $takenIn);
+        self::assertStringContainsString('The row is put back.', $takenIn);
+        self::assertStringContainsString('<turbo-stream action="update" target="import-to-fix-groups">', $takenIn);
+        self::assertStringContainsString('id="group-' . $piecesKey . '"', $takenIn);
+        self::assertStringContainsString('data-code="pieces_unreadable"', $takenIn);
+        self::assertStringContainsString('Groups still to answer: 1', $takenIn);
+        self::assertSame('waiting', $this->database->fetchOne('SELECT state FROM data_import_row WHERE id = :id', ['id' => $row5]));
+
+        // Changed meanwhile (the group is gone): the list as it stands, by a redirect - also for a stream request
+        $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'group' => $timeKey, 'page' => '1', 'action' => 'answer', 'answer' => '1:15:00'], [], $stream);
+        self::assertResponseRedirects($base . '/to-fix?page=1');
     }
 
     public function testRowsWithoutAValueNeverGetOneSharedAnswer(): void
@@ -923,7 +1241,7 @@ final class ImportPairingScreensTest extends WebTestCase
         $save = function (array $answers) use ($url, $token): void {
             $stamp = (string) $this->browser->request('GET', $url)->filter('input[name="stamp"]')->first()->attr('value');
             $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'save', 'answers' => $answers]);
-            self::assertResponseRedirects($url);
+            self::assertResponseRedirects();
         };
 
         // Only the time is answered: the list is still asked about the row's name
@@ -1030,10 +1348,12 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertCount(1, $this->browser->getCrawler()->filter('[data-testid="import-pages-next"]'));
         self::assertSame($budgets['few'], $budgets['many'], 'the number of statements must not grow with rows or groups');
 
-        // The import, a page of groups and the rows left out (3); the row and the import (2); the summary (3) and
-        // what is ready to be added (1 - docs/features/data-import/adding-screens.md "Ready to add")
+        // The import, a page of groups, the groups about a time ("Import all of them without a time") and the rows
+        // left out (4); the row, the import and whether another row needs
+        // a look - "Save and fix the next one" (3); the summary (3) and what is ready to be added (1 -
+        // docs/features/data-import/adding-screens.md "Ready to add")
         $signedIn = $budgets['few']['summary'] - 4;
-        self::assertSame(['to-fix' => $signedIn + 3, 'row' => $signedIn + 2, 'summary' => $signedIn + 4], $budgets['few']);
+        self::assertSame(['to-fix' => $signedIn + 4, 'row' => $signedIn + 3, 'summary' => $signedIn + 4], $budgets['few']);
     }
 
     /**
@@ -1252,6 +1572,18 @@ final class ImportPairingScreensTest extends WebTestCase
         });
 
         return $cards;
+    }
+
+    /**
+     * A link to a row's editor: where it leads, and where it says it leads back to.
+     *
+     * @return array{string, null|string}
+     */
+    private static function linkAndReturn(string $href): array
+    {
+        parse_str((string) parse_url($href, PHP_URL_QUERY), $query);
+
+        return [(string) parse_url($href, PHP_URL_PATH), is_string($query['return'] ?? null) ? $query['return'] : null];
     }
 
     private function token(Crawler $page): string

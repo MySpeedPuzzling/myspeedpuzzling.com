@@ -176,7 +176,7 @@
                         {% endif %}
                     </form>
                     <div class="d-flex flex-wrap align-items-center gap-3 ps-5">
-                        <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId}) }}" class="fs-xs d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-list-open" rel="nofollow">{{ 'data_import.add_list.row.open'|trans }}</a>
+                        <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId, return: app.request.requestUri ~ '#row-' ~ item.row.rowId}) }}" class="fs-xs d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-list-open" rel="nofollow">{{ 'data_import.add_list.row.open'|trans }}</a>
                         {% if not item.notImported and item.row.said.period is not null %}
                             {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.month_only'|trans, fold: true, summary: 'data_import.explain.month_only_summary'|trans, testid: 'import-explain-month-only'}, with_context = false) }}
                         {% endif %}

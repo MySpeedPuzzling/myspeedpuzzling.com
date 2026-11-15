@@ -31,6 +31,8 @@ use SpeedPuzzling\Web\Value\PuzzlingType;
  *
  *     {"time": {"text": "1:15:00", "value": 4500}, "pieces": {"text": "1000", "value": 1000}, "leftOut": true}
  *
+ * (`"time": {"text": "no_time", "value": 0}` is "No time - I didn't time this one", NO_TIME.)
+ *
  * read() checks a typed value with the same value readers a cell is read with and gives the value as the parser
  * keeps it - a text nobody can read for sure is refused, never guessed. apply() is the parser's side
  * (ImportRowParser): the answered value stands instead of the cell's, and nothing is unclear about that field any
@@ -39,6 +41,14 @@ use SpeedPuzzling\Web\Value\PuzzlingType;
 final readonly class ImportRowAnswers
 {
     public const string LEFT_OUT = 'leftOut';
+
+    /**
+     * The answer for the time field that says "No time - I didn't time this one": kept as
+     * `{"text": "no_time", "value": 0}`. The row is then what an empty time cell of the file makes of it - and a
+     * result when its cell held something. Offered (ImportRowSheet's `canBeUntimed`) only for a row that is a
+     * result already or whose time cell holds something.
+     */
+    public const string NO_TIME = 'no_time';
 
     /** How many rows one message answers (AnswerImportRows) - they are parsed again under the import's lock */
     public const int MAX_ROWS = 500;
@@ -96,7 +106,7 @@ final readonly class ImportRowAnswers
             ImportField::Pieces => $this->pieces($text),
             ImportField::Barcode => $this->barcodes($text),
             ImportField::SolvedOn => $this->day($text),
-            ImportField::Time => $this->seconds($text),
+            ImportField::Time => $text === self::NO_TIME ? 0 : $this->seconds($text),
             ImportField::SolvedWith => self::people($text),
             ImportField::SolvingType => PuzzlingType::tryFrom($text)?->value,
             ImportField::AttemptNumber => preg_match('/^\d{1,4}$/', $text) === 1 && (int) $text >= 1 ? (int) $text : null,
@@ -242,6 +252,17 @@ final readonly class ImportRowAnswers
 
                 return false;
             case ImportField::Time:
+                // "No time - I didn't time this one": without a time - as an empty time cell reads. It says "solved"
+                // only where the cell held something (a time, a text): by itself it never makes a row of a shelf
+                // with an empty time cell a result
+                if ($value === 0) {
+                    $row->seconds = null;
+                    $row->untimed = $row->timeCellFilled;
+                    unset($row->from['seconds']);
+
+                    return true;
+                }
+
                 if (is_int($value) && $value > 0) {
                     $row->seconds = $value;
                     unset($row->from['seconds']);

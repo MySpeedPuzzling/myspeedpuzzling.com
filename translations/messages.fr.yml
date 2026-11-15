@@ -12465,6 +12465,11 @@ data_import:
         left_out_title: "Lignes que vous avez choisi de ne pas importer : %number%"
         take_in: "Importer finalement"
         row_of: "Ligne %row% · %sheet%"
+        no_time: "Importer ces lignes sans temps (%number%)"
+        groups_left: "Groupes qui attendent encore une réponse : %number%"
+        all_no_time:
+            text: "Lignes dont nous n'avons pas pu lire le temps : %number%. Si vous n'avez pas chronométré ces puzzles, une seule réponse suffit pour toutes."
+            use: "Importer toutes ces lignes sans temps (%number%)"
         error:
             empty: "Veuillez d'abord saisir une valeur."
             unreadable: "Nous n'avons pas pu lire cela avec certitude. Veuillez l'écrire autrement."
@@ -12479,6 +12484,7 @@ data_import:
             answered: "Lignes corrigées : %number%"
             left_out: "Lignes non importées : %number%"
             taken_in: "La ligne est remise."
+            no_time: "Lignes qui seront importées sans temps : %number%"
             more_remain: "Lignes de ce groupe encore en attente : %number%. Donnez la réponse une fois de plus."
     row:
         title: "Ligne %number%"
@@ -12494,12 +12500,27 @@ data_import:
         left_out_note: "Cette ligne n'est pas importée."
         not_answerable: "Cette ligne ne peut pas être modifiée pour l'instant - sa feuille est en cours de relecture. Veuillez réessayer dans un instant."
         back: "Retour à « Lignes que nous n'avons pas pu lire »"
+        back_to:
+            overview: "Retour à votre import"
+            check: "Retour à « Comment nous avons lu votre fichier »"
+            sheet: "Retour à la feuille"
+            people: "Retour à « Les personnes de votre fichier »"
+            puzzles: "Retour à vos puzzles"
+            puzzle: "Retour à ce puzzle"
+            add: "Retour à « Vérifier et ajouter »"
+            add_list: "Retour à « Ce qui sera ajouté »"
+            not_added: "Retour à « Lignes qui attendent votre réponse »"
+            added: "Retour à « Ce que cet import a ajouté »"
+        no_time: "Pas de temps - je ne l'ai pas chronométré"
+        save_next: "Enregistrer et corriger la suivante"
         flash:
             nothing_changed: "Rien n'a été modifié."
             changed_meanwhile: "Cette ligne a changé entre-temps. Rien n'a été enregistré ; voici où elle en est."
-            saved: "La ligne est enregistrée."
-            left_out: "La ligne n'est pas importée."
-            taken_in: "La ligne est remise."
+            saved: "La ligne %number% est enregistrée. Nous pouvons maintenant la lire en entier."
+            saved_needs_look: "La ligne %number% est enregistrée. Quelque chose y demande encore un coup d'œil."
+            puzzle_matched_again: "Nous cherchons de nouveau le puzzle de cette ligne - cela prend un instant."
+            left_out: "La ligne %number% n'est pas importée."
+            taken_in: "La ligne %number% est remise."
     answer:
         choose: "Choisir…"
         choice:
@@ -12532,7 +12553,7 @@ data_import:
             rows_left_out: "Non importées : %number%"
         flash:
             nothing_changed: "Rien n'a été modifié, rien n'a donc été relu."
-            saved: "Enregistré. Les lignes de la feuille sont relues."
+            saved: "Enregistré - vos lignes sont relues."
             changed_meanwhile: "Cette feuille a été modifiée entre-temps, dans un autre onglet ou sur un autre appareil. Voici son état actuel - merci de refaire votre modification."
         error:
             refused: "Nous n'avons pas pu enregistrer cela, rien n'a donc été modifié. Vérifiez vos choix et réessayez."

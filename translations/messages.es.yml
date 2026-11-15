@@ -1218,6 +1218,8 @@ competition_referees:
   "answer_button_start_solving": "<p class=\"mb-0\">Abre el cronómetro para los rompecabezas seleccionados. Inícialo cuando empieces a armar tu rompecabezas real en casa y, al terminar, guarda el tiempo en tu perfil. El rompecabezas no se arma en la web.</p>\n"
   "question_button_add_my_time": "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Añadir Mi Tiempo</a>?"
   "answer_button_add_my_time": "<p class=\"mb-0\">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de especificar también la fecha en que armaste.</p>\n"
+  "question_import_spreadsheet": "Llevo mis tiempos o mi colección en una hoja de cálculo. ¿Puedo traerla?"
+  "answer_import_spreadsheet": "<p>Sí, y es gratis. Importa un archivo de Excel o CSV o una hoja de Google: MySpeedPuzzling lo lee, tú revisas lo que ha entendido y luego lo añades a tu perfil. Nada se añade nunca dos veces, y puedes deshacerlo. <a href=\"%import_guide_link%\">Cómo funciona la importación</a></p>"
   "question_helping": "¿Quieres una mano ayudante?"
   "answer_helping": "<p class=\"mb-0\">¡Claro! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>\n"
   "question_what_is_speed_puzzling": "¿Qué es el speed puzzling?"
@@ -12586,6 +12588,98 @@ data_import:
         taken_back_reason: "Motivo: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+import_guide:
+    meta:
+        title: "Importa tu hoja de cálculo de puzzles: tiempos, colección y lista de deseos"
+        description: "Trae a MySpeedPuzzling los tiempos y la colección de puzzles que llevabas en Excel, CSV o Google Sheets. Gratis: leemos el archivo, tú lo revisas y nada se añade nunca dos veces."
+    title: "Trae tu hoja de cálculo"
+    lead: "¿Llevabas tus tiempos o tu colección de puzzles en una hoja de cálculo? No hace falta escribirlo todo otra vez. MySpeedPuzzling lee el archivo, tú revisas lo que ha entendido y luego lo añades a tu perfil."
+    free: "Gratis para todo el mundo."
+    start_guest: "Crear una cuenta gratis y empezar"
+    sign_in: "Ya tengo cuenta: iniciar sesión"
+    to_guide: "Cómo funciona la importación"
+    what:
+        title: "Qué puedes traer"
+        results: "<strong>Resultados</strong>: los puzzles que has resuelto, con o sin tiempo y fecha."
+        owned: "<strong>Puzzles que tienes</strong>: van a tu colección."
+        wish_list: "<strong>Tu lista de deseos</strong>: las filas que tu archivo marca como deseadas."
+        formats: "<strong>Desde</strong> un archivo de Excel (.xlsx), un archivo CSV o TSV, o el enlace de una hoja de Google."
+        apps: "<strong>¿Vienes de la app Puzzle Tracker?</strong> Su exportación en CSV se reconoce sola, igual que la exportación de resultados de MySpeedPuzzling: no hay columnas que configurar."
+        fields: "<strong>Tus propias notas</strong>: una valoración, un precio, dónde lo compraste. Esas columnas pueden ir a campos privados ya preparados que solo ves tú."
+    how:
+        title: "Cómo va, en seis pasos"
+        step1:
+            title: "Trae el archivo"
+            text: "Elige un archivo de tu móvil u ordenador, o pega el enlace de una hoja de Google."
+        step2:
+            title: "Lo leemos"
+            text: "Suele tardar unos segundos. Un archivo grande puede llevar minutos: puedes salir de la página y volver."
+        step3:
+            title: "Revisa las columnas"
+            text: "Mostramos qué parece ser cada columna: el nombre del puzzle, el tiempo, la fecha. Tú corriges lo que no hayamos acertado. El diseño se recuerda para tu próximo archivo."
+        step4:
+            title: "Buscamos tus puzzles"
+            text: "Buscamos cada puzzle de tu archivo en nuestro catálogo por nombre, marca, número de piezas y código de barras. Las coincidencias seguras se hacen solas; en las demás eliges tú con imágenes."
+        step5:
+            title: "Revisa"
+            text: "Ves lo que se va a añadir: cuántos resultados, puzzles que tienes y deseos. En tu perfil todavía no hay nada."
+        step6:
+            title: "Añade"
+            text: "Un botón lo añade a tu perfil. No tienes que terminar de una vez: todo lo que decidas queda guardado y puedes seguir otro día."
+    file:
+        title: "Qué pasa con tu archivo"
+        only_you: "Solo tú ves tu archivo y lo que hemos leído de él."
+        kept: "El archivo se guarda %days% días y luego se elimina. Lo que hemos leído de él se queda con tu importación, para que nada se añada dos veces y puedas deshacerlo."
+        google: "Una hoja de Google tiene que estar compartida con «Cualquier persona con el enlace» mientras la obtenemos. Cuando ya esté aquí, puedes volver a desactivar el uso compartido."
+        discard: "Puedes descartar una importación en cualquier momento, y todo desaparece si eliminas tu cuenta."
+    never_twice:
+        title: "Nunca añade nada dos veces"
+        text: "Si traes el mismo archivo otra vez, no se añade nada nuevo. Si añades treinta filas a tu hoja y la traes de nuevo, se añaden esas treinta. Los resultados que ya habías escrito en MySpeedPuzzling también se reconocen y no se tocan."
+    take_back:
+        title: "Puedes deshacerlo"
+        text: "Todo lo que añadió una importación aparece en su página. Deshaz una fila, un «Añadir» o la importación entera: antes de quitar nada, te mostramos qué se va y qué se queda. Un resultado que hayas editado después se conserva salvo que digas lo contrario."
+    result:
+        title: "Cómo es un resultado importado"
+        counts: "Es un resultado como los que escribes a mano: cuenta en tus estadísticas y aparece en la clasificación del puzzle."
+        dated: "Lleva el día que dice tu archivo. Si el archivo solo sabe el mes o el año, eso es lo que se muestra: nunca inventamos un día."
+        photo: "No tiene foto: una hoja de cálculo no lleva ninguna. Puedes añadirla más tarde editando el resultado."
+        partners: "Las personas con las que hiciste el puzzle se añaden como invitados, con el nombre de tu archivo, nunca como jugadores registrados. Un invitado se puede vincular más tarde a un jugador, con su consentimiento."
+        unusual: "Un tiempo mucho más rápido o más lento de lo que esperaríamos de ti no se añade sin más: te preguntamos si es correcto, igual que en el formulario de añadir."
+    unlisted:
+        title: "Puzzles que aún no tenemos"
+        text: "Un puzzle de tu archivo que no está en nuestro catálogo no se pierde: guárdalo como puzzle fuera del catálogo. Sus resultados y si lo tienes se quedan en una página que solo ves tú y no cuentan en ningún sitio público. Cuando el puzzle aparezca en el catálogo, lo emparejas y sus resultados pasan a tu perfil."
+    not_yet:
+        title: "Lo que todavía no hace"
+        old_formats: "Archivos antiguos de Excel (.xls) y archivos OpenDocument (.ods): guárdalos antes como .xlsx o CSV."
+        photos: "Fotos e imágenes: no se toma ninguna del archivo ni de los enlaces que contenga."
+        lists: "Listas de préstamos y de venta/intercambio: una nota como «prestado a…» sigue siendo una nota."
+        events: "El evento o la competición de un resultado: se puede indicar más tarde editando el resultado."
+        own_columns: "Una columna que no encaje en ninguno de los campos preparados se deja fuera por ahora."
+        unlisted: "Un puzzle fuera del catálogo todavía no se puede editar ni proponer para el catálogo desde su página."
+        sync: "Una hoja de Google se lee una vez, cuando la traes: no se vigilan sus cambios."
+    start:
+        title: "¿Empezamos?"
+        text: "No se añade nada a tu perfil hasta que lo hayas revisado y pulsado Añadir."
+    entry:
+        question: "¿Ya lo llevas en una hoja de cálculo?"
+        bring: "Tráela aquí"
+        many_results: "¿Tienes muchos resultados en una hoja de cálculo?"
+        import_them: "Impórtalos"
+        puzzles_question: "¿Llevas tus puzzles en una hoja de cálculo?"
+    export_card:
+        title: "Traer datos"
+        text: "¿Llevabas tus resultados o tu colección en una hoja de cálculo? Importa un archivo de Excel o CSV o una hoja de Google: lo revisas todo antes de que se añada nada."
+    first:
+        title: "Tres formas de empezar"
+        file:
+            title: "Un archivo"
+            text: "Un archivo de Excel (.xlsx) o CSV de tu móvil u ordenador."
+        google:
+            title: "Un enlace de Google Sheets"
+            text: "Comparte la hoja con cualquier persona que tenga el enlace y pégalo: práctico en el móvil."
+        tracker:
+            title: "¿Vienes de Puzzle Tracker?"
+            text: "Exporta tus puzzles en la app como archivo CSV y trae ese archivo aquí. Conocemos sus columnas: no hay nada que configurar."
 unlisted_puzzles:
     title: "Puzzles fuera del catálogo"
     link: "Tus puzzles fuera del catálogo"

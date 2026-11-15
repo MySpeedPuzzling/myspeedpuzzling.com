@@ -1510,6 +1510,8 @@ faq:
     answer_button_add_my_time: |
         <p class="mb-0">Opens adding your time to selected puzzles - suitable if you use your own stopwatch and have just finished assembling. If you assembled in the past and want to record the time, you have the option to also specify the date you assembled.</p>
 
+    question_import_spreadsheet: "I keep my times or my collection in a spreadsheet. Can I bring it in?"
+    answer_import_spreadsheet: "<p>Yes, and it is free. Import an Excel or CSV file or a Google sheet: MySpeedPuzzling reads it, you check what it understood, and then you add it to your profile. Nothing is ever added twice, and you can take it back. <a href=\"%import_guide_link%\">How the import works</a></p>"
     question_helping: Do you want a helping hand?
     answer_helping: |
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
@@ -12832,6 +12834,98 @@ data_import:
         taken_back_reason: "Reason: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+import_guide:
+    meta:
+        title: "Import your puzzle spreadsheet - times, collection, wish list"
+        description: "Bring the puzzle times and the collection you kept in Excel, CSV or Google Sheets to MySpeedPuzzling. Free: we read the file, you check it, and nothing is ever added twice."
+    title: "Bring your spreadsheet over"
+    lead: "Kept your puzzle times or your collection in a spreadsheet? You do not have to type it all again. MySpeedPuzzling reads the file, you check what it understood, and then you add it to your profile."
+    free: "Free for everybody."
+    start_guest: "Create a free account and start"
+    sign_in: "I have an account - sign in"
+    to_guide: "How the import works"
+    what:
+        title: "What you can bring"
+        results: "<strong>Results</strong> - the puzzles you solved, with or without a time and a date."
+        owned: "<strong>Puzzles you own</strong> - they go to your collection."
+        wish_list: "<strong>Your wish list</strong> - rows your file marks as wanted."
+        formats: "<strong>From</strong> an Excel file (.xlsx), a CSV or TSV file, or a link to a Google sheet."
+        apps: "<strong>Coming from the app Puzzle Tracker?</strong> Its CSV export is recognised by itself, and so is MySpeedPuzzling's own results export - there are no columns to set up."
+        fields: "<strong>Your own notes</strong> - a rating, a price, where you bought it: such columns can go to ready-made private fields that only you see."
+    how:
+        title: "How it goes, in six steps"
+        step1:
+            title: "Bring the file"
+            text: "Pick a file from your phone or computer, or paste the link of a Google sheet."
+        step2:
+            title: "We read it"
+            text: "Usually a few seconds. A big file can take minutes - you may leave the page and come back."
+        step3:
+            title: "Check the columns"
+            text: "We show what each column seems to be - the puzzle's name, the time, the date. You correct what we got wrong. The layout is remembered for your next file."
+        step4:
+            title: "We find your puzzles"
+            text: "Each puzzle of your file is looked up in our catalogue by name, brand, piece count and barcode. Sure matches are done for you; for the others you choose from pictures."
+        step5:
+            title: "Review"
+            text: "You see what will be added: how many results, puzzles you own and wishes. Nothing is on your profile yet."
+        step6:
+            title: "Add"
+            text: "One button adds it to your profile. You do not have to finish at once - everything you decided is saved and you can go on another day."
+    file:
+        title: "What happens to your file"
+        only_you: "Only you see your file and what we read from it."
+        kept: "The file itself is kept for %days% days and then removed. What we read from it stays with your import, so nothing is added twice and you can take it back."
+        google: "A Google sheet has to be shared with “Anyone with the link” while we fetch it. Once it is here, you can switch the sharing off again."
+        discard: "You can discard an import at any time, and everything goes when you delete your account."
+    never_twice:
+        title: "It never adds anything twice"
+        text: "Bring the same file again and nothing new is added. Add thirty rows to your spreadsheet and bring it again: the thirty are added. Results you already typed into MySpeedPuzzling are recognised too and left alone."
+    take_back:
+        title: "You can take it back"
+        text: "Everything an import added is listed on its page. Take back one row, one “Add” or the whole import - before anything is removed, you are shown what goes and what stays. A result you edited afterwards is kept unless you say otherwise."
+    result:
+        title: "What an imported result is"
+        counts: "It is a result like one you typed: it counts in your statistics and stands on the puzzle's leaderboard."
+        dated: "It carries the day your file says. When the file knows only the month or the year, that is what is shown - we never make up a day."
+        photo: "It has no photo - a spreadsheet carries none. You can add one later by editing the result."
+        partners: "People you puzzled with are added as guests, by the name in your file - never as registered players. A guest can be linked to a player later, with that player's consent."
+        unusual: "A time much faster or slower than we would expect of you is not added quietly: you are asked whether it is right, like in the add form."
+    unlisted:
+        title: "Puzzles we do not have yet"
+        text: "A puzzle of your file that is not in our catalogue is not lost: keep it as an unlisted puzzle. Its results and whether you own it stay on a page only you see, and count nowhere public. When the puzzle is found in the catalogue later, you pair it and its results move to your profile."
+    not_yet:
+        title: "What it does not do yet"
+        old_formats: "Old Excel files (.xls) and OpenDocument files (.ods) - save them as .xlsx or CSV first."
+        photos: "Photos and pictures: none is taken from a file or from links in it."
+        lists: "Lending and sell/swap lists - a note like “lent to …” stays a note."
+        events: "The event or competition of a result - it can be set later by editing the result."
+        own_columns: "A column that fits none of the ready-made fields is left out for now."
+        unlisted: "An unlisted puzzle can not be edited or proposed for the catalogue from its page yet."
+        sync: "A Google sheet is read once, when you bring it - it is not watched for changes."
+    start:
+        title: "Ready?"
+        text: "Nothing is added to your profile until you have looked at it and pressed Add."
+    entry:
+        question: "Already tracking in a spreadsheet?"
+        bring: "Bring it over"
+        many_results: "Have many results in a spreadsheet?"
+        import_them: "Import them"
+        puzzles_question: "Kept your puzzles in a spreadsheet?"
+    export_card:
+        title: "Bring data in"
+        text: "Kept your results or your collection in a spreadsheet? Import an Excel or CSV file or a Google sheet - you check everything before anything is added."
+    first:
+        title: "Three ways to start"
+        file:
+            title: "A file"
+            text: "An Excel file (.xlsx) or a CSV file from your phone or computer."
+        google:
+            title: "A Google Sheets link"
+            text: "Share the sheet with anyone who has the link and paste the link - handy on a phone."
+        tracker:
+            title: "Coming from Puzzle Tracker?"
+            text: "Export your puzzles in the app as a CSV file and bring that file here. We know its columns - there is nothing to set up."
 unlisted_puzzles:
     title: "Unlisted puzzles"
     link: "Your unlisted puzzles"

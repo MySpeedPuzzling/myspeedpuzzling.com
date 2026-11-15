@@ -243,7 +243,7 @@ Both are narrowed by the player's index first, then a top-N sort of that player'
 - **The results export names a private teammate in clear** (`GetExportableSolvingTimes`: `team_members` takes the
   live `player.name` without the private-profile rule) - the same question this page had, left alone here; to be
   decided for the export on its own.
-- The entry points (profile results, collection pages, user menu) - stage 8.
+- The entry points shipped with stage 8 (`data-import/entry-points.md`): user menu, the own profile's ⋯ menu, the library overview; the page itself links the unlisted puzzles and the import. The Unlisted *tab* is not built.
 
 ## Left out of 2a on purpose
 

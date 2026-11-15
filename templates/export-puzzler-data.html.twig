@@ -14,6 +14,16 @@
         <a href="{{ path('my_data') }}" data-testid="my-data-link"><i class="bi bi-table me-1" aria-hidden="true"></i>{{ 'my_data.export_link'|trans }}</a>
     </p>
 
+    {# The other direction (docs/features/data-import/entry-points.md): links only, nothing is read for it #}
+    <section class="card card-body shadow-sm mb-5" aria-labelledby="export-bring-in-heading" data-testid="bring-data-in">
+        <h2 class="h5 mb-2" id="export-bring-in-heading"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'import_guide.export_card.title'|trans }}</h2>
+        <p class="text-muted mb-3">{{ 'import_guide.export_card.text'|trans }}</p>
+        <div class="d-grid d-sm-flex flex-wrap align-items-center gap-2">
+            <a class="btn btn-outline-primary text-wrap" href="{{ path('data_imports') }}"><i class="bi bi-upload me-1" aria-hidden="true"></i>{{ 'data_import.home.import_button'|trans }}</a>
+            <a class="btn btn-link text-wrap" href="{{ path('import_guide') }}">{{ 'import_guide.to_guide'|trans }}</a>
+        </div>
+    </section>
+
     <section class="mb-5" aria-labelledby="export-results-heading">
         <h2 class="h5 mb-3" id="export-results-heading">{{ 'export.results.heading'|trans }}</h2>
 

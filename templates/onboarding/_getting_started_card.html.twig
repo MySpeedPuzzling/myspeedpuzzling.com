@@ -64,6 +64,8 @@
 
             <div class="getting-started-footer">
                 <a href="{{ path('getting_started') }}">{{ 'onboarding.checklist.guide_link'|trans }} <i class="bi bi-chevron-right fs-xs ms-1"></i></a>
+                {# The other first step: imported results and puzzles tick the steps above like typed ones #}
+                <div class="fs-sm mt-1" data-testid="getting-started-import">{{ 'import_guide.entry.question'|trans }} <a href="{{ path('import_guide') }}">{{ 'import_guide.entry.bring'|trans }}</a></div>
             </div>
         </details>
     {% endif %}

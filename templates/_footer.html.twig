@@ -24,6 +24,8 @@
                 <li><a rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'footer.puzzle_add'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('stopwatch') }}">{{ 'menu.stopwatch'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('multiscan') }}">{{ 'multiscan.title'|trans }}</a></li>
+                {# The public guide, not the import itself: a guest can read it (docs/features/data-import/entry-points.md) #}
+                <li><a href="{{ path('import_guide') }}">{{ 'data_import.home.import_button'|trans }}</a></li>
                 <li><a href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.title'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('pairs_and_teams') }}">{{ 'menu.pairs_and_teams'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('comparison') }}">{{ 'comparison.title'|trans }}</a></li>

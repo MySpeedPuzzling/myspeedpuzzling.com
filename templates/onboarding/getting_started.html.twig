@@ -27,6 +27,7 @@
                 <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'onboarding.guide.track.button_finished'|trans }}</a>
                 <a class="btn btn-outline-primary" rel="nofollow" href="{{ path('stopwatch') }}">{{ 'onboarding.guide.track.button_stopwatch'|trans }}</a>
             </div>
+            <p class="fs-sm mt-2 mb-0" data-testid="guide-import">{{ 'import_guide.entry.question'|trans }} <a href="{{ path('import_guide') }}">{{ 'import_guide.entry.bring'|trans }}</a></p>
             {% endblock %}
             {% block more %}
             <details class="guide-step-more">

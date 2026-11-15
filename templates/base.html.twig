@@ -761,6 +761,16 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item {% if currentRoute == 'my_data' %}active{% endif %}" href="{{ path('my_data') }}" data-testid="menu-my-data">
+                                            <i class="bi bi-table me-1"></i> {{ 'my_data.title'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'data_imports' %}active{% endif %}" href="{{ path('data_imports') }}" data-testid="menu-import">
+                                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> {{ 'data_import.home.import_button'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'export_puzzler_data' %}active{% endif %}" href="{{ path('export_puzzler_data', {'playerId': logged_user.profile.playerId}) }}">
                                             <i class="bi bi-download me-1"></i> {{ 'menu.export_data'|trans }}
                                         </a>

@@ -66,4 +66,7 @@
         {{ include('_solving_time_form.html.twig', {has_active_membership: has_active_membership|default(true)}) }}
     </div>
 
+    {# Static text and one link, after and outside the form (docs/features/data-import/entry-points.md) #}
+    <p class="fs-sm text-muted text-center mt-4 mb-0" data-testid="add-form-import">{{ 'import_guide.entry.many_results'|trans }} <a href="{{ path('import_guide') }}">{{ 'import_guide.entry.import_them'|trans }}</a></p>
+
 {% endblock %}

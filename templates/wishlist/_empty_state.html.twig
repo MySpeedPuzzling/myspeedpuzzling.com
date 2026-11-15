@@ -5,6 +5,7 @@
     {% if isOwnProfile %}
         <h4 class="text-muted">{{ 'wish_list.empty.title'|trans }}</h4>
         <p class="text-muted">{{ 'wish_list.empty.message'|trans }}</p>
+        <p class="fs-sm mb-0" data-testid="empty-list-import">{{ 'import_guide.entry.puzzles_question'|trans }} <a href="{{ path('import_guide') }}">{{ 'import_guide.entry.bring'|trans }}</a></p>
     {% else %}
         <h4 class="text-muted">{{ 'wish_list.empty.title_other'|trans }}</h4>
         <p class="text-muted">{{ 'wish_list.empty.message_other'|trans({'%name%': profile_name(player)}) }}</p>

@@ -1078,6 +1078,8 @@ competition_referees:
   "answer_button_start_solving": "<p class=\"mb-0\">Otevře stopky pro vybrané puzzle. Spusťte je ve chvíli, kdy začnete skládat své skutečné puzzle doma, a po doskládání čas uložte do profilu. Samotné skládání neprobíhá na webu.</p>\n"
   "question_button_add_my_time": "Co dělá tlačítko <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Přidat můj čas</a>?"
   "answer_button_add_my_time": "<p class=\"mb-0\">Otevře přidání vašeho času k vybraným puzzlím - vhodné pokud používáte vlastní stopky a právě jste doskládali. Pokud jste doskládali v minulosti a chcete zaznamenat čas, máte možnost uvést i datum, kdy jste skládali.</p>\n"
+  "question_import_spreadsheet": "Vedu si časy nebo kolekci v tabulce. Můžu si je sem přenést?"
+  "answer_import_spreadsheet": "<p>Ano, a zdarma. Importujte soubor Excel nebo CSV nebo Google tabulku: MySpeedPuzzling ji přečte, vy zkontrolujete, jak jí porozuměl, a pak vše přidáte na svůj profil. Nic se nikdy nepřidá dvakrát a dá se to vrátit zpět. <a href=\"%import_guide_link%\">Jak import funguje</a></p>"
   "question_helping": "Můžu přiložit ruku k dílu?"
   "answer_helping": "<p class=\"mb-0\">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>\n"
   "question_what_is_speed_puzzling": "Co je speed puzzling?"
@@ -12588,6 +12590,98 @@ data_import:
         taken_back_reason: "Důvod: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+import_guide:
+    meta:
+        title: "Import tabulky s puzzle - časy, kolekce, seznam přání"
+        description: "Přeneste si na MySpeedPuzzling časy a kolekci puzzle, které si vedete v Excelu, CSV nebo Google Tabulkách. Zdarma: soubor přečteme, vy ho zkontrolujete a nic se nikdy nepřidá dvakrát."
+    title: "Přeneste si svoji tabulku"
+    lead: "Vedete si časy nebo kolekci puzzle v tabulce? Nemusíte nic přepisovat. MySpeedPuzzling soubor přečte, vy zkontrolujete, jak mu porozuměl, a pak vše přidáte na svůj profil."
+    free: "Zdarma pro všechny."
+    start_guest: "Vytvořit účet zdarma a začít"
+    sign_in: "Už mám účet - přihlásit se"
+    to_guide: "Jak import funguje"
+    what:
+        title: "Co si můžete přenést"
+        results: "<strong>Výsledky</strong> - puzzle, která jste složili, s časem a datem i bez nich."
+        owned: "<strong>Puzzle, která vlastníte</strong> - přidají se do vaší kolekce."
+        wish_list: "<strong>Seznam přání</strong> - řádky, které máte v souboru označené jako přání."
+        formats: "<strong>Z</strong> excelového souboru (.xlsx), souboru CSV nebo TSV, nebo z odkazu na Google tabulku."
+        apps: "<strong>Přecházíte z aplikace Puzzle Tracker?</strong> Její export do CSV poznáme sami, stejně jako vlastní export výsledků z MySpeedPuzzling - žádné sloupce nenastavujete."
+        fields: "<strong>Vaše vlastní poznámky</strong> - hodnocení, cena, kde jste puzzle koupili: takové sloupce můžou jít do připravených soukromých polí, která vidíte jen vy."
+    how:
+        title: "Jak to probíhá v šesti krocích"
+        step1:
+            title: "Přineste soubor"
+            text: "Vyberte soubor z telefonu nebo počítače, nebo vložte odkaz na Google tabulku."
+        step2:
+            title: "Přečteme ho"
+            text: "Většinou pár sekund. Velký soubor může trvat minuty - stránku můžete zavřít a vrátit se později."
+        step3:
+            title: "Zkontrolujte sloupce"
+            text: "Ukážeme, co který sloupec nejspíš je - název puzzle, čas, datum. Co jsme neodhadli, opravíte. Rozložení si zapamatujeme pro váš příští soubor."
+        step4:
+            title: "Najdeme vaše puzzle"
+            text: "Každé puzzle z vašeho souboru hledáme v naší databázi podle názvu, značky, počtu dílků a čárového kódu. Jisté shody uděláme za vás, u ostatních vybíráte podle obrázků."
+        step5:
+            title: "Projděte si to"
+            text: "Uvidíte, co se přidá: kolik výsledků, vlastněných puzzle a přání. Na profilu zatím nic není."
+        step6:
+            title: "Přidejte"
+            text: "Jedním tlačítkem vše přidáte na svůj profil. Nemusíte to dokončit najednou - všechno, co jste rozhodli, je uložené a můžete pokračovat jindy."
+    file:
+        title: "Co se děje s vaším souborem"
+        only_you: "Váš soubor a to, co jsme z něj přečetli, vidíte jen vy."
+        kept: "Samotný soubor uchováme %days% dní a pak ho odstraníme. To, co jsme z něj přečetli, zůstává u vašeho importu, aby se nic nepřidalo dvakrát a dalo se to vzít zpět."
+        google: "Google tabulka musí být po dobu načítání sdílená pro „Všechny, kdo mají odkaz“. Jakmile ji máme, můžete sdílení zase vypnout."
+        discard: "Import můžete kdykoli zahodit a se smazáním účtu zmizí všechno."
+    never_twice:
+        title: "Nic se nikdy nepřidá dvakrát"
+        text: "Když přinesete stejný soubor znovu, nic nového se nepřidá. Když do tabulky připíšete třicet řádků a přinesete ji znovu, přidá se těch třicet. Výsledky, které už na MySpeedPuzzling máte zadané, poznáme také a necháme je být."
+    take_back:
+        title: "Dá se to vrátit zpět"
+        text: "Všechno, co import přidal, je vypsané na jeho stránce. Zpět můžete vrátit jeden řádek, jedno „Přidat“ nebo celý import - než se cokoli odstraní, ukážeme vám, co zmizí a co zůstane. Výsledek, který jste potom upravili, zůstane, pokud neřeknete jinak."
+    result:
+        title: "Jak vypadá importovaný výsledek"
+        counts: "Je to výsledek jako každý jiný, který zadáte ručně: počítá se do vašich statistik a je v žebříčku daného puzzle."
+        dated: "Nese den, který je v souboru. Když soubor zná jen měsíc nebo rok, ukazujeme právě to - den si nikdy nevymýšlíme."
+        photo: "Nemá fotku - tabulka žádnou nenese. Můžete ji přidat později úpravou výsledku."
+        partners: "Lidé, se kterými jste skládali, se přidají jako hosté pod jménem ze souboru - nikdy jako registrovaní hráči. Hosta lze později propojit s hráčem, s jeho souhlasem."
+        unusual: "Čas o hodně rychlejší nebo pomalejší, než bychom u vás čekali, se nepřidá potichu: zeptáme se, jestli je správně, stejně jako ve formuláři pro přidání času."
+    unlisted:
+        title: "Puzzle, která ještě nemáme"
+        text: "Puzzle z vašeho souboru, které není v naší databázi, se neztratí: ponechte si ho jako puzzle mimo databázi. Jeho výsledky a to, zda ho vlastníte, zůstanou na stránce, kterou vidíte jen vy, a nikde veřejně se nepočítají. Až se puzzle v databázi najde, spárujete ho a výsledky se přesunou na váš profil."
+    not_yet:
+        title: "Co zatím neumí"
+        old_formats: "Staré excelové soubory (.xls) a soubory OpenDocument (.ods) - uložte je nejdřív jako .xlsx nebo CSV."
+        photos: "Fotky a obrázky: žádné ze souboru ani z odkazů v něm nebereme."
+        lists: "Seznamy půjčování a prodeje/výměny - poznámka typu „půjčeno …“ zůstane poznámkou."
+        events: "Akce nebo soutěž u výsledku - dá se nastavit později úpravou výsledku."
+        own_columns: "Sloupec, který neodpovídá žádnému z připravených polí, se zatím vynechá."
+        unlisted: "Puzzle mimo databázi zatím nejde z jeho stránky upravit ani navrhnout do databáze."
+        sync: "Google tabulku přečteme jednou, když ji přinesete - změny v ní nesledujeme."
+    start:
+        title: "Jdeme na to?"
+        text: "Na váš profil se nic nepřidá, dokud si to neprohlédnete a nestisknete Přidat."
+    entry:
+        question: "Už si to vedete v tabulce?"
+        bring: "Přeneste si ji sem"
+        many_results: "Máte hodně výsledků v tabulce?"
+        import_them: "Importujte je"
+        puzzles_question: "Vedete si puzzle v tabulce?"
+    export_card:
+        title: "Přenést data sem"
+        text: "Vedete si výsledky nebo kolekci v tabulce? Importujte soubor Excel nebo CSV nebo Google tabulku - než se cokoli přidá, všechno si zkontrolujete."
+    first:
+        title: "Tři způsoby, jak začít"
+        file:
+            title: "Soubor"
+            text: "Excelový soubor (.xlsx) nebo CSV z telefonu či počítače."
+        google:
+            title: "Odkaz na Google Tabulky"
+            text: "Nasdílejte tabulku všem, kdo mají odkaz, a odkaz vložte - šikovné na telefonu."
+        tracker:
+            title: "Přecházíte z Puzzle Trackeru?"
+            text: "V aplikaci si vyexportujte puzzle do souboru CSV a ten sem přineste. Jeho sloupce známe - nic nenastavujete."
 unlisted_puzzles:
     title: "Puzzle mimo databázi"
     link: "Vaše puzzle mimo databázi"

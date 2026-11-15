@@ -22,6 +22,8 @@
         <h1 class="h3 mb-0"><i class="bi bi-table me-2" aria-hidden="true"></i>{{ 'my_data.title'|trans }}</h1>
         <a class="fs-sm" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}"><i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'my_data.to_export'|trans }}</a>
     </div>
+    {# Unlisted puzzles have their own page (docs/features/data-import/unlisted-puzzles.md) - a link, shown to everybody: nothing is read for it #}
+    <p class="fs-sm mb-2"><a href="{{ path('unlisted_puzzles') }}" data-testid="my-data-unlisted"><i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.title'|trans }}</a> · <a href="{{ path('data_imports') }}" data-testid="my-data-import"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>{{ 'data_import.home.import_button'|trans }}</a></p>
     <p class="text-muted fs-sm mb-3">{{ 'my_data.intro'|trans }}</p>
 
     <ul class="nav nav-tabs mb-3" data-testid="my-data-tabs">

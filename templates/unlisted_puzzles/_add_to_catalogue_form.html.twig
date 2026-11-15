@@ -8,6 +8,35 @@
 {% set add_url = path('unlisted_puzzle_add_to_catalogue', {unlistedPuzzleId: puzzle.id}) %}
 {% set likely = (suggested is not null ? [suggested] : [])|merge(candidates) %}
 
+{# What could not be done although nothing is wrong with the form: the match refused after the puzzle was made, a request too large #}
+{% if notice is not null %}
+    <p class="d-flex gap-2 p-2 rounded-2 bg-faded-warning" role="alert" data-testid="catalogue-notice">
+        <i class="bi bi-exclamation-triangle flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ notice }}</span>
+    </p>
+{% endif %}
+
+{# The reader already added this very puzzle (a match they took back, or one that could not start): that puzzle first -
+   moving the results onto it needs no second puzzle and no photo #}
+{% if own_puzzle is not null %}
+    <div class="p-2 rounded-2 bg-faded-primary mb-3" data-testid="catalogue-own">
+        <p class="fw-medium mb-1"><i class="bi bi-check-circle text-primary me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.own_title'|trans }}</p>
+        <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.catalogue.own_hint'|trans }}</p>
+        <form action="{{ path('unlisted_puzzle_pair', {unlistedPuzzleId: puzzle.id}) }}" method="post" data-turbo-frame="_top">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="request_id" value="{{ pair_request_id }}">
+            <input type="hidden" name="puzzle_id" value="{{ own_puzzle.puzzleId }}">
+            <button type="submit" class="btn btn-primary w-100 p-2" style="min-height: 44px; white-space: normal;"
+                    data-testid="catalogue-own-puzzle" data-puzzle-id="{{ own_puzzle.puzzleId }}">
+                <span class="d-block text-start text-body bg-body rounded-2 p-2">{{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: own_puzzle, file_pieces: puzzle.piecesCount}, with_context = false) }}</span>
+                <span class="d-block fw-medium text-start mt-2"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.pair.this_one'|trans }}</span>
+            </button>
+        </form>
+    </div>
+    <details class="mb-2" data-testid="catalogue-form-fold"{% if form_open %} open{% endif %}>
+        <summary class="d-flex align-items-center text-muted" style="min-height: 44px; cursor: pointer;">{{ 'unlisted_puzzles.catalogue.own_change'|trans }}</summary>
+{% endif %}
+
 <p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.catalogue.intro'|trans }}</p>
 
 {% if likely is not empty %}
@@ -61,3 +90,6 @@
     </div>
     <p class="fs-sm text-muted mt-2 mb-0">{{ 'unlisted_puzzles.catalogue.limit'|trans({'%limit%': limit}) }}</p>
 {{ form_end(form) }}
+{% if own_puzzle is not null %}
+    </details>
+{% endif %}

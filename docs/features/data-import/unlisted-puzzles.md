@@ -200,6 +200,29 @@ add-result form (controllers, form types, messages, handlers) is touched, and th
   one sentence before anything is sent.
 - **Never twice**: the form carries `new_puzzle_id` and `request_id`; sent again `AddPuzzle` creates nothing and the
   pairing answers the same - the answer is the same success.
+- **No puzzle without its match**: the two messages are two transactions, so everything that would refuse the match
+  is asked **before** `AddPuzzle` - a match at work (`can_choose`), the safety switch, the rate limit of "Add"
+  (looked at with `consume(0)`, never used up twice: `PairUnlistedPuzzleHandler` takes the one token). Should the
+  match be refused all the same, the form says "The puzzle is in the catalogue; we could not move your results yet -
+  try again in a minute", the controller remembers that puzzle for this unlisted puzzle in the session, and the
+  form leads with it.
+- **The player's own puzzle leads** (`catalogueProposal()`'s `own_puzzle`): a catalogue puzzle they added that still
+  waits for approval and that is this unlisted puzzle's - the one of a match they took back (the pairing's record),
+  the remembered one, or one of theirs with exactly this name and pieces - is shown first with "It is this one"
+  (no photo, no second puzzle), the form folded under it. The form then carries **that puzzle's id**: sent, it
+  corrects that puzzle (`AddPuzzleHandler`, while nothing uses it) and matches onto it - Undo and "Add to the
+  catalogue" again never makes a duplicate (tested).
+- A tampered `new_puzzle_id`: somebody else's puzzle gets a fresh id before anything is dispatched; one the handler
+  refuses (`PuzzleIdTaken` - a secret puzzle of the player's own) is a refused form with a fresh id, logged at
+  `info`.
+- **A list that went stale**: asked for inside the modal for a puzzle that is matched or at work by now, the answer
+  is a small frame body with one sentence and a link to the puzzle's page (a redirect would empty the frame); as a
+  page it redirects.
+- **The photo** is a plain file input: the add form's background upload could not be reused without changing it
+  (`submit_prevention_controller.js` is built around that form's markup, and "a photo that can not be left out" is
+  its field name `puzzlePhoto`). So the size is smaller here - `UnlistedCatalogueProposalFormType::MAX_PHOTO_BYTES`
+  (20 MB; the add form's 60 MB assumes its shrinking) - and a request above PHP's `post_max_size`, which arrives
+  without any field, is answered with the form and "The photo is too large", not with the token check's 403.
 - **Limits**: at most `UnlistedPuzzlePage::MAX_CATALOGUE_ADDITIONS_PER_DAY` (10) new puzzles per player in 24 hours,
   counted over every way a player adds a puzzle (`CountPuzzlesAddedByPlayer` - there was no limiter for added
   puzzles to reuse; the add form itself is not limited by it); nothing is created while the import's safety switch

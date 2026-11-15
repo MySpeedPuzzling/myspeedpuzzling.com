@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\UnlistedPairing;
 use SpeedPuzzling\Web\Exceptions\UnlistedPuzzleNotFound;
 use SpeedPuzzling\Web\Query\CountPuzzlesAddedByPlayer;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
@@ -19,6 +20,7 @@ use SpeedPuzzling\Web\Results\ImportCataloguePuzzle;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 /**
  * What the page of one unlisted puzzle shows (docs/features/data-import/unlisted-puzzles.md "The pages"). **It takes
@@ -49,6 +51,8 @@ readonly final class UnlistedPuzzlePage
         private GetManufacturers $getManufacturers,
         private CountPuzzlesAddedByPlayer $countPuzzlesAddedByPlayer,
         private DataImportSettingsRepository $settingsRepository,
+        private GetPuzzleRecord $getPuzzleRecord,
+        private RateLimiterFactoryInterface $dataImportAddLimiter,
     ) {
     }
 
@@ -136,24 +140,75 @@ readonly final class UnlistedPuzzlePage
     /**
      * What "Add to the catalogue" shows and checks (docs/features/data-import/unlisted-puzzles.md "Add to the
      * catalogue"): the page's own variables - the likely catalogue puzzles among them, offered before anything is
-     * created - plus the catalogue's name of the file's brand, whether the import's safety switch is on, and what
-     * is left of the day's limit.
+     * created - plus the catalogue's name of the file's brand, and **everything that would refuse the match
+     * afterwards, asked before a puzzle is created**: the import's safety switch, the rate limit of "Add" (looked
+     * at, not used up - PairUnlistedPuzzleHandler takes its one token) and what is left of the day's limit.
+     *
+     * `own_puzzle`: the catalogue puzzle the reader already added for this very unlisted puzzle and that still waits
+     * for approval - the one of an earlier match they took back, the one whose match was refused
+     * (`$createdPuzzleId`, remembered by the controller), or one of theirs with exactly this name and pieces. The
+     * form leads with it and carries its id, so adding "again" never makes a second puzzle.
      *
      * @return array<string, mixed>
      *
      * @throws NotFoundHttpException
      */
-    public function catalogueProposal(string $unlistedPuzzleId): array
+    public function catalogueProposal(string $unlistedPuzzleId, null|string $createdPuzzleId = null): array
     {
         $playerId = $this->ownerPlayerId();
         $parameters = $this->parameters($unlistedPuzzleId);
         $manufacturerId = $parameters['manufacturer_id'];
         $addedToday = $this->countPuzzlesAddedByPlayer->since($playerId, $this->clock->now()->modify('-24 hours'));
+        /** @var array{name: string, piecesCount: null|int, pairings: list<array{puzzleId: string}>} $unlisted */
+        $unlisted = $parameters['puzzle'];
+        /** @var list<ImportCataloguePuzzle> $candidates */
+        $candidates = $parameters['candidates'];
+
+        // Whatever the name: what this unlisted puzzle was matched with before, and what the form created for it
+        $known = array_column($unlisted['pairings'], 'puzzleId');
+
+        if ($createdPuzzleId !== null) {
+            array_unshift($known, $createdPuzzleId);
+        }
+
+        $ids = array_values(array_unique([...$known, ...array_map(static fn (ImportCataloguePuzzle $candidate): string => $candidate->puzzleId, $candidates)]));
+        $own = null;
+
+        if ($parameters['can_choose'] === true) {
+            $records = $this->getPuzzleRecord->byIds($ids);
+
+            foreach ($ids as $id) {
+                $record = $records[$id] ?? null;
+
+                if ($record === null || $record->approved || $record->addedById !== $playerId) {
+                    continue;
+                }
+
+                $exact = mb_strtolower(trim($record->name)) === mb_strtolower(trim($unlisted['name'])) && $record->piecesCount === $unlisted['piecesCount'];
+
+                if (in_array($id, $known, true) === false && $exact === false) {
+                    continue;
+                }
+
+                $own = $this->offered($playerId, $id, $unlisted['piecesCount'], is_string($manufacturerId) ? $manufacturerId : null, 'chosen');
+
+                if ($own !== null) {
+                    break;
+                }
+            }
+        }
+
+        if ($own !== null) {
+            $candidates = array_values(array_filter($candidates, static fn (ImportCataloguePuzzle $candidate): bool => $candidate->puzzleId !== $own->puzzleId));
+        }
 
         return [
             ...$parameters,
+            'candidates' => $candidates,
+            'own_puzzle' => $own,
             'brand_name' => is_string($manufacturerId) ? $this->getManufacturers->namesByIds([$manufacturerId])[$manufacturerId] ?? null : null,
             'paused' => $this->settingsRepository->isAddingPaused(),
+            'rate_limited' => $this->dataImportAddLimiter->create($playerId)->consume(0)->getRemainingTokens() < 1,
             'limit' => self::MAX_CATALOGUE_ADDITIONS_PER_DAY,
             'limit_reached' => $addedToday >= self::MAX_CATALOGUE_ADDITIONS_PER_DAY,
         ];

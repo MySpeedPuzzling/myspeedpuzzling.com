@@ -185,6 +185,16 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-testid="unlisted-add-to-catalogue"]'));
         $this->browser->request('GET', $address);
         self::assertResponseRedirects('/en/unlisted-puzzles/' . $unlistedId);
+        // … and from a list that went stale the modal says so in its frame - never a redirect into an empty frame
+        $crawler = $this->browser->request('GET', $address, server: self::MODAL);
+        self::assertResponseIsSuccessful();
+        self::assertSame('/en/unlisted-puzzles/' . $unlistedId, $crawler->filter('turbo-frame#modal-frame [data-testid="catalogue-gone-link"]')->attr('href'));
+        self::assertSame('_top', $crawler->filter('[data-testid="catalogue-gone-link"]')->attr('data-turbo-frame'));
+        self::assertStringContainsString('already matched', self::spaced($crawler->filter('[data-testid="catalogue-gone"]')->text()));
+        $crawler = $this->browser->request('POST', $address, [...$fields, 'new_puzzle_id' => '0193f000-0000-7000-8000-00000000000a', 'request_id' => '0193f000-0000-7000-8000-00000000000b'], ['catalogue' => ['photo' => self::photo()]], self::MODAL);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(1, $crawler->filter('turbo-frame#modal-frame [data-testid="catalogue-gone"]'));
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM puzzle WHERE added_by_user_id = :id', ['id' => $owner->id->toString()]));
 
         // The player sees the new puzzle, and the results on it are on their profile like any other
         $this->browser->request('GET', '/en/puzzle/' . $puzzleId);
@@ -208,6 +218,43 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertSame([false, false], array_column($this->unlistedResults($unlistedId), 'converted'));
         // … the catalogue puzzle stays in the queue, like any puzzle a player added
         self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM puzzle WHERE id = :id AND approved = false', ['id' => $puzzleId]));
+
+        // "Add to the catalogue" again: the puzzle the player added leads, with "It is this one" - and the form under
+        // it goes on with that very puzzle, so what is sent corrects it instead of making a second one
+        foreach ([[], self::MODAL] as $server) {
+            $crawler = $this->browser->request('GET', $address, server: $server);
+            self::assertResponseIsSuccessful();
+            self::assertSame($puzzleId, $crawler->filter('[data-testid="catalogue-own-puzzle"]')->attr('data-puzzle-id'));
+            self::assertCount(0, $crawler->filter('[data-testid="catalogue-likely-puzzle"][data-puzzle-id="' . $puzzleId . '"]'));
+            self::assertCount(1, $crawler->filter('details[data-testid="catalogue-form-fold"]:not([open]) [data-testid="catalogue-form"]'));
+        }
+
+        $again = $this->fieldsOf($crawler);
+        self::assertSame($puzzleId, $again['new_puzzle_id']);
+        $again['catalogue']['name'] = 'Zq Modal Serval Terrace at Night';
+        $this->browser->request('POST', $address, $again, ['catalogue' => ['photo' => self::photo()]], self::MODAL);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('href="/en/puzzle/' . $puzzleId . '"', (string) $this->browser->getResponse()->getContent());
+        self::assertSame(['Zq Modal Serval Terrace at Night'], $this->database->fetchFirstColumn('SELECT name FROM puzzle WHERE added_by_user_id = :id', ['id' => $owner->id->toString()]));
+        $secondPairingId = $this->database->fetchOne("SELECT id FROM unlisted_pairing WHERE unlisted_puzzle_id = :id AND state = 'running'", ['id' => $unlistedId]);
+        self::assertIsString($secondPairingId);
+        $this->workPairing($secondPairingId);
+        self::assertCount(2, $this->resultsOf($owner, $puzzleId));
+
+        // … or without the form: taken back once more, "It is this one" on their own puzzle moves the results
+        $this->undoPairing($owner, $secondPairingId);
+        $crawler = $this->browser->request('GET', $address);
+        $form = $crawler->filter('[data-testid="catalogue-own-puzzle"]')->closest('form');
+        self::assertInstanceOf(Crawler::class, $form);
+        $this->browser->submit($form->form());
+        self::assertResponseRedirects('/en/unlisted-puzzles/' . $unlistedId);
+        $thirdPairingId = $this->database->fetchOne("SELECT id FROM unlisted_pairing WHERE unlisted_puzzle_id = :id AND state = 'running'", ['id' => $unlistedId]);
+        self::assertIsString($thirdPairingId);
+        $this->workPairing($thirdPairingId);
+        self::assertCount(2, $this->resultsOf($owner, $puzzleId));
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM puzzle WHERE added_by_user_id = :id', ['id' => $owner->id->toString()]));
+        $this->undoPairing($owner, $thirdPairingId);
+        self::assertSame([false, false], array_column($this->unlistedResults($unlistedId), 'converted'));
 
         // … and now the import's Undo takes everything of it back
         $this->undo($import, $owner, DataImportUndoScope::Import);
@@ -296,6 +343,27 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('Adding is paused', self::spaced($crawler->filter('[data-testid="catalogue-form"]')->text()));
         $this->database->executeStatement('UPDATE data_import_settings SET adding_paused = false');
+
+        // A request above PHP's limit arrives without any field: "the photo is too large", never a bare 403
+        $crawler = $this->browser->request('POST', $address, server: ['CONTENT_LENGTH' => '200000000']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The photo is too large - at most 20 MB', self::spaced($crawler->filter('[data-testid="catalogue-notice"]')->text()));
+        self::assertSame('Zq Limit Caracal Bridge', $crawler->filter('input[name="catalogue[name]"]')->attr('value'));
+        // … while an empty POST without that is what it looks like
+        $this->browser->request('POST', $address);
+        self::assertResponseStatusCodeSame(403);
+
+        // An id that is a hidden puzzle of the player's own (only a tampered form sends one): the handler refuses it
+        // (PuzzleIdTaken) - a refused form with a fresh id, the puzzle untouched, nothing for anybody to look at
+        $hidden = $this->seedCataloguePuzzle('Zq Limit Hidden Round Puzzle', 500, hideUntil: TestClock::now()->modify('+30 days'), approved: false);
+        $this->database->update('puzzle', ['added_by_user_id' => $owner->id->toString(), 'added_at' => TestClock::now()->modify('-3 days')->format('Y-m-d H:i:s')], ['id' => $hidden]);
+        $crawler = $this->browser->request('POST', $address, [...$fields, 'new_puzzle_id' => $hidden], ['catalogue' => ['photo' => self::photo()]]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The puzzle could not be saved', self::spaced($crawler->filter('[data-testid="catalogue-form"]')->text()));
+        self::assertNotSame($hidden, $crawler->filter('input[name="new_puzzle_id"]')->attr('value'));
+        self::assertSame('Zq Limit Hidden Round Puzzle', $this->database->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => $hidden]));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM unlisted_pairing'));
+        $this->database->delete('puzzle', ['id' => $hidden]);
 
         // Ten puzzles the player added in the last 24 hours - whichever way
         for ($number = 1; $number <= UnlistedPuzzlePage::MAX_CATALOGUE_ADDITIONS_PER_DAY; $number++) {

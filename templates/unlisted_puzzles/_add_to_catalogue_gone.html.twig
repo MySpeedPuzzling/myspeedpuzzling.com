@@ -1,0 +1,17 @@
+{#
+    "Add to the catalogue" asked for from a list that went stale: the puzzle is matched, or at work, by now. Said
+    inside the modal's frame - a redirect would leave the frame empty and the modal would close without a word.
+#}
+<turbo-frame id="modal-frame">
+    <div>
+        <div class="modal-header">
+            <h5 class="modal-title text-break">{{ 'unlisted_puzzles.catalogue.title'|trans }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+        <div class="modal-body" data-testid="catalogue-gone">
+            <p class="fw-semibold text-break mb-1">{{ puzzle.name }}</p>
+            <p>{{ 'unlisted_puzzles.catalogue.gone'|trans }}</p>
+            <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top" data-testid="catalogue-gone-link">{{ 'unlisted_puzzles.catalogue.gone_link'|trans }}</a>
+        </div>
+    </div>
+</turbo-frame>

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\UnlistedCatalogueProposalFormData;
+use SpeedPuzzling\Web\Value\PhotoUploadLimits;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -16,6 +17,7 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -27,6 +29,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class UnlistedCatalogueProposalFormType extends AbstractType
 {
+    /**
+     * A phone's photo as it is taken (3 - 12 MB) fits; the add form takes up to PhotoUploadLimits::MAX_PHOTO_BYTES
+     * because it shrinks and uploads in the background first - this form sends the file with the request.
+     */
+    public const int MAX_PHOTO_BYTES = 20_000_000;
+
     public function __construct(
         readonly private TranslatorInterface $translator,
     ) {
@@ -62,8 +70,11 @@ final class UnlistedCatalogueProposalFormType extends AbstractType
             'label' => 'unlisted_puzzles.catalogue.form.photo',
             'label_attr' => ['class' => 'required'],
             'help' => 'unlisted_puzzles.catalogue.form.photo_help',
+            'help_translation_parameters' => ['%megabytes%' => intdiv(self::MAX_PHOTO_BYTES, 1_000_000)],
             'required' => false,
-            'constraints' => [PuzzleBoxPhoto::constraint()],
+            // The add form's rule for a box photo (which kinds of picture), with a smaller size: nothing shrinks the
+            // photo in the browser here, and what is sent is one plain request
+            'constraints' => [new Image(maxSize: self::MAX_PHOTO_BYTES, mimeTypes: PhotoUploadLimits::MIME_TYPES, mimeTypesMessage: PuzzleBoxPhoto::constraint()->mimeTypesMessage)],
             'attr' => ['accept' => 'image/*', 'style' => 'min-height: 44px;'],
         ]);
 

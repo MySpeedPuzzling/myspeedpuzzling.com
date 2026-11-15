@@ -47,9 +47,9 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSlug' => 'wjpc-2024',
         ]);
 
-        self::assertStringStartsWith('<br>', $html);
-        self::assertStringContainsString('<a href="/en/events/wjpc-2024">', $html);
-        self::assertStringContainsString('<span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> WJPC24</span>', $html);
+        self::assertStringStartsWith('<div class="lb-event">', $html);
+        self::assertStringContainsString('<a class="lb-event-link" href="/en/events/wjpc-2024"', $html);
+        self::assertStringContainsString('<i class="bi bi-trophy-fill" aria-hidden="true"></i><span class="lb-event-name">WJPC24</span>', $html);
         self::assertStringContainsString('</a>', $html);
         self::assertStringNotContainsString('WJPC 2024', $html);
     }
@@ -61,8 +61,8 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSlug' => 'czech-nationals-2024',
         ]);
 
-        self::assertStringContainsString('<a href="/en/events/czech-nationals-2024">', $html);
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> Czech National Championship 2024</span>', $html);
+        self::assertStringContainsString('<a class="lb-event-link" href="/en/events/czech-nationals-2024"', $html);
+        self::assertStringContainsString('<span class="lb-event-name">Czech National Championship 2024</span>', $html);
     }
 
     public function testStandaloneWithoutSlugRendersBadgeWithoutLink(): void
@@ -72,7 +72,7 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionShortcut' => 'GPN',
         ]);
 
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> GPN</span>', $html);
+        self::assertStringContainsString('<span class="lb-event-name">GPN</span>', $html);
         self::assertStringNotContainsString('<a ', $html);
         self::assertStringNotContainsString('</a>', $html);
     }
@@ -86,8 +86,8 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSeriesSlug' => 'euro-jigsaw-jam-series',
         ]);
 
-        self::assertStringContainsString('<a href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026">', $html);
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> Euro Jigsaw Jam · EJJ #68 — February 2026</span>', $html);
+        self::assertStringContainsString('<a class="lb-event-link" href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026"', $html);
+        self::assertStringContainsString('<span class="lb-event-name">Euro Jigsaw Jam · EJJ #68 — February 2026</span>', $html);
         self::assertStringNotContainsString('/en/events/', $html);
     }
 
@@ -102,7 +102,7 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
         ]);
 
         // The edition's name starts with the shortcut - said once
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> EJJ · #68 — February 2026</span>', $html);
+        self::assertStringContainsString('<span class="lb-event-name">EJJ · #68 — February 2026</span>', $html);
         self::assertStringNotContainsString('Euro Jigsaw Jam', $html);
     }
 
@@ -116,7 +116,7 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSeriesSlug' => 'euro-jigsaw-jam',
         ]);
 
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> EJJ · #168</span>', $html);
+        self::assertStringContainsString('<span class="lb-event-name">EJJ · #168</span>', $html);
         self::assertStringNotContainsString('Euro Jigsaw Jam', $html);
     }
 
@@ -130,9 +130,9 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSeriesSlug' => 'euro-jigsaw-jam-series',
         ]);
 
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> Euro Jigsaw Jam</span>', $html);
+        self::assertStringContainsString('<span class="lb-event-name">Euro Jigsaw Jam</span>', $html);
         self::assertStringNotContainsString('·', $html);
-        self::assertStringContainsString('<a href="/en/series/euro-jigsaw-jam-series/euro-jigsaw-jam">', $html);
+        self::assertStringContainsString('<a class="lb-event-link" href="/en/series/euro-jigsaw-jam-series/euro-jigsaw-jam"', $html);
     }
 
     public function testEditionWithoutSeriesSlugNeverFallsBackToEventLink(): void
@@ -145,7 +145,7 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSeriesName' => 'Euro Jigsaw Jam',
         ]);
 
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> Euro Jigsaw Jam · EJJ #68 — February 2026</span>', $html);
+        self::assertStringContainsString('<span class="lb-event-name">Euro Jigsaw Jam · EJJ #68 — February 2026</span>', $html);
         self::assertStringNotContainsString('<a ', $html);
         self::assertStringNotContainsString('/en/events/', $html);
     }

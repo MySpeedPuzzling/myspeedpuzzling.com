@@ -253,12 +253,7 @@ a.lb-name,
         margin-left: $lb-indent;
     }
 
-    // _competition_badge starts with a <br> - a flex container ignores it
-    br {
-        display: none;
-    }
-
-    // A linked badge (event) sits in an <a>: both are flex boxes so it shares the line with the plain badges
+    // A linked badge (pair/team page) sits in an <a>: both are flex boxes so it shares the line with the plain badges
     a {
         display: inline-flex;
         max-width: 100%;
@@ -284,6 +279,61 @@ a.lb-name,
             line-height: 1;
         }
     }
+}
+
+// The event of a result (_competition_badge): one quiet 12 px line like "pieces · brand", never a pill - a long name
+// ends in "…" instead of making the row taller (the title attribute and screen readers get the whole name)
+.lb-event {
+    display: flex;
+    max-width: 100%;
+    margin: 1px 0 2px;
+    // Sized by its cell, not by its text: without it the one-line name would widen the (auto layout) table
+    contain: inline-size;
+    font-size: .75rem;
+    line-height: 1.3;
+
+    // In a leaderboard row it sits under the name, not under the avatar
+    .lb-table & {
+        margin-left: $lb-indent;
+    }
+
+    // In a tags row (profile results, recent activity, ladders) it takes a line of its own under the chips
+    .ps-tags & {
+        flex-basis: 100%;
+        margin: 0;
+    }
+}
+
+.lb-event-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    color: $lb-secondary;
+    text-decoration: none;
+
+    .bi {
+        flex-shrink: 0;
+        font-size: .6875rem;
+        color: #d63c42;
+    }
+}
+
+a.lb-event-link:hover,
+a.lb-event-link:focus-visible {
+    color: #111;
+
+    .lb-event-name {
+        text-decoration: underline;
+    }
+}
+
+.lb-event-name {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 // Small phones: tighter cell padding keeps more of the name visible

@@ -157,7 +157,7 @@ final class SeriesPickCanaryTest extends WebTestCase
 
     private function assertSeriesBadge(Crawler $crawler): void
     {
-        $badges = $crawler->filter(sprintf('a[href="%s"] .badge', $this->seriesUrl));
+        $badges = $crawler->filter(sprintf('a[href="%s"] .lb-event-name', $this->seriesUrl));
 
         self::assertGreaterThan(0, $badges->count(), 'No series badge for the series-level time.');
         self::assertSame(self::SERIES_LABEL, trim($badges->first()->text()));
@@ -165,7 +165,7 @@ final class SeriesPickCanaryTest extends WebTestCase
 
     private function assertEditionBadge(Crawler $crawler): void
     {
-        $badges = $crawler->filter(sprintf('a[href="%s"] .badge', $this->editionUrl));
+        $badges = $crawler->filter(sprintf('a[href="%s"] .lb-event-name', $this->editionUrl));
 
         self::assertGreaterThan(0, $badges->count(), 'No edition badge for the automatic time.');
         self::assertSame(self::EDITION_LABEL, trim($badges->first()->text()));

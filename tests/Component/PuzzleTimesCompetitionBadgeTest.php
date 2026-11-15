@@ -47,10 +47,10 @@ final class PuzzleTimesCompetitionBadgeTest extends WebTestCase
         // An edition must never be linked through the bare-slug event route.
         self::assertStringNotContainsString('/en/events/ejj-68-february-2026', $html);
 
-        // Standalone: unchanged shortcut badge linked to the event page, in the row's result detail.
+        // Standalone: shortcut event line linked to the event page, in the row's result detail.
         $client->request('GET', '/en/result/' . PuzzleSolvingTimeFixture::TIME_36);
         $detail = (string) $client->getResponse()->getContent();
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> WJPC24</span>', $detail);
+        self::assertStringContainsString('<span class="lb-event-name">WJPC24</span>', $detail);
         self::assertStringContainsString('href="/en/events/wjpc-2024"', $detail);
         self::assertStringContainsString('href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026"', $detail);
     }

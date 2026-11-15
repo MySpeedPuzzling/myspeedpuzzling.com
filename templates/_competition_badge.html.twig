@@ -1,5 +1,7 @@
 {#
-    Event badge of a solving time.
+    Event line of a solving time: a quiet "🏆 <event>" link on a line of its own, one line high - a long name ends in
+    "…" (CSS only: screen readers and the title attribute get the whole name). Deliberately not a pill: the status
+    pills next to it (1st try, unboxed, ...) are states of the result, the event is where it happened.
 
     `time` is any read model exposing competitionName / competitionShortcut / competitionSlug and
     competitionSeriesName / competitionSeriesShortcut / competitionSeriesSlug
@@ -32,12 +34,17 @@
         {% set label = time.competitionShortcut ?? time.competitionName %}
         {% set href = time.competitionSlug ? path('event_detail', {slug: time.competitionSlug}) : null %}
     {% endif %}
-    <br>
-    {% if href %}
-        <a href="{{ href }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
-    {% endif %}
-    <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ label }}</span>
-    {% if href %}
-        </a>
-    {% endif %}
+    <div class="lb-event">
+        {%- if href -%}
+            <a class="lb-event-link" href="{{ href }}" title="{{ label }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
+        {%- else -%}
+            <span class="lb-event-link" title="{{ label }}">
+        {%- endif -%}
+        <i class="bi bi-trophy-fill" aria-hidden="true"></i><span class="lb-event-name">{{ label }}</span>
+        {%- if href -%}
+            </a>
+        {%- else -%}
+            </span>
+        {%- endif -%}
+    </div>
 {% endif %}

@@ -31,10 +31,10 @@ final class ContinueImportBatchesCommand extends Command
 
         /** @var HandledStamp $handledStamp */
         $handledStamp = $envelope->last(HandledStamp::class);
-        /** @var array{batches: int, undos: int} $done */
+        /** @var array{batches: int, undos: int, answers: int} $done */
         $done = $handledStamp->getResult();
 
-        (new SymfonyStyle($input, $output))->success(sprintf('Continued %d batches and %d undos.', $done['batches'], $done['undos']));
+        (new SymfonyStyle($input, $output))->success(sprintf('Continued %d batches and %d undos; ended %d group answers that stood still.', $done['batches'], $done['undos'], $done['answers']));
 
         return Command::SUCCESS;
     }

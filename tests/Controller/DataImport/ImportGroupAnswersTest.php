@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\AnswerImportGroupChunk;
 use SpeedPuzzling\Web\Message\AnswerImportRows;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
+use SpeedPuzzling\Web\Message\ContinueImportBatches;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
@@ -28,6 +29,7 @@ use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -368,6 +370,61 @@ SQL, ['rowId' => $said[0]]);
 
         $this->addAndWork($importId, $player);
         self::assertSame(['added', 'added', 'added'], [$this->rowNow($usual)['state'], $this->rowNow($fastOne)['state'], $this->rowNow($fastTwo)['state']]);
+    }
+
+    public function testAnAnswerThatCanNotGoOnEndsAsFailedAndItsReasonIsFreeAgain(): void
+    {
+        $player = $this->seedPairingPlayer('groupfailed');
+        $puzzle = $this->seedCataloguePuzzle('Zq Group Failed Puzzle', 1000, $this->seedBrand('Zqgroupfailed'));
+        $this->typedResult($player, $puzzle, '2023-01-01', 10801);
+        $this->typedResult($player, $puzzle, '2023-02-01', 10501);
+        $this->typedResult($player, $puzzle, '2023-03-01', 10201);
+        [$import, $sheet] = $this->importOf($player);
+        $fast = $this->resultRow($import, $sheet, 'Zq Group Failed Puzzle', 1000, 'Zqgroupfailed', '2023-04-01', 1711);
+        $this->pair($import);
+        $importId = $import->id->toString();
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 1, mapping_version = 1 WHERE import_id = :id', ['id' => $importId]);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $token = (string) $this->browser->request('GET', '/en/import/' . $importId . '/add/times')->filter('[data-testid="import-add-times-group"] input[name="_token"]')->first()->attr('value');
+        $start = fn (string $requestId): string => (function () use ($requestId, $importId, $token): string {
+            $this->browser->request('POST', '/en/import/' . $importId . '/group-answers', ['_token' => $token, 'request_id' => $requestId, 'code' => 'unusual_time', 'action' => 'add_anyway', 'before_add' => '1']);
+
+            return (string) $this->browser->getResponse()->headers->get('Location');
+        })();
+        $handler = self::getContainer()->get(ProcessImportGroupAnswerHandler::class);
+
+        // --- A chunk that fails every time (the import left the stage rows are answered in, under the answer) ---
+        $first = '0193e7a0-0000-7000-8000-0000000000c1';
+        self::assertSame('/en/import/' . $importId . '/group-answers/' . $first, $start($first));
+        $this->database->update('data_import', ['status' => 'done'], ['id' => $importId]);
+        $handler(new ProcessImportGroupAnswer($first));
+
+        // Tried a few times, then ended as failed - not left running for ever
+        self::assertSame(['finished', 'failed', 0], array_values((array) $this->database->fetchAssociative('SELECT state, add_status, rows_answered FROM data_import_group_answer WHERE id = :id', ['id' => $first])));
+        self::assertSame([], $this->wavedThrough($fast));
+        $this->database->update('data_import', ['status' => 'setting_up'], ['id' => $importId]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/group-answers/' . $first);
+        self::assertStringContainsString('This answer stopped before it was through.', $crawler->filter('[data-testid="import-group-answer-outcome"]')->text());
+
+        // The reason is free again: another answer starts - it is not "already being answered"
+        $second = '0193e7a0-0000-7000-8000-0000000000c2';
+        self::assertSame('/en/import/' . $importId . '/group-answers/' . $second, $start($second));
+        self::assertSame('running', $this->database->fetchOne('SELECT state FROM data_import_group_answer WHERE id = :id', ['id' => $second]));
+
+        // --- An answer without a sign of life (a worker restarted, its job lost): the sweeper ends it the same way ---
+        $this->database->update('data_import_group_answer', ['last_activity_at' => TestClock::now()->modify('-14 minutes')->format('Y-m-d H:i:s')], ['id' => $second]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ContinueImportBatches());
+        self::assertSame('running', $this->database->fetchOne('SELECT state FROM data_import_group_answer WHERE id = :id', ['id' => $second]));
+        $this->database->update('data_import_group_answer', ['last_activity_at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s')], ['id' => $second]);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ContinueImportBatches());
+        self::assertSame(['finished', 'failed'], array_values((array) $this->database->fetchAssociative('SELECT state, add_status FROM data_import_group_answer WHERE id = :id', ['id' => $second])));
+
+        // ... and a third answer goes through as usual
+        $third = '0193e7a0-0000-7000-8000-0000000000c3';
+        $start($third);
+        $handler(new ProcessImportGroupAnswer($third));
+        self::assertSame(['finished', null, 1], array_values((array) $this->database->fetchAssociative('SELECT state, add_status, rows_answered FROM data_import_group_answer WHERE id = :id', ['id' => $third])));
+        self::assertSame(['unusual_time'], $this->wavedThrough($fast));
     }
 
     public function testLeaveThemOutLeavesEveryRowOfTheReasonOut(): void

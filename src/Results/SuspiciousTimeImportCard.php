@@ -18,7 +18,7 @@ readonly final class SuspiciousTimeImportCard
     public const float CONSISTENT_WITHIN = 1.5;
 
     /**
-     * @param list<array{case_id: string, time_id: string, puzzle_id: string, puzzle_name: string, pieces: int, seconds: null|int, expected_seconds: null|int, type: string}> $examples
+     * @param list<array{case_id: string, fingerprint: string, time_id: string, puzzle_id: string, puzzle_name: string, pieces: int, seconds: null|int, expected_seconds: null|int, type: string}> $examples
      * @param list<array{pieces: int, imported: int, importedPpm: float, typed: int, typedPpm: null|float}> $paces
      */
     public function __construct(
@@ -47,7 +47,20 @@ readonly final class SuspiciousTimeImportCard
         public null|float $factorTo,
         public array $examples,
         public array $paces,
+        /**
+         * Every case of the card with the entry it was raised for, as one word of marks (seenMark()) - what a
+         * decision for the whole card carries, so only what was shown is decided
+         */
+        public string $seen = '',
     ) {
+    }
+
+    /**
+     * A case and the entry it was raised for, short enough for hundreds of them in one form field.
+     */
+    public static function seenMark(string $caseId, string $fingerprint): string
+    {
+        return substr(hash('sha256', strtolower($caseId) . ':' . $fingerprint), 0, 12);
     }
 
     public function resultsTyped(): int

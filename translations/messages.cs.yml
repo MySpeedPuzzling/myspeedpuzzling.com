@@ -11816,6 +11816,7 @@ data_import:
             before_add: "Teď jsou připravené - zkontrolujte je a přidejte."
             left_out: "Jsou vynechané. Řádek můžete vrátit zpět v části „K opravě“."
             not_added: "Vaše odpověď je uložena. Přidávání teď nešlo spustit - řádky jsou připravené a lze je přidat z kontroly."
+            failed: "Tato odpověď se zastavila dřív, než byla hotová. Co stihla vyřešit, je uloženo; ostatní řádky čekají jako předtím a lze na ně odpovědět znovu."
             none: "Odpověď se nedotkla žádného řádku - mezitím se změnily."
             stale: "Vypadá to, že se nic neděje."
             continue: "Pokračovat"

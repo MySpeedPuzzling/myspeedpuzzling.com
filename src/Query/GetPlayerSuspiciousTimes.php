@@ -130,6 +130,8 @@ LEFT JOIN data_import_row import_row
     AND import_row.result_made
     AND import_row.state = 'added'
     AND pst.created_via = 'spreadsheet_import'
+    -- "Your spreadsheet import" is said to the importer only - never to another person of the result
+    AND EXISTS (SELECT 1 FROM data_import importing WHERE importing.id = import_row.import_id AND importing.player_id = notice.player_id)
 
 SQL;
     }

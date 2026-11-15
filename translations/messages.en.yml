@@ -12060,6 +12060,7 @@ data_import:
             before_add: "They are ready now - review them and add them."
             left_out: "They are left out. You can take a row in again in “To fix”."
             not_added: "Your answer is saved. Adding could not start right now - the rows are ready and can be added from the review."
+            failed: "This answer stopped before it was through. What it did settle is saved; the other rows wait as before and can be answered again."
             none: "No row took the answer - they changed meanwhile."
             stale: "This seems to stand still."
             continue: "Go on"

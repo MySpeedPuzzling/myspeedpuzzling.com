@@ -24,7 +24,10 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  *
  * 1. **one chunk, claimed and answered in one transaction** (AnswerImportGroupChunk): two turns never take the
  *    same rows, and no row is confirmed without being on the answer's list;
- * 2. a full chunk: the job sends itself again, so other players' jobs take their turns in between. A short one was
+ * 2. a chunk that fails is tried again - ATTEMPTS times; then the answer **ends as failed** with what it did
+ *    confirm, logged once: its reason is free again (an answer that stands still without a sign of life is ended
+ *    the same way by the sweeper - ContinueImportBatchesHandler);
+ * 3. a full chunk: the job sends itself again, so other players' jobs take their turns in between. A short one was
  *    the last: the answer is ended (RecordImportGroupAnswer - once), and the turn that ended it starts an "Add" of
  *    **exactly the rows that took "add it anyway"** (AddImportRows by their ids - the daily guard and every rule
  *    of an "Add" apply; rows it leaves for tomorrow are ready like any other row, their question is answered).
@@ -32,6 +35,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 #[AsMessageHandler]
 readonly final class ProcessImportGroupAnswerHandler
 {
+    public const int ATTEMPTS = 3;
+
     public function __construct(
         private MessageBusInterface $messageBus,
         private DataImportBatchRepository $batchRepository,
@@ -44,17 +49,33 @@ readonly final class ProcessImportGroupAnswerHandler
     {
         $this->entityManager->clear();
 
-        try {
-            $chunk = $this->messageBus->dispatch(new AnswerImportGroupChunk($message->answerId))
-                ->last(HandledStamp::class)
-                ?->getResult();
-        } catch (\Throwable $e) {
-            // The chunk was rolled back whole - its rows wait as before, the answer stands where it stood. Its page
-            // offers "Go on" after a minute
-            $this->entityManager->clear();
-            $this->logger->warning('A chunk of an import\'s group answer failed - the answer stands still', [
+        $chunk = null;
+        $failure = null;
+
+        // A chunk is rolled back whole when it fails, so it can be tried again as it was: a few times, then the
+        // answer ends as failed - it must not hold its reason for ever (one answer at a time per reason)
+        for ($attempt = 1; $attempt <= self::ATTEMPTS; $attempt++) {
+            try {
+                $chunk = $this->messageBus->dispatch(new AnswerImportGroupChunk($message->answerId))
+                    ->last(HandledStamp::class)
+                    ?->getResult();
+                $failure = null;
+
+                break;
+            } catch (\Throwable $e) {
+                $this->entityManager->clear();
+                $failure = $e;
+            }
+        }
+
+        if ($failure !== null) {
+            // What it did confirm stays confirmed (those rows are ready); the rest waits as before and can be answered
+            // again. Said once, with what went wrong
+            $this->messageBus->dispatch(new RecordImportGroupAnswer($message->answerId, failed: true));
+            $this->logger->warning('An import\'s group answer ended as failed: its chunk failed every time', [
                 'answer_id' => $message->answerId,
-                'exception' => $e,
+                'attempts' => self::ATTEMPTS,
+                'exception' => $failure,
             ]);
 
             return;

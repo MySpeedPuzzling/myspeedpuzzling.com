@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ContinueImportBatches;
+use SpeedPuzzling\Web\Message\RecordImportGroupAnswer;
 use SpeedPuzzling\Web\Message\QueueImportTurn;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
@@ -24,17 +26,20 @@ use Symfony\Component\Messenger\MessageBusInterface;
 readonly final class ContinueImportBatchesHandler
 {
     private const int AT_MOST = 100;
+    /** A group answer without a sign of life for so long is ended as failed */
+    public const int GROUP_ANSWER_STANDING_AFTER_SECONDS = 900;
 
     public function __construct(
         private DataImportBatchRepository $batchRepository,
         private DataImportSettingsRepository $settingsRepository,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
     /**
-     * @return array{batches: int, undos: int}
+     * @return array{batches: int, undos: int, answers: int}
      */
     public function __invoke(ContinueImportBatches $message): array
     {
@@ -52,6 +57,18 @@ readonly final class ContinueImportBatchesHandler
             $this->messageBus->dispatch(QueueImportTurn::ofUndo($undoId));
         }
 
-        return ['batches' => count($batchIds), 'undos' => count($undoIds)];
+        // A group answer that stands still is not continued but ended: what it confirmed stays, the rest can be
+        // answered again - it must not hold its reason for ever (docs/features/data-import/group-answers.md)
+        $answerIds = $this->batchRepository->groupAnswerIdsRunningStandingSince(
+            $this->clock->now()->modify(sprintf('-%d seconds', self::GROUP_ANSWER_STANDING_AFTER_SECONDS)),
+            self::AT_MOST,
+        );
+
+        foreach ($answerIds as $answerId) {
+            $this->messageBus->dispatch(new RecordImportGroupAnswer($answerId, failed: true));
+            $this->logger->warning('An import\'s group answer stood still and was ended as failed', ['answer_id' => $answerId]);
+        }
+
+        return ['batches' => count($batchIds), 'undos' => count($undoIds), 'answers' => count($answerIds)];
     }
 }

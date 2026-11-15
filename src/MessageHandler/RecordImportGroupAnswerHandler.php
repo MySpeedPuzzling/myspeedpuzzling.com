@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\DataImportGroupAnswer;
 use SpeedPuzzling\Web\Message\RecordImportGroupAnswer;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
@@ -54,7 +55,7 @@ readonly final class RecordImportGroupAnswerHandler
             return false;
         }
 
-        $answer->finished(null, null, $now);
+        $answer->finished(null, $message->failed ? DataImportGroupAnswer::FAILED : null, $now);
 
         return true;
     }

@@ -11814,6 +11814,7 @@ data_import:
             before_add: "Ya están listas: revísalas y añádelas."
             left_out: "Se han dejado fuera. Puedes volver a incluir una fila en «Por corregir»."
             not_added: "Tu respuesta está guardada. El añadido no ha podido empezar ahora; las filas están listas y se pueden añadir desde la revisión."
+            failed: "Esta respuesta se detuvo antes de terminar. Lo que llegó a resolver está guardado; las demás filas esperan como antes y se pueden responder de nuevo."
             none: "Ninguna fila tomó la respuesta: cambiaron entretanto."
             stale: "Parece que esto no avanza."
             continue: "Continuar"

@@ -41,6 +41,11 @@ The add-result form is not touched. Results are written only by the engine.
      cleared: its question is answered, it is ready like any other row;
    - "leave out" → the pairing screens' `AnswerImportRowsHandler(leaveOut)`, which checks everything before it writes
      anything: a chunk it refuses (its sheet is being read again) wrote nothing and is passed over.
+   **An answer that can not go on ends as failed.** A chunk that fails is rolled back whole and tried again, three
+   times in its turn; then the answer is ended with `add_status = failed` and what it did confirm (those rows are
+   ready), logged once with the exception - its reason is free for another answer. An answer that runs without a
+   sign of life for 15 minutes (a worker restarted, its job lost) is ended the same way by the sweeper
+   (`myspeedpuzzling:continue-import-batches`). Before that, its page offers "Go on".
 5. **The end.** The answer is ended once (`RecordImportGroupAnswer`, under its lock), and the turn that ended it starts **one "Add" of exactly the rows that took "add it anyway"**
    (`AddImportRows` by their ids). Everything an "Add" does applies: never twice, the daily guard of 2,000 results
    (what it leaves is ready tomorrow from the normal review - the question is answered), the safety switch (paused:
@@ -123,8 +128,6 @@ through a workbook read by the real handlers; every group text in every language
 ## Loose ends
 
 - The summary looks at a sample of 200 rows; its shares are the sample's.
-- A group answer that stops (a worker restarted) is not picked up by the batches' sweeper
-  (`myspeedpuzzling:continue-import-batches`); its page offers "Go on" after a minute.
 - "Leave out" needs a sheet whose rows are read for its current mapping (the pairing screens' rule).
 - The ids of the rows that took "add it anyway" are kept on the answer (`answered_row_ids`) until the "Add" - up to
   the import's row limit.

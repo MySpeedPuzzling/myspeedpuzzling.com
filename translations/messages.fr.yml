@@ -11809,6 +11809,7 @@ data_import:
             before_add: "Elles sont prêtes - vérifiez-les et ajoutez-les."
             left_out: "Elles sont laissées de côté. Vous pouvez reprendre une ligne dans « À corriger »."
             not_added: "Votre réponse est enregistrée. L'ajout n'a pas pu démarrer pour le moment - les lignes sont prêtes et peuvent être ajoutées depuis la vérification."
+            failed: "Cette réponse s'est arrêtée avant la fin. Ce qu'elle a réglé est enregistré ; les autres lignes attendent comme avant et peuvent recevoir une nouvelle réponse."
             none: "Aucune ligne n'a pris la réponse - elles ont changé entre-temps."
             stale: "Cela semble ne plus avancer."
             continue: "Continuer"

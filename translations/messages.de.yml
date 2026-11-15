@@ -11813,6 +11813,7 @@ data_import:
             before_add: "Sie sind jetzt bereit - prüfe sie und füge sie hinzu."
             left_out: "Sie sind weggelassen. Unter „Zu korrigieren“ kannst du eine Zeile wieder aufnehmen."
             not_added: "Deine Antwort ist gespeichert. Das Hinzufügen konnte gerade nicht starten - die Zeilen sind bereit und können über die Prüfung hinzugefügt werden."
+            failed: "Diese Antwort wurde angehalten, bevor sie fertig war. Was sie erledigt hat, ist gespeichert; die übrigen Zeilen warten wie zuvor und können erneut beantwortet werden."
             none: "Keine Zeile hat die Antwort übernommen - sie haben sich inzwischen geändert."
             stale: "Das scheint stillzustehen."
             continue: "Weitermachen"

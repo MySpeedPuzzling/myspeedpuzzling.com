@@ -112,16 +112,26 @@ final class TimeVerificationImportCardsTest extends WebTestCase
         self::assertSame($expected, $listed);
         self::assertCount(0, $crawler->filter('[data-testid="time-verification-import-card"]'));
         self::assertCount(1, $crawler->filter('[data-testid="time-verification-only-import"]'));
+
+        // A single case decided in this view comes back to this view - not to the whole queue
+        $form = $crawler->filter('form[action$="/' . $scenario['cases'][0] . '/trust"]')->first();
+        $fields = self::hidden($form);
+        self::assertSame($scenario['batch'], $fields['import'] ?? null);
+        $this->browser->request('POST', '/admin/time-verification/' . $scenario['cases'][0] . '/trust', $fields);
+        self::assertResponseRedirects('/admin/time-verification?tab=fast&import=' . $scenario['batch']);
+        self::assertCount(2, $this->browser->followRedirect()->filter('[data-testid="time-verification-case"]'));
     }
 
     public function testLooksFineForAllTrustsEveryCaseAsTheSingleDecisionDoes(): void
     {
-        $scenario = $this->importWithRaisedResults('cardfine', importedSeconds: [3050, 3150, 3250], raised: 3);
+        $scenario = $this->importWithRaisedResults('cardfine', importedSeconds: [3050, 3150, 3250, 3350, 3450], raised: 4);
         $typedCase = $this->raise($scenario['typed'][0]);
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $card = $this->browser->request('GET', '/admin/time-verification')->filter('[data-testid="time-verification-import-card"][data-batch-id="' . $scenario['batch'] . '"]');
         $form = $card->filter('form[action$="/trust"]');
-        self::assertSame('Looks fine - all 3', self::spaced($form->filter('[data-testid="time-verification-import-trust"]')->text()));
+        self::assertSame('Looks fine - all 4', self::spaced($form->filter('[data-testid="time-verification-import-trust"]')->text()));
+        // The form carries what the card showed: a mark per case and the entry it was raised for
+        self::assertCount(4, explode(' ', (string) $form->filter('input[name="seen"]')->attr('value')));
         $fields = [];
 
         $fields = [...$fields, ...self::hidden($form)];
@@ -130,16 +140,26 @@ final class TimeVerificationImportCardsTest extends WebTestCase
         $this->browser->request('POST', '/admin/time-verification/imports/' . $scenario['batch'] . '/trust', [...$fields, '_token' => 'nope']);
         self::assertResponseStatusCodeSame(403);
 
+        // While the moderator reads the card: the scan raises one more result of the import, the time of another is
+        // changed (its case is about the old entry now), and a third is marked by somebody else
+        $raisedSince = $this->raise($scenario['times'][4]);
+        $this->database->executeStatement("UPDATE suspicious_time_case SET fingerprint = 'another-entry' WHERE id = :id", ['id' => $scenario['cases'][0]]);
+        $this->database->executeStatement("UPDATE suspicious_time_case SET status = 'marked' WHERE id = :id", ['id' => $scenario['cases'][1]]);
+
         $this->browser->request('POST', '/admin/time-verification/imports/' . $scenario['batch'] . '/trust', $fields);
         self::assertResponseRedirects('/admin/time-verification?tab=fast');
         $crawler = $this->browser->followRedirect();
-        self::assertStringContainsString('Verified fine: 3 results.', $crawler->text());
-        self::assertCount(0, $crawler->filter('[data-testid="time-verification-import-card"][data-batch-id="' . $scenario['batch'] . '"]'));
+        // Only what the card showed and is still as it was shown is decided; the rest is said, not decided unseen
+        self::assertStringContainsString('Verified fine: 2 results. 2 changed meanwhile and were left as they are. More of this import are left - the card is still here.', self::spaced($crawler->text()));
+        self::assertSame(
+            ['pending', 'marked', 'trusted', 'trusted', 'pending'],
+            array_map(fn (string $caseId): mixed => $this->database->fetchOne('SELECT status FROM suspicious_time_case WHERE id = :id', ['id' => $caseId]), [...$scenario['cases'], $raisedSince]),
+        );
+        self::assertSame('2', $crawler->filter('[data-testid="time-verification-import-card"][data-batch-id="' . $scenario['batch'] . '"]')->attr('data-cases'));
 
         // Each case decided on its own, as "Looks fine" on a single card decides it - the log keeps its shape
-        self::assertSame(['trusted', 'trusted', 'trusted'], $this->database->fetchFirstColumn('SELECT status FROM suspicious_time_case WHERE id IN (:ids)', ['ids' => $scenario['cases']], ['ids' => ArrayParameterType::STRING]));
         $logged = $this->database->fetchAllAssociative('SELECT decision, decided_by_id, case_id FROM suspicious_time_decision WHERE case_id IN (:ids) ORDER BY case_id', ['ids' => $scenario['cases']], ['ids' => ArrayParameterType::STRING]);
-        self::assertCount(3, $logged);
+        self::assertCount(2, $logged);
         foreach ($logged as $line) {
             self::assertSame(['trusted', PlayerFixture::PLAYER_ADMIN], [$line['decision'], $line['decided_by_id']]);
         }
@@ -198,6 +218,16 @@ final class TimeVerificationImportCardsTest extends WebTestCase
         self::assertSame(1, substr_count($html, 'Results from your spreadsheet import, set aside together: 3'));
         self::assertStringNotContainsString('Zq Cardmark Puzzle', $html);
 
+        // "Your spreadsheet import" is the importer's to read: a person of the result who did not import it gets the
+        // plain lines (an imported result has no registered teammate today - the rule holds all the same)
+        $somebody = $this->seedPairingPlayer('cardmarkother');
+        $this->database->update('data_import', ['player_id' => $somebody->id->toString()], ['id' => $scenario['import']]);
+        $notImporting = self::getContainer()->get(GetResultReviewEmails::class)->markedTimesOf($playerId, $noticeIds);
+        self::assertSame([null, null, null], array_map(static fn ($markedTime): null|string => $markedTime->importBatchId, $notImporting));
+        TestingLogin::asPlayer($this->browser, $playerId);
+        self::assertCount(0, $this->browser->request('GET', '/en/review-results')->filter('[data-testid="suspicious-import-group"]'));
+        $this->database->update('data_import', ['player_id' => $playerId], ['id' => $scenario['import']]);
+
         // The review page says it once, above the results - each of which can still be answered
         TestingLogin::asPlayer($this->browser, $playerId);
         $crawler = $this->browser->request('GET', '/en/review-results');
@@ -237,7 +267,7 @@ final class TimeVerificationImportCardsTest extends WebTestCase
      *
      * @param list<int> $importedSeconds
      *
-     * @return array{player: Player, import: string, batch: string, cases: list<string>, typed: list<string>}
+     * @return array{player: Player, import: string, batch: string, cases: list<string>, typed: list<string>, times: list<string>}
      */
     private function importWithRaisedResults(string $name, array $importedSeconds, int $raised): array
     {
@@ -259,14 +289,19 @@ final class TimeVerificationImportCardsTest extends WebTestCase
         $outcome = $this->addAndWork($import, $player);
         self::assertNotNull($outcome->id);
         $cases = [];
+        $times = [];
 
-        foreach (array_slice($rows, 0, $raised) as $rowId) {
+        foreach ($rows as $index => $rowId) {
             $timeId = $this->rowNow($rowId)['solving_time_id'];
             self::assertIsString($timeId);
-            $cases[] = $this->raise($timeId);
+            $times[] = $timeId;
+
+            if ($index < $raised) {
+                $cases[] = $this->raise($timeId);
+            }
         }
 
-        return ['player' => $player, 'import' => $import->id->toString(), 'batch' => $outcome->id, 'cases' => $cases, 'typed' => $typed];
+        return ['player' => $player, 'import' => $import->id->toString(), 'batch' => $outcome->id, 'cases' => $cases, 'typed' => $typed, 'times' => $times];
     }
 
     /**

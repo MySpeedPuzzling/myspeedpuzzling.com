@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin\SuspiciousTimes;
 
 use SpeedPuzzling\Web\Message\DecideImportTimeCases;
+use SpeedPuzzling\Web\Security\SuspiciousResultsVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\SuspicionDirection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,13 +14,15 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * An import card of the time verification queue decided as a whole (docs/features/suspicious-time-review.md "Import
  * cards"): "Looks fine - all N" / "Mark all N as needing verification". POST + CSRF; the form names the import's
- * "Add" and the direction - the cases are worked out by the server and each is decided through the single card's
- * own message. Reached by admins and moderators only (the queue's access rule covers the path).
+ * "Add", the direction and what the card showed (a mark per case and entry) - the cases are worked out by the
+ * server, only those the moderator saw are decided, each through the single card's own message.
  */
+#[IsGranted(SuspiciousResultsVoter::REVIEW_SUSPICIOUS_TIMES)]
 final class DecideImportTimeCasesController extends AbstractController
 {
     public function __construct(
@@ -58,7 +61,10 @@ final class DecideImportTimeCasesController extends AbstractController
             return $this->redirectToRoute('admin_time_verification', $back);
         }
 
-        $outcome = $this->messageBus->dispatch(new DecideImportTimeCases($batchId, $direction, $moderator->playerId, $decision === 'mark', $note))
+        // What the card showed: a mark per case and the entry it was raised for - only those are decided
+        $seen = array_values(array_filter(explode(' ', $request->request->getString('seen')), static fn (string $mark): bool => preg_match('/^[0-9a-f]{12}$/', $mark) === 1));
+
+        $outcome = $this->messageBus->dispatch(new DecideImportTimeCases($batchId, $direction, $moderator->playerId, $decision === 'mark', $note, $seen))
             ->last(HandledStamp::class)
             ?->getResult();
         $decided = is_array($outcome) && is_int($outcome['decided'] ?? null) ? $outcome['decided'] : 0;

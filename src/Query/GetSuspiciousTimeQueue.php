@@ -246,6 +246,7 @@ SELECT
     MAX({$factor}) AS factor_to,
     json_agg(json_build_object(
         'case_id', ap.id,
+        'fingerprint', ap.fingerprint,
         'time_id', ap.time_id,
         'puzzle_id', p.id,
         'puzzle_name', p.name,
@@ -274,7 +275,7 @@ SQL;
         $paces = $this->importPaces(array_column($rows, 'batch_id'));
 
         return array_map(static function (array $row) use ($direction, $paces): SuspiciousTimeImportCard {
-            /** @var list<array{case_id: string, time_id: string, puzzle_id: string, puzzle_name: string, pieces: int, seconds: null|int, expected_seconds: null|int, type: string}> $cases */
+            /** @var list<array{case_id: string, fingerprint: string, time_id: string, puzzle_id: string, puzzle_name: string, pieces: int, seconds: null|int, expected_seconds: null|int, type: string}> $cases */
             $cases = json_decode($row['cases_json'], true, flags: JSON_THROW_ON_ERROR);
 
             return new SuspiciousTimeImportCard(
@@ -297,6 +298,7 @@ SQL;
                 factorTo: $row['factor_to'] === null ? null : (float) $row['factor_to'],
                 examples: array_slice($cases, 0, self::IMPORT_CARD_EXAMPLES),
                 paces: $paces[$row['batch_id']] ?? [],
+                seen: implode(' ', array_map(static fn (array $case): string => SuspiciousTimeImportCard::seenMark($case['case_id'], $case['fingerprint']), $cases)),
             );
         }, $rows);
     }

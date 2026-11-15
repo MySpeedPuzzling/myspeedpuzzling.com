@@ -319,16 +319,21 @@ but **one import is one card**, not hundreds of cases:
 - **Looks fine - all N** / **Mark all N as needing verification** (`DecideImportTimeCases`, `POST
   /admin/time-verification/imports/{batchId}/{trust|mark}`): the handler works the card's pending cases out and
   sends, **per case, the very message the single card sends** (`TrustSolvingTime` / `MarkSolvingTimeSuspicious` with
-  the case's own fingerprint) - each in its own transaction, under its own lock, with its own "changed meanwhile"
+  the case's own fingerprint) - **only for the cases the card showed**: the form carries a mark per case and the
+  entry it was raised for (`SuspiciousTimeImportCard::seenMark()`), so a case raised since the card was rendered, or
+  one whose time changed, is not decided unseen ("2 changed meanwhile… More of this import are left") - each in its
+  own transaction, under its own lock, with its own "changed meanwhile"
   (passed over and counted) and **its own line in the decision log**: the audit trail keeps its shape. A mark shows
   the player the reasons of each case a player may read, with the one note typed for the group. At most 200 cases a
   press; the card stays with the rest.
-- **Open them one by one** (`?import=<batchId>`): the import's cases as the single cases they are.
+- **Open them one by one** (`?import=<batchId>`): the import's cases as the single cases they are. A case decided there
+  comes back to that view.
 - **The player is told once for the group.** Notices are per result as for any mark (the notice run, once per
   mark); what the player meets is one thing: the banner is one count, the "Your results" e-mail carries **one item**
   for the import ("Results from your spreadsheet import, set aside together: 187" - `ResultReviewEmailComposer`
   groups marks of one "Add"), and "Review your results" says it once above the results, each of which can still be
-  fixed or answered.
+  fixed or answered. The import wording is the importer's alone (`data_import.player_id` = the notice's
+  person) - another registered person of a result reads the plain lines.
 - **An import that is taken back**: Undo deletes the results, and a case goes with its result
   (`suspicious_time_case.time_id` cascades - as for any deleted result). No case stays open for a result that is
   not there; a decision that arrives meanwhile decides nothing.

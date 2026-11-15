@@ -52,6 +52,30 @@ readonly final class DataImportBatchRepository
         return $this->entityManager->getRepository(DataImportGroupAnswer::class)->findOneBy(['import' => $import, 'code' => $code, 'state' => DataImportBatchState::Running]);
     }
 
+    /**
+     * Group answers that run and gave no sign of life since - a worker restarted, a job lost: the sweeper ends them
+     * as failed, so their reason is free again.
+     *
+     * @return list<string>
+     */
+    public function groupAnswerIdsRunningStandingSince(DateTimeImmutable $since, int $limit): array
+    {
+        /** @var list<array{id: UuidInterface}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('a.id')
+            ->from(DataImportGroupAnswer::class, 'a')
+            ->where('a.state = :running')
+            ->andWhere('a.lastActivityAt < :since')
+            ->setParameter('running', DataImportBatchState::Running)
+            ->setParameter('since', $since)
+            ->orderBy('a.lastActivityAt')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
+    }
+
     public function find(string $batchId): null|DataImportBatch
     {
         return Uuid::isValid($batchId) ? $this->entityManager->find(DataImportBatch::class, $batchId) : null;

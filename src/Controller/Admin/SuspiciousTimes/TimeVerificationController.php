@@ -99,16 +99,23 @@ final class TimeVerificationController extends AbstractController
     }
 
     /**
-     * Where an action sends the moderator back to: the tab and page the form was on.
+     * Where an action sends the moderator back to: the tab and page the form was on - and the one import whose
+     * cases were opened one by one, when the form was in that view.
      *
-     * @return array{tab: string, page: null|int}
+     * @return array{tab: string, page: null|int, import: null|string}
      */
     public static function returnParameters(Request $request): array
     {
         $tab = SuspiciousTimeQueueTab::tryFrom($request->request->getString('tab')) ?? SuspiciousTimeQueueTab::Fast;
         $page = max(1, $request->request->getInt('page', 1));
 
-        return ['tab' => $tab->value, 'page' => $page > 1 ? $page : null];
+        $import = $request->request->getString('import');
+
+        return [
+            'tab' => $tab->value,
+            'page' => $page > 1 ? $page : null,
+            'import' => preg_match('/^' . self::ID_REQUIREMENT . '$/', $import) === 1 ? strtolower($import) : null,
+        ];
     }
 
     /**

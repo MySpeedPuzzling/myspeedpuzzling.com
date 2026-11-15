@@ -30,6 +30,14 @@ readonly final class DecideImportTimeCases implements HandledOutsideTransaction
         public bool $mark,
         /** The note the player reads with a mark (the same for every result of the group) */
         public null|string $note,
+        /**
+         * What the card showed when the moderator pressed: SuspiciousTimeImportCard::seenMark() of every case on it
+         * (the case and the entry it was raised for). Only cases that were on the card and are still pending for
+         * that very entry are decided - a case raised since, or one whose time changed, is left for a look
+         *
+         * @var list<string>
+         */
+        public array $seen = [],
     ) {
     }
 }

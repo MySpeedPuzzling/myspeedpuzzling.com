@@ -40,9 +40,12 @@ readonly final class GetFirstTryTimes
      * Every result of the puzzle any of the given players took part in.
      *
      * @param list<string> $playerIds
+     * @param null|string $viewerPlayerId null = whoever is signed in (the forms). Given = that player, whoever is
+     *     signed in or nobody at all: a background worker has no viewer, so the blocklist would hide nobody and the
+     *     allow lists would reveal nobody (the import's writer - docs/features/data-import/writer.md "First try")
      * @return list<FirstTryTime> oldest first
      */
-    public function ofPlayersOnPuzzle(string $puzzleId, array $playerIds, null|string $exceptTimeId = null): array
+    public function ofPlayersOnPuzzle(string $puzzleId, array $playerIds, null|string $exceptTimeId = null, null|string $viewerPlayerId = null): array
     {
         if ($playerIds === []) {
             return [];
@@ -64,7 +67,7 @@ WITH relevant AS (
     WHERE member.player_id IN (:playerIds)
         AND pst.puzzle_id = :puzzleId
 )
-SELECT {$this->timeColumns()}
+SELECT {$this->timeColumns($viewerPlayerId !== null)}
 FROM relevant
 INNER JOIN puzzle_solving_time pst ON pst.id = relevant.id
 {$this->participantsJoin()}
@@ -76,6 +79,10 @@ SQL;
 
         if ($exceptTimeId !== null) {
             $parameters['exceptTimeId'] = $exceptTimeId;
+        }
+
+        if ($viewerPlayerId !== null) {
+            $parameters['viewerId'] = $viewerPlayerId;
         }
 
         return array_values($this->hydrateTimes($this->database->fetchAllAssociative($query, $parameters, [
@@ -301,9 +308,38 @@ LEFT JOIN player participant_player ON participant_player.id = participant.playe
 SQL;
     }
 
-    private function timeColumns(): string
+    /**
+     * @param bool $forGivenViewer the statement binds `:viewerId` and decides for that player: the rule
+     *     PrivateProfileAccess applies (a private player is shown to whom they put on their allow list, unless either
+     *     blocks the other), written out for that id, and HiddenPlayers' rule (whom the viewer blocks) as a column
+     */
+    private function timeColumns(bool $forGivenViewer = false): string
     {
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('participant_player');
+        $hidden = '';
+
+        if ($forGivenViewer) {
+            $isPrivate = <<<SQL
+(participant_player.is_private AND NOT EXISTS (
+        SELECT 1 FROM private_profile_viewer
+        WHERE private_profile_viewer.owner_id = participant_player.id
+            AND private_profile_viewer.viewer_id = :viewerId
+            AND private_profile_viewer.owner_id <> private_profile_viewer.viewer_id
+            AND NOT EXISTS (
+                SELECT 1 FROM user_block
+                WHERE (user_block.blocker_id = private_profile_viewer.owner_id AND user_block.blocked_id = private_profile_viewer.viewer_id)
+                    OR (user_block.blocker_id = private_profile_viewer.viewer_id AND user_block.blocked_id = private_profile_viewer.owner_id)
+            )
+    ))
+SQL;
+            $hidden = <<<SQL
+,
+    EXISTS (
+        SELECT 1 FROM user_block
+        WHERE user_block.blocker_id = :viewerId AND user_block.blocked_id = participant.player_id
+    ) AS participant_hidden
+SQL;
+        }
 
         return <<<SQL
 pst.id AS time_id,
@@ -316,7 +352,7 @@ pst.id AS time_id,
     participant.guest_name AS participant_guest_name,
     participant_player.code AS participant_code,
     CASE WHEN {$isPrivate} THEN NULL ELSE participant_player.name END AS participant_name,
-    COALESCE({$isPrivate}, false) AS participant_private
+    COALESCE({$isPrivate}, false) AS participant_private{$hidden}
 SQL;
     }
 
@@ -345,7 +381,8 @@ SQL;
             $collected[$timeId] ??= ['row' => $row, 'people' => []];
 
             $playerId = is_string($row['participant_player_id'] ?? null) ? $row['participant_player_id'] : null;
-            $hidden = $this->hiddenPlayers->isHidden($playerId);
+            // A statement for a given viewer says it itself (timeColumns()); otherwise whoever is signed in decides
+            $hidden = array_key_exists('participant_hidden', $row) ? $row['participant_hidden'] === true : $this->hiddenPlayers->isHidden($playerId);
             $private = ($row['participant_private'] ?? false) === true;
             $name = is_string($row['participant_name'] ?? null) ? $row['participant_name'] : null;
             $code = is_string($row['participant_code'] ?? null) ? $row['participant_code'] : null;

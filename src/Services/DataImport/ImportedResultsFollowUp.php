@@ -6,9 +6,9 @@ namespace SpeedPuzzling\Web\Services\DataImport;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleStatistics;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
-use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
 use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
@@ -22,8 +22,11 @@ use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
  * (docs/features/data-import/writer.md "Reactions") - the add form's handlers do the same per result:
  *
  * - the statistics of every puzzle touched (RecalculatePuzzleStatisticsOnSolvingTimeChange, per PuzzleSolved);
- * - XP of every registered person (AwardXpForSolvingTime per result there; here the whole ledger once - both end at
- *   what a full replay writes) and their achievements (RecalculateBadgesForPlayer);
+ * - XP: `AwardXpForSolvingTime` **per result** - the very message the add form queues. It brings the ledger of every
+ *   registered person of the result to what a replay of the result's puzzle writes and touches nothing else of
+ *   theirs: other puzzles' entries, settlements and the audit entries of deleted solves stay as they are. A full
+ *   rebuild per player (RecalculateXpForPlayer) would be one job instead of many, but it wipes exactly those;
+ * - achievements of every registered person, once each (RecalculateBadgesForPlayer);
  * - the reconstructed predictions of the players whose solo results wait for one (the message a back-dated add
  *   queues - SolvingTimePredictor::scheduleReconstruction()).
  *
@@ -46,6 +49,7 @@ readonly final class ImportedResultsFollowUp
     public function afterResultsAdded(iterable $outcomes): void
     {
         $puzzleIds = [];
+        $solvingTimeIds = [];
         $memberPlayerIds = [];
         $playersAwaitingPredictions = [];
 
@@ -55,6 +59,10 @@ readonly final class ImportedResultsFollowUp
             }
 
             $puzzleIds[$outcome->puzzleId] = true;
+
+            if ($outcome->solvingTimeId !== null) {
+                $solvingTimeIds[] = $outcome->solvingTimeId;
+            }
 
             foreach ($outcome->memberPlayerIds as $memberPlayerId) {
                 $memberPlayerIds[$memberPlayerId] = true;
@@ -70,8 +78,11 @@ readonly final class ImportedResultsFollowUp
             $this->recalculateStatistics($puzzleId);
         }
 
+        foreach ($solvingTimeIds as $solvingTimeId) {
+            $this->messageBus->dispatch(new AwardXpForSolvingTime($solvingTimeId));
+        }
+
         foreach (array_keys($memberPlayerIds) as $playerId) {
-            $this->messageBus->dispatch(new RecalculateXpForPlayer($playerId));
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($playerId));
         }
 

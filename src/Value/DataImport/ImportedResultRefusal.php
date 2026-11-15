@@ -20,6 +20,8 @@ enum ImportedResultRefusal: string
     case FirstTryTaken = 'first_try_taken';
     // 100 pieces a minute per person or more
     case TooFast = 'too_fast';
+    // Longer than the add form's largest time, 999:59:59
+    case TimeTooLong = 'time_too_long';
     // The public comment is longer than the add form takes
     case CommentTooLong = 'comment_too_long';
 }

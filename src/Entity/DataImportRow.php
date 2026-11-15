@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
+use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
@@ -30,6 +31,8 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
 #[Index(columns: ['sheet_id', 'row_number'])]
 #[Index(columns: ['import_id', 'state'])]
 #[Index(columns: ['import_id', 'source_key'])]
+// The database's last word on "a result is one row's": two rows can never name the same result (NULLs are distinct)
+#[UniqueConstraint(columns: ['solving_time_id'])]
 class DataImportRow
 {
     #[Column(type: UuidType::NAME, nullable: true)]
@@ -103,7 +106,8 @@ class DataImportRow
     /**
      * The result this row made (docs/features/data-import/writer.md "The link") - a plain id on purpose: it stays
      * when the result is deleted, and whether the row's result exists is always asked of the results themselves.
-     * Written only by resultCreated()
+     * Written in the database by DataImportRowRepository::linkSolvingTime() (compare-and-set); resultCreated() keeps
+     * the loaded row in step
      */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: UuidType::NAME, nullable: true)]

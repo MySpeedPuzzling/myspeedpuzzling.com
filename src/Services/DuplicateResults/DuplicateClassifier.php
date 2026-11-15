@@ -78,10 +78,17 @@ final class DuplicateClassifier
     /**
      * Same tracker, identical in every field, saved ≤ 10 s apart, no other same-day result of the puzzle by the
      * person and nothing else saved in between - the same form sent again.
+     *
+     * Never when either copy came from a spreadsheet import: an imported result's `tracked_at` is noon of its solve
+     * day plus its row's place, not the moment it was saved, so "10 s apart" is two rows of a file - which the import
+     * settled with the player before it added them (docs/features/data-import/writer.md). Such a pair is at most a
+     * case the player decides, never removed by itself.
      */
     private function isCertain(DuplicateCandidate $candidate): bool
     {
         return $candidate->sameTracker()
+            && $candidate->older->isFromSpreadsheetImport() === false
+            && $candidate->newer->isFromSpreadsheetImport() === false
             && $candidate->sameDay()
             && $candidate->gapSeconds() <= self::CERTAIN_MAX_GAP_SECONDS
             && $candidate->differences() === []

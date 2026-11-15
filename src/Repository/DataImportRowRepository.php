@@ -33,6 +33,41 @@ readonly final class DataImportRowRepository
     }
 
     /**
+     * The result the row made, **as the database has it now** - never from a loaded row, which may be older than
+     * another transaction's write (ImportedResultWriter reads it after taking its lock).
+     */
+    public function linkedSolvingTimeId(string $rowId): null|string
+    {
+        /** @var list<array{solvingTimeId: null|UuidInterface}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r.solvingTimeId')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.id = :rowId')
+            ->setParameter('rowId', $rowId)
+            ->getQuery()
+            ->getArrayResult();
+
+        return ($rows[0]['solvingTimeId'] ?? null)?->toString();
+    }
+
+    /**
+     * Names the result the row made - only if the row still names what the caller read ($expected: nothing, or a
+     * result that is gone). False = somebody else linked the row meanwhile; nothing was written.
+     *
+     * Native SQL on purpose, the exception CLAUDE.md allows with its reason: this is a compare-and-set - one
+     * statement whose WHERE is the check and whose row count is the answer. Changing the loaded object and flushing
+     * would write whatever the object holds, with no way to say "only if nobody was faster", and only at the flush;
+     * written here, at once, a later row of the same transaction sees the link too.
+     */
+    public function linkSolvingTime(string $rowId, null|string $expected, string $solvingTimeId): bool
+    {
+        return $this->entityManager->getConnection()->executeStatement(
+            'UPDATE data_import_row SET solving_time_id = :new WHERE id = :id AND solving_time_id IS NOT DISTINCT FROM CAST(:expected AS UUID)',
+            ['new' => $solvingTimeId, 'id' => $rowId, 'expected' => $expected],
+        ) === 1;
+    }
+
+    /**
      * The results other rows with the same key made for the player - in any of their imports (the same data in
      * another file, README "Never twice"). Ids only: whether such a result still exists is the caller's question.
      *

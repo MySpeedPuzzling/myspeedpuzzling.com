@@ -19,16 +19,25 @@ use SpeedPuzzling\Web\Value\TimezoneIdentifier;
  */
 readonly final class ImportedResult
 {
-    /** The rows of one day keep their order as seconds after noon - an hour of them, so noon never becomes night */
-    public const int POSITIONS_PER_DAY = 3600;
+    /**
+     * The rows of one day keep their order as steps after noon. A step is longer than the 10 seconds inside which
+     * two equal results are "the same form sent twice" to the duplicate rules (DuplicateClassifier), and the steps
+     * stay inside the hour after noon, so noon never becomes night
+     */
+    public const int STEP_SECONDS = 11;
+    public const int STEPS = 327;
+
+    /** The add form's largest time: 999:59:59 */
+    public const int MAX_SECONDS = 3_599_999;
 
     /**
      * @param string $solvedDay Y-m-d, the day the puzzle was solved - as the file says it
      * @param string $timezone IANA zone the day is read in (zoneOf() the player)
      * @param null|int $seconds null = solved without a time
      * @param null|bool $firstTry what the file says; null = it says nothing, which is "no" (README D15)
-     * @param list<string> $groupPlayers the other people, as the add form passes them: names, or `#code` of a
-     *     registered player. Empty = solo
+     * @param list<string> $groupPlayers the other people, **one person per entry**: a name, or `#code` of a
+     *     registered player. Empty = solo. Unlike the add form's guest box, an entry is never split at commas -
+     *     the import has already decided who the people of a row are ("Smith, John" is one guest)
      * @param int $position where the row stands among the rows of its sheet (its row number) - only the order counts
      */
     public function __construct(
@@ -89,13 +98,21 @@ readonly final class ImportedResult
 
     /**
      * `tracked_at` (README D5): noon of the solve day in the player's zone, plus the row's place among the rows as
-     * seconds - an order that stays inside the hour after noon. Stored like every `tracked_at`, in the server's zone (UTC).
+     * steps of STEP_SECONDS - an order that stays inside the hour after noon. Never in the future: a day solved
+     * today (or a day that is still ahead in the server's clock for a player far east) would otherwise stand on top
+     * of every feed for hours - it is the second before now then. Stored like every `tracked_at`, in the server's
+     * zone (UTC). ImportedResultWriter moves it further back when the player already has a result of the puzzle at
+     * that moment.
      */
-    public function trackedAt(): DateTimeImmutable
+    public function trackedAt(DateTimeImmutable $now): DateTimeImmutable
     {
-        return new DateTimeImmutable($this->solvedDay . ' 12:00:00', new DateTimeZone($this->timezone))
-            ->modify(sprintf('+%d seconds', $this->position % self::POSITIONS_PER_DAY))
-            ->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        $serverZone = new DateTimeZone(date_default_timezone_get());
+        $trackedAt = new DateTimeImmutable($this->solvedDay . ' 12:00:00', new DateTimeZone($this->timezone))
+            ->modify(sprintf('+%d seconds', ($this->position % self::STEPS) * self::STEP_SECONDS))
+            ->setTimezone($serverZone);
+        $latest = $now->setTimezone($serverZone)->modify('-1 second');
+
+        return $trackedAt > $latest ? $latest : $trackedAt;
     }
 
     public function isFirstTry(): bool

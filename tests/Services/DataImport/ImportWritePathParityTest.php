@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\DataImport;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,6 +16,9 @@ use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\WishListItem;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
@@ -30,9 +34,12 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultOutcome;
+use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
+use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -108,6 +115,8 @@ final class ImportWritePathParityTest extends KernelTestCase
     private const string REGISTERED_PARTNER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string REGISTERED_PARTNER_CODE = '#player3';
     private const string FOLLOWER = PlayerFixture::PLAYER_ADMIN;
+    private const string BEFORE_OWN_RESULT = 'the twin solved the puzzle before';
+    private const string BEFORE_PARTNERS_RESULT = 'the partner solved the puzzle before, as a first try';
 
     private MessageBusInterface $bus;
     private Connection $database;
@@ -127,13 +136,13 @@ final class ImportWritePathParityTest extends KernelTestCase
     }
 
     /**
-     * Today is TestClock's 14 October 2026.
+     * Today is TestClock's 14 October 2026, noon.
      *
-     * @return iterable<string, array{seconds: null|int, day: string, groupPlayers: list<string>, firstTry: bool, comment: null|string}>
+     * @return iterable<string, array{seconds: null|int, day: string, groupPlayers: list<string>, firstTry: bool, comment: null|string, before: null|string, zone: null|string, importPeople: null|list<string>}>
      */
     public static function inputs(): iterable
     {
-        $base = ['seconds' => 5400, 'day' => '2026-06-01', 'groupPlayers' => [], 'firstTry' => false, 'comment' => null];
+        $base = ['seconds' => 5400, 'day' => '2026-06-01', 'groupPlayers' => [], 'firstTry' => false, 'comment' => null, 'before' => null, 'zone' => null, 'importPeople' => null];
 
         yield 'solo with a time' => $base;
         yield 'solo without a time' => ['seconds' => null] + $base;
@@ -146,16 +155,34 @@ final class ImportWritePathParityTest extends KernelTestCase
         yield 'back-dated a year' => ['day' => '2025-10-14'] + $base;
         yield 'solved yesterday' => ['day' => '2026-10-13'] + $base;
         yield 'solved today' => ['day' => '2026-10-14'] + $base;
+        yield 'a puzzle the player already solved' => ['before' => self::BEFORE_OWN_RESULT] + $base;
+        yield 'a first try after an earlier result without the tag' => ['before' => self::BEFORE_OWN_RESULT, 'firstTry' => true] + $base;
+        yield 'a partner who holds an earlier result' => ['before' => self::BEFORE_PARTNERS_RESULT, 'groupPlayers' => [self::REGISTERED_PARTNER_CODE]] + $base;
+        yield 'a player with a time zone' => ['zone' => 'America/Los_Angeles'] + $base;
+        // The form's guest box holds "Smith, John" as two people; the import names its people one per entry
+        yield 'two guests typed with a comma' => ['groupPlayers' => ['Smith, John'], 'importPeople' => ['Smith', 'John']] + $base;
+        yield 'the longest time the form takes' => ['seconds' => ImportedResult::MAX_SECONDS] + $base;
     }
 
     /**
      * @param list<string> $groupPlayers
+     * @param null|list<string> $importPeople
      */
     #[DataProvider('inputs')]
-    public function testTheImportWritesWhatTheAddFormWrites(null|int $seconds, string $day, array $groupPlayers, bool $firstTry, null|string $comment): void
+    public function testTheImportWritesWhatTheAddFormWrites(null|int $seconds, string $day, array $groupPlayers, bool $firstTry, null|string $comment, null|string $before, null|string $zone, null|array $importPeople): void
     {
-        $typist = $this->newPlayer('typist');
-        $importer = $this->newPlayer('importer');
+        $typist = $this->newPlayer('typist', $zone);
+        $importer = $this->newPlayer('importer', $zone);
+
+        if ($before === self::BEFORE_OWN_RESULT) {
+            $this->saveThroughTheAddForm($typist, 7000, '2026-07-01', [], false, null);
+            $this->saveThroughTheAddForm($importer, 7000, '2026-07-01', [], false, null);
+        }
+
+        if ($before === self::BEFORE_PARTNERS_RESULT) {
+            $this->saveThroughTheAddForm(self::REGISTERED_PARTNER, 7000, '2026-05-01', [], true, null);
+        }
+
         $this->bothAreFollowedAndWishForThePuzzle($typist, $importer);
         $statisticsBefore = $this->solvedTimesCount();
 
@@ -167,8 +194,8 @@ final class ImportWritePathParityTest extends KernelTestCase
 
         // The import's path
         $this->asyncTransport->reset();
-        $outcome = $this->saveThroughTheImport($importer, $seconds, $day, $groupPlayers, $firstTry, $comment);
-        self::assertTrue($outcome->isAdded());
+        $outcome = $this->saveThroughTheImport($importer, $seconds, $day, $importPeople ?? $groupPlayers, $firstTry, $comment);
+        self::assertTrue($outcome->isAdded(), 'Refused: ' . ($outcome->refusal->value ?? '-'));
         self::assertNotNull($outcome->solvingTimeId);
         $importedId = $outcome->solvingTimeId;
 
@@ -182,7 +209,7 @@ final class ImportWritePathParityTest extends KernelTestCase
         }
 
         $this->assertTwinColumns($typed, $imported, $typist, $importer, $groupPlayers !== []);
-        $this->assertDifferences($typed, $imported, $day, isLivePredicted: $seconds !== null && $groupPlayers === [] && $day >= '2026-10-13');
+        $this->assertDifferences($typed, $imported, $day, $zone ?? 'UTC', isLivePredicted: $seconds !== null && $groupPlayers === [] && $day >= '2026-10-13');
 
         // The pair/team: another exact set of people (the twin instead of the twin), the same shape
         self::assertSame($this->teamShape($typed['puzzling_team_id'], $typist), $this->teamShape($imported['puzzling_team_id'], $importer));
@@ -201,12 +228,12 @@ final class ImportWritePathParityTest extends KernelTestCase
         // Nothing is deleted by either
         self::assertSame(0, $this->number('SELECT COUNT(*) FROM solving_time_tombstone WHERE solving_time_id IN (:a, :b)', ['a' => $typedId, 'b' => $importedId]));
 
-        // The jobs: per result by the form, none by the writer - the batch's follow-up queues them once
+        // The jobs: per result by the form, none by the writer - the batch's follow-up queues them
         $members = $groupPlayers !== [] && in_array(self::REGISTERED_PARTNER_CODE, $groupPlayers, true) ? [self::REGISTERED_PARTNER] : [];
         $isBackDated = $day < '2026-10-13';
         $awaitsPrediction = $seconds !== null && $groupPlayers === [];
 
-        self::assertSame([$typedId], array_map(static fn (object $message): string => $message instanceof AwardXpForSolvingTime ? $message->solvingTimeId : '', $typedQueue[AwardXpForSolvingTime::class] ?? []));
+        self::assertSame([$typedId], $this->awardedTimeIds($typedQueue));
         self::assertEqualsCanonicalizing([$typist, ...$members], $this->playerIds($typedQueue[RecalculateBadgesForPlayer::class] ?? []));
         self::assertSame($awaitsPrediction && $isBackDated ? [$typist] : [], $this->playerIds($typedQueue[BackfillSolvingTimePredictions::class] ?? []));
         self::assertSame([], $typedQueue[RecalculateXpForPlayer::class] ?? []);
@@ -224,11 +251,12 @@ final class ImportWritePathParityTest extends KernelTestCase
 
         self::assertSame($statisticsAfterTyped - $statisticsBefore, $this->solvedTimesCount() - $statisticsAfterTyped);
 
+        // XP by the very message the form queues, for the result; achievements once per person; never a full rebuild
         $followUpQueue = $this->queued();
-        self::assertEqualsCanonicalizing([$importer, ...$members], $this->playerIds($followUpQueue[RecalculateXpForPlayer::class] ?? []));
+        self::assertSame([$importedId], $this->awardedTimeIds($followUpQueue));
         self::assertEqualsCanonicalizing([$importer, ...$members], $this->playerIds($followUpQueue[RecalculateBadgesForPlayer::class] ?? []));
         self::assertSame($awaitsPrediction ? [$importer] : [], $this->playerIds($followUpQueue[BackfillSolvingTimePredictions::class] ?? []));
-        self::assertSame([], $followUpQueue[AwardXpForSolvingTime::class] ?? []);
+        self::assertSame([], $followUpQueue[RecalculateXpForPlayer::class] ?? []);
 
         // XP: what an imported result earns is what a typed result logged at the same moment earns. The one input of
         // the formula the two rows differ in is `tracked_at` (a documented difference: an import's old solve is
@@ -237,6 +265,84 @@ final class ImportWritePathParityTest extends KernelTestCase
         $this->entityManager->clear();
 
         self::assertSame($this->ledgerAfterRecompute($typist), $this->ledgerAfterRecompute($importer));
+    }
+
+    /**
+     * What the add form refuses, the import refuses - and neither leaves anything behind.
+     *
+     * @return iterable<string, array{string, class-string, ImportedResultRefusal}>
+     */
+    public static function refusedInputs(): iterable
+    {
+        yield '1000 pieces in five minutes' => ['too-fast', SuspiciousPpm::class, ImportedResultRefusal::TooFast];
+        yield 'a second first try' => ['first-try', FirstTryAlreadyTaken::class, ImportedResultRefusal::FirstTryTaken];
+        yield 'with nobody but oneself' => ['empty-group', CanNotAssembleEmptyGroup::class, ImportedResultRefusal::EmptyGroup];
+    }
+
+    /**
+     * @param class-string $formsException
+     */
+    #[DataProvider('refusedInputs')]
+    public function testTheImportRefusesWhatTheAddFormRefuses(string $case, string $formsException, ImportedResultRefusal $importsRefusal): void
+    {
+        $typist = $this->newPlayer('typist');
+        $importer = $this->newPlayer('importer');
+
+        if ($case === 'first-try') {
+            $this->saveThroughTheAddForm($typist, 7000, '2026-05-01', [], true, null);
+            $this->saveThroughTheAddForm($importer, 7000, '2026-05-01', [], true, null);
+        }
+
+        $before = [$this->footprintOf($typist), $this->footprintOf($importer)];
+        $seconds = $case === 'too-fast' ? 300 : 5400;
+        $people = static fn (string $code): array => $case === 'empty-group' ? ['#' . $code] : [];
+        $code = function (string $playerId): string {
+            $code = $this->database->fetchOne('SELECT code FROM player WHERE id = :id', ['id' => $playerId]);
+            self::assertIsString($code);
+
+            return $code;
+        };
+
+        $thrown = null;
+
+        try {
+            $this->saveThroughTheAddForm($typist, $seconds, '2026-06-01', $people($code($typist)), $case === 'first-try', null);
+        } catch (HandlerFailedException $e) {
+            $thrown = $e->getPrevious();
+        }
+
+        self::assertInstanceOf($formsException, $thrown);
+
+        $outcome = $this->saveThroughTheImport($importer, $seconds, '2026-06-01', $people($code($importer)), $case === 'first-try', null);
+
+        self::assertSame(ImportedResultStatus::Refused, $outcome->status);
+        self::assertSame($importsRefusal, $outcome->refusal);
+        self::assertSame(0, $this->number('SELECT COUNT(*) FROM data_import_row WHERE solving_time_id IS NOT NULL AND id = :id', ['id' => $outcome->importRowId]));
+
+        // The form's refused handler leaves its changes in the entity manager (a known trait of a refused handler);
+        // what counts is what is saved
+        $this->entityManager->clear();
+        self::assertSame($before, [$this->footprintOf($typist), $this->footprintOf($importer)]);
+    }
+
+    /**
+     * The one difference in how people are read (writer.md "The differences"): the form's guest box splits what was
+     * typed at commas, the import takes an entry as one person.
+     */
+    public function testACommaInAnEntryIsTwoPeopleForTheFormAndOneForTheImport(): void
+    {
+        $typist = $this->newPlayer('typist');
+        $importer = $this->newPlayer('importer');
+
+        $typed = $this->row($this->saveThroughTheAddForm($typist, 5400, '2026-06-01', ['Smith, John'], false, null));
+        $outcome = $this->saveThroughTheImport($importer, 5400, '2026-06-01', ['Smith, John'], false, null);
+        self::assertNotNull($outcome->solvingTimeId);
+        $imported = $this->row($outcome->solvingTimeId);
+
+        self::assertSame(3, $typed['puzzlers_count']);
+        self::assertSame(['John', 'Smith'], $this->guestsOf($typed['puzzling_team_id']));
+        self::assertSame(2, $imported['puzzlers_count']);
+        self::assertSame(['Smith, John'], $this->guestsOf($imported['puzzling_team_id']));
     }
 
     /**
@@ -289,16 +395,19 @@ final class ImportWritePathParityTest extends KernelTestCase
      * @param array<string, mixed> $typed
      * @param array<string, mixed> $imported
      */
-    private function assertDifferences(array $typed, array $imported, string $day, bool $isLivePredicted): void
+    private function assertDifferences(array $typed, array $imported, string $day, string $zone, bool $isLivePredicted): void
     {
         // created_via: where it was saved from
         self::assertSame(SolvingTimeSource::Form->value, $typed['created_via']);
         self::assertSame(SolvingTimeSource::SpreadsheetImport->value, $imported['created_via']);
 
-        // tracked_at: now for a typed result; noon of the solve day in the player's zone (UTC for the twins, who
-        // have neither a zone nor a country) plus the row's position in seconds for an imported one
+        // tracked_at: now for a typed result. For an imported one: noon of the solve day in the player's zone, plus
+        // the row's position (7) in steps of 11 seconds - and never later than the second before now
+        $noon = new DateTimeImmutable($day . ' 12:00:00', new DateTimeZone($zone))->modify('+77 seconds')->setTimezone(new DateTimeZone('UTC'));
+        $latest = TestClock::now()->modify('-1 second');
+
         self::assertSame(TestClock::FROZEN_NOW, $typed['tracked_at']);
-        self::assertSame($day . ' 12:00:07', $imported['tracked_at']);
+        self::assertSame(min($noon, $latest)->format('Y-m-d H:i:s'), $imported['tracked_at']);
 
         // The prediction: stored live for a typed solo result of today or yesterday, never for an imported one -
         // that one stays "not evaluated" until the backfill reconstructs it, like a back-dated typed result
@@ -320,9 +429,10 @@ final class ImportWritePathParityTest extends KernelTestCase
         }
     }
 
-    private function newPlayer(string $name): string
+    private function newPlayer(string $name, null|string $zone = null): string
     {
         $player = self::getContainer()->get(PlayerRepository::class)->getByUserIdCreateIfNotExists('parity|' . $name . '-' . Uuid::uuid7()->toString());
+        $player->changeTimezone($zone);
         $this->entityManager->flush();
 
         return $player->id->toString();
@@ -399,10 +509,10 @@ final class ImportWritePathParityTest extends KernelTestCase
         $player = $this->entityManager->find(Player::class, $playerId);
         self::assertNotNull($player);
 
-        $import = DataImport::uploadOfFile(Uuid::uuid7(), $player, 'results.xlsx', DataImportFileKind::Xlsx, 1000, 'imports/parity.xlsx', TestClock::now());
+        $import = DataImport::uploadOfFile(Uuid::uuid7(), $player, 'results.xlsx', DataImportFileKind::Xlsx, 1000, 'imports/' . Uuid::uuid7()->toString(), TestClock::now());
         $sheet = new DataImportSheet(Uuid::uuid7(), $import, 0, 'Results');
         $row = new DataImportRow(Uuid::uuid7(), $import, $sheet, 7, 1, 1);
-        $sourceKey = '1:' . hash('sha256', 'parity');
+        $sourceKey = '1:' . hash('sha256', Uuid::uuid7()->toString());
         $row->sourceKey = $sourceKey;
         $this->entityManager->persist($import);
         $this->entityManager->persist($sheet);
@@ -487,6 +597,46 @@ final class ImportWritePathParityTest extends KernelTestCase
         $this->asyncTransport->reset();
 
         return $messages;
+    }
+
+    /**
+     * @param array<class-string, list<object>> $queue
+     *
+     * @return list<string>
+     */
+    private function awardedTimeIds(array $queue): array
+    {
+        $ids = [];
+
+        foreach ($queue[AwardXpForSolvingTime::class] ?? [] as $message) {
+            if ($message instanceof AwardXpForSolvingTime) {
+                $ids[] = $message->solvingTimeId;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function guestsOf(mixed $puzzlingTeamId): array
+    {
+        /** @var list<string> $names */
+        $names = $this->database->fetchFirstColumn('SELECT guest_name FROM puzzling_team_member WHERE team_id = :team AND guest_name IS NOT NULL ORDER BY guest_name', ['team' => $puzzlingTeamId]);
+
+        return $names;
+    }
+
+    /**
+     * @return array{results: int, teams: int} what is saved of the player
+     */
+    private function footprintOf(string $playerId): array
+    {
+        return [
+            'results' => $this->number('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]),
+            'teams' => $this->number('SELECT COUNT(*) FROM puzzling_team_member WHERE player_id = :id', ['id' => $playerId]),
+        ];
     }
 
     /**

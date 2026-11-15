@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\DuplicateCandidateTime;
 use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateClassifier;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateTier;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 final class DuplicateClassifierTest extends TestCase
 {
@@ -27,6 +28,30 @@ final class DuplicateClassifierTest extends TestCase
             older: $this->time(savedAt: '10:00:00'),
             newer: $this->time(savedAt: '10:00:10'),
         ));
+    }
+
+    /**
+     * An imported result's `tracked_at` is made up from its solve day and its row - two equal rows of a spreadsheet
+     * are never "the same form sent again" (docs/features/data-import/writer.md): the player decides.
+     */
+    #[DataProvider('provideCopiesFromASpreadsheet')]
+    public function testACopyFromASpreadsheetImportIsNeverCertain(null|SolvingTimeSource $older, null|SolvingTimeSource $newer, string $newerSavedAt): void
+    {
+        $this->assertClassified(DuplicateTier::Strong, DuplicateKind::SameTracker, $this->candidate(
+            older: $this->time(savedAt: '10:00:00', overrides: ['createdVia' => $older]),
+            newer: $this->time(savedAt: $newerSavedAt, overrides: ['createdVia' => $newer]),
+        ));
+    }
+
+    /**
+     * @return iterable<string, array{null|SolvingTimeSource, null|SolvingTimeSource, string}>
+     */
+    public static function provideCopiesFromASpreadsheet(): iterable
+    {
+        yield 'both imported, the same instant' => [SolvingTimeSource::SpreadsheetImport, SolvingTimeSource::SpreadsheetImport, '10:00:00'];
+        yield 'both imported, seconds apart' => [SolvingTimeSource::SpreadsheetImport, SolvingTimeSource::SpreadsheetImport, '10:00:07'];
+        yield 'typed, then imported' => [SolvingTimeSource::Form, SolvingTimeSource::SpreadsheetImport, '10:00:03'];
+        yield 'imported, then typed' => [SolvingTimeSource::SpreadsheetImport, null, '10:00:03'];
     }
 
     public function testElevenSecondsApartIsOnlyStrong(): void
@@ -340,9 +365,10 @@ final class DuplicateClassifierTest extends TestCase
             'competitionId' => null,
             'competitionRoundId' => null,
             'competitionSeriesId' => null,
+            'createdVia' => null,
         ], $overrides);
 
-        /** @var array{teamId: null|string, solvedDay: string, finishedAt: null|DateTimeImmutable, comment: null|string, hasPhoto: bool, firstAttempt: bool, unboxed: bool, competitionId: null|string, competitionRoundId: null|string, competitionSeriesId: null|string} $values */
+        /** @var array{teamId: null|string, solvedDay: string, finishedAt: null|DateTimeImmutable, comment: null|string, hasPhoto: bool, firstAttempt: bool, unboxed: bool, competitionId: null|string, competitionRoundId: null|string, competitionSeriesId: null|string, createdVia: null|SolvingTimeSource} $values */
         return new DuplicateCandidateTime(
             timeId: $tracker . $savedAt . ($values['teamId'] ?? ''),
             trackerId: $tracker,
@@ -360,6 +386,7 @@ final class DuplicateClassifierTest extends TestCase
             competitionId: $values['competitionId'],
             competitionRoundId: $values['competitionRoundId'],
             competitionSeriesId: $values['competitionSeriesId'],
+            createdVia: $values['createdVia'],
         );
     }
 }

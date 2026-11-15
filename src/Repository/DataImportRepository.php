@@ -150,6 +150,47 @@ readonly final class DataImportRepository
     }
 
     /**
+     * Read imports that wrote nothing since the moment given although a sheet of theirs still waits for a step that
+     * runs by itself: it has no mapping yet, or its rows are not parsed for its mapping and it asks nothing. Only
+     * imports read after `$readAfter`: a step that fails every time is not tried for ever. A read in SQL: the sheet's
+     * questions live in its mapping's JSON.
+     *
+     * @return list<string> ids
+     */
+    public function idsSetUpStandingSince(DateTimeImmutable $since, DateTimeImmutable $readAfter, int $limit): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
+SELECT data_import.id
+FROM data_import
+WHERE data_import.status = :status
+    AND data_import.last_activity_at < :since
+    AND data_import.read_finished_at > :readAfter
+    AND EXISTS (
+        SELECT 1
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND (
+                sheet.mapping_version = 0
+                OR (
+                    sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
+                    AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0
+                )
+            )
+    )
+ORDER BY data_import.last_activity_at
+LIMIT :limit
+SQL, [
+            'status' => DataImportStatus::SettingUp->value,
+            'since' => $since->format('Y-m-d H:i:s'),
+            'readAfter' => $readAfter->format('Y-m-d H:i:s'),
+            'limit' => $limit,
+        ])->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
      * Uploads the browser never confirmed.
      *
      * @return list<DataImport>

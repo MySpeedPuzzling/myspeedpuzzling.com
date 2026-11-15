@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Value\DataImport;
+
+use SpeedPuzzling\Web\Value\DataImportRowKind;
+
+/**
+ * One row of a sheet as the import reads it under a mapping (ImportRowParser; docs/features/data-import/columns.md
+ * "What a parsed row holds"): what the row is, its typed values, what is unclear about it, and its keys.
+ */
+final readonly class ParsedImportRow
+{
+    /**
+     * @param array<string, mixed> $parsed
+     * @param list<array{field: null|string, code: string, value?: string, choices?: list<int|string>}> $problems
+     */
+    public function __construct(
+        public DataImportRowKind $kind,
+        public array $parsed,
+        public array $problems = [],
+        public null|string $puzzleKey = null,
+        /** The key of what the row first of all makes: its result, else its owned puzzle, else its wish */
+        public null|string $sourceKey = null,
+        public null|string $sourceRowId = null,
+        public null|ImportRowLeftOut $leftOut = null,
+    ) {
+    }
+
+    public static function leftOut(ImportRowLeftOut $why): self
+    {
+        return new self(DataImportRowKind::NotAPuzzle, ['leftOut' => $why->value], leftOut: $why);
+    }
+
+    public function isData(): bool
+    {
+        return $this->leftOut === null;
+    }
+
+    public function isUnderstood(): bool
+    {
+        return $this->leftOut === null && $this->problems === [];
+    }
+
+    /**
+     * What travels to the handler that stores it.
+     *
+     * @return array{kind: string, parsed: array<string, mixed>, problems: list<array<string, mixed>>, puzzleKey: null|string, sourceKey: null|string, sourceRowId: null|string, leftOut: bool}
+     */
+    public function toRecord(): array
+    {
+        return [
+            'kind' => $this->kind->value,
+            'parsed' => $this->parsed,
+            'problems' => $this->problems,
+            'puzzleKey' => $this->puzzleKey,
+            'sourceKey' => $this->sourceKey,
+            'sourceRowId' => $this->sourceRowId,
+            'leftOut' => $this->leftOut !== null,
+        ];
+    }
+}

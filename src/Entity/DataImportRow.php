@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
 #[Entity]
 #[Index(columns: ['sheet_id', 'row_number'])]
 #[Index(columns: ['import_id', 'state'])]
+#[Index(columns: ['import_id', 'source_key'])]
 class DataImportRow
 {
     #[Column(type: UuidType::NAME, nullable: true)]
@@ -61,6 +62,18 @@ class DataImportRow
     #[Column(length: 80, nullable: true)]
     public null|string $sourceKey = null;
 
+    /** `<version>:<sha256>` of name + pieces + brand as the row says them (ImportPuzzleKey) - null without a name */
+    #[Column(length: 80, nullable: true)]
+    public null|string $puzzleKey = null;
+
+    /** The sheet's mapping version the row was last parsed for */
+    #[Column(nullable: true)]
+    public null|int $parsedVersion = null;
+
+    /**
+     * The row this one is the same result as - one result unless the player says two (README D6): an equal row of
+     * its own sheet, or the same row on an earlier sheet. At most two steps lead to the row that stands for them all.
+     */
     #[ManyToOne]
     #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
     public null|DataImportRow $sameAsRow = null;
@@ -102,5 +115,53 @@ class DataImportRow
         #[Column]
         public int $lastSeenVersion,
     ) {
+    }
+
+    /**
+     * Whether parsing may write the row: only while nothing was made of it. A row that is queued, added, already the
+     * player's, failed or undone keeps what it was parsed as.
+     */
+    public function canBeParsed(): bool
+    {
+        return $this->state === DataImportRowState::Waiting || $this->state === DataImportRowState::LeftOut;
+    }
+
+    /**
+     * What ImportRowParser read of the row under one version of its sheet's mapping (ParsedImportRow::toRecord()).
+     * A row that is no data is left out; any other waits for its puzzle.
+     *
+     * @param array{kind: string, parsed: array<string, mixed>, problems: list<array<string, mixed>>, puzzleKey: null|string, sourceKey: null|string, sourceRowId: null|string, leftOut: bool} $record
+     */
+    public function parsedAs(int $mappingVersion, array $record): void
+    {
+        $this->parsedVersion = $mappingVersion;
+        $this->kind = DataImportRowKind::from($record['kind']);
+        $this->parsed = $record['parsed'];
+        $this->problems = $record['problems'] === [] ? null : $record['problems'];
+        $this->puzzleKey = $record['puzzleKey'];
+        $this->sourceKey = $record['sourceKey'];
+        $this->sourceRowId = $record['sourceRowId'];
+        $this->sameAsRow = null;
+        $this->state = $record['leftOut'] ? DataImportRowState::LeftOut : DataImportRowState::Waiting;
+    }
+
+    /**
+     * One of several rows of its sheet that are equal in all a key holds: which one it is, and whether it stands for
+     * itself (ImportEqualRows).
+     */
+    public function numberedAmongEqualRows(int $occurrence, null|string $sourceKey, null|self $sameAs): void
+    {
+        $parsed = $this->parsed ?? [];
+        $parsed['occurrence'] = $occurrence;
+
+        if ($sourceKey !== null) {
+            $keys = is_array($parsed['keys'] ?? null) ? $parsed['keys'] : [];
+            $keys['result'] = $sourceKey;
+            $parsed['keys'] = $keys;
+            $this->sourceKey = $sourceKey;
+        }
+
+        $this->parsed = $parsed;
+        $this->sameAsRow = $sameAs;
     }
 }

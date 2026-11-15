@@ -39,6 +39,21 @@ final class DataImportLimits
     /** An import "being read" without any progress for this long: its worker died */
     public const int READING_STALLED_AFTER_SECONDS = 900;
     /** Imports whose file arrived and that are neither finished nor discarded */
+    /** The widest sheet the reader hands over (its own sanity cap) - a column number beyond it is no column */
+    public const int MAX_COLUMNS = 1000;
+    /** A mapped table is at most this wide (README Q8); a wider one is cut on its right */
+    public const int MAX_REGION_COLUMNS = 60;
+    /** Rows from a sheet's top that the header, the tables and the columns are recognised from (columns.md) */
+    public const int SAMPLE_ROWS = 300;
+    /** Rows of a table whose times and dates settle the column's open questions - what they leave open is asked */
+    public const int COLUMN_DECISION_ROWS = 5000;
+    /** Rows of a sheet that are equal in everything a key holds and are numbered against each other */
+    public const int MAX_EQUAL_ROWS_PER_SHEET = 5000;
+    /** A read import's lost or failed step (its mapping, a sheet's parse) is queued again for this long after the read */
+    public const int SET_UP_RETRIED_FOR_DAYS = 7;
+    /** Names a puzzle list is looked up by */
+    public const int MAX_LOOKUP_NAMES = 50_000;
+
     public const int MAX_UNFINISHED_PER_PLAYER = 3;
     /** How long the uploaded file is kept in object storage */
     public const int KEEP_FILE_DAYS = 30;

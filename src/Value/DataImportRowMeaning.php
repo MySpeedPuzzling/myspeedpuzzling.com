@@ -12,5 +12,6 @@ enum DataImportRowMeaning: string
     case Result = 'result';
     case Owned = 'owned';
     case Both = 'both';
+    case WishList = 'wish_list';
     case ByColumn = 'by_column';
 }

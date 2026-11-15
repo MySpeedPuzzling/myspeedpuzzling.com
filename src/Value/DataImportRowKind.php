@@ -12,5 +12,7 @@ enum DataImportRowKind: string
     case Result = 'result';
     case Owned = 'owned';
     case Both = 'both';
+    /** A puzzle on the wish list */
+    case WishList = 'wish_list';
     case NotAPuzzle = 'not_a_puzzle';
 }

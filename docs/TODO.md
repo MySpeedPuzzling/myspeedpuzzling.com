@@ -1614,6 +1614,22 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
       players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
       decide whether the curve needs a touch
 
+## Data import - recognising and parsing (stage 4b-1, `docs/features/data-import/columns.md`)
+
+- [ ] Two tables standing side by side on one sheet can not both be imported: a stored row is one spreadsheet row,
+  one table per sheet is its data. Needs rows per region when a real file asks for it.
+- [ ] "Forget the spreadsheet's content" (README Q9) must also clear the questions' `examples` in
+  `data_import_sheet.mapping` (up to three values of the file per question) and the `value` of row problems.
+- [ ] Our own export's `.json`, `.xml` and the library export's ZIP are not read (the reader takes `.xlsx`, `.csv`);
+  `custom:own:<name>` columns of the results export are unknown columns until the screen can make a new field.
+- [ ] Puzzle Tracker's picture hosts (`KnownExportLayout::$pictureHosts`) are empty - fill them from the real export
+  before stage 7 fetches a picture.
+- [ ] Times and dates are settled from the first 5,000 rows of a table; a shape first seen further down is a row
+  problem (`time_two_readings`), not a question. Fine for the real files (the largest sheet has 1,392 rows).
+- [ ] The import's page does not update by itself while sheets are recognised and parsed (a refresh link); the
+  "Sheets and columns" screen should listen to `sheetsParsed` / `sheetsWaiting` of the progress payload.
+- [ ] A puzzle name in a second "Name" column loses to the first one and is not offered as "solved with".
+
 ## Data import - reading the file (stage 3b, `docs/features/data-import/reading.md`)
 
 - [ ] lily.srv: the `imports` consumer needs the Mercure publisher settings (`MERCURE_URL`, `MERCURE_PUBLIC_URL`,

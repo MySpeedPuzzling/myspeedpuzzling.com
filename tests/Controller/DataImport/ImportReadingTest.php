@@ -138,7 +138,7 @@ final class ImportReadingTest extends WebTestCase
         self::assertNotEmpty($published);
         $last = end($published);
         self::assertSame(
-            ['type' => 'import_progress', 'importId' => $importId, 'status' => 'setting_up', 'moving' => false, 'sheetsTotal' => 2, 'sheetsRead' => 2, 'rowsRead' => 4],
+            ['type' => 'import_progress', 'importId' => $importId, 'status' => 'setting_up', 'moving' => false, 'sheetsTotal' => 2, 'sheetsRead' => 2, 'rowsRead' => 4, 'sheetsMapped' => 0, 'sheetsParsed' => 0, 'sheetsWaiting' => 0],
             $last,
         );
         self::assertSame('reading', $published[0]['status']);

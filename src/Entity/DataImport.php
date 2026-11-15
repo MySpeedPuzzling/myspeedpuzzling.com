@@ -235,6 +235,23 @@ class DataImport
         $this->lastActivityAt = $now;
     }
 
+    /**
+     * Read, and its sheets are being recognised, mapped and parsed (docs/features/data-import/columns.md) - the only
+     * state in which a mapping is proposed, confirmed or parsed.
+     */
+    public function isBeingSetUp(): bool
+    {
+        return $this->status === DataImportStatus::SettingUp;
+    }
+
+    /**
+     * A background step of the setting up wrote something.
+     */
+    public function workedOn(DateTimeImmutable $now): void
+    {
+        $this->lastActivityAt = $now;
+    }
+
     public function readingFinished(DateTimeImmutable $now): void
     {
         if ($this->status !== DataImportStatus::Reading) {

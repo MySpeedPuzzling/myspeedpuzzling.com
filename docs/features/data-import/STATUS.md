@@ -56,6 +56,16 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-15 - **guided flow, slices 1 and 2 live** (#370, #371). Slice 1 - the spine: the step header on every
+  import screen, "Where you are" (five steps, one status sentence each, ONE primary button, "or add what is ready
+  now"), the vocabulary of guided-flow.md §8 in six languages, the first explanations in place; no query, message
+  or route changed. Slice 2 - "Check and add" says every assumption per sheet (added as …, an example row, how
+  dates and times were read), and "What will be added" (`…/add/list`): every row an Add would take, with
+  "Don't import" per row / puzzle / sheet and "Put back" - tied to the queue by a test; a row is ready only when
+  its sheet is not being read again (closes: "don't import this sheet" then Add at once). Walked at 390 px on the
+  branch (slice 1) and on the sandbox with the ten-sheet workbook (both). Slice 3 (puzzles in bulk, #372) in its
+  fix round: a match the player took off came back pre-ticked in the grid.
+
 - 2026-11-15 - **stage 6d live** (#369): the people of a file. A `#code` becomes the player by itself (the add
   form's rule + never across a block, checked again at write time); a name is a guest unless the importing player
   says who it is (`…/import/{id}/people`; suggestions only among players they are connected to; a remembered

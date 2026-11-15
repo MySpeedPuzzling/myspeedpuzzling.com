@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Value\DatePrecision;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class PlayerBaselineCalculator implements ResetInterface
@@ -183,12 +182,6 @@ final class PlayerBaselineCalculator implements ResetInterface
             $params['piecesCount'] = $piecesCount;
         }
 
-        // "Which solve of the puzzle was first": the one tagged a first try, else the oldest - where a result known to its
-        // month or year only stands at the END of that period, so it is the first one only when it certainly was. Its
-        // stored day (the first of the period) would otherwise make it the first solve ahead of every result of that
-        // month - an invented fact that sets a baseline (README D13, date-precision.md "Which solve was first")
-        $firstOrder = DatePrecision::sqlLatestPossibleMoment('pst');
-
         return ["
             SELECT id, player_id, puzzle_id, pieces_count, seconds_to_solve, solve_date, tracked_at
             FROM (
@@ -202,7 +195,7 @@ final class PlayerBaselineCalculator implements ResetInterface
                     pst.tracked_at,
                     ROW_NUMBER() OVER (
                         PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY pst.first_attempt DESC, {$firstOrder} ASC, pst.tracked_at ASC, pst.id ASC
+                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC, pst.id ASC
                     ) AS rn
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id

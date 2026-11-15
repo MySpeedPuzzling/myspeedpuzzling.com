@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
+use SpeedPuzzling\Web\Message\ApplyImportRow;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
  * Results that know only their month or year (docs/features/data-import/date-precision.md): added with what the file
@@ -87,11 +90,13 @@ final class ImportDatePrecisionTest extends KernelTestCase
         $elsewhere = $this->seedCataloguePuzzle('Zq Within Elsewhere', 500, $brand);
         $timeless = $this->seedCataloguePuzzle('Zq Within Timeless', 500, $brand);
         $this->seedCataloguePuzzle('Zq Within Anchor', 500, $brand);
+        $otherYear = $this->seedCataloguePuzzle('Zq Within Other Year', 500, $brand);
 
         // Typed by hand: the 14th of May, a day of June, and a result of a puzzle the file only says "solved, 2021" of
         $typedWithin = $this->typedResult($player, $within, '2024-05-14', 3600);
         $this->typedResult($player, $elsewhere, '2024-06-14', 3700);
         $typedTimeless = $this->typedResult($player, $timeless, '2021-08-08', 4100);
+        $this->typedResult($player, $otherYear, '2022-02-02', 4200);
 
         [$import, $sheet] = $this->importOf($player);
         // "May 2024", the same time: the result of 14 May is that row
@@ -100,6 +105,8 @@ final class ImportDatePrecisionTest extends KernelTestCase
         $otherMonth = $this->resultRow($import, $sheet, 'Zq Within Elsewhere', 500, 'Zqwithin', '2024-05', 3700);
         // "Solved, 2021" without a time: any result of the puzzle the player has
         $noTime = $this->resultRow($import, $sheet, 'Zq Within Timeless', 500, 'Zqwithin', '2021', null);
+        // "Solved, 2020" without a time, the profile has a result of 2022: another solve - never "already yours"
+        $noTimeOtherYear = $this->resultRow($import, $sheet, 'Zq Within Other Year', 500, 'Zqwithin', '2020', null);
         // A month row that is added: the result stands on 1 March 2023
         $anchor = $this->resultRow($import, $sheet, 'Zq Within Anchor', 500, 'Zqwithin', '2023-03', 4000);
         $this->pair($import);
@@ -108,8 +115,9 @@ final class ImportDatePrecisionTest extends KernelTestCase
         self::assertSame(['already_yours', 'profile', $typedWithin], [$this->rowNow($sameMonth)['state'], $this->rowNow($sameMonth)['already_yours_how'], $this->rowNow($sameMonth)['already_yours_solving_time_id']]);
         self::assertSame(['waiting', 'similar_result_exists'], [$this->rowNow($otherMonth)['state'], $this->rowNow($otherMonth)['failure']]);
         self::assertSame(['already_yours', $typedTimeless], [$this->rowNow($noTime)['state'], $this->rowNow($noTime)['already_yours_solving_time_id']]);
+        self::assertSame(['added', null], [$this->rowNow($noTimeOtherYear)['state'], $this->rowNow($noTimeOtherYear)['already_yours_solving_time_id']]);
         self::assertSame('added', $this->rowNow($anchor)['state']);
-        self::assertCount(4, $this->resultsOf($player));
+        self::assertCount(6, $this->resultsOf($player));
 
         // Another file says 1 March 2023 with that time: an exact day is never "already yours" through the result that
         // only knows "March 2023" and merely stands on 1 March. (That result is spoken for by its own row, so - like
@@ -120,7 +128,7 @@ final class ImportDatePrecisionTest extends KernelTestCase
         $this->addAndWork($second, $player);
 
         self::assertSame(['added', null], [$this->rowNow($firstOfMonth)['state'], $this->rowNow($firstOfMonth)['already_yours_how']]);
-        self::assertCount(5, $this->resultsOf($player));
+        self::assertCount(7, $this->resultsOf($player));
     }
 
     public function testACoarserRowIsTheResultOfTheFinerRowOfTheSameFile(): void
@@ -134,7 +142,19 @@ final class ImportDatePrecisionTest extends KernelTestCase
         $month = $this->resultRow($import, $sheet, 'Zq Finer Puzzle', 500, 'Zqfiner', '2022-09', 5000);
         $day = $this->resultRow($import, $sheet, 'Zq Finer Puzzle', 500, 'Zqfiner', '2022-09-14', 5000);
         $this->pair($import);
-        $this->addAndWork($import, $player);
+        $outcome = $this->addAndWork($import, $player);
+
+        // The batch loop reaches the finer row after the month row added it on the way: the row is not queued any
+        // more, so its own turn does nothing - each row ends exactly once, and the batch counts each once
+        $batch = $this->batchNow($outcome->id);
+        self::assertSame([2, 1, 1, 0, 1], [$batch['rows_requested'], $batch['rows_added'], $batch['rows_already_yours'], $batch['rows_refused'], $batch['results_added']]);
+        self::assertSame('finished', $batch['state']);
+        self::assertNotNull($outcome->id);
+
+        // Its turn delivered once more (a second delivery of the job): skipped - still one result, the same rows
+        $again = self::getContainer()->get(MessageBusInterface::class)->dispatch(new ApplyImportRow($day, $outcome->id, $player->id->toString()))->last(HandledStamp::class)?->getResult();
+        self::assertIsArray($again);
+        self::assertSame('skipped', $again['status']);
 
         // One result, the finer one: 14 September - whatever the order of the two rows
         $results = $this->resultsOf($player);

@@ -110,24 +110,30 @@ final class DatePrecisionReadersTest extends KernelTestCase
         self::assertSame(DatePrecision::Day, $precisions['Zq Readers Day']);
     }
 
-    public function testWhichSolveWasFirstIsNeverDecidedByTheFirstDayOfAPeriod(): void
+    /**
+     * The qualifying first attempt streams from `custom_pst_qualifying_first_attempt`, keyed on the stored solve
+     * moment: a result known to its month or year is ordered as the first day of that period (date-precision.md
+     * "Which solve was first") - and the statement keeps the index's own sort key.
+     */
+    public function testWhichSolveWasFirstIsOrderedByTheStoredFirstDayOfAPeriod(): void
     {
-        // The same puzzle on 8 June 2024 by hand: the "June 2024" result may be older or newer - it is not the first
-        // one by its stored 1 June. Against a result of 2024, "2023" certainly was first
-        $exactInJune = $this->typedResult($this->player, $this->puzzles['Zq Readers Month'], '2024-06-08', 2900);
+        // The same puzzle on 8 June 2024 by hand: "June 2024" is ordered as 1 June - before it. "2023" before 2024
+        $this->typedResult($this->player, $this->puzzles['Zq Readers Month'], '2024-06-08', 2900);
         $this->typedResult($this->player, $this->puzzles['Zq Readers Year'], '2024-06-09', 2800);
 
         $first = [];
 
         foreach (['Zq Readers Month', 'Zq Readers Year'] as $name) {
             [$sql, $parameters, $types] = self::getContainer()->get(PlayerBaselineCalculator::class)->qualifyingFirstAttemptsQuery([$this->playerId], $this->puzzles[$name]);
+            self::assertStringContainsString('ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC, pst.id ASC', $sql);
+            self::assertStringNotContainsString('finished_at_precision', $sql);
             $rows = self::getContainer()->get(Connection::class)->fetchAllAssociative($sql, $parameters, $types);
             self::assertCount(1, $rows);
-            $first[$name] = [$rows[0]['id'], $rows[0]['seconds_to_solve']];
+            $first[$name] = $rows[0]['seconds_to_solve'];
         }
 
-        self::assertSame([$exactInJune, 2900], $first['Zq Readers Month']);
-        self::assertSame(3100, $first['Zq Readers Year'][1]);
+        self::assertSame(3000, $first['Zq Readers Month']);
+        self::assertSame(3100, $first['Zq Readers Year']);
     }
 
     public function testTheSameDayOfTheDuplicateRulesIsNeverTheFirstDayOfAPeriod(): void

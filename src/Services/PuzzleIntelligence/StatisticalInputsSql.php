@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
-use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PictureLookalikes;
@@ -249,7 +248,7 @@ final class StatisticalInputsSql
                         AND own_first.seconds_to_solve IS NOT NULL
                         AND own_puzzle.pieces_count = p.pieces_count
                         AND NOT EXISTS (SELECT 1 FROM player_pace_history own_row WHERE own_row.player_id = :playerId AND own_row.pieces_count = p.pieces_count)
-                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, " . DatePrecision::sqlLatestPossibleMoment('own_first') . ", own_first.tracked_at, own_first.id
+                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, COALESCE(own_first.finished_at, own_first.tracked_at), own_first.tracked_at, own_first.id
                     LIMIT " . PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT . "
                 ) few
                 " . self::fewJoins() . "
@@ -280,7 +279,7 @@ final class StatisticalInputsSql
                         AND own_first.unboxed = false
                         AND own_first.seconds_to_solve IS NOT NULL
                         AND NOT EXISTS (SELECT 1 FROM player_pace_history own_row WHERE own_row.player_id = :playerId AND own_row.pieces_count = own_puzzle.pieces_count)
-                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, ' . DatePrecision::sqlLatestPossibleMoment('own_first') . ', own_first.tracked_at, own_first.id
+                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, COALESCE(own_first.finished_at, own_first.tracked_at), own_first.tracked_at, own_first.id
                 ) few
                 ' . self::fewJoins() . '
                 GROUP BY few.pieces_count

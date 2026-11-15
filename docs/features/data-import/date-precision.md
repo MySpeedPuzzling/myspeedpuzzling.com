@@ -67,7 +67,7 @@ Against what the player has (`ImportNeverTwice`), a date is compared **within it
 | `1 Mar 2021 · 1:02:03` | a result that knows only "March 2021" | The same: never "already yours" by the stored first day |
 | `Mar 2021 · 1:02:03` | `14 Apr 2021 · 1:02:03` | The same time in another period - asked, never added quietly |
 | `Mar 2021 · 1:02:03` | `14 Mar 2021 · 1:10:00` | Unrelated - "another time in the same month" says nothing (a puzzle is solved again and again); added |
-| `2021`, no time | any result of the puzzle | "Already yours" (README step 2, the last pile) - one of that year and kind first |
+| `2021`, no time | a result of the puzzle in 2021, whatever its time | "Already yours" (README step 2, the last pile, narrowed to the row's period) - one of the row's kind first. A result of another year is another solve: the row is added |
 | `Sept 2022 · x` and `14 Sep 2022 · x` in one file | - | One result, the finer one, whatever the rows' order (`ImportRowAdder::finerQueuedRows()`); the month row is `equal_row` |
 
 - **The exact ones first** (README step 2): only rows with an exact day are settled in the batch's first pass; a month
@@ -146,7 +146,8 @@ result is a result** - unaffected. What needs a real day leaves a result without
 | Duplicate puzzles signal - `GetDuplicatePuzzleSignalCandidates` | **Left out** - no day to share with another puzzle's result |
 | The form's "sent twice" twin - `GetRecentIdenticalSolvingTime` | A typed entry's twin knows its day |
 | Time verification: "the same day" evidence - `GetSuspiciousTimeEvidence`, `GetSuspiciousTimeCaseDetail` | Two real days only |
-| **Which solve of a puzzle was first** (the baseline's qualifying first attempt and its twins) - `PlayerBaselineCalculator::qualifyingFirstAttemptsQuery()`, `PlayerSkillCalculator`, `StatisticalInputsSql`, `PredictionReconstructor::inFirstAttemptOrder()` | A first-try tag first, then the oldest - where a month / year result stands at the **end** of its period (`DatePrecision::sqlLatestPossibleMoment()`): it is the first one only when it certainly was. "June 2024" is not first ahead of 8 June 2024; "2023" is first ahead of 2024 |
+| **Which solve of a puzzle was first** (the baseline's qualifying first attempt) - `PlayerBaselineCalculator::qualifyingFirstAttemptsQuery()`, `StatisticalInputsSql` (the few own first tries), `PredictionReconstructor::inFirstAttemptOrder()` | **The anchor**, to keep `custom_pst_qualifying_first_attempt` an index-only scan (docs/database-indexes.md: the window streams from an index keyed on exactly `COALESCE(finished_at, tracked_at)`; the 15-minute insights batch reads it in the baseline preload, the pace checksum, `PaceTimelineLoader`, `AttemptFlags`, `GetGroupPuzzleFirstAttempts`). A month result is ordered as the first day of its month - so "June 2024" is first ahead of a result of 8 June 2024. The statements are unchanged |
+| The skill percentiles' first attempt per puzzle - `PlayerSkillCalculator` (two statements; no index serves their order: no `unboxed = false`, a filter by piece count) | A month / year result stands at the **end** of its period (`DatePrecision::sqlLatestPossibleMoment()`): first only when it certainly was |
 | Prediction history, pace history, difficulty as-of, MSP rating order, XP chain, repeat history - everything in "the insights order" `(COALESCE(finished_at, tracked_at), tracked_at)` | **The anchor** = the as-of moment (the earliest the solve can have happened - nothing from after it is read). An imported result is never predicted live: its prediction is `reconstructed`, as for any import |
 | Personal-best timelines | The point is shown as its month / year (the chart's label, the attempts list); the order uses the anchor |
 | Long windows back from now (rating window, recent form, "solved since", seating seed times, similar speed), first / last solved, "last together" | **The anchor** - listed with the reason in `DatePrecisionCoverageTest` |
@@ -192,6 +193,9 @@ Not possible this way: saying "it really was the 1st" (the date is unchanged, so
    results - as two files with two different exact days always did: a result an import made is spoken for by its row
    and is not offered as "similar". Within one file it is one result.
 5. **Month and year rows pair off in the file's order** among themselves (README: months before years).
+9. **"Which solve was first" of the baseline takes the first day of a period** (the index, above): a month result is the
+   qualifying first attempt ahead of an untagged exact result later in that month. README D13 wanted such results
+   skipped there; that needs another index key and was decided against.
 6. **Reading our own export back**: the import does not read the new `date_precision` column yet, so a month result
    exported and imported again arrives as the exact day `…-01`. Not handled and not tried in this stage - the known
    export layout (stage 4) should map the column to the row's precision before anybody is told to round-trip a file.

@@ -100,8 +100,9 @@ readonly final class ImportNeverTwice
      * The free result that is this row: the same day - or, for a row known to its month or year, a day or month in
      * that period - time and solo/pair/team. The one the pairing's hint names comes first.
      *
-     * A row without a time and without an exact day is any free result of the puzzle (README step 2, the last pile):
-     * one of its period and kind first.
+     * A row without a time and without an exact day is any free result of the puzzle **inside its period** (README
+     * step 2, the last pile - narrowed to the period: a result of another year is another solve), one of its kind
+     * first.
      *
      * @param list<array{id: string, day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType}> $free
      * @param string $day Y-m-d; the first day of the period for a month or a year
@@ -126,17 +127,20 @@ readonly final class ImportNeverTwice
             return $found;
         }
 
-        // "Solved, 2021" without a time: any result of the puzzle nobody spoke for
+        // "Solved, 2021" without a time: a result of the puzzle in 2021 nobody spoke for, whatever its time - one of the
+        // row's kind first. Never a result of another period: that is another solve
         $best = null;
-        $bestScore = -1;
 
         foreach ($free as $result) {
-            $score = (self::fits($result, $day, $precision) ? 2 : 0) + ($result['type'] === $type ? 1 : 0);
-
-            if ($score > $bestScore) {
-                $best = $result['id'];
-                $bestScore = $score;
+            if (self::fits($result, $day, $precision) === false) {
+                continue;
             }
+
+            if ($result['type'] === $type) {
+                return $result['id'];
+            }
+
+            $best ??= $result['id'];
         }
 
         return $best;

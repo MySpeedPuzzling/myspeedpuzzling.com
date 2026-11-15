@@ -81,9 +81,11 @@ SQL;
     }
 
     /**
-     * SQL: the moment a result takes in "which solve was first": its solve day (else when it was logged) - and for
-     * a result known to its month or year the END of that period, so that it is first only when it certainly was
-     * (README D13: an invented day never makes a result the first one).
+     * SQL: the latest moment a result can have happened: its solve day (else when it was logged) - and for a result
+     * known to its month or year the END of that period. Ordering "which solve was first" by it makes such a result
+     * the first one only when it certainly was. Used where no index serves the order (PlayerSkillCalculator); the
+     * baseline's qualifying first attempt keeps the stored value - `custom_pst_qualifying_first_attempt` is keyed on
+     * it (docs/features/data-import/date-precision.md "Counting").
      */
     public static function sqlLatestPossibleMoment(string $alias): string
     {

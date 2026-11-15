@@ -25,20 +25,7 @@ final readonly class PredictionInputSolve
         public float $tracked,
         // The stored (shown) prediction when it was a personal one - the repeat residuals of RepeatResiduals
         public null|int $storedPersonalPredictionSeconds = null,
-        // The latest moment the solve can have happened (DatePrecision::sqlLatestPossibleMoment()): the end of the
-        // month or year for a result that knows no more - null = `solved` itself, a result that knows its day
-        public null|float $latestPossible = null,
     ) {
-    }
-
-    /**
-     * Where the solve stands in "which solve of the puzzle was first": by the latest moment it can have happened, so
-     * that a result known to its month or year only is first only when it certainly was
-     * (docs/features/data-import/date-precision.md "Which solve was first").
-     */
-    public function firstOrderMoment(): float
-    {
-        return $this->latestPossible ?? $this->solved;
     }
 
     public function isBefore(self $other): bool

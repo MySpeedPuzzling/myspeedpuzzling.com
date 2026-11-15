@@ -19,10 +19,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class DatePrecisionCoverageTest extends TestCase
 {
-    private const string ORDER = 'Chronological order of a player\'s results (the insights order): a result known to its month or year stands at the start of its period - the earliest moment it can have happened, so nothing reads data from after it. Only "which solve of a puzzle was first" is decided otherwise (DatePrecision::sqlLatestPossibleMoment(), PlayerBaselineCalculator).';
+    private const string ORDER = 'Chronological order of a player\'s results (the insights order): a result known to its month or year stands at the start of its period - the earliest moment it can have happened, so nothing reads data from after it. "Which solve of a puzzle was first" is the same order where an index serves it (PlayerBaselineCalculator); only the skill percentiles, which no index serves, take the end of the period (DatePrecision::sqlLatestPossibleMoment(), PlayerSkillCalculator).';
     private const string LONG_WINDOW = 'A window of months or years back from now (recent form, activity, a rating window): whether a result of "March 2021" is inside is the same question on any day of that month, give or take the month itself.';
     private const string FIRST_LAST = 'The first / last time a puzzle or a person was solved with, as a moment to sort by or to word roughly ("3 years ago"): the start of the period.';
     private const string INSIGHTS = 'The Insights page (not public yet, INSIGHTS_PUBLIC): reads the solve moment to order results and for long windows; its weekday and "n-th solve of the day" come from InsightsRowsPreparer, which leaves results without a day out.';
+
+    private const string FIRST_BY_INDEX = 'Which solve of a puzzle was first (the qualifying first attempt): ordered by the stored value, so a result known to its month or year stands on the first day of it. The window streams from the covering index `custom_pst_qualifying_first_attempt`, keyed on exactly `COALESCE(finished_at, tracked_at)` (docs/database-indexes.md) - another sort key would make the 15-minute insights batch sort and visit the heap.';
 
     /** Files reading the solve day in SQL without a word about its precision */
     private const array ANCHOR_IS_RIGHT = [
@@ -65,7 +67,10 @@ final class DatePrecisionCoverageTest extends TestCase
         'Services/PuzzleIntelligence/Model/RepeatHistory.php' => self::ORDER,
         'Services/PuzzleIntelligence/Model/UnboxedFirstTries.php' => self::ORDER,
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::ORDER . ' The rating window is ' . self::LONG_WINDOW,
+        'Services/PuzzleIntelligence/PlayerBaselineCalculator.php' => self::FIRST_BY_INDEX,
+        'Services/PuzzleIntelligence/PredictionReconstructor.php' => self::ORDER . ' Its "first attempt" order is the baseline\'s, in PHP.',
         'Services/PuzzleIntelligence/RepeatResiduals.php' => self::ORDER,
+        'Services/PuzzleIntelligence/StatisticalInputsSql.php' => self::FIRST_BY_INDEX,
         'Services/Xp/XpChainRecomputer.php' => self::ORDER . ' The weekly boost applies from the launch on; a result dated to a month or year before it earns the history formula (writer.md "XP"), one of the launch\'s own month the base like any back-dated result.',
         'Services/Xp/XpHistoryReplay.php' => self::ORDER,
     ];

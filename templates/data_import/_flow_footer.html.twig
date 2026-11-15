@@ -1,0 +1,57 @@
+{#
+    The end of every screen of the import's guided flow (docs/features/data-import/guided-flow.md §2 rules 2-4): the
+    ONE primary button of the screen - full width - the quiet "or add what is ready now" line, and "Everything is
+    saved as you go". A screen whose primary is a form's own button (Save, Add) passes no primary here and gets the
+    lines only.
+
+    Variables:
+      import           DataImportOverview
+      continue_after   (optional) the screen this is the end of - `check`, `rows`, `people`, `puzzles`: the primary
+                       is then "Continue", to the next screen of the flow that has something waiting (worked out by
+                       "Where you are", ImportDetailController `?after=`)
+      primary          (optional) {label, url, icon?, testid?, nofollow?} - the screen's own primary instead
+      continue_label   (optional) another text for "Continue"
+      hint             (optional) one muted line under the primary button
+      ready            (optional) how many things are ready to be added: the quiet line names the number
+      offer_add        (optional, default false) show the quiet line without a number (the screen did not count)
+      back             (optional) {label, url} a plain link back, under everything
+#}
+{% set detail_url = path('data_import_detail', {importId: import.importId}) %}
+<div class="mt-4" data-testid="import-flow-footer">
+    {% if primary is defined and primary is not null %}
+        <a href="{{ primary.url }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;"
+           data-testid="{{ primary.testid|default('import-flow-primary') }}"{% if primary.nofollow|default(false) %} rel="nofollow"{% endif %}>
+            {% if primary.icon|default('') != '' %}<i class="bi {{ primary.icon }} me-2" aria-hidden="true"></i>{% endif %}{{ primary.label }}
+        </a>
+    {% elseif continue_after is defined and continue_after is not null %}
+        <a href="{{ continue_after == 'add' ? detail_url : path('data_import_detail', {importId: import.importId, after: continue_after}) }}"
+           class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-flow-continue" rel="nofollow">
+            {{ continue_label|default('data_import.flow.continue'|trans) }}<i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
+        </a>
+    {% endif %}
+    {% if hint|default('') != '' %}
+        <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-flow-hint">{{ hint }}</p>
+    {% endif %}
+
+    {% if ready|default(0) > 0 %}
+        <p class="fs-sm mt-3 mb-0" data-testid="import-flow-add-ready" data-ready="{{ ready }}">
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                {{- 'data_import.flow.add_ready_now'|trans({'%count%': ready, '%number%': ready|format_number}) -}}
+            </a>
+        </p>
+    {% elseif offer_add|default(false) %}
+        <p class="fs-sm mt-3 mb-0" data-testid="import-flow-add-ready">
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                {{- 'data_import.flow.add_ready'|trans -}}
+            </a>
+        </p>
+    {% endif %}
+
+    <p class="fs-sm text-muted mt-3 mb-0" data-testid="import-flow-saved">{{ 'data_import.flow.saved'|trans }}</p>
+
+    {% if back is defined and back is not null %}
+        <a href="{{ back.url }}" class="btn btn-link px-0 mt-2 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}
+        </a>
+    {% endif %}
+</div>

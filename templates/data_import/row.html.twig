@@ -18,13 +18,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-    {name: 'data_import.to_fix.title'|trans, url: path('data_import_to_fix', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 560px;" data-testid="import-row-page" data-state="{{ detail.state }}">
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-row-page" data-import-flow-screen="row" data-state="{{ detail.state }}">
     <h1 class="h4 mb-1">{{ 'data_import.row.title'|trans({'%number%': detail.row.rowNumber|format_number}) }}</h1>
     <p class="text-muted fs-sm text-break">{{ sheet_name }}</p>
 
@@ -98,15 +94,19 @@
                     </button>
                 {% endif %}
             {% else %}
-                <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-row-leave-out">
+                <button type="submit" name="action" value="leave_out" class="btn btn-link px-0 text-wrap" style="min-height: 44px;" data-testid="import-row-leave-out">
                     <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.row.leave_out'|trans }}
                 </button>
             {% endif %}
         </form>
     {% endif %}
 
-    <a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.row.back'|trans }}
-    </a>
+    {# The row's one primary is its Save - or "Put back" for a row that is not imported; else the way on #}
+    {% set has_own_primary = detail.canBeAnswered and (detail.state == 'left_out' ? detail.row.parsed.leftOut|default('') == 'by_player' : fields is not empty) %}
+    {{ include('data_import/_flow_footer.html.twig', {
+        import: import,
+        primary: has_own_primary ? null : {label: 'data_import.row.back'|trans, url: path('data_import_to_fix', {importId: import.importId}), testid: 'import-flow-back-primary'},
+        back: has_own_primary ? {label: 'data_import.row.back'|trans, url: path('data_import_to_fix', {importId: import.importId})} : null,
+    }, with_context = false) }}
 </div>
 {% endblock %}

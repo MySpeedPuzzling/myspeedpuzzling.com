@@ -1,0 +1,24 @@
+{#
+    An explanation in place (docs/features/data-import/guided-flow.md §12): a small muted line with an info icon,
+    directly under the word, the choice or the button it explains. No tooltip, no hover, no script - phones.
+
+    Variables:
+      text    the explanation, already translated - at most two short sentences
+      more    (optional) a second part, shown after the first
+      fold    (optional) true = tap to open (<details>): where the same explanation would repeat on one screen, or
+              is long. `summary` is then the line to tap (default "What does this mean?")
+      testid  (optional)
+#}
+{% if fold|default(false) %}
+    <details class="fs-sm text-muted mb-2" data-testid="{{ testid|default('import-explain') }}">
+        <summary class="d-inline-flex align-items-center gap-2" style="min-height: 44px; cursor: pointer;">
+            <i class="bi bi-info-circle flex-shrink-0" aria-hidden="true"></i><span>{{ summary|default('data_import.explain.what_does_this_mean'|trans) }}</span>
+        </summary>
+        <p class="mb-0">{{ text }}{% if more|default('') != '' %} {{ more }}{% endif %}</p>
+    </details>
+{% else %}
+    <p class="fs-sm text-muted d-flex gap-2 mb-2" data-testid="{{ testid|default('import-explain') }}">
+        <i class="bi bi-info-circle flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ text }}{% if more|default('') != '' %} {{ more }}{% endif %}</span>
+    </p>
+{% endif %}

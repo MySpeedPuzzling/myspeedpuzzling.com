@@ -1,0 +1,124 @@
+{#
+    The header of the import's guided flow (docs/features/data-import/guided-flow.md §3) - on every screen of an
+    import, instead of breadcrumbs: back to Imports, the file's name (the way to "Where you are"), the "..." menu,
+    the five step dots and "Step N of 5 · <name>". The numbers of the steps never change.
+
+    Variables:
+      import        DataImportOverview
+      step          the step the screen belongs to (1-5) - left out on "Where you are", which shows the step the
+                    player is at
+      import_flow   (optional) Services\DataImport\ImportFlow - only "Where you are" has it: the dots then show what
+                    is passed and what waits, and the menu offers Finish / Discard / Undo. Without it the dots show
+                    the file as read and the screen's own step; nothing is claimed about the others.
+
+    No script: the menu is a <details>. Every target 44 px.
+#}
+{% set flow = import_flow|default(null) %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set here = step|default(null) %}
+{% set current = here ?? (flow is not null ? flow.current : null) %}
+{% set read = import.status.value in ['setting_up', 'reviewing', 'done'] %}
+{% set opens = import.status.value in ['setting_up', 'reviewing'] %}
+{% set routes = {1: 'data_import_detail', 2: 'data_import_columns', 3: 'data_import_people', 4: 'data_import_puzzles', 5: 'data_import_add'} %}
+{% set keys = {1: 'file', 2: 'check', 3: 'people', 4: 'puzzles', 5: 'add'} %}
+{% set flow_csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+<nav class="mx-auto mb-3" style="max-width: 720px;" aria-label="{{ 'data_import.flow.steps_label'|trans }}" data-testid="import-flow-header" data-step="{{ current }}">
+    <div class="d-flex align-items-center gap-1">
+        <a href="{{ path('data_imports') }}" class="d-inline-flex align-items-center flex-shrink-0 text-nowrap text-decoration-none fs-sm" style="min-height: 44px;" data-testid="import-flow-back">
+            <i class="bi bi-chevron-left me-1" aria-hidden="true"></i>{{ 'data_import.flow.imports'|trans }}
+        </a>
+        <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="flex-grow-1 text-truncate text-end text-body fw-medium text-decoration-none d-block" style="min-width: 0; line-height: 44px;" data-testid="import-flow-file" title="{{ 'data_import.flow.where_you_are'|trans }}">
+            {{- import_name -}}
+        </a>
+        <details class="position-relative flex-shrink-0" data-testid="import-flow-menu">
+            <summary class="d-inline-flex align-items-center justify-content-center text-body" style="min-width: 44px; min-height: 44px; cursor: pointer; list-style: none;" aria-label="{{ 'data_import.flow.menu.label'|trans }}">
+                <i class="bi bi-three-dots" aria-hidden="true"></i>
+            </summary>
+            <div class="card shadow position-absolute end-0 py-2 px-3 fs-sm" style="z-index: 30; width: min(320px, calc(100vw - 32px));">
+                {% if here is not null %}
+                    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="d-flex align-items-center" style="min-height: 44px;">{{ 'data_import.flow.where_you_are'|trans }}</a>
+                {% endif %}
+                {% if opens %}
+                    <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="d-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-menu-how-read">{{ 'data_import.columns.title'|trans }}</a>
+                {% endif %}
+                <a href="{{ path('data_import_layouts', {return: app.request.pathInfo}) }}" class="d-flex align-items-center" style="min-height: 44px;" rel="nofollow">{{ 'data_import.layouts.title'|trans }}</a>
+                {% if flow is not null and flow.hasAdded %}
+                    <a href="{{ path('data_import_added', {importId: import.importId}) }}" class="d-flex align-items-center" style="min-height: 44px;">{{ 'data_import.added.title'|trans }}</a>
+                {% endif %}
+
+                <div class="border-top pt-2 mt-1 text-muted" data-testid="import-flow-about">
+                    <div class="fw-medium text-body">{{ 'data_import.flow.menu.about'|trans }}</div>
+                    {% if import.fromGoogleSheet %}<div data-testid="import-source">{{ 'data_import.google.source'|trans }}</div>{% endif %}
+                    {% if import.fileSize is not null %}<div data-testid="import-size">{{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}</div>{% endif %}
+                    <div>{{ 'data_import.flow.menu.brought'|trans({'%date%': import.createdAt|format_date('long')}) }}</div>
+                    {% if import.fileKeptUntil is not null %}
+                        <div>{{ 'data_import.flow.menu.kept_until'|trans({'%date%': import.fileKeptUntil|format_date('long')}) }}</div>
+                    {% endif %}
+                    <div class="mt-1">{{ 'data_import.explain.file'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\DataImportLimits::KEEP_FILE_DAYS')}) }}</div>
+                </div>
+
+                {% if flow is not null and flow.canFinish %}
+                    <form action="{{ path('data_import_done', {importId: import.importId}) }}" method="post" class="border-top pt-1 mt-2">
+                        <input type="hidden" name="_token" value="{{ flow_csrf }}">
+                        <button type="submit" class="btn btn-link px-0 text-start text-wrap" style="min-height: 44px;" data-testid="import-flow-menu-finish">{{ 'data_import.finish.button'|trans }}</button>
+                        <p class="text-muted mb-1">{{ 'data_import.explain.finish'|trans }}</p>
+                    </form>
+                {% endif %}
+                {% if flow is not null and flow.canDiscard %}
+                    <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post" class="border-top pt-1 mt-2">
+                        <input type="hidden" name="_token" value="{{ flow_csrf }}">
+                        <button type="submit" class="btn btn-link px-0 text-start text-wrap text-danger" style="min-height: 44px;" data-testid="import-flow-menu-discard"
+                                data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">{{ 'data_import.detail.discard'|trans }}</button>
+                        <p class="text-muted mb-1">{{ 'data_import.explain.discard'|trans }}</p>
+                    </form>
+                {% elseif flow is not null and flow.hasAdded %}
+                    <div class="border-top pt-1 mt-2">
+                        <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="d-flex align-items-center text-danger" style="min-height: 44px;" rel="nofollow">{{ 'data_import.undo.import'|trans }}</a>
+                    </div>
+                {% endif %}
+            </div>
+        </details>
+    </div>
+
+    <ol class="list-unstyled d-flex align-items-center mb-0" data-testid="import-flow-steps">
+        {% for number in 1..5 %}
+            {% set flow_step = flow is not null ? flow.steps[number] : null %}
+            {% set state = flow_step is not null ? flow_step.state : (number == 1 and read ? 'done' : 'ahead') %}
+            {% set waiting = flow_step is not null ? flow_step.waiting : 0 %}
+            {% set is_current = current == number %}
+            {% set name = ('data_import.flow.step.' ~ keys[number])|trans %}
+            {% set label = 'data_import.flow.step_of'|trans({'%step%': number, '%name%': name}) ~ (state == 'done' and not is_current ? ', ' ~ 'data_import.flow.state.done'|trans : '') ~ (waiting > 0 ? ', ' ~ 'data_import.flow.state.waiting'|trans({'%number%': waiting|format_number}) : '') %}
+            {% set url = number == 1 ? path('data_import_detail', {importId: import.importId}) : (opens ? path(routes[number], {importId: import.importId}) : null) %}
+            <li class="d-flex align-items-center{{ loop.last ? '' : ' flex-grow-1' }}" data-testid="import-flow-step" data-number="{{ number }}" data-state="{{ state }}"{% if is_current %} data-current="true"{% endif %}>
+                {% set dot %}
+                    <span class="position-relative rounded-circle d-inline-flex align-items-center justify-content-center fs-sm fw-semibold {{ is_current ? 'bg-primary text-white' : (state == 'done' ? 'bg-success text-white' : (state == 'open' ? 'border border-primary text-primary' : 'border text-muted')) }}" style="width: 28px; height: 28px;">
+                        {%- if state == 'done' and not is_current -%}
+                            <i class="bi bi-check-lg" aria-hidden="true"></i>
+                        {%- else -%}
+                            <span aria-hidden="true">{{ number }}</span>
+                        {%- endif -%}
+                        {%- if state == 'open' and not is_current -%}
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-warning rounded-circle" aria-hidden="true"></span>
+                        {%- endif -%}
+                    </span>
+                {% endset %}
+                {% if url is not null %}
+                    <a href="{{ url }}" class="d-inline-flex align-items-center justify-content-center text-decoration-none flex-shrink-0" style="min-width: 44px; min-height: 44px;" aria-label="{{ label }}"{% if is_current %} aria-current="step"{% endif %}>{{ dot }}</a>
+                {% else %}
+                    <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="min-width: 44px; min-height: 44px;" role="img" aria-label="{{ label }}"{% if is_current %} aria-current="step"{% endif %}>{{ dot }}</span>
+                {% endif %}
+                {% if not loop.last %}<span class="flex-grow-1 border-top" aria-hidden="true"></span>{% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+    <p class="fs-sm fw-medium mb-0" data-testid="import-flow-step-name">
+        {%- if current is not null -%}
+            {{ 'data_import.flow.step_of'|trans({'%step%': current, '%name%': ('data_import.flow.step.' ~ keys[current])|trans}) }}
+        {%- elseif flow is not null and flow.stage == 'finished' -%}
+            {{ 'data_import.finish.finished_title'|trans }}
+        {%- else -%}
+            {{ 'data_import.flow.all_done'|trans }}
+        {%- endif -%}
+    </p>
+</nav>

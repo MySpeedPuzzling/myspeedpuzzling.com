@@ -1,0 +1,62 @@
+{#
+    What the file holds, sheet by sheet (docs/features/data-import/reading.md): rows, columns, what the import takes
+    each sheet for and how its rows fared - read only, folded. It lives in "How we read your file"; a finished
+    import, whose sheets can not be opened any more, shows it at the bottom of its page. Variable: sheets.
+#}
+<details class="mb-3" data-testid="import-sheets">
+    <summary class="d-flex align-items-center fw-medium" style="min-height: 44px; cursor: pointer;">{{ 'data_import.sheets.title'|trans }}</summary>
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr class="fs-sm text-muted">
+                        <th scope="col" class="ps-3 fw-normal">{{ 'data_import.sheets.sheet'|trans }}</th>
+                        <th scope="col" class="text-end fw-normal">{{ 'data_import.sheets.rows'|trans }}</th>
+                        <th scope="col" class="text-end pe-3 fw-normal">{{ 'data_import.sheets.columns'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sheet in sheets %}
+                        <tr data-testid="import-sheet">
+                            <td class="ps-3 text-break">
+                                {% if sheet.title != '' %}{{ sheet.title }}{% else %}<span class="text-muted">{{ 'data_import.sheets.untitled'|trans }}</span>{% endif %}
+                                {% if sheet.hidden %}
+                                    <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-hidden"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
+                                {% endif %}
+                                {# What the import takes the sheet for and how its rows fared (docs/features/data-import/columns.md) - read only #}
+                                <div class="fs-sm text-muted" data-testid="import-sheet-state">
+                                    {% if sheet.failed %}
+                                        <span class="badge bg-faded-danger text-danger" data-testid="import-sheet-failed"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.sheets.failed'|trans }}</span>
+                                    {% elseif not sheet.mapped %}
+                                        <span data-testid="import-sheet-recognising">{{ 'data_import.sheets.recognising'|trans }}</span>
+                                    {% else %}
+                                        {% if sheet.kind is not null %}
+                                            <span class="fw-medium" data-testid="import-sheet-kind" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
+                                        {% endif %}
+                                        {% if sheet.state == 'waiting' %}
+                                            <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+                                        {% elseif not sheet.parsed %}
+                                            <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
+                                        {% elseif sheet.kind is not null and sheet.kind.value not in ['not_puzzles', 'somebody_else'] %}
+                                            {% if sheet.parsed %}
+                                                <div data-testid="import-sheet-parsed">
+                                                    {{ 'data_import.sheets.understood'|trans({'%understood%': sheet.rowsUnderstood|format_number, '%look%': sheet.rowsNeedLook|format_number}) }}
+                                                    {%- if sheet.rowsWaiting > 0 %} · {{ 'data_import.columns.state.waiting_rows'|trans({'%number%': sheet.rowsWaiting|format_number}) }}{% endif %}
+                                                    {%- if sheet.rowsLeftOut > 0 %} · {{ 'data_import.columns.state.rows_left_out'|trans({'%number%': sheet.rowsLeftOut|format_number}) }}{% endif %}
+                                                </div>
+                                            {% else %}
+                                                <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-end text-nowrap" data-testid="import-sheet-rows">{{ sheet.rows|format_number }}</td>
+                            <td class="text-end text-nowrap pe-3" data-testid="import-sheet-columns">{{ sheet.columns|format_number }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</details>

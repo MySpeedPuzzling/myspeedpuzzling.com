@@ -1,0 +1,13 @@
+{#- One sentence of the import's flow (Results\ImportFlowText): its numbers and its day formatted for the page's
+    language, `%count%` picking the plural form and `%number%` being the same number as people read it. Variable: text. -#}
+{%- set parameters = {} -%}
+{%- for name, value in text.numbers -%}
+    {%- set parameters = parameters|merge({('%' ~ name ~ '%'): value|format_number}) -%}
+{%- endfor -%}
+{%- if text.count is not null -%}
+    {%- set parameters = parameters|merge({'%count%': text.count, '%number%': text.count|format_number}) -%}
+{%- endif -%}
+{%- if text.date is not null -%}
+    {%- set parameters = parameters|merge({'%date%': text.date|format_date('long')}) -%}
+{%- endif -%}
+{{- text.key|trans(parameters) -}}

@@ -77,8 +77,8 @@ final class ImportUploadTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/import/' . $importId);
         $this->assertResponseIsSuccessful();
         self::assertStringContainsString('noindex', (string) $crawler->filter('meta[name="robots"]')->attr('content'));
-        self::assertStringContainsString('My puzzles 2024.xlsx', $crawler->filter('h1')->text());
-        self::assertSame('Uploaded', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertStringContainsString('My puzzles 2024.xlsx', $crawler->filter('[data-testid="import-flow-file"]')->text());
+        self::assertSame('uploaded', $crawler->filter('[data-testid="data-import-page"]')->attr('data-status'));
         self::assertSame('2 kB', trim($crawler->filter('[data-testid="import-size"]')->text()));
         self::assertStringNotContainsString('arrive soon', (string) $browser->getResponse()->getContent());
         self::assertStringContainsString('The file is kept until', $crawler->filter('[data-testid="import-file-kept"]')->text());
@@ -438,7 +438,7 @@ final class ImportUploadTest extends WebTestCase
         $crawler = $browser->followRedirect();
         self::assertSame('uploaded', $this->importRow($importId)[0]);
         self::assertCount(0, $crawler->filter('[data-testid="finish-upload"]'));
-        self::assertSame('Uploaded', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertSame('uploaded', $crawler->filter('[data-testid="data-import-page"]')->attr('data-status'));
     }
 
     /**

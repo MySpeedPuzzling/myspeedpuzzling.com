@@ -14,12 +14,9 @@
 
 {% block content %}
 {% set reasons = outcomes.reasons %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-batch-page" data-state="{{ batch.running ? 'running' : 'finished' }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-batch-page" data-import-flow-screen="batch" data-state="{{ batch.running ? 'running' : 'finished' }}">
     <h1 class="h3 mb-3">{{ (batch.running ? 'data_import.batch.title' : 'data_import.batch.title_done')|trans }}</h1>
 
     {% if batch.running %}
@@ -122,7 +119,7 @@
 
         <div class="d-flex flex-column gap-2 mb-3">
             {% if batch.results > 0 %}
-                <a href="{{ path('my_profile') }}" class="btn btn-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-batch-profile">
+                <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-batch-profile">
                     <i class="bi bi-person me-1" aria-hidden="true"></i>{{ 'data_import.batch.see_profile'|trans }}
                 </a>
             {% endif %}
@@ -159,8 +156,11 @@
         {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}) }}
     {% endif %}
 
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
+    {# Running: nothing to press. Done: "See them on my profile" is the primary - without new results, the way on #}
+    {% if batch.running or batch.results > 0 %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add'}, with_context = false) }}
+    {% endif %}
 </div>
 {% endblock %}

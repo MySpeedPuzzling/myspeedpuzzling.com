@@ -268,16 +268,25 @@
         {% elseif notification.isImportNotification %}
             {# "Your import is done" (docs/features/data-import/adding.md): one per finished "Add" of the reader's own
                spreadsheet import - numbers only #}
+            {% set import_taken_back = notification.notificationType.value == 'ImportRowsTakenBack' %}
             <td class="text-center" style="width: 60px;">
-                <i class="ci-check-circle text-success" style="font-size: 2rem;"></i>
+                <i class="{{ import_taken_back ? 'ci-reply text-muted' : 'ci-check-circle text-success' }}" style="font-size: 2rem;"></i>
             </td>
 
             <td class="align-middle fs-sm text-muted">
                 <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
-                {{ 'data_import.notification.done'|trans({'%file%': notification.importFileName}) }}
-                {{ 'data_import.notification.added'|trans({'%count%': notification.importRowsAdded}) }} ·
-                {{ 'data_import.notification.already_yours'|trans({'%count%': notification.importRowsAlreadyYours}) }} ·
-                {{ 'data_import.notification.not_added'|trans({'%count%': notification.importRowsNotAdded}) }}
+                {% if import_taken_back %}
+                    {# An admin's Undo: neutral, with the reason they gave #}
+                    {{ 'data_import.notification.taken_back'|trans({'%count%': notification.importResultsTakenBack, '%file%': notification.importFileName}) }}
+                    {% if notification.importTakenBackReason is not null %}
+                        {{ 'data_import.notification.taken_back_reason'|trans({'%reason%': notification.importTakenBackReason}) }}
+                    {% endif %}
+                {% else %}
+                    {{ 'data_import.notification.done'|trans({'%file%': notification.importFileName}) }}
+                    {{ 'data_import.notification.added'|trans({'%count%': notification.importRowsAdded}) }} ·
+                    {{ 'data_import.notification.already_yours'|trans({'%count%': notification.importRowsAlreadyYours}) }} ·
+                    {{ 'data_import.notification.not_added'|trans({'%count%': notification.importRowsNotAdded}) }}
+                {% endif %}
             </td>
 
             <td class="" style="width: 80px;">

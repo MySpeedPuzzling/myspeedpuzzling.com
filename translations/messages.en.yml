@@ -12359,3 +12359,5 @@ data_import:
         already_yours: "{0}none already yours|{1}1 already yours|]1,Inf[%count% already yours"
         not_added: "{0}none left out|{1}1 could not be added|]1,Inf[%count% could not be added"
         open: "Open"
+        taken_back: "{0}We took back what your import of %file% had added.|{1}We took back 1 result your import of %file% had added.|]1,Inf[We took back %count% results your import of %file% had added."
+        taken_back_reason: "Reason: %reason%"

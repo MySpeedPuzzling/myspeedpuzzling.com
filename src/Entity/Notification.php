@@ -104,6 +104,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|DataImportBatch $targetDataImportBatch = null,
+        // ImportRowsTakenBack: the admin's Undo of what a spreadsheet import added
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|DataImportUndo $targetDataImportUndo = null,
     ) {
     }
 }

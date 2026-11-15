@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
 use Psr\Log\NullLogger;
-use SpeedPuzzling\Web\Message\ProcessImportBatch;
 use SpeedPuzzling\Web\MessageHandler\ProcessImportBatchHandler;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
@@ -89,13 +88,13 @@ SQL, ['importId' => $import->id->toString(), 'more' => self::ROWS_PER_PUZZLE - 1
         $counted = 0;
         $memory = [];
 
-        // 8 turns of the first pass, 8 of adding, and one to finish - a few to spare
-        for ($turn = 0; $turn < 24; $turn++) {
+        // 8 turns of the first pass, 8 of adding, 4 of the follow-up (500 results a turn) and the end - a few to spare
+        for ($turn = 0; $turn < 32; $turn++) {
             if ($this->batchNow($outcome->id)['state'] !== 'running') {
                 break;
             }
 
-            $handler(new ProcessImportBatch($outcome->id));
+            $handler($this->currentTurnOf($outcome->id));
 
             $ran = $statements->getData()['default'] ?? [];
             $counted += is_array($ran) ? count($ran) : 0;

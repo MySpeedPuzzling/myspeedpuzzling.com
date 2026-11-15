@@ -17,7 +17,10 @@ for them only by `ImportedResultsFollowUp` ([writer.md](writer.md)); a result is
 | `ApplyImportRow` → `ImportRowAdder` | One row, one transaction |
 | `ImportNeverTwice` | What the player already has, asked per row under the player's lock |
 | `WriteImportRowCustomValues` | The player's own fields of a row, after the row |
-| `FinishImportBatch` | The follow-up once, the counts, ONE notification, ONE e-mail |
+| `FollowUpImportBatch` | What is owed per result, a hundred results at a time, XP on the `imports` queue |
+| `FinishImportBatch` | Once per batch: achievements and the prediction backfill, the counts, ONE notification, ONE e-mail |
+| `QueueImportTurn` | The next turn of a batch or an Undo - one chain of turns |
+| `ImportRowTimeCheck` | The time verification's judgement of a row's time before it is added |
 | `UndoImportRows` → `data_import_undo` → `ProcessImportUndo` → `UndoImportRow` | Undo of rows / a batch / the import |
 | `data_import_settings`, `ChangeImportAddingPaused` | The safety switch |
 | `ContinueImportBatches`, `myspeedpuzzling:continue-import-batches` | The sweeper |
@@ -57,21 +60,41 @@ it is asked for by its id or its puzzle's - the player fixed or answered somethi
    → `queueReadyRows()` marks the rows `queued` with the batch's id → the batch is saved and `ProcessImportBatch`
    goes to the `imports` queue. Nothing is added in the request.
 2. **`ProcessImportBatch`** - a turn of at most 50 rows or 8 seconds (`DataImportLimits::ROWS_PER_TURN`,
-   `SECONDS_PER_TURN`), then the message sends itself again, so other players' jobs take their turns in between:
-   - `BeginImportBatchTurn`: the batch runs and adding is not paused, else the turn ends;
+   `SECONDS_PER_TURN`), then the next turn is queued (`QueueImportTurn`), so other players' jobs take their turns in
+   between:
+   - `BeginImportBatchTurn`: the batch runs, the job is the batch's current turn and adding is not paused, else the
+     turn ends;
    - **the first pass** (once per batch; its place is `data_import_batch.settled_up_to`): every queued row with a
      result is asked whether the player already has exactly that result (`ImportRowAdder::settle()`);
    - **adding**: `ApplyImportRow` per row - its own transaction; then `WriteImportRowCustomValues` for a row that
-     was added and carries values of the player's own fields;
+     was added and carries values of the player's own fields (or notes). **The safety switch is asked before every
+     row** - a paused batch stops within a row;
    - a row that throws: its transaction is rolled back, `RecordImportRowFailed` marks it `failed` / `error`, the
      batch goes on. The first exception of the turn in which a batch's first rows fail is logged **once**, at
      error, with the count; the message names ids only;
-   - no queued row left → `FinishImportBatch`.
-3. **`FinishImportBatch`** - one transaction under the batch's lock, so two deliveries finish it once:
-   `ImportedResultsFollowUp::afterResultsAdded()` once for the batch (statistics per puzzle, `AwardXpForSolvingTime`
-   per result, `RecalculateBadgesForPlayer` per registered person, one `BackfillSolvingTimePredictions` per player),
-   the batch's counts from its rows, ONE `ImportRowsAdded` notification, ONE `SendImportAddedEmail` when
-   `player.import_emails` is on. More than a tenth of the rows failed on our side → a warning.
+   - no queued row left → **the follow-up in chunks** (below), then `FinishImportBatch`.
+
+### The end of a batch
+
+- **`FollowUpImportBatch`** - a transaction per chunk of 100 results (`followed_up_to` is the place), at most 5
+  chunks a turn: `ImportedResultsFollowUp::forResults()` - the statistics of the puzzles those results touched and
+  `AwardXpForSolvingTime` per result, **queued on `imports`** (a `TransportNamesStamp`), so thousands of awards of
+  one import never stand in front of other players' jobs on `async`. A chunk that fails is rolled back and done
+  again by the next turn.
+- **`FinishImportBatch`** - a small transaction under the batch's lock, so two deliveries finish it once:
+  `ImportedResultsFollowUp::forPeople()` (the importer's achievements once; one `BackfillSolvingTimePredictions`
+  when a solo result waits for its prediction - an imported result has one registered person), the batch's counts
+  from its rows, ONE `ImportRowsAdded` notification, ONE `SendImportAddedEmail` when `player.import_emails` is on.
+  **A batch an Undo stopped tells nothing.** More than a tenth of the rows failed on our side → a warning.
+
+### One chain of turns
+
+`data_import_batch.turn` / `data_import_undo.turn` is the number of the turn that may run. `QueueImportTurn` raises
+it and queues the job with the new number, under the batch's lock - at the end of a turn, by the sweeper, by an
+Undo that stops a batch. A job with an older number (it waited in a long queue while the sweeper queued another, it
+was delivered again) ends at once. So however often a turn is asked for, one chain runs. `last_activity_at` moves
+when a turn is **queued** and when it begins; the sweeper (`myspeedpuzzling:continue-import-batches`, every 5
+minutes) queues a new turn only for a batch with neither for 300 seconds.
 
 The rows are taken in the order of their ids (uuid v7, given as the file was read) - about the file's order.
 `tracked_at` does not depend on it (the writer uses the row's number).
@@ -103,12 +126,13 @@ After an Undo a row is `waiting` again (the README's "ready"; `DataImportRowStat
 | `similar_result_exists` | The profile has a result of the puzzle that no row speaks for with the same time on another day, or the same day with another time (README step 4) |
 | `somebody_elses_result` | A pair's/team's row: somebody else already has a pair/team result of the puzzle with this day and time |
 | `said_already_on_profile` | The file says "already on MySpeedPuzzling" and no such result was found |
+| `unusual_time` | The time verification finds the time unusual for this player and puzzle, fast or slow (`ImportRowTimeCheck`) |
 | `equal_row_not_added` | The row it is the same result as was not added |
 | `comment_too_long` | An owned puzzle's comment over 500 characters |
 
 The three questions of "never twice" (`similar_result_exists`, `somebody_elses_result`,
-`said_already_on_profile`) are waved through per row by the player's answer `answers.addAnyway` (a list of the
-codes) - **6b-2 writes it**; nothing here does.
+`said_already_on_profile`) and `unusual_time` are waved through per row by the player's answer
+`answers.addAnyway` (a list of the codes) - **6b-2 writes it**; nothing here does.
 
 **A row is all or nothing**: everything that can refuse it is checked before anything is created; a row that is a
 result and an owned puzzle whose result is refused adds no collection item.
@@ -126,9 +150,11 @@ result and an owned puzzle whose result is refused adds no collection item.
    - the row's own result still exists (`this_row`) / a row with the same `source_key` made one in any import of
      the player (`earlier_import`) - the writer's questions, asked first;
    - the player has the same result on the profile, not spoken for (`profile`);
-   - the questions above; then `ImportedResultWriter::write()` - `groupPlayers` are the row's people, one per
-     entry, **a `#code` is a registered player as in the add form**; no time = no first try; the row's comment is
-     the public comment;
+   - the questions above, and **the time verification's judgement** of the row's time (`unusual_time`, below);
+     then `ImportedResultWriter::write()` - `groupPlayers` are the row's people, one per entry, **guests every one
+     of them** (README D12: `ImportRowAdder::people()` takes a leading `#` off, so the writer never resolves a
+     player's code - an imported pair/team result has exactly one registered member, the importer); no time = no
+     first try; the row's comment is the public comment;
    - two equal rows the player confirmed as two (`add_as_separate`) get a `ResultDuplicatePrevention`
      (`saved_anyway`, via `spreadsheet_import`).
 4. **The collection puzzle** (kind owned / both): the player's **system collection**; an item that is there makes
@@ -165,7 +191,7 @@ Ids and numbers only - never a cell's content, never a value of a field.
 | The same data in another import (same file again, renamed, re-saved, reordered) | The row's `source_key` against every row of the player's imports, under the lock, at write time: `knownResult()` + the writer (step 3): `earlier_import`. 5a's hint is not trusted - it is asked again |
 | The link row → result | The writer's compare-and-set and the unique index on `solving_time_id` (6a) |
 | Equal rows of one file | `same_as_row_id` → one result (`equal_row`), unless `add_as_separate` |
-| A result typed by hand before | `ImportNeverTwice`: the player's results of the puzzle (tracked, or a registered member), the same day + time + solo/pair/team, **one row per result** (`solvingTimeIdsSpokenFor()`); the batch's first pass settles them before anything is added, so the rows' order changes nothing (13 solves of a day, 5 typed before → 5 pair off, 8 new) |
+| A result typed by hand before | `ImportNeverTwice`: the player's results of the puzzle (tracked, or a registered member), the same day + time + solo/pair/team, **one row per result** (`solvingTimeIdsSpokenFor()` - a row settled as "already yours", and a row that added only its puzzle while its result was the player's already, keep naming the result they stand for); the batch's first pass settles them before anything is added, so the rows' order changes nothing (13 solves of a day, 5 typed before → 5 pair off, 8 new) |
 | A result that may be the row written differently | Not added by itself: `similar_result_exists` |
 | Two partners importing the same evening | `somebody_elses_result` |
 | A result that was undone or deleted | Does not count anywhere above: existence is always asked of the results as they are now |
@@ -177,7 +203,9 @@ and undated rows wait for 6c with those rows.
 
 ## The player's own fields
 
-`parsed.custom` (by ready-made field key) and `parsed.notes` (as private notes) are written **after** the row is
+`parsed.custom` (by ready-made field key) and `parsed.notes` - the words that stood beside a time - as **private
+notes** (README D11: notes are private by default; a result's comment is public and only a column mapped to
+"Public comment" fills it), also for a row that carries notes and nothing else, are written **after** the row is
 committed (`WriteImportRowCustomValuesHandler`), through THE two writers - `SetSolvingTimeCustomValues` for the
 result the row made, else `SetCollectionItemCustomValues` for the item it created; never on something that was
 there before. A ready-made field the player lacks is added for them (`AddCustomField::readyMade()`). A value that
@@ -198,13 +226,64 @@ Nobody else is told anything: the writer takes `PuzzleSolved` off every result (
 duplicate case, no per-result statistics), nothing is published per row but the progress to the player's own
 private topic, and a collection item's event is taken off too.
 
+## Time verification
+
+The README's rule ("Time verification"), built on the mechanism of `docs/features/suspicious-time-review.md`:
+
+- **Before "Add", per row** (`ImportRowTimeCheck::unusual()` in `ImportRowAdder`): the classifier the scan and the
+  add form use (`SingleTimeSuspicionCheck::forEntry()`), for the importing player, the decided puzzle, the row's
+  time, kind and solve day. An unusual time - fast or slow - refuses the row with `unusual_time`. It fails open
+  like the form's check (no data, a failed read = no judgement).
+- **"It is right"** (`answers.addAnyway` holds `unusual_time`): the row is added and a `SuspiciousTimeConfirmation`
+  is stored, as the add form stores its "Yes, it's right" - the scan raises such a time with
+  `confirmed_while_saving`, so the moderator knows the player was asked.
+- **For the screens (6b-2, no UI here):** `ImportRowTimeCheck::unusualAmong($import, $rowIds)` answers which rows
+  the player will be asked about, with the assessment (what was expected, the reasons).
+- **The scan is unchanged**: imported results are judged like any other, cases open for moderators as usual, and
+  **the scan never marks** - only a moderator's mark tells a player anything. What a player then sees is already
+  one item whatever the number of marks: the banner is one count (`GetPlayerReviewCounts`) and the "Your results"
+  e-mail is one e-mail per player per day with all marks in one section (`PlanResultReviewEmails`) - an import of
+  2,000 rows can not send a burst of either. No cap per player and run was added to the scan (the README leaves it
+  open): the rows the classifier would raise are stopped before "Add", so what reaches the queue is what the
+  player confirmed.
+
+## Readers of the hour, and of "when it was logged"
+
+An imported result's `tracked_at` is made up: noon of its solve day in the player's zone + seconds - or "a second
+ago" for a result solved today. Readers that take its **hour**:
+
+| Reader | What it does with an import |
+|---|---|
+| Night Owl - `AchievementSqlRules::IS_NIGHT_OWL_RESULT` (`GetPlayerStatsSnapshot`, `AchievementFirstMetDates`) | **Left out** (`created_via IS DISTINCT FROM 'spreadsheet_import'`) |
+| The hour-of-day chart - `GetPlayerActivityCalendar::hourOfDayBucketsInMonth()` | **Left out** - every import would be a noon peak |
+| Insights "when you logged" - `InsightsRowsPreparer` (`InsightsSoloResult::$fromSpreadsheetImport`) | **Left out** of the time of day; the result itself counts |
+
+Readers that take `tracked_at` as **when it happened** - right as they are, by D5 (an old solve is in its own week
+and month, never "recent"; a solve of the last days is as recent as a typed back-dated one):
+
+| Reader | Why it is left |
+|---|---|
+| `GetRecentActivity` (Hub, `/recent-activity`, a player's feed) | Ordered by `tracked_at`: an imported result stands at its solve day, not on top. Results solved in the last days appear like results typed for those days |
+| `PlayerMomentDetector` / `player_moment`, `CommunityStatsCalculator` (Players page) | Windows by `tracked_at` / solve day: only solves that really are recent count |
+| `GetContentDigestRecipients` (weekly digest), `GetMostSolvedPuzzles`, `GetStatistics` | A period by `tracked_at`: an old solve is not in this period |
+| Weekday rules (`ISODOW` of `finished_at` - Weekend Puzzler, the calendar), streaks | Day-based on the solve day, which an imported result has exactly (only exact days are added) |
+| `NotifyWhenPuzzleSolved` (followers) | Never runs - the writer takes `PuzzleSolved` off |
+| XP weekly boost / `XpFormulaCutoff` | By `tracked_at` = the solve day: history earns the base only (writer.md "XP") |
+| The duplicate job's "saved seconds apart" | 6a: never certain for an imported result |
+
 ## Undo
 
-`UndoImportRows(requestId, import, by, scope: rows | batch | import, …)` - serialized per import; the rows of the
-selection that are `added` are marked with the Undo's id (`data_import_row.undo_id`, one statement) and
-`ProcessImportUndo` goes through them in turns like an "Add" - resumable, each row once. A batch that still runs is
-stopped first (its queued rows wait again, it is finished with what it added). **Undo is never paused by the safety
-switch.**
+`UndoImportRows(requestId, import, by, scope: rows | batch | import, …)` - serialized per import, under the
+player's import lock; the rows of the selection that are `added` are marked with the Undo's id
+(`data_import_row.undo_id`, one statement) and `ProcessImportUndo` goes through them in turns like an "Add" -
+resumable, each row once (a row is handled under the player's lock, with the Undo read after it, so two chains
+never count twice). **Whatever the scope, every "Add" of the import that still runs is stopped first**: its queued
+rows wait again, and its next turn follows up what it did add and ends it - telling the player nothing. **Undo is
+never paused by the safety switch**, and a stopped batch's end neither.
+
+An Undo by the player tells nobody anything. **An admin's Undo tells the player once**, in the app, neutrally and
+with the reason ("We took back N results your import had added. Reason: …" - `ImportRowsTakenBack`,
+`notification.target_data_import_undo_id`) - no e-mail.
 
 **Restores / removes** (`UndoImportRowHandler`):
 
@@ -222,7 +301,8 @@ switch.**
 **Keeps, on purpose:**
 
 - **a result changed since the import** - its puzzle, time, day or people are not what the row wrote
-  (`made.result`): the whole row stays `added`, counted as `results_kept_edited`, marked `made.keptByUndo`. For a
+  (`made.result`; **a puzzle merged since is not a change**: the puzzle the row wrote is followed through
+  `puzzle_redirect`): the whole row stays `added`, counted as `results_kept_edited`, marked `made.keptByUndo`. For a
   batch, an import and an admin always; for chosen rows too **unless** the player sends `includeEdited: true` -
   6b-2 decides whether to ask ("this result was changed since - remove it too?"); the outcome exposes the fact
   either way;
@@ -236,7 +316,7 @@ Who, when, why and what happened stay on `data_import_undo` for good.
 
 `data_import_settings.adding_paused` (+ who / when / why), flipped on `/admin/imports`
 (`ChangeImportAddingPaused`; pausing needs a reason; every flip is a warning in the log). Paused: no "Add" starts,
-running batches stop after the row they are at and wait, the sweeper leaves them. Reading, mapping, pairing and
+running batches stop **within a row** (the switch is read before every row) and wait, the sweeper leaves them. Reading, mapping, pairing and
 Undo stay open. On again: the sweeper continues the waiting batches. `docs/features/feature_flags.md`.
 
 ## The audit page
@@ -302,30 +382,27 @@ import / row, a row and the whole import, owner and admin, a running batch while
 | `data_change_batch` + append-only `data_change` log + `data_import_row_outcome` | `data_import_batch`, `data_import_undo`, and what a row made **on the row** (the stage's brief) | Undo is exact and bounded by the row; the audit is the batches, the Undos and the graveyard. No per-change log - a row re-added after an Undo overwrites what it made before (its earlier result is in the graveyard) |
 | `ContinueImportBatch` / `ApplyImportRow` / `FinishImportBatch`, 25 rows a turn; "never twice" settled set-based when the batch is created | A first pass per batch + checks per row under the player's lock, 50 rows a turn | The per-row check is the one that holds at write time; the first pass makes it independent of the rows' order |
 | Step 4: one question per puzzle | A refusal code per row, waved through by `answers.addAnyway` | The question needs a screen (6b-2). A row not added can be added later |
-| Co-puzzlers of a file are guests, never registered (D12) | A `#code` in the row's people is a registered player, as in the add form (the brief asks for it) | **A decision for Jan**: it puts a result on another player's profile from a file. Guests only = strip the `#` in `ImportRowAdder::people()` |
+| Notes beside a time "go to the result's / the item's comment" (the review of this stage) | Private notes, a ready-made field | README D11: notes are private by default; a result's comment is public |
 | Owned rows go to the collection the sheet names / a member picks | Always the system collection | Choosing a collection needs a screen and the membership check; `parsed.collection` stays on the row |
 | A row both result and owned: several collections per row | One item | As above |
 | Rows return to "ready"; states `ready`, `undone` | `waiting` (ready is derived) | A stored "ready" would go stale with every decision |
 | A failed row "shows up in To fix"; a refusal "goes back to To fix" | Refused = `waiting` + `failure` (can be parsed again); threw = `failed` | A `failed` row is never parsed again (`canBeParsed()`), so a rule's refusal must not be `failed` |
 | The e-mail a minute later, not when the page saw the end (`seen_at`) | Sent when the batch finishes | No page exists yet to report "seen" - 6b-2 |
-| A notification and an e-mail for a finished Undo | None | Not in this stage's scope |
+| A notification and an e-mail for a finished Undo | None for the player's own; one notification, no e-mail, for an admin's | The player pressed the button themselves |
 | XP "once per batch"; "`RecalculateBadges` once" | As 6a's follow-up does it | writer.md "XP" |
 | "Follow `puzzle_redirect`" before a row is written | Not needed: the decision's foreign key moves with the merge | 5a |
-| Time verification: every row judged by the scan's classifier before "Add" | **Not built** | Not in this stage's scope - must be settled before 6b-2 opens the button (below) |
-| Night Owl / hour-of-day chart leave imports out | **Not built** | The same |
+| A cap per player and run on the cases the scan opens for imported results | Not built | The classifier stops such rows before "Add"; the scan never tells a player anything by itself |
 | Taking back "landed on the wrong puzzle" clears the remembered decision | **Not built** | Undo keeps the decision; the player changes it on the pairing screen |
 
 ## Loose ends
 
-- **Before 6b-2 opens "Add" to players**: the time verification's judgement of rows before "Add" and the scan's
-  rules for imported results (a 2,000-row import must not open hundreds of cases and e-mails); the readers of
-  `created_via` (Night Owl - an import run at night of a result solved today is tracked "a second ago" -, the
-  hour-of-day chart).
 - The cron row for `myspeedpuzzling:continue-import-batches` on lily (every 5 minutes) - without it a paused or
   interrupted batch waits for ever.
-- D12 (`#code` partners) - Jan's word.
+- Taking back results that "landed on the wrong puzzle" does not clear the remembered decision for that puzzle
+  (`import_puzzle_decision`) - 6b-2's Undo screen should offer it.
+- The XP awards of an import are on `imports`, a queue without retries: one that fails goes to the failure
+  transport, like any import job.
 - `DataImportRow::parsedAs()` does not clear `failure`: a refused row that is parsed again keeps its reason until
   it is asked for by id.
-- An Undo tells nobody (no notification, no e-mail).
 - The 2,000-a-day guard counts by UTC day.
 - `ImportProgress::publishAdding()` publishes a new message type; the screens that read it are 6b-2's.

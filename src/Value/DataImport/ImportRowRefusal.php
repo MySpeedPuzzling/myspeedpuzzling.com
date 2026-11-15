@@ -27,6 +27,8 @@ enum ImportRowRefusal: string
     case SaidAlreadyOnProfile = 'said_already_on_profile';
     /** The row says pair or team and names nobody (or says solo and names people): the result would be written as another kind */
     case PeopleDoNotFitType = 'people_do_not_fit_type';
+    /** The time verification finds the time unusual for this player and puzzle - fast or slow: it needs "it is right" */
+    case UnusualTime = 'unusual_time';
     /** The row it is the same result as was not added */
     case EqualRowNotAdded = 'equal_row_not_added';
     /** The comment of an owned puzzle is longer than a collection item takes */

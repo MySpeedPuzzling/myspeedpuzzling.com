@@ -117,6 +117,9 @@ readonly final class PlayerNotification
         public int $importRowsAdded = 0,
         public int $importRowsAlreadyYours = 0,
         public int $importRowsNotAdded = 0,
+        // ImportRowsTakenBack: how many results the admin's Undo deleted, and why
+        public int $importResultsTakenBack = 0,
+        public null|string $importTakenBackReason = null,
     ) {
     }
 
@@ -258,6 +261,8 @@ readonly final class PlayerNotification
             importRowsAdded: is_int($row['import_rows_added'] ?? null) ? $row['import_rows_added'] : 0,
             importRowsAlreadyYours: is_int($row['import_rows_already_yours'] ?? null) ? $row['import_rows_already_yours'] : 0,
             importRowsNotAdded: is_int($row['import_rows_not_added'] ?? null) ? $row['import_rows_not_added'] : 0,
+            importResultsTakenBack: is_int($row['import_results_taken_back'] ?? null) ? $row['import_results_taken_back'] : 0,
+            importTakenBackReason: is_string($row['import_taken_back_reason'] ?? null) ? $row['import_taken_back_reason'] : null,
         );
     }
 
@@ -346,7 +351,7 @@ readonly final class PlayerNotification
 
     public function isImportNotification(): bool
     {
-        return $this->importId !== null && $this->notificationType === NotificationType::ImportRowsAdded;
+        return $this->importId !== null && in_array($this->notificationType, [NotificationType::ImportRowsAdded, NotificationType::ImportRowsTakenBack], true);
     }
 
     public function isListingRequestNotification(): bool

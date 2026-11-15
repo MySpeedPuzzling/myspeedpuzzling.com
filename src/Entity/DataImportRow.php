@@ -211,11 +211,18 @@ class DataImportRow
 
     /**
      * The row made something: a result (linked by the writer - resultCreated()), a collection item, a wish list item.
+     * $resultAlreadyYours…: its result was the player's already (only its puzzle was added) - how, and which result.
      *
      * @param array<string, mixed> $made
      */
-    public function added(DateTimeImmutable $now, null|UuidInterface $collectionItemId, null|UuidInterface $wishListItemId, array $made): void
-    {
+    public function added(
+        DateTimeImmutable $now,
+        null|UuidInterface $collectionItemId,
+        null|UuidInterface $wishListItemId,
+        array $made,
+        null|string $resultAlreadyYoursHow = null,
+        null|UuidInterface $resultAlreadyYoursId = null,
+    ): void {
         $this->state = DataImportRowState::Added;
         $this->addedAt = $now;
         $this->failure = null;
@@ -223,9 +230,10 @@ class DataImportRow
         $this->wishListItemId = $wishListItemId;
         $this->made = $made;
         $this->resultMade = isset($made['result']);
-        // Whatever the pairing hinted or an earlier "Add" settled: the row made its own now
-        $this->alreadyYoursHow = null;
-        $this->alreadyYoursSolvingTimeId = null;
+        // A row that is a result and an owned puzzle may add the puzzle while its result is the player's already: the
+        // result it stands for stays named, so no other row pairs off with it. Else nothing is hinted any more
+        $this->alreadyYoursHow = $resultAlreadyYoursHow;
+        $this->alreadyYoursSolvingTimeId = $resultAlreadyYoursId;
     }
 
     /**

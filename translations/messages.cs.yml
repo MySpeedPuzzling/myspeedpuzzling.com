@@ -12115,3 +12115,5 @@ data_import:
         already_yours: "{0}žádný už nebyl váš|{1}1 už byl váš|[2,4]%count% už byly vaše|[5,Inf[%count% už bylo vašich"
         not_added: "{0}žádný nezůstal stranou|{1}1 se nepodařilo přidat|[2,4]%count% se nepodařilo přidat|[5,Inf[%count% se nepodařilo přidat"
         open: "Otevřít"
+        taken_back: "{0}Vzali jsme zpět, co přidal váš import souboru %file%.|{1}Vzali jsme zpět 1 výsledek, který přidal váš import souboru %file%.|[2,4]Vzali jsme zpět %count% výsledky, které přidal váš import souboru %file%.|[5,Inf[Vzali jsme zpět %count% výsledků, které přidal váš import souboru %file%."
+        taken_back_reason: "Důvod: %reason%"

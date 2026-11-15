@@ -221,7 +221,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -335,7 +337,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
@@ -446,7 +450,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
@@ -552,7 +558,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
@@ -664,7 +672,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
@@ -772,7 +782,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -880,7 +892,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     WHERE notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
 
@@ -984,7 +998,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
     INNER JOIN competition ON competition.id = competition_round.competition_id
@@ -1091,7 +1107,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1198,7 +1216,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1307,7 +1327,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN partner_request ON partner_request.id = notification.target_partner_request_id
     INNER JOIN partner_listing ON partner_listing.id = partner_request.listing_id
@@ -1425,7 +1447,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN partner_listing ON partner_listing.id = notification.target_partner_listing_id
     INNER JOIN competition ON competition.id = partner_listing.competition_id
@@ -1535,7 +1559,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN borrow_request ON borrow_request.id = notification.target_borrow_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1648,7 +1674,9 @@ SELECT * FROM (
         NULL::varchar AS import_file_name,
         NULL::int AS import_rows_added,
         NULL::int AS import_rows_already_yours,
-        NULL::int AS import_rows_not_added
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason
     FROM page notification
     INNER JOIN listing_request ON listing_request.id = notification.target_listing_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1657,7 +1685,8 @@ SELECT * FROM (
     UNION ALL
 
     -- "Your import is done" (docs/features/data-import/adding.md "Telling the player"): one per finished "Add" of the
-    -- reader's own spreadsheet import - no other player is in it, so nothing of it can be hidden
+    -- reader's own spreadsheet import - and "we took back N results" after an admin's Undo of it. No other player is in
+    -- either (the admin is not named), so nothing of it can be hidden
     SELECT
         notification.id AS notification_id,
         notification.notified_at,
@@ -1754,11 +1783,15 @@ SELECT * FROM (
         data_import.file_name AS import_file_name,
         import_batch.rows_added AS import_rows_added,
         import_batch.rows_already_yours AS import_rows_already_yours,
-        (import_batch.rows_refused + import_batch.rows_failed) AS import_rows_not_added
+        (import_batch.rows_refused + import_batch.rows_failed) AS import_rows_not_added,
+        import_undo.results_deleted AS import_results_taken_back,
+        import_undo.reason AS import_taken_back_reason
     FROM page notification
-    INNER JOIN data_import_batch import_batch ON import_batch.id = notification.target_data_import_batch_id
-    INNER JOIN data_import ON data_import.id = import_batch.import_id
+    LEFT JOIN data_import_batch import_batch ON import_batch.id = notification.target_data_import_batch_id
+    LEFT JOIN data_import_undo import_undo ON import_undo.id = notification.target_data_import_undo_id
+    INNER JOIN data_import ON data_import.id = COALESCE(import_batch.import_id, import_undo.import_id)
     WHERE notification.target_data_import_batch_id IS NOT NULL
+        OR notification.target_data_import_undo_id IS NOT NULL
 ) AS combined_notifications
 -- The page's own order: notified_at alone ties (a burst of notifications in one second), and a tie must not move a row
 -- past the one more asked for "Show more"

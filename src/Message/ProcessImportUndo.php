@@ -13,8 +13,12 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\HandledOutsideTransaction;
  */
 readonly final class ProcessImportUndo implements HandledOutsideTransaction
 {
+    /**
+     * @param int $turn the Undo's turn this job is (DataImportUndo::$turn) - a job of an older turn does nothing
+     */
     public function __construct(
         public string $undoId,
+        public int $turn,
     ) {
     }
 }

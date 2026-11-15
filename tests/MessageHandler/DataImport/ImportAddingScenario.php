@@ -154,10 +154,21 @@ trait ImportAddingScenario
                 break;
             }
 
-            $handler(new ProcessImportBatch($batchId));
+            $handler($this->currentTurnOf($batchId));
         }
 
         $this->pairingEntityManager()->clear();
+    }
+
+    /**
+     * The job of the batch's current turn - what the queue holds for it now (a job of an older turn is void).
+     */
+    private function currentTurnOf(string $batchId): ProcessImportBatch
+    {
+        $turn = $this->pairingDatabase()->fetchOne('SELECT turn FROM data_import_batch WHERE id = :id', ['id' => $batchId]);
+        self::assertIsInt($turn);
+
+        return new ProcessImportBatch($batchId, $turn);
     }
 
     /**
@@ -223,7 +234,9 @@ trait ImportAddingScenario
                 break;
             }
 
-            $handler(new ProcessImportUndo($undoId));
+            $turn = $this->pairingDatabase()->fetchOne('SELECT turn FROM data_import_undo WHERE id = :id', ['id' => $undoId]);
+            self::assertIsInt($turn);
+            $handler(new ProcessImportUndo($undoId, $turn));
         }
 
         $this->pairingEntityManager()->clear();

@@ -85,6 +85,34 @@ class DataImportBatch
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $settledAt = null;
 
+    /**
+     * The number of the turn that may run (docs/features/data-import/adding.md "One chain of turns"): raised whenever
+     * a turn is queued - by the turn before it, or by the sweeper. A job that carries an older number is a second
+     * chain (a queue that waited, a job delivered again) and ends at once.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 1])]
+    public int $turn = 1;
+
+    /** What is owed for the results is done in turns too: the last row whose result was followed up, and when all were */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $followedUpTo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $followedUpAt = null;
+
+    /** A solo result of the batch waits for its reconstructed prediction - one backfill job when the batch ends */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $predictionsOwed = false;
+
+    /** An Undo stopped the batch: its queued rows wait again, and its end tells the player nothing ("N added") */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $endedByUndo = false;
+
     /** When the player was told (the notification; the e-mail is sent from it) - once */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -135,6 +163,34 @@ class DataImportBatch
         $this->settledUpTo = $upTo ?? $this->settledUpTo;
         $this->settledAt = $through ? ($this->settledAt ?? $now) : $this->settledAt;
         $this->lastActivityAt = $now;
+    }
+
+    public function isTurn(int $turn): bool
+    {
+        return $this->turn === $turn;
+    }
+
+    /**
+     * A turn is queued: every job with an older number is void from now on, and the sweeper sees the batch as alive.
+     */
+    public function nextTurn(DateTimeImmutable $now): int
+    {
+        $this->lastActivityAt = $now;
+
+        return ++$this->turn;
+    }
+
+    public function followedUpSoFar(null|UuidInterface $upTo, bool $through, bool $predictionsOwed, DateTimeImmutable $now): void
+    {
+        $this->followedUpTo = $upTo ?? $this->followedUpTo;
+        $this->followedUpAt = $through ? ($this->followedUpAt ?? $now) : $this->followedUpAt;
+        $this->predictionsOwed = $this->predictionsOwed || $predictionsOwed;
+        $this->lastActivityAt = $now;
+    }
+
+    public function stoppedByUndo(): void
+    {
+        $this->endedByUndo = true;
     }
 
     public function workedOn(DateTimeImmutable $now): void

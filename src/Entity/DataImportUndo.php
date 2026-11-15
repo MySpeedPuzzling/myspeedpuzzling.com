@@ -41,6 +41,11 @@ class DataImportUndo
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $finishedAt = null;
 
+    /** The number of the turn that may run - DataImportBatch::$turn */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 1])]
+    public int $turn = 1;
+
     /** Rows that are back to waiting */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
@@ -129,6 +134,18 @@ class DataImportUndo
     public function isRunning(): bool
     {
         return $this->state === DataImportBatchState::Running;
+    }
+
+    public function isTurn(int $turn): bool
+    {
+        return $this->turn === $turn;
+    }
+
+    public function nextTurn(DateTimeImmutable $now): int
+    {
+        $this->lastActivityAt = $now;
+
+        return ++$this->turn;
     }
 
     public function workedOn(DateTimeImmutable $now): void

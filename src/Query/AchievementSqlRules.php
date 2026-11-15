@@ -33,10 +33,13 @@ SQL;
     /**
      * Night Owl: the player's own result, logged between 22:00 and 04:00 in their time zone on the day they finished
      * it - logged right after finishing, so the logging moment is the solve moment. Players without a time zone
-     * have none. Requires alias `pst` and `owning_player` = the player's row.
+     * have none. **Never a result from a spreadsheet import**: its `tracked_at` is made up (noon of the solve day, or
+     * the moment of the import for a result solved today - docs/features/data-import/adding.md "Readers of the hour")
+     * - an import has no hour. Requires alias `pst` and `owning_player` = the player's row.
      */
     public const string IS_NIGHT_OWL_RESULT = <<<SQL
 (pst.player_id = owning_player.id
+ AND pst.created_via IS DISTINCT FROM 'spreadsheet_import'
  AND owning_player.timezone IS NOT NULL
  AND pst.finished_at IS NOT NULL
  AND CAST((pst.tracked_at AT TIME ZONE 'UTC') AT TIME ZONE owning_player.timezone AS date) = CAST(pst.finished_at AS date)

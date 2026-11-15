@@ -48,6 +48,25 @@ readonly final class ImportedResultsFollowUp
      */
     public function afterResultsAdded(iterable $outcomes): void
     {
+        $owed = $this->forResults($outcomes);
+
+        $this->forPeople($owed['memberPlayerIds'], $owed['playersAwaitingPredictions']);
+    }
+
+    /**
+     * The part that grows with the results - for a large batch done in turns, a bounded number of results at a time
+     * (stage 6b's FollowUpImportBatch): the statistics of the puzzles these results touched and the XP award of each.
+     * What is owed once per person is told back and done by forPeople() when the batch is through.
+     *
+     * @param iterable<ImportedResultOutcome> $outcomes only added results count
+     * @param null|string $xpTransport the transport the XP awards are queued on; null = where the message is routed
+     *        (`async`, like the add form's). An import names its own queue, so thousands of awards never stand in
+     *        front of other players' jobs
+     *
+     * @return array{memberPlayerIds: list<string>, playersAwaitingPredictions: list<string>}
+     */
+    public function forResults(iterable $outcomes, null|string $xpTransport = null): array
+    {
         $puzzleIds = [];
         $solvingTimeIds = [];
         $memberPlayerIds = [];
@@ -79,14 +98,32 @@ readonly final class ImportedResultsFollowUp
         }
 
         foreach ($solvingTimeIds as $solvingTimeId) {
-            $this->messageBus->dispatch(new AwardXpForSolvingTime($solvingTimeId));
+            $this->messageBus->dispatch(
+                new AwardXpForSolvingTime($solvingTimeId),
+                $xpTransport === null ? [] : [new TransportNamesStamp([$xpTransport])],
+            );
         }
 
-        foreach (array_keys($memberPlayerIds) as $playerId) {
+        return [
+            'memberPlayerIds' => array_map(strval(...), array_keys($memberPlayerIds)),
+            'playersAwaitingPredictions' => array_map(strval(...), array_keys($playersAwaitingPredictions)),
+        ];
+    }
+
+    /**
+     * Once per person, whatever the number of results: achievements, and the reconstructed predictions of the players
+     * whose solo results wait for one.
+     *
+     * @param list<string> $memberPlayerIds
+     * @param list<string> $playersAwaitingPredictions
+     */
+    public function forPeople(array $memberPlayerIds, array $playersAwaitingPredictions): void
+    {
+        foreach ($memberPlayerIds as $playerId) {
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($playerId));
         }
 
-        foreach (array_keys($playersAwaitingPredictions) as $playerId) {
+        foreach ($playersAwaitingPredictions as $playerId) {
             // The stamps of SolvingTimePredictor::scheduleReconstruction(): after the current bus, so the results are
             // committed before the worker looks for them, and async by name
             $this->messageBus->dispatch(

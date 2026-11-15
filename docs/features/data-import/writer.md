@@ -199,7 +199,10 @@ solve after the cutoff earns the full formula, like a typed back-dated one.
 earns XP for it, exactly as when the importer types it into the form and adds them. Their achievements are
 recalculated once. Nothing they had changes - except, as with any back-dated typed result, the chain of that one
 puzzle: a partner who already has later results of the same puzzle sees those move one place down the repeat ladder.
-(README D12 makes co-puzzlers of a file guests; a registered partner only gets here if 6b ever passes a `#code`.)
+**Not reachable from an import (stage 6b-1):** README D12 stands - co-puzzlers of a file are guests. The import
+passes every named partner as a guest's name (`ImportRowAdder::people()` takes the `#` off, so the writer never
+looks a code up); an imported pair/team result has exactly one registered member, the importer. The writer keeps
+the capability (the parity test above uses it) - nothing of an import can call it with a `#code`.
 
 The cost, for 6b to weigh: one job per result, each loading the person's history once - what 2,000 typed results
 cost. A batch entry on `XpChainRecomputer` (one scope for all puzzles of a batch) would be the cheap way; it would
@@ -221,6 +224,10 @@ Per row, in `ApplyImportRow` - one row, one transaction:
 5. (6b, same transaction, with the new id) the form's two answers an import can carry:
    `SuspiciousTimeConfirmation` for "it is right" and `ResultDuplicatePrevention` (`SavedAnyway`, via
    `SpreadsheetImport`) for rows confirmed as two. The writer does neither - it knows no such answer.
+
+(As built in 6b-1 the follow-up is done in chunks - `forResults()` per hundred results with the XP awards on the
+`imports` queue, `forPeople()` once when the batch ends; `afterResultsAdded()` is the two in one - see
+[adding.md](adding.md) "The end of a batch".)
 
 Once per batch, in `FinishImportBatch`, **in a transaction after the rows are committed**:
 `ImportedResultsFollowUp::afterResultsAdded($outcomes)` - puzzle statistics per puzzle, `AwardXpForSolvingTime` per

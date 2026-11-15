@@ -12,6 +12,7 @@ readonly final class BeginImportBatchTurn
 {
     public function __construct(
         public string $batchId,
+        public int $turn,
     ) {
     }
 }

@@ -476,21 +476,24 @@ SQL, $parameters, $types)->fetchAssociative();
      * The rows of a batch that made a result - for what is owed for the results once the batch is
      * through (ImportedResultsFollowUp).
      *
-     * @return array<string, string> solving time id by row id
+     * @return array<string, string> solving time id by row id, in the rows' order
      */
-    public function solvingTimeIdsMadeByBatch(string $batchId): array
+    public function solvingTimeIdsMadeByBatch(string $batchId, null|string $afterRowId = null, null|int $limit = null): array
     {
         /** @var list<array{id: UuidInterface, solvingTimeId: UuidInterface}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
             ->select('r.id', 'r.solvingTimeId')
             ->from(DataImportRow::class, 'r')
             ->where('r.batchId = :batchId')
+            ->andWhere('r.id > :afterRowId')
+            ->setParameter('afterRowId', $afterRowId ?? '00000000-0000-0000-0000-000000000000')
             ->andWhere('r.state = :added')
             ->andWhere('r.resultMade = true')
             ->andWhere('r.solvingTimeId IS NOT NULL')
             ->setParameter('batchId', $batchId)
             ->setParameter('added', DataImportRowState::Added->value)
             ->orderBy('r.id')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getArrayResult();
 
@@ -542,10 +545,11 @@ SQL, $parameters, $types)->fetchAssociative();
             ->from(DataImportRow::class, 'r')
             ->join('r.import', 'i')
             ->where('i.player = :player')
-            ->andWhere('r.solvingTimeId IN (:ids) OR (r.alreadyYoursSolvingTimeId IN (:ids) AND r.state = :alreadyYours)')
+            ->andWhere('r.solvingTimeId IN (:ids) OR (r.alreadyYoursSolvingTimeId IN (:ids) AND r.state IN (:settled))')
             ->setParameter('player', $playerId)
             ->setParameter('ids', $solvingTimeIds)
-            ->setParameter('alreadyYours', DataImportRowState::AlreadyYours->value)
+            // On a waiting row the column is only the pairing's hint; a row that is settled or added speaks for it
+            ->setParameter('settled', [DataImportRowState::AlreadyYours->value, DataImportRowState::Added->value])
             ->getQuery()
             ->getArrayResult();
 
@@ -556,7 +560,7 @@ SQL, $parameters, $types)->fetchAssociative();
                 $spokenFor[$row['solvingTimeId']->toString()] = true;
             }
 
-            if ($row['state'] === DataImportRowState::AlreadyYours && $row['alreadyYoursSolvingTimeId'] !== null) {
+            if (in_array($row['state'], [DataImportRowState::AlreadyYours, DataImportRowState::Added], true) && $row['alreadyYoursSolvingTimeId'] !== null) {
                 $spokenFor[$row['alreadyYoursSolvingTimeId']->toString()] = true;
             }
         }

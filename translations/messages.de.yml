@@ -12112,3 +12112,5 @@ data_import:
         already_yours: "{0}keine gehörte dir schon|{1}1 gehörte dir schon|]1,Inf[%count% gehörten dir schon"
         not_added: "{0}keine ausgelassen|{1}1 konnte nicht hinzugefügt werden|]1,Inf[%count% konnten nicht hinzugefügt werden"
         open: "Öffnen"
+        taken_back: "{0}Wir haben zurückgenommen, was dein Import von %file% hinzugefügt hatte.|{1}Wir haben 1 Ergebnis zurückgenommen, das dein Import von %file% hinzugefügt hatte.|]1,Inf[Wir haben %count% Ergebnisse zurückgenommen, die dein Import von %file% hinzugefügt hatte."
+        taken_back_reason: "Grund: %reason%"

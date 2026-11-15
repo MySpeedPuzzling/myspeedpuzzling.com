@@ -9,8 +9,8 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImportUndo;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
-use SpeedPuzzling\Web\Message\FinishImportBatch;
 use SpeedPuzzling\Web\Message\ProcessImportUndo;
+use SpeedPuzzling\Web\Message\QueueImportTurn;
 use SpeedPuzzling\Web\Message\UndoImportRows;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
@@ -26,8 +26,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *
  * 1. the import is the player's - or anybody's for an admin, who gives a reason (the controller is admins-only);
  * 2. the same request id as before answers that Undo;
- * 3. a batch that still runs is stopped first: its rows that wait for their turn wait again, and it is finished with
- *    what it added so far (so the pause switch never stands in the way of taking a batch back);
+ * 3. **whatever the scope**, every "Add" of the import that still runs is stopped first: its rows that wait for their
+ *    turn wait again, and its next turn ends it with what it added so far - telling the player nothing (so neither a
+ *    running batch nor the pause switch stands in the way of taking something back);
  * 4. the rows of the selection that made something are marked for the Undo (one statement - a row is taken back by
  *    one Undo only) and the Undo goes to the `imports` worker. Nothing is deleted here.
  *
@@ -88,11 +89,16 @@ readonly final class UndoImportRowsHandler
             }
 
             $batchId = $batch->id->toString();
+        }
 
-            if ($batch->isRunning()) {
-                $this->rowRepository->releaseQueuedOfBatch($batchId);
-                $this->messageBus->dispatch(new FinishImportBatch($batchId));
-            }
+        // Whatever is taken back - rows, a batch, everything: an "Add" of the import that still runs is stopped
+        // first. Its rows that wait for their turn wait again as before the "Add" (under the player's lock: none of
+        // them is half-way), and one more turn follows up what it did add and ends it - without telling the player
+        // "N added"
+        foreach ($this->batchRepository->runningOfImport($import) as $running) {
+            $this->rowRepository->releaseQueuedOfBatch($running->id->toString());
+            $running->stoppedByUndo();
+            $this->messageBus->dispatch(QueueImportTurn::ofBatch($running->id->toString()));
         }
 
         if ($message->scope === DataImportUndoScope::Rows) {
@@ -123,7 +129,7 @@ readonly final class UndoImportRowsHandler
         ));
         $import->workedOn($now);
 
-        $this->messageBus->dispatch(new ProcessImportUndo($undoId->toString()));
+        $this->messageBus->dispatch(new ProcessImportUndo($undoId->toString(), 1));
 
         return new AddImportRowsOutcome(AddImportRowsOutcome::STARTED, $undoId->toString(), $rows);
     }

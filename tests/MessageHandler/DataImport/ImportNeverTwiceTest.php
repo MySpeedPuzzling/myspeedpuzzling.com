@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\AddImportRowsOutcome;
+use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -126,9 +127,9 @@ final class ImportNeverTwiceTest extends KernelTestCase
         // The job delivered twice, and once more after the batch is finished
         $handler = self::getContainer()->get(ProcessImportBatchHandler::class);
         self::assertNotNull($first->id);
-        $handler(new ProcessImportBatch($first->id));
-        $handler(new ProcessImportBatch($first->id));
-        $handler(new ProcessImportBatch($first->id));
+        $handler(new ProcessImportBatch($first->id, 1));
+        $handler(new ProcessImportBatch($first->id, 1));
+        $handler(new ProcessImportBatch($first->id, 1));
 
         self::assertCount(2, $this->resultsOf($player));
         self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id', ['id' => $player->id->toString()]));
@@ -203,9 +204,11 @@ final class ImportNeverTwiceTest extends KernelTestCase
             rowsPerTurn: 3,
         );
         // Three turns: the first pass over seven rows, and the first rows added
-        $short(new ProcessImportBatch($outcome->id));
-        $short(new ProcessImportBatch($outcome->id));
-        $short(new ProcessImportBatch($outcome->id));
+        $short($this->currentTurnOf($outcome->id));
+        // The same job delivered again - a second chain - is void: the batch is at its next turn
+        $short(new ProcessImportBatch($outcome->id, 1));
+        $short($this->currentTurnOf($outcome->id));
+        $short($this->currentTurnOf($outcome->id));
 
         self::assertSame('running', $this->batchNow($outcome->id)['state']);
         $added = $this->pairingCount("SELECT COUNT(*) FROM data_import_row WHERE batch_id = :id AND state = 'added'", ['id' => $outcome->id]);
@@ -342,6 +345,31 @@ final class ImportNeverTwiceTest extends KernelTestCase
             [['kind' => 'saved_anyway', 'via' => 'spreadsheet_import', 'time_id' => $this->rowNow($separate)['solving_time_id']]],
             $this->pairingDatabase()->fetchAllAssociative('SELECT kind, via, time_id FROM result_duplicate_prevention WHERE player_id = :id', ['id' => $player->id->toString()]),
         );
+    }
+
+    public function testOneTypedResultSpeaksForOneRowAlsoWhenThatRowAddedItsPuzzle(): void
+    {
+        $player = $this->seedPairingPlayer('one-for-one');
+        [$puzzle] = $this->seedCataloguePuzzles('Zqonefor', ['Zq One For One']);
+        $typed = $this->typedResult($player, $puzzle, '2024-05-05', 4000);
+
+        // Two rows that are a result AND an owned puzzle, with the day and time of the one typed result (a log of
+        // attempts: not linked as equal rows)
+        [$import, $sheet] = $this->importOf($player);
+        $first = $this->resultRow($import, $sheet, 'Zq One For One', 500, 'Zqonefor', '2024-05-05', 4000, kind: DataImportRowKind::Both);
+        $second = $this->resultRow($import, $sheet, 'Zq One For One', 500, 'Zqonefor', '2024-05-05', 4000, ['occurrence' => 2], DataImportRowKind::Both);
+        $this->pair($import);
+
+        $this->addAndWork($import, $player);
+
+        // The first is the typed result and adds the puzzle to the collection - and keeps speaking for that result;
+        // the second finds no result left and is a new one
+        $firstNow = $this->rowNow($first);
+        self::assertSame(['added', false, 'profile', $typed], [$firstNow['state'], $firstNow['result_made'], $firstNow['already_yours_how'], $firstNow['already_yours_solving_time_id']]);
+        self::assertNotNull($firstNow['collection_item_id']);
+        self::assertSame(['added', true], [$this->rowNow($second)['state'], $this->rowNow($second)['result_made']]);
+        self::assertCount(2, $this->resultsOf($player));
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM collection_item WHERE player_id = :id', ['id' => $player->id->toString()]));
     }
 
     public function testAPairsRowSomebodyElseAlreadyLoggedIsNotAddedQuietly(): void

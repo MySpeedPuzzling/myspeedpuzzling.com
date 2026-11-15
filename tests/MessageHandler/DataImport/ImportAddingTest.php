@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
+use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Message\AddCustomField;
+use SpeedPuzzling\Web\Message\ApplyImportRow;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\ChangeImportAddingPaused;
@@ -19,11 +21,18 @@ use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\SendImportAddedEmail;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\MessageHandler\DecideImportPuzzlesHandler;
+use SpeedPuzzling\Web\MessageHandler\ProcessImportBatchHandler;
 use SpeedPuzzling\Web\MessageHandler\SendImportAddedEmailHandler;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Query\GetPlayerActivityCalendar;
+use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
+use SpeedPuzzling\Web\Repository\DataImportRowRepository;
+use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportEmailsUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowTimeCheck;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -37,6 +46,7 @@ use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\StandardCustomField;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -97,8 +107,21 @@ final class ImportAddingTest extends KernelTestCase
         self::assertSame(['spreadsheet_import'], array_values(array_unique(array_map(static fn (array $result): string => self::text($result['created_via']), $results))));
         // Noon of the solve day (UTC for a player without a zone or a country), never "now"
         self::assertStringStartsWith('2024-03-01 12:', self::text($results[0]['tracked_at']));
-        // The partner named by their code is on the pair's result, like in the add form
-        self::assertStringContainsString($partner->id->toString(), self::text($results[1]['team']));
+        // A partner written as a player's code is a guest of that name: an import never puts a result on another
+        // registered player's profile (README D12) - the pair has exactly one registered member, the importer
+        $team = json_decode(self::text($results[1]['team']), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($team);
+        self::assertIsArray($team['puzzlers']);
+        self::assertSame(
+            [[$player->id->toString(), null], [null, $partner->code]],
+            array_map(static fn (mixed $puzzler): array => is_array($puzzler) ? [$puzzler['player_id'] ?? null, $puzzler['player_name'] ?? null] : [], $team['puzzlers']),
+        );
+        self::assertSame(
+            [$player->id->toString()],
+            $this->pairingDatabase()->fetchFirstColumn('SELECT member.player_id FROM puzzling_team_member member WHERE member.team_id = (SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id) AND member.player_id IS NOT NULL', ['id' => $results[1]['id']]),
+        );
+        self::assertSame([], $this->resultsOf($partner));
+        self::assertSame(0, $this->pairingCount("SELECT COUNT(*) FROM puzzle_solving_time WHERE (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:id AS UUID)))", ['id' => $partner->id->toString()]));
 
         foreach ([$soloRow, $pairRow, $untimedRow] as $index => $rowId) {
             $row = $this->rowNow($rowId);
@@ -116,14 +139,15 @@ final class ImportAddingTest extends KernelTestCase
             $this->pairingDatabase()->fetchAllAssociative('SELECT player_id, type, target_data_import_batch_id FROM notification WHERE player_id IN (:a, :b)', ['a' => $player->id->toString(), 'b' => $partner->id->toString()]),
         );
 
-        // What is owed for the results, once for the batch: XP per result, achievements per person, and one e-mail
+        // What is owed for the results: XP per result - on the import's own queue, never on the shared one -, the
+        // importer's achievements once (nobody else is on an imported result), and one e-mail
         $queued = self::messagesOn($this->async);
-        self::assertCount(3, array_filter($queued, static fn (object $message): bool => $message instanceof AwardXpForSolvingTime));
-        $badges = array_map(static fn (RecalculateBadgesForPlayer $message): string => $message->playerId, array_values(array_filter($queued, static fn (object $message): bool => $message instanceof RecalculateBadgesForPlayer)));
-        sort($badges);
-        $expected = [$player->id->toString(), $partner->id->toString()];
-        sort($expected);
-        self::assertSame($expected, $badges);
+        self::assertCount(0, array_filter($queued, static fn (object $message): bool => $message instanceof AwardXpForSolvingTime));
+        self::assertCount(3, array_filter(self::messagesOn($this->imports), static fn (object $message): bool => $message instanceof AwardXpForSolvingTime));
+        self::assertSame(
+            [$player->id->toString()],
+            array_map(static fn (RecalculateBadgesForPlayer $message): string => $message->playerId, array_values(array_filter($queued, static fn (object $message): bool => $message instanceof RecalculateBadgesForPlayer))),
+        );
         self::assertCount(1, array_filter($queued, static fn (object $message): bool => $message instanceof SendImportAddedEmail));
 
         // The puzzle's statistics know the result
@@ -408,7 +432,14 @@ final class ImportAddingTest extends KernelTestCase
         $sent = self::messagesOn($this->imports);
         self::assertCount(1, $sent);
         self::assertInstanceOf(ProcessImportBatch::class, $sent[0]);
-        self::assertSame($outcome->id, $sent[0]->batchId);
+        // A new turn: the job that waited while adding was paused is void
+        self::assertSame([$outcome->id, 2], [$sent[0]->batchId, $sent[0]->turn]);
+        self::getContainer()->get(ProcessImportBatchHandler::class)(new ProcessImportBatch((string) $outcome->id, 1));
+        self::assertSame('queued', $this->rowNow($one)['state']);
+        // ... and the sweeper leaves alone a batch of which a turn was just queued
+        $this->imports->reset();
+        $bus->dispatch(new ContinueImportBatches());
+        self::assertSame([], self::messagesOn($this->imports));
 
         $this->work($outcome->id);
         self::assertSame(['finished', 'added', 'added'], [$this->batchNow($outcome->id)['state'], $this->rowNow($one)['state'], $this->rowNow($two)['state']]);
@@ -522,6 +553,146 @@ SQL, ['importId' => $import->id->toString(), 'sheetId' => $sheet->id->toString()
         $this->addAndWork($import, PlayerFixture::PLAYER_REGULAR, [$later]);
         self::assertSame([], array_filter($this->async->getSent(), static fn ($envelope): bool => $envelope->getMessage() instanceof SendImportAddedEmail));
         self::assertSame(2, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id AND type = :type', ['id' => PlayerFixture::PLAYER_REGULAR, 'type' => NotificationType::ImportRowsAdded->value]));
+    }
+
+    public function testAnUnusualTimeNeedsThePlayersWordAndTheScanIsToldTheyWereAsked(): void
+    {
+        $player = $this->seedPairingPlayer('unusual');
+        $brand = $this->seedBrand('Zqunusual');
+        $puzzle = $this->seedCataloguePuzzle('Zq Unusual Puzzle', 1000, $brand);
+        // The player's own times are the evidence: around three hours for this puzzle
+        $this->typedResult($player, $puzzle, '2023-01-01', 10800);
+        $this->typedResult($player, $puzzle, '2023-02-01', 10500);
+        $this->typedResult($player, $puzzle, '2023-03-01', 10200);
+
+        [$import, $sheet] = $this->importOf($player);
+        // "0:28:20" where the hours were left out - and a time like the player's others
+        $unusual = $this->resultRow($import, $sheet, 'Zq Unusual Puzzle', 1000, 'Zqunusual', '2023-04-01', 1700);
+        $usual = $this->resultRow($import, $sheet, 'Zq Unusual Puzzle', 1000, 'Zqunusual', '2023-05-01', 10000);
+        $this->pair($import);
+
+        // What the screens show before "Add" (6b-2): the rows the player will be asked about
+        [$importNow] = $this->reloadImport($import);
+        $asked = self::getContainer()->get(ImportRowTimeCheck::class)->unusualAmong($importNow, [$unusual, $usual]);
+        self::assertSame([$unusual], array_keys($asked));
+        self::assertTrue($asked[$unusual]->isRaised());
+
+        $this->addAndWork($import, $player);
+
+        self::assertSame(['waiting', 'unusual_time'], [$this->rowNow($unusual)['state'], $this->rowNow($unusual)['failure']]);
+        self::assertSame('added', $this->rowNow($usual)['state']);
+        self::assertCount(4, $this->resultsOf($player));
+
+        // "It is right": added, and stored the way the add form's answer is - the scan tells the moderator
+        $this->pairingDatabase()->update('data_import_row', ['answers' => '{"addAnyway": ["unusual_time"]}'], ['id' => $unusual]);
+        $this->addAndWork($import, $player, [$unusual]);
+
+        self::assertSame('added', $this->rowNow($unusual)['state']);
+        self::assertSame(
+            [['time_id' => $this->rowNow($unusual)['solving_time_id'], 'player_id' => $player->id->toString()]],
+            $this->pairingDatabase()->fetchAllAssociative('SELECT time_id, player_id FROM suspicious_time_confirmation WHERE player_id = :id', ['id' => $player->id->toString()]),
+        );
+        // Nothing is marked by an import: the result counts like any other until a moderator says otherwise
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id AND suspicious', ['id' => $player->id->toString()]));
+    }
+
+    public function testThePauseStopsARunningBatchWithinARow(): void
+    {
+        $player = $this->seedPairingPlayer('within-a-row');
+        $brand = $this->seedBrand('Zqwithin');
+        $this->seedCataloguePuzzle('Zq Within Puzzle', 500, $brand);
+
+        [$import, $sheet] = $this->importOf($player);
+
+        for ($day = 1; $day <= 6; $day++) {
+            $this->resultRow($import, $sheet, 'Zq Within Puzzle', 500, 'Zqwithin', sprintf('2024-01-%02d', $day), 5000 + $day);
+        }
+
+        $this->pair($import);
+        $outcome = $this->add($import, $player);
+        self::assertNotNull($outcome->id);
+
+        // A bus that flips the switch right after the second row is added - in the middle of a turn of 50 rows
+        $container = self::getContainer();
+        $bus = new class ($container->get(MessageBusInterface::class)) implements MessageBusInterface {
+            private int $added = 0;
+
+            public function __construct(
+                private readonly MessageBusInterface $inner,
+            ) {
+            }
+
+            public function dispatch(object $message, array $stamps = []): Envelope
+            {
+                $envelope = $this->inner->dispatch($message, $stamps);
+
+                if ($message instanceof ApplyImportRow && $message->settleOnly === false && ++$this->added === 2) {
+                    $this->inner->dispatch(new ChangeImportAddingPaused(true, PlayerFixture::PLAYER_ADMIN, 'Stop'));
+                }
+
+                return $envelope;
+            }
+        };
+        $handler = new ProcessImportBatchHandler(
+            $bus,
+            $container->get(DataImportRowRepository::class),
+            $container->get(DataImportSettingsRepository::class),
+            $this->pairingEntityManager(),
+            $container->get(ImportProgress::class),
+            new NullLogger(),
+        );
+
+        $handler($this->currentTurnOf($outcome->id));
+
+        self::assertCount(2, $this->resultsOf($player));
+        self::assertSame(4, $this->pairingCount("SELECT COUNT(*) FROM data_import_row WHERE batch_id = :id AND state = 'queued'", ['id' => $outcome->id]));
+        self::assertSame('running', $this->batchNow($outcome->id)['state']);
+    }
+
+    public function testNotesBesideATimeBecomePrivateNotesAlsoWithoutAnyOtherFieldValue(): void
+    {
+        $player = $this->seedPairingPlayer('notes');
+        $this->seedCataloguePuzzle('Zq Notes Puzzle', 500, $this->seedBrand('Zqnotes'));
+
+        [$import, $sheet] = $this->importOf($player);
+        $row = $this->resultRow($import, $sheet, 'Zq Notes Puzzle', 500, 'Zqnotes', '2024-04-04', 5000, ['notes' => ['slower than last time']]);
+        $this->pair($import);
+
+        $this->addAndWork($import, $player);
+
+        $fieldId = $this->pairingDatabase()->fetchOne("SELECT id FROM player_custom_field WHERE player_id = :id AND standard_key = 'private_notes'", ['id' => $player->id->toString()]);
+        self::assertIsString($fieldId);
+        $values = $this->pairingDatabase()->fetchOne('SELECT custom_values FROM solving_time_custom_values WHERE solving_time_id = :time', ['time' => $this->rowNow($row)['solving_time_id']]);
+        self::assertIsString($values);
+        self::assertEquals([$fieldId => 'slower than last time'], json_decode($values, true, flags: JSON_THROW_ON_ERROR));
+        // Private: the public comment of the result stays empty
+        self::assertNull($this->resultsOf($player)[0]['comment']);
+    }
+
+    public function testAnImportedResultHasNoHourOfDay(): void
+    {
+        $player = $this->seedPairingPlayer('hours');
+        $puzzle = $this->seedCataloguePuzzle('Zq Hours Puzzle', 500, $this->seedBrand('Zqhours'));
+        $this->pairingDatabase()->update('player', ['timezone' => 'UTC'], ['id' => $player->id->toString()]);
+        $typed = $this->typedResult($player, $puzzle, '2026-10-10', 5100);
+
+        [$import, $sheet] = $this->importOf($player);
+        $row = $this->resultRow($import, $sheet, 'Zq Hours Puzzle', 500, 'Zqhours', '2026-10-11', 5000);
+        $this->pair($import);
+        $this->addAndWork($import, $player);
+        $imported = $this->rowNow($row)['solving_time_id'];
+
+        // Both "logged" at 23:30 of their solve day - the import by whatever bends its made-up moment (a result solved
+        // today is tracked "a second ago", at any hour of the night)
+        $this->pairingDatabase()->update('puzzle_solving_time', ['tracked_at' => '2026-10-10 23:30:00'], ['id' => $typed]);
+        $this->pairingDatabase()->update('puzzle_solving_time', ['tracked_at' => '2026-10-11 23:30:00'], ['id' => $imported]);
+
+        // Night Owl counts the typed one only
+        self::assertSame(1, self::getContainer()->get(GetPlayerStatsSnapshot::class)->forPlayer($player->id->toString())->nightOwlSolves);
+        // ... and so does the hour-of-day chart
+        $hours = self::getContainer()->get(GetPlayerActivityCalendar::class)->hourOfDayBucketsInMonth($player->id->toString(), 2026, 10);
+        self::assertSame(1, array_sum($hours));
+        self::assertSame(1, $hours[23]);
     }
 
     /**

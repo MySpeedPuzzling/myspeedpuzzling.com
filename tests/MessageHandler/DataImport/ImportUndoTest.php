@@ -6,8 +6,19 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
+use SpeedPuzzling\Web\Message\ApplyImportRow;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\ChangeImportAddingPaused;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
+use SpeedPuzzling\Web\Message\ProcessImportBatch;
+use SpeedPuzzling\Web\Message\ProcessImportUndo;
+use SpeedPuzzling\Web\Message\SendImportAddedEmail;
+use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\UndoImportRow;
+use SpeedPuzzling\Web\MessageHandler\ProcessImportBatchHandler;
+use SpeedPuzzling\Web\MessageHandler\ProcessImportUndoHandler;
+use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\DataImport\AddImportRowsOutcome;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
@@ -46,7 +57,7 @@ final class ImportUndoTest extends KernelTestCase
         $statisticsBefore = $this->pairingDatabase()->fetchOne('SELECT solved_times_count FROM puzzle_statistics WHERE puzzle_id = :id', ['id' => $solved]);
 
         [$import, $sheet] = $this->importOf($player);
-        $resultRow = $this->resultRow($import, $sheet, 'Zq Undo Solved', 500, 'Zqundo', '2024-01-01', 1800, ['custom' => ['how_i_liked_it' => 5]]);
+        $resultRow = $this->resultRow($import, $sheet, 'Zq Undo Solved', 500, 'Zqundo', '2024-01-01', 8800, ['custom' => ['how_i_liked_it' => 5]]);
         $ownedRow = $this->ownedRow($import, $sheet, 'Zq Undo Bought', 500, 'Zqundo');
         $wishRow = $this->wishRow($import, $sheet, 'Zq Undo Wished', 500, 'Zqundo');
         $this->pair($import);
@@ -234,19 +245,150 @@ final class ImportUndoTest extends KernelTestCase
         $added = $this->add($import, $player);
         self::assertNotNull($added->id);
         $bus = self::getContainer()->get(MessageBusInterface::class);
-        $bus->dispatch(new \SpeedPuzzling\Web\Message\ApplyImportRow($one, $added->id, $player->id->toString()));
+        $bus->dispatch(new ApplyImportRow($one, $added->id, $player->id->toString()));
         $bus->dispatch(new ChangeImportAddingPaused(true, PlayerFixture::PLAYER_ADMIN, 'Emergency'));
         self::assertCount(1, $this->resultsOf($player));
 
         $undo = $this->undo($import, PlayerFixture::PLAYER_ADMIN, DataImportUndoScope::Batch, $added->id, asAdmin: true, reason: 'Emergency');
 
         self::assertSame(['finished', 1], [$this->undoNow($undo->id)['state'], $this->undoNow($undo->id)['results_deleted']]);
-        self::assertSame('finished', $this->batchNow($added->id)['state']);
         self::assertSame([], $this->resultsOf($player));
         self::assertSame(['waiting', 'waiting'], [$this->rowNow($one)['state'], $this->rowNow($two)['state']]);
 
-        // The stopped batch's job finds nothing to do
+        // The stopped batch ends with its next turn - the pause does not hold it, it has nothing left to add - and
+        // tells the player nothing: "1 added" just before it is taken back would be noise. The admin's Undo tells
+        // them once, with the reason
+        self::assertSame(['running', true], [$this->batchNow($added->id)['state'], $this->batchNow($added->id)['ended_by_undo']]);
         $this->work($added->id);
+        self::assertSame(['finished', null], [$this->batchNow($added->id)['state'], $this->batchNow($added->id)['notified_at']]);
+        self::assertSame(
+            ['ImportRowsTakenBack'],
+            $this->pairingDatabase()->fetchFirstColumn('SELECT type FROM notification WHERE player_id = :id', ['id' => $player->id->toString()]),
+        );
+        $notifications = self::getContainer()->get(GetNotifications::class)->forPlayer($player->id->toString(), 10, 0);
+        self::assertCount(1, $notifications);
+        self::assertTrue($notifications[0]->isImportNotification());
+        self::assertSame([1, 'Emergency', $import->id->toString()], [$notifications[0]->importResultsTakenBack, $notifications[0]->importTakenBackReason, $notifications[0]->importId]);
+        $async = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $async);
+        self::assertSame([], array_filter($async->getSent(), static fn ($envelope): bool => $envelope->getMessage() instanceof SendImportAddedEmail));
+
+        // A job of the stopped batch that still waited finds nothing to do
+        self::getContainer()->get(ProcessImportBatchHandler::class)(new ProcessImportBatch($added->id, 1));
         self::assertSame([], $this->resultsOf($player));
+    }
+
+    public function testAnUndoOfTheImportOrOfRowsStopsABatchThatStillRuns(): void
+    {
+        $player = $this->seedPairingPlayer('half-way');
+        $brand = $this->seedBrand('Zqhalf');
+
+        foreach (['One', 'Two', 'Three', 'Four'] as $name) {
+            $this->seedCataloguePuzzle('Zq Half ' . $name, 500, $brand);
+        }
+
+        [$import, $sheet] = $this->importOf($player);
+        $rows = [];
+
+        foreach (['One', 'Two', 'Three', 'Four'] as $index => $name) {
+            $rows[] = $this->resultRow($import, $sheet, 'Zq Half ' . $name, 500, 'Zqhalf', '2024-01-0' . ($index + 1), 3000 + $index);
+        }
+
+        $this->pair($import);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        // Two of four rows are added when the player takes ONE ROW back
+        $added = $this->add($import, $player);
+        self::assertNotNull($added->id);
+        $bus->dispatch(new ApplyImportRow($rows[0], $added->id, $player->id->toString()));
+        $bus->dispatch(new ApplyImportRow($rows[1], $added->id, $player->id->toString()));
+
+        $this->undo($import, $player, DataImportUndoScope::Rows, rowIds: [$rows[0]]);
+
+        // The batch is stopped: what waited for its turn waits again, nothing more is added behind the Undo's back
+        self::assertSame(['waiting', 'added', 'waiting', 'waiting'], array_map(fn (string $rowId): string => $this->rowNow($rowId)['state'], $rows));
+        $this->work($added->id);
+        self::assertSame(['finished', true, 1], [$this->batchNow($added->id)['state'], $this->batchNow($added->id)['ended_by_undo'], $this->batchNow($added->id)['rows_added']]);
+        self::assertCount(1, $this->resultsOf($player));
+        // The player's own Undo tells nothing, and the stopped batch neither
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id', ['id' => $player->id->toString()]));
+        // What the stopped batch did add is followed up all the same
+        $imports = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $imports);
+        self::assertNotEmpty(array_filter($imports->getSent(), static fn ($envelope): bool => $envelope->getMessage() instanceof AwardXpForSolvingTime));
+
+        // The same for everything the import added: a new batch half-way, then Undo of the import
+        $again = $this->add($import, $player);
+        self::assertNotNull($again->id);
+        $bus->dispatch(new ApplyImportRow($rows[0], $again->id, $player->id->toString()));
+
+        $whole = $this->undo($import, $player, DataImportUndoScope::Import);
+
+        self::assertSame(2, $this->undoNow($whole->id)['results_deleted']);
+        self::assertSame(['waiting', 'waiting', 'waiting', 'waiting'], array_map(fn (string $rowId): string => $this->rowNow($rowId)['state'], $rows));
+        $this->work($again->id);
+        self::assertSame('finished', $this->batchNow($again->id)['state']);
+        self::assertSame([], $this->resultsOf($player));
+    }
+
+    public function testAPuzzleMergedSinceTheImportIsNotThePlayersChange(): void
+    {
+        $player = $this->seedPairingPlayer('merged-undo');
+        $brand = $this->seedBrand('Zqmergedundo');
+        $survivor = $this->seedCataloguePuzzle('Zq Undo Merge Survivor', 500, $brand);
+        $duplicate = $this->seedCataloguePuzzle('Zq Undo Merge Duplicate', 500, $brand);
+
+        [$import, $sheet] = $this->importOf($player);
+        $row = $this->resultRow($import, $sheet, 'Zq Undo Merge Duplicate', 500, 'Zqmergedundo', '2024-02-02', 4000);
+        $this->pair($import);
+        $added = $this->addAndWork($import, $player);
+        self::assertSame([$duplicate], array_column($this->resultsOf($player), 'puzzle_id'));
+
+        // The catalogue merges the puzzle: the result moves to the survivor - nobody edited it
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $mergeRequestId = Uuid::uuid7()->toString();
+        $bus->dispatch(new SubmitPuzzleMergeRequest(mergeRequestId: $mergeRequestId, sourcePuzzleId: $survivor, reporterId: PlayerFixture::PLAYER_REGULAR, duplicatePuzzleIds: [$duplicate]));
+        $bus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: $survivor,
+            mergedName: 'Zq Undo Merge Survivor',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: $brand->id->toString(),
+            selectedImagePuzzleId: null,
+        ));
+        self::assertSame([$survivor], array_column($this->resultsOf($player), 'puzzle_id'));
+
+        $undo = $this->undo($import, $player, DataImportUndoScope::Batch, $added->id);
+
+        self::assertSame([1, 1, 0], [$this->undoNow($undo->id)['rows_undone'], $this->undoNow($undo->id)['results_deleted'], $this->undoNow($undo->id)['results_kept_edited']]);
+        self::assertSame([], $this->resultsOf($player));
+        self::assertSame('waiting', $this->rowNow($row)['state']);
+    }
+
+    public function testARowOfAnUndoDeliveredTwiceIsCountedOnce(): void
+    {
+        $player = $this->seedPairingPlayer('twice-undone');
+        $this->seedCataloguePuzzle('Zq Twice Undone', 500, $this->seedBrand('Zqtwiceundone'));
+
+        [$import, $sheet] = $this->importOf($player);
+        $row = $this->resultRow($import, $sheet, 'Zq Twice Undone', 500, 'Zqtwiceundone', '2024-01-01', 4000);
+        $this->pair($import);
+        $this->addAndWork($import, $player);
+
+        $undo = $this->undo($import, $player, DataImportUndoScope::Import, work: false);
+        self::assertNotNull($undo->id);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new UndoImportRow($undo->id, $row));
+        $bus->dispatch(new UndoImportRow($undo->id, $row));
+        // A job of an older turn is void, the current one ends the Undo
+        $this->pairingDatabase()->update('data_import_undo', ['turn' => 2], ['id' => $undo->id]);
+        self::getContainer()->get(ProcessImportUndoHandler::class)(new ProcessImportUndo($undo->id, 1));
+        self::assertSame('running', $this->undoNow($undo->id)['state']);
+        $this->workUndo($undo->id);
+
+        self::assertSame(['finished', 1, 1], [$this->undoNow($undo->id)['state'], $this->undoNow($undo->id)['rows_undone'], $this->undoNow($undo->id)['results_deleted']]);
     }
 }

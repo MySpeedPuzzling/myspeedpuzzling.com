@@ -17,8 +17,12 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\HandledOutsideTransaction;
  */
 readonly final class ProcessImportBatch implements HandledOutsideTransaction
 {
+    /**
+     * @param int $turn the batch's turn this job is (DataImportBatch::$turn) - a job of an older turn does nothing
+     */
     public function __construct(
         public string $batchId,
+        public int $turn,
     ) {
     }
 }

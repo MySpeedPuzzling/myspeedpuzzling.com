@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
+use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Events\PuzzleAddedToCollection;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
@@ -23,6 +24,7 @@ use SpeedPuzzling\Web\Query\GetImportPuzzleCandidates;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
+use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
@@ -67,6 +69,8 @@ readonly final class ImportRowAdder
         private CollectionItemRepository $collectionItemRepository,
         private WishListItemRepository $wishListItemRepository,
         private ResultDuplicatePreventionRepository $duplicatePreventionRepository,
+        private ImportRowTimeCheck $timeCheck,
+        private SuspiciousTimeConfirmationRepository $confirmationRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -278,10 +282,23 @@ readonly final class ImportRowAdder
             return self::outcome('already_yours', customValuesOf: $customValuesOf);
         }
 
-        $row->added($now, $collectionItemId, $wishListItemId, $made);
+        // The row's result was the player's already (only its puzzle was added): the row keeps speaking for that result
+        $row->added(
+            $now,
+            $collectionItemId,
+            $wishListItemId,
+            $made,
+            isset($made['result']) ? null : $alreadyHow,
+            isset($made['result']) || $alreadyTimeId === null ? null : Uuid::fromString($alreadyTimeId),
+        );
 
-        if (is_array($row->parsed['custom'] ?? null) && $row->parsed['custom'] !== []) {
-            $customValuesOf[] = $row->id->toString();
+        // Values of the player's own fields - and the words that stood beside a time, which become private notes
+        foreach (['custom', 'notes'] as $carried) {
+            if (is_array($row->parsed[$carried] ?? null) && $row->parsed[$carried] !== []) {
+                $customValuesOf[] = $row->id->toString();
+
+                break;
+            }
         }
 
         return self::outcome('added', customValuesOf: $customValuesOf);
@@ -361,6 +378,16 @@ readonly final class ImportRowAdder
             return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
         }
 
+        // The time verification's own judgement, as the add form asks it: an unusual time needs the player's "it is
+        // right" (README "Time verification") - and with it the result is added and the answer stored for the scan
+        $unusual = $said['seconds'] === null
+            ? null
+            : $this->timeCheck->unusual($playerId, $puzzle->id->toString(), $said['seconds'], $said['type'], count($people) + 1, $said['day']);
+
+        if ($unusual !== null && self::isWavedThrough($row, ImportRowRefusal::UnusualTime) === false) {
+            return self::answer(refused: ImportRowRefusal::UnusualTime->value);
+        }
+
         // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
         if (($row->parsed['alreadyOnMsp'] ?? null) === true && self::isWavedThrough($row, ImportRowRefusal::SaidAlreadyOnProfile) === false) {
             return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
@@ -404,6 +431,17 @@ readonly final class ImportRowAdder
                 $puzzle->id,
                 $this->clock->now(),
                 SolvingTimeSource::SpreadsheetImport,
+            ));
+        }
+
+        // "It is right": stored the way the form's answer is, so the scan tells the moderator the player was asked
+        if ($unusual !== null) {
+            $this->confirmationRepository->save(new SuspiciousTimeConfirmation(
+                id: Uuid::uuid7(),
+                time: $solvingTime,
+                player: $player,
+                expectedSeconds: $unusual->expectedSeconds ?? 0,
+                confirmedAt: $this->clock->now(),
             ));
         }
 
@@ -622,9 +660,15 @@ readonly final class ImportRowAdder
     }
 
     /**
-     * @return list<string> one person per entry
+     * The other people of a row - **guests, every one of them** (README D12): an import never puts a result on
+     * another registered player's profile. The writer reads an entry that starts with `#` as a player's code, like
+     * the add form does; no entry leaves here with one, so that door is not reachable from an import - a `#CODE` in a
+     * file is the guest's name without the sign (what the form makes of a code nobody has). The existing consent flow
+     * (GuestLinkRequest) links a guest to a player later.
+     *
+     * @return list<string> one guest's name per entry
      */
-    private static function people(mixed $people): array
+    public static function people(mixed $people): array
     {
         if (is_array($people) === false) {
             return [];
@@ -633,8 +677,10 @@ readonly final class ImportRowAdder
         $named = [];
 
         foreach ($people as $person) {
-            if (is_string($person) && trim($person) !== '') {
-                $named[] = trim($person);
+            $name = is_string($person) ? trim($person, "# \t\n\r\0\x0B") : '';
+
+            if ($name !== '') {
+                $named[] = $name;
             }
         }
 

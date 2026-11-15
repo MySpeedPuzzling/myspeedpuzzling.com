@@ -9,7 +9,9 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ApplyImportRow;
 use SpeedPuzzling\Web\Message\BeginImportBatchTurn;
 use SpeedPuzzling\Web\Message\FinishImportBatch;
+use SpeedPuzzling\Web\Message\FollowUpImportBatch;
 use SpeedPuzzling\Web\Message\ProcessImportBatch;
+use SpeedPuzzling\Web\Message\QueueImportTurn;
 use SpeedPuzzling\Web\Message\RecordImportBatchSettled;
 use SpeedPuzzling\Web\Message\RecordImportRowFailed;
 use SpeedPuzzling\Web\Message\WriteImportRowCustomValues;
@@ -25,26 +27,32 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  * A turn of an "Add" (docs/features/data-import/adding.md "The work"). Outside a transaction (ProcessImportBatch):
  * every row is a message of its own, handled at once in its own short transaction.
  *
- * 1. BeginImportBatchTurn: the batch runs and adding is not paused - else the turn ends at once.
+ * 1. BeginImportBatchTurn: the batch runs, this job is its current turn, and adding is not paused - else the turn
+ *    ends at once.
  * 2. **The first pass** (once per batch, its place kept on the batch): every queued row with a result is asked whether
  *    the player already has that result (ApplyImportRow, settle only) - before any row is added, so the answer does
  *    not depend on the rows' order.
  * 3. **Adding**: the batch's queued rows, one after the other (ApplyImportRow), then the values of the player's own
  *    fields of a row that was added (WriteImportRowCustomValues - after the row, never able to fail it).
  *    A row that throws is marked failed (RecordImportRowFailed) and the batch goes on.
- * 4. After DataImportLimits::ROWS_PER_TURN rows or SECONDS_PER_TURN the message sends itself again; with no queued
- *    row left, FinishImportBatch.
+ * 4. **The follow-up**, once no row is queued: what is owed for the results, FollowUpImportBatchHandler::RESULTS_PER_CHUNK
+ *    at a time (FollowUpImportBatch), then FinishImportBatch.
+ * 5. After DataImportLimits::ROWS_PER_TURN rows or SECONDS_PER_TURN the next turn is queued (QueueImportTurn).
  *
  * Everything is read from the rows' state, so a second delivery, a restart or a second worker repeats nothing: a row
- * leaves "queued" in the transaction that writes it, under the player's lock. The safety switch is asked again
- * between two rows.
+ * leaves "queued" in the transaction that writes it, under the player's lock. **The safety switch is asked before
+ * every row** (one indexed read): a paused batch stops within a row.
  *
- * Failures: the first exception of a turn is logged once, as an error, with the number of rows that failed in the
- * turn - never one log line per row, never a cell's content (the message names ids only).
+ * Failures: the first exception of the turn in which a batch's first rows fail is logged once, as an error, with the
+ * number of rows that failed in the turn - never one log line per row, never a cell's content (the message names ids
+ * only).
  */
 #[AsMessageHandler]
 readonly final class ProcessImportBatchHandler
 {
+    /** Chunks of the follow-up one turn takes at most - each is up to a hundred results' statistics and awards */
+    private const int FOLLOW_UP_CHUNKS_PER_TURN = 5;
+
     public function __construct(
         private MessageBusInterface $messageBus,
         private DataImportRowRepository $rowRepository,
@@ -60,13 +68,13 @@ readonly final class ProcessImportBatchHandler
 
     public function __invoke(ProcessImportBatch $message): void
     {
-        $turn = $this->ask(new BeginImportBatchTurn($message->batchId));
+        $turn = $this->ask(new BeginImportBatchTurn($message->batchId, $message->turn));
 
         if (is_array($turn) === false) {
             return;
         }
 
-        /** @var array{importId: string, playerId: string, settled: bool, settledUpTo: null|string} $turn */
+        /** @var array{importId: string, playerId: string, settled: bool, settledUpTo: null|string, stopped: bool} $turn */
         $startedAt = hrtime(true);
         $rowsDone = 0;
         $failed = 0;
@@ -74,18 +82,26 @@ readonly final class ProcessImportBatchHandler
         $over = function () use (&$rowsDone, $startedAt): bool {
             return $rowsDone >= $this->rowsPerTurn || (hrtime(true) - $startedAt) / 1_000_000_000 >= $this->secondsPerTurn;
         };
+        // A batch an Undo stopped has no row left to add: the switch has nothing to hold
+        $isPaused = fn (): bool => $turn['stopped'] === false && $this->settingsRepository->isAddingPaused();
         $paused = false;
 
         // --- The first pass: what the player already has ---
         $settled = $turn['settled'];
         $cursor = $turn['settledUpTo'];
-        // Rows that left the queue, or the first pass moving on: only then is there a reason for another turn
+        // Rows that left the queue, or a pass moving on: only then is there a reason for another turn
         $progressed = 0;
 
         while ($settled === false && $over() === false && $paused === false) {
             $rowIds = $this->rowRepository->idsQueuedInBatch($message->batchId, min(50, $this->rowsPerTurn), onlyResults: true, afterId: $cursor);
 
             foreach ($rowIds as $rowId) {
+                if ($isPaused()) {
+                    $paused = true;
+
+                    break;
+                }
+
                 try {
                     $this->messageBus->dispatch(new ApplyImportRow($rowId, $message->batchId, $turn['playerId'], settleOnly: true));
                 } catch (\Throwable $e) {
@@ -105,7 +121,6 @@ readonly final class ProcessImportBatchHandler
 
             $settled = $rowIds === [];
             $this->messageBus->dispatch(new RecordImportBatchSettled($message->batchId, $cursor, $settled));
-            $paused = $this->settingsRepository->isAddingPaused();
         }
 
         // --- Adding ---
@@ -120,6 +135,12 @@ readonly final class ProcessImportBatchHandler
             }
 
             foreach ($rowIds as $rowId) {
+                if ($isPaused()) {
+                    $paused = true;
+
+                    break;
+                }
+
                 $cursor = $rowId;
                 $rowsDone++;
 
@@ -163,7 +184,6 @@ readonly final class ProcessImportBatchHandler
             }
 
             $this->progress->publishAdding($turn['importId'], always: false);
-            $paused = $this->settingsRepository->isAddingPaused();
         }
 
         // Once per batch: the turn in which the batch's first rows failed. How many failed in all is on the batch,
@@ -185,17 +205,56 @@ readonly final class ProcessImportBatchHandler
         }
 
         if ($settled && $this->rowRepository->idsQueuedInBatch($message->batchId, 1) === []) {
-            $this->finish($message->batchId, $turn['importId']);
+            // --- The follow-up, then the end ---
+            $followedUp = $this->followUp($message->batchId, $over);
 
-            return;
+            if ($followedUp === true) {
+                $this->finish($message->batchId, $turn['importId']);
+
+                return;
+            }
+
+            // More chunks to come: another turn. A chunk that failed is the sweeper's - not a loop's
+            $progressed = $followedUp === false ? $progressed + 1 : 0;
         }
 
         if ($progressed > 0) {
             // The next turn - behind whatever else waits on the `imports` queue
-            $this->messageBus->dispatch(new ProcessImportBatch($message->batchId));
+            $this->messageBus->dispatch(QueueImportTurn::ofBatch($message->batchId));
         }
 
         $this->progress->publishAdding($turn['importId']);
+    }
+
+    /**
+     * @param callable(): bool $over
+     *
+     * @return null|bool true: every result is followed up - the batch can end; false: more to do; null: a chunk failed
+     */
+    private function followUp(string $batchId, callable $over): null|bool
+    {
+        for ($chunk = 0; $chunk < self::FOLLOW_UP_CHUNKS_PER_TURN; $chunk++) {
+            try {
+                if ($this->ask(new FollowUpImportBatch($batchId)) === true) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                // The chunk is rolled back and done again by the next turn
+                $this->entityManager->clear();
+                $this->logger->error('A chunk of an import batch\'s follow-up failed - the next turn tries again', [
+                    'batch_id' => $batchId,
+                    'exception' => $e,
+                ]);
+
+                return null;
+            }
+
+            if ($over()) {
+                break;
+            }
+        }
+
+        return false;
     }
 
     private function finish(string $batchId, string $importId): void

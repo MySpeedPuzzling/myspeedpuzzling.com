@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportUndo;
+use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -21,12 +22,15 @@ use SpeedPuzzling\Web\Message\UndoImportRow;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
+use SpeedPuzzling\Web\Repository\NotificationRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowAdder;
 use SpeedPuzzling\Web\Services\DataImport\ImportWriteLock;
 use SpeedPuzzling\Web\Value\DataImportRowState;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
+use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -61,6 +65,8 @@ readonly final class UndoImportRowHandler
         private PuzzleSolvingTimeRepository $solvingTimeRepository,
         private CollectionItemRepository $collectionItemRepository,
         private WishListItemRepository $wishListItemRepository,
+        private PuzzleRedirectRepository $puzzleRedirectRepository,
+        private NotificationRepository $notificationRepository,
         private EntityManagerInterface $entityManager,
         private ImportWriteLock $lock,
         private MessageBusInterface $messageBus,
@@ -72,7 +78,17 @@ readonly final class UndoImportRowHandler
     {
         $undo = $this->batchRepository->findUndo($message->undoId);
 
-        if ($undo === null || $undo->isRunning() === false) {
+        if ($undo === null) {
+            return;
+        }
+
+        // The player's lock first, then the Undo as the database has it now: two chains of turns (a job delivered
+        // again) take turns here, and neither counts on top of a number the other has not committed yet
+        $player = $undo->import->player;
+        $this->lock->lockUntilCommit($player->id->toString());
+        $this->entityManager->refresh($undo);
+
+        if ($undo->isRunning() === false) {
             return;
         }
 
@@ -95,8 +111,6 @@ readonly final class UndoImportRowHandler
             return;
         }
 
-        $player = $undo->import->player;
-        $this->lock->lockUntilCommit($player->id->toString());
         $row = $this->rowRepository->find($message->rowId);
 
         if ($row === null || $row->undoId === null || $row->undoId->equals($undo->id) === false || $row->state !== DataImportRowState::Added) {
@@ -119,7 +133,7 @@ readonly final class UndoImportRowHandler
             : null;
 
         if ($solvingTime !== null) {
-            $outcome['resultWasEdited'] = ImportRowAdder::resultFacts($solvingTime) != ($row->made['result'] ?? null);
+            $outcome['resultWasEdited'] = $this->isChangedSince($solvingTime, $row->made['result'] ?? null);
 
             if ($outcome['resultWasEdited'] && $undo->includeEdited === false) {
                 // Changed since the import: the row and all it made stay as they are
@@ -161,6 +175,34 @@ readonly final class UndoImportRowHandler
 
         $row->undone();
         $undo->rowDone($outcome, $now);
+    }
+
+    /**
+     * Whether somebody changed the result since the row wrote it: its time, day, people - or its puzzle, **unless the
+     * puzzle the row wrote was merged into the one the result is on now** (`puzzle_redirect`): a merge moves the
+     * result, the player changed nothing.
+     */
+    private function isChangedSince(PuzzleSolvingTime $solvingTime, mixed $written): bool
+    {
+        $now = ImportRowAdder::resultFacts($solvingTime);
+
+        if (is_array($written) === false) {
+            return true;
+        }
+
+        $writtenPuzzleId = $written['puzzleId'] ?? null;
+
+        if (is_string($writtenPuzzleId) && $writtenPuzzleId !== $now['puzzleId']) {
+            $mergedInto = $this->puzzleRedirectRepository->findByOldPuzzleId($writtenPuzzleId)?->survivorPuzzleId->toString();
+
+            if ($mergedInto !== $now['puzzleId']) {
+                return true;
+            }
+        }
+
+        return ($written['seconds'] ?? null) !== $now['seconds']
+            || ($written['day'] ?? null) !== $now['day']
+            || ($written['teamId'] ?? null) !== $now['teamId'];
     }
 
     /**
@@ -235,6 +277,18 @@ readonly final class UndoImportRowHandler
 
         if ($undo->resultsDeleted > 0) {
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($undo->import->player->id->toString()));
+        }
+
+        // An admin took something back: the player is told once, in the app, with the reason - no e-mail. The player's
+        // own Undo tells nothing: they pressed the button
+        if ($undo->byAdmin && $undo->rowsUndone > 0) {
+            $this->notificationRepository->save(new Notification(
+                Uuid::uuid7(),
+                $undo->import->player,
+                NotificationType::ImportRowsTakenBack,
+                $now,
+                targetDataImportUndo: $undo,
+            ));
         }
     }
 }

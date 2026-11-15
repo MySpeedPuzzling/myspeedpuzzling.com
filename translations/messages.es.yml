@@ -12113,3 +12113,5 @@ data_import:
         already_yours: "{0}ninguna era ya tuya|{1}1 ya era tuya|]1,Inf[%count% ya eran tuyas"
         not_added: "{0}ninguna se quedó fuera|{1}1 no se pudo añadir|]1,Inf[%count% no se pudieron añadir"
         open: "Abrir"
+        taken_back: "{0}Hemos deshecho lo que añadió tu importación de %file%.|{1}Hemos deshecho 1 resultado que añadió tu importación de %file%.|]1,Inf[Hemos deshecho %count% resultados que añadió tu importación de %file%."
+        taken_back_reason: "Motivo: %reason%"

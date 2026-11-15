@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ProcessImportUndo;
+use SpeedPuzzling\Web\Message\QueueImportTurn;
 use SpeedPuzzling\Web\Message\UndoImportRow;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
@@ -42,7 +43,8 @@ readonly final class ProcessImportUndoHandler
         $this->entityManager->clear();
         $undo = $this->batchRepository->findUndo($message->undoId);
 
-        if ($undo === null || $undo->isRunning() === false) {
+        // A job of an older turn is a second chain (the sweeper queued a newer one while this waited): void
+        if ($undo === null || $undo->isRunning() === false || $undo->isTurn($message->turn) === false) {
             return;
         }
 
@@ -115,7 +117,7 @@ readonly final class ProcessImportUndoHandler
                 ]);
             }
         } elseif ($progressed > 0) {
-            $this->messageBus->dispatch(new ProcessImportUndo($message->undoId));
+            $this->messageBus->dispatch(QueueImportTurn::ofUndo($message->undoId));
         }
 
         $this->progress->publishAdding($importId);

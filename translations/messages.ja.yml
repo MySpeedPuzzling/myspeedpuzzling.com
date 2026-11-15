@@ -12102,3 +12102,5 @@ data_import:
         already_yours: "{0}登録済みなし|[1,Inf[%count% 行は登録済み"
         not_added: "{0}追加できなかった行なし|[1,Inf[%count% 行は追加できませんでした"
         open: "開く"
+        taken_back: "{0}%file% のインポートで追加された内容を取り消しました。|[1,Inf[%file% のインポートで追加された結果 %count% 件を取り消しました。"
+        taken_back_reason: "理由: %reason%"

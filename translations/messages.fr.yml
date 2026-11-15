@@ -12108,3 +12108,5 @@ data_import:
         already_yours: "{0}aucune déjà à vous|{1}1 déjà à vous|]1,Inf[%count% déjà à vous"
         not_added: "{0}aucune laissée de côté|{1}1 n'a pas pu être ajoutée|]1,Inf[%count% n'ont pas pu être ajoutées"
         open: "Ouvrir"
+        taken_back: "{0}Nous avons annulé ce que votre import de %file% avait ajouté.|{1}Nous avons annulé 1 résultat que votre import de %file% avait ajouté.|]1,Inf[Nous avons annulé %count% résultats que votre import de %file% avait ajoutés."
+        taken_back_reason: "Raison : %reason%"

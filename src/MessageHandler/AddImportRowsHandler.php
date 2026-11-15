@@ -113,11 +113,12 @@ readonly final class AddImportRowsHandler
             return new AddImportRowsOutcome(AddImportRowsOutcome::NOTHING, skipped: $skipped);
         }
 
-        $this->batchRepository->save(new DataImportBatch($batchId, $import, Uuid::fromString($message->requestId), $counts['queued'], $skipped, $now));
+        $batch = new DataImportBatch($batchId, $import, Uuid::fromString($message->requestId), $counts['queued'], $skipped, $now);
+        $this->batchRepository->save($batch);
         $import->workedOn($now);
 
         // On the `imports` queue; with the Doctrine transport the job is written in this very transaction
-        $this->messageBus->dispatch(new ProcessImportBatch($batchId->toString()));
+        $this->messageBus->dispatch(new ProcessImportBatch($batchId->toString(), $batch->turn));
 
         return new AddImportRowsOutcome(AddImportRowsOutcome::STARTED, $batchId->toString(), $counts['queued'], $skipped);
     }

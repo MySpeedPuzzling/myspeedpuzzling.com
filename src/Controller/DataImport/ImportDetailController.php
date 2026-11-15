@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportPairing;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class ImportDetailController extends AbstractController
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
+        readonly private GetImportPairing $getImportPairing,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -67,6 +69,8 @@ final class ImportDetailController extends AbstractController
             'import' => $import,
             'sheets' => $sheets,
             'summary' => ImportColumnsController::summary($sheets),
+            // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
+            'pairing' => $this->getImportPairing->summary($importId),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,
             'limits' => [
                 '%megabytes%' => intdiv(DataImportLimits::MAX_FILE_BYTES, 1024 * 1024),

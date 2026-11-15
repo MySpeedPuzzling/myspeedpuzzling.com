@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleSearchQuery;
+use SpeedPuzzling\Web\Value\SearchText;
 
 /**
  * The one SQL fragment of the puzzle text search (docs/features/puzzle-names/README.md, "Search"): what a typed
@@ -105,6 +106,107 @@ readonly final class PuzzleTextSearch
         }
 
         return "({$alias}.search_codes LIKE :ptsEanLineEnd AND strpos({$alias}.search_codes, :ptsEanLine) > 0)";
+    }
+
+    /**
+     * **Batch lookups** - many texts against the keys in one statement (the data import's pairing,
+     * docs/features/data-import/pairing.md). Not through the trigram indexes: on production a whole-name `LIKE`
+     * costs ~8.5 ms and a barcode `LIKE` ~3.7 ms each, so thousands of them are a minute. Instead the catalogue's keys
+     * are split into their lines once (sqlNameLines() / sqlCodeLines() - a sequential scan of `puzzle`, ~10 ms) and
+     * joined by **equality** with texts written exactly as the lines are (nameLine() / barcodeLine() /
+     * brandCodeLine()): 5,000 puzzles in ~150 ms. The line format lives here and in PuzzleSearchKeys only -
+     * PuzzleTextSearchLinesTest pins that the two agree. Whether a puzzle may be shown at all (hidden, secret) is the
+     * caller's condition.
+     *
+     * One row per name of every puzzle: `id`, `pieces_count`, `line` (the folded name).
+     */
+    public static function sqlNameLines(): string
+    {
+        return "SELECT pts_puzzle.id, pts_puzzle.pieces_count, pts_line AS line"
+            . " FROM puzzle pts_puzzle"
+            . " CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_names, E'\\n'), E'\\n')) AS pts_line"
+            . " WHERE pts_line <> ''";
+    }
+
+    /**
+     * One row per code of every puzzle: `id`, `tag` (`e` a barcode number without leading zeros, `c` a brand code as
+     * letters and digits - the check-digit aliases among them), `code` (the line without its tag).
+     */
+    public static function sqlCodeLines(): string
+    {
+        return "SELECT pts_puzzle.id, substring(pts_line from 1 for 1) AS tag, substring(pts_line from 3) AS code"
+            . " FROM puzzle pts_puzzle"
+            . " CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_codes, E'\\n'), E'\\n')) AS pts_line"
+            . " WHERE pts_line LIKE 'e:%' OR pts_line LIKE 'c:%'";
+    }
+
+    /**
+     * A name as a line of the names key holds it - '' when nothing is left.
+     */
+    public static function nameLine(string $name): string
+    {
+        return SearchText::fold($name);
+    }
+
+    /**
+     * A barcode as an `e:` line holds it: its digits without leading zeros. Null when the text is no number (digits
+     * with spaces, dashes or dots at most) - exactly what the typed search takes for a barcode.
+     */
+    public static function barcodeLine(string $number): null|string
+    {
+        $line = PuzzleSearchQuery::fromUserInput($number)->eanLine;
+
+        return $line === null ? null : substr($line, 3, -1);
+    }
+
+    /**
+     * A brand code as a `c:` line holds it: letters and digits only. Null without any.
+     */
+    public static function brandCodeLine(string $code): null|string
+    {
+        $line = SearchText::code($code);
+
+        return $line === '' ? null : $line;
+    }
+
+    /**
+     * A text as the similar-name lookup compares it: the search's fold. '' when nothing is left.
+     */
+    public static function foldedName(string $name): string
+    {
+        return SearchText::fold($name);
+    }
+
+    /**
+     * The index part of "a name of the puzzle is similar to this text": the folded text is similar to some stretch
+     * of the names key (pg_trgm's word similarity, served by custom_puzzle_search_names_trgm). The stretch need not
+     * be one name - nameSimilarity() is the measure, this only narrows the rows. The threshold is the session's
+     * `pg_trgm.word_similarity_threshold`: set it with similarNameThresholdStatement() in the same transaction.
+     *
+     * `$foldedExpression` is an SQL expression holding a foldedName().
+     */
+    public static function batchSimilarNameCondition(string $alias, string $foldedExpression): string
+    {
+        return "{$foldedExpression} <% {$alias}.search_names";
+    }
+
+    /**
+     * How similar the puzzle's most similar name is to the text (0 - 1, pg_trgm's similarity of two whole texts):
+     * every line of the names key is compared on its own, so a puzzle's other names neither help nor dilute.
+     */
+    public static function nameSimilarity(string $alias, string $foldedExpression): string
+    {
+        return "(SELECT MAX(similarity(pts_name_line, {$foldedExpression}))"
+            . " FROM unnest(string_to_array(btrim({$alias}.search_names, E'\\n'), E'\\n')) AS pts_name_line)";
+    }
+
+    /**
+     * Sets the threshold batchSimilarNameCondition() reads, for the running transaction only. Lower than the
+     * similarity asked of a name: the stretch the index finds is measured a little differently than a whole name.
+     */
+    public static function similarNameThresholdStatement(float $similarity): string
+    {
+        return sprintf("SELECT set_config('pg_trgm.word_similarity_threshold', '%.2F', true)", max(0.1, $similarity - 0.1));
     }
 
     /**

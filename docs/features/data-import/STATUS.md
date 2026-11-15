@@ -18,7 +18,7 @@ sandbox from the stage that can read them.
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); **3c live 2026-11-15** (#352: Google Sheets link). Stage 3 is complete | #345, #347, #350, #351, #352 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); 4c (memory) not started | #348, #353, #354 | yes | deploy green |
-| 5 | Pairing and review | not started | | | |
+| 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); 5b (the screens) building | #356 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
 | 6b | Add, never twice, Undo | not started | | | |
 | 6c | Date precision | not started | | | |
@@ -55,6 +55,22 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 5a live** (#356): `data_import_puzzle` (one per distinct puzzle of an import),
+  `import_puzzle_decision` (a player's remembered answers, "not this puzzle" included), `BuildImportPuzzles` after
+  every parse, the exact rules as one statement, similar names in chunks of 100, "already yours" hints,
+  `DecideImportPuzzles`, the merge handler moves both pointers. **Production plans decided the shape:** the exact
+  statement through the trigram index took 8.5 ms a name there (20 s timeout at 3,000 puzzles; the dev copy said
+  0.25 ms) - rebuilt as equality hash joins over the key lines split once: 588 ms for 5,000 puzzles on production.
+  Similar names: 840 ms a chunk. Review: three false-"found" paths closed before the merge (a capped lookup faking
+  uniqueness, a name without its brackets as strong as the full name, a taken-back pairing forgotten on a re-parse).
+  On the sandbox's real catalogue: Puzzle Tracker's export 385 puzzles → 227 found / 21 probably / 88 to choose /
+  49 not found; the training workbook 1,381 → 732 / 208 / 319 / 122. Whether "found" is the right puzzle is judged
+  with the screens (5b). Loose: the import page does not follow the pairing live (a refresh link); hints rewritten
+  on every run; a searched puzzle is not searched again when the catalogue grows; the 0.6 threshold unchecked.
+- 2026-11-15 - main's CI was red for two runs by the orchestrator's own test fix (a real-clock read the
+  `SystemClockCoverageTest` forbids) - fixed in 996a77e43; production was never affected.
+- 2026-11-15 - building: 4c (remembered layouts), 5b (the pairing screens).
 
 - 2026-11-15 - **stage 6a merged, dormant** (#355): `ImportedResultWriter` + `ImportedResultsFollowUp` beside the add
   form's handlers (those untouched - empty diff), held together by `ImportWritePathParityTest` (every column of

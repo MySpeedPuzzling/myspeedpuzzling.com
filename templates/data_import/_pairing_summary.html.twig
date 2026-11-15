@@ -1,0 +1,18 @@
+{# The import's distinct puzzles and where their pairing with the catalogue stands - read only; the lists and the
+   chooser arrive with the next stage (docs/features/data-import/pairing.md "The summary") #}
+{% if pairing.puzzles > 0 %}
+    <div class="card card-body shadow-sm mb-3" data-testid="import-pairing-summary">
+        <h2 class="h6 mb-1">{{ 'data_import.pairing.title'|trans }}</h2>
+        <p class="fs-sm text-muted mb-1" data-testid="import-pairing-puzzles">
+            {{ 'data_import.pairing.puzzles'|trans({'%number%': pairing.puzzles|format_number}) }}
+        </p>
+        <p class="fw-medium mb-0" data-testid="import-pairing-counts">
+            {{ 'data_import.pairing.summary'|trans({'%found%': pairing.found|format_number, '%probably%': pairing.probably|format_number, '%choose%': pairing.choose|format_number, '%not_found%': pairing.notFound|format_number}) }}
+        </p>
+        {% if pairing.searching > 0 %}
+            <p class="fs-sm text-muted mt-1 mb-0" data-testid="import-pairing-searching">
+                {{ (pairing.paired ? 'data_import.pairing.searching' : 'data_import.pairing.running')|trans({'%number%': pairing.searching|format_number}) }}
+            </p>
+        {% endif %}
+    </div>
+{% endif %}

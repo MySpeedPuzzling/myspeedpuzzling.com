@@ -11793,6 +11793,12 @@ data_import:
             renamed: "La mise en page porte son nouveau nom."
             forgotten: "La mise en page est oubliée."
             name_needed: "Merci de saisir un nom pour la mise en page."
+    pairing:
+        title: "Puzzles"
+        puzzles: "Puzzles différents dans votre fichier : %number%"
+        summary: "Trouvés dans la base de données : %found% · Probablement : %probably% · À choisir : %choose% · Introuvables : %not_found%"
+        searching: "Recherche de noms similaires en cours : %number%"
+        running: "Nous recherchons les puzzles de votre fichier dans la base de données…"
     columns:
         title: "Feuilles et colonnes"
         intro: "Voici ce que nous avons compris de chaque feuille de votre fichier. Répondez à ce que nous n'avons pas pu déterminer et corrigez ce que nous avons mal interprété."

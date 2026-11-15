@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
+use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
@@ -147,6 +149,11 @@ return App::config([
                 // read thousands of rows outside a transaction and write through small messages of their own
                 ProposeImportMappings::class => 'imports',
                 ParseImportSheet::class => 'imports',
+                // Pairing an import's distinct puzzles with the catalogue (docs/features/data-import/pairing.md): the
+                // exact rules for the whole import in one short job, the similar-name search in chunks that queue
+                // themselves again - other players' imports take their turns in between
+                BuildImportPuzzles::class => 'imports',
+                MatchImportPuzzlesFuzzy::class => 'imports',
                 // Fetching a Google sheet's export for an import: waits for Google outside a transaction, then hands
                 // the file to the reading above (docs/features/data-import/google-sheets.md)
                 StartImportFromGoogleSheet::class => 'imports',

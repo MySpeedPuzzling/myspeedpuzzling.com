@@ -16,6 +16,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportSource;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 
@@ -135,6 +136,41 @@ class DataImport
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $cellsWipedAt = null;
+
+    /**
+     * Raised every time the import's puzzles are built again (BuildImportPuzzles): the similar-name search carries its
+     * number, so a search of an older run stops (docs/features/data-import/pairing.md "The flow").
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $pairingRun = 0;
+
+    /**
+     * When the pairing last came to rest: every puzzle has its tier. Null while it runs, or before the first run.
+     * The import stays `setting_up` - a mapping can still change, and then the pairing runs again.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $pairedAt = null;
+
+    /**
+     * How often the safety net asked for the pairing again because a run did not come to rest (it failed - a puzzle
+     * merge beside it, a fault of ours; the queue has no retries). Bounded like a sheet's set-up attempts; back to
+     * zero when a run ends.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $pairingRequeues = 0;
+
+    /**
+     * "Where the rules end" - numbers only (ImportPairingCounters): puzzles per tier as the rules left them, and how
+     * often the player decided otherwise.
+     *
+     * @var null|array<mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $pairingCounters = null;
 
     private function __construct(
         #[Id]
@@ -369,6 +405,92 @@ class DataImport
     public function workedOn(DateTimeImmutable $now): void
     {
         $this->lastActivityAt = $now;
+    }
+
+    /**
+     * The import's puzzles are built and paired again.
+     *
+     * @return int the run's number
+     */
+    public function pairingStarted(DateTimeImmutable $now): int
+    {
+        $this->pairingRun++;
+        $this->pairedAt = null;
+        $this->lastActivityAt = $now;
+
+        return $this->pairingRun;
+    }
+
+    public function isPairingRun(int $run): bool
+    {
+        return $this->pairingRun === $run && $this->isBeingSetUp();
+    }
+
+    /**
+     * @param array<string, mixed> $counters ImportPairingCounters::toArray()
+     */
+    public function pairingCounted(array $counters): void
+    {
+        $this->pairingCounters = $counters;
+    }
+
+    /**
+     * A decision of the player moved counters (DecideImportPuzzlesHandler).
+     *
+     * @param array<string, int> $moved by counter - `remembered` or `player.<name>` - how much up or down
+     */
+    public function pairingCountersMoved(array $moved): void
+    {
+        $counters = $this->pairingCounters ?? [];
+
+        foreach ($moved as $counter => $by) {
+            if ($by === 0) {
+                continue;
+            }
+
+            if ($counter === 'remembered') {
+                $counters['remembered'] = max(0, (is_int($counters['remembered'] ?? null) ? $counters['remembered'] : 0) + $by);
+
+                continue;
+            }
+
+            $name = substr($counter, strlen('player.'));
+            $player = is_array($counters['player'] ?? null) ? $counters['player'] : [];
+            $player[$name] = max(0, (is_int($player[$name] ?? null) ? $player[$name] : 0) + $by);
+            $counters['player'] = $player;
+        }
+
+        $this->pairingCounters = $counters;
+    }
+
+    /**
+     * Every puzzle of the run has its tier.
+     *
+     * @param array<string, mixed> $counters ImportPairingCounters::toArray()
+     */
+    public function paired(array $counters, DateTimeImmutable $now): void
+    {
+        $this->pairingCounters = $counters;
+        $this->pairedAt = $now;
+        $this->pairingRequeues = 0;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * The safety net asks for the pairing once more (RequestImportPairing).
+     *
+     * @return bool false: it is not waited for, or it was asked for often enough
+     */
+    public function pairingRequestedAgain(DateTimeImmutable $now): bool
+    {
+        if ($this->isBeingSetUp() === false || $this->pairedAt !== null || $this->cellsWipedAt !== null || $this->pairingRequeues >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
+            return false;
+        }
+
+        $this->pairingRequeues++;
+        $this->lastActivityAt = $now;
+
+        return true;
     }
 
     public function readingFinished(DateTimeImmutable $now): void

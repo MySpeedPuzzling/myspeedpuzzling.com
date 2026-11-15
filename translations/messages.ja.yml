@@ -11787,6 +11787,12 @@ data_import:
             renamed: "レイアウトの名前を変更しました。"
             forgotten: "レイアウトを忘れました。"
             name_needed: "レイアウトの名前を入力してください。"
+    pairing:
+        title: "パズル"
+        puzzles: "ファイル内のパズルの種類: %number%"
+        summary: "データベースで見つかりました: %found% · おそらく一致: %probably% · 選択が必要: %choose% · 見つかりません: %not_found%"
+        searching: "似た名前を検索中: %number%"
+        running: "ファイルのパズルをデータベースで検索しています…"
     columns:
         title: "シートと列"
         intro: "ファイルの各シートについて、読み取れた内容です。こちらで判断できなかった点に答え、間違っているところは変更してください。"

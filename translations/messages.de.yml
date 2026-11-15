@@ -11797,6 +11797,12 @@ data_import:
             renamed: "Das Layout hat seinen neuen Namen."
             forgotten: "Das Layout ist vergessen."
             name_needed: "Bitte gib einen Namen für das Layout ein."
+    pairing:
+        title: "Puzzles"
+        puzzles: "Verschiedene Puzzles in deiner Datei: %number%"
+        summary: "In der Datenbank gefunden: %found% · Wahrscheinlich: %probably% · Zur Auswahl: %choose% · Nicht gefunden: %not_found%"
+        searching: "Ähnliche Namen werden noch gesucht: %number%"
+        running: "Wir suchen die Puzzles aus deiner Datei in der Datenbank…"
     columns:
         title: "Blätter und Spalten"
         intro: "Hier siehst du, was wir von jedem Blatt deiner Datei verstanden haben. Beantworte, was wir nicht herausfinden konnten, und ändere, was wir falsch erkannt haben."

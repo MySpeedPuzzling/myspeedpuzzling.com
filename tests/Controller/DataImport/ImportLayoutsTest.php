@@ -8,8 +8,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ConfirmImportMapping;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
+use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
@@ -42,6 +44,8 @@ final class ImportLayoutsTest extends WebTestCase
     private KernelBrowser $browser;
     private Connection $database;
     private MessageBusInterface $bus;
+    /** BuildImportPuzzles messages on the queue when it was last looked at */
+    private int $buildsSeen = 0;
 
     protected function setUp(): void
     {
@@ -194,6 +198,8 @@ final class ImportLayoutsTest extends WebTestCase
         $handled = $this->work();
         // ... and the two others follow at once: three sheets are read again, the fourth is left alone
         self::assertCount(3, $handled);
+        // Each of those parses asked for the import's puzzles to be built again, as any parse does - nothing more
+        self::assertSame(3, $this->buildsSeen);
 
         foreach ([$y2022, $y2023] as $sheetId) {
             $mapping = $this->mapping($sheetId);
@@ -446,7 +452,15 @@ final class ImportLayoutsTest extends WebTestCase
      */
     private function queued(): array
     {
-        return array_values(array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent()));
+        $sent = array_map(static fn ($envelope): object => $envelope->getMessage(), $this->queue()->getSent());
+        $this->buildsSeen = count(array_filter($sent, static fn (object $message): bool => $message instanceof BuildImportPuzzles));
+
+        // Without the pairing's own messages (BuildImportPuzzles after every parse, and the search it asks for):
+        // those are ImportPuzzleMatcherTest's, and the worker of this test lets them go
+        return array_values(array_filter(
+            $sent,
+            static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false,
+        ));
     }
 
     private function queue(): InMemoryTransport

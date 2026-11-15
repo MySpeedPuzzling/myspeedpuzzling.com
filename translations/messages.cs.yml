@@ -11800,6 +11800,12 @@ data_import:
             renamed: "Rozvržení má nový název."
             forgotten: "Rozvržení je zapomenuto."
             name_needed: "Napište prosím název rozvržení."
+    pairing:
+        title: "Puzzle"
+        puzzles: "Různých puzzle ve vašem souboru: %number%"
+        summary: "Nalezeno v databázi: %found% · Pravděpodobně: %probably% · K výběru: %choose% · Nenalezeno: %not_found%"
+        searching: "Ještě hledáme podobné názvy: %number%"
+        running: "Hledáme puzzle z vašeho souboru v databázi…"
     columns:
         title: "Listy a sloupce"
         intro: "Tady je, co jsme z každého listu vašeho souboru pochopili. Odpovězte na to, co jsme sami nezjistili, a opravte, co jsme určili špatně."

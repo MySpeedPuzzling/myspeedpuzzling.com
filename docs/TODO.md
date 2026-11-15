@@ -1672,7 +1672,9 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 
 ## Data import - the row's editor after the first tester (2026-11-15, `docs/features/data-import/pairing-screens.md` "The way back", "No time")
 
-- [ ] Check in a real browser (nothing of it was): the tick "No time" switching the time's input off, the Turbo
+- [ ] Check in a real browser (nothing of it was): the tick "No time" switching the time's input off, the editor's
+  buttons switched off once sent (Save / "Save and fix the next one" / "Don't import" still arriving as `action`,
+  and on again after the browser's Back), the Turbo
   Stream answers on "Rows we could not read" (confirmation in place, the 422 card, "Don't import them" with its
   confirm), and the anchors after a save (`#group-<key>`, `#row-<id>`).
 - [ ] A row that is in two groups of "Rows we could not read" and is left out through one still counts in the other

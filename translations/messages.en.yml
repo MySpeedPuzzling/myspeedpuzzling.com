@@ -12757,10 +12757,8 @@ data_import:
             puzzle: "Back to this puzzle"
             add: "Back to “Check and add”"
             add_list: "Back to “What will be added”"
-            add_times: "Back to “Unusual times”"
             not_added: "Back to “Rows that wait for your answer”"
             added: "Back to “What this import added”"
-            other: "Back to where you were"
         no_time: "No time - I didn't time this one"
         save_next: "Save and fix the next one"
         flash:

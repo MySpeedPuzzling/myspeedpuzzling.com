@@ -12513,10 +12513,8 @@ data_import:
             puzzle: "Zpět na toto puzzle"
             add: "Zpět na „Zkontrolovat a přidat“"
             add_list: "Zpět na „Co se přidá“"
-            add_times: "Zpět na „Neobvyklé časy“"
             not_added: "Zpět na „Řádky, které čekají na vaši odpověď“"
             added: "Zpět na „Co tento import přidal“"
-            other: "Zpět tam, kde jste byli"
         no_time: "Bez času - u tohoto puzzle se čas neměřil"
         save_next: "Uložit a opravit další"
         flash:

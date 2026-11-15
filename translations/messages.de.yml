@@ -12510,10 +12510,8 @@ data_import:
             puzzle: "Zurück zu diesem Puzzle"
             add: "Zurück zu „Prüfen und hinzufügen“"
             add_list: "Zurück zu „Was hinzugefügt wird“"
-            add_times: "Zurück zu „Ungewöhnliche Zeiten“"
             not_added: "Zurück zu „Zeilen, die auf deine Antwort warten“"
             added: "Zurück zu „Was dieser Import hinzugefügt hat“"
-            other: "Zurück zur vorherigen Seite"
         no_time: "Keine Zeit - dieses Puzzle habe ich nicht gestoppt"
         save_next: "Speichern und die nächste korrigieren"
         flash:

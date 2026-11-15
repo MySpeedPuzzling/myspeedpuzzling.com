@@ -30,7 +30,12 @@ final class ImportRowDraft
     public null|DateTimeImmutable $date = null;
     public DatePrecision $precision = DatePrecision::Day;
     public null|int $seconds = null;
-    /** The player said "No time - I didn't time this one" about this row (ImportRowAnswers::NO_TIME): a result */
+    /** The row's time cell holds something - a time, or a text nobody could read */
+    public bool $timeCellFilled = false;
+    /**
+     * The player said "No time - I didn't time this one" (ImportRowAnswers::NO_TIME) about a row whose time cell
+     * holds something: a result. Never set for an empty time cell - a row of a shelf stays a row of a shelf
+     */
     public bool $untimed = false;
     /** @var list<string> */
     public array $people = [];

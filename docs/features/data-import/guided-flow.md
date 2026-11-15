@@ -1531,15 +1531,18 @@ A player's report of 2026-11-15, the part about single rows and the columns. The
 [columns-screen.md](columns-screen.md) ("Saving"); in short:
 
 - **A way back.** Every link into a row's editor carries `?return=` (the screen, its page / filter and anchor);
-  `ImportRowOrigin` takes only a screen of this very import and names the back link after it. It survives a 422 and
+  `ImportRowOrigin` takes only one of the pages of this very import a player can come from (a closed list) and
+  names the back link after it. It survives a 422 and
   the redirect after a save.
-- **A clear "saved".** A saved row leads back to where the player came from - or on to the next row that needs a
-  look, or to "Rows we could not read" - and that page says "Row 14 is saved. We can read all of it now." One
+- **A clear "saved".** A saved row leads back to where the player came from - or, without such a screen, stays open
+  while it still needs a look, else on to the next row that needs a look, or to "Rows we could not read" - and that
+  page says "Row 14 is saved. We can read all of it now." One
   primary button (Save), and "Save and fix the next one" while another row needs a look.
 - **Saving the columns moves on** to "Where you are", which says "Saved - your rows are being read again" and
   follows the reading live. `back=list|check` are as they were. Which step comes next is `ImportFlow`'s to say.
 - **No time.** "No time - I didn't time this one" beside the time's input, and "Import these without a time (N)"
-  for a group of unreadable times: the row is what an empty time cell makes it - a result without a time.
+  for a group of unreadable times: the row is what an empty time cell makes it - a result without a time. Never
+  offered (nor taken) for a row of a shelf whose time cell is empty: it must not say "solved" by itself.
 - **No jumping on "Rows we could not read".** Group answers and "Import after all" are answered in place with Turbo
   Streams; the redirect stays as the fallback without a script.
 
@@ -1549,6 +1552,8 @@ A player's report of 2026-11-15, the part about single rows and the columns. The
 | Back to the page of the puzzle after its title was fixed | The puzzles' overview, when the save made the row another puzzle | The page of the old puzzle is gone once the puzzles are built again (a puzzle of the file without rows is deleted). |
 
 **Not verified in a browser:** the tick switching the time's input off (`data_import_no_time_controller.js`), the
+editor's buttons switched off once sent with the clicked one still in the POST
+(`data_import_submit_once_controller.js`), the
 streams as Turbo applies them (a 422 stream replacing the group's card, the confirmation staying in view, the
 `data-turbo-confirm` of "Don't import them" with a stream answer), and the anchors after a redirect
 (`#group-<key>`, `#row-<id>`). Covered as the server answers them: `ImportPairingScreensTest`,

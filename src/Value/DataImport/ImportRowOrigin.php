@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value\DataImport;
 
+use SpeedPuzzling\Web\Controller\DataImport\ImportPuzzleGroupController;
 use SpeedPuzzling\Web\Controller\DataImport\ImportsHomeController;
+use Symfony\Component\Routing\Requirement\Requirement;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 
 /**
@@ -12,25 +14,31 @@ use SpeedPuzzling\Web\Value\ReturnUrl;
  * `?return=` of the link they followed, proven to be a screen of this very import - the editor's back link is named
  * after it, and a save leads back to it.
  *
- * Only a same-site path (ReturnUrl) of this import's own screens survives: `/{locale}/import/{importId}[/…]`, plain
- * path segments only (no `..`, no percent-encoding in the path), with whatever query and anchor the screen had. A
- * row's editor is never the way back from a row's editor. Anything else is no origin at all - the caller falls back
- * to "Rows we could not read".
+ * Only a same-site path (ReturnUrl) that is **one of the pages a player can come from** survives: the GET pages of
+ * this import listed in SCREENS - never a POST-only address, a fragment a frame loads, another row's editor or a
+ * path that merely starts like the import's - with whatever query and anchor the screen had. Anything else is no
+ * origin at all: the caller falls back to "Rows we could not read". A new screen that links to the editor is added
+ * here (and gets its `data_import.row.back_to.<screen>` text).
  */
 final readonly class ImportRowOrigin
 {
-    /** The first path segment after the import's id => the screen, as `data_import.row.back_to.<screen>` names it */
+    /** The path after the import's id (a pattern) => the screen, as `data_import.row.back_to.<screen>` names it */
     private const array SCREENS = [
         '' => 'overview',
-        'to-fix' => 'to_fix',
-        'columns' => 'check',
-        'sheets' => 'sheet',
-        'people' => 'people',
-        'puzzles' => 'puzzles',
-        'puzzle' => 'puzzle',
-        'add' => 'add',
-        'not-added' => 'not_added',
-        'added' => 'added',
+        '/to-fix' => 'to_fix',
+        '/columns' => 'check',
+        '/sheets/{uuid}' => 'sheet',
+        '/sheets/{uuid}/need-a-look' => 'sheet',
+        '/people' => 'people',
+        '/puzzles' => 'puzzles',
+        '/puzzles/{group}' => 'puzzles',
+        '/puzzle/{uuid}' => 'puzzle',
+        '/add' => 'add',
+        '/add/already-on' => 'add',
+        '/add/list' => 'add_list',
+        '/not-added' => 'not_added',
+        '/not-added/times' => 'not_added',
+        '/added' => 'added',
     ];
 
     private function __construct(
@@ -49,25 +57,19 @@ final readonly class ImportRowOrigin
         }
 
         $path = substr($url, 0, strcspn($url, '?#'));
-        $pattern = '#^/(?:' . ImportsHomeController::LOCALES . ')/import/(?i:' . preg_quote($importId, '#') . ')((?:/[A-Za-z0-9-]+)*)$#';
+        $import = '/(?:' . ImportsHomeController::LOCALES . ')/import/(?i:' . preg_quote($importId, '#') . ')';
 
-        if (preg_match($pattern, $path, $found) !== 1) {
-            return null;
+        foreach (self::SCREENS as $page => $screen) {
+            $pattern = strtr(preg_quote($page, '#'), [
+                '\{uuid\}' => '(?i:' . Requirement::UUID . ')',
+                '\{group\}' => '(?:' . ImportPuzzleGroupController::GROUPS . ')',
+            ]);
+
+            if (preg_match('#^' . $import . $pattern . '$#', $path) === 1) {
+                return new self($url, $screen);
+            }
         }
 
-        $segments = $found[1] === '' ? [] : explode('/', substr($found[1], 1));
-        $first = $segments[0] ?? '';
-
-        if ($first === 'rows') {
-            return null;
-        }
-
-        $screen = self::SCREENS[$first] ?? 'other';
-
-        if ($screen === 'add' && in_array($segments[1] ?? '', ['list', 'times'], true)) {
-            $screen = 'add_' . $segments[1];
-        }
-
-        return new self($url, $screen);
+        return null;
     }
 }

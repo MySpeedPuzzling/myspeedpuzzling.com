@@ -1,15 +1,22 @@
 {#
     The rows the player chose not to import, under "Rows we could not read" (to_fix.html.twig) - each can be put
     back. Always the element `#import-to-fix-left-out` (empty while there is none), so an answer given in place
-    (_to_fix.stream.html.twig) can bring the list up to date; a row is `#left-out-row-<id>`.
+    (_to_fix.stream.html.twig) can bring the list up to date; a row is `#left-out-row-<id>`, the
+    count in the summary `#import-to-fix-left-out-title`.
 
-    Variables: import_id, page, csrf, left_out ({rows: list<ImportSheetRow>, total: int}).
+    Variables: import_id, page, csrf, left_out ({rows: list<ImportSheetRow>, total: int}), notice (optional - the
+    confirmation that stays when the last row was put back and the block is gone).
 #}
 {% set list_url = path('data_import_to_fix', page > 1 ? {importId: import_id, page: page} : {importId: import_id}) %}
 <div id="import-to-fix-left-out">
+    {% if notice|default(null) is not null %}
+        <div class="alert alert-success fs-sm d-flex gap-2 mt-3 mb-0" role="status" data-testid="import-to-fix-done">
+            <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i><span>{{ notice }}</span>
+        </div>
+    {% endif %}
     {% if left_out.total > 0 %}
         <details class="card card-body shadow-sm mt-3" data-testid="import-to-fix-left-out">
-            <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;">{{ 'data_import.to_fix.left_out_title'|trans({'%number%': left_out.total|format_number}) }}</summary>
+            <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;"><span id="import-to-fix-left-out-title">{{ 'data_import.to_fix.left_out_title'|trans({'%number%': left_out.total|format_number}) }}</span></summary>
             {% for row in left_out.rows %}
                 <div class="d-flex align-items-center justify-content-between gap-2 py-2 border-top" id="left-out-row-{{ row.rowId }}" data-testid="import-to-fix-left-out-row">
                     <a href="{{ path('data_import_row', {importId: import_id, rowId: row.rowId, return: list_url}) }}" class="text-break">{{ 'data_import.to_fix.row_of'|trans({'%row%': row.rowNumber|format_number, '%sheet%': row.sheetTitle}) }}</a>

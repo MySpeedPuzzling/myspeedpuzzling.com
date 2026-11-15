@@ -33,7 +33,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * Saved (PRG): back to the screen the player came from (`return`, ImportRowOrigin - only a screen of this import),
  * which says "Row 14 is saved"; without one - or for "Save and fix the next one" - on to the next row that needs a
- * look, and to "Rows we could not read" when none is left. A row put back stays open. A value that can not be read
+ * look, and to "Rows we could not read" when none is left (a row that still needs a look itself stays open
+ * instead). A row put back stays open. A value that can not be read
  * for sure: the same page with a 422, the reason at its field and everything typed kept - the way back included.
  * Changed meanwhile: the row as it stands, with a notice. Another player's import, or a row of another import, is a
  * 404.
@@ -78,9 +79,14 @@ final class SaveImportRowController extends AbstractController
         $submitted = $form->all('answers');
         $stamp = $form->getString('stamp');
 
-        // "No time - I didn't time this one" stands for the time's field, whatever is typed in it
+        // "No time - I didn't time this one" stands for the time's field, whatever is typed in it - only where the
+        // page offers it (never for a row of a shelf whose time cell is empty: it would not be a result)
         if ($form->getBoolean('no_time')) {
-            $submitted['time'] = ImportRowAnswers::NO_TIME;
+            foreach (ImportRowSheet::fields($detail) as $field) {
+                if ($field['canBeUntimed']) {
+                    $submitted['time'] = ImportRowAnswers::NO_TIME;
+                }
+            }
         }
 
         $message = match ($action) {
@@ -132,6 +138,11 @@ final class SaveImportRowController extends AbstractController
             // Nothing unclear is left, or something still is
             $unclear = array_filter($now->problems, static fn (array $problem): bool => $problem['waiting'] === false);
             $this->addFlash('success', $this->translator->trans($unclear === [] ? 'data_import.row.flash.saved' : 'data_import.row.flash.saved_needs_look', $number));
+
+            // Still needs a look, and no screen to go back to: the player stays with this row
+            if ($unclear !== [] && $origin === null && $action === 'save') {
+                return $back;
+            }
         }
 
         // Came from the page of one puzzle of the file, and the row is not that puzzle any more (its name, brand or

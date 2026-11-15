@@ -8,7 +8,7 @@
 
     The forms are plain POSTs; Turbo sends them asking for streams, and the answer then changes the page in place
     (_to_fix.stream.html.twig: `#group-<key>`, `#import-to-fix-count`, `#import-to-fix-left-out`,
-    `#left-out-row-<id>`, `#import-to-fix-groups`). Without a script the same POST redirects back here.
+    `#left-out-row-<id>`, `#import-to-fix-left-out-title`, `#import-to-fix-groups`, `#import-to-fix-pages`). Without a script the same POST redirects back here.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -36,7 +36,9 @@
         {% endfor %}
     </div>
 
-    {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_to_fix', parameters: {importId: import.importId}, label: 'data_import.to_fix.title'|trans}, with_context = false) }}
+    <div id="import-to-fix-pages">
+        {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_to_fix', parameters: {importId: import.importId}, label: 'data_import.to_fix.title'|trans}, with_context = false) }}
+    </div>
 
     {{ include('data_import/_to_fix_left_out.html.twig', {import_id: import.importId, page: page, csrf: csrf, left_out: left_out}, with_context = false) }}
 

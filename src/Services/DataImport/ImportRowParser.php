@@ -126,6 +126,10 @@ final readonly class ImportRowParser
 
             $text = self::text($cell, $layout);
 
+            if ($column->is(ImportField::Time)) {
+                $row->timeCellFilled = true;
+            }
+
             if ($column->role !== null) {
                 $this->role($column->role, $text, $row);
             } elseif ($column->field !== null) {

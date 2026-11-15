@@ -193,8 +193,9 @@ load again and does not jump:
 
 | The answer | What changes on the page |
 |---|---|
+| every answer | `#import-to-fix-pages` (the pager - an answer may make the list a page shorter) |
 | a value / "without a time" / "Don't import them" for a group | `#group-<key>` gives way to a short confirmation where the card stood ("Rows fixed: 14") - or to the card again with the confirmation in it, when rows of the group still wait (more than 500, or the answer did not settle all); `#import-to-fix-count` ("Groups still to answer: N", or "Nothing to do here."); `#import-to-fix-left-out` (the rows not imported, listed anew) |
-| "Import after all" on a row not imported | `#left-out-row-<id>` gives way to its confirmation; `#import-to-fix-groups` is listed anew (the row may be in a group again); the count |
+| "Import after all" on a row not imported | `#left-out-row-<id>` gives way to its confirmation and `#import-to-fix-left-out-title` counts anew - or, when it was the last one, the whole block gives way to the confirmation; `#import-to-fix-groups` is listed anew (the row may be in a group again); the count |
 | a value nobody can read | the group's card alone, with the reason at its field and what was typed - a **422** stream |
 | changed meanwhile | a redirect to the list as it stands, with the notice (for a stream request too) |
 
@@ -240,8 +241,12 @@ It is an answer of the time's field like any other, kept as `{"text": "no_time",
 (`ImportRowAnswers::NO_TIME`; the form sends `no_time=1`, the controller makes it the time's text). The parser then
 reads the row **exactly as it reads a row whose time cell is empty**: no `seconds`, nothing unclear about the time,
 the same puzzle key, result key and equal-rows key (`ImportRowAnswersTest::testNoTimeMakesTheRowWhatAnEmptyTimeCellMakesIt`
-compares the two). One thing more: the row stays a **result** even when nothing but its time said it was solved
-(`ImportRowDraft::$untimed`) - the player said "solved, just not timed". From there on nothing is new: the adder
+compares the two). One thing more: a row whose **time cell holds something** (a time, a text nobody could read)
+stays a **result** even when nothing but that cell said it was solved (`ImportRowDraft::$untimed`) - the player
+said "solved, just not timed". **"No time" never makes a row a result by itself**: with an empty time cell the
+answer changes nothing (a row of a shelf stays a row of a shelf), and the tick is offered only for a row that is a
+result already or whose time cell holds something (`ImportRowSheet`'s `canBeUntimed`; a tick sent all the same is
+not taken). A group of "Rows we could not read" about the time always has a text in the cell. From there on nothing is new: the adder
 writes a result with `seconds_to_solve` null through `ImportedResultWriter` as for any time-less row (it is on the
 profile as "solved"; like every result saved without a time it is in no leaderboard, average or statistic - those
 read `seconds_to_solve IS NOT NULL`; no new kind of result is written), "never twice" matches it against a time-less result of the same day, and two time-less rows of
@@ -252,8 +257,11 @@ one puzzle and day are equal rows.
 Every link into a row's editor says where it leads back to: `?return=<path of the screen>` (with the screen's own
 page number / filter and, where the screen has one, the anchor of the row or group - `#group-<key>` on "Rows we
 could not read", `#row-<id>` on "What will be added"). `Value\DataImport\ImportRowOrigin::tryFrom()` takes it only
-when it is a same-site path (`ReturnUrl`) **of this very import** - `/{locale}/import/{importId}[/plain-segments]`,
-no `..`, no percent-encoding in the path, never another row's editor - and names the screen
+when it is a same-site path (`ReturnUrl`) that is **one of the pages of this very import a player can come from** -
+a closed list of its GET pages (`ImportRowOrigin::SCREENS`: where you are, to-fix, columns, a sheet and its rows,
+people, the puzzles' overview and lists, one puzzle, check and add, what will be added, the rows that wait, what
+was added); never a POST-only address, a fragment a frame loads (the unusual-times card of "Check and add" links
+back to `/add`), another row's editor, or a path that merely starts like the import's - and names the screen
 (`data_import.row.back_to.<screen>`: "Back to your puzzles", "Back to “What will be added”" …). Anything else is no
 origin: the back link is "Back to “Rows we could not read”", as before. Both forms of the page carry the origin as a
 hidden `return`, so it survives a refused save (422) and the redirect after a save.
@@ -264,7 +272,7 @@ still needs a look.", "Row 14 is not imported."):
 | | Where |
 |---|---|
 | Save / Don't import, with an origin | the origin (with its anchor) |
-| … without one | the next row that needs a look (in the file's order after this one, then from the top - `GetImportRowsToFix::nextRowId()`), "Rows we could not read" when none is left |
+| … without one | the row itself while it still needs a look (the flash says so); else the next row that needs a look (in the file's order after this one, then from the top - `GetImportRowsToFix::nextRowId()`), "Rows we could not read" when none is left |
 | "Save and fix the next one" (offered while another row needs a look) | the next row's editor, the origin carried along; the origin (or the list) when none is left |
 | "Put this row back" | the row stays open |
 | nothing was changed / changed meanwhile | the row, with the notice ("Save and fix the next one" moves on all the same) |
@@ -273,7 +281,9 @@ still needs a look.", "Row 14 is not imported."):
 The editor has one primary button (Save); "Save and fix the next one" is the quiet second one.
 
 The editor's forms are sent by the browser itself (`data-turbo="false"`): a redirect followed by Turbo's fetch loses
-its anchor, and the anchor is what brings the player back to the very row or group they left.
+its anchor, and the anchor is what brings the player back to the very row or group they left. Nothing disables a
+button of such a form, so `data_import_submit_once_controller.js` does (the clicked button's name and value travel
+in a hidden field): a second click would send the old stamp again and be answered "changed meanwhile".
 
 `_answer_input.html.twig` and `ImportRowAnswers` are what a later "My data" row sheet reuses.
 

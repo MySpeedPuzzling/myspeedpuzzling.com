@@ -44,8 +44,9 @@ final readonly class ImportRowAnswers
 
     /**
      * The answer for the time field that says "No time - I didn't time this one": kept as
-     * `{"text": "no_time", "value": 0}`. The row is then a result without a time - what an empty time cell of the
-     * file makes of it - whatever its cell says.
+     * `{"text": "no_time", "value": 0}`. The row is then what an empty time cell of the file makes of it - and a
+     * result when its cell held something. Offered (ImportRowSheet's `canBeUntimed`) only for a row that is a
+     * result already or whose time cell holds something.
      */
     public const string NO_TIME = 'no_time';
 
@@ -251,10 +252,12 @@ final readonly class ImportRowAnswers
 
                 return false;
             case ImportField::Time:
-                // "No time - I didn't time this one": solved, without a time - as an empty time cell reads
+                // "No time - I didn't time this one": without a time - as an empty time cell reads. It says "solved"
+                // only where the cell held something (a time, a text): by itself it never makes a row of a shelf
+                // with an empty time cell a result
                 if ($value === 0) {
                     $row->seconds = null;
-                    $row->untimed = true;
+                    $row->untimed = $row->timeCellFilled;
                     unset($row->from['seconds']);
 
                     return true;

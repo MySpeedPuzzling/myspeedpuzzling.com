@@ -10,7 +10,9 @@
     file is shown escaped and never stands in an address.
 
     The forms are sent by the browser itself (`data-turbo="false"`): the way back after a save carries the anchor of
-    the row or group the player came from, and a redirect followed by Turbo's fetch loses its anchor.
+    the row or group the player came from, and a redirect followed by Turbo's fetch loses its anchor. Nothing
+    disables their buttons then, so data_import_submit_once_controller.js does: a second click would send the old
+    stamp once more and be answered "changed meanwhile".
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -46,13 +48,13 @@
         {% endif %}
 
         {% if detail.state != 'left_out' and fields is not empty %}
-            <form action="{{ save_url }}" method="post" class="card card-body shadow-sm my-3" data-turbo="false" data-testid="import-row-form">
+            <form action="{{ save_url }}" method="post" class="card card-body shadow-sm my-3" data-turbo="false" data-controller="data-import-submit-once" data-action="submit->data-import-submit-once#lock" data-testid="import-row-form">
                 <input type="hidden" name="_token" value="{{ csrf }}">
                 <input type="hidden" name="stamp" value="{{ detail.stamp }}">
                 {% if origin is not null %}<input type="hidden" name="return" value="{{ origin.url }}">{% endif %}
 
                 {% for field in fields %}
-                    <div class="{{ loop.last ? 'mb-3' : 'mb-3 pb-3 border-bottom' }}" data-testid="import-row-field" data-field="{{ field.field }}"{% if field.field == 'time' %} data-controller="data-import-no-time"{% endif %}>
+                    <div class="{{ loop.last ? 'mb-3' : 'mb-3 pb-3 border-bottom' }}" data-testid="import-row-field" data-field="{{ field.field }}"{% if field.canBeUntimed %} data-controller="data-import-no-time"{% endif %}>
                         <label for="row-field-{{ field.field }}" class="form-label fw-medium mb-1">{{ ('data_import.columns.field.' ~ field.field)|trans }}</label>
                         <div class="fs-sm text-muted text-break mb-1" id="row-field-help-{{ field.field }}">
                             {{ 'data_import.row.in_file'|trans }}
@@ -83,8 +85,8 @@
                         {% endif %}
                         {% set hint = ('data_import.to_fix.hint.' ~ field.input)|trans %}
                         {% if hint != 'data_import.to_fix.hint.' ~ field.input %}<div class="form-text">{{ hint }}</div>{% endif %}
-                        {% if field.field == 'time' %}
-                            {# Ticked: the time's input is switched off (data_import_no_time_controller.js) and the row is a result without a time; without a script the tick still wins over what is typed #}
+                        {% if field.canBeUntimed %}
+                            {# Offered only where it can not make a row of a shelf a result by itself (ImportRowSheet). Ticked: the time's input is switched off (data_import_no_time_controller.js) and the row is a result without a time; without a script the tick still wins over what is typed #}
                             <label class="d-flex align-items-center gap-2 mt-2 mb-0" style="min-height: 44px; cursor: pointer;" for="row-no-time" data-testid="import-row-no-time-label">
                                 <input type="checkbox" class="form-check-input m-0 flex-shrink-0" style="width: 22px; height: 22px;" id="row-no-time" name="no_time" value="1"{{ field.noTime ? ' checked' : '' }}
                                        data-data-import-no-time-target="toggle" data-action="data-import-no-time#toggle" data-testid="import-row-no-time">
@@ -106,7 +108,7 @@
             </form>
         {% endif %}
 
-        <form action="{{ save_url }}" method="post" class="mb-3" data-turbo="false">
+        <form action="{{ save_url }}" method="post" class="mb-3" data-turbo="false" data-controller="data-import-submit-once" data-action="submit->data-import-submit-once#lock">
             <input type="hidden" name="_token" value="{{ csrf }}">
             {% if origin is not null %}<input type="hidden" name="return" value="{{ origin.url }}">{% endif %}
             <input type="hidden" name="stamp" value="{{ detail.stamp }}">

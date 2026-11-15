@@ -35,10 +35,10 @@ final class ImportRowOriginTest extends TestCase
         yield 'one puzzle of the file' => [$import . '/puzzle/' . self::ROW . '?flow=choose&done=3', 'puzzle'];
         yield 'check and add' => [$import . '/add', 'add'];
         yield 'what will be added, filtered, at a row' => [$import . '/add/list?sheet=' . self::ROW . '&page=2#row-' . self::ROW, 'add_list'];
-        yield 'unusual times' => [$import . '/add/times', 'add_times'];
+        yield 'rows said to be on the profile already' => [$import . '/add/already-on', 'add'];
+        yield 'a sheet' => [$import . '/sheets/' . self::ROW, 'sheet'];
         yield 'rows that wait' => [$import . '/not-added/times', 'not_added'];
         yield 'what was added' => [$import . '/added', 'added'];
-        yield 'a screen built later' => [$import . '/something-new', 'other'];
         yield 'another language' => ['/cs/import/' . self::IMPORT . '/people', 'people'];
         yield 'the id written in capitals' => ['/en/import/' . strtoupper(self::IMPORT) . '/people', 'people'];
     }
@@ -75,6 +75,18 @@ final class ImportRowOriginTest extends TestCase
         yield 'an encoded slash' => [$import . '%2Fto-fix'];
         yield 'a prefix only' => [$import . 'x/to-fix'];
         yield 'a language nobody has' => ['/xx/import/' . self::IMPORT . '/to-fix'];
+        // Only the pages a player can come from: no address that only takes a POST, no fragment a frame loads
+        yield 'a path under the import that is no screen' => [$import . '/something-new'];
+        yield 'a POST-only address' => [$import . '/puzzles/decide'];
+        yield 'another POST-only address' => [$import . '/add/confirm'];
+        yield "a puzzle's search (POST)" => [$import . '/puzzle/' . self::ROW . '/search'];
+        yield "a sheet's start-over (POST)" => [$import . '/sheets/' . self::ROW . '/start-over'];
+        yield 'the people of rows (POST)' => [$import . '/not-added/people'];
+        yield 'a redirecting address' => [$import . '/puzzles/choose/next'];
+        yield 'a fragment a frame loads' => [$import . '/add/times'];
+        yield 'a list of puzzles nobody has' => [$import . '/puzzles/everything'];
+        yield 'a sheet without an id' => [$import . '/sheets/first'];
+        yield 'more after a screen' => [$import . '/people/more'];
         yield "a row's editor - never the way back from one" => [$import . '/rows/' . self::ROW];
         yield "a row's editor with a way back of its own" => [$import . '/rows/' . self::ROW . '?return=' . rawurlencode($import . '/to-fix')];
     }

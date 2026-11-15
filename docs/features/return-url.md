@@ -194,8 +194,8 @@ profile again, not the catalogue. Pinned by `AchievementInfoSheetTest::testTheSh
 
 The import's row editor (`/{_locale}/import/{importId}/rows/{rowId}`) is opened from many screens of one import and
 leads back to the one the player came from. Its `?return=` goes through `ReturnUrl::tryFrom()` like every other -
-and then through `Value\DataImport\ImportRowOrigin::tryFrom()`, which keeps it only when it is a screen of **that
-very import** (plain path segments under `/{locale}/import/{importId}`, never another row's editor) and names the
+and then through `Value\DataImport\ImportRowOrigin::tryFrom()`, which keeps it only when it is one of **that
+very import's** GET pages a player can come from (a closed list, never another row's editor) and names the
 back link after the screen. The value travels on in a hidden `return` field of the editor's forms and is validated
 again by the POST. Details: `docs/features/data-import/pairing-screens.md` "The way back".
 

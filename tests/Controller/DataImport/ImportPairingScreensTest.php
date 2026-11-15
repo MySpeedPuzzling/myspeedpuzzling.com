@@ -824,9 +824,10 @@ final class ImportPairingScreensTest extends WebTestCase
 
         // An emptied field goes back to what the file says - and needs a look again
         $this->browser->request('POST', $url, ['_token' => $token, 'stamp' => $stamp, 'action' => 'save', 'answers' => ['pieces' => '']]);
-        self::assertResponseRedirects();
-        self::assertStringContainsString('Row 5 is saved. Something in it still needs a look.', $this->browser->followRedirect()->filter('body')->text());
-        $crawler = $this->browser->request('GET', $url);
+        // ... so the player stays with this row, although another one needs a look too
+        self::assertResponseRedirects($url);
+        $crawler = $this->browser->followRedirect();
+        self::assertStringContainsString('Row 5 is saved. Something in it still needs a look.', $crawler->filter('body')->text());
         self::assertNull($this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $rowId]));
         self::assertSame($keyBefore, $this->database->fetchOne('SELECT puzzle_key FROM data_import_row WHERE id = :id', ['id' => $rowId]));
         self::assertCount(1, $crawler->filter('[data-field="pieces"] [data-testid="import-row-problem"]'));
@@ -963,6 +964,22 @@ final class ImportPairingScreensTest extends WebTestCase
         // ... and the tick taken away with nothing typed: the file's own time again
         $save($row4, ['answers' => ['time' => '']]);
         self::assertSame(['result', '2893', null, null], $state($row4));
+
+        // A row of a shelf whose time cell is empty is never offered it - "No time" would say "solved" by itself -
+        // and a tick sent all the same is not taken
+        $row6 = $this->rowId($importId, 6);
+        $stored = $this->database->fetchOne('SELECT cells FROM data_import_row WHERE id = :id', ['id' => $row6]);
+        self::assertIsString($stored);
+        $cells = json_decode($stored, true);
+        self::assertIsArray($cells);
+        array_pop($cells);
+        $this->database->executeStatement("UPDATE data_import_row SET kind = 'owned', cells = :cells WHERE id = :id", ['cells' => json_encode($cells), 'id' => $row6]);
+        $editor = $this->browser->request('GET', $base . '/rows/' . $row6);
+        self::assertCount(1, $editor->filter('[data-field="time"] [data-testid="import-answer-input"]'));
+        self::assertCount(0, $editor->filter('[data-testid="import-row-no-time"]'));
+        $save($row6, ['no_time' => '1']);
+        self::assertStringContainsString('Nothing was changed', $this->browser->followRedirect()->filter('body')->text());
+        self::assertNull($this->database->fetchOne('SELECT answers FROM data_import_row WHERE id = :id', ['id' => $row6]));
     }
 
     public function testAGroupOfUnreadableTimesIsImportedWithoutATime(): void
@@ -1046,6 +1063,7 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-count">', $answered);
         self::assertStringContainsString('Groups still to answer: 1', $answered);
         self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-left-out">', $answered);
+        self::assertStringContainsString('<turbo-stream action="update" target="import-to-fix-pages">', $answered);
         self::assertSame(['4500', '4500'], $this->database->fetchFirstColumn("SELECT parsed ->> 'seconds' FROM data_import_row WHERE import_id = :id AND row_number IN (2, 3) ORDER BY row_number", ['id' => $importId]));
 
         // "Don't import them": the rows not imported are listed anew, and nothing is left to answer
@@ -1055,6 +1073,7 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertStringContainsString('<turbo-stream action="replace" target="group-' . $piecesKey . '">', $leftOut);
         self::assertStringContainsString('Rows not imported: 1', $leftOut);
         self::assertStringContainsString('id="left-out-row-' . $row5 . '"', $leftOut);
+        self::assertStringContainsString('<span id="import-to-fix-left-out-title">Rows you chose not to import: 1</span>', $leftOut);
         self::assertStringContainsString('Nothing to do here.', $leftOut);
         self::assertSame('left_out', $this->database->fetchOne('SELECT state FROM data_import_row WHERE id = :id', ['id' => $row5]));
 
@@ -1062,7 +1081,9 @@ final class ImportPairingScreensTest extends WebTestCase
         $this->browser->request('POST', $base . '/to-fix', ['_token' => $token, 'row' => $row5, 'page' => '1', 'action' => 'take_in'], [], $stream);
         self::assertResponseIsSuccessful();
         $takenIn = (string) $this->browser->getResponse()->getContent();
-        self::assertStringContainsString('<turbo-stream action="replace" target="left-out-row-' . $row5 . '">', $takenIn);
+        // It was the only row not imported: the block goes, its confirmation stays
+        self::assertStringContainsString('<turbo-stream action="replace" target="import-to-fix-left-out">', $takenIn);
+        self::assertStringNotContainsString('data-testid="import-to-fix-left-out"', $takenIn);
         self::assertStringContainsString('The row is put back.', $takenIn);
         self::assertStringContainsString('<turbo-stream action="update" target="import-to-fix-groups">', $takenIn);
         self::assertStringContainsString('id="group-' . $piecesKey . '"', $takenIn);

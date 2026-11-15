@@ -25,7 +25,7 @@ final class ImportRowSheet
      * @param array<string, string> $typed what the refused form held, by field - shown again
      * @param array<string, string> $errors by field
      *
-     * @return list<array{field: string, input: string, choices: list<string>, header: string, original: string, answer: string, understood: null|string, problems: list<array{code: string, value: string}>, error: null|string, noTime: bool}>
+     * @return list<array{field: string, input: string, choices: list<string>, header: string, original: string, answer: string, understood: null|string, problems: list<array{code: string, value: string}>, error: null|string, noTime: bool, canBeUntimed: bool}>
      */
     public static function fields(ImportRowDetail $detail, array $typed = [], array $errors = []): array
     {
@@ -67,6 +67,13 @@ final class ImportRowSheet
                 'problems' => $problems,
                 'error' => $errors[$field] ?? null,
                 'noTime' => $noTime,
+                // "No time" is offered where it can not turn a row of a shelf into a result by itself: the row is a
+                // result already, or its time cell holds something
+                'canBeUntimed' => $field === 'time' && (
+                    $noTime
+                    || in_array($detail->row->kind, ['result', 'both'], true)
+                    || StoredCells::shown($detail->cells[$column->column] ?? null) !== ''
+                ),
             ];
         }
 
@@ -86,6 +93,7 @@ final class ImportRowSheet
                         'problems' => [['code' => $problem['code'], 'value' => $problem['value']]],
                         'error' => $errors['solved_on'] ?? null,
                         'noTime' => false,
+                        'canBeUntimed' => false,
                     ];
 
                     break;

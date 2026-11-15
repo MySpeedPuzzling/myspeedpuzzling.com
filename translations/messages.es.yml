@@ -12511,10 +12511,8 @@ data_import:
             puzzle: "Volver a este puzzle"
             add: "Volver a «Revisar y añadir»"
             add_list: "Volver a «Qué se va a añadir»"
-            add_times: "Volver a «Tiempos poco habituales»"
             not_added: "Volver a «Filas que esperan tu respuesta»"
             added: "Volver a «Lo que añadió esta importación»"
-            other: "Volver a donde estabas"
         no_time: "Sin tiempo - este no lo cronometré"
         save_next: "Guardar y corregir la siguiente"
         flash:

@@ -122,6 +122,8 @@ final class ImportRowAnswersTest extends TestCase
             5 => ['Zq Plain Lighthouse', 500, ImportTestKit::date('2026-01-12'), ImportTestKit::duration(2411)],
             6 => ['Zq Plain Windmill', 500, ImportTestKit::date('2026-01-13'), ImportTestKit::duration(2512)],
             7 => ['Zq Plain Bridge', 500, ImportTestKit::date('2026-01-14'), ImportTestKit::duration(2613)],
+            // Nothing says that this one was solved, and its time cell is empty
+            8 => ['Zq Shelf Windmill', 500, null, null],
         ];
         $sheet = ImportTestKit::sheet('Results', $rows('casually, over a week', ImportTestKit::duration(2893), 'no idea'));
         $empty = ImportTestKit::sheet('Results', $rows(null, null, null));
@@ -151,6 +153,13 @@ final class ImportRowAnswersTest extends TestCase
         self::assertSame([DataImportRowKind::Result, []], [$alone->kind, $alone->problems]);
         self::assertArrayNotHasKey('seconds', $alone->parsed);
         self::assertNotNull($alone->sourceKey);
+
+        // "No time" never says "solved" by itself: with an empty time cell and nothing else of a result, the row is
+        // what it was without the answer - a row of a shelf stays a row of a shelf
+        self::assertEquals(
+            $kit->parser->parse(8, $sheet->rows[8], $mapping, $options),
+            $kit->parser->parse(8, $sheet->rows[8], $mapping, $options, rowAnswers: $noTime),
+        );
 
         // Back to a time: the answer is a time again, or is taken back and the cell is read as before
         $timed = $kit->parser->parse(2, $sheet->rows[2], $mapping, $options, rowAnswers: ['time' => self::answers()->read(ImportField::Time, '1:15:00')]);

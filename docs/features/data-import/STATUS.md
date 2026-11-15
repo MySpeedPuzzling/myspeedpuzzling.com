@@ -17,9 +17,9 @@ sandbox from the stage that can read them.
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); **3c live 2026-11-15** (#352: Google Sheets link). Stage 3 is complete | #345, #347, #350, #351, #352 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); 4b-2 (the screen) building; 4c (memory) not started | #348, #353 | yes | deploy green |
+| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); 4c (memory) not started | #348, #353, #354 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
-| 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
+| 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
 | 6b | Add, never twice, Undo | not started | | | |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
@@ -55,6 +55,26 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 6a merged, dormant** (#355): `ImportedResultWriter` + `ImportedResultsFollowUp` beside the add
+  form's handlers (those untouched - empty diff), held together by `ImportWritePathParityTest` (every column of
+  `puzzle_solving_time` accounted for). Review before the merge: a row delivered twice could have written two
+  results (now a fresh read under the lock, a compare-and-set link, a unique index on the link); "today" could be
+  dated in the future (clamped); the daily duplicate job could auto-remove equal imported rows (never the certain
+  tier for an imported row; rows 11 s apart); the first-try check assumed a signed-in viewer (`assessAsActor`, an
+  optional viewer id on `GetFirstTryTimes` - the one change in code the form shares, default path unchanged, read by
+  the orchestrator); XP through `AwardXpForSolvingTime` per result instead of a full rebuild that would have wiped
+  settlements. `tracked_at` = noon + the row's position x 11 s (the column holds whole seconds).
+- 2026-11-15 - **stage 4b-2 live** (#354): the Sheets and columns screen (`…/import/{id}/columns`, one page per
+  sheet, the need-a-look list). Tried at 390 px with the real files on the branch: questions with the sheet's own
+  examples, save → re-read → counts. Changed after that test: a question no longer blocks its sheet - only the rows it
+  decides wait (the ten-sheet workbook: 3,584 rows ready at once instead of 2,059); readings over 99 hours are not
+  offered. On the sandbox the earlier upload shows 3,227 ready / 39 need a look / 8 sheets left out. Not editable
+  yet: "keep as my own field", another table or header row, the lookup sheet.
+- 2026-11-15 - a test of 3b was flaky in a parallel run (the shared temp folder asserted empty while another
+  worker read) - failed once on main after #354, fixed on main (7d88f523e). Two pull requests stalled silently on a
+  `docs/TODO.md` conflict: stage branches no longer edit `docs/TODO.md` either - they report loose ends, the
+  orchestrator writes them.
 
 - 2026-11-15 - **stage 4b-1 live** (#353): the recognisers (regions, columns with certainty, sheet kind, rows that
   are not data, the puzzle-list lookup), known exports (Puzzle Tracker's CSV, our own results export), the mapping

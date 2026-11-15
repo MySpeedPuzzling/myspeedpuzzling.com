@@ -17,7 +17,7 @@ sandbox from the stage that can read them.
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); **3c live 2026-11-15** (#352: Google Sheets link). Stage 3 is complete | #345, #347, #350, #351, #352 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b-1 (recognise + parse, known exports) building; 4b-2 (the screen), 4c (memory) not started | #348 | yes | deploy green |
+| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); 4b-2 (the screen) building; 4c (memory) not started | #348, #353 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
@@ -55,6 +55,17 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 4b-1 live** (#353): the recognisers (regions, columns with certainty, sheet kind, rows that
+  are not data, the puzzle-list lookup), known exports (Puzzle Tracker's CSV, our own results export), the mapping
+  as data on the sheet with its questions, `ParseImportSheet` (typed values, problems, keys, equal rows linked),
+  `ConfirmImportMapping` (no screen yet). Review: no blocker, nine fixes before the merge (date order guessed on a
+  one-row majority; duplicate parse jobs; a repeated header in a known export blocked the import; unbounded reads).
+  The real files on the branch, locally: Puzzle Tracker's CSV 458 of 460 rows understood, no question; the ten-sheet
+  workbook 2,059 understood / 54 need a look / 4 sheets waiting for an answer; the training workbook 3,227 / 39, eight
+  sheets "not puzzles", one sheet of 113 rows left out as unsure. Whether "understood" is understood *correctly* is
+  judged with the screen (4b-2, building). Left: a row that is both a result and an owned puzzle carries one key
+  (docs/TODO.md).
 
 - 2026-11-15 - **stage 3c live** (#352): a Google Sheets link on "Bring the file" (link first): the worker fetches the
   xlsx export from docs.google.com and Google's `doc-…-sheets.googleusercontent.com` only, every redirect hop checked,

@@ -1669,3 +1669,9 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   an index `(sheet_id, parsed_version)` on `data_import_row` (generated; it is written with every parsed batch) or a
   counter on the sheet moved by `RecordParsedImportRows`. See `docs/features/data-import/columns-screen.md`
   "Performance".
+
+## Tests
+
+- [ ] `AssetFailureScriptTest::testHealRepairsAPoisonedStylesheetAndReportsItOnce` fails now and then in CI with
+  `'refetch' => 'timeout'` instead of `'intact'` (twice on 2026-11-14/15, on main and on a pull request; passes on
+  re-run) - the node harness's refetch races its timer on a loaded runner.

@@ -524,10 +524,11 @@ final class ImportColumnsScreenTest extends WebTestCase
             self::assertSame($few, $large, $name . ': the number of statements must not grow with rows or sheets');
         }
 
-        // What the screen itself reads, on top of what every signed-in page loads: the import, its sheets and the
-        // revision the live line starts from (3); the sheet, a dozen first rows, the first rows as understood, the
-        // import and the revision (5); the sheet, a page of rows and the import (3)
-        $signedIn = $budgets['columns'][0] - 3;
+        // What the screen itself reads, on top of what every signed-in page loads: the import, its sheets, the
+        // revision the live line starts from and how many layouts the player saved (4); the sheet, a dozen first
+        // rows, the first rows as understood, the import and the revision (5); the sheet, a page of rows and the
+        // import (3)
+        $signedIn = $budgets['columns'][0] - 4;
         self::assertLessThanOrEqual(8, $signedIn, 'what every signed-in page loads');
         self::assertSame([$signedIn + 5, $signedIn + 3], [$budgets['sheet'][0], $budgets['rows'][0]]);
     }

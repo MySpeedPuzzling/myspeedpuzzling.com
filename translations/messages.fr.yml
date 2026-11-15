@@ -11768,6 +11768,33 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "Vos mises en page enregistrées"
+        intro: "Quand vous confirmez les colonnes d'une feuille, nous les retenons. La prochaine feuille avec les mêmes en-têtes est alors configurée de la même façon, toute seule. Vos mises en page ne sont qu'à vous : personne d'autre ne les voit ni ne les utilise."
+        link: "Vos mises en page enregistrées (%number%)"
+        empty: "Rien d'enregistré pour l'instant. Confirmez les colonnes d'une feuille et nous les retiendrons pour la prochaine fois."
+        unnamed: "Mise en page sans nom"
+        columns: "Colonnes : %number%"
+        times_used: "Réutilisée : %number%×"
+        last_used: "Dernière utilisation : %date%"
+        rename: "Renommer"
+        name_label: "Nom"
+        save_name: "Enregistrer le nom"
+        forget: "Oublier cette mise en page"
+        forget_hint: "La prochaine feuille avec ces en-têtes sera alors configurée à partir de zéro. Les feuilles déjà configurées restent comme elles sont."
+        back: "Retour"
+        start_over: "Recommencer pour cette feuille"
+        start_over_hint: "Nous reprenons cette feuille comme si vous n'en aviez jamais configuré de semblable. Votre mise en page enregistrée reste telle quelle."
+        column_check: "La dernière fois, vous aviez configuré une colonne de ce nom comme « %field% », mais les valeurs ici n'y ressemblent pas. Merci de vérifier."
+        notice:
+            remembered: "Nous avons repris ce que vous aviez configuré la dernière fois (%name%) - modifiez ce qui est différent."
+            remembered_partly: "La plupart des en-têtes sont les mêmes que la dernière fois (%name%), ces colonnes sont donc configurées comme alors - merci de vérifier le reste."
+            meaning_kept: "Ce qu'est cette feuille - des résultats, des puzzles que vous possédez ou une liste de souhaits, en solo ou à plusieurs - a été laissé tel que la feuille elle-même le montre, car cela diffère de la dernière fois. Merci de le vérifier ci-dessous."
+        flash:
+            started_over: "Nous avons repris cette feuille à partir de zéro. Ses lignes sont relues."
+            renamed: "La mise en page porte son nouveau nom."
+            forgotten: "La mise en page est oubliée."
+            name_needed: "Merci de saisir un nom pour la mise en page."
     pairing:
         title: "Puzzles"
         puzzles: "Puzzles différents dans votre fichier : %number%"

@@ -140,6 +140,14 @@ class DataImportSheet
     #[Column(options: ['default' => 0])]
     public int $rowsWaiting = 0;
 
+    /**
+     * The player said something about this sheet themselves (confirmed its mapping, answered it, started it over):
+     * a layout confirmed on another sheet of the workbook is never laid over it
+     * (docs/features/data-import/layouts.md "One workbook").
+     */
+    #[Column(options: ['default' => false])]
+    public bool $confirmedByPlayer = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -182,7 +190,37 @@ class DataImportSheet
     public function mappingConfirmed(ImportMapping $mapping, ImportSheetOptions $options, array $valueAnswers): void
     {
         $this->mappingVersion++;
+        $this->confirmedByPlayer = true;
         $this->mapped($mapping, $options, $valueAnswers);
+    }
+
+    /**
+     * A sheet of the same workbook with this header row was confirmed, and this one is to follow it
+     * (ShareImportLayout): a new version at once - the screen shows the sheet as being worked out, and nothing of an
+     * older job is written - until the worker has laid the layout over it, or found nothing to change.
+     */
+    public function followsAConfirmedSheet(): void
+    {
+        $this->mappingVersion++;
+        $this->startsOver();
+    }
+
+    /**
+     * What the player confirmed for another sheet of the same workbook with the same headers, laid over this one -
+     * a new version like any change, but not the player's word on this sheet.
+     *
+     * @param array<array-key, mixed> $valueAnswers
+     */
+    public function mappingShared(ImportMapping $mapping, ImportSheetOptions $options, array $valueAnswers): bool
+    {
+        if ($this->mappingVersion === 0 || $this->confirmedByPlayer) {
+            return false;
+        }
+
+        $this->mappingVersion++;
+        $this->mapped($mapping, $options, $valueAnswers);
+
+        return true;
     }
 
     /**

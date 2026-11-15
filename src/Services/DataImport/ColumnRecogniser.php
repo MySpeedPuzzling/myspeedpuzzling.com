@@ -223,13 +223,33 @@ final readonly class ColumnRecogniser
      */
     private static function fit(FieldGuess $guess, array $profile): float
     {
+        return self::fitOf($guess->field, $profile);
+    }
+
+    /**
+     * How well a sample of a column's values goes with a field somebody else said the column is (a remembered
+     * layout - docs/features/data-import/layouts.md): the share of them the field's reader takes, 0 - 1. A column
+     * without values says nothing against anything: 1.
+     *
+     * @param list<array<string, mixed>> $values
+     */
+    public function valuesFit(ImportField $field, array $values): float
+    {
+        return $values === [] ? 1.0 : self::fitOf($field, $this->profile($values));
+    }
+
+    /**
+     * @param array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int} $profile
+     */
+    private static function fitOf(ImportField $field, array $profile): float
+    {
         $count = $profile['count'];
 
         if ($count === 0) {
             return 0.0;
         }
 
-        return match ($guess->field) {
+        return match ($field) {
             ImportField::PuzzleName, ImportField::Brand, ImportField::SolvedWith => $profile['texts'] / $count,
             ImportField::Pieces => $profile['pieces'] / $count,
             ImportField::Barcode => $profile['barcodes'] / $count,

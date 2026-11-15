@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
+use SpeedPuzzling\Web\Message\ShareImportLayout;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
@@ -149,6 +150,9 @@ return App::config([
                 // read thousands of rows outside a transaction and write through small messages of their own
                 ProposeImportMappings::class => 'imports',
                 ParseImportSheet::class => 'imports',
+                // Sheets of a workbook following a confirmed one: each is worked out from its own rows, outside a
+                // transaction (docs/features/data-import/layouts.md "One workbook")
+                ShareImportLayout::class => 'imports',
                 // Pairing an import's distinct puzzles with the catalogue (docs/features/data-import/pairing.md): the
                 // exact rules for the whole import in one short job, the similar-name search in chunks that queue
                 // themselves again - other players' imports take their turns in between

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\RecordImportMappings;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
+use SpeedPuzzling\Web\Repository\ImportLayoutRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
@@ -32,6 +33,7 @@ readonly final class RecordImportMappingsHandler
     public function __construct(
         private DataImportRepository $dataImportRepository,
         private DataImportSheetRepository $dataImportSheetRepository,
+        private ImportLayoutRepository $importLayoutRepository,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -52,6 +54,7 @@ readonly final class RecordImportMappingsHandler
         }
 
         $queued = [];
+        $applied = [];
 
         foreach ($this->dataImportSheetRepository->ofImport($import) as $sheet) {
             $stored = $message->proposals[$sheet->id->toString()] ?? null;
@@ -86,10 +89,23 @@ readonly final class RecordImportMappingsHandler
 
             $sheet->mappingProposed($proposal);
 
+            if ($proposal->mapping->remembered !== null) {
+                $applied[$proposal->mapping->remembered->id] = true;
+            }
+
             // Also a sheet that is "not puzzles": its rows are left out by the same job as after a confirmed mapping.
             // And a sheet with a question: only the rows the question decides wait (PendingQuestionRows)
             $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
             $queued[] = $sheet->id->toString();
+        }
+
+        // A remembered layout was used: once per import, however many of its sheets it fitted
+        foreach (array_keys($applied) as $layoutId) {
+            $layout = $this->importLayoutRepository->find($layoutId);
+
+            if ($layout !== null && $layout->isOwnedBy($import->player->id->toString())) {
+                $layout->applied($this->clock->now());
+            }
         }
 
         $import->workedOn($this->clock->now());

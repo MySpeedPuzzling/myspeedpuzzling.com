@@ -12019,6 +12019,33 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "Your saved layouts"
+        intro: "When you confirm the columns of a sheet, we remember them. The next sheet with the same headers is then set up the same way by itself. Your layouts are yours alone - nobody else sees or uses them."
+        link: "Your saved layouts (%number%)"
+        empty: "Nothing saved yet. Confirm the columns of a sheet and we remember them for next time."
+        unnamed: "Unnamed layout"
+        columns: "Columns: %number%"
+        times_used: "Used again: %number%×"
+        last_used: "Last used: %date%"
+        rename: "Rename"
+        name_label: "Name"
+        save_name: "Save the name"
+        forget: "Forget this layout"
+        forget_hint: "The next sheet with these headers is then set up from scratch. Sheets already set up stay as they are."
+        back: "Back"
+        start_over: "Start over for this sheet"
+        start_over_hint: "We work this sheet out again as if you had never set up one like it. Your saved layout stays as it is."
+        column_check: "Last time you set a column with this name up as “%field%”, but the values here do not look like it. Please check."
+        notice:
+            remembered: "We used what you set up last time (%name%) - change anything that is different."
+            remembered_partly: "Most of these headers are the same as last time (%name%), so those columns are set up the way you did it - please check the rest."
+            meaning_kept: "What this sheet is - results, puzzles you own or a wish list, solo or with others - was left as we worked it out from this sheet itself, because it differs from last time. Please check it below."
+        flash:
+            started_over: "We worked this sheet out from scratch. Its rows are being read again."
+            renamed: "The layout has its new name."
+            forgotten: "The layout is forgotten."
+            name_needed: "Please type a name for the layout."
     pairing:
         title: "Puzzles"
         puzzles: "Different puzzles in your file: %number%"

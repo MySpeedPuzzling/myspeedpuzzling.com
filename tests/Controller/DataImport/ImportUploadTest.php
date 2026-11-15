@@ -327,11 +327,11 @@ final class ImportUploadTest extends WebTestCase
         $answer = $this->start($browser, $token, ['name' => 'four.csv', 'bytes' => 1]);
         $this->assertResponseStatusCodeSame(422);
         self::assertSame('too_many', $answer['error'] ?? null);
-        self::assertSame('You have 3 unfinished imports. Discard one of them first.', $answer['message'] ?? null);
+        self::assertSame('You have 3 imports in progress. Finish or discard one first.', $answer['message'] ?? null);
 
         $crawler = $browser->request('POST', '/en/import/new', ['_token' => $token], ['file' => $this->uploadedFile('four.csv', '4')]);
         $this->assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('3 unfinished imports', $crawler->filter('[data-testid="import-refusal"]')->text());
+        self::assertStringContainsString('3 imports in progress', $crawler->filter('[data-testid="import-refusal"]')->text());
 
         $browser->request('POST', '/en/import/' . $first . '/discard', ['_token' => $token]);
         $this->start($browser, $token, ['name' => 'four.csv', 'bytes' => 1]);

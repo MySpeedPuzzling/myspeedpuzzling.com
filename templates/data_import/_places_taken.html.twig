@@ -1,0 +1,19 @@
+{#
+    "You have 3 imports in progress. Finish or discard one first" with the way out: the imports that hold the
+    player's places, by their titles (docs/features/data-import/upload.md "Finished"). Variables: held (list of
+    Results\ImportHoldingAPlace), limit.
+#}
+<div class="alert alert-warning" role="alert" data-testid="import-places-taken">
+    <p class="fw-medium mb-1">{{ 'data_import.refused.too_many'|trans({'%limit%': limit}) }}</p>
+    <p class="fs-sm mb-2">{{ 'data_import.finish.full_hint'|trans }}</p>
+    <ul class="list-unstyled mb-0">
+        {% for held_import in held %}
+            <li>
+                <a href="{{ path('data_import_detail', {importId: held_import.importId}) }}" class="alert-link text-break d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-in-progress">
+                    <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>{{ held_import.fileName != '' ? held_import.fileName : 'data_import.google.unnamed'|trans }}
+                </a>
+                <span class="fs-sm">· {{ ('data_import.status.' ~ held_import.status.value)|trans }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

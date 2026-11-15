@@ -1,0 +1,41 @@
+{#
+    One import on Imports home: its name, when it came, its state and what it added
+    (docs/features/data-import/upload.md). Variables: import (Results\DataImportOverview), added (what the imports
+    added, by import id), csrf.
+#}
+<div class="card card-body shadow-sm p-3" data-testid="data-import">
+    <div class="d-flex align-items-start justify-content-between gap-2">
+        <div style="min-width: 0;">
+            <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="fw-semibold text-break text-reset d-inline-block py-1">{{ import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans }}</a>
+            <div class="fs-sm text-muted">
+                {{ import.createdAt|format_date('medium') }}
+                {%- if import.fileSize is not null %} · {{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}{% endif %}
+            </div>
+        </div>
+        <div class="flex-shrink-0">{{ include('data_import/_status_badge.html.twig', {status: import.status}) }}</div>
+    </div>
+    {% set made = added[import.importId] ?? null %}
+    {% if made is not null %}
+        {# What the import added to the profile, and whether it is adding right now #}
+        <div class="fs-sm mt-2" data-testid="data-import-added" data-results="{{ made.results }}">
+            {% if made.adding %}
+                <span class="badge bg-faded-info text-info me-1" data-testid="data-import-adding"><i class="bi bi-activity me-1"></i>{{ 'data_import.home.adding'|trans }}</span>
+            {% endif %}
+            {% if made.results + made.collectionItems + made.wishListItems > 0 %}
+                {{ 'data_import.add.added_so_far'|trans({'%results%': made.results|format_number, '%owned%': made.collectionItems|format_number, '%wish_list%': made.wishListItems|format_number}) }}
+                {%- if made.lastAddedAt is not null %} · {{ made.lastAddedAt|format_date('medium') }}{% endif %}
+            {% else %}
+                <span class="text-muted">{{ 'data_import.home.nothing_added_now'|trans }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if import.status.value == 'uploading' %}
+        {# The file may be up although the confirmation never arrived - checked again here #}
+        <form action="{{ path('data_import_upload_finish', {importId: import.importId}) }}" method="post" class="mt-2">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="finish-upload">
+                <i class="bi bi-arrow-repeat me-1"></i>{{ 'data_import.detail.finish'|trans }}
+            </button>
+        </form>
+    {% endif %}
+</div>

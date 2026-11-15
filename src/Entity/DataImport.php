@@ -87,6 +87,14 @@ class DataImport
     public null|DateTimeImmutable $discardedAt = null;
 
     /**
+     * The import is finished (docs/features/data-import/upload.md "Finished"): by the player's "I'm done with this
+     * import" or by the daily sweep once nothing of it is left to add. What it added stays and can be taken back
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $finishedAt = null;
+
+    /**
      * When reading was last asked for (ReadImportFile queued): the safety net asks again only when this is old - never
      * a second message for the same waiting import on every run.
      */
@@ -600,6 +608,55 @@ class DataImport
     {
         $this->sameFileAsImportId = $other->id;
         $this->discard($now);
+    }
+
+    public function isFinished(): bool
+    {
+        return $this->status === DataImportStatus::Done;
+    }
+
+    /**
+     * Nothing more is added from the import: it no longer holds one of the player's places
+     * (DataImportLimits::MAX_UNFINISHED_PER_PLAYER). Its rows, what it added and Undo stay as they are. Only an
+     * import that is read and set up - an earlier one is discarded or tried again instead.
+     *
+     * @return bool false: it is not at a stage that can be finished (or finished already)
+     */
+    public function finish(DateTimeImmutable $now): bool
+    {
+        if (in_array($this->status, [DataImportStatus::SettingUp, DataImportStatus::Reviewing], true) === false) {
+            return false;
+        }
+
+        $this->status = DataImportStatus::Done;
+        $this->finishedAt = $now;
+        $this->lastActivityAt = $now;
+
+        return true;
+    }
+
+    /**
+     * Whether "Go on with this import" can open it again: its rows still hold what the spreadsheet said.
+     */
+    public function canGoOn(): bool
+    {
+        return $this->status === DataImportStatus::Done && $this->cellsWipedAt === null;
+    }
+
+    /**
+     * "Go on with this import": a finished import is set up again where it stood.
+     */
+    public function goOn(DateTimeImmutable $now): bool
+    {
+        if ($this->canGoOn() === false) {
+            return false;
+        }
+
+        $this->status = DataImportStatus::SettingUp;
+        $this->finishedAt = null;
+        $this->lastActivityAt = $now;
+
+        return true;
     }
 
     public function discard(DateTimeImmutable $now): void

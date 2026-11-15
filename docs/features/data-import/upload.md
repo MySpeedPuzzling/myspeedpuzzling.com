@@ -16,6 +16,8 @@ player's id for every read, `DataImportRepository::getOwnedBy()` for every write
 | `data_import_new` | `GET\|POST /{_locale}/import/new` | Bring the file: file picker with a progress line; the `POST` is the fallback form |
 | `data_import_detail` | `GET /{_locale}/import/{importId}` | One import: file name, size, state, "reading and adding arrive soon", until when the file is kept, Discard |
 | `data_import_discard` | `POST /{_locale}/import/{importId}/discard` | Discard (CSRF, then back to Imports home) |
+| `data_import_done` | `POST /{_locale}/import/{importId}/done` | "I'm done with this import" (CSRF, then the import's page) - "Finished" below |
+| `data_import_go_on` | `POST /{_locale}/import/{importId}/go-on` | "Go on with this import" (CSRF, then the import's page; 422 with the imports in progress when no place is free) |
 | `data_import_upload_start` | `POST /{_locale}/import/upload` | JSON: starts a direct upload |
 | `data_import_upload_confirm` | `POST /{_locale}/import/{importId}/uploaded` | JSON: "the file is up" |
 
@@ -30,8 +32,9 @@ are reused; the rest is the import's own (`ImportFileStorage`, `ImportUpload`).
 
 1. **Start** (`StartImportUploadController` → message `StartImport`): the browser sends `{name, bytes}`. The handler
    checks the kind (by the name's extension: `.xlsx`, `.csv`, `.tsv` - `DataImportFileKind`), the size (1 byte to
-   25 MB) and the player's imports holding a place (at most 3: the unfinished ones **and the uploads on their way** -
-   `DataImportStatus::holdingAPlace()`; else uploads started side by side would all pass), under a lock per player,
+   25 MB) and the player's imports holding a place (at most 3: the imports in progress **and the uploads on their
+   way**; else uploads started side by side would all pass - which imports count is `ImportSlots`' to say, see
+   "Finished"), under a lock per player,
    and creates the import in the state `uploading`. The answer: `importId`, the presigned
    `url`, the `headers` it was signed with, `expiresAtMs` (30 minutes), `confirmUrl`, `importUrl`.
    - The **key is the server's**: `tmp-imports/player-<playerId>/<importId>/file.<kind>` - nothing of the file's name.
@@ -48,7 +51,7 @@ are reused; the rest is the import's own (`ImportFileStorage`, `ImportUpload`).
    Imports home) checks again; the form is not sent then (the file would travel twice).
 3. **Confirm** (`ConfirmImportUploadController` → message `ConfirmImportUploaded`): the handler checks that the object
    exists with exactly the signed size and moves the import to `uploaded` (under the player's lock, the limit of 3
-   unfinished imports checked once more). 409 `missing` / `size` / `state` / `too_many`, 503
+   imports in progress checked once more, by the same rule). 409 `missing` / `size` / `state` / `too_many`, 503
    `storage` when object storage does not answer (nothing changed - the browser asks again), 404 for another
    player's import. Confirming twice changes nothing. The first confirmation queues `ReadImportFile`
    ([reading.md](reading.md)).
@@ -67,7 +70,7 @@ counted for direct starts and fallback posts alike.
 ## States
 
 `DataImportStatus`: `uploading` → `uploaded` → `reading` → `setting_up` or `read_failed` ([reading.md](reading.md))
-→ (later stages: `reviewing`, `done`), and `discarded`. `uploading` and `uploaded` are this stage's.
+→ `done` ("Finished" below; `reviewing` is not used), and `discarded`. `uploading` and `uploaded` are this stage's.
 A Google Sheets link starts at `fetching` instead of `uploading` and joins at `uploaded` - or ends in `fetch_failed`
 ([google-sheets.md](google-sheets.md)).
 
@@ -94,6 +97,49 @@ Where the README left room, `data_import` got:
 `discarded` (gone from every page at once - a 404). Nothing an import could have added exists yet, so nothing else is
 kept; a later stage keeps the rows' keys and outcomes of an import that added something (README "Never twice").
 
+## Finished
+
+A player may have **3 imports in progress** (`DataImportLimits::MAX_UNFINISHED_PER_PLAYER`). An import that ever
+queued a row can never be discarded (adding.md "What is never deleted") - so it must be able to stop counting, or
+three imports that each added something would lock the player out for good (found on the sandbox, 2026-11).
+
+**What holds a place** - one rule, `ImportSlots` (`heldBy()` / `isFullFor()`), asked by every way an import starts
+(`StartImportHandler`, `ConfirmImportUploadedHandler`, `CreateImportFromGoogleSheetHandler`), by "Go on with this
+import" and by the Bring-the-file page: an import that is neither `discarded` nor `done` - **except** one that took
+rows and has nothing left (`ImportStanding::isSettled()`): no row ready (the engine's own
+`DataImportRowRepository::sqlReadyRows()`), nothing waiting for the player (a puzzle to choose, a result without a
+date, a row that needs a look or could not be added, a sheet that is not set up or asks a question, a pairing on its
+way), nothing running (an "Add", an Undo, an answer for many rows). Such an import holds no place even before it is
+marked finished. Taking back what it added makes its rows ready again - then it is in progress once more.
+
+**An import is finished** (`status = done`, `finished_at`):
+
+- by the player's **"I'm done with this import"** (`FinishImport`) - on the import's page and under a finished
+  "Add", for an import that took rows; the card says what it means (nothing more is added from it, what it added
+  stays and can still be taken back, the rows it did not add stay to look at while the file is kept). Refused while
+  an "Add", an Undo or an answer for many rows of it runs (`busy`), and for an import that is not read and set up
+  (`not_finishable` - that one is discarded or tried again);
+- **by itself**, by the daily prune (`PruneDataImportsHandler` → `FinishSettledImport`, which looks again in its own
+  transaction): an import that took rows, with nothing running and no row ready, when either nothing waits for the
+  player and it rested for 24 hours (`FINISHED_AFTER_SETTLED_HOURS` - a "Go on" is not undone by the next night), or
+  what waits for the player has waited for 7 days without anything happening to the import
+  (`FINISHED_AFTER_WAITING_DAYS`; "happening" = the import's, its batches', its Undos' and its group answers' last
+  activity). Never on a page view. An import with a row that is ready is never finished by itself.
+
+**A finished import** is listed on Imports home under a folded "Finished (n)" group with what it added. Its pages
+are read-only: every engine message asks for an import that is being set up and refuses a finished one exactly as it
+refuses any other (`AddImportRows` → `not_addable`, the rest "not found" / "changed meanwhile"). **Undo works as
+before** - and taking back everything opens nothing by itself. Nothing of it is deleted; the same file uploaded
+again is still answered by it ("The same file again").
+
+**"Go on with this import"** (`GoOnWithImport`) sets it up again where it stood, while its rows still hold what the
+spreadsheet said (`cells_wiped_at` empty) and a place is free - counted under the player's lock by the same rule.
+
+**The refusal names the way out**: "You have 3 imports in progress. Finish or discard one first" - and the
+Bring-the-file page (before a file is picked) and the refused "Go on" list those imports by their titles, each a
+link to its page. `FinishImport`, `GoOnWithImport` and `FinishSettledImport` are serialized with the player's "Add"
+(the lock key of `AddImportRows`).
+
 ## A file must not come back
 
 A presigned upload URL stays valid for 30 minutes after it was signed, whatever happens to the import meanwhile: a
@@ -113,7 +159,8 @@ has the logic):
 1. uploads never confirmed after 24 hours: whatever arrived is deleted, the import with it;
 2. files of imports created more than 30 days ago: the object is deleted, the import stays with `file_removed_at`;
 3. imports discarded more than 1 hour ago: the object once more, then the import whole (its sheets and rows by
-   foreign key).
+   foreign key);
+4. imports nothing is left to add from are finished ("Finished" above) - nothing of them is deleted.
 
 At most 500 of each kind per run. `PruneDataImports` is handled **outside a transaction**
 (`HandledOutsideTransaction`): the handler reads what is due and deletes the objects; the rows are written by

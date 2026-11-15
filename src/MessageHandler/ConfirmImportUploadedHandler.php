@@ -12,8 +12,8 @@ use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
+use SpeedPuzzling\Web\Services\DataImport\ImportSlots;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -28,6 +28,7 @@ readonly final class ConfirmImportUploadedHandler
 {
     public function __construct(
         private DataImportRepository $dataImportRepository,
+        private ImportSlots $importSlots,
         private ImportFileStorage $storage,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -56,7 +57,7 @@ readonly final class ConfirmImportUploadedHandler
         }
 
         // The start counts the uploads on their way too - checked again here, should one have got around it
-        if ($this->dataImportRepository->countOf($import->player, DataImportStatus::unfinished()) >= DataImportLimits::MAX_UNFINISHED_PER_PLAYER) {
+        if ($this->importSlots->isFullFor($import->player->id->toString(), withUploadsOnTheirWay: false)) {
             throw new ImportUploadRefused('too_many');
         }
 

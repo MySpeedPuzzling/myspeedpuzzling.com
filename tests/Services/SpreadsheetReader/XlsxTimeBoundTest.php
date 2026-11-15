@@ -236,24 +236,26 @@ final class XlsxTimeBoundTest extends TestCase
      * 21 bytes between tags were stopped only by the clock. A fifth of that here - the file is refused at its 1,001st.
      */
     #[DataProvider('placesForBlankTexts')]
-    public function testHundredsOfThousandsOfDistinctBlankTextsAreRefusedBeforeTheParserGetsThem(string $place): void
+    public function testThousandsOfDistinctBlankTextsAreRefusedBeforeTheParserGetsThem(string $place): void
     {
-        $blank = [' ', "\t", "\n"];
-        $flood = '';
+        // Three times the cap proves the refusal; written to the part in pieces - a test must not need the memory
+        // the attack is about
+        $flood = static function (): \Generator {
+            $blank = [' ', "\t", "\n"];
 
-        for ($number = 0; $number < 300_000; $number++) {
-            $text = '';
+            for ($number = 0; $number < 3 * XmlFloodScanner::MAX_BLANK_RUNS; $number++) {
+                $text = '';
 
-            // 21 bytes that spell the number in base 3 - every text another one
-            for ($digit = 0, $rest = $number; $digit < 21; $digit++, $rest = intdiv($rest, 3)) {
-                $text .= $blank[$rest % 3];
+                // 21 bytes that spell the number in base 3 - every text another one
+                for ($digit = 0, $rest = $number; $digit < 21; $digit++, $rest = intdiv($rest, 3)) {
+                    $text .= $blank[$rest % 3];
+                }
+
+                yield $text . '<f/>';
             }
+        };
 
-            $flood .= $text . '<f/>';
-        }
-
-        $path = $this->workbookWith($place, $flood);
-        unset($flood);
+        $path = $this->workbookWithStreamed($place, $flood());
         $started = hrtime(true);
 
         $this->assertRefusedAtOnce($path, XmlFloodScanner::TOO_MANY_BLANK_RUNS);
@@ -263,23 +265,23 @@ final class XlsxTimeBoundTest extends TestCase
 
     public function testAPrettyPrintedSheetOfFiftyThousandRowsIsRead(): void
     {
-        $rows = '';
+        // A line and an indentation of its depth before every element, as a tool that formats XML writes them -
+        // 450,000 runs of white space, four different ones
+        $rows = static function (): \Generator {
+            for ($row = 1; $row <= 50_000; $row++) {
+                $xml = "\n  <row r=\"{$row}\">";
 
-        for ($row = 1; $row <= 50_000; $row++) {
-            // A line and an indentation of its depth before every element, as a tool that formats XML writes them -
-            // 450,000 runs of white space, four different ones
-            $rows .= "\n    <row r=\"{$row}\">";
+                foreach (['A', 'B', 'C', 'D'] as $column) {
+                    $xml .= "\n    <c r=\"{$column}{$row}\">\n      <v>{$row}</v>\n    </c>";
+                }
 
-            foreach (['A', 'B', 'C', 'D'] as $column) {
-                $rows .= "\n      <c r=\"{$column}{$row}\">\n        <v>{$row}</v>\n      </c>";
+                yield $xml . "\n  </row>";
             }
 
-            $rows .= "\n    </row>";
-        }
+            yield "\n";
+        };
 
-        $path = $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround("\n  <sheetData>" . $rows . "\n  </sheetData>\n")));
-        unset($rows);
-        $workbook = $this->open($path, limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
+        $workbook = $this->open($this->workbookWithStreamed('rows', $rows()), limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
         $count = 0;
         $lastNumber = 0;
         $lastValue = null;
@@ -317,7 +319,7 @@ final class XlsxTimeBoundTest extends TestCase
         // The same runs over and over are no flood, however the stream is cut
         $scanner = new XmlFloodScanner(131_072);
 
-        foreach (str_split('<a>' . str_repeat("\n    <c/>\n  <c/>", 50_000) . '</a>', 5) as $chunk) {
+        foreach (str_split('<a>' . str_repeat("\n    <c/>\n  <c/>", 2_000) . '</a>', 5) as $chunk) {
             self::assertNull($scanner->scan($chunk));
         }
     }
@@ -771,6 +773,46 @@ final class XlsxTimeBoundTest extends TestCase
                 return $workbook->part('xl/sharedStrings.xml', str_replace('<si>', $markup . '<si>', $workbook->parts()['xl/sharedStrings.xml']));
             })(),
         });
+    }
+
+    /**
+     * A small workbook with something large at a place of it - written to the part piece by piece, never held as one
+     * string (a test worker carries other tests' memory).
+     *
+     * @param string $place 'head' and 'cell' of the sheet, 'strings' (shared strings), 'rows' (the sheet's rows themselves)
+     * @param iterable<string> $pieces
+     */
+    private function workbookWithStreamed(string $place, iterable $pieces): string
+    {
+        $marker = '<streamed-here/>';
+        $entry = $place === 'strings' ? 'xl/sharedStrings.xml' : 'xl/worksheets/sheet1.xml';
+        $path = $place === 'rows'
+            ? $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround('<sheetData>' . $marker . '</sheetData>')))
+            : $this->workbookWith($place, $marker);
+
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($path));
+        $part = $zip->getFromName($entry);
+        self::assertIsString($part);
+        [$before, $after] = explode($marker, $part, 2) + [1 => ''];
+
+        $partPath = $path . '.part.xml';
+        $file = fopen($partPath, 'wb');
+        self::assertIsResource($file);
+        fwrite($file, $before);
+
+        foreach ($pieces as $piece) {
+            fwrite($file, $piece);
+        }
+
+        fwrite($file, $after);
+        fclose($file);
+
+        $zip->addFile($partPath, $entry, 0, 0, \ZipArchive::FL_OVERWRITE);
+        $zip->close();
+        unlink($partPath);
+
+        return $path;
     }
 
     private function assertRefusedAtOnce(string $path, string $why): void

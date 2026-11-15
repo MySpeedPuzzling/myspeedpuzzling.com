@@ -35,7 +35,7 @@ final class ReadWaitingImportsCommand extends Command
         $done = $handledStamp->getResult();
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Queued %d imports for reading, failed %d whose reading stalled.',
+            'Queued %d imports for reading, failed %d whose reading or fetching stalled.',
             $done['queued'],
             $done['failed'],
         ));

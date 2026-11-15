@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\DataImport;
 
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\GoogleSheetLink;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -16,6 +17,8 @@ readonly final class ImportUploadRefusalMessage
 {
     /** Refusals that are not an ImportUploadRefused: the rate limit, object storage not answering, a broken upload */
     public const array OTHER_REASONS = ['rate_limited', 'storage', 'no_file'];
+    /** Why a pasted Google Sheets link is not taken - shown under the link's field, never needed by the upload's script */
+    public const array LINK_REASONS = [GoogleSheetLink::NOT_A_SHEET, GoogleSheetLink::PUBLISHED, 'google_rate_limited'];
 
     public function __construct(
         private TranslatorInterface $translator,
@@ -24,7 +27,7 @@ readonly final class ImportUploadRefusalMessage
 
     public function of(string $reason): string
     {
-        $known = in_array($reason, ImportUploadRefused::REASONS, true) || in_array($reason, self::OTHER_REASONS, true);
+        $known = in_array($reason, ImportUploadRefused::REASONS, true) || in_array($reason, self::OTHER_REASONS, true) || in_array($reason, self::LINK_REASONS, true);
 
         return $this->translator->trans('data_import.refused.' . ($known ? $reason : 'storage'), [
             '%megabytes%' => intdiv(DataImportLimits::MAX_FILE_BYTES, 1024 * 1024),

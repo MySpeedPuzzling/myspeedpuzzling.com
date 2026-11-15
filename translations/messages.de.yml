@@ -11780,6 +11780,8 @@ data_import:
     status:
         uploading: "Upload wird abgeschlossen"
         uploaded: "Hochgeladen"
+        fetching: "Wird von Google geholt"
+        fetch_failed: "Konnte nicht geholt werden"
         reading: "Wird eingelesen"
         read_failed: "Nicht lesbar"
         setting_up: "Eingelesen"
@@ -11788,7 +11790,8 @@ data_import:
         discarded: "Verworfen"
     new:
         title: "Datei hochladen"
-        intro: "Wähle die Tabelle mit deinen Ergebnissen oder deinen Puzzles. Nur du siehst sie."
+        intro: "Füge den Link zu deiner Google-Tabelle ein oder wähle die Tabellendatei mit deinen Ergebnissen oder deinen Puzzles. Nur du siehst sie."
+        file_title: "Oder eine Datei hochladen"
         file_label: "Tabellendatei"
         file_help: "Eine Excel-Datei (.xlsx) oder eine CSV- oder TSV-Datei, höchstens %megabytes% MB."
         submit: "Hochladen"
@@ -11800,6 +11803,7 @@ data_import:
     soon: "Die Zuordnung der Spalten und das Hinzufügen der Zeilen zu deinem Profil folgen bald. Bis dahin wird deinem Profil nichts hinzugefügt."
     detail:
         state: "Status"
+        source: "Quelle"
         size: "Größe"
         started: "Hochgeladen am"
         kept: "Die Datei wird bis zum %date% aufbewahrt."
@@ -11810,6 +11814,7 @@ data_import:
         discard_help: "Die Datei wird gelöscht. An deinem Profil ändert sich nichts."
         discard_confirm: "Diesen Import verwerfen? Seine Datei wird gelöscht."
     reading:
+        fetching: "Tabelle wird von Google geholt…"
         waiting: "Wartet auf das Einlesen…"
         reading: "Datei wird eingelesen…"
         sheets: "Eingelesene Blätter: %done% von %total%"
@@ -11824,6 +11829,24 @@ data_import:
         columns: "Spalten"
         hidden: "Ausgeblendet"
         untitled: "Die ganze Datei"
+    google:
+        title: "Google-Sheets-Link einfügen"
+        link_label: "Link zur Google-Tabelle"
+        share_hint: "Die Tabelle muss für alle freigegeben sein, die den Link haben. In Google Sheets:"
+        share_steps: "Freigeben → Jeder mit dem Link → Betrachter"
+        submit: "Tabelle holen"
+        unnamed: "Google-Tabelle"
+        source: "Google-Sheets-Link"
+        sharing_off: "Die Tabelle ist jetzt hier - du kannst die Freigabe wieder ausschalten."
+    fetch_failed:
+        title: "Die Tabelle konnte nicht geholt werden"
+        not_shared: "Google verlangt eine Anmeldung - die Tabelle ist also noch nicht über den Link freigegeben. Gib sie frei und versuche es erneut."
+        not_found: "Google kennt keine Tabelle mit diesem Link. Prüfe, ob der Link vollständig ist und die Tabelle nicht gelöscht wurde, und füge ihn erneut ein."
+        too_large: "Als Excel-Datei ist die Tabelle größer als %megabytes% MB - mehr, als ein Import aufnehmen kann."
+        refused: "Google hat die Tabelle diesmal nicht herausgegeben. Versuche es später erneut oder lade sie in Google Sheets herunter (Datei → Herunterladen → Microsoft Excel) und lade die Datei hoch."
+        not_a_spreadsheet: "Was Google geschickt hat, ist keine Tabelle. Lade die Tabelle in Google Sheets herunter (Datei → Herunterladen → Microsoft Excel) und lade die Datei hoch."
+        failed: "Beim Holen der Tabelle ist auf unserer Seite etwas schiefgegangen. Bitte versuche es erneut."
+        upload_instead: "Stattdessen eine Datei hochladen"
     read_failed:
         title: "Die Datei konnte nicht eingelesen werden"
         too_large: "Die Datei enthält mehr, als ein Import aufnehmen kann. Ein Import nimmt eine Datei bis %megabytes% MB an."
@@ -11858,3 +11881,6 @@ data_import:
         rate_limited: "Zu viele Uploads in der letzten Stunde. Bitte versuche es später noch einmal."
         storage: "Die Datei konnte gerade nicht gespeichert werden. Bitte versuche es gleich noch einmal."
         no_file: "Bitte wähle zuerst eine Datei."
+        google_link: "Das ist kein Link zu einer Google-Tabelle. Öffne die Tabelle, wähle Freigeben → Link kopieren und füge ihn hier ein - er beginnt mit docs.google.com/spreadsheets."
+        google_published: "Das ist ein Link „Im Web veröffentlicht“. Bitte füge stattdessen den Link aus Freigeben → Link kopieren ein."
+        google_rate_limited: "Zu viele Google-Tabellen in der letzten Stunde. Bitte versuche es später erneut."

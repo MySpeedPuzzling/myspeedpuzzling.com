@@ -169,6 +169,14 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 hour',
             ],
+            // Spreadsheet imports by a Google Sheets link (docs/features/data-import/google-sheets.md): every link taken
+            // and every "Try again" of a failed fetch is a request of ours to Google and up to 25 MB in our bucket.
+            // 10 an hour per player (the design's number, README "Security and privacy").
+            'data_import_google' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 hour',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

@@ -12027,6 +12027,8 @@ data_import:
     status:
         uploading: "Finishing the upload"
         uploaded: "Uploaded"
+        fetching: "Fetching from Google"
+        fetch_failed: "Could not be fetched"
         reading: "Being read"
         read_failed: "Could not be read"
         setting_up: "Read"
@@ -12035,7 +12037,8 @@ data_import:
         discarded: "Discarded"
     new:
         title: "Bring the file"
-        intro: "Pick the spreadsheet with your results or your puzzles. Only you see it."
+        intro: "Paste the link of your Google sheet, or pick the spreadsheet file with your results or your puzzles. Only you see it."
+        file_title: "Or upload a file"
         file_label: "Spreadsheet file"
         file_help: "An Excel file (.xlsx) or a CSV or TSV file, at most %megabytes% MB."
         submit: "Upload"
@@ -12047,6 +12050,7 @@ data_import:
     soon: "Choosing what the columns mean and adding the rows to your profile arrive soon. Until then nothing is added to your profile."
     detail:
         state: "State"
+        source: "Source"
         size: "Size"
         started: "Uploaded on"
         kept: "The file is kept until %date%."
@@ -12057,6 +12061,7 @@ data_import:
         discard_help: "The file is deleted. Nothing on your profile changes."
         discard_confirm: "Discard this import? Its file is deleted."
     reading:
+        fetching: "Fetching the sheet from Google…"
         waiting: "Waiting to be read…"
         reading: "Reading the file…"
         sheets: "Sheets read: %done% of %total%"
@@ -12071,6 +12076,24 @@ data_import:
         columns: "Columns"
         hidden: "Hidden"
         untitled: "The whole file"
+    google:
+        title: "Paste a Google Sheets link"
+        link_label: "Link of the Google sheet"
+        share_hint: "The sheet must be shared with anyone who has the link. In Google Sheets:"
+        share_steps: "Share → Anyone with the link → Viewer"
+        submit: "Fetch the sheet"
+        unnamed: "Google sheet"
+        source: "Google Sheets link"
+        sharing_off: "The sheet is here now - you can switch its sharing off again."
+    fetch_failed:
+        title: "The sheet could not be fetched"
+        not_shared: "Google asks to sign in, so the sheet is not shared with the link yet. Share it and try again."
+        not_found: "Google does not know a spreadsheet with this link. Check that the link is whole and that the sheet was not deleted, then paste it again."
+        too_large: "As an Excel file the sheet is larger than %megabytes% MB - more than an import can take."
+        refused: "Google did not hand the sheet over this time. Try again later, or download it in Google Sheets (File → Download → Microsoft Excel) and upload the file."
+        not_a_spreadsheet: "What Google sent is not a spreadsheet. Download the sheet in Google Sheets (File → Download → Microsoft Excel) and upload the file."
+        failed: "Something went wrong on our side while the sheet was fetched. Please try again."
+        upload_instead: "Upload a file instead"
     read_failed:
         title: "The file could not be read"
         too_large: "The file holds more than an import can take. An import takes a file of at most %megabytes% MB."
@@ -12105,3 +12128,6 @@ data_import:
         rate_limited: "Too many uploads in the last hour. Please try again later."
         storage: "The file could not be stored right now. Please try again in a moment."
         no_file: "Please pick a file first."
+        google_link: "This is not the link of a Google sheet. Open the sheet, choose Share → Copy link and paste it here - it starts with docs.google.com/spreadsheets."
+        google_published: "This is a “published to the web” link. Please paste the link from Share → Copy link instead."
+        google_rate_limited: "Too many Google sheets in the last hour. Please try again later."

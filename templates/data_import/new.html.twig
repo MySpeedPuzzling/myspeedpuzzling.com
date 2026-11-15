@@ -1,7 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {#
-    "Bring the file" (docs/features/data-import/upload.md). The form is a plain upload form; with the script
+    "Bring the file" (docs/features/data-import/upload.md, google-sheets.md). The link of a Google sheet comes first
+    (on a phone the spreadsheet usually lives there): a plain form, no script. Below it the file's form: a plain
+    upload form; with the script
     (data_import_upload_controller.js) the picked file goes straight to object storage with a progress line, and the
     form itself is only the fallback.
 #}
@@ -18,7 +20,33 @@
     <h1 class="h3 mb-2"><i class="bi bi-upload me-2"></i>{{ 'data_import.new.title'|trans }}</h1>
     <p class="text-muted">{{ 'data_import.new.intro'|trans }}</p>
 
+    <div class="card card-body shadow-sm mb-3" data-testid="import-google-card">
+        <h2 class="h5"><i class="bi bi-link-45deg me-1"></i>{{ 'data_import.google.title'|trans }}</h2>
+        <form action="{{ path('data_import_new') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+
+            <label for="data-import-google-link" class="form-label">{{ 'data_import.google.link_label'|trans }}</label>
+            <input type="url" inputmode="url" id="data-import-google-link" name="google_link" value="{{ google_link }}"
+                   class="form-control{{ link_refusal is not null ? ' is-invalid' }}" style="font-size: 16px; min-height: 44px;"
+                   placeholder="https://docs.google.com/spreadsheets/d/…" maxlength="2000" required
+                   autocomplete="off" autocapitalize="off" spellcheck="false"
+                   aria-describedby="data-import-google-help{{ link_refusal is not null ? ' data-import-google-error' }}"{{ link_refusal is not null ? ' aria-invalid="true"' }}>
+            {% if link_refusal is not null %}
+                <div id="data-import-google-error" class="invalid-feedback d-block" role="alert" data-testid="import-link-refusal">{{ link_refusal }}</div>
+            {% endif %}
+            <div id="data-import-google-help" class="form-text">
+                {{ 'data_import.google.share_hint'|trans }}
+                <span class="fw-semibold text-nowrap">{{ 'data_import.google.share_steps'|trans }}</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary text-wrap mt-3" style="min-height: 44px;" data-testid="import-google-submit">
+                <i class="bi bi-cloud-download me-1"></i>{{ 'data_import.google.submit'|trans }}
+            </button>
+        </form>
+    </div>
+
     <div class="card card-body shadow-sm mb-3">
+        <h2 class="h5"><i class="bi bi-file-earmark-arrow-up me-1"></i>{{ 'data_import.new.file_title'|trans }}</h2>
         <form action="{{ path('data_import_new') }}" method="post" enctype="multipart/form-data"
               data-controller="data-import-upload"
               data-action="submit->data-import-upload#submit"

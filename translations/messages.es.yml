@@ -11781,6 +11781,8 @@ data_import:
     status:
         uploading: "Terminando la subida"
         uploaded: "Subido"
+        fetching: "Obteniéndose de Google"
+        fetch_failed: "No se pudo obtener"
         reading: "Leyéndose"
         read_failed: "No se pudo leer"
         setting_up: "Leído"
@@ -11789,7 +11791,8 @@ data_import:
         discarded: "Descartado"
     new:
         title: "Sube el archivo"
-        intro: "Elige la hoja de cálculo con tus resultados o tus puzzles. Solo tú la ves."
+        intro: "Pega el enlace de tu hoja de cálculo de Google o elige el archivo con tus resultados o tus puzzles. Solo tú la ves."
+        file_title: "O sube un archivo"
         file_label: "Archivo de hoja de cálculo"
         file_help: "Un archivo de Excel (.xlsx) o un archivo CSV o TSV, de %megabytes% MB como máximo."
         submit: "Subir"
@@ -11801,6 +11804,7 @@ data_import:
     soon: "Elegir qué significa cada columna y añadir las filas a tu perfil llegarán pronto. Hasta entonces no se añade nada a tu perfil."
     detail:
         state: "Estado"
+        source: "Origen"
         size: "Tamaño"
         started: "Subido el"
         kept: "El archivo se guarda hasta el %date%."
@@ -11811,6 +11815,7 @@ data_import:
         discard_help: "El archivo se elimina. En tu perfil no cambia nada."
         discard_confirm: "¿Descartar esta importación? Su archivo se elimina."
     reading:
+        fetching: "Obteniendo la hoja de Google…"
         waiting: "Esperando a ser leído…"
         reading: "Leyendo el archivo…"
         sheets: "Hojas leídas: %done% de %total%"
@@ -11825,6 +11830,24 @@ data_import:
         columns: "Columnas"
         hidden: "Oculta"
         untitled: "Todo el archivo"
+    google:
+        title: "Pega un enlace de Hojas de cálculo de Google"
+        link_label: "Enlace de la hoja de Google"
+        share_hint: "La hoja debe estar compartida con cualquier persona que tenga el enlace. En Hojas de cálculo de Google:"
+        share_steps: "Compartir → Cualquier persona con el enlace → Lector"
+        submit: "Obtener la hoja"
+        unnamed: "Hoja de Google"
+        source: "Enlace de Hojas de cálculo de Google"
+        sharing_off: "La hoja ya está aquí: puedes volver a desactivar el uso compartido."
+    fetch_failed:
+        title: "No se pudo obtener la hoja"
+        not_shared: "Google pide iniciar sesión, así que la hoja todavía no está compartida con el enlace. Compártela e inténtalo de nuevo."
+        not_found: "Google no conoce ninguna hoja de cálculo con este enlace. Comprueba que el enlace esté completo y que la hoja no se haya eliminado, y pégalo de nuevo."
+        too_large: "Como archivo de Excel, la hoja ocupa más de %megabytes% MB: más de lo que admite una importación."
+        refused: "Esta vez Google no entregó la hoja. Inténtalo más tarde, o descárgala en Hojas de cálculo de Google (Archivo → Descargar → Microsoft Excel) y sube el archivo."
+        not_a_spreadsheet: "Lo que envió Google no es una hoja de cálculo. Descarga la hoja en Hojas de cálculo de Google (Archivo → Descargar → Microsoft Excel) y sube el archivo."
+        failed: "Algo falló por nuestra parte al obtener la hoja. Inténtalo de nuevo, por favor."
+        upload_instead: "Subir un archivo en su lugar"
     read_failed:
         title: "No se pudo leer el archivo"
         too_large: "El archivo contiene más de lo que admite una importación. Una importación admite un archivo de %megabytes% MB como máximo."
@@ -11859,3 +11882,6 @@ data_import:
         rate_limited: "Demasiadas subidas en la última hora. Inténtalo más tarde, por favor."
         storage: "El archivo no se pudo guardar ahora. Inténtalo de nuevo en un momento, por favor."
         no_file: "Elige primero un archivo, por favor."
+        google_link: "Esto no es el enlace de una hoja de cálculo de Google. Abre la hoja, elige Compartir → Copiar enlace y pégalo aquí: empieza por docs.google.com/spreadsheets."
+        google_published: "Este es un enlace de «publicado en la Web». Pega en su lugar el enlace de Compartir → Copiar enlace."
+        google_rate_limited: "Demasiadas hojas de Google en la última hora. Inténtalo más tarde, por favor."

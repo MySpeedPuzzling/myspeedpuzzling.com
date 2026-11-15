@@ -11783,6 +11783,8 @@ data_import:
     status:
         uploading: "Dokončuje se nahrávání"
         uploaded: "Nahráno"
+        fetching: "Stahuje se z Googlu"
+        fetch_failed: "Nepodařilo se stáhnout"
         reading: "Načítá se"
         read_failed: "Nepodařilo se načíst"
         setting_up: "Načteno"
@@ -11791,7 +11793,8 @@ data_import:
         discarded: "Zahozeno"
     new:
         title: "Nahrajte soubor"
-        intro: "Vyberte tabulku se svými výsledky nebo puzzle. Vidíte ji jen vy."
+        intro: "Vložte odkaz na svou tabulku Google, nebo vyberte soubor s tabulkou svých výsledků či puzzle. Vidíte ji jen vy."
+        file_title: "Nebo nahrajte soubor"
         file_label: "Soubor s tabulkou"
         file_help: "Soubor Excelu (.xlsx) nebo soubor CSV či TSV, nejvýše %megabytes% MB."
         submit: "Nahrát"
@@ -11803,6 +11806,7 @@ data_import:
     soon: "Určení, co který sloupec znamená, a přidání řádků do vašeho profilu doplníme brzy. Do té doby se do vašeho profilu nic nepřidá."
     detail:
         state: "Stav"
+        source: "Zdroj"
         size: "Velikost"
         started: "Nahráno dne"
         kept: "Soubor uchováme do %date%."
@@ -11813,6 +11817,7 @@ data_import:
         discard_help: "Soubor se smaže. Ve vašem profilu se nic nezmění."
         discard_confirm: "Zahodit tento import? Jeho soubor se smaže."
     reading:
+        fetching: "Tabulka se stahuje z Googlu…"
         waiting: "Čeká na načtení…"
         reading: "Soubor se načítá…"
         sheets: "Načtené listy: %done% z %total%"
@@ -11827,6 +11832,24 @@ data_import:
         columns: "Sloupce"
         hidden: "Skrytý"
         untitled: "Celý soubor"
+    google:
+        title: "Vložte odkaz na Tabulky Google"
+        link_label: "Odkaz na tabulku Google"
+        share_hint: "Tabulka musí být sdílená s každým, kdo má odkaz. V Tabulkách Google:"
+        share_steps: "Sdílet → Kdokoli s odkazem → Čtenář"
+        submit: "Stáhnout tabulku"
+        unnamed: "Tabulka Google"
+        source: "Odkaz na Tabulky Google"
+        sharing_off: "Tabulka už je tady - sdílení můžete zase vypnout."
+    fetch_failed:
+        title: "Tabulku se nepodařilo stáhnout"
+        not_shared: "Google žádá přihlášení, tabulka tedy zatím není sdílená přes odkaz. Nasdílejte ji a zkuste to znovu."
+        not_found: "Google tabulku s tímto odkazem nezná. Zkontrolujte, že je odkaz celý a že tabulka nebyla smazána, a vložte ho znovu."
+        too_large: "Jako soubor Excelu je tabulka větší než %megabytes% MB - víc, než import pojme."
+        refused: "Google tentokrát tabulku nevydal. Zkuste to později, nebo si ji v Tabulkách Google stáhněte (Soubor → Stáhnout → Microsoft Excel) a nahrajte soubor."
+        not_a_spreadsheet: "To, co Google poslal, není tabulka. Stáhněte si ji v Tabulkách Google (Soubor → Stáhnout → Microsoft Excel) a nahrajte soubor."
+        failed: "Při stahování tabulky se něco pokazilo na naší straně. Zkuste to prosím znovu."
+        upload_instead: "Nahrát raději soubor"
     read_failed:
         title: "Soubor se nepodařilo načíst"
         too_large: "Soubor obsahuje víc, než import pojme. Import přijme soubor do %megabytes% MB."
@@ -11861,3 +11884,6 @@ data_import:
         rate_limited: "Příliš mnoho nahrání za poslední hodinu. Zkuste to prosím později."
         storage: "Soubor se teď nepodařilo uložit. Zkuste to prosím za chvíli znovu."
         no_file: "Nejprve prosím vyberte soubor."
+        google_link: "Tohle není odkaz na tabulku Google. Otevřete tabulku, zvolte Sdílet → Kopírovat odkaz a vložte ho sem - začíná docs.google.com/spreadsheets."
+        google_published: "Tohle je odkaz „publikováno na webu“. Vložte prosím odkaz ze Sdílet → Kopírovat odkaz."
+        google_rate_limited: "Příliš mnoho tabulek Google za poslední hodinu. Zkuste to prosím později."

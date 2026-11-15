@@ -28,7 +28,7 @@
                 <div class="card card-body shadow-sm p-3" data-testid="data-import">
                     <div class="d-flex align-items-start justify-content-between gap-2">
                         <div style="min-width: 0;">
-                            <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="fw-semibold text-break text-reset d-inline-block py-1">{{ import.fileName }}</a>
+                            <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="fw-semibold text-break text-reset d-inline-block py-1">{{ import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans }}</a>
                             <div class="fs-sm text-muted">
                                 {{ import.createdAt|format_date('medium') }}
                                 {%- if import.fileSize is not null %} · {{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}{% endif %}

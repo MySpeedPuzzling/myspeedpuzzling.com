@@ -38,6 +38,16 @@ final class DataImportLimits
     public const float DOWNLOAD_TOTAL_SECONDS = 120.0;
     /** An import "being read" without any progress for this long: its worker died */
     public const int READING_STALLED_AFTER_SECONDS = 900;
+    /**
+     * Fetching a Google sheet's export (docs/features/data-import/google-sheets.md): seconds to connect, seconds
+     * without a byte, seconds in all - over every redirect together
+     */
+    public const float GOOGLE_CONNECT_SECONDS = 5.0;
+    public const float GOOGLE_IDLE_SECONDS = 20.0;
+    public const float GOOGLE_TOTAL_SECONDS = 60.0;
+    public const int GOOGLE_MAX_REDIRECTS = 5;
+    /** An import "being fetched" - waiting for the worker or with it - without any news for this long ends as failed */
+    public const int FETCHING_STALLED_AFTER_SECONDS = 900;
     /** Imports whose file arrived and that are neither finished nor discarded */
     public const int MAX_UNFINISHED_PER_PLAYER = 3;
     /** How long the uploaded file is kept in object storage */

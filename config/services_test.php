@@ -138,6 +138,13 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$httpClient', service('finished_photo.test_http_client'))
         ->arg('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%');
 
+    // Google Sheets' export for the data import never leaves the process: the test says what Google answers, hop by
+    // hop, and what every host resolves to (static, like the SNS mock)
+    $services->set('data_import.google_http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\GoogleSheetHttpMock::class, 'client']);
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedHostAddresses::class);
+    $services->alias(\SpeedPuzzling\Web\Services\DataImport\HostAddresses::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedHostAddresses::class);
+
     // Cloudflare's siteverify for the Turnstile check never leaves the process (static, like the SNS mock)
     $services->set('turnstile.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\TurnstileHttpMock::class, 'client']);

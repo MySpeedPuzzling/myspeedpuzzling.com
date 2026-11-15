@@ -10,14 +10,17 @@
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
 {% set back_url = scope == 'batch' ? path('data_import_batch', {importId: import.importId, batchId: batch.id}) : (scope == 'rows' ? path('data_import_added', {importId: import.importId}) : path('data_import_detail', {importId: import.importId})) %}
 
-{% block title %}{{ ('data_import.undo.confirm.title_' ~ scope)|trans }} - {{ import_name }}{% endblock %}
+{% set several = several|default([]) %}
+{% set heading = several is empty ? ('data_import.undo.confirm.title_' ~ scope)|trans : 'data_import.after.list.confirm.title'|trans({'%count%': counts.added, '%number%': counts.added|format_number}) %}
+
+{% block title %}{{ heading }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 560px;" data-testid="import-undo-confirm-page" data-import-flow-screen="undo_confirm" data-scope="{{ scope }}" data-rows="{{ counts.added }}">
-    <h1 class="h3 mb-3">{{ ('data_import.undo.confirm.title_' ~ scope)|trans }}</h1>
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-undo-confirm-page" data-import-flow-screen="undo_confirm" data-scope="{{ scope }}" data-rows="{{ counts.added }}" data-several="{{ several|length }}">
+    <h1 class="h3 mb-3">{{ heading }}</h1>
     {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, more: 'data_import.explain.undo_more'|trans, testid: 'import-explain-undo'}, with_context = false) }}
 
     {% if row is not null %}
@@ -52,9 +55,10 @@
             <input type="hidden" name="request_id" value="{{ request_id }}">
             <input type="hidden" name="scope" value="{{ scope }}">
             {% if row is not null %}<input type="hidden" name="row" value="{{ row.rowId }}">{% endif %}
+            {% for id in several %}<input type="hidden" name="rows[]" value="{{ id }}">{% endfor %}
             {% if batch is not null %}<input type="hidden" name="batch" value="{{ batch.id }}">{% endif %}
             <button type="submit" class="btn btn-primary btn-lg text-wrap" style="min-height: 52px;" data-testid="import-undo-button">
-                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ ('data_import.undo.confirm.button_' ~ scope)|trans }}
+                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ several is empty ? ('data_import.undo.confirm.button_' ~ scope)|trans : 'data_import.after.list.confirm.button'|trans({'%count%': counts.added, '%number%': counts.added|format_number}) }}
             </button>
             <a href="{{ back_url }}" class="btn btn-outline-secondary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;">{{ 'data_import.undo.confirm.cancel'|trans }}</a>
         </form>

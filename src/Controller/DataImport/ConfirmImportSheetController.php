@@ -29,8 +29,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The player's word on one sheet (docs/features/data-import/columns-screen.md "Saving"): answers to its questions,
  * what it is, what a row is, what its columns are - one form, one message (ConfirmImportMapping). POST + CSRF.
  *
- * Saved: back to the sheet (or to the list, for the one-tap change there), whose rows are read again in the
- * background. Refused: the same page again with a 422 and the reason at its field - never a 200, never a lost
+ * Saved: back to the sheet (or to the list, for the one-tap change there - or to the next question, for an answer
+ * given on step 2's one-question screens), whose rows are read again in the background. Refused: the same page again with a 422 and the reason at its field - never a 200, never a lost
  * choice. Changed meanwhile in another tab: the sheet as it stands now, with a notice. Another player's import is a
  * 404.
  */
@@ -65,9 +65,13 @@ final class ConfirmImportSheetController extends AbstractController
 
         $sheet = $this->getImportSheetScreen->sheet($importId, $sheetId, $player->playerId);
         $form = $request->request;
-        $back = $form->getString('back') === 'list'
-            ? $this->redirectToRoute('data_import_columns', ['importId' => $importId])
-            : $this->redirectToRoute('data_import_sheet', ['importId' => $importId, 'sheetId' => $sheetId]);
+        $back = match ($form->getString('back')) {
+            'list' => $this->redirectToRoute('data_import_columns', ['importId' => $importId]),
+            // One question a screen (guided-flow.md §5.4): back to the row of questions, at the place it was asked at -
+            // the answered one is gone, so the next one stands there now
+            'check' => $this->redirectToRoute('data_import_columns', array_filter(['importId' => $importId, 'q' => max(0, $form->getInt('q'))])),
+            default => $this->redirectToRoute('data_import_sheet', ['importId' => $importId, 'sheetId' => $sheetId]),
+        };
 
         if ($sheet->beingSetUp === false) {
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);

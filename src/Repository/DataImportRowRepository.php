@@ -549,8 +549,11 @@ SQL;
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
      * @param string $selection more conditions on the row `r` (" AND r.id IN (:rowIds)")
+     * @param string $imports which imports' rows: one import (the default, `:importId`) - or, for a read that counts
+     *        the ready rows of several imports at once (Imports home), a condition on `r.import_id` of its own. The
+     *        rule of "ready" is the same either way; only whose rows are looked at differs
      */
-    public static function sqlReadyRows(string $selection = ''): string
+    public static function sqlReadyRows(string $selection = '', string $imports = 'r.import_id = :importId'): string
     {
         return <<<SQL
 chosen AS (
@@ -576,7 +579,7 @@ chosen AS (
     FROM data_import_row r
     INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
     INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
-    WHERE r.import_id = :importId
+    WHERE {$imports}
         AND sheet.included
         -- The sheet is settled: its rows are read for its current columns and kind, and it is one whose rows are
         -- imported. A sheet the player just changed ("not puzzles", another column) waits for its re-read - until

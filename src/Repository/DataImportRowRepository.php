@@ -261,6 +261,93 @@ SQL, ['importId' => $import->id->toString(), 'rowIds' => $rowIds], ['rowIds' => 
     }
 
     /**
+     * The next rows of the import that wait with one reason (refused by an "Add" - of one "Add", or of all), by
+     * their ids' order: what a group answer goes through, a chunk at a time.
+     *
+     * @return list<string>
+     */
+    public function idsRefusedWith(DataImport $import, string $code, null|string $batchId, null|string $afterRowId, int $limit): array
+    {
+        $query = $this->entityManager->createQueryBuilder()
+            ->select('r.id')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.import = :import')
+            ->andWhere('r.state = :waiting')
+            ->andWhere('r.failure = :code')
+            ->orderBy('r.id')
+            ->setParameter('import', $import)
+            ->setParameter('waiting', DataImportRowState::Waiting->value)
+            ->setParameter('code', $code)
+            ->setMaxResults($limit);
+
+        if ($batchId !== null && Uuid::isValid($batchId)) {
+            $query->andWhere('r.batchId = :batch')->setParameter('batch', $batchId);
+        }
+
+        if ($afterRowId !== null && Uuid::isValid($afterRowId)) {
+            $query->andWhere('r.id > :after')->setParameter('after', $afterRowId);
+        }
+
+        /** @var list<array{id: UuidInterface}> $rows */
+        $rows = $query->getQuery()->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
+    }
+
+    public function countRefusedWith(DataImport $import, string $code, null|string $batchId): int
+    {
+        $query = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(r.id)')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.import = :import')
+            ->andWhere('r.state = :waiting')
+            ->andWhere('r.failure = :code')
+            ->setParameter('import', $import)
+            ->setParameter('waiting', DataImportRowState::Waiting->value)
+            ->setParameter('code', $code);
+
+        if ($batchId !== null && Uuid::isValid($batchId)) {
+            $query->andWhere('r.batchId = :batch')->setParameter('batch', $batchId);
+        }
+
+        return (int) $query->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * The next ready results of the import that carry a time the player has not said "it is right" about, by their
+     * ids' order - what "these times are right" before an "Add" shows to the time verification, a chunk at a time.
+     * "Ready" is the one definition (sqlReadyRows()). With a null limit: how many there are after the cursor.
+     *
+     * @return list<string>
+     */
+    public function idsOfTimedReady(DataImport $import, null|string $afterRowId, int $limit): array
+    {
+        $ready = self::sqlReadyRows();
+
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
+WITH {$ready}
+SELECT r.id
+FROM ready
+INNER JOIN data_import_row r ON r.id = ready.id
+WHERE ready.has_result
+    AND ready.equal_row = FALSE
+    AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
+    AND r.answers -> 'addAnyway' ->> 'unusual_time' IS NULL
+    AND (CAST(:after AS UUID) IS NULL OR r.id > CAST(:after AS UUID))
+ORDER BY r.id
+LIMIT :limit
+SQL, [
+            'importId' => $import->id->toString(),
+            'explicit' => 0,
+            'after' => $afterRowId !== null && Uuid::isValid($afterRowId) ? $afterRowId : null,
+            'limit' => $limit,
+        ])->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
      * A row by its id without loading it - for pointing another row at it.
      */
     public function reference(string $rowId): DataImportRow

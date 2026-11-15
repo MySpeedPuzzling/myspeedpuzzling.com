@@ -11762,6 +11762,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "行を確認しています"
+        line: "行を確認しています… %done% / %total%"
+        finishing: "仕上げ中…"
+        then_added: "すべての行の確認が終わると、回答の対象となった行が追加されます。その後、このページに追加の進み具合が表示されます。"
+        people_link: "ペアまたはチームとなっているのに誰も書かれていない行: %number% - まとめて1つの回答で設定できます"
+        one_by_one: "重複の可能性がある行: %number%。すでにある記録を横に表示しながら、1件ずつ回答します。"
+        equal_note: "対になる行に従う行: %number%。それぞれファイルの別の行と同じ記録で、その行が追加されると解決します。ここで行うことはありません。"
+        times:
+            title: "いつもと違うタイム: %number%"
+            loading: "これらのタイムを確認しています…"
+            open: "これらのタイムを見る"
+            hint: "これらのタイムは、そのパズルであなたに想定されるタイムよりかなり速い、または遅いものです。まとめて回答する前にご確認ください。"
+            looked: "%number% 件のうち %looked% 件をいま確認しました。"
+            split: "想定より速い: %faster% · 想定より遅い: %slower%"
+            faster_range: "速いものは、想定の %from% 倍から %to% 倍の速さです。"
+            slower_range: "遅いものは、想定の %from% 倍から %to% 倍の時間がかかっています。"
+            most_faster: "このファイルのタイムの大半は、これまでのMySpeedPuzzlingでの記録より速いものです。このファイルがご自身の記録であれば、問題ありません。"
+            most_slower: "このファイルのタイムの大半は、これまでのMySpeedPuzzlingでの記録より遅いものです。このファイルがご自身の記録であれば、問題ありません。"
+            examples: "例"
+            expected: "想定は約 %expected% でした。"
+            none_now: "ファイルのほかの行がプロフィールに追加されたため、確認したタイムにいつもと違うものはなくなりました。"
+            right: "これらのタイムは正しいです - %number% 件すべて追加"
+            leave_out: "除外する(%number%)"
+            one_by_one: "1件ずつ回答する"
+            file_hint: "ここに表示されているものだけでなく、このファイルのいつもと違うタイムすべてに対する1つの回答です。まず各タイムを確認するため、少し時間がかかることがあります。"
+            file_right: "このファイルのいつもと違うタイムはすべて正しいです"
+            file_leave_out: "このファイルのいつもと違うタイムをすべて除外する"
+        said:
+            title: "ファイルではMySpeedPuzzlingに登録済みとされている行: %number%"
+            hint: "これらの記録はプロフィールに見つかりませんでした。登録されていなければ追加し、(別の日やパズルで)登録済みとわかっている場合は除外してください。"
+            missing: "登録されていません - %number% 件すべて追加"
+            leave_out: "除外する(%number%)"
+        done:
+            title: "完了"
+            answered: "回答の対象となった行: %answered% / %total%"
+            before_add: "準備ができました。確認して追加してください。"
+            left_out: "除外しました。「要修正」で行を元に戻せます。"
+            not_added: "回答は保存されました。現在は追加を開始できませんでした。行は準備ができており、確認ページから追加できます。"
+            none: "回答の対象となった行はありませんでした。その間に変更されています。"
+            stale: "止まっているようです。"
+            continue: "続ける"
+        flash:
+            nothing: "この回答を待っている行はもうありません。"
     nothing_until_add: "内容を確認して「追加」を押すまで、プロフィールには何も追加されません。"
     add:
         title: "追加前の確認"

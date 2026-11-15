@@ -19,6 +19,8 @@ the only script is the live line.
 - [Wording](#wording) · [Privacy and safety](#privacy-and-safety) · [Performance](#performance)
 - [Where the README and the screens differ](#where-the-readme-and-the-screens-differ) · [Tests](#tests) · [Loose ends](#loose-ends)
 
+**One answer for a whole group of rows that were not added** (stage 6b-3): [group-answers.md](group-answers.md).
+
 ## Routes
 
 All under `/{_locale}/import/{importId}` (6 locales), signed in, `noindex`. Another player's import - or a batch, an

@@ -72,6 +72,27 @@
                     <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.add.times.more_later'|trans({'%number%': checked|format_number}) }}</p>
                 {% endif %}
             {% endif %}
+
+            {# One answer for every unusual time of the file - not only the first rows looked at here #}
+            {% if unusual is not empty or not all_checked %}
+                <div class="border-top mt-3 pt-3" data-testid="import-add-times-group">
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.group.times.file_hint'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for action, key in {add_anyway: 'right', leave_out: 'leave_out'} %}
+                            <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" data-turbo-frame="_top">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="request_id" value="{{ group_request_ids[key] }}">
+                                <input type="hidden" name="code" value="unusual_time">
+                                <input type="hidden" name="action" value="{{ action }}">
+                                <input type="hidden" name="before_add" value="1">
+                                <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-outline-primary' : 'btn-outline-secondary' }} text-wrap" style="min-height: 44px;" data-testid="import-add-times-group-{{ key }}">
+                                    {{ ('data_import.group.times.file_' ~ key)|trans }}
+                                </button>
+                            </form>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </turbo-frame>
 

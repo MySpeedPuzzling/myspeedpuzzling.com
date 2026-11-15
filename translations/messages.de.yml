@@ -11772,6 +11772,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "Wir gehen deine Zeilen durch"
+        line: "Wir gehen deine Zeilen durch… %done% von %total%"
+        finishing: "Wird abgeschlossen…"
+        then_added: "Wenn alle Zeilen durchgegangen sind, werden die hinzugefügt, für die deine Antwort gilt - diese Seite zeigt dann, wie weit das Hinzufügen ist."
+        people_link: "Zeilen, die Paar oder Team sagen und niemanden nennen: %number% - eine Antwort für alle"
+        one_by_one: "Mögliche Duplikate: %number%. Sie werden einzeln beantwortet, jeweils mit dem Ergebnis daneben, das es schon gibt."
+        equal_note: "Zeilen, die ihrer Zwillingszeile folgen: %number%. Jede ist dasselbe Ergebnis wie eine andere Zeile deiner Datei und erledigt sich, wenn diese hinzugefügt wird - hier ist nichts zu tun."
+        times:
+            title: "Ungewöhnliche Zeiten: %number%"
+            loading: "Wir sehen uns diese Zeiten an…"
+            open: "Diese Zeiten ansehen"
+            hint: "Diese Zeiten sind viel schneller oder langsamer, als wir es bei dir für das Puzzle erwarten würden. Sieh sie dir an, bevor du für alle antwortest."
+            looked: "Gerade %looked% von %number% angesehen."
+            split: "Schneller als erwartet: %faster% · langsamer als erwartet: %slower%"
+            faster_range: "Die schnelleren sind %from%× bis %to%× schneller, als wir erwartet haben."
+            slower_range: "Die langsameren sind %from%× bis %to%× langsamer, als wir erwartet haben."
+            most_faster: "Die meisten Zeiten in dieser Datei sind schneller als deine bisherigen Ergebnisse auf MySpeedPuzzling - wenn diese Datei deine eigene Historie ist, ist das zu erwarten."
+            most_slower: "Die meisten Zeiten in dieser Datei sind langsamer als deine bisherigen Ergebnisse auf MySpeedPuzzling - wenn diese Datei deine eigene Historie ist, ist das zu erwarten."
+            examples: "Zum Beispiel"
+            expected: "Wir haben etwa %expected% erwartet."
+            none_now: "Keine der angesehenen Zeiten wirkt noch ungewöhnlich - inzwischen sind weitere Zeilen der Datei auf deinem Profil."
+            right: "Diese Zeiten stimmen - alle %number% hinzufügen"
+            leave_out: "Weglassen (%number%)"
+            one_by_one: "Einzeln beantworten"
+            file_hint: "Eine Antwort für jede ungewöhnliche Zeit in dieser Datei - nicht nur für die hier gezeigten. Jede Zeit wird zuerst angesehen, das kann einen Moment dauern."
+            file_right: "Alle ungewöhnlichen Zeiten in dieser Datei stimmen"
+            file_leave_out: "Alle ungewöhnlichen Zeiten dieser Datei weglassen"
+        said:
+            title: "Laut Datei schon auf MySpeedPuzzling: %number%"
+            hint: "Wir haben diese Ergebnisse nicht auf deinem Profil gefunden. Wenn sie fehlen, füge sie hinzu - wenn du weißt, dass sie da sind (unter einem anderen Tag oder Puzzle), lass sie weg."
+            missing: "Sie fehlen - alle %number% hinzufügen"
+            leave_out: "Weglassen (%number%)"
+        done:
+            title: "Fertig"
+            answered: "Zeilen, für die deine Antwort gilt: %answered% von %total%"
+            before_add: "Sie sind jetzt bereit - prüfe sie und füge sie hinzu."
+            left_out: "Sie sind weggelassen. Unter „Zu korrigieren“ kannst du eine Zeile wieder aufnehmen."
+            not_added: "Deine Antwort ist gespeichert. Das Hinzufügen konnte gerade nicht starten - die Zeilen sind bereit und können über die Prüfung hinzugefügt werden."
+            none: "Keine Zeile hat die Antwort übernommen - sie haben sich inzwischen geändert."
+            stale: "Das scheint stillzustehen."
+            continue: "Weitermachen"
+        flash:
+            nothing: "Auf diese Antwort wartet keine Zeile mehr."
     nothing_until_add: "Deinem Profil wird nichts hinzugefügt, bevor du es dir angesehen und auf Hinzufügen gedrückt hast."
     add:
         title: "Prüfen vor dem Hinzufügen"

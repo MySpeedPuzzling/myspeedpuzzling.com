@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
@@ -74,6 +75,8 @@ final class ImportAddTimesController extends AbstractController
             'unusual' => $unusual,
             'checked' => count($rows),
             'all_checked' => count($rows) < self::ROWS_CHECKED,
+            // One answer for every unusual time of the file - not only the first rows looked at here
+            'group_request_ids' => ['right' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],
         ]);
     }
 }

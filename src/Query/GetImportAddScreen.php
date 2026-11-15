@@ -728,6 +728,134 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['
     }
 
     /**
+     * One group answer of the player's import (DataImportGroupAnswer): what it is about, how far it is, what came
+     * of it. One statement.
+     *
+     * @return array{id: string, code: string, action: string, beforeAdd: bool, ofBatchId: null|string, running: bool, stale: bool, total: int, done: int, answered: int, batchId: null|string, addStatus: null|string}
+     *
+     * @throws DataImportNotFound
+     */
+    public function groupAnswer(string $importId, string $playerId, string $answerId): array
+    {
+        self::assertIds($importId, $playerId, $answerId);
+
+        /** @var false|array{id: string, code: string, action: string, before_add: bool, of_batch_id: null|string, state: string, last_activity_at: string, rows_total: int, rows_done: int, rows_answered: int, batch_id: null|string, add_status: null|string} $row */
+        $row = $this->database->executeQuery(<<<SQL
+SELECT answer.id, answer.code, answer.action, answer.before_add, answer.of_batch_id, answer.state, answer.last_activity_at,
+    answer.rows_total, answer.rows_done, answer.rows_answered, answer.batch_id, answer.add_status
+FROM data_import_group_answer answer
+INNER JOIN data_import ON data_import.id = answer.import_id
+WHERE answer.id = :answerId
+    AND answer.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'answerId' => $answerId])->fetchAssociative();
+
+        if ($row === false) {
+            throw new DataImportNotFound();
+        }
+
+        $running = $row['state'] === 'running';
+
+        return [
+            'id' => $row['id'],
+            'code' => $row['code'],
+            'action' => $row['action'],
+            'beforeAdd' => $row['before_add'],
+            'ofBatchId' => $row['of_batch_id'],
+            'running' => $running,
+            // No turn gave a sign of life for a minute: its page offers to go on (a worker restarted, a job lost)
+            'stale' => $running && new DateTimeImmutable($row['last_activity_at']) < $this->clock->now()->modify('-60 seconds'),
+            'total' => $row['rows_total'],
+            'done' => min($row['rows_total'], $row['rows_done']),
+            'answered' => $row['rows_answered'],
+            'batchId' => $row['batch_id'],
+            'addStatus' => $row['add_status'],
+        ];
+    }
+
+    /**
+     * How many rows of the import (of one "Add", or of all) wait with each reason - what the group cards say - and
+     * how many results with a time the import has at all (what "most of the times in this file" is measured by).
+     * One statement.
+     *
+     * @return array{reasons: array<string, int>, timedResults: int}
+     */
+    public function notAddedByReason(string $importId, string $playerId, null|string $batchId): array
+    {
+        $none = ['reasons' => [], 'timedResults' => 0];
+
+        if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false)) {
+            return $none;
+        }
+
+        /** @var list<array{code: null|string, rows: int}> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT r.failure AS code, COUNT(*) AS rows
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+    AND r.state = 'waiting'
+    AND r.failure IS NOT NULL
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+GROUP BY r.failure
+
+UNION ALL
+
+SELECT NULL, COUNT(*)
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND r.kind IN ('result', 'both')
+    AND r.state IN ('waiting', 'queued', 'added', 'already_yours')
+    AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            if ($row['code'] === null) {
+                $none['timedResults'] = $row['rows'];
+            } else {
+                $none['reasons'][$row['code']] = $row['rows'];
+            }
+        }
+
+        return $none;
+    }
+
+    /**
+     * Some of the rows that wait with one reason, picked evenly from the whole group (not the first of the file) -
+     * what a summary of the group is worked out from.
+     *
+     * @return list<string>
+     */
+    public function sampleNotAddedFor(string $importId, string $playerId, string $code, null|string $batchId, int $limit): array
+    {
+        if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false)) {
+            return [];
+        }
+
+        /** @var list<string> $ids */
+        $ids = $this->database->executeQuery(<<<SQL
+SELECT r.id
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+    AND r.state = 'waiting'
+    AND r.failure = :code
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+ORDER BY md5(CAST(r.id AS TEXT))
+LIMIT :limit
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchId' => $batchId, 'limit' => $limit])->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
      * One Undo of the player's import. One statement.
      *
      * @return array{id: string, scope: string, batchId: null|string, running: bool, byAdmin: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, rows: int, left: int, done: int, rowsUndone: int, resultsDeleted: int, resultsKeptEdited: int, collectionItemsRemoved: int, collectionItemsKept: int, wishListItemsRemoved: int, wishListItemsRestored: int, rowsFailed: int}

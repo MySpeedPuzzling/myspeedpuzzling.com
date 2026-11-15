@@ -11773,6 +11773,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "Repasando tus filas"
+        line: "Repasando tus filas… %done% de %total%"
+        finishing: "Terminando…"
+        then_added: "Cuando se hayan repasado todas las filas, se añaden aquellas a las que se aplica tu respuesta; esta página mostrará entonces cómo va el añadido."
+        people_link: "Filas que dicen pareja o equipo y no nombran a nadie: %number%; una respuesta para todas"
+        one_by_one: "Posibles duplicados: %number%. Se responden uno a uno, con el resultado que ya existe al lado de cada uno."
+        equal_note: "Filas que siguen a su fila gemela: %number%. Cada una es el mismo resultado que otra fila de tu archivo y se resuelve cuando esa se añade; aquí no hay nada que hacer."
+        times:
+            title: "Tiempos poco habituales: %number%"
+            loading: "Estamos mirando estos tiempos…"
+            open: "Ver estos tiempos"
+            hint: "Estos tiempos son mucho más rápidos o más lentos de lo que esperaríamos de ti para ese puzzle. Échales un vistazo antes de responder por todos."
+            looked: "Acabamos de revisar %looked% de %number%."
+            split: "Más rápidos de lo esperado: %faster% · más lentos de lo esperado: %slower%"
+            faster_range: "Los más rápidos son entre %from%× y %to%× más rápidos de lo que esperábamos."
+            slower_range: "Los más lentos son entre %from%× y %to%× más lentos de lo que esperábamos."
+            most_faster: "La mayoría de los tiempos de este archivo son más rápidos que tus resultados en MySpeedPuzzling hasta ahora; si este archivo es tu propio historial, es lo esperable."
+            most_slower: "La mayoría de los tiempos de este archivo son más lentos que tus resultados en MySpeedPuzzling hasta ahora; si este archivo es tu propio historial, es lo esperable."
+            examples: "Por ejemplo"
+            expected: "Esperábamos unos %expected%."
+            none_now: "Ninguno de los tiempos revisados parece ya poco habitual, ahora que otras filas del archivo están en tu perfil."
+            right: "Estos tiempos son correctos: añadir los %number%"
+            leave_out: "Dejarlos fuera (%number%)"
+            one_by_one: "Responder uno a uno"
+            file_hint: "Una respuesta para todos los tiempos poco habituales de este archivo, no solo los que se muestran aquí. Cada tiempo se revisa primero, así que puede tardar un momento."
+            file_right: "Todos los tiempos poco habituales de este archivo son correctos"
+            file_leave_out: "Dejar fuera todos los tiempos poco habituales de este archivo"
+        said:
+            title: "Según el archivo ya están en MySpeedPuzzling: %number%"
+            hint: "No hemos encontrado estos resultados en tu perfil. Si faltan, añádelos; si sabes que están (con otro día u otro puzzle), déjalos fuera."
+            missing: "Faltan: añadir los %number%"
+            leave_out: "Dejarlos fuera (%number%)"
+        done:
+            title: "Hecho"
+            answered: "Filas a las que se aplicó tu respuesta: %answered% de %total%"
+            before_add: "Ya están listas: revísalas y añádelas."
+            left_out: "Se han dejado fuera. Puedes volver a incluir una fila en «Por corregir»."
+            not_added: "Tu respuesta está guardada. El añadido no ha podido empezar ahora; las filas están listas y se pueden añadir desde la revisión."
+            none: "Ninguna fila tomó la respuesta: cambiaron entretanto."
+            stale: "Parece que esto no avanza."
+            continue: "Continuar"
+        flash:
+            nothing: "Ya no hay filas esperando esta respuesta."
     nothing_until_add: "No se añade nada a tu perfil hasta que lo hayas revisado y pulses Añadir."
     add:
         title: "Revisar antes de añadir"

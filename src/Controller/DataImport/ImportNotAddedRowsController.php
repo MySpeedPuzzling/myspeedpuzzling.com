@@ -71,6 +71,9 @@ final class ImportNotAddedRowsController extends AbstractController
             // One answer for all rows that say pair or team and name nobody
             'people_rows' => count($this->getImportAddScreen->rowIdsNotAddedFor($importId, $player->playerId, ImportRowRefusal::PeopleDoNotFitType->value, $batchId, ImportRowAnswers::MAX_ROWS)),
             'people_request_id' => Uuid::uuid7()->toString(),
+            // The groups with one answer for all their rows - on every page of the list, not only the 50 shown
+            'reasons' => $this->getImportAddScreen->notAddedByReason($importId, $player->playerId, $batchId)['reasons'],
+            'group_request_ids' => ['missing' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],
             'page' => $page,
             'pages' => $pages,
             'wavable' => GetImportAddScreen::WAVABLE,

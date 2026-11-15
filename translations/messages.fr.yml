@@ -11768,6 +11768,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "Nous parcourons vos lignes"
+        line: "Nous parcourons vos lignes… %done% sur %total%"
+        finishing: "Finalisation…"
+        then_added: "Quand toutes les lignes auront été parcourues, celles auxquelles votre réponse s'applique seront ajoutées - cette page montrera alors où en est l'ajout."
+        people_link: "Lignes qui indiquent duo ou équipe et ne nomment personne : %number% - une réponse pour toutes"
+        one_by_one: "Doublons possibles : %number%. On y répond un par un, avec le résultat déjà présent affiché à côté de chacun."
+        equal_note: "Lignes qui suivent leur ligne jumelle : %number%. Chacune est le même résultat qu'une autre ligne de votre fichier et se règle quand celle-ci est ajoutée - rien à faire ici."
+        times:
+            title: "Temps inhabituels : %number%"
+            loading: "Nous regardons ces temps…"
+            open: "Voir ces temps"
+            hint: "Ces temps sont bien plus rapides ou plus lents que ce que nous attendrions de vous pour ce puzzle. Regardez-les avant de répondre pour tous."
+            looked: "Nous venons d'en examiner %looked% sur %number%."
+            split: "Plus rapides que prévu : %faster% · plus lents que prévu : %slower%"
+            faster_range: "Les plus rapides sont entre %from%× et %to%× plus rapides que ce que nous attendions."
+            slower_range: "Les plus lents sont entre %from%× et %to%× plus lents que ce que nous attendions."
+            most_faster: "La plupart des temps de ce fichier sont plus rapides que vos résultats sur MySpeedPuzzling jusqu'ici - si ce fichier est votre propre historique, c'est normal."
+            most_slower: "La plupart des temps de ce fichier sont plus lents que vos résultats sur MySpeedPuzzling jusqu'ici - si ce fichier est votre propre historique, c'est normal."
+            examples: "Par exemple"
+            expected: "Nous attendions environ %expected%."
+            none_now: "Aucun des temps examinés ne semble plus inhabituel, maintenant que d'autres lignes du fichier sont sur votre profil."
+            right: "Ces temps sont exacts - ajouter les %number%"
+            leave_out: "Les laisser de côté (%number%)"
+            one_by_one: "Répondre un par un"
+            file_hint: "Une réponse pour tous les temps inhabituels de ce fichier - pas seulement ceux affichés ici. Chaque temps est d'abord examiné, cela peut prendre un moment."
+            file_right: "Tous les temps inhabituels de ce fichier sont exacts"
+            file_leave_out: "Laisser de côté tous les temps inhabituels de ce fichier"
+        said:
+            title: "D'après le fichier, déjà sur MySpeedPuzzling : %number%"
+            hint: "Nous n'avons pas trouvé ces résultats sur votre profil. S'ils manquent, ajoutez-les - si vous savez qu'ils y sont (à un autre jour ou sur un autre puzzle), laissez-les de côté."
+            missing: "Ils manquent - ajouter les %number%"
+            leave_out: "Les laisser de côté (%number%)"
+        done:
+            title: "Terminé"
+            answered: "Lignes auxquelles votre réponse s'applique : %answered% sur %total%"
+            before_add: "Elles sont prêtes - vérifiez-les et ajoutez-les."
+            left_out: "Elles sont laissées de côté. Vous pouvez reprendre une ligne dans « À corriger »."
+            not_added: "Votre réponse est enregistrée. L'ajout n'a pas pu démarrer pour le moment - les lignes sont prêtes et peuvent être ajoutées depuis la vérification."
+            none: "Aucune ligne n'a pris la réponse - elles ont changé entre-temps."
+            stale: "Cela semble ne plus avancer."
+            continue: "Continuer"
+        flash:
+            nothing: "Plus aucune ligne n'attend cette réponse."
     nothing_until_add: "Rien n'est ajouté à votre profil tant que vous ne l'avez pas vérifié et appuyé sur Ajouter."
     add:
         title: "Vérifier avant d'ajouter"

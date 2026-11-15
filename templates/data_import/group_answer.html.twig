@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One group answer of an import (docs/features/data-import/group-answers.md): the live line while its rows are
+    gone through, then what came of it and the way on. (An answer that started an "Add" leads to that batch's page -
+    the controller redirects.)
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set here = path('data_import_group_answer', {importId: import.importId, answerId: answer.id}) %}
+
+{% block title %}{{ 'data_import.group.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-group-answer-page" data-state="{{ answer.running ? 'running' : 'finished' }}">
+    <h1 class="h3 mb-3">{{ (answer.running ? 'data_import.group.title' : 'data_import.group.done.title')|trans }}</h1>
+
+    {% if answer.running %}
+        {{ include('data_import/_adding_live.html.twig', {
+            url: path('data_import_group_answer_progress', {importId: import.importId, answerId: answer.id}),
+            batch_id: '',
+            total: answer.total,
+            done: answer.done,
+            line: 'data_import.group.line',
+            finishing: 'data_import.group.finishing',
+            paused: false,
+            refresh_url: here,
+        }) }}
+        {% if answer.action == 'add_anyway' and not answer.beforeAdd %}
+            <p class="fs-sm text-muted">{{ 'data_import.group.then_added'|trans }}</p>
+        {% endif %}
+        {% if answer.stale %}
+            {# No turn gave a sign of life for a minute: the same form again sends it on its way #}
+            <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" class="alert alert-warning fs-sm" data-testid="import-group-answer-stale">
+                <p class="mb-2">{{ 'data_import.group.done.stale'|trans }}</p>
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                <input type="hidden" name="request_id" value="{{ answer.id }}">
+                <input type="hidden" name="code" value="{{ answer.code }}">
+                <input type="hidden" name="action" value="{{ answer.action }}">
+                <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;">{{ 'data_import.group.done.continue'|trans }}</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-group-answer-outcome" data-answered="{{ answer.answered }}" data-total="{{ answer.total }}">
+            <p class="fw-medium mb-1">{{ 'data_import.group.done.answered'|trans({'%answered%': answer.answered|format_number, '%total%': answer.total|format_number}) }}</p>
+            <p class="fs-sm text-muted mb-0">
+                {% if answer.action == 'leave_out' %}
+                    {{ 'data_import.group.done.left_out'|trans }}
+                {% elseif answer.beforeAdd %}
+                    {{ 'data_import.group.done.before_add'|trans }}
+                {% elseif answer.answered > 0 %}
+                    {{ (answer.addStatus == 'paused' ? 'data_import.add.flash.paused' : 'data_import.group.done.not_added')|trans }}
+                {% else %}
+                    {{ 'data_import.group.done.none'|trans }}
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-column gap-2 mb-3">
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-group-answer-review">
+                <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.review'|trans }}
+            </a>
+            <a href="{{ path('data_import_not_added', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;">
+                {{ 'data_import.not_added.title'|trans }}
+            </a>
+        </div>
+    {% endif %}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

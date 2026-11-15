@@ -325,6 +325,13 @@ class DataImportRow
      */
     public function parsedAs(int $mappingVersion, array $record): void
     {
+        // A row that waits with the reason an "Add" did not take it and now says something else - another time, day,
+        // kind or puzzle (its key) - is not that refused row any more: it is ready like any other and judged afresh
+        // when it is added. So an answer for "all rows refused for X" never sweeps in a row that was corrected since
+        if ($this->failure !== null && $this->state === DataImportRowState::Waiting && $record['sourceKey'] !== $this->sourceKey) {
+            $this->failure = null;
+        }
+
         $this->parsedVersion = $mappingVersion;
         $this->kind = DataImportRowKind::from($record['kind']);
         $this->parsed = $record['parsed'];
@@ -375,6 +382,12 @@ class DataImportRow
 
         foreach ($codes as $code) {
             $kept[$code] = $fingerprint;
+        }
+
+        // The question the row waits with is answered: it is ready again like any other row ("Add" takes it with
+        // everything that is ready - today, or tomorrow when today's guard is used up)
+        if (in_array($this->failure, $codes, true)) {
+            $this->failure = null;
         }
 
         $answers['addAnyway'] = $kept;

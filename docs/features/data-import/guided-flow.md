@@ -1141,8 +1141,9 @@ today). Reasons, weighed against the owner's earlier "no screenshots - they rot"
 - pictures of invented puzzles: six small illustrations in the site's illustration style (`public/img/import-guide/
   sample-1…6.webp`, generated once, the same in every locale) - they are props, not screenshots.
 
-Rules for the examples: inside `<figure class="guide-example">` with a caption "Example"; not interactive (`inert`
-on the figure, buttons `aria-disabled`, no forms, no ids, no Turbo frames); never the player's own data; the
+Rules for the examples: inside `<figure class="guide-example">` with an "Example" badge in its top right corner; not
+interactive (no forms, controls, links, ids or Turbo frames - pinned by a test; **not `inert`** since 2026-11-15: an
+inert figure can not be scrolled, and a reader could not scroll the sample table on a phone); never the player's own data; the
 partials get plain arrays, so the guide does not pull the flow's queries.
 
 **Where a real screenshot would still be worth it - and the recommendation is: none in the page, one outside it.**

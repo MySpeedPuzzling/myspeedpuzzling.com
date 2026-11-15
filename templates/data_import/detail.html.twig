@@ -1,8 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {#
-    One import of the signed-in player (docs/features/data-import/upload.md): its file, its state, the honest line
-    that reading and adding arrive soon, and Discard.
+    One import of the signed-in player (docs/features/data-import/upload.md, reading.md): its file, its state, the
+    reading's live progress, then the sheets the file holds - or why it could not be read, with "Try again" - the
+    honest line that adding arrives soon, and Discard.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -31,17 +32,109 @@
         </dl>
     </div>
 
-    {% if import.status.value == 'uploading' %}
+    {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+    {% set status = import.status.value %}
+
+    {% if status == 'uploading' %}
         <div class="alert alert-warning fs-sm" data-testid="import-not-finished">
             <p class="mb-2">{{ 'data_import.detail.not_finished'|trans }}</p>
             <form action="{{ path('data_import_upload_finish', {importId: import.importId}) }}" method="post">
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                <input type="hidden" name="_token" value="{{ csrf }}">
                 <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="finish-upload">
                     <i class="bi bi-arrow-repeat me-1"></i>{{ 'data_import.detail.finish'|trans }}
                 </button>
             </form>
         </div>
-    {% else %}
+    {% elseif status == 'uploaded' or status == 'reading' %}
+        {#
+            The file waits for the worker or is being read: the line moves by the player's private Mercure topic and,
+            when no event arrives, by asking every few seconds (data_import_progress_controller.js). When nothing
+            moves any more the page is loaded again - with the sheets, or with why the file was not read.
+        #}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-reading"
+             data-controller="data-import-progress"
+             data-data-import-progress-import-id-value="{{ import.importId }}"
+             data-data-import-progress-url-value="{{ path('data_import_progress', {importId: import.importId}) }}"
+             data-data-import-progress-waiting-text-value="{{ 'data_import.reading.waiting'|trans }}"
+             data-data-import-progress-reading-text-value="{{ 'data_import.reading.reading'|trans }}"
+             data-data-import-progress-sheets-text-value="{{ 'data_import.reading.sheets'|trans }}"
+             data-data-import-progress-rows-text-value="{{ 'data_import.reading.rows'|trans }}">
+            <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-data-import-progress-target="spinner"></div>
+                <strong data-data-import-progress-target="state" data-testid="import-reading-state" role="status">
+                    {{- (status == 'reading' ? 'data_import.reading.reading' : 'data_import.reading.waiting')|trans -}}
+                </strong>
+            </div>
+            <div class="fs-sm text-muted mt-2" data-data-import-progress-target="sheets" data-testid="import-reading-sheets"{% if import.sheetsTotal is null %} hidden{% endif %}>
+                {%- if import.sheetsTotal is not null %}{{ 'data_import.reading.sheets'|trans({'%done%': import.sheetsRead, '%total%': import.sheetsTotal}) }}{% endif -%}
+            </div>
+            <div class="fs-sm text-muted" data-data-import-progress-target="rows" data-testid="import-reading-rows"{% if status != 'reading' %} hidden{% endif %}>
+                {%- if status == 'reading' %}{{ 'data_import.reading.rows'|trans({'%count%': import.rowsRead|format_number}) }}{% endif -%}
+            </div>
+            <p class="fs-sm text-muted mb-0 mt-2">{{ 'data_import.reading.leave'|trans }}</p>
+            {# Shown by the script when the progress could not be asked for ten minutes #}
+            <div class="alert alert-warning fs-sm mt-3 mb-0" data-data-import-progress-target="stale" data-testid="import-reading-stale" role="status" hidden>
+                <p class="mb-2">{{ 'data_import.reading.stale'|trans }}</p>
+                <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo="false">
+                    <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.reading.refresh'|trans }}
+                </a>
+            </div>
+            <noscript>
+                <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-outline-primary mt-2" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
+            </noscript>
+        </div>
+    {% elseif status == 'read_failed' %}
+        <div class="alert alert-danger" data-testid="import-read-failed" data-reason="{{ import.readFailure }}">
+            <h2 class="h6 alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.read_failed.title'|trans }}</h2>
+            <p class="fs-sm mb-3">{{ ('data_import.read_failed.' ~ import.readFailure)|trans(limits) }}</p>
+            <div class="d-flex flex-wrap gap-2">
+                {% if import.fileKept %}
+                    <form action="{{ path('data_import_read_again', {importId: import.importId}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="read-again">
+                            <i class="bi bi-arrow-repeat me-1"></i>{{ 'data_import.read_failed.try_again'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+                <a href="{{ path('data_import_new') }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+                    <i class="bi bi-upload me-1"></i>{{ 'data_import.read_failed.upload_again'|trans }}
+                </a>
+            </div>
+        </div>
+    {% elseif sheets is not empty %}
+        <div class="card shadow-sm mb-3" data-testid="import-sheets">
+            <div class="card-body pb-2">
+                <h2 class="h5 mb-0">{{ 'data_import.sheets.title'|trans }}</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr class="fs-sm text-muted">
+                            <th scope="col" class="ps-3 fw-normal">{{ 'data_import.sheets.sheet'|trans }}</th>
+                            <th scope="col" class="text-end fw-normal">{{ 'data_import.sheets.rows'|trans }}</th>
+                            <th scope="col" class="text-end pe-3 fw-normal">{{ 'data_import.sheets.columns'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sheet in sheets %}
+                            <tr data-testid="import-sheet">
+                                <td class="ps-3 text-break">
+                                    {% if sheet.title != '' %}{{ sheet.title }}{% else %}<span class="text-muted">{{ 'data_import.sheets.untitled'|trans }}</span>{% endif %}
+                                    {% if sheet.hidden %}
+                                        <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-hidden"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-nowrap" data-testid="import-sheet-rows">{{ sheet.rows|format_number }}</td>
+                                <td class="text-end text-nowrap pe-3" data-testid="import-sheet-columns">{{ sheet.columns|format_number }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if status != 'uploading' %}
         <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
             <i class="bi bi-info-circle flex-shrink-0"></i>
             <span>

@@ -68,6 +68,52 @@ class DataImport
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $discardedAt = null;
 
+    /**
+     * When reading was last asked for (ReadImportFile queued): the safety net asks again only when this is old - never
+     * a second message for the same waiting import on every run.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $readRequestedAt = null;
+
+    /** The worker took the file for reading - a read that never ends is seen by this (ReadWaitingImportsHandler) */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $readingStartedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $readFinishedAt = null;
+
+    /**
+     * Raised every time reading starts: what a read writes carries its number, so a read that was given up (the
+     * worker hung, the player asked to try again) can not write into the next one.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $readAttempt = 0;
+
+    /** Known once the file was opened */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $sheetsTotal = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $sheetsRead = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $rowsRead = 0;
+
+    /**
+     * Set on an import that was closed because the player already has one of the very same bytes: that one
+     * (docs/features/data-import/reading.md "The same file again"). A plain id - the other import may go.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $sameFileAsImportId = null;
+
     /** "Forget the spreadsheet's content": the rows' cells are gone, their keys, states and outcomes stay */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -137,7 +183,132 @@ class DataImport
 
         $this->status = DataImportStatus::Uploaded;
         $this->uploadedAt = $now;
+        $this->readRequestedAt = $now;
         $this->lastActivityAt = $now;
+    }
+
+    /**
+     * The worker takes the file. Only an import that waits for it - uploaded, or asked to be read again.
+     *
+     * @return bool false: nothing to read (being read already, read, discarded, the file gone)
+     */
+    public function readingStarted(DateTimeImmutable $now): bool
+    {
+        if ($this->status !== DataImportStatus::Uploaded || $this->fileKey === null) {
+            return false;
+        }
+
+        $this->status = DataImportStatus::Reading;
+        $this->readAttempt++;
+        $this->readingStartedAt = $now;
+        $this->readFinishedAt = null;
+        $this->readError = null;
+        $this->sheetsTotal = null;
+        $this->sheetsRead = 0;
+        $this->rowsRead = 0;
+        $this->lastActivityAt = $now;
+
+        return true;
+    }
+
+    /**
+     * Whether what the read of this number found may still be written.
+     */
+    public function isBeingReadBy(int $readAttempt): bool
+    {
+        return $this->status === DataImportStatus::Reading && $this->readAttempt === $readAttempt;
+    }
+
+    public function fileHashed(string $sha256): void
+    {
+        $this->fileSha256 = $sha256;
+    }
+
+    /**
+     * How far reading is - written through Services\DataImport\ImportProgress only.
+     */
+    public function readSoFar(null|int $sheetsTotal, int $sheetsRead, int $rowsRead, DateTimeImmutable $now): void
+    {
+        $this->sheetsTotal = $sheetsTotal;
+        $this->sheetsRead = $sheetsRead;
+        $this->rowsRead = $rowsRead;
+        $this->lastActivityAt = $now;
+    }
+
+    public function readingFinished(DateTimeImmutable $now): void
+    {
+        if ($this->status !== DataImportStatus::Reading) {
+            return;
+        }
+
+        $this->status = DataImportStatus::SettingUp;
+        $this->readFinishedAt = $now;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * @param string $reason a SpreadsheetUnreadableReason's value (what the file is or holds), or
+     *        DataImportReadFailure::OUR_SIDE / ::STALLED (nothing the file is to blame for)
+     */
+    public function readingFailed(string $reason, DateTimeImmutable $now): void
+    {
+        if ($this->status !== DataImportStatus::Reading) {
+            return;
+        }
+
+        $this->status = DataImportStatus::ReadFailed;
+        $this->readError = $reason;
+        $this->sheetsTotal = null;
+        $this->sheetsRead = 0;
+        $this->rowsRead = 0;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * "Try again": a read that failed waits for the worker once more.
+     */
+    public function readAgain(DateTimeImmutable $now): bool
+    {
+        if ($this->status !== DataImportStatus::ReadFailed || $this->fileKey === null) {
+            return false;
+        }
+
+        $this->status = DataImportStatus::Uploaded;
+        $this->readError = null;
+        $this->readingStartedAt = null;
+        $this->readRequestedAt = $now;
+        $this->lastActivityAt = $now;
+
+        return true;
+    }
+
+    /**
+     * The safety net asks for the read of an import that still waits for it.
+     *
+     * @return bool false: it does not wait (any more), or it was asked for after `$notAskedSince`
+     */
+    public function readRequestedAgain(DateTimeImmutable $now, DateTimeImmutable $notAskedSince): bool
+    {
+        if ($this->status !== DataImportStatus::Uploaded || $this->fileKey === null) {
+            return false;
+        }
+
+        if ($this->readRequestedAt !== null && $this->readRequestedAt >= $notAskedSince) {
+            return false;
+        }
+
+        $this->readRequestedAt = $now;
+
+        return true;
+    }
+
+    /**
+     * The player already has an import of the very same bytes: this one is closed, that one is where they go on.
+     */
+    public function closedAsSameFileAs(self $other, DateTimeImmutable $now): void
+    {
+        $this->sameFileAsImportId = $other->id;
+        $this->discard($now);
     }
 
     public function discard(DateTimeImmutable $now): void

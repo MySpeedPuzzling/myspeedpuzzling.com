@@ -1,8 +1,8 @@
 # Data import - the spreadsheet reader (stage 3, reader)
 
 `SpreadsheetReader` turns an **untrusted** uploaded `.xlsx` or `.csv`/`.tsv` file into sheets, regions and typed
-cells, with constant memory. It is a library: no database, no routes, no messages, no screens. **Nothing calls it
-yet** - the import's reading job (stage 3) will.
+cells, with constant memory. It is a library: no database, no routes, no messages, no screens. Its caller is the
+import's reading job - [reading.md](reading.md).
 
 Design: [README.md](README.md) "Reading a file", "Large imports", "Security and privacy", decision D14. **No library
 parses a file at runtime** - where and why that differs from D14's wording: "[No library at runtime](#no-library-at-runtime)".
@@ -33,7 +33,7 @@ foreach ($workbook->sheets() as $sheet) {              // no row is read for thi
 }
 
 $workbook->rowsRead(); $workbook->cellsRead();          // consumed so far …
-$workbook->bytesRead(); $workbook->secondsRead();       // … what the next job takes off its budgets
+$workbook->bytesRead(); $workbook->secondsRead();       // … what the next job takes off its budgets (CPU seconds)
 $workbook->close();                                     // lets go of the file, removes its temporary folder; never throws
 
 $reader->pruneLeftovers($clock->now()->modify('-1 day'));   // folders of readers that never closed (a killed worker)
@@ -64,8 +64,10 @@ twenty tables side by side is read - in one pass, not twenty (each pass over a s
 budget). **How many columns a mapped region may have (the 60 of Q8) is the next layer's rule**; the reader only
 refuses a sheet wider than 1,000 columns.
 
-**Budgets across jobs.** The caller reads one sheet per job. Four limits are budgets **of the import, not of one
-opened file**: `maxRows`, `maxCells`, `maxReadBytes`, `maxReadSeconds`. After a job, `rowsRead()`, `cellsRead()`,
+**Budgets across jobs.** (The import's reading job reads a whole file in one job, each sheet in one pass -
+[reading.md](reading.md); what follows is for a caller that splits.) Four limits are budgets **of the import, not of
+one opened file**: `maxRows`, `maxCells`, `maxReadBytes`, `maxReadSeconds` (CPU time; the wall-clock ceiling
+`maxWallSeconds` is per opened file). After a job, `rowsRead()`, `cellsRead()`,
 `bytesRead()` and `secondsRead()` say what it used, and
 `$limits->withConsumed($rows, $cells, $bytes, $seconds)` are the limits of the next job - so a hostile file costs its
 budget once, not once per job. Opening the same workbook again costs the structure only ("Measurements": under a
@@ -295,8 +297,8 @@ parser itself would be slow.
 | **What is checked is what is opened** | every part is read through `XlsxPackage::xml()` - whatever its name (`strings.bin`), wherever a relationship finds it (`/customXml/s.xml`), whoever asks. Nothing else opens the zip | `XlsxPackage` |
 | **The archive lies about sizes** (libzip hands out whatever a compressed stream holds: an entry declared as 1,000 bytes streamed 51 MB) | a meter on every part's stream counts the bytes that really arrive: more than the entry declares = `damaged`, at the first chunk | `PartMeter`, `PartMeterFilter` |
 | **One budget of bytes for all the XML of an import** | the same meter counts every pass over every part against `maxReadBytes` (512 MiB, carried from job to job): a hundred sheets that point to one part cost a hundred times its size; rows and cells that hold nothing are not free; over it = `too_large` | `ReadBudget` |
-| **One budget of seconds** | the reader's own time (what the caller does between two rows is not counted) against `maxReadSeconds` (60 s, carried from job to job), asked on every 8 KiB chunk on its way to the parser - in every loop, and where the parser skips by itself; over it = `too_slow` | `ReadBudget`, `PartMeter` |
-| **Shapes the XML parser is slow on** (libxml 2.9, which production runs: superlinear inside one call, where no check in PHP sees it) | `XmlFloodScanner` reads every chunk **before the parser does** and refuses, as `damaged`: a tag of more than 64 attributes - counted while the tag arrives, at its 65th value (a start tag of 300,000 attributes: 90 s unguarded); more than 64 namespace declarations in a part (150,000 in scope: 11 s for every megabyte after them); more than 2,000 distinct element and attribute names in a part (3.3 million: 117 s and 156 MB of the parser's own memory); a tag longer than 1 MiB; a comment longer than 64 KiB; **any processing instruction** but the XML declaration at the very start; a document type; a tag that is not one by the parser's own grammar. "The scanner" below | `XmlFloodScanner` |
+| **One budget of seconds** | the reader's own **CPU time** (the process's user + system time, `getrusage`; what the caller does between two rows is not counted) against `maxReadSeconds` (60 s, carried from job to job), and its wall-clock time against `maxWallSeconds` (300 s per opened file - the last resort), both asked on every 8 KiB chunk on its way to the parser - in every loop, and where the parser skips by itself; over either = `too_slow` | `CpuClock`, `ReadBudget`, `PartMeter` |
+| **Shapes the XML parser is slow on** (libxml 2.9, which production runs: superlinear inside one call, where no check in PHP sees it) | `XmlFloodScanner` reads every chunk **before the parser does** and refuses, as `damaged`: a tag of more than 64 attributes - counted while the tag arrives, at its 65th value (a start tag of 300,000 attributes: 90 s unguarded); more than 64 namespace declarations in a part (150,000 in scope: 11 s for every megabyte after them); more than 2,000 distinct element and attribute names in a part (3.3 million: 117 s and 156 MB of the parser's own memory); more than 1,000 **distinct** runs of white space between two tags in a part (1.5 million distinct blank texts: stopped only by the clock before); a tag longer than 1 MiB; a comment longer than 64 KiB; **any processing instruction** but the XML declaration at the very start; a document type; a tag that is not one by the parser's own grammar. "The scanner" below | `XmlFloodScanner` |
 | Encoding | a part starts with `<` as ASCII has it (after an optional UTF-8 byte-order mark) and is parsed as UTF-8 whatever it says - so the scanner reads what the parser reads; `encoding="UTF-8"` or `US-ASCII` may be declared; UTF-16, UTF-32, EBCDIC, any other declared encoding: `damaged` | `XmlFloodScanner`, `XmlPart` |
 | The parser's complaints | kept in the parser's list instead of raised as a PHP warning each, counted on every chunk: more than 100 in a workbook (elements with a prefix nobody declared, by the hundred thousand) = `damaged`. Only the reader's own: what the application had waiting in that list is neither counted nor cleared | `ReadBudget`, `PartMeter` |
 | **PHP warnings** | none is relied on and none escapes: every call of the parser is checked by its result (a compressed part that is corrupt = `damaged`), and while the reader works, warnings raised from inside the XML reader are taken by the reader's own handler - the same in production (warnings are logged) and in development (warnings are exceptions) | `ReadBudget`, `XmlPart` |
@@ -341,6 +343,7 @@ processing instruction: `<?a <!-- ?>…<?b --> ?>` is two instructions with real
 | Raw text between two tags | 6 × `maxCellBytes` (786 KiB) | the longest character reference is six bytes for one character |
 | A comment | 64 KiB | no writer of workbooks writes comments at all |
 | Processing instructions | none | a workbook's parts have none; a parser ends one at the first `?>` whatever stands in it |
+| **Distinct** runs of white space between two tags in a part | 1,000 (runs of 1-64 bytes are told apart) | the parser keeps every distinct blank text of under 60 bytes in its dictionary, for good. See below |
 
 A run of text, end tags and the start tags a sheet is made of (`<c>`, `<v>`, `<row>` … with the attributes they are
 known to have, a prefix allowed) is consumed by one anchored regular expression; only where that stops is a tag looked
@@ -349,6 +352,21 @@ hide markup (in attribute values of both quote kinds, comments, CDATA sections, 
 character references, with broken tags), fed in chunks of 8,192 bytes, of 1 to 300, and byte by byte - **whatever the
 scanner lets through, the parser finds nothing in over the caps**, and the verdict does not depend on where the
 stream is cut.
+
+**Blank texts.** libxml interns a text node that is nothing but white space, shorter than 60 bytes and followed by a
+tag - one dictionary entry per *distinct* text. A sheet of 1.5 million different 21-byte blank texts between its
+cells therefore cost the parser's dictionary what millions of distinct names cost it, and nothing but the clock
+stopped it. The measure is **distinct runs, not runs**: a pretty-printed sheet has a run before every element - a
+50,000-row sheet of four columns has 450,000 of them - but only as many different ones as its nesting is deep (a line
+end plus the indentation of that depth). Measured (2026-11-15), the most distinct runs in any part: every `RawXlsx`
+fixture and the generated 50,000 × 20 workbook 0; a workbook written by PhpSpreadsheet 1; the generated sheet,
+shared strings, styles and workbook part pretty-printed by libxml's own formatter (what `xmllint --format` writes) 6,
+3, 4 and 3 - of 340,004 runs in the sheet. The cap of 1,000 is two orders of magnitude above that and costs the
+parser nothing. Counted on the raw bytes of every chunk - a `>`, 1-64 bytes of space, tab, CR or LF, a `<` - whatever
+the tokenizer's state (inside a comment or a CDATA section too): a superset of what the parser can take for a blank
+text, so nothing is missed, and a run the stream cuts in two is put together. Count only: no byte is changed. The
+attack shape is refused as `damaged` at its 1,001st distinct run (`XlsxTimeBoundTest`: a whole workbook opened and
+refused in under 1 s, in the head of a sheet, among its cells, in the shared strings).
 
 ### What happens to each hostile file
 
@@ -361,9 +379,10 @@ stream is cut.
 | A start tag of 300,000 attributes (2.6 MB) - on a cell, in a sheet's head, in the workbook part, the styles, the shared strings | `damaged` in 0.1 ms: refused at its 65th attribute, long before the tag is all there (unguarded: 90 s in one call) |
 | The same tag, 150,000 namespace declarations or a document type between two processing instructions that seem to open and close a comment or a CDATA section (`<?a <!-- ?>…<?b --> ?>`) | `damaged` in 0.1 ms, at the first `<?` (hidden from a scanner that searches for markers: 15.5 s in one call) |
 | Millions of distinct element or attribute names | `damaged` in 1 ms, at the 2,001st name (unguarded: 117 s for 3.3 million) |
+| 1.5 million distinct blank texts of 21 bytes between tags | `damaged` at the 1,001st distinct run (before: `too_slow` after the whole budget) |
 | 150,000 namespace declarations in scope, 600 or 60 on a tag | `damaged` in 0.1 ms: the tag's 65th attribute, or the part's 65th declaration (unguarded: 11 s per MiB after them) |
 | 100,000 elements with a prefix nobody declared | `damaged` after the first hundred complaints of the parser; not one PHP warning |
-| A sheet that parses slowly for a reason nobody thought of | `too_slow` when the import's seconds are used up - also while the parser skips rows by itself |
+| A sheet that parses slowly for a reason nobody thought of | `too_slow` when the import's CPU seconds are used up - also while the parser skips rows by itself |
 | A compressed part that is corrupt | `damaged`, without a PHP warning, in production and development alike |
 | A part packed with bzip2, LZMA, XZ, Zstandard | `unsupported_format` at `open()` |
 | A part in UTF-16, UTF-32 or EBCDIC, or one that says `encoding="ISO-8859-1"` | `damaged` |
@@ -393,7 +412,8 @@ stream is cut.
 | `maxUncompressedBytes` - what the archive says it unpacks to, pictures included | 512 MiB | `too_large` | `open()` |
 | `maxCompressionRatio` - of the archive, and of any part over 1 MiB | 200 | `too_large` | `open()` |
 | `maxReadBytes` - **budget of the import**: bytes still allowed to be unpacked and parsed (a text file: read), all passes | 512 MiB | `too_large` | while any part is read |
-| `maxReadSeconds` - **budget of the import**: the reader's own seconds still allowed | 60 s | `too_slow` | on every chunk |
+| `maxReadSeconds` - **budget of the import**: seconds of **CPU time** the reader may still use | 60 s | `too_slow` | on every chunk |
+| `maxWallSeconds` - wall-clock seconds of the reader's own time, per opened file: the last resort | 300 s | `too_slow` | on every chunk |
 | `maxSheets` - tabs of any kind | 100 | `too_many_sheets` | `open()` |
 | `maxRowsPerSheet` - rows of one `rows()` call | 50,000 | `too_many_rows` | while streaming |
 | `maxRows` - **budget of the import**: rows still allowed | 50,000 | `too_many_rows` | while streaming |
@@ -411,7 +431,7 @@ beyond the last allowed column is not a value and refuses nothing.
 | Reason | When |
 |---|---|
 | `too_large` | the file, the archive's entries, what it says it unpacks to, its ratio (a zip bomb), the bytes read from it over all jobs, too many cell styles, number formats or distinct texts |
-| `too_slow` | the reader's seconds on the file, over all jobs, are used up |
+| `too_slow` | the reader's CPU seconds on the file, over all jobs, are used up - or its wall-clock ceiling. Never the file's fault alone: the player is told "please try again" |
 | `too_many_sheets`, `too_many_rows`, `too_many_columns`, `too_many_cells` | the limits above |
 | `cell_too_large` | a cell, a shared string, a row's values together, a line or a record of a text file hold more than a spreadsheet's can |
 | `not_a_spreadsheet` | not a zip (for `.xlsx`), a zip without a workbook (a `.docx`), an empty file, binary data or a picture given as text |
@@ -421,11 +441,20 @@ beyond the last allowed column is not a value and refuses nothing.
 
 A file that is **not there** or can not be opened is no reason of the file's: `SpreadsheetReaderFailed`.
 
-**Why 60 s and 512 MiB.** A file at every limit at once (a million cells, 100,000 texts) is 2.4 s and 31 MiB here,
-read in one job. The budgets are the import's - a job per sheet opens the workbook again and reads the shared strings
-again - and seconds are wall-clock seconds of a server that may be busy (the same read took seven times as long on a
-loaded development machine). Twenty-five times the measured need is room for both; a caller that knows its server
-passes less.
+**Why 60 s of CPU and 300 s on the wall** (changed in stage 3b; the first version counted wall-clock seconds). A
+file at every limit at once (a million cells, 100,000 texts) is 2.4 s of reading and 31 MiB here. Wall-clock seconds
+are seconds of a server that may be busy: the same read took 18-41 s on a host at load 11, so a wall-clock budget
+either refuses honest files on a bad day or is so wide that it bounds nothing. **CPU time of the process** (user +
+system, `getrusage` - `CpuClock`) is what the reader itself burns, the same on a quiet and on a loaded host: 60 s is
+twenty-five times the measured need and still a hard bound on what a hostile file can make the parser compute. Time
+that is no CPU time - a disk that does not answer, a host so loaded that the process hardly runs - must end too:
+`maxWallSeconds` (300 s of the reader's own time per opened file) is that last resort, generous on purpose. Both end
+in `too_slow`, which the import's page words as "please try again", never as a broken file.
+
+`getrusage` counts the **whole process**: in a process of several threads (FrankenPHP's workers) the other threads'
+CPU time would be counted too and a read could be refused early - never late. The reader runs in the Messenger
+consumer, a process of one thread; do not read files in a web request. And these are budgets counted **in PHP**: the
+job still wraps a read in PHP's own time limit (`set_time_limit`, 420 s - [reading.md](reading.md)).
 
 ## Deliberately not done
 
@@ -517,7 +546,8 @@ disk. No real file is in the repository.
 | `NumberFormatClassifierTest` | the classification table, built-in formats |
 | `XlsxReaderTest` | every cell kind, date precisions, durations against times, texts and their white space, formulas, tables, panes, hidden sheets, checkboxes, gaps and stray cells, merged ranges, a window on two tables side by side, the budget handed from one open to the next, leading zeros, rounding at midnight, a relationship prefix other than `r:`, a workbook whose parts have other names, 1904, edges of the calendar, time zones, a workbook written by PhpSpreadsheet |
 | `XmlFloodScannerTest` | the scanner against the parser: 3,000 generated documents in chunks of every size (what passes holds nothing over the caps for the parser; the verdict does not depend on the cut), 31 hiding places that are refused, 11 honest documents that pass |
-| `XlsxTimeBoundTest` | the shapes the parser is slow on (300,000 attributes on a tag, in five places; hundreds of thousands of distinct names; thousands of namespace declarations; undeclared prefixes; a flood, namespaces and a document type hidden behind processing instructions, in three parts) - the typed refusal **and** under 5 s each; what the scanner must let through (comments and CDATA with markup in them, made-up elements cut by every chunk edge; a `sqref` of 100 KiB; a cell of 32,767 ampersands); nesting deeper than the parser goes; the application's own parser errors left alone; parts that are not UTF-8; the budget of seconds - while rows are streamed, while the parser skips by itself, not the caller's time; bytes and seconds carried over three jobs; a corrupt packed part in each of four parts, without a warning, with warnings as exceptions; other packing methods; a cell of 120,000 runs; every extreme number in both date systems; several windows in one pass; `close()` while a sheet is streamed |
+| `ReadBudgetTest` | the seconds are CPU time: waiting costs nothing of the budget, work does; the wall clock as the last resort |
+| `XlsxTimeBoundTest` | 3,000 distinct blank texts (three times the cap, streamed into the part) refused in under a second, in three parts; a pretty-printed sheet of 50,000 rows read; a blank run cut by the stream; the shapes the parser is slow on (300,000 attributes on a tag, in five places; hundreds of thousands of distinct names; thousands of namespace declarations; undeclared prefixes; a flood, namespaces and a document type hidden behind processing instructions, in three parts) - the typed refusal **and** under 5 s each; what the scanner must let through (comments and CDATA with markup in them, made-up elements cut by every chunk edge; a `sqref` of 100 KiB; a cell of 32,767 ampersands); nesting deeper than the parser goes; the application's own parser errors left alone; parts that are not UTF-8; the budget of seconds - while rows are streamed, while the parser skips by itself, not the caller's time; bytes and seconds carried over three jobs; a corrupt packed part in each of four parts, without a warning, with warnings as exceptions; other packing methods; a cell of 120,000 runs; every extreme number in both date systems; several windows in one pass; `close()` while a sheet is streamed |
 | `XlsxSafetyTest` | one test per limit and reason; the hostile files of the table above; garbage attributes; `<dxfs>`; an unwritable temporary folder is not `damaged` |
 | `CsvReaderTest` | delimiters, line ends, `sep=`, mark, encodings, quotes, empty lines, one column, limits, a line of five million delimiters, a quote that never closes, control characters in every encoding, windows, an old Mac's file with a `\n` in a cell and a Windows file with a `\r` in one, bytes and seconds as budgets, `close()` while streaming, not text, a missing file and an unwritable temporary folder as the server's faults |
 | `OpenSpoutParityTest` | our rows and shared strings against OpenSpout's reader (the development dependency's only use) |

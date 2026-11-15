@@ -56,29 +56,20 @@ final class XlsxTimeBoundTest extends TestCase
     }
 
     /**
+     * The markup itself is megabytes: made in the test, not here - a provider's data stays in the memory of the
+     * process that loads the suite, for every test class at once.
+     *
      * @return iterable<string, array{string, string}> what stands between two processing instructions, and where
      */
     public static function hiddenBehindAProcessingInstruction(): iterable
     {
-        $attributes = '';
-
-        for ($number = 0; $number < 120_000; $number++) {
-            $attributes .= ' a' . $number . '=""';
-        }
-
-        $namespaces = '';
-
-        for ($number = 0; $number < 150_000; $number++) {
-            $namespaces .= ($number % 600 === 0 ? ($number === 0 ? '<g' : '><g') : '') . ' xmlns:p' . $number . '="u"';
-        }
-
         foreach (['head', 'workbook', 'strings'] as $place) {
-            yield '120,000 attributes behind "<?a <!-- ?>", ' . $place => ['<?a <!-- ?><flood' . $attributes . '/><?b --> ?>', $place];
-            yield '120,000 attributes behind "<?a <![CDATA[ ?>", ' . $place => ['<?a <![CDATA[ ?><flood' . $attributes . '/><?b ]]> ?>', $place];
+            yield '120,000 attributes behind "<?a <!-- ?>", ' . $place => ['attributes in a comment', $place];
+            yield '120,000 attributes behind "<?a <![CDATA[ ?>", ' . $place => ['attributes in CDATA', $place];
         }
 
-        yield '150,000 namespace declarations behind "<?a <!-- ?>"' => ['<?a <!-- ?>' . $namespaces . '>' . str_repeat('</g>', 250) . '<?b --> ?>', 'head'];
-        yield 'a document type behind "<?a <!-- ?>"' => ['<?a <!-- ?><!DOCTYPE x [<!ENTITY e "v">]><?b --> ?>', 'head'];
+        yield '150,000 namespace declarations behind "<?a <!-- ?>"' => ['namespaces in a comment', 'head'];
+        yield 'a document type behind "<?a <!-- ?>"' => ['a document type in a comment', 'head'];
     }
 
     /**
@@ -86,8 +77,31 @@ final class XlsxTimeBoundTest extends TestCase
      * comment for real would see nothing of what follows. A workbook's parts have no processing instructions.
      */
     #[DataProvider('hiddenBehindAProcessingInstruction')]
-    public function testNothingHidesBehindAProcessingInstruction(string $markup, string $place): void
+    public function testNothingHidesBehindAProcessingInstruction(string $hidden, string $place): void
     {
+        $attributes = '';
+
+        if (str_starts_with($hidden, 'attributes')) {
+            for ($number = 0; $number < 120_000; $number++) {
+                $attributes .= ' a' . $number . '=""';
+            }
+        }
+
+        $namespaces = '';
+
+        if (str_starts_with($hidden, 'namespaces')) {
+            for ($number = 0; $number < 150_000; $number++) {
+                $namespaces .= ($number % 600 === 0 ? ($number === 0 ? '<g' : '><g') : '') . ' xmlns:p' . $number . '="u"';
+            }
+        }
+
+        $markup = match ($hidden) {
+            'attributes in a comment' => '<?a <!-- ?><flood' . $attributes . '/><?b --> ?>',
+            'attributes in CDATA' => '<?a <![CDATA[ ?><flood' . $attributes . '/><?b ]]> ?>',
+            'namespaces in a comment' => '<?a <!-- ?>' . $namespaces . '>' . str_repeat('</g>', 250) . '<?b --> ?>',
+            default => '<?a <!-- ?><!DOCTYPE x [<!ENTITY e "v">]><?b --> ?>',
+        };
+
         $this->assertRefusedAtOnce($this->workbookWith($place, $markup), 'a processing instruction');
     }
 
@@ -219,6 +233,109 @@ final class XlsxTimeBoundTest extends TestCase
         }
 
         $this->assertRefusedAtOnce($this->workbookWith($place, $flood), 'more distinct names than a part has');
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function placesForBlankTexts(): iterable
+    {
+        yield 'in the head of a sheet' => ['head'];
+        yield 'among the cells' => ['cell'];
+        yield 'in the shared strings' => ['strings'];
+    }
+
+    /**
+     * The parser keeps every distinct blank text of under 60 bytes in its dictionary: 1.5 million different ones of
+     * 21 bytes between tags were stopped only by the clock. A fifth of that here - the file is refused at its 1,001st.
+     */
+    #[DataProvider('placesForBlankTexts')]
+    public function testThousandsOfDistinctBlankTextsAreRefusedBeforeTheParserGetsThem(string $place): void
+    {
+        // Three times the cap proves the refusal; written to the part in pieces - a test must not need the memory
+        // the attack is about
+        $flood = static function (): \Generator {
+            $blank = [' ', "\t", "\n"];
+
+            for ($number = 0; $number < 3 * XmlFloodScanner::MAX_BLANK_RUNS; $number++) {
+                $text = '';
+
+                // 21 bytes that spell the number in base 3 - every text another one
+                for ($digit = 0, $rest = $number; $digit < 21; $digit++, $rest = intdiv($rest, 3)) {
+                    $text .= $blank[$rest % 3];
+                }
+
+                yield $text . '<f/>';
+            }
+        };
+
+        $path = $this->workbookWithStreamed($place, $flood());
+        $started = hrtime(true);
+
+        $this->assertRefusedAtOnce($path, XmlFloodScanner::TOO_MANY_BLANK_RUNS);
+
+        self::assertLessThan(1.0, (hrtime(true) - $started) / 1e9, 'Refused, but not at once.');
+    }
+
+    public function testAPrettyPrintedSheetOfFiftyThousandRowsIsRead(): void
+    {
+        // A line and an indentation of its depth before every element, as a tool that formats XML writes them -
+        // 450,000 runs of white space, four different ones
+        $rows = static function (): \Generator {
+            for ($row = 1; $row <= 50_000; $row++) {
+                $xml = "\n  <row r=\"{$row}\">";
+
+                foreach (['A', 'B', 'C', 'D'] as $column) {
+                    $xml .= "\n    <c r=\"{$column}{$row}\">\n      <v>{$row}</v>\n    </c>";
+                }
+
+                yield $xml . "\n  </row>";
+            }
+
+            yield "\n";
+        };
+
+        $workbook = $this->open($this->workbookWithStreamed('rows', $rows()), limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
+        $count = 0;
+        $lastNumber = 0;
+        $lastValue = null;
+
+        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+            $count++;
+            $lastNumber = $row->number;
+            $lastValue = $row->cell(4)?->value;
+        }
+
+        self::assertSame(50_000, $count);
+        self::assertSame(50_000, $lastNumber);
+        self::assertSame(50_000, $lastValue);
+        self::assertSame(200_000, $workbook->cellsRead());
+    }
+
+    public function testARunOfWhiteSpaceTheStreamCutsInTwoIsCountedAsOne(): void
+    {
+        $scanner = new XmlFloodScanner(131_072);
+        $document = '<a>';
+
+        // More different runs than a part has, all but the first cut by a chunk's end
+        for ($number = 0; $number <= XmlFloodScanner::MAX_BLANK_RUNS; $number++) {
+            $document .= str_repeat(' ', 1 + $number % 30) . str_repeat("\n", 1 + intdiv($number, 30)) . '<c/>';
+        }
+
+        $refused = null;
+
+        foreach (str_split($document, 7) as $chunk) {
+            $refused ??= $scanner->scan($chunk);
+        }
+
+        self::assertSame(XmlFloodScanner::TOO_MANY_BLANK_RUNS, $refused);
+
+        // The same runs over and over are no flood, however the stream is cut
+        $scanner = new XmlFloodScanner(131_072);
+
+        foreach (str_split('<a>' . str_repeat("\n    <c/>\n  <c/>", 2_000) . '</a>', 5) as $chunk) {
+            self::assertNull($scanner->scan($chunk));
+        }
     }
 
     public function testThousandsOfNamespaceDeclarationsInScopeAreRefusedBeforeTheParserGetsThem(): void
@@ -670,6 +787,46 @@ final class XlsxTimeBoundTest extends TestCase
                 return $workbook->part('xl/sharedStrings.xml', str_replace('<si>', $markup . '<si>', $workbook->parts()['xl/sharedStrings.xml']));
             })(),
         });
+    }
+
+    /**
+     * A small workbook with something large at a place of it - written to the part piece by piece, never held as one
+     * string (a test worker carries other tests' memory).
+     *
+     * @param string $place 'head' and 'cell' of the sheet, 'strings' (shared strings), 'rows' (the sheet's rows themselves)
+     * @param iterable<string> $pieces
+     */
+    private function workbookWithStreamed(string $place, iterable $pieces): string
+    {
+        $marker = '<streamed-here/>';
+        $entry = $place === 'strings' ? 'xl/sharedStrings.xml' : 'xl/worksheets/sheet1.xml';
+        $path = $place === 'rows'
+            ? $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround('<sheetData>' . $marker . '</sheetData>')))
+            : $this->workbookWith($place, $marker);
+
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($path));
+        $part = $zip->getFromName($entry);
+        self::assertIsString($part);
+        [$before, $after] = explode($marker, $part, 2) + [1 => ''];
+
+        $partPath = $path . '.part.xml';
+        $file = fopen($partPath, 'wb');
+        self::assertIsResource($file);
+        fwrite($file, $before);
+
+        foreach ($pieces as $piece) {
+            fwrite($file, $piece);
+        }
+
+        fwrite($file, $after);
+        fclose($file);
+
+        $zip->addFile($partPath, $entry, 0, 0, \ZipArchive::FL_OVERWRITE);
+        $zip->close();
+        unlink($partPath);
+
+        return $path;
     }
 
     private function assertRefusedAtOnce(string $path, string $why): void

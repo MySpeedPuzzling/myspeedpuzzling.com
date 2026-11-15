@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Message\RecalculateKarma;
@@ -135,6 +136,10 @@ return App::config([
                 // (Phase 3)
                 CheckOnlineFinishPhoto::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
+                // Reading an uploaded spreadsheet into the import's tables: downloads and parses the file outside a
+                // transaction (HandledOutsideTransaction), writes through small messages of its own - not routed:
+                // handled at once, each in its transaction (docs/features/data-import/reading.md)
+                ReadImportFile::class => 'imports',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

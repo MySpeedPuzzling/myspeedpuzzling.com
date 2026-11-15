@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Csv;
 
+use SpeedPuzzling\Web\Services\SpreadsheetReader\CpuClock;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
 use SpeedPuzzling\Web\Services\SpreadsheetReader\ReadWorkbook;
@@ -55,8 +56,10 @@ final class CsvWorkbook implements ReadWorkbook
         private readonly ReadSheet $sheet,
         private readonly SpreadsheetLimits $limits,
         private int $bytesRead,
-        /** The reader's own time on this file so far */
+        /** The reader's own CPU time on this file so far (CpuClock) */
         private int $nanoseconds,
+        /** … and its wall-clock time: the last resort (SpreadsheetLimits::$maxWallSeconds) */
+        private int $wallNanoseconds = 0,
     ) {
     }
 
@@ -72,7 +75,8 @@ final class CsvWorkbook implements ReadWorkbook
             throw new SpreadsheetReaderFailed('The spreadsheet file is not there or can not be opened.');
         }
 
-        $started = hrtime(true);
+        $started = CpuClock::nanoseconds();
+        $wallStarted = CpuClock::wallNanoseconds();
         $size = (int) filesize($path);
 
         if ($size > $limits->maxFileBytes) {
@@ -140,7 +144,7 @@ final class CsvWorkbook implements ReadWorkbook
             throw $e;
         }
 
-        $workbook = new self($path, $folder, $encoding, $delimiter, $offset, new ReadSheet(1, ''), $limits, $size, hrtime(true) - $started);
+        $workbook = new self($path, $folder, $encoding, $delimiter, $offset, new ReadSheet(1, ''), $limits, $size, CpuClock::nanoseconds() - $started, CpuClock::wallNanoseconds() - $wallStarted);
         $workbook->assertInTime();
 
         return $workbook;
@@ -217,7 +221,8 @@ final class CsvWorkbook implements ReadWorkbook
         $viewBytes = 0;
         $exhausted = false;
         // The reader's own time: what the caller does with a row is not counted
-        $resumedAt = hrtime(true);
+        $resumedAt = CpuClock::nanoseconds();
+        $wallResumedAt = CpuClock::wallNanoseconds();
 
         try {
             fseek($handle, $this->dataOffset);
@@ -231,8 +236,10 @@ final class CsvWorkbook implements ReadWorkbook
                     [$view, $viewBytes, $exhausted, $added] = self::movedWindow($handle, $view, max(65_536, $recordBytes));
                     $position = 0;
                     $this->bytesRead += $added;
-                    $this->nanoseconds += hrtime(true) - $resumedAt;
-                    $resumedAt = hrtime(true);
+                    $this->nanoseconds += CpuClock::nanoseconds() - $resumedAt;
+                    $resumedAt = CpuClock::nanoseconds();
+                    $this->wallNanoseconds += CpuClock::wallNanoseconds() - $wallResumedAt;
+                    $wallResumedAt = CpuClock::wallNanoseconds();
                     $this->assertInTime();
                     $this->folder->keepAlive();
 
@@ -289,11 +296,13 @@ final class CsvWorkbook implements ReadWorkbook
                         throw SpreadsheetUnreadable::tooManyCells($limits->maxCells);
                     }
 
-                    $this->nanoseconds += hrtime(true) - $resumedAt;
+                    $this->nanoseconds += CpuClock::nanoseconds() - $resumedAt;
+                    $this->wallNanoseconds += CpuClock::wallNanoseconds() - $wallResumedAt;
 
                     yield $index => new ReadRow($number, $cells);
 
-                    $resumedAt = hrtime(true);
+                    $resumedAt = CpuClock::nanoseconds();
+                    $wallResumedAt = CpuClock::wallNanoseconds();
                 }
             }
         } catch (\ErrorException $e) {
@@ -347,7 +356,11 @@ final class CsvWorkbook implements ReadWorkbook
     private function assertInTime(): void
     {
         if ($this->nanoseconds > $this->limits->maxReadSeconds * 1e9) {
-            throw SpreadsheetUnreadable::tooSlow(sprintf('reading took more than the %.1f s a file gets', $this->nanoseconds / 1e9));
+            throw SpreadsheetUnreadable::tooSlow(sprintf('reading took more than the %.1f s of CPU time a file gets', $this->nanoseconds / 1e9));
+        }
+
+        if ($this->wallNanoseconds > $this->limits->maxWallSeconds * 1e9) {
+            throw SpreadsheetUnreadable::tooSlow(sprintf('reading took more than the %.1f s a file gets at all', $this->wallNanoseconds / 1e9));
         }
     }
 

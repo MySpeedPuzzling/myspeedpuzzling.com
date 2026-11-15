@@ -30,6 +30,14 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
     // The fixtures take their dates from the frozen clock: a moved instant needs them built again
     . '-now-' . TestClock::FROZEN_NOW;
 
+// The process that builds the database (buildDatabaseInItsOwnProcess() below): it does that and nothing else
+if (getenv('MSP_BUILD_TEST_DATABASE') === '1') {
+    bootstrapDatabase($cacheFilePath);
+    createPantherTemplateDatabase();
+
+    return;
+}
+
 // ParaTest (vendor/bin/paratest) runs the suite in several processes at once, each
 // with its own TEST_TOKEN (1..N). They take turns here: the first one builds the
 // database if it is stale, then every worker gets its own copy of it, cloned from the
@@ -41,9 +49,8 @@ flock($databaseLock, LOCK_EX);
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
 ) {
-    bootstrapDatabase($cacheFilePath);
+    buildDatabaseInItsOwnProcess();
     file_put_contents($cacheFilePath, $currentDatabaseHash);
-    createPantherTemplateDatabase();
 }
 
 $workerToken = getenv('TEST_TOKEN');
@@ -55,6 +62,28 @@ if (is_string($workerToken) && $workerToken !== '') {
 flock($databaseLock, LOCK_UN);
 fclose($databaseLock);
 
+
+/**
+ * Building the database boots a debug kernel on a cold cache, creates the schema and loads every fixture - and
+ * leaves about 200 MB behind in the process that did it (measured 2026-11-15: 210 MB after the kernel's shutdown, 169
+ * after collecting cycles; loaded classes stay). In the process that then loads the whole suite with every data
+ * provider's data - ParaTest's main process on a fresh CI runner - that was the difference between fitting into the
+ * memory limit and not: 523 MB of 512. So it runs in a process of its own, which ends with what it kept.
+ */
+function buildDatabaseInItsOwnProcess(): void
+{
+    putenv('MSP_BUILD_TEST_DATABASE=1');
+
+    try {
+        passthru(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__), $exitCode);
+    } finally {
+        putenv('MSP_BUILD_TEST_DATABASE');
+    }
+
+    if ($exitCode !== 0) {
+        throw new LogicException(sprintf('Building the test database failed (exit code %d).', $exitCode));
+    }
+}
 
 function bootstrapDatabase(string $cacheFilePath): void
 {

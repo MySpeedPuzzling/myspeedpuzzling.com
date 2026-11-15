@@ -31,6 +31,12 @@ namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
  * - more than MAX_NAMES distinct element and attribute names in a part (a workbook's vocabulary is a few hundred);
  * - a text between two tags of more than RAW_TEXT_FACTOR times a cell's size (raw bytes: "&amp;" is one character),
  *   a comment of more than MAX_COMMENT_BYTES;
+ * - more than MAX_BLANK_RUNS **distinct** runs of white space between two tags in a part: the parser keeps every
+ *   distinct blank text of under 60 bytes in its dictionary for good (1.5 million distinct ones of 21 bytes cost it
+ *   tens of seconds and hundreds of megabytes). Distinct, not all: a pretty-printed sheet has a run per element and
+ *   a handful of different ones - one per depth of indentation. Counted on the raw bytes (">", white space, "<"),
+ *   whatever the tokenizer's state - a superset of what the parser can take for a blank text, so nothing is missed;
+ *   nothing is rewritten;
  * - a part that is not UTF-8, so that what is read here is what is parsed;
  * - a tag that is no tag: the grammar of a start and an end tag is the parser's, nothing looser.
  *
@@ -46,6 +52,11 @@ final class XmlFloodScanner
     public const int MAX_NAMESPACES = 64;
     public const int MAX_NAMES = 2000;
     public const int MAX_COMMENT_BYTES = 65_536;
+    /** Distinct runs of white space between two tags. A pretty-printed part has one per depth of its nesting (and
+     *  per kind of line end): the fixtures and generated files have 0 to 8 */
+    public const int MAX_BLANK_RUNS = 1000;
+    /** Runs up to this long are told apart; the parser keeps blank texts of under 60 bytes */
+    private const int BLANK_RUN_BYTES = 64;
     /** The longest character reference, "&quot;" and "&apos;", is six bytes for one character */
     public const int RAW_TEXT_FACTOR = 6;
 
@@ -55,6 +66,7 @@ final class XmlFloodScanner
     public const string TOO_MANY_NAMES = 'more distinct names than a part has';
     public const string TEXT_TOO_LONG = 'a text longer than a cell holds';
     public const string COMMENT_TOO_LONG = 'a comment longer than a comment is';
+    public const string TOO_MANY_BLANK_RUNS = 'more different runs of white space between its tags than a part has';
     public const string NOT_UTF8 = 'a part that is not UTF-8';
     public const string PROCESSING_INSTRUCTION = 'a processing instruction';
     public const string NOT_XML = 'markup that is no tag';
@@ -104,6 +116,12 @@ final class XmlFloodScanner
 
     private const string XML_DECLARATION = '~\G<\?xml(?:\s++[A-Za-z]++\s*+=\s*+(?:"[^"<>?]*+"|\'[^\'<>?]*+\'))*+\s*+\?>~';
 
+    /** A run of white space that stands between two tags, whole in one chunk */
+    private const string BLANK_RUNS = '~>([ \t\r\n]{1,' . self::BLANK_RUN_BYTES . '})<~';
+
+    /** A chunk's end that may be the start of such a run: a ">" and white space up to the end */
+    private const string BLANK_RUN_OPEN = '~>([ \t\r\n]{0,' . self::BLANK_RUN_BYTES . '})\z~';
+
     private const string ATTRIBUTE_NAMES = '~\s++(' . self::NAME . '++)\s*+=\s*+(?:"[^"<]*+"|\'[^\'<]*+\')~';
 
     private int $state = self::DECLARATION;
@@ -120,6 +138,10 @@ final class XmlFloodScanner
     private int $namespaces = 0;
     /** @var array<string, true> */
     private array $names = [];
+    /** @var array<string, true> the distinct runs of white space between two tags seen in this part */
+    private array $blankRuns = [];
+    /** White space since a ">" the last chunk ended in - the run may go on in this one; null: none is open */
+    private null|string $blankOpen = null;
     private readonly int $maxTextBytes;
 
     /**
@@ -135,6 +157,10 @@ final class XmlFloodScanner
      */
     public function scan(string $chunk): null|string
     {
+        if ($this->tooManyBlankRuns($chunk)) {
+            return self::TOO_MANY_BLANK_RUNS;
+        }
+
         if ($this->state === self::TAG && $this->tagFollowed >= 0) {
             // Appended in place: a tag of a megabyte that comes in a thousand chunks is not copied a thousand times
             $this->carry .= $chunk;
@@ -235,6 +261,47 @@ final class XmlFloodScanner
         }
 
         return null;
+    }
+
+    /**
+     * Counts the distinct runs of white space between a ">" and a "<" - also one the stream cuts in two.
+     */
+    private function tooManyBlankRuns(string $chunk): bool
+    {
+        if ($chunk === '') {
+            return false;
+        }
+
+        if ($this->blankOpen !== null) {
+            $leading = strspn($chunk, " \t\r\n");
+
+            if ($leading === strlen($chunk)) {
+                // Still nothing but white space: a run longer than the parser keeps is no run to count any more
+                $this->blankOpen = strlen($this->blankOpen) + $leading > self::BLANK_RUN_BYTES ? null : $this->blankOpen . $chunk;
+
+                return false;
+            }
+
+            if ($chunk[$leading] === '<' && strlen($this->blankOpen) + $leading <= self::BLANK_RUN_BYTES && strlen($this->blankOpen) + $leading > 0) {
+                $this->blankRuns[$this->blankOpen . substr($chunk, 0, $leading)] = true;
+            }
+
+            $this->blankOpen = null;
+        }
+
+        // The cheap question first: most workbooks have no white space between their tags at all
+        if (preg_match_all(self::BLANK_RUNS, $chunk, $runs) > 0) {
+            foreach ($runs[1] as $run) {
+                $this->blankRuns[$run] = true;
+            }
+        }
+
+        // Only the chunk's last bytes can be such an end
+        if (preg_match(self::BLANK_RUN_OPEN, substr($chunk, -(self::BLANK_RUN_BYTES + 1)), $open) === 1) {
+            $this->blankOpen = $open[1];
+        }
+
+        return count($this->blankRuns) > self::MAX_BLANK_RUNS;
     }
 
     /**

@@ -9,17 +9,19 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
+use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * One metadata request to object storage inside the transaction - milliseconds, and the only row read is the
- * player's own import. Reading the file is not queued here yet: `uploaded` is where an import rests until the reader
- * is built (docs/features/data-import/upload.md).
+ * player's own import. An import that becomes `uploaded` is queued for reading at once (ReadImportFile, on the
+ * `imports` queue - docs/features/data-import/reading.md).
  */
 #[AsMessageHandler]
 readonly final class ConfirmImportUploadedHandler
@@ -29,6 +31,7 @@ readonly final class ConfirmImportUploadedHandler
         private ImportFileStorage $storage,
         private IdLock $idLock,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -68,5 +71,9 @@ readonly final class ConfirmImportUploadedHandler
         }
 
         $import->uploadConfirmed($this->clock->now());
+
+        // Queued on the same connection as this transaction: the message exists exactly when the import is `uploaded`
+        // (one that gets lost all the same is found by myspeedpuzzling:read-waiting-imports)
+        $this->messageBus->dispatch(new ReadImportFile($message->importId));
     }
 }

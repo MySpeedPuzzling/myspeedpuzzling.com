@@ -79,7 +79,11 @@ final class XlsxPackage
             return new self(
                 $zip,
                 self::checkedEntries($zip, $size, $limits),
-                new ReadBudget($limits->maxReadBytes, (int) round(max(0.0, $limits->maxReadSeconds) * 1e9)),
+                new ReadBudget(
+                    $limits->maxReadBytes,
+                    (int) round(max(0.0, $limits->maxReadSeconds) * 1e9),
+                    (int) round(max(0.0, $limits->maxWallSeconds) * 1e9),
+                ),
                 $limits->maxCellBytes,
             );
         } catch (\Throwable $e) {

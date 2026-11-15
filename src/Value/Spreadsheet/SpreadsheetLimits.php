@@ -9,7 +9,7 @@ namespace SpeedPuzzling\Web\Value\Spreadsheet;
  * defaults are the import's limits (docs/features/data-import/README.md Q8: 25 MB, 100 sheets, 50,000 rows,
  * 1,000,000 cells) plus the caps that keep one hostile file from costing more than seconds and megabytes.
  *
- * maxRows, maxCells, maxReadBytes and maxReadSeconds are **budgets of an import**, not of one opened file: a job that
+ * maxRows, maxCells, maxReadBytes and maxReadSeconds (CPU time) are **budgets of an import**, not of one opened file: a job that
  * reads one sheet passes what is left to the next - withConsumed() and ReadWorkbook's rowsRead(), cellsRead(),
  * bytesRead(), secondsRead(). Rows and cells count what was handed out (read twice = counted twice).
  */
@@ -41,7 +41,8 @@ final readonly class SpreadsheetLimits
         /** Bytes still allowed to be unpacked and parsed (a text file: read) - every pass over every part counts,
          *  and every job that opens the file again pays its structure and its shared strings again */
         public int $maxReadBytes = 512 * 1024 * 1024,
-        /** Seconds the reader may still spend on the file (its own time, not the caller's between two rows) */
+        /** Seconds of **CPU time** the reader may still spend on the file (the process's own, user + system; its own
+         *  work, not the caller's between two rows) - the same on a quiet and on a busy server */
         public float $maxReadSeconds = 60.0,
         /** Distinct texts of a workbook. Not a budget: every job that needs them reads them all */
         public int $maxSharedStrings = 1_000_000,
@@ -49,6 +50,9 @@ final readonly class SpreadsheetLimits
         public int $maxSharedStringBytes = 128 * 1024 * 1024,
         /** Merged ranges of one sheet handed out */
         public int $maxMergedRangesPerSheet = 5_000,
+        /** Wall-clock seconds one opened file may take of the reader's own time - the last resort when time passes
+         *  that is no CPU time. Not a budget carried from job to job: every opened file gets it whole */
+        public float $maxWallSeconds = 300.0,
     ) {
     }
 
@@ -74,6 +78,7 @@ final readonly class SpreadsheetLimits
             maxSharedStrings: $this->maxSharedStrings,
             maxSharedStringBytes: $this->maxSharedStringBytes,
             maxMergedRangesPerSheet: $this->maxMergedRangesPerSheet,
+            maxWallSeconds: $this->maxWallSeconds,
         );
     }
 }

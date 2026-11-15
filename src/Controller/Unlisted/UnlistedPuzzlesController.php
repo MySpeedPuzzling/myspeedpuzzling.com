@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Unlisted;
 use SpeedPuzzling\Web\Controller\DataImport\ImportsHomeController;
 use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Services\Unlisted\UnlistedPuzzlePage;
+use SpeedPuzzling\Web\Services\Unlisted\ViewerUnlistedPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +25,7 @@ final class UnlistedPuzzlesController extends AbstractController
     public function __construct(
         readonly private UnlistedPuzzlePage $page,
         readonly private GetUnlistedPuzzles $getUnlistedPuzzles,
+        readonly private ViewerUnlistedPuzzles $viewerUnlistedPuzzles,
     ) {
     }
 
@@ -37,6 +39,8 @@ final class UnlistedPuzzlesController extends AbstractController
     {
         $playerId = $this->page->ownerPlayerId();
         $summary = $this->getUnlistedPuzzles->summary($playerId);
+        // The menu of this very page - and of the next ones - knows without asking
+        $this->viewerUnlistedPuzzles->remember($summary['puzzles'] > 0);
         $pages = max(1, (int) ceil($summary['puzzles'] / self::PER_PAGE));
         $page = min($pages, max(1, $request->query->getInt('page', 1)));
 

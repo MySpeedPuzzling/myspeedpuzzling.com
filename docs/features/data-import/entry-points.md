@@ -9,6 +9,11 @@ Two rules held everything here:
 - **An entry point is a link.** Nothing is read for one: no page got a statement more. Where a link would be right
   only for some players (e.g. "Unlisted puzzles (3)"), the fact is not on the viewer's profile row, so the link is
   shown to everybody on a page that is the player's own (My data, Imports home) and nowhere else.
+  **The one exception, since the first tester asked "where does 'Keep just for me' go?" (2026-11):** the user menu
+  shows "Unlisted puzzles" to a player who has some. The answer is remembered in the session
+  (`ViewerUnlistedPuzzles`, the pattern of `ViewerResultFields`): a player without any pays one small statement per
+  two minutes of use, never one per page, and no pinned page budget moved (`unlisted-puzzles.md` "Where it is
+  linked from").
 - **The add-result form is not touched** - no controller, message, handler or form type. Its page template
   (`templates/puzzle_add.html.twig`) got one static line with one link, after and outside the form
   (`data-testid="add-form-import"`; `ImportEntryPointsTest` checks it is inside no `<form>` and holds no input).
@@ -103,6 +108,9 @@ formally, like the import's screens.
 | Own empty wish list | `templates/wishlist/_empty_state.html.twig` (the owner's branch) | the same | the guide | the same |
 | Own library overview | `templates/puzzle_library.html.twig` | buttons "My data" (its Puzzles tab) and "Import a spreadsheet" beside "Export"; the line in the "no collections" state | `my_data?tab=puzzles`, `data_imports`, the guide | `my_data.title`, `data_import.home.import_button` |
 | My data | `templates/my_data/index.html.twig` | one line: "Unlisted puzzles" · "Import a spreadsheet", with the unlisted explanation folded under it | `unlisted_puzzles`, `data_imports` | `unlisted_puzzles.title`, `data_import.home.import_button` |
+| User menu, for a player with unlisted puzzles | `templates/base.html.twig` (`viewer_unlisted.hasAny`) | "Unlisted puzzles" above "Import a spreadsheet" | `unlisted_puzzles` | `unlisted_puzzles.title` |
+| An import's overview | `templates/data_import/detail.html.twig` → `unlisted_puzzles/_import_link.html.twig` | one line when the import will keep rows as unlisted, or the player has unlisted puzzles | `unlisted_puzzles` | `unlisted_puzzles.import_link` |
+| The guide, `#unlisted` | `templates/data_import/guide/index.html.twig` | where they are found later and what can be done there; the link only for a signed-in reader | `unlisted_puzzles` | `unlisted_puzzles.guide.later`, `unlisted_puzzles.link` |
 | Imports home | `templates/data_import/index.html.twig` | "How the import works" beside the intro; the first visit below | the guide | `import_guide.to_guide` |
 | Every screen of an import | `templates/data_import/_flow_footer.html.twig` | "How this step works" | the guide's section of the step, with the way back | `data_import.flow.how_step_works` |
 
@@ -126,8 +134,8 @@ page's statements are unchanged.
 
 - **The Hub** beyond the Getting started card, and **no hint banner / announcement modal** for existing players: the
   design asks for neither. Existing players find it in the user menu, the profile's ⋯ menu, the library and the footer.
-- **"Unlisted puzzles" on the collections overview / the profile for a player who has any**: the fact is not on the
-  profile row and a statement per page view is not worth a link. It is on My data and on Imports home for everybody.
+- **"Unlisted puzzles" on the collections overview / the profile for a player who has any**: not there - it is in
+  the user menu for a player who has some (above), and on My data and Imports home for everybody.
 - **An empty state on the profile's results list**: the list has none (its tabs are disabled) and it is a Live
   component under a characterization test; a newcomer's profile shows the Getting started card with the line, and
   the statistics page without a result has it.

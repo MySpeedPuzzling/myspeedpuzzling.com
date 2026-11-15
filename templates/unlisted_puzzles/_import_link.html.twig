@@ -1,0 +1,10 @@
+{#
+    Where "Keep it just for me" goes - one line for an import's overview (docs/features/data-import/unlisted-puzzles.md
+    "Where it is linked from"). Shown when this import keeps, or will keep, puzzles as unlisted; a plain link, the
+    page reads nothing for it.
+#}
+{% if show %}
+    <p class="fs-sm mt-2 mb-0" data-testid="import-unlisted-link">
+        <a href="{{ path('unlisted_puzzles') }}" class="d-inline-flex align-items-center" style="min-height: 44px;"><i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.import_link'|trans }}</a>
+    </p>
+{% endif %}

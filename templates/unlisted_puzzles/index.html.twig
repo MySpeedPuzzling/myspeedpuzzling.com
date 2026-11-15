@@ -16,7 +16,8 @@
 
 <div class="mx-auto" style="max-width: 720px;" data-testid="unlisted-puzzles-page" data-puzzles="{{ summary.puzzles }}" data-results="{{ summary.results }}">
     <h1 class="h3 mb-2"><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.title'|trans }}</h1>
-    <p class="text-muted mb-2">{{ 'unlisted_puzzles.intro'|trans }}</p>
+    {# Two plain sentences: what an unlisted puzzle is, and what can be done with it #}
+    <p class="text-muted mb-2" data-testid="unlisted-intro">{{ 'unlisted_puzzles.intro'|trans }} {{ 'unlisted_puzzles.intro_actions'|trans }}</p>
     <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-secondary" data-testid="unlisted-only-you">
         <i class="bi bi-eye-slash flex-shrink-0" aria-hidden="true"></i>
         <span>{{ 'data_import.explain.unlisted'|trans }} {{ 'data_import.explain.unlisted_more'|trans }}</span>
@@ -41,28 +42,7 @@
 
         <div class="d-flex flex-column gap-2 mb-3">
             {% for puzzle in puzzles %}
-                <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="card card-body shadow-sm p-3 text-reset text-decoration-none" style="min-height: 44px;"
-                   data-testid="unlisted-puzzle" data-unlisted-puzzle-id="{{ puzzle.id }}" data-results="{{ puzzle.results }}">
-                    <span class="d-flex justify-content-between align-items-start gap-2">
-                        <span class="d-block" style="min-width: 0;">
-                            <span class="d-block fw-semibold text-break" data-testid="unlisted-puzzle-name">{{ puzzle.name }}</span>
-                            <span class="d-block fs-sm text-muted text-break">
-                                {%- set facts = [] -%}
-                                {%- if puzzle.brandText is not null %}{% set facts = facts|merge([puzzle.brandText]) %}{% endif -%}
-                                {%- if puzzle.piecesCount is not null %}{% set facts = facts|merge(['data_import.columns.row.pieces'|trans({'%number%': puzzle.piecesCount|format_number})]) %}{% endif -%}
-                                {%- set facts = facts|merge(['unlisted_puzzles.results'|trans({'%number%': puzzle.results|format_number})]) -%}
-                                {{ facts|join(' · ') }}
-                            </span>
-                            <span class="d-block mt-1">
-                                {% if puzzle.owned %}<span class="badge bg-faded-success text-success me-1" data-testid="unlisted-puzzle-owned"><i class="bi bi-box-seam me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.owned'|trans }}</span>{% endif %}
-                                {% if puzzle.wishList %}<span class="badge bg-faded-info text-info me-1" data-testid="unlisted-puzzle-wish"><i class="bi bi-heart me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.wish_list'|trans }}</span>{% endif %}
-                                {% if puzzle.suggested %}<span class="badge bg-faded-primary text-primary me-1" data-testid="unlisted-puzzle-suggested"><i class="bi bi-bookmark-check me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.suggested.badge'|trans }}</span>{% endif %}
-                                {% if puzzle.paired %}<span class="badge bg-faded-warning text-warning me-1" data-testid="unlisted-puzzle-left"><i class="bi bi-hourglass me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.paired.left_badge'|trans }}</span>{% endif %}
-                            </span>
-                        </span>
-                        <i class="bi bi-chevron-right text-muted flex-shrink-0 mt-1" aria-hidden="true"></i>
-                    </span>
-                </a>
+                {{ include('unlisted_puzzles/_row.html.twig', {puzzle: puzzle}, with_context = false) }}
             {% endfor %}
         </div>
 

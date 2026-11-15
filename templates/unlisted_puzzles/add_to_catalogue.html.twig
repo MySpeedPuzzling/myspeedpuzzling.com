@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Add to the catalogue" as a page of its own (docs/features/data-import/unlisted-puzzles.md): what the list's modal
+    shows, for a reader without JavaScript and from the unlisted puzzle's own page. Owner only.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'unlisted_puzzles.catalogue.title'|trans }} - {{ puzzle.name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: 'unlisted_puzzles.title'|trans, url: path('unlisted_puzzles')},
+    {name: puzzle.name, url: path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="catalogue-page">
+    <h1 class="h3 mb-1">{{ 'unlisted_puzzles.catalogue.title'|trans }}</h1>
+    <p class="fw-semibold text-break mb-1">{{ puzzle.name }}</p>
+    {{ include('unlisted_puzzles/_add_to_catalogue_form.html.twig') }}
+</div>
+{% endblock %}

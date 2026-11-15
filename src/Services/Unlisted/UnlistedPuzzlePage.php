@@ -8,8 +8,11 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UnlistedPairing;
 use SpeedPuzzling\Web\Exceptions\UnlistedPuzzleNotFound;
+use SpeedPuzzling\Web\Query\CountPuzzlesAddedByPlayer;
+use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
+use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
 use SpeedPuzzling\Web\Results\ImportCataloguePuzzle;
@@ -29,6 +32,12 @@ readonly final class UnlistedPuzzlePage
 {
     public const string CSRF_TOKEN_ID = 'unlisted_puzzles';
 
+    /**
+     * "Add to the catalogue": at most so many new puzzles in 24 hours per player, counted over every way a player
+     * adds a puzzle (CountPuzzlesAddedByPlayer) - each one is a puzzle the moderators approve by hand.
+     */
+    public const int MAX_CATALOGUE_ADDITIONS_PER_DAY = 10;
+
     public function __construct(
         private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private GetUnlistedPuzzles $getUnlistedPuzzles,
@@ -37,6 +46,9 @@ readonly final class UnlistedPuzzlePage
         private GetImportPuzzleScreen $getImportPuzzleScreen,
         private PuzzleRedirectRepository $puzzleRedirectRepository,
         private ClockInterface $clock,
+        private GetManufacturers $getManufacturers,
+        private CountPuzzlesAddedByPlayer $countPuzzlesAddedByPlayer,
+        private DataImportSettingsRepository $settingsRepository,
     ) {
     }
 
@@ -116,6 +128,34 @@ readonly final class UnlistedPuzzlePage
             'request_id' => Uuid::uuid7()->toString(),
             'daily_limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
             'undo_until' => $now->modify(sprintf('-%d days', UnlistedPairing::UNDO_DAYS)),
+            // The catalogue's brand the file's brand stands for - null when it is none of ours
+            'manufacturer_id' => $manufacturerId,
+        ];
+    }
+
+    /**
+     * What "Add to the catalogue" shows and checks (docs/features/data-import/unlisted-puzzles.md "Add to the
+     * catalogue"): the page's own variables - the likely catalogue puzzles among them, offered before anything is
+     * created - plus the catalogue's name of the file's brand, whether the import's safety switch is on, and what
+     * is left of the day's limit.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws NotFoundHttpException
+     */
+    public function catalogueProposal(string $unlistedPuzzleId): array
+    {
+        $playerId = $this->ownerPlayerId();
+        $parameters = $this->parameters($unlistedPuzzleId);
+        $manufacturerId = $parameters['manufacturer_id'];
+        $addedToday = $this->countPuzzlesAddedByPlayer->since($playerId, $this->clock->now()->modify('-24 hours'));
+
+        return [
+            ...$parameters,
+            'brand_name' => is_string($manufacturerId) ? $this->getManufacturers->namesByIds([$manufacturerId])[$manufacturerId] ?? null : null,
+            'paused' => $this->settingsRepository->isAddingPaused(),
+            'limit' => self::MAX_CATALOGUE_ADDITIONS_PER_DAY,
+            'limit_reached' => $addedToday >= self::MAX_CATALOGUE_ADDITIONS_PER_DAY,
         ];
     }
 

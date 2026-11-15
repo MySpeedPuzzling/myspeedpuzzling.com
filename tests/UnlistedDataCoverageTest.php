@@ -47,6 +47,7 @@ final class UnlistedDataCoverageTest extends TestCase
         'Services/Unlisted/UnlistedPairer.php' => self::WORKER_STEP,
         'Services/Unlisted/UnlistedPuzzleMatcher.php' => 'Asks the catalogue what it has for unlisted puzzles it is handed (the owner\'s page, the daily look) - reads the catalogue, writes nothing, shows nothing.',
         'Services/Unlisted/UnlistedPuzzlePage.php' => 'What the page of one unlisted puzzle shows. Takes no player id: resolves the signed-in player itself.',
+        'Services/Unlisted/ViewerUnlistedPuzzles.php' => 'Whether the signed-in player has any unlisted puzzle - a yes/no for THEIR OWN menu, remembered in their session. Takes no player id: resolves the signed-in player itself; a guest is "no" without a statement.',
 
         // The pages
         'Controller/Unlisted/UnlistedPuzzlesController.php' => self::OWNER_PAGE,
@@ -56,6 +57,7 @@ final class UnlistedDataCoverageTest extends TestCase
         'Controller/Unlisted/UndoUnlistedPairingController.php' => self::OWNER_PAGE,
         'Controller/Unlisted/RemoveUnlistedPuzzleController.php' => self::OWNER_PAGE,
         'Controller/Unlisted/RefuseUnlistedSuggestionController.php' => self::OWNER_PAGE,
+        'Controller/Unlisted/AddUnlistedPuzzleToCatalogueController.php' => self::OWNER_PAGE,
 
         // The handlers
         'MessageHandler/PairUnlistedPuzzleHandler.php' => self::OWNER_WRITE,

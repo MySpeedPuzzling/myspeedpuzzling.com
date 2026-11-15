@@ -1,0 +1,63 @@
+{#
+    The body of "Add to the catalogue" (docs/features/data-import/unlisted-puzzles.md) - the same in the list's modal
+    and on the page of its own. First the catalogue puzzles it may already be (each a button "It is this one" - the
+    unlisted page's own matching), then the short form. Every form names its action: inside `modal-frame` a form
+    without one closes the modal and saves nothing.
+#}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Services\\Unlisted\\UnlistedPuzzlePage::CSRF_TOKEN_ID')) %}
+{% set add_url = path('unlisted_puzzle_add_to_catalogue', {unlistedPuzzleId: puzzle.id}) %}
+{% set likely = (suggested is not null ? [suggested] : [])|merge(candidates) %}
+
+<p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.catalogue.intro'|trans }}</p>
+
+{% if likely is not empty %}
+    <div class="p-2 rounded-2 bg-faded-primary mb-3" data-testid="catalogue-likely">
+        <p class="fw-medium mb-2"><i class="bi bi-bookmark-check text-primary me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.likely'|trans }}</p>
+        {% for catalogue in likely %}
+            {# Out of the modal: the answer is the unlisted puzzle's page #}
+            <form action="{{ path('unlisted_puzzle_pair', {unlistedPuzzleId: puzzle.id}) }}" method="post" class="mb-2" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <input type="hidden" name="request_id" value="{{ pair_request_id }}">
+                <input type="hidden" name="puzzle_id" value="{{ catalogue.puzzleId }}">
+                <button type="submit" class="btn btn-outline-primary w-100 p-2 text-body bg-body" style="min-height: 44px; white-space: normal;"
+                        data-testid="catalogue-likely-puzzle" data-puzzle-id="{{ catalogue.puzzleId }}">
+                    {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: catalogue, file_pieces: puzzle.piecesCount}, with_context = false) }}
+                    <span class="d-block fs-sm fw-medium text-primary text-start mt-2"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.pair.this_one'|trans }}</span>
+                </button>
+            </form>
+        {% endfor %}
+        <p class="fs-sm text-muted mb-0">{{ 'unlisted_puzzles.catalogue.likely_none'|trans }}</p>
+    </div>
+{% endif %}
+
+{{ form_start(form, {action: add_url, attr: {'data-turbo-frame': is_modal ? 'modal-frame' : '_top', 'data-testid': 'catalogue-form', novalidate: 'novalidate'}}) }}
+    <input type="hidden" name="_token" value="{{ csrf }}">
+    <input type="hidden" name="new_puzzle_id" value="{{ new_puzzle_id }}">
+    <input type="hidden" name="request_id" value="{{ request_id }}">
+
+    {{ form_errors(form) }}
+
+    {{ form_row(form.name) }}
+    {{ form_row(form.brand, {help: 'unlisted_puzzles.catalogue.form.brand_help'}) }}
+    {{ form_row(form.piecesCount) }}
+    {{ form_row(form.photo) }}
+    {{ form_row(form.ean) }}
+    {{ form_row(form.brandCode) }}
+
+    <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-secondary" data-testid="catalogue-what-happens">
+        <i class="bi bi-eye flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ 'unlisted_puzzles.catalogue.what_happens'|trans }}</span>
+    </p>
+
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary text-wrap flex-fill" style="min-height: 44px;" data-testid="catalogue-submit">
+            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.button'|trans }}
+        </button>
+        {% if is_modal %}
+            <button type="button" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-bs-dismiss="modal">{{ 'unlisted_puzzles.catalogue.cancel'|trans }}</button>
+        {% else %}
+            <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-secondary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">{{ 'unlisted_puzzles.catalogue.cancel'|trans }}</a>
+        {% endif %}
+    </div>
+    <p class="fs-sm text-muted mt-2 mb-0">{{ 'unlisted_puzzles.catalogue.limit'|trans({'%limit%': limit}) }}</p>
+{{ form_end(form) }}

@@ -268,7 +268,9 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
         self::assertStringContainsString('Some of your unlisted puzzles may be in the catalogue now.', self::spaced($crawler->filter('body')->text()));
         // It names no puzzle
         self::assertStringNotContainsString('Echidna', (string) $this->browser->getResponse()->getContent());
-        self::assertCount(1, $crawler->filter('a[href="/en/unlisted-puzzles"]'));
+        // … next to the menu's own entry, which a player with unlisted puzzles has on every page
+        self::assertCount(1, $crawler->filter('a[href="/en/unlisted-puzzles"]:not([data-testid="menu-unlisted-puzzles"])'));
+        self::assertCount(1, $crawler->filter('a[href="/en/unlisted-puzzles"][data-testid="menu-unlisted-puzzles"]'));
 
         // The list says which, the puzzle's page offers it - with "Not this one"
         $crawler = $this->browser->request('GET', '/en/unlisted-puzzles');

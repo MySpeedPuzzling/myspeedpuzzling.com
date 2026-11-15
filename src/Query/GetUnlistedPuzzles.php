@@ -79,6 +79,28 @@ SQL, ['ownerPlayerId' => $ownerPlayerId, 'limit' => max(1, $limit), 'offset' => 
     }
 
     /**
+     * Whether the player has anything on their list - what the menu asks (ViewerUnlistedPuzzles remembers the answer).
+     * One statement, by the index of the player.
+     */
+    public function has(string $ownerPlayerId): bool
+    {
+        if (Uuid::isValid($ownerPlayerId) === false) {
+            return false;
+        }
+
+        $listed = self::SQL_LISTED;
+
+        return (bool) $this->database->executeQuery(<<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM unlisted_puzzle
+    WHERE unlisted_puzzle.player_id = :ownerPlayerId
+        AND {$listed}
+)
+SQL, ['ownerPlayerId' => $ownerPlayerId])->fetchOne();
+    }
+
+    /**
      * The numbers above the list. One statement.
      *
      * @return array{puzzles: int, results: int, suggested: int}

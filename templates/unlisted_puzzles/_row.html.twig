@@ -1,0 +1,39 @@
+{#
+    One unlisted puzzle on the reader's list (docs/features/data-import/unlisted-puzzles.md "The pages"): the card
+    opens its page; a puzzle that is not matched yet carries the two things that can be done with it - "Match" (its
+    page, at "It is this catalogue puzzle") and "Add to the catalogue" (the short form, in the site's modal; without
+    JavaScript the same link is a page of its own). The id is what the form's Turbo Stream replaces.
+#}
+<div id="unlisted-puzzle-{{ puzzle.id }}" class="card card-body shadow-sm p-3" data-testid="unlisted-puzzle-row">
+    <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="d-flex justify-content-between align-items-start gap-2 text-reset text-decoration-none" style="min-height: 44px;"
+       data-testid="unlisted-puzzle" data-unlisted-puzzle-id="{{ puzzle.id }}" data-results="{{ puzzle.results }}">
+        <span class="d-block" style="min-width: 0;">
+            <span class="d-block fw-semibold text-break" data-testid="unlisted-puzzle-name">{{ puzzle.name }}</span>
+            <span class="d-block fs-sm text-muted text-break">
+                {%- set facts = [] -%}
+                {%- if puzzle.brandText is not null %}{% set facts = facts|merge([puzzle.brandText]) %}{% endif -%}
+                {%- if puzzle.piecesCount is not null %}{% set facts = facts|merge(['data_import.columns.row.pieces'|trans({'%number%': puzzle.piecesCount|format_number})]) %}{% endif -%}
+                {%- set facts = facts|merge(['unlisted_puzzles.results'|trans({'%number%': puzzle.results|format_number})]) -%}
+                {{ facts|join(' · ') }}
+            </span>
+            <span class="d-block mt-1">
+                {% if puzzle.owned %}<span class="badge bg-faded-success text-success me-1" data-testid="unlisted-puzzle-owned"><i class="bi bi-box-seam me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.owned'|trans }}</span>{% endif %}
+                {% if puzzle.wishList %}<span class="badge bg-faded-info text-info me-1" data-testid="unlisted-puzzle-wish"><i class="bi bi-heart me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.wish_list'|trans }}</span>{% endif %}
+                {% if puzzle.suggested %}<span class="badge bg-faded-primary text-primary me-1" data-testid="unlisted-puzzle-suggested"><i class="bi bi-bookmark-check me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.suggested.badge'|trans }}</span>{% endif %}
+                {% if puzzle.paired %}<span class="badge bg-faded-warning text-warning me-1" data-testid="unlisted-puzzle-left"><i class="bi bi-hourglass me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.paired.left_badge'|trans }}</span>{% endif %}
+            </span>
+        </span>
+        <i class="bi bi-chevron-right text-muted flex-shrink-0 mt-1" aria-hidden="true"></i>
+    </a>
+    {% if not puzzle.paired %}
+        <div class="d-flex flex-wrap gap-2 mt-2" data-testid="unlisted-puzzle-actions">
+            <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}#match" class="btn btn-sm btn-outline-primary text-wrap d-inline-flex align-items-center flex-fill justify-content-center" style="min-height: 44px;" data-testid="unlisted-puzzle-match">
+                <i class="bi bi-search me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.actions.match'|trans }}
+            </a>
+            <a href="{{ path('unlisted_puzzle_add_to_catalogue', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-primary text-wrap d-inline-flex align-items-center flex-fill justify-content-center" style="min-height: 44px;"
+               data-turbo-frame="modal-frame" rel="nofollow" data-testid="unlisted-puzzle-add-to-catalogue">
+                <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.button'|trans }}
+            </a>
+        </div>
+    {% endif %}
+</div>

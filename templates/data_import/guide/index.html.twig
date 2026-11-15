@@ -238,6 +238,13 @@
         <section class="mb-4" id="unlisted" style="{{ anchor_style }}">
             <h2 class="h5">{{ 'unlisted_puzzles.title'|trans }}</h2>
             {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, testid: 'guide-explain-unlisted-section'}, with_context = false) }}
+            {# Where "Keep it just for me" goes, and what can be done there. The page is the reader's own: a guest gets the words, a signed-in reader the link #}
+            <p class="mt-2 mb-0" data-testid="guide-unlisted-later">
+                {{ 'unlisted_puzzles.guide.later'|trans }}
+                {% if logged_user.profile is not null %}
+                    <a href="{{ path('unlisted_puzzles') }}" class="d-inline-block py-1" data-testid="guide-unlisted-link">{{ 'unlisted_puzzles.link'|trans }}</a>
+                {% endif %}
+            </p>
         </section>
 
         <section class="mb-5" id="not-yet" style="{{ anchor_style }}">

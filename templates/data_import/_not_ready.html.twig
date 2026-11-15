@@ -33,11 +33,6 @@
                 </a>
             </li>
         {% endif %}
-        {% if add.unlisted > 0 %}
-            <li class="py-2 text-muted" data-testid="not-ready-unlisted" data-rows="{{ add.unlisted }}">
-                <i class="bi bi-hourglass me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.unlisted'|trans({'%number%': add.unlisted|format_number}) }}
-            </li>
-        {% endif %}
         {% if add.needsExactDay > 0 %}
             <li class="py-2 text-muted" data-testid="not-ready-exact-day" data-rows="{{ add.needsExactDay }}">
                 <i class="bi bi-hourglass me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.needs_exact_day'|trans({'%number%': add.needsExactDay|format_number}) }}

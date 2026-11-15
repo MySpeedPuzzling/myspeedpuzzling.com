@@ -289,6 +289,27 @@ class DataImportRow
     }
 
     /**
+     * The row's unlisted result turned out to be a result the player already has, when its unlisted puzzle was
+     * paired with a catalogue puzzle (docs/features/data-import/unlisted-puzzles.md "Pairing"): the row speaks for
+     * that result from now on, so no other row pairs off with it.
+     */
+    public function unlistedResultIsOnProfile(UuidInterface $solvingTimeId): void
+    {
+        $this->alreadyYoursHow = 'profile';
+        $this->alreadyYoursSolvingTimeId = $solvingTimeId;
+    }
+
+    /**
+     * An Undo of that pairing: the row's result is an unlisted one again - it names no real result.
+     */
+    public function unlistedResultIsUnlistedAgain(): void
+    {
+        $this->solvingTimeId = null;
+        $this->alreadyYoursHow = null;
+        $this->alreadyYoursSolvingTimeId = null;
+    }
+
+    /**
      * An Undo came to the row and left it as it is: its result was changed since the import.
      */
     public function keptByUndo(UuidInterface $undoId): void

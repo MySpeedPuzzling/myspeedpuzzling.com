@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\Unlisted\UnlistedRowWriter;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultKnownBy;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
@@ -71,6 +72,7 @@ readonly final class ImportRowAdder
         private ResultDuplicatePreventionRepository $duplicatePreventionRepository,
         private ImportRowTimeCheck $timeCheck,
         private SuspiciousTimeConfirmationRepository $confirmationRepository,
+        private UnlistedRowWriter $unlistedRows,
         private ClockInterface $clock,
     ) {
     }
@@ -149,10 +151,13 @@ readonly final class ImportRowAdder
         $isOwned = in_array($row->kind, [DataImportRowKind::Owned, DataImportRowKind::Both], true);
         $isWish = $row->kind === DataImportRowKind::WishList;
 
-        // What was ready when the batch was made may not be any more: the decision taken back, the sheet parsed again
+        // Kept as the player's own unlisted puzzle: the row goes into the unlisted tables and nowhere else
+        // (docs/features/data-import/unlisted-puzzles.md) - no catalogue puzzle, no result, nothing public
         if ($importPuzzle !== null && $importPuzzle->choice === ImportPuzzleChoice::Unlisted) {
-            return $this->refuse($row, ImportRowRefusal::UnlistedNotYet->value);
+            return $this->addUnlisted($row, $importPuzzle, $batchId, $player, $hasResult, $hasResult || $isOwned || $isWish);
         }
+
+        // What was ready when the batch was made may not be any more: the decision taken back, the sheet parsed again
 
         $puzzle = $this->decidedPuzzle($row);
 
@@ -300,6 +305,58 @@ readonly final class ImportRowAdder
                 break;
             }
         }
+
+        return self::outcome('added', customValuesOf: $customValuesOf);
+    }
+
+    /**
+     * A row whose puzzle is kept as an unlisted puzzle: all of it is UnlistedRowWriter's - here only what belongs to
+     * the batch: a row that is the same result as another row of the file lets that row go first (README D6).
+     *
+     * @return array{status: string, code: null|string, customValuesOf: list<string>}
+     */
+    private function addUnlisted(DataImportRow $row, DataImportPuzzle $importPuzzle, string $batchId, Player $player, bool $hasResult, bool $isData): array
+    {
+        if ($row->problems !== null || $isData === false) {
+            return $this->refuse($row, ImportRowRefusal::NotReady->value);
+        }
+
+        $customValuesOf = [];
+        $resultIsAnotherRows = false;
+        $standingTimeId = null;
+
+        if ($hasResult && $row->sameAsRow !== null && $row->addAsSeparate === false) {
+            $standsFor = $this->standingRow($row);
+
+            if ($standsFor->isQueuedIn($batchId)) {
+                $customValuesOf = $this->add($standsFor->id->toString(), $batchId, $player->id->toString())['customValuesOf'];
+            }
+
+            if (in_array($standsFor->state, [DataImportRowState::Added, DataImportRowState::AlreadyYours], true) === false) {
+                return $this->refuse($row, ImportRowRefusal::EqualRowNotAdded->value, $customValuesOf);
+            }
+
+            $resultIsAnotherRows = true;
+            $standingTimeId = $standsFor->state === DataImportRowState::AlreadyYours ? $standsFor->alreadyYoursSolvingTimeId : null;
+        }
+
+        $now = $this->clock->now();
+        $written = $this->unlistedRows->write($row, $importPuzzle, $player, $resultIsAnotherRows, $now);
+
+        if ($written['refused'] !== null) {
+            return $this->refuse($row, $written['refused'], $customValuesOf);
+        }
+
+        $alreadyTimeId = $written['alreadyTimeId'] !== null ? Uuid::fromString($written['alreadyTimeId']) : $standingTimeId;
+
+        if ($written['made'] === null) {
+            $row->alreadyYours($written['alreadyHow'] ?? 'owned', $alreadyTimeId);
+
+            return self::outcome('already_yours', customValuesOf: $customValuesOf);
+        }
+
+        // The values of the player's own fields have nothing to stand on yet: an unlisted result is no result
+        $row->added($now, null, null, ['unlisted' => $written['made']], $written['alreadyHow'], $written['alreadyHow'] === null ? null : $alreadyTimeId);
 
         return self::outcome('added', customValuesOf: $customValuesOf);
     }

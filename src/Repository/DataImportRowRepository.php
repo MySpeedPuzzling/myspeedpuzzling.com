@@ -331,6 +331,8 @@ SELECT r.id
 FROM ready
 INNER JOIN data_import_row r ON r.id = ready.id
 WHERE ready.has_result
+    -- A row kept with the player's unlisted puzzles makes no result: the time verification has nothing to judge
+    AND ready.choice = 'catalogue'
     AND ready.equal_row = FALSE
     AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
     AND r.answers -> 'addAnyway' ->> 'unusual_time' IS NULL
@@ -483,8 +485,9 @@ SQL, [
      *   exists now; puzzle_solving_time is asked only whether the id exists - whatever the result's state, tracked
      *   or not);
      * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - whose day is
-     *   exact, in the file's order, with the running number of results (`results_so_far`: the daily guard takes
-     *   the first N).
+     *   exact, and the rows whose puzzle is kept as an unlisted puzzle (`choice = 'unlisted'`, whatever the day's
+     *   precision), in the file's order, with the running number of results (`results_so_far`: the daily guard takes
+     *   the first N - unlisted results count too).
      *
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
@@ -536,9 +539,14 @@ ready AS (
         chosen.*,
         SUM(CASE WHEN chosen.has_result THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
     FROM chosen
-    WHERE chosen.choice = 'catalogue'
-        AND chosen.puzzle_id IS NOT NULL
-        AND (chosen.has_result = FALSE OR chosen.exact_day)
+    WHERE (
+            chosen.choice = 'catalogue'
+            AND chosen.puzzle_id IS NOT NULL
+            AND (chosen.has_result = FALSE OR chosen.exact_day)
+        )
+        -- Kept as the player's own unlisted puzzle (docs/features/data-import/unlisted-puzzles.md): nothing public
+        -- is made of the row, so a day known to the month or the year only is taken as it is
+        OR chosen.choice = 'unlisted'
 )
 SQL;
     }
@@ -546,7 +554,8 @@ SQL;
     /**
      * "Add": the rows of the selection that are ready are queued for the batch, in the file's order - a row is ready
      * when it is data without a problem, its sheet is in, its puzzle is decided as a catalogue puzzle and, for a
-     * result, its day is exact (docs/features/data-import/adding.md "Ready") - a row that waits, or one settled as
+     * result, its day is exact - or its puzzle is kept as an unlisted puzzle
+     * (docs/features/data-import/adding.md "Ready") - a row that waits, or one settled as
      * "already yours" whose result is gone since. One statement, so a row is queued by
      * one batch only: the second of two "Add"s finds it queued. At most $resultsLeft of the rows that carry a result
      * are taken (the daily guard); owned and wish-list rows are not counted.
@@ -558,7 +567,7 @@ SQL;
      * @param null|list<string> $rowIds only these rows (also rows that were refused or failed before - asked for again)
      * @param null|list<string> $importPuzzleIds only the rows of these distinct puzzles
      *
-     * @return array{queued: int, overDailyLimit: int, unlisted: int, needsExactDay: int}
+     * @return array{queued: int, overDailyLimit: int, needsExactDay: int}
      */
     public function queueReadyRows(DataImport $import, string $batchId, null|array $rowIds, null|array $importPuzzleIds, int $resultsLeft): array
     {
@@ -587,7 +596,7 @@ SQL;
 
         $ready = self::sqlReadyRows($selection);
 
-        /** @var false|array{queued: int|string, over_daily_limit: int|string, unlisted: int|string, needs_exact_day: int|string} $counts */
+        /** @var false|array{queued: int|string, over_daily_limit: int|string, needs_exact_day: int|string} $counts */
         $counts = $this->entityManager->getConnection()->executeQuery(<<<SQL
 WITH {$ready},
 taken AS (
@@ -602,14 +611,12 @@ taken AS (
 SELECT
     (SELECT COUNT(*) FROM taken) AS queued,
     (SELECT COUNT(*) FROM ready WHERE ready.has_result AND ready.results_so_far > :resultsLeft) AS over_daily_limit,
-    (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'unlisted') AS unlisted,
     (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day
 SQL, $parameters, $types)->fetchAssociative();
 
         return [
             'queued' => (int) ($counts['queued'] ?? 0),
             'overDailyLimit' => (int) ($counts['over_daily_limit'] ?? 0),
-            'unlisted' => (int) ($counts['unlisted'] ?? 0),
             'needsExactDay' => (int) ($counts['needs_exact_day'] ?? 0),
         ];
     }

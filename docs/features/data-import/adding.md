@@ -33,8 +33,10 @@ A row is **ready** - derived, never stored. **One definition**: `DataImportRowRe
 `queueReadyRows()` queues with and the screens count with (`GetImportAddScreen`):
 
 - it is data (`kind` result / owned / both / wish_list), without a problem, on a sheet that is in;
-- its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one);
-- a row with a result has an **exact day** (`parsed.datePrecision = day`);
+- its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one)
+  and a row with a result has an **exact day** (`parsed.datePrecision = day`) - **or** its puzzle is kept as an
+  **unlisted puzzle** (stage 7, [unlisted-puzzles.md](unlisted-puzzles.md)): such a row goes into the unlisted
+  tables, never to the profile, whatever its date's precision;
 - it waits (`state = waiting`), was not refused before (`failure IS NULL`) and no Undo holds it - **or** it was
   settled as "already yours" with a result that is gone since (undone, deleted): "already yours" is always what
   exists now.
@@ -43,7 +45,7 @@ Not ready, and said so in the outcome's `skipped` (the screens word it):
 
 | Code | Why |
 |---|---|
-| `unlisted_not_yet` | The puzzle is kept as an unlisted puzzle - stage 7. The row is **not** added and stays waiting |
+| `unlisted_not_yet` | Until stage 7: the puzzle is kept as an unlisted puzzle. No "Add" answers it any more - such rows are ready now ([unlisted-puzzles.md](unlisted-puzzles.md)); the code stays for batches made before |
 | `needs_exact_day` | A result known to the month or year only, or undated - stage 6c. A month is never stored as a day |
 | `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports today (UTC); the rest is ready tomorrow. Owned and wish-list rows are not counted |
 
@@ -145,7 +147,9 @@ result and an owned puzzle whose result is refused adds no collection item.
 
 1. `ImportWriteLock::lockUntilCommit(player)` - the writer's own lock, first statement. The row is read after it;
    only a row still `queued` in this batch is touched.
-2. Ready still? Its puzzle decided as a catalogue puzzle, no problem. The puzzle still choosable for the player and
+2. A row whose puzzle is kept as an unlisted puzzle is `UnlistedRowWriter`'s from here
+   ([unlisted-puzzles.md](unlisted-puzzles.md) "Adding") - none of the steps below. Ready still? Its puzzle decided
+   as a catalogue puzzle, no problem. The puzzle still choosable for the player and
    writable (`SecretPuzzleAccess`). **A puzzle merged since the pairing is the survivor already**: a merge moves
    `data_import_puzzle.puzzle_id` (`puzzleMergedInto()`, stage 5a), so no `puzzle_redirect` is followed here.
 3. **The result** (kind result / both):

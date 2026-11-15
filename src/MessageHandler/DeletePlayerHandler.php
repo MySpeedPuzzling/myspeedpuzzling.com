@@ -108,7 +108,9 @@ final class DeletePlayerHandler
         // Read before anything is removed - the rows holding the paths go with the player
         $storedFiles = $player->avatar !== null ? [$player->avatar] : [];
 
-        // Their spreadsheets waiting in object storage - the imports themselves go with the player (foreign key)
+        // Their spreadsheets waiting in object storage - the imports themselves go with the player (foreign key), and
+        // so do the puzzles of those spreadsheets that are not in the catalogue, with their results, marks and pairings
+        // (docs/features/data-import/unlisted-puzzles.md - every one of those tables cascades with the player)
         $storedFiles = [...$storedFiles, ...$this->dataImportFiles($player)];
 
         $this->cancelStripeSubscription($playerId);

@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowAdder;
 use SpeedPuzzling\Web\Services\DataImport\ImportWriteLock;
+use SpeedPuzzling\Web\Services\Unlisted\UnlistedRowWriter;
 use SpeedPuzzling\Web\Value\DataImportRowState;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use SpeedPuzzling\Web\Value\NotificationType;
@@ -69,6 +70,7 @@ readonly final class UndoImportRowHandler
         private NotificationRepository $notificationRepository,
         private EntityManagerInterface $entityManager,
         private ImportWriteLock $lock,
+        private UnlistedRowWriter $unlistedRows,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
@@ -127,6 +129,22 @@ readonly final class UndoImportRowHandler
             'wishListItemRemoved' => false,
             'wishListItemsRestored' => 0,
         ];
+
+        // A row whose puzzle is kept as an unlisted puzzle made unlisted things only: they go - unless the puzzle was
+        // paired since and they are real ones now. Then the row stays as it is: the pairing's own Undo comes first
+        if (isset($row->made['unlisted'])) {
+            if ($this->unlistedRows->takeBack($row, $player)) {
+                $outcome['undone'] = true;
+                $row->undone();
+            } else {
+                $outcome['resultKeptEdited'] = true;
+                $row->keptByUndo($undo->id);
+            }
+
+            $undo->rowDone($outcome, $now);
+
+            return;
+        }
 
         $solvingTime = $row->resultMade && $row->solvingTimeId !== null
             ? $this->entityManager->find(PuzzleSolvingTime::class, $row->solvingTimeId)

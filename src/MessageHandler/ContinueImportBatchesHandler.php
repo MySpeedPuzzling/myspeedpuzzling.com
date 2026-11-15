@@ -7,10 +7,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ContinueImportBatches;
+use SpeedPuzzling\Web\Message\ProcessUnlistedPairing;
 use SpeedPuzzling\Web\Message\RecordImportGroupAnswer;
 use SpeedPuzzling\Web\Message\QueueImportTurn;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
 use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
+use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -32,6 +34,7 @@ readonly final class ContinueImportBatchesHandler
     public function __construct(
         private DataImportBatchRepository $batchRepository,
         private DataImportSettingsRepository $settingsRepository,
+        private UnlistedPuzzleRepository $unlistedRepository,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -39,13 +42,16 @@ readonly final class ContinueImportBatchesHandler
     }
 
     /**
-     * @return array{batches: int, undos: int, answers: int}
+     * @return array{batches: int, undos: int, answers: int, pairings: int}
      */
     public function __invoke(ContinueImportBatches $message): array
     {
         $since = $this->clock->now()->modify(sprintf('-%d seconds', DataImportLimits::BATCH_STANDING_AFTER_SECONDS));
         $batchIds = $this->batchRepository->idsRunningStandingSince($since, self::AT_MOST, onlyStopped: $this->settingsRepository->isAddingPaused());
         $undoIds = $this->batchRepository->undoIdsRunningStandingSince($since, self::AT_MOST);
+        // Pairings of unlisted puzzles (docs/features/data-import/unlisted-puzzles.md) go the same way: every step
+        // reads its subject's state under the player's lock, so a job sent once too often finds nothing to do
+        $pairingIds = $this->unlistedRepository->pairingIdsStandingSince($since, self::AT_MOST, onlyUndos: $this->settingsRepository->isAddingPaused());
 
         // A new turn each: the number is raised and the moment noted, so a job of the old turn that only waited in a
         // long queue ends when it comes, and the next sweep leaves the batch alone
@@ -55,6 +61,10 @@ readonly final class ContinueImportBatchesHandler
 
         foreach ($undoIds as $undoId) {
             $this->messageBus->dispatch(QueueImportTurn::ofUndo($undoId));
+        }
+
+        foreach ($pairingIds as $pairingId) {
+            $this->messageBus->dispatch(new ProcessUnlistedPairing($pairingId));
         }
 
         // A group answer that stands still is not continued but ended: what it confirmed stays, the rest can be
@@ -69,6 +79,6 @@ readonly final class ContinueImportBatchesHandler
             $this->logger->warning('An import\'s group answer stood still and was ended as failed', ['answer_id' => $answerId]);
         }
 
-        return ['batches' => count($batchIds), 'undos' => count($undoIds), 'answers' => count($answerIds)];
+        return ['batches' => count($batchIds), 'undos' => count($undoIds), 'answers' => count($answerIds), 'pairings' => count($pairingIds)];
     }
 }

@@ -1,0 +1,255 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One unlisted puzzle of the reader (docs/features/data-import/unlisted-puzzles.md "The pages"): what the file said
+    of it, its results and owned / wish marks, the file it came from, "It is this catalogue puzzle" (what the import's
+    rules find, MySpeedPuzzling's suggestion, the reader's own search) and "Remove". Owner only.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Services\\Unlisted\\UnlistedPuzzlePage::CSRF_TOKEN_ID')) %}
+{% set pair_url = path('unlisted_puzzle_pair', {unlistedPuzzleId: puzzle.id}) %}
+
+{% macro pair_form(url, csrf, request_id, catalogue, file_pieces, testid) %}
+    <form action="{{ url }}" method="post" class="mb-2">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <input type="hidden" name="request_id" value="{{ request_id }}">
+        <input type="hidden" name="puzzle_id" value="{{ catalogue.puzzleId }}">
+        <button type="submit" class="btn btn-outline-primary w-100 p-2 text-body bg-body" style="min-height: 44px; white-space: normal;"
+                data-testid="{{ testid }}" data-puzzle-id="{{ catalogue.puzzleId }}">
+            {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: catalogue, file_pieces: file_pieces}, with_context = false) }}
+            <span class="d-block fs-sm fw-medium text-primary text-start mt-2"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.pair.this_one'|trans }}</span>
+        </button>
+    </form>
+{% endmacro %}
+
+{% macro reason(code) %}
+    {%- set own = ('unlisted_puzzles.reason.' ~ code)|trans -%}
+    {%- set engine = ('data_import.reason.' ~ code)|trans -%}
+    {{- own != 'unlisted_puzzles.reason.' ~ code ? own : (engine != 'data_import.reason.' ~ code ? engine : 'unlisted_puzzles.reason.error'|trans) -}}
+{% endmacro %}
+
+{% block title %}{{ puzzle.name }} - {{ 'unlisted_puzzles.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: 'unlisted_puzzles.title'|trans, url: path('unlisted_puzzles')},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="unlisted-puzzle-page" data-unlisted-left="{{ puzzle.unlistedLeft }}" data-working="{{ working is not null ? working.state : '' }}">
+    <h1 class="h3 mb-1 text-break" data-testid="unlisted-puzzle-name">{{ puzzle.name }}</h1>
+    <p class="text-muted mb-2 text-break">
+        {%- set facts = [] -%}
+        {%- if puzzle.brandText is not null %}{% set facts = facts|merge([puzzle.brandText]) %}{% endif -%}
+        {%- if puzzle.piecesCount is not null %}{% set facts = facts|merge(['data_import.columns.row.pieces'|trans({'%number%': puzzle.piecesCount|format_number})]) %}{% endif -%}
+        {%- if puzzle.eans is not empty %}{% set facts = facts|merge(['unlisted_puzzles.detail.eans'|trans({'%codes%': puzzle.eans|join(', ')})]) %}{% endif -%}
+        {%- if puzzle.brandCodes is not empty %}{% set facts = facts|merge(['unlisted_puzzles.detail.brand_codes'|trans({'%codes%': puzzle.brandCodes|join(', ')})]) %}{% endif -%}
+        {{ facts|join(' · ') }}
+    </p>
+    <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-secondary" data-testid="unlisted-only-you">
+        <i class="bi bi-eye-slash flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ 'unlisted_puzzles.only_you'|trans }}</span>
+    </p>
+
+    {# --- A pairing or an Undo at work --- #}
+    {% if working is not null %}
+        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-working" data-state="{{ working.state }}">
+            <p class="fw-medium mb-1"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>{{ (working.state == 'undoing' ? 'unlisted_puzzles.pairing.undoing' : 'unlisted_puzzles.pairing.running')|trans }}</p>
+            <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.pairing.leave'|trans }}</p>
+            <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo="false">
+                <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'data_import.reading.refresh'|trans }}
+            </a>
+        </div>
+    {% endif %}
+
+    {# --- The catalogue puzzle it was paired with, and what came of it --- #}
+    {% if puzzle.pairedAt is not null %}
+        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-paired">
+            <h2 class="h6 mb-2">{{ 'unlisted_puzzles.paired.title'|trans }}</h2>
+            {% if paired is not null %}
+                <a href="{{ path('puzzle_detail', {puzzleId: paired.puzzleId}) }}" class="d-block text-reset text-decoration-none mb-2" data-testid="unlisted-paired-puzzle">
+                    {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: paired, file_pieces: puzzle.piecesCount}, with_context = false) }}
+                </a>
+            {% endif %}
+            {% if puzzle.unlistedLeft > 0 and working is null %}
+                <p class="fs-sm mb-2" data-testid="unlisted-left">{{ 'unlisted_puzzles.paired.left'|trans({'%number%': puzzle.unlistedLeft|format_number}) }}</p>
+                {% if paired is not null and can_pair %}
+                    <form action="{{ pair_url }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="request_id" value="{{ request_id }}">
+                        <input type="hidden" name="puzzle_id" value="{{ paired.puzzleId }}">
+                        <button type="submit" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="unlisted-pair-rest">
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.paired.try_again'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% for pairing in puzzle.pairings %}
+        {% if pairing.state == 'finished' or pairing.state == 'undone' %}
+            <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="unlisted-pairing" data-state="{{ pairing.state }}"
+                 data-results-added="{{ pairing.resultsAdded }}" data-results-already-yours="{{ pairing.resultsAlreadyYours }}" data-results-kept="{{ pairing.resultsKept }}" data-items-added="{{ pairing.itemsAdded }}">
+                <p class="fw-medium mb-1">{{ 'unlisted_puzzles.pairing.done'|trans({'%date%': pairing.finishedAt|format_date('long')}) }}</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="py-1"><i class="bi bi-check-circle text-success me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.results_added'|trans({'%number%': pairing.resultsAdded|format_number}) }}</li>
+                    {% if pairing.resultsAlreadyYours > 0 %}
+                        <li class="py-1"><i class="bi bi-person-check text-muted me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.results_already_yours'|trans({'%number%': pairing.resultsAlreadyYours|format_number}) }}</li>
+                    {% endif %}
+                    {% if pairing.resultsKept > 0 %}
+                        <li class="py-1"><i class="bi bi-eye text-warning me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.results_kept'|trans({'%number%': pairing.resultsKept|format_number}) }}</li>
+                    {% endif %}
+                    {% if pairing.itemsAdded > 0 %}
+                        <li class="py-1"><i class="bi bi-box-seam text-success me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.items_added'|trans({'%number%': pairing.itemsAdded|format_number}) }}</li>
+                    {% endif %}
+                </ul>
+                {% if pairing.state == 'undone' %}
+                    <p class="text-muted mt-2 mb-0" data-testid="unlisted-pairing-undone">
+                        {{ 'unlisted_puzzles.pairing.undone'|trans({'%date%': pairing.undoneAt|format_date('long')}) }}
+                        {% if pairing.resultsKeptByUndo > 0 %}{{ 'unlisted_puzzles.pairing.kept_by_undo'|trans({'%number%': pairing.resultsKeptByUndo|format_number}) }}{% endif %}
+                    </p>
+                {% elseif working is null and pairing.finishedAt >= undo_until %}
+                    <form action="{{ path('unlisted_pairing_undo', {unlistedPuzzleId: puzzle.id, pairingId: pairing.id}) }}" method="post" class="mt-2">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <p class="text-muted mb-2">{{ 'unlisted_puzzles.pairing.undo_hint'|trans }}</p>
+                        <button type="submit" class="btn btn-outline-danger w-100 text-wrap" style="min-height: 44px;" data-testid="unlisted-pairing-undo">
+                            <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.undo'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {# --- Its results --- #}
+    <div class="card card-body shadow-sm mb-3" data-testid="unlisted-results">
+        <h2 class="h6 mb-2">{{ 'unlisted_puzzles.detail.results'|trans }}</h2>
+        {% if puzzle.results is empty %}
+            <p class="fs-sm text-muted mb-0">{{ 'unlisted_puzzles.detail.no_results'|trans }}</p>
+        {% else %}
+            <ul class="list-unstyled mb-0">
+                {% for result in puzzle.results %}
+                    <li class="py-2 {{ loop.last ? '' : 'border-bottom' }}" data-testid="unlisted-result" data-unlisted="{{ result.unlisted ? 'true' : 'false' }}" data-kept-reason="{{ result.keptReason }}">
+                        <span class="d-flex justify-content-between align-items-baseline gap-2">
+                            <strong>{% if result.seconds is not null %}{{ result.seconds|puzzlingTime }}{% else %}{{ 'unlisted_puzzles.detail.no_time'|trans }}{% endif %}</strong>
+                            <span class="fs-sm text-muted text-end">{{ result.solvedOn ?? 'unlisted_puzzles.detail.no_date'|trans }}</span>
+                        </span>
+                        <span class="d-block fs-sm text-muted text-break">
+                            {%- set facts = [('data_import.add.type.' ~ result.type)|trans] -%}
+                            {%- if result.people is not empty %}{% set facts = facts|merge(['data_import.columns.row.with'|trans({'%people%': result.people|join(', ')})]) %}{% endif -%}
+                            {%- if result.firstAttempt %}{% set facts = facts|merge(['unlisted_puzzles.detail.first_try'|trans]) %}{% endif -%}
+                            {{ facts|join(' · ') }}
+                        </span>
+                        {% if result.comment is not null %}<span class="d-block fs-sm text-break">{{ result.comment }}</span>{% endif %}
+                        {% if not result.unlisted %}
+                            <span class="d-block fs-sm text-success" data-testid="unlisted-result-real"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.detail.real_result'|trans }}</span>
+                        {% endif %}
+                        {% if result.keptReason is not null %}
+                            <span class="d-flex gap-2 fs-sm mt-1" data-testid="unlisted-result-reason"><i class="bi bi-eye text-warning flex-shrink-0" aria-hidden="true"></i><span>{{ _self.reason(result.keptReason) }}</span></span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+    {# --- Owned / wished --- #}
+    {% if puzzle.marks is not empty %}
+        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-marks">
+            <h2 class="h6 mb-2">{{ 'unlisted_puzzles.detail.marks'|trans }}</h2>
+            <ul class="list-unstyled mb-0">
+                {% for mark in puzzle.marks %}
+                    <li class="py-1" data-testid="unlisted-mark" data-kind="{{ mark.kind }}" data-unlisted="{{ mark.unlisted ? 'true' : 'false' }}">
+                        <i class="bi {{ mark.kind == 'owned' ? 'bi-box-seam' : 'bi-heart' }} me-2" aria-hidden="true"></i>{{ ('unlisted_puzzles.mark.' ~ mark.kind)|trans }}
+                        {% if mark.collectionLabel is not null %}<span class="fs-sm text-muted text-break">· {{ mark.collectionLabel }}</span>{% endif %}
+                        {% if mark.comment is not null %}<span class="d-block fs-sm text-break ps-4">{{ mark.comment }}</span>{% endif %}
+                        {% if not mark.unlisted %}<span class="d-block fs-sm text-success ps-4"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ ('unlisted_puzzles.detail.real_' ~ mark.kind)|trans }}</span>{% endif %}
+                        {% if mark.keptReason is not null %}<span class="d-block fs-sm ps-4" data-testid="unlisted-mark-reason">{{ _self.reason(mark.keptReason) }}</span>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <p class="fs-sm text-muted" data-testid="unlisted-source">
+        {% if puzzle.fileName is not null and puzzle.importId is not null %}
+            {{ 'unlisted_puzzles.detail.from_file'|trans }} <a href="{{ path('data_import_detail', {importId: puzzle.importId}) }}" class="text-break d-inline-block py-1">{{ puzzle.fileName != '' ? puzzle.fileName : 'data_import.google.unnamed'|trans }}</a>
+            · {{ puzzle.createdAt|format_date('long') }}
+        {% else %}
+            {{ 'unlisted_puzzles.detail.from_import'|trans({'%date%': puzzle.createdAt|format_date('long')}) }}
+        {% endif %}
+    </p>
+
+    {# --- It is this catalogue puzzle --- #}
+    {% if can_choose %}
+        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-pair">
+            <h2 class="h5 mb-1">{{ 'unlisted_puzzles.pair.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.pair.hint'|trans }}</p>
+
+            {% if suggested is not null %}
+                <div class="p-2 rounded-2 bg-faded-primary mb-3" data-testid="unlisted-suggestion">
+                    <p class="fw-medium mb-2"><i class="bi bi-bookmark-check text-primary me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.suggested.title'|trans }}</p>
+                    {{ _self.pair_form(pair_url, csrf, request_id, suggested, puzzle.piecesCount, 'unlisted-suggestion-yes') }}
+                    <form action="{{ path('unlisted_puzzle_refuse_suggestion', {unlistedPuzzleId: puzzle.id}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <button type="submit" class="btn btn-link w-100 text-wrap" style="min-height: 44px;" data-testid="unlisted-suggestion-no">{{ 'unlisted_puzzles.suggested.not_this_one'|trans }}</button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {% if candidates is not empty %}
+                <h3 class="h6">{{ 'unlisted_puzzles.pair.candidates'|trans }}</h3>
+                <div data-testid="unlisted-candidates">
+                    {% for catalogue in candidates %}
+                        {{ _self.pair_form(pair_url, csrf, request_id, catalogue, puzzle.piecesCount, 'unlisted-candidate') }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {# The search: a POST - what the file wrote never stands in an address #}
+            <h3 class="h6 mt-2">{{ 'data_import.puzzles.chooser.search_title'|trans }}</h3>
+            <form action="{{ path('unlisted_puzzle_search', {unlistedPuzzleId: puzzle.id}) }}" method="post" role="search" class="mb-2">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <label for="unlisted-puzzle-search-input" class="form-label fs-sm text-muted mb-1">{{ 'data_import.puzzles.chooser.search_label'|trans }}</label>
+                <div class="d-flex gap-2">
+                    <input type="search" id="unlisted-puzzle-search-input" name="search" value="{{ typed }}" class="form-control" style="font-size: 16px; min-height: 44px;" maxlength="200" autocomplete="off" enterkeyhint="search" data-testid="unlisted-search-input">
+                    <button type="submit" class="btn btn-primary flex-shrink-0" style="min-height: 44px;" data-testid="unlisted-search-button">
+                        <i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">{{ 'data_import.puzzles.chooser.search_button'|trans }}</span>
+                    </button>
+                </div>
+            </form>
+            {% if searched %}
+                <div data-testid="unlisted-search-results">
+                    {% if search_too_short %}
+                        <p class="fs-sm text-muted mb-0">{{ 'data_import.puzzles.chooser.search_short'|trans }}</p>
+                    {% elseif found is empty %}
+                        <p class="fs-sm text-muted mb-0" data-testid="unlisted-search-empty">{{ 'data_import.puzzles.chooser.search_empty'|trans }}</p>
+                    {% endif %}
+                    {% for catalogue in found %}
+                        {{ _self.pair_form(pair_url, csrf, request_id, catalogue, puzzle.piecesCount, 'unlisted-search-result') }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {# --- Remove --- #}
+    {% if working is null %}
+        <details class="card card-body shadow-sm mb-3" data-testid="unlisted-remove">
+            <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
+                <i class="bi bi-trash me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.title'|trans }}
+            </summary>
+            <p class="fs-sm text-muted mt-2">{{ 'unlisted_puzzles.remove.hint'|trans }}</p>
+            <form action="{{ path('unlisted_puzzle_remove', {unlistedPuzzleId: puzzle.id}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <button type="submit" class="btn btn-outline-danger w-100 text-wrap" style="min-height: 44px;" data-testid="unlisted-remove-button">
+                    <i class="bi bi-trash me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.button'|trans }}
+                </button>
+            </form>
+        </details>
+    {% endif %}
+</div>
+{% endblock %}

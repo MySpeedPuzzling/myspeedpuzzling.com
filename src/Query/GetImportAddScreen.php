@@ -87,7 +87,9 @@ judged AS (
         flagged.has_result,
         flagged.equal_row,
         flagged.has_result = FALSE OR flagged.results_so_far <= guard.results_left AS taken,
-        flagged.has_result AND flagged.equal_row = FALSE AND flagged.known = FALSE AS new_result,
+        -- Kept as the player's own unlisted puzzle: the row makes nothing on the profile
+        flagged.choice = 'unlisted' AS unlisted_row,
+        flagged.choice <> 'unlisted' AND flagged.has_result AND flagged.equal_row = FALSE AND flagged.known = FALSE AS new_result,
         -- Several rows that own (or wish) the same puzzle make one item: the first of them in the file's order
         flagged.can_own AND SUM(CASE WHEN flagged.can_own THEN 1 ELSE 0 END) OVER by_puzzle = 1 AS new_owned,
         flagged.can_wish AND SUM(CASE WHEN flagged.can_wish THEN 1 ELSE 0 END) OVER by_puzzle = 1 AS new_wish
@@ -105,10 +107,10 @@ judged AS (
                     AND hinted.already_yours_how IS NOT NULL
                     AND (hinted.already_yours_how = 'earlier_import' OR result.puzzle_id = hinted.puzzle_id)
             ) AS known,
-            ready.has_owned AND ready.puzzle_id NOT IN (
+            ready.choice <> 'unlisted' AND ready.has_owned AND ready.puzzle_id NOT IN (
                 SELECT item.puzzle_id FROM collection_item item WHERE item.player_id = :playerId AND item.collection_id IS NULL
             ) AS can_own,
-            ready.is_wish
+            ready.choice <> 'unlisted' AND ready.is_wish
                 AND ready.puzzle_id NOT IN (SELECT wish.puzzle_id FROM wish_list_item wish WHERE wish.player_id = :playerId)
                 AND ready.puzzle_id NOT IN (SELECT item.puzzle_id FROM collection_item item WHERE item.player_id = :playerId)
                 AND ready.puzzle_id NOT IN (SELECT result.puzzle_id FROM puzzle_solving_time result WHERE result.player_id = :playerId)
@@ -154,7 +156,7 @@ SQL;
     SELECT jsonb_agg(first.id)
     FROM (
         SELECT judged.id FROM judged
-        WHERE judged.taken AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
+        WHERE judged.taken AND judged.unlisted_row = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
         ORDER BY judged.position, judged.row_number, judged.id LIMIT :known
     ) first
 ) AS known_ids
@@ -172,13 +174,14 @@ counts AS (
         COUNT(*) FILTER (WHERE judged.taken AND judged.new_wish) AS wish_list,
         -- What waits for tomorrow: the results over today's guard (and the puzzle of a row that is both)
         COUNT(*) FILTER (WHERE judged.taken = FALSE AND judged.new_result) + COUNT(*) FILTER (WHERE judged.taken = FALSE AND judged.new_owned) AS later,
-        COUNT(*) FILTER (WHERE judged.taken AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS already_yours,
+        COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS already_yours,
+        -- Rows kept with the player's unlisted puzzles - only they see them
+        COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row) AS unlisted,
         COUNT(*) FILTER (WHERE judged.taken AND judged.has_result AND judged.equal_row) AS equal_rows
     FROM judged
 ),
 waiting AS (
     SELECT
-        COUNT(*) FILTER (WHERE chosen.choice = 'unlisted') AS unlisted,
         COUNT(*) FILTER (WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day,
         COUNT(*) FILTER (WHERE chosen.choice = 'undecided') AS undecided
     FROM chosen
@@ -297,6 +300,7 @@ SQL, [
             'INNER JOIN ready ON ready.id = r.id',
             <<<SQL
 ready.has_result
+AND ready.choice = 'catalogue'
 AND ready.equal_row = FALSE
 AND COALESCE(CAST(r.parsed ->> 'seconds' AS INTEGER), 0) > 0
 AND r.answers -> 'addAnyway' ->> 'unusual_time' IS NULL
@@ -462,7 +466,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId, '
     /**
      * One "Add" of the player's import: what it took, how far it is, what came of it. One statement.
      *
-     * @return array{id: string, state: string, running: bool, paused: bool, endedByUndo: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, rows: int, queued: int, done: int, added: int, alreadyYours: int, notAdded: int, results: int, collectionItems: int, wishListItems: int, stillAdded: int, skipped: array<string, int>}
+     * @return array{id: string, state: string, running: bool, paused: bool, endedByUndo: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, rows: int, queued: int, done: int, added: int, alreadyYours: int, notAdded: int, results: int, collectionItems: int, wishListItems: int, stillAdded: int, unlisted: int, skipped: array<string, int>}
      *
      * @throws DataImportNotFound
      */
@@ -472,7 +476,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId, '
 
         $notAdded = self::NOT_ADDED;
 
-        /** @var false|array{id: string, state: string, paused: bool, ended_by_undo: bool, started_at: string, finished_at: null|string, undone_at: null|string, rows_requested: int, rows_added: int, rows_already_yours: int, rows_refused: int, rows_failed: int, results_added: int, collection_items_added: int, wish_list_items_added: int, skipped: string, queued: int, live_added: int, live_already_yours: int, live_not_added: int, live_results: int, live_collection_items: int, live_wish_list_items: int} $row */
+        /** @var false|array{id: string, state: string, paused: bool, ended_by_undo: bool, started_at: string, finished_at: null|string, undone_at: null|string, rows_requested: int, rows_added: int, rows_already_yours: int, rows_refused: int, rows_failed: int, results_added: int, collection_items_added: int, wish_list_items_added: int, skipped: string, queued: int, live_added: int, live_already_yours: int, live_not_added: int, live_results: int, live_collection_items: int, live_wish_list_items: int, live_unlisted: int} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     batch.id,
@@ -497,7 +501,9 @@ SELECT
     COUNT(r.id) FILTER (WHERE {$notAdded}) AS live_not_added,
     COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.result_made) AS live_results,
     COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS live_collection_items,
-    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS live_wish_list_items
+    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS live_wish_list_items,
+    -- Rows kept with the player's unlisted puzzles (only the row's own record is read - never the unlisted tables)
+    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.made -> 'unlisted' IS NOT NULL) AS live_unlisted
 FROM data_import_batch batch
 INNER JOIN data_import ON data_import.id = batch.import_id
 LEFT JOIN data_import_row r ON r.batch_id = batch.id
@@ -542,6 +548,8 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])-
             'wishListItems' => $running ? $row['live_wish_list_items'] : $row['wish_list_items_added'],
             // What an Undo of the batch can still take back
             'stillAdded' => $row['live_added'],
+            // Rows that are kept with the player's unlisted puzzles
+            'unlisted' => $row['live_unlisted'],
             'skipped' => $skipped,
         ];
     }

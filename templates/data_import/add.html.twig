@@ -52,6 +52,11 @@
                 <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-stopwatch me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.results'|trans }}</span><strong>{{ add.results|format_number }}</strong></li>
                 <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.owned'|trans }}</span><strong>{{ add.owned|format_number }}</strong></li>
                 <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-heart me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.wish_list'|trans }}</span><strong>{{ add.wishList|format_number }}</strong></li>
+                {% if add.unlisted > 0 %}
+                    {# Kept with the player's unlisted puzzles: nothing of them is public (docs/features/data-import/unlisted-puzzles.md) #}
+                    <li class="d-flex justify-content-between gap-2 py-1" data-testid="import-add-unlisted" data-rows="{{ add.unlisted }}"><span><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.kind'|trans }}</span><strong>{{ add.unlisted|format_number }}</strong></li>
+                    <li class="fs-sm text-muted ps-4 pb-1">{{ 'unlisted_puzzles.only_you'|trans }}</li>
+                {% endif %}
                 {% if add.alreadyYours > 0 %}
                     <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.already_yours'|trans }}</span><span>{{ add.alreadyYours|format_number }}</span></li>
                 {% endif %}

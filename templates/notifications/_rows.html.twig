@@ -144,6 +144,22 @@
                     </a>
                 {% endif %}
             </td>
+        {% elseif notification.isUnlistedPuzzlesNotification %}
+            {# The daily look found catalogue puzzles for the reader's unlisted puzzles - they confirm each themselves #}
+            <td class="text-center" style="width: 60px;">
+                <i class="bi bi-bookmark-check text-primary fs-3"></i>
+            </td>
+
+            <td class="align-middle fs-sm text-muted">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {{ 'unlisted_puzzles.notification.found'|trans }}
+            </td>
+
+            <td class="" style="width: 80px;">
+                <a href="{{ path('unlisted_puzzles') }}" class="btn btn-sm btn-outline-primary" aria-label="{{ 'unlisted_puzzles.link'|trans }}">
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </td>
         {% elseif notification.isGuestLinkNotification %}
             {# "This guest of mine is you" - asked, or agreed to #}
             {% set guest_link_asked = notification.notificationType.value == 'GuestLinkRequested' %}

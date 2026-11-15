@@ -57,6 +57,7 @@ final class SystemClockCoverageTest extends TestCase
         'MessageHandler/EvaluateGroupPredictionsHandler.php' => [['microtime('], self::DURATION],
         'MessageHandler/ProcessImportBatchHandler.php' => [['hrtime('], self::DURATION],
         'MessageHandler/ProcessImportUndoHandler.php' => [['hrtime('], self::DURATION],
+        'MessageHandler/ProcessUnlistedPairingHandler.php' => [['hrtime('], self::DURATION],
         'Services/DataImport/GoogleSheetFile.php' => [['hrtime('], self::DURATION],
         'Services/DataImport/ImportFileStorage.php' => [['hrtime('], self::DURATION],
         'Services/DataImport/ImportProgress.php' => [['hrtime('], self::DURATION],

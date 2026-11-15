@@ -3,6 +3,9 @@
 // Phones and tablets get it edge to edge like a native chat app; desktop keeps the card.
 
 body.conversation-page {
+    // The site's `min-height: 100vh` on body (app.scss + the critical CSS) must go: on iPhone 100vh is the screen
+    // with Safari's toolbars hidden, so the page stood taller than the visible part and the composer sat below it
+    min-height: 0;
     height: 100vh;
     height: 100dvh;
 

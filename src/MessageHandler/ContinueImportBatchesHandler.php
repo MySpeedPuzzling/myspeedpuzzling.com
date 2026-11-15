@@ -10,7 +10,10 @@ use SpeedPuzzling\Web\Message\ContinueImportBatches;
 use SpeedPuzzling\Web\Message\ProcessUnlistedPairing;
 use SpeedPuzzling\Web\Message\RecordImportGroupAnswer;
 use SpeedPuzzling\Web\Message\QueueImportTurn;
+use SpeedPuzzling\Web\Entity\DataImportPileAnswer;
+use SpeedPuzzling\Web\Message\RecordImportPuzzlePileAnswer;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
+use SpeedPuzzling\Web\Repository\DataImportPileAnswerRepository;
 use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
 use SpeedPuzzling\Web\Value\DataImportLimits;
@@ -35,6 +38,7 @@ readonly final class ContinueImportBatchesHandler
         private DataImportBatchRepository $batchRepository,
         private DataImportSettingsRepository $settingsRepository,
         private UnlistedPuzzleRepository $unlistedRepository,
+        private DataImportPileAnswerRepository $pileAnswerRepository,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -77,6 +81,15 @@ readonly final class ContinueImportBatchesHandler
         foreach ($answerIds as $answerId) {
             $this->messageBus->dispatch(new RecordImportGroupAnswer($answerId, failed: true));
             $this->logger->warning('An import\'s group answer stood still and was ended as failed', ['answer_id' => $answerId]);
+        }
+
+        // One answer for a whole pile of puzzles (docs/features/data-import/guided-flow.md §6.3) the same way: what it
+        // decided stays, the rest of the pile waits and can be answered again
+        $standing = $this->clock->now()->modify(sprintf('-%d seconds', self::GROUP_ANSWER_STANDING_AFTER_SECONDS));
+
+        foreach ($this->pileAnswerRepository->idsOpenStandingSince($standing, self::AT_MOST) as $pileAnswerId) {
+            $this->messageBus->dispatch(new RecordImportPuzzlePileAnswer($pileAnswerId, endedAs: DataImportPileAnswer::FAILED));
+            $this->logger->warning('An answer for a pile of an import\'s puzzles stood still and was ended', ['answer_id' => $pileAnswerId]);
         }
 
         return ['batches' => count($batchIds), 'undos' => count($undoIds), 'answers' => count($answerIds), 'pairings' => count($pairingIds)];

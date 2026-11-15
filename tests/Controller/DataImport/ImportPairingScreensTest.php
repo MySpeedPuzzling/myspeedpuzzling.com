@@ -76,25 +76,30 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('noindex', (string) $this->browser->getResponse()->getContent());
 
-        self::assertSame('Different puzzles in your file: 5', self::spaced($crawler->filter('[data-testid="import-puzzles-count"]')->text()));
+        self::assertSame('We matched 1 of your 5 puzzles.', self::spaced($crawler->filter('[data-testid="import-puzzles-count"]')->text()));
+        self::assertSame('4 puzzles wait for you. Do as many as you like.', self::spaced($crawler->filter('[data-testid="import-puzzles-waiting"]')->text()));
+        // The piles that wait - each with its count and what it costs; what is matched is a link, not a pile
         self::assertSame(
             [
-                ['found', '1', '0', 'Puzzles: 1 · Nothing waits for you'],
-                ['probably', '1', '1', 'Puzzles: 1 · Waiting for you: 1'],
-                ['choose', '1', '1', 'Puzzles: 1 · Waiting for you: 1'],
-                ['not-found', '2', '2', 'Puzzles: 2 · Waiting for you: 2'],
+                ['probably', '1', '1', '1', 'Confirm a screen at a time. About 1 minute.'],
+                ['choose', '1', '1', '1', 'One puzzle per screen, the ones with the most rows first.'],
+                ['not-found', '2', '2', '2', 'One answer for all of them.'],
             ],
             $crawler->filter('[data-testid="import-puzzle-group"]')->each(static fn (Crawler $group): array => [
                 $group->attr('data-group'),
                 $group->attr('data-total'),
                 $group->attr('data-open'),
-                self::spaced($group->filter('[data-testid="import-puzzle-group-counts"]')->text()),
+                self::spaced($group->filter('[data-testid="import-puzzle-group-open"]')->text()),
+                self::spaced($group->filter('[data-testid="import-puzzle-group-cost"]')->text()),
             ]),
         );
+        self::assertSame('Matched (1) - see them', self::spaced($crawler->filter('[data-testid="import-puzzles-matched-link"]')->text()));
+        self::assertSame('/en/import/' . $importId . '/puzzles/found', $crawler->filter('[data-testid="import-puzzles-matched-link"]')->attr('href'));
         // One clear next step: the first group that needs the player
         self::assertSame('probably', $crawler->filter('[data-testid="import-puzzles-next"]')->attr('data-next'));
         self::assertSame('/en/import/' . $importId . '/puzzles/probably', $crawler->filter('[data-testid="import-puzzles-next-button"]')->attr('href'));
-        self::assertSame('0', $crawler->filter('[data-testid="import-puzzles-to-fix"]')->attr('data-rows'));
+        // No row that could not be read: nothing is said about them (a zero is not printed)
+        self::assertCount(0, $crawler->filter('[data-testid="import-puzzles-to-fix"]'));
         // What is ready is added from its own review (docs/features/data-import/adding-screens.md): the card leads
         // there - nothing is added from this page, and nothing "arrives soon" any more
         // (this file's rows carry no day, so none is ready: the card says what waits and where it is settled)
@@ -178,14 +183,19 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('Wrong puzzle', self::spaced($card->filter('[data-testid="import-puzzle-untick"]')->text()));
         self::assertCount(1, $card->filter('img'));
 
-        // Probably: never ticked for the player - a button of its own, and "Tick all I see here"
+        // Looks like a match: the picture grid (ImportPuzzlesInBulkTest) - and, by its page, the list: nothing is
+        // decided for the player, each card has a button of its own
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/probably');
+        self::assertCount(1, $crawler->filter('[data-testid="import-puzzle-tile"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-puzzle-card"]'));
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Probably Meadow')['choice']);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/probably?page=1');
         $card = $crawler->filter('[data-testid="import-puzzle-card"]');
         self::assertSame('undecided', $card->attr('data-choice'));
         self::assertSame('Same name and pieces - the brand differs or is missing.', self::spaced($card->filter('[data-testid="catalogue-puzzle-why"]')->text()));
         self::assertSame('Yes, this is it', self::spaced($card->filter('[data-testid="import-puzzle-tick"]')->text()));
         self::assertCount(0, $crawler->filter('input[type="checkbox"]'));
-        self::assertSame('Yes, this one is right', self::spaced($crawler->filter('[data-testid="import-puzzle-tick-all-button"]')->text()));
+        self::assertCount(0, $crawler->filter('[data-testid="import-puzzle-tick-all-button"]'), 'the list has no button for several');
 
         // Choose: several candidates - the card leads to the chooser
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/choose');
@@ -271,7 +281,7 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('1', $crawler->filter('[data-group="found"]')->attr('data-open'));
     }
 
-    public function testTickAllSendsThePagesVersionsAndAStaleOneIsRefusedWithAMessage(): void
+    public function testTheGridSendsTheTickedTilesWithTheirVersionsAndAStaleOneIsRefusedWithAMessage(): void
     {
         $player = $this->regularPlayer();
         $brand = $this->seedBrand('Zq5btick');
@@ -289,20 +299,24 @@ final class ImportPairingScreensTest extends WebTestCase
 
         $page = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/probably');
         $token = $this->token($page);
-        // Every waiting card of the page, each with the version it showed and the puzzle it showed - nothing ticked
+        // Every tile of the screen, each with the version and the puzzle it showed - ticked on the screen, and
+        // nothing of it stored
         $cards = self::tickAllCards($page);
 
         self::assertCount(3, $cards);
         $apple = $this->importPuzzle($importId, 'Zq5b Tick Apple');
-        self::assertSame(['version' => '0', 'catalogue' => $puzzles['Zq5b Tick Apple']], $cards[$apple['id']]);
+        $cedar = $this->importPuzzle($importId, 'Zq5b Tick Cedar');
+        self::assertSame(['version' => '0', 'catalogue' => $puzzles['Zq5b Tick Apple'], 'tick' => '1'], $cards[$apple['id']]);
+        self::assertSame(['undecided', 'undecided', 'undecided'], $this->database->fetchFirstColumn('SELECT choice FROM data_import_puzzle WHERE import_id = :id ORDER BY name', ['id' => $importId]));
+        $form = ['_token' => $token, 'action' => 'tick_all', 'group' => 'probably', 'part' => 'same', 'last' => $cedar['id']];
 
         // One of them is decided meanwhile (another tab)
         $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'left_out', 'puzzle' => $apple['id'], 'version' => '0', 'group' => 'probably', 'page' => '1']);
         self::assertResponseRedirects();
 
-        // The stale page's "Tick all": refused whole, with a message - nothing is overwritten
-        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'tick_all', 'cards' => $cards, 'group' => 'probably', 'page' => '1']);
-        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/probably?page=1');
+        // The stale screen's "Yes, these are right": refused whole, with a message - nothing is overwritten
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', [...$form, 'cards' => $cards]);
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/probably?part=same');
         $crawler = $this->browser->followRedirect();
         self::assertStringContainsString('This was decided meanwhile', $crawler->filter('body')->text());
         self::assertSame(
@@ -310,20 +324,22 @@ final class ImportPairingScreensTest extends WebTestCase
             $this->database->fetchFirstColumn('SELECT choice FROM data_import_puzzle WHERE import_id = :id ORDER BY name', ['id' => $importId]),
         );
 
-        // The page as it stands now offers the two that still wait
-        self::assertSame('Yes, these 2 are right', self::spaced($crawler->filter('[data-testid="import-puzzle-tick-all-button"]')->text()));
+        // The screen as it stands now offers the two that still wait
         $cards = self::tickAllCards($crawler);
+        self::assertCount(2, $cards);
 
-        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'tick_all', 'cards' => $cards, 'group' => 'probably', 'page' => '1']);
-        self::assertResponseRedirects();
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', [...$form, 'cards' => $cards]);
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/probably?part=same&after=' . $cedar['id']);
         $crawler = $this->browser->followRedirect();
-        self::assertStringContainsString('Puzzles matched: 2', $crawler->filter('body')->text());
+        self::assertStringContainsString('2 matched.', $crawler->filter('body')->text());
         self::assertSame(
             [['left_out', null], ['catalogue', $puzzles['Zq5b Tick Birch']], ['catalogue', $puzzles['Zq5b Tick Cedar']]],
             array_map(array_values(...), $this->database->fetchAllAssociative('SELECT choice, puzzle_id FROM data_import_puzzle WHERE import_id = :id ORDER BY name', ['id' => $importId])),
         );
         self::assertCount(0, $crawler->filter('[data-testid="import-puzzle-tick-all"]'));
-        // A decided card says so and can be changed
+        self::assertCount(1, $crawler->filter('[data-testid="import-pile-nothing-left"]'));
+        // The pile's list: a decided card says so and can be changed
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/probably?page=1');
         self::assertCount(3, $crawler->filter('[data-testid="import-puzzle-change"]'));
     }
 
@@ -369,9 +385,9 @@ final class ImportPairingScreensTest extends WebTestCase
         // A tap chooses - and leads on to the next puzzle that waits
         $choice = ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $anchor['id'], 'version' => '0', 'catalogue' => $candidates['Zq5b Twin Anchor'][1], 'from' => 'chooser', 'group' => 'choose', 'flow' => 'choose', 'done' => '0'];
         $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', $choice);
-        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose/next?after=' . $anchor['id'] . '&done=1');
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose/next?after=' . $anchor['id'] . '&done=1&last=' . $anchor['id']);
         $this->browser->followRedirect();
-        self::assertResponseRedirects('/en/import/' . $importId . '/puzzle/' . $beacon['id'] . '?flow=choose&done=1');
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzle/' . $beacon['id'] . '?flow=choose&done=1&last=' . $anchor['id']);
         self::assertSame(['catalogue', $candidates['Zq5b Twin Anchor'][1], 'player'], [$this->importPuzzle($importId, 'Zq5b Twin Anchor')['choice'], $this->importPuzzle($importId, 'Zq5b Twin Anchor')['puzzle_id'], $this->importPuzzle($importId, 'Zq5b Twin Anchor')['decided_how']]);
 
         // The same tap from a page that is stale now: a clear message and the current state - never an overwrite
@@ -387,17 +403,17 @@ final class ImportPairingScreensTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzle/' . $beacon['id'] . '?flow=choose&done=1');
         self::assertStringContainsString('Only you see it', $crawler->filter('[data-testid="import-chooser-none"]')->text());
         $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'unlisted', 'puzzle' => $beacon['id'], 'version' => '0', 'from' => 'chooser', 'group' => 'choose', 'flow' => 'choose', 'done' => '1']);
-        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose/next?after=' . $beacon['id'] . '&done=2');
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose/next?after=' . $beacon['id'] . '&done=2&last=' . $beacon['id']);
         $this->browser->followRedirect();
         self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose');
         $crawler = $this->browser->followRedirect();
         self::assertStringContainsString('Nothing else waits for you in this group', $crawler->filter('body')->text());
         self::assertSame(['unlisted', null], [$this->importPuzzle($importId, 'Zq5b Twin Beacon')['choice'], $this->importPuzzle($importId, 'Zq5b Twin Beacon')['puzzle_id']]);
 
-        // After twenty in a row the round ends on the list, with how far the player is
+        // After twenty in a row the round rests on the pile's screen (ImportPuzzlesInBulkTest)
         $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/choose/next?done=20');
-        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose');
-        self::assertStringContainsString('Done in this round: 20 · Still waiting: 0', $this->browser->followRedirect()->filter('body')->text());
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose?done=20');
+        self::assertCount(1, $this->browser->followRedirect()->filter('[data-testid="import-pile-nothing-left"]'));
 
         // Taking a decision back in the chooser stays on the puzzle
         $beaconNow = $this->importPuzzle($importId, 'Zq5b Twin Beacon');
@@ -979,7 +995,8 @@ final class ImportPairingScreensTest extends WebTestCase
             $first = $this->importPuzzle($importId, sprintf('Zq5b Budget %s 01', $size));
             $budgets[$size] = $this->statements([
                 'summary' => '/en/import/' . $importId . '/puzzles',
-                'list' => '/en/import/' . $importId . '/puzzles/probably',
+                'list' => '/en/import/' . $importId . '/puzzles/probably?page=1',
+                'grid' => '/en/import/' . $importId . '/puzzles/probably',
                 'chooser' => '/en/import/' . $importId . '/puzzle/' . $first['id'],
             ]);
         }
@@ -988,10 +1005,11 @@ final class ImportPairingScreensTest extends WebTestCase
 
         // What each screen reads on top of what every signed-in page loads: the import, the overview, the live
         // line's progress and what is ready to be added (4 - docs/features/data-import/adding-screens.md "Ready to
-        // add"); the first three and a page of cards (4); the import, the puzzle and its rows (3)
+        // add"); the first three and a page of cards (4); the first three, the two parts' counts and a screen of
+        // tiles with their pictures (5); the import, the puzzle and its rows (3)
         $signedIn = $budgets['few']['summary'] - 4;
         self::assertLessThanOrEqual(8, $signedIn, 'what every signed-in page loads');
-        self::assertSame(['summary' => $signedIn + 4, 'list' => $signedIn + 4, 'chooser' => $signedIn + 3], $budgets['few']);
+        self::assertSame(['summary' => $signedIn + 4, 'list' => $signedIn + 4, 'grid' => $signedIn + 5, 'chooser' => $signedIn + 3], $budgets['few']);
     }
 
     public function testToFixAndTheRowSheetCostTheSameStatementsForALargerSheet(): void
@@ -1219,7 +1237,8 @@ final class ImportPairingScreensTest extends WebTestCase
     }
 
     /**
-     * What "Tick all I see here" of a page sends: import puzzle id => the version and the catalogue puzzle it showed.
+     * What "Yes, these are right" of a screen of the grid sends: import puzzle id => the version and the catalogue
+     * puzzle its tile showed - and its tick, for a box that is ticked.
      *
      * @return array<string, array<string, string>>
      */
@@ -1228,7 +1247,7 @@ final class ImportPairingScreensTest extends WebTestCase
         $cards = [];
 
         $page->filter('[data-testid="import-puzzle-tick-all"] input[name^="cards["]')->each(static function (Crawler $input) use (&$cards): void {
-            if (preg_match('/^cards\[([^\]]+)\]\[(version|catalogue)\]$/', (string) $input->attr('name'), $match) === 1) {
+            if (preg_match('/^cards\[([^\]]+)\]\[(version|catalogue|tick)\]$/', (string) $input->attr('name'), $match) === 1 && ($match[2] !== 'tick' || $input->attr('checked') !== null)) {
                 $cards[$match[1]][$match[2]] = (string) $input->attr('value');
             }
         });

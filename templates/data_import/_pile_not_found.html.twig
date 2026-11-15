@@ -1,0 +1,76 @@
+{#
+    "Not in our database" (docs/features/data-import/guided-flow.md §6.3): one answer for all of them. "Keep them
+    just for me" is selected on the screen - it makes nothing public and deletes nothing - and is applied on
+    Continue, never before. The form names the pile and the answer only: which puzzles they are is worked out by the
+    server (ImportPuzzlePile), for the import as this screen showed it (`revision`). While puzzles are still looked
+    up the button waits. Below, folded: the puzzles themselves, each with its search - for the few the player knows
+    are in the database under another name.
+
+    Variables (the screen's own): import, overview, open, total, live, cards, page, pages, csrf, group, group_title,
+    is_running, continue, back_to_summary.
+#}
+{% set still_looking = overview.searching > 0 or live.working %}
+<h1 class="h3 mb-2" data-testid="import-pile-title">
+    {{- open > 0 ? 'data_import.puzzles.bulk.not_found.title'|trans({'%count%': open, '%number%': open|format_number}) : group_title -}}
+</h1>
+{{ include('data_import/_explain.html.twig', {text: 'data_import.explain.not_in_database'|trans, testid: 'import-explain-not-in-database'}, with_context = false) }}
+
+<turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
+    {% if is_running %}
+        {{ include('data_import/_pile_working.html.twig', {open: open}, with_context = false) }}
+    {% elseif open > 0 %}
+        <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" class="mb-3" data-testid="import-pile-answer" data-pile="not-found" data-open="{{ open }}">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="pile" value="not-found">
+            <input type="hidden" name="revision" value="{{ live.revision }}">
+            <fieldset class="mb-3">
+                <legend class="h6">{{ 'data_import.puzzles.bulk.not_found.question'|trans }}</legend>
+                <label class="card card-body shadow-sm mb-2 d-flex flex-row align-items-start gap-3" style="cursor: pointer; min-height: 44px;">
+                    <input type="radio" class="form-check-input flex-shrink-0 mt-1" name="choice" value="unlisted" checked data-testid="import-pile-keep">
+                    <span>
+                        <span class="d-block fw-semibold">{{ 'data_import.puzzles.bulk.not_found.keep'|trans }}</span>
+                        <span class="d-block fs-sm text-muted">{{ 'data_import.puzzles.bulk.not_found.keep_text'|trans }}</span>
+                    </span>
+                </label>
+                <label class="card card-body shadow-sm mb-0 d-flex flex-row align-items-start gap-3" style="cursor: pointer; min-height: 44px;">
+                    <input type="radio" class="form-check-input flex-shrink-0 mt-1" name="choice" value="left_out" data-testid="import-pile-leave">
+                    <span>
+                        <span class="d-block fw-semibold">{{ 'data_import.puzzles.bulk.not_found.leave'|trans }}</span>
+                        <span class="d-block fs-sm text-muted">{{ 'data_import.puzzles.bulk.not_found.leave_text'|trans }}</span>
+                    </span>
+                </label>
+            </fieldset>
+            <button type="submit" name="action" value="all_in_pile" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-testid="import-pile-continue"{% if still_looking %} disabled{% endif %}>
+                {%- if still_looking -%}
+                    {{ overview.searching > 0 ? 'data_import.flow.puzzles.searching'|trans({'%count%': overview.searching, '%number%': overview.searching|format_number}) : 'data_import.flow.puzzles.working'|trans }}
+                {%- else -%}
+                    {{ 'data_import.flow.continue'|trans }}<i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
+                {%- endif -%}
+            </button>
+        </form>
+    {% else %}
+        <p class="alert alert-success fs-sm" data-testid="import-pile-nothing-left"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.nothing_left'|trans }}</p>
+    {% endif %}
+
+    {% if total > 0 %}
+        <details class="mb-2" data-testid="import-pile-see">
+            <summary class="d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
+                <i class="bi bi-chevron-right me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.not_found.see'|trans({'%count%': total, '%number%': total|format_number}) }}
+            </summary>
+            <div class="mt-2">{{ include('data_import/_pile_list.html.twig') }}</div>
+        </details>
+        <details class="mb-2 fs-sm" data-testid="import-pile-not-kept">
+            <summary class="d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
+                <i class="bi bi-chevron-right me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.not_found.not_kept_title'|trans }}
+            </summary>
+            <p class="text-muted mb-0">{{ 'data_import.puzzles.bulk.not_found.not_kept'|trans }}</p>
+        </details>
+    {% endif %}
+</turbo-frame>
+
+{% if is_running or open > 0 %}
+    {# The form's own Continue is the primary; while puzzles are still looked up, what is ready can be added #}
+    {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, back: back_to_summary}, with_context = false) }}
+{% else %}
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
+{% endif %}

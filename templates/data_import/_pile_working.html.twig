@@ -1,0 +1,17 @@
+{#
+    One answer for a whole pile is being saved on the worker (ImportPuzzlePile): how many puzzles are left, and that
+    the page need not be watched. data_import_pile_controller.js loads the part again every few seconds while this
+    line is in it. Numbers only.
+
+    Variables: open (puzzles of the pile that still wait).
+#}
+<div class="card card-body shadow-sm mb-3 py-2" data-testid="import-pile-working" data-import-pile-running>
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true"></div>
+        <span class="fs-sm fw-medium" role="status">{{ 'data_import.puzzles.bulk.working'|trans({'%number%': open|format_number}) }}</span>
+    </div>
+    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.bulk.working_leave'|trans }}</p>
+    <noscript>
+        <a href="{{ app.request.pathInfo }}" class="btn btn-outline-primary btn-sm mt-2 d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
+    </noscript>
+</div>

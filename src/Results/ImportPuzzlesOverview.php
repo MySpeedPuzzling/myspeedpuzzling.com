@@ -25,6 +25,14 @@ readonly final class ImportPuzzlesOverview
         /** Rows whose result is on the player's profile already, or was added by an earlier import */
         public int $rowsAlreadyYours,
         public int $rowsNeedLook,
+        /** Decided to be a puzzle of the database - by the rules or by the player */
+        public int $matched = 0,
+        /**
+         * The piles one answer for all still runs for (DataImportPileAnswer) - keys of GetImportPuzzleScreen::PILES
+         *
+         * @var list<string>
+         */
+        public array $pilesBeingAnswered = [],
     ) {
     }
 

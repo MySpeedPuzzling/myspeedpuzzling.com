@@ -33,6 +33,11 @@ readonly final class ImportCataloguePuzzle
          * one's - shown as prominently as another piece count (no extra question: brands are often written loosely)
          */
         public bool $brandDiffers = false,
+        /**
+         * The player once said this puzzle of the file is NOT this one ("Wrong puzzle" - a remembered "not this
+         * puzzle"): shown last among what it could be, and marked - never confirmed with others
+         */
+        public bool $rejected = false,
     ) {
     }
 }

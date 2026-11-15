@@ -13,7 +13,11 @@ use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleDecisionChange;
  * (ImportPuzzleChoiceRefused) refuses the whole message before anything is written. Each decision is remembered for
  * the player's next file (import_puzzle_decision).
  *
- * The message and its handler only: the screens that send it are the next stage's.
+ * `$bulkConfirm` - "Yes, these N are right" of the picture grid (docs/features/data-import/guided-flow.md §6.1): every
+ * decision is then a catalogue puzzle, and each must be one that may be confirmed several at once
+ * (ImportPuzzleBulkConfirm - the same name with the file's piece count, the barcode or the brand's own code, and
+ * neither the brand nor the piece count differs). A message with more than one catalogue decision is held to the
+ * same rule whether it says so or not: a wrong match is a result on the wrong puzzle's public leaderboard.
  */
 readonly final class DecideImportPuzzles
 {
@@ -24,6 +28,7 @@ readonly final class DecideImportPuzzles
         public string $importId,
         public string $playerId,
         public array $decisions,
+        public bool $bulkConfirm = false,
     ) {
     }
 }

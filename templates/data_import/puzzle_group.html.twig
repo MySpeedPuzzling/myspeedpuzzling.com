@@ -1,16 +1,26 @@
 {% extends 'base.html.twig' %}
 
 {#
-    One group of an import's puzzles as a list (docs/features/data-import/pairing-screens.md "The lists"): fifty
-    cards a page (_puzzle_card.html.twig). "Probably" has "Tick all I see here" - one message with every waiting
-    card of this page and the version each showed, never pre-ticked; "Choose" and "Not found" lead into the
-    one-puzzle-per-screen chooser ("Do the next 20"). The page number is the only thing in the address.
+    One pile of an import's puzzles (docs/features/data-import/guided-flow.md §6, ImportPuzzleGroupController):
+
+    - "Looks like a match": the picture grid (_pile_probably.html.twig, _puzzle_tile.html.twig) - a screen of twenty,
+      the boxes ticked on the screen, ONE message for the tiles still ticked; then the cards to look at closer;
+    - "Pick the right one": where a round of one-puzzle-per-screen starts and rests (_pile_choose.html.twig);
+    - "Not in our database": one answer for all of them (_pile_not_found.html.twig);
+    - "Matched", "Matched like last time" and every pile opened by its page: the list, fifty cards a page
+      (_pile_list.html.twig).
+
+    One primary a screen. The address holds ids and numbers only; nothing of the file is in it.
 #}
 
 {% set hide_comparison_launcher = true %}
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 {% set group_title = ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.title')|trans %}
+{% set summary_url = path('data_import_puzzles', {importId: import.importId}) %}
+{% set pile_url = path('data_import_puzzle_group', {importId: import.importId, group: group}) %}
+{% set back_to_summary = {label: 'data_import.puzzles.back_to_summary'|trans, url: summary_url} %}
+{% set continue = {label: 'data_import.flow.continue'|trans, url: summary_url, testid: 'import-flow-continue'} %}
 
 {% block title %}{{ group_title }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -18,62 +28,41 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-import-flow-screen="puzzle_group" data-group="{{ group }}">
-    <h1 class="h3 mb-2">{{ group_title }}</h1>
-    <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
-
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-import-flow-screen="puzzle_group" data-group="{{ group }}" data-mode="{{ as_list ? 'list' : 'pile' }}">
     {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
 
-    <turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
-        <p class="fs-sm fw-medium" data-testid="import-puzzle-group-counts">
-            {{ (open > 0 ? 'data_import.puzzles.group_counts' : 'data_import.puzzles.group_all_done')|trans({'%total%': total|format_number, '%open%': open|format_number}) }}
-        </p>
+    {% if is_running %}
+        {# An answer for the whole pile runs on the worker: the part below is loaded again every few seconds #}
+        <div hidden data-controller="data-import-pile" data-data-import-pile-frame-value="import-puzzle-list-live"></div>
+    {% endif %}
 
-        {% if cards is empty %}
-            <p class="alert alert-info fs-sm" data-testid="import-puzzle-group-empty">{{ 'data_import.puzzles.list.empty'|trans }}</p>
+    {% if as_list %}
+        <h1 class="h3 mb-2">{{ group_title }}</h1>
+        {% if group == 'found' %}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.matched'|trans, testid: 'import-explain-matched'}, with_context = false) }}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.wrong_puzzle'|trans, fold: true, summary: 'data_import.explain.wrong_puzzle_summary'|trans, testid: 'import-explain-wrong-puzzle'}, with_context = false) }}
         {% else %}
-            {% if group in ['choose', 'not-found'] and open > 0 %}
-                <div class="card card-body shadow-sm mb-3">
-                    <a href="{{ path('data_import_puzzle_next', {importId: import.importId, group: group}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" rel="nofollow" data-testid="import-puzzle-next-20">
-                        <i class="bi bi-play-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.next_20'|trans }}
-                    </a>
-                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.list.one_by_one_hint'|trans }}</p>
-                </div>
-            {% endif %}
-
-            {% set tickable = group == 'probably' ? cards|filter(card => card.canBeTickedInAGroup) : [] %}
-
-            {% for card in cards %}
-                {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: group, page: page, csrf: csrf}, with_context = false) }}
-            {% endfor %}
-
-            {% if tickable|length > 0 %}
-                {# After the cards: the player has seen what they tick. Nothing is ticked for them #}
-                <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" class="card card-body shadow-sm mt-3" data-testid="import-puzzle-tick-all">
-                    <input type="hidden" name="_token" value="{{ csrf }}">
-                    <input type="hidden" name="group" value="{{ group }}">
-                    <input type="hidden" name="page" value="{{ page }}">
-                    {% for card in tickable %}
-                        <input type="hidden" name="cards[{{ card.importPuzzleId }}][version]" value="{{ card.decisionVersion }}">
-                        <input type="hidden" name="cards[{{ card.importPuzzleId }}][catalogue]" value="{{ card.shown.puzzleId }}">
-                    {% endfor %}
-                    <button type="submit" name="action" value="tick_all" class="btn btn-primary w-100 text-wrap" style="min-height: 48px;" data-testid="import-puzzle-tick-all-button">
-                        <i class="bi bi-check-all me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.tick_all'|trans({'%count%': tickable|length, '%number%': tickable|length}) }}
-                    </button>
-                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.list.tick_all_hint'|trans }}</p>
-                </form>
-            {% endif %}
-
-            {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_puzzle_group', parameters: {importId: import.importId, group: group}, label: group_title}, with_context = false) }}
+            <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
         {% endif %}
-    </turbo-frame>
 
-    {# The pile's own primary is "Yes, these N are right" or "Do the next 20"; a pile with nothing to press leads on #}
-    {% set has_own_primary = cards is not empty and ((group in ['choose', 'not-found'] and open > 0) or tickable|default([])|length > 0) %}
-    {{ include('data_import/_flow_footer.html.twig', {
-        import: import,
-        primary: has_own_primary ? null : {label: 'data_import.flow.continue'|trans, url: path('data_import_puzzles', {importId: import.importId}), testid: 'import-flow-continue'},
-        back: has_own_primary ? {label: 'data_import.puzzles.back_to_summary'|trans, url: path('data_import_puzzles', {importId: import.importId})} : null,
-    }, with_context = false) }}
+        <turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
+            <p class="fs-sm fw-medium" data-testid="import-puzzle-group-counts">
+                {{ (open > 0 ? 'data_import.puzzles.group_counts' : 'data_import.puzzles.group_all_done')|trans({'%total%': total|format_number, '%open%': open|format_number}) }}
+            </p>
+            {{ include('data_import/_pile_list.html.twig') }}
+        </turbo-frame>
+
+        {% if group in ['found', 'remembered'] %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
+        {% else %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, back: {label: group_title, url: pile_url}}, with_context = false) }}
+        {% endif %}
+    {% elseif group == 'probably' %}
+        {{ include('data_import/_pile_probably.html.twig') }}
+    {% elseif group == 'choose' %}
+        {{ include('data_import/_pile_choose.html.twig') }}
+    {% else %}
+        {{ include('data_import/_pile_not_found.html.twig') }}
+    {% endif %}
 </div>
 {% endblock %}

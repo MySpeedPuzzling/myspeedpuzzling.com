@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProcessImportBatch;
+use SpeedPuzzling\Web\Message\AnswerImportPuzzlePile;
 use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
 use SpeedPuzzling\Web\Message\ProcessImportUndo;
 use SpeedPuzzling\Web\Message\ProcessUnlistedPairing;
@@ -174,6 +175,9 @@ return App::config([
                 // One answer for a whole group of an import's rows (docs/features/data-import/group-answers.md):
                 // chunks that queue themselves again; a small group is handled at once (TransportNamesStamp `sync`)
                 ProcessImportGroupAnswer::class => 'imports',
+                // One answer for a whole pile of an import's puzzles too large for a request ("Keep them just for me",
+                // docs/features/data-import/guided-flow.md §6.3): a chunk a turn, the job sending itself again
+                AnswerImportPuzzlePile::class => 'imports',
                 // A pairing of an unlisted puzzle with a catalogue puzzle, and its Undo - the same worker, in turns
                 ProcessUnlistedPairing::class => 'imports',
                 // "Your import is done" - never in the worker's turn

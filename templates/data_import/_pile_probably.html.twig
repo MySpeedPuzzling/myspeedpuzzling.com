@@ -1,0 +1,115 @@
+{#
+    "Looks like a match" (docs/features/data-import/guided-flow.md §6.1), in two parts by WHY a puzzle is only
+    "probably" (GetImportPuzzleScreen::partPage(), ImportPuzzleBulkConfirm):
+
+    - `same` - the same puzzle, less proof (the same name and piece count and the file names no brand; the same
+      barcode; the brand's own code): the picture grid, twenty tiles a screen, each box ticked on the screen. The
+      sticky bar's "Yes, these N are right" sends ONE message with the tiles still ticked and the version each
+      showed; "Not sure - show me the next" saves nothing. The form stands outside the live frame: a tile the player
+      unticked is never loaded again under their finger;
+    - `differs` - everything else of the pile (another brand, a name without its brackets, a short name, a result
+      that looks like one of the player's): cards, each confirmed ON ITS OWN - there is no button for several.
+
+    A puzzle with another piece count is in neither part's grid: the server refuses it in a set.
+
+    Variables (the screen's own): import, part, after, counts, tiles, tiles_per_screen, total, csrf, group,
+    group_title, summary_url, pile_url, continue, back_to_summary.
+#}
+{% set is_same = part == 'same' %}
+{% set waiting = counts[part] %}
+{% set before = is_same ? counts.sameBefore : counts.differsBefore %}
+{% set last = tiles is empty ? null : (tiles|last).importPuzzleId %}
+{% set more = before + tiles|length < waiting %}
+{% set here = {importId: import.importId, group: 'probably', part: part} %}
+
+<h1 class="h3 mb-1">{{ group_title }}</h1>
+{% if tiles is not empty %}
+    <p class="fs-sm fw-medium mb-2" data-testid="import-grid-position" data-part="{{ part }}" data-waiting="{{ waiting }}">
+        {{- 'data_import.puzzles.bulk.grid.position'|trans({'%from%': (before + 1)|format_number, '%to%': (before + tiles|length)|format_number, '%total%': waiting|format_number}) -}}
+    </p>
+{% endif %}
+{{ include('data_import/_explain.html.twig', {text: 'data_import.explain.looks_like_a_match'|trans, testid: 'import-explain-looks-like'}, with_context = false) }}
+
+{% if tiles is empty %}
+    {# The end of this part: what was left for later still waits - and what needs a closer look comes next #}
+    <div data-testid="import-grid-end" data-part="{{ part }}" data-waiting="{{ waiting }}">
+        {% if waiting > 0 %}
+            <p class="alert alert-info fs-sm mb-2" data-testid="import-grid-left-for-later">
+                {{ 'data_import.puzzles.bulk.grid.left_for_later'|trans({'%count%': waiting, '%number%': waiting|format_number}) }}
+                <a href="{{ path('data_import_puzzle_group', here) }}" class="alert-link d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow" data-testid="import-grid-again">{{ 'data_import.puzzles.bulk.grid.again'|trans }}</a>
+            </p>
+        {% else %}
+            <p class="alert alert-success fs-sm mb-2" data-testid="import-pile-nothing-left"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.nothing_left'|trans }}</p>
+        {% endif %}
+    </div>
+
+    {% if is_same and counts.differs > 0 %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, back: back_to_summary, primary: {
+            label: 'data_import.puzzles.bulk.grid.closer_button'|trans({'%count%': counts.differs, '%number%': counts.differs|format_number}),
+            url: path('data_import_puzzle_group', {importId: import.importId, group: 'probably', part: 'differs'}),
+            nofollow: true, testid: 'import-grid-closer',
+        }}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
+    {% endif %}
+{% elseif is_same %}
+    <p class="fs-sm text-muted">{{ 'data_import.puzzles.bulk.grid.intro'|trans }}</p>
+
+    {# What the button says for each number of ticked boxes - worked out here, so a script needs no plural rules #}
+    {% set labels = ['data_import.puzzles.bulk.grid.none_ticked'|trans] %}
+    {% for number in 1..tiles|length %}
+        {% set labels = labels|merge(['data_import.puzzles.list.tick_all'|trans({'%count%': number, '%number%': number|format_number})]) %}
+    {% endfor %}
+
+    <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" data-testid="import-puzzle-tick-all"
+          data-controller="data-import-ticks" data-data-import-ticks-labels-value="{{ labels|json_encode }}">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <input type="hidden" name="group" value="probably">
+        <input type="hidden" name="part" value="same">
+        {% if after is not null %}<input type="hidden" name="after" value="{{ after }}">{% endif %}
+        <input type="hidden" name="last" value="{{ last }}">
+
+        <div class="row row-cols-2 row-cols-sm-3 g-2" data-testid="import-puzzle-grid">
+            {% for card in tiles %}
+                {{ include('data_import/_puzzle_tile.html.twig', {card: card, import_id: import.importId}, with_context = false) }}
+            {% endfor %}
+        </div>
+
+        <div class="position-sticky bottom-0 bg-body border-top pt-2 pb-1 mt-3" style="z-index: 5;" data-testid="import-grid-bar">
+            <button type="submit" name="action" value="tick_all" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-data-import-ticks-target="button" data-testid="import-puzzle-tick-all-button">
+                <i class="bi bi-check-all me-1" aria-hidden="true"></i><span data-data-import-ticks-target="label">{{ 'data_import.puzzles.bulk.grid.confirm_plain'|trans }}</span>
+            </button>
+            <a href="{{ path('data_import_puzzle_group', here|merge({after: last})) }}" class="d-flex align-items-center justify-content-center" style="min-height: 44px;" rel="nofollow" data-testid="import-grid-next">
+                {{ more ? 'data_import.puzzles.bulk.grid.next'|trans({'%number%': min(tiles_per_screen, waiting - before - tiles|length)|format_number}) : 'data_import.puzzles.bulk.grid.later'|trans }}
+            </a>
+        </div>
+    </form>
+
+    {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, back: back_to_summary}, with_context = false) }}
+{% else %}
+    <h2 class="h6 mb-1" data-testid="import-grid-closer-title">{{ 'data_import.puzzles.bulk.grid.closer_title'|trans }}</h2>
+    <p class="fs-sm text-muted mb-1">{{ 'data_import.puzzles.bulk.grid.closer_intro'|trans }}</p>
+    {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.another_brand_or_pieces'|trans, fold: true, summary: 'data_import.explain.another_brand_summary'|trans, testid: 'import-explain-another-brand'}, with_context = false) }}
+
+    <div data-testid="import-puzzle-closer">
+        {% for card in tiles %}
+            {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: 'probably', page: 1, csrf: csrf, part: 'differs', after: after}, with_context = false) }}
+        {% endfor %}
+    </div>
+
+    {% if more %}
+        <a href="{{ path('data_import_puzzle_group', here|merge({after: last})) }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center mt-2" style="min-height: 44px;" rel="nofollow" data-testid="import-grid-next">
+            {{ 'data_import.puzzles.bulk.grid.next'|trans({'%number%': min(tiles_per_screen, waiting - before - tiles|length)|format_number}) }}
+        </a>
+    {% endif %}
+
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, offer_add: true}, with_context = false) }}
+{% endif %}
+
+{% if total > 0 %}
+    <p class="fs-sm mt-2 mb-0">
+        <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: 'probably', page: 1}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-pile-see">
+            <i class="bi bi-chevron-right me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.see_all'|trans({'%number%': total|format_number}) }}
+        </a>
+    </p>
+{% endif %}

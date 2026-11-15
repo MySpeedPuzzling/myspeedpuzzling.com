@@ -1,0 +1,48 @@
+{#
+    One tile of the picture grid of "Looks like a match" (docs/features/data-import/guided-flow.md §6.1): the
+    database's picture, name, brand and pieces - and under them, muted, what the file says. The whole tile is the
+    label of its box. The box is ticked ON THE SCREEN - nothing is stored for it until the player taps "Yes, these
+    are right", and an unticked tile is simply not sent. Only a puzzle that may be confirmed with others is ever a
+    tile (ImportPuzzleBulkConfirm): the grid's statement holds nothing else, and the server checks each again.
+
+    What the file says is the player's own text: escaped, never in an address.
+
+    Variables: card (ImportPuzzleCard), import_id.
+#}
+{% set shown = card.shown %}
+{% set alt = 'puzzle_img_alt'|trans({'%puzzle%': (shown.brandName ?? '') ~ ' ' ~ shown.name}) %}
+{% set box = 'import-tile-' ~ card.importPuzzleId %}
+<div class="col" data-testid="import-puzzle-tile" data-import-puzzle-id="{{ card.importPuzzleId }}" data-puzzle-id="{{ shown.puzzleId }}" data-how="{{ shown.how }}" data-version="{{ card.decisionVersion }}">
+    <div class="card h-100 shadow-sm">
+        <input type="hidden" name="cards[{{ card.importPuzzleId }}][version]" value="{{ card.decisionVersion }}">
+        <input type="hidden" name="cards[{{ card.importPuzzleId }}][catalogue]" value="{{ shown.puzzleId }}">
+        <label for="{{ box }}" class="d-block p-2 mb-0 flex-grow-1" style="cursor: pointer; min-height: 44px;">
+            <span class="d-block mb-1">
+                <input type="checkbox" id="{{ box }}" class="form-check-input m-0" style="width: 1.5rem; height: 1.5rem;" name="cards[{{ card.importPuzzleId }}][tick]" value="1" checked
+                       data-data-import-ticks-target="box" data-action="data-import-ticks#count" data-testid="import-puzzle-tile-tick">
+            </span>
+            {% if shown.image is not null %}
+                <img src="{{ shown.image|puzzle_image('puzzle_small') }}" alt="{{ alt }}" loading="lazy" class="rounded-2 w-100 d-block" style="aspect-ratio: 1 / 1; object-fit: contain;">
+            {% else %}
+                {# No picture: the name, large on grey #}
+                <span class="d-flex align-items-center justify-content-center rounded-2 bg-secondary-subtle text-center fw-semibold text-break p-2" style="aspect-ratio: 1 / 1;" data-testid="import-puzzle-tile-no-picture">{{ shown.name }}</span>
+            {% endif %}
+            <span class="d-block fw-medium text-break mt-2" data-testid="import-puzzle-tile-name">{{ shown.name }}</span>
+            {{ include('puzzle/_name.html.twig', {name: shown.name, alternative_names: shown.alternativeNames, class: 'd-block fs-sm text-break'}, with_context = false) }}
+            <span class="d-block fs-sm text-muted text-break">
+                {%- if shown.brandName is not null %}{{ shown.brandName }} · {% endif -%}
+                {{ 'data_import.columns.row.pieces'|trans({'%number%': shown.piecesCount|format_number}) }}
+            </span>
+            <span class="d-block fs-sm text-muted text-break mt-1" data-testid="import-puzzle-tile-file">
+                {{- 'data_import.puzzles.bulk.grid.file'|trans({'%name%': card.name}) -}}
+                {%- if card.brandText is not null and card.brandText != '' %} · {{ card.brandText }}{% endif -%}
+                {%- if card.piecesCount is not null %} · {{ 'data_import.columns.row.pieces'|trans({'%number%': card.piecesCount|format_number}) }}{% endif -%}
+            </span>
+            {% set why = ('data_import.puzzles.why.' ~ shown.how)|trans %}
+            <span class="d-block fs-xs text-muted mt-1" data-testid="import-puzzle-tile-why">{{ why == 'data_import.puzzles.why.' ~ shown.how ? '' : why }}</span>
+        </label>
+        <a href="{{ path('data_import_puzzle_choose', {importId: import_id, importPuzzleId: card.importPuzzleId}) }}" class="fs-sm px-2 d-flex align-items-center" style="min-height: 44px;" data-testid="import-puzzle-tile-else">
+            {{ 'data_import.puzzles.card.something_else'|trans }}
+        </a>
+    </div>
+</div>

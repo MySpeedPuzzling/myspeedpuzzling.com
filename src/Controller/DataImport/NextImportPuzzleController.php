@@ -17,10 +17,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Do the next 20" (docs/features/data-import/pairing-screens.md "In portions"): leads to the next puzzle of a
- * group that still waits for the player - after the one just decided or skipped, else the first - one puzzle per
- * screen. After twenty decided in a row, and when nothing waits any more, it goes back to the group's list and says
- * how far the player is. A GET that changes nothing; the address carries ids and a number only.
+ * "Do the next 20" (docs/features/data-import/pairing-screens.md "In portions", guided-flow.md §6.2): leads to the
+ * next puzzle of a pile that still waits for the player - after the one just decided or left for later, else the
+ * first, **the puzzles with the most rows first** - one puzzle per screen. After twenty decided in a row it rests on
+ * the pile's screen ("20 done - carry on or stop here", `done`); when nothing waits any more it goes there too.
+ * `last` is the puzzle decided just before - the chooser offers to undo it. A GET that changes nothing; the address
+ * carries ids and a number only.
  */
 final class NextImportPuzzleController extends AbstractController
 {
@@ -54,11 +56,12 @@ final class NextImportPuzzleController extends AbstractController
         $done = max(0, $request->query->getInt('done'));
         $list = $this->redirectToRoute('data_import_puzzle_group', ['importId' => $importId, 'group' => $group]);
 
-        if ($done >= self::PORTION) {
-            $open = $this->getImportPuzzleScreen->overview($importId, $player->playerId)->groups[$group]['open'];
-            $this->addFlash('success', $this->translator->trans('data_import.puzzles.flash.portion_done', ['%done%' => $done, '%open%' => $open]));
+        $last = $request->query->getString('last');
+        $last = Uuid::isValid($last) ? strtolower($last) : null;
 
-            return $list;
+        if ($done >= self::PORTION) {
+            // The rest screen: how many are done, how many are left - carry on, add what is ready, or stop
+            return $this->redirectToRoute('data_import_puzzle_group', ['importId' => $importId, 'group' => $group, 'done' => self::PORTION]);
         }
 
         $next = $this->getImportPuzzleScreen->nextUndecided($importId, $player->playerId, $group, $after);
@@ -75,6 +78,9 @@ final class NextImportPuzzleController extends AbstractController
             return $list;
         }
 
-        return $this->redirectToRoute('data_import_puzzle_choose', ['importId' => $importId, 'importPuzzleId' => $next, 'flow' => $group, 'done' => $done]);
+        return $this->redirectToRoute('data_import_puzzle_choose', array_filter(
+            ['importId' => $importId, 'importPuzzleId' => $next, 'flow' => $group, 'done' => $done, 'last' => $last !== null && $last !== strtolower($next) ? $last : null],
+            static fn (mixed $value): bool => $value !== null,
+        ));
     }
 }

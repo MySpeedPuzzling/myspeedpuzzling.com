@@ -20,7 +20,7 @@ sandbox from the stage that can read them.
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
-| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); 6b-2 (the screens) in its fix round | #359 | engine | the first end-to-end run on the branch (see the log) |
+| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); 6b-3 (group answers) building | #359, #360 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
 | 2a-c | My data | not started | | | |
@@ -55,6 +55,23 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 6b-2 live** (#360): "Review and add" - the review (counts, the first results as they will
+  appear, unusual times, equal rows, already yours), "Add N to my profile", the live bar, the done page with every
+  refusal code in a plain sentence, the added / not-added lists, Take back (row / this adding / everything), "who
+  did you solve these with?" for pair/team rows without names. **A player who knows the address can now add an
+  import for real; nothing links there yet.** Review: three engine changes of the fix round verified by the
+  engine's reviewer (a waiver is bound to what was confirmed and fails closed; an undone row is clean and can be
+  added again once; one shared SQL for "ready"). Counting: 128 ms at 50,000 rows.
+  **On the sandbox with the real files, a made-up player:** Puzzle Tracker's export - 277 rows in ~30 s with the
+  live bar: 246 added (215 results, 214 owned, 2 wish list), 31 held back (25 pair/team without names, 6 unusual
+  times); the profile shows them, dated 2023-2025, not on top of the recent activity. The training workbook - 1,893
+  rows in ~40 s: 918 added (242 results, 676 owned), 928 not added: 441 "the file says it is on MySpeedPuzzling and
+  we did not find it", 416 unusual times (a fast puzzler's history against another profile's times), 71 twins of
+  those. **That is too many single answers** → 6b-3 (one answer for a whole group) is being built.
+- 2026-11-15 - Sentry: three issues of the rollouts' ordering resolved with a note (a cron row before its command,
+  two cron runs before a migration). Nothing from the adding itself.
+- 2026-11-15 - building: 6b-3 (group answers), 7 (unlisted puzzles), 6c (date precision).
 
 - 2026-11-15 - **stage 6b-1 live, no buttons** (#359): the engine of Add - `AddImportRows` → a batch on `imports`
   (a row = its own transaction under the player's lock; turns; resumable), never twice in seven layers, Undo per

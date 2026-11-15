@@ -122,9 +122,9 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertSubscription(array_values($overview['topics']), $overview);
         self::assertNoRoundTopicInTheCookie($this->browser);
 
-        // The base layout's own subscription (unread counts, conversations) stays as it was
+        // The base layout's own subscription (unread counts, conversations, the player's imports) stays as it was
         $topics = json_decode((string) $crawler->filter('[data-controller="mercure-hub"]')->attr('data-mercure-hub-topics-value'), true, flags: JSON_THROW_ON_ERROR);
-        self::assertSame(['/unread-count/' . self::ORGANISER, '/conversations/' . self::ORGANISER], $topics);
+        self::assertSame(['/unread-count/' . self::ORGANISER, '/conversations/' . self::ORGANISER, '/imports/' . self::ORGANISER], $topics);
     }
 
     public function testTheOverviewRenewsItsTokenWithEveryRoundsProgress(): void

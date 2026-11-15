@@ -1,6 +1,7 @@
 {# The sample as a small spreadsheet: grey header row, row numbers, scrolls sideways inside its card - never the page. Variables: sample. #}
 {{ include('data_import/guide/_figure_open.html.twig', {name: 'sample'}, with_context = false) }}
-    <div class="table-responsive">
+    {# Focusable, so it scrolls from the keyboard too #}
+    <div class="table-responsive" tabindex="0">
         <table class="table table-sm table-bordered bg-white fs-sm mb-2 text-nowrap">
             <thead class="table-secondary">
                 <tr>

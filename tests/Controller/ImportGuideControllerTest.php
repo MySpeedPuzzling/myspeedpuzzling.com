@@ -70,7 +70,8 @@ final class ImportGuideControllerTest extends WebTestCase
         foreach (self::EXAMPLES as $example) {
             $figure = $crawler->filter('figure[data-testid="guide-example-' . $example . '"]');
             self::assertCount(1, $figure, $example);
-            self::assertNotNull($figure->attr('inert'), $example);
+            // Never inert: the sample table scrolls sideways on a phone, and an inert figure can not be scrolled
+            self::assertNull($figure->attr('inert'), $example);
             self::assertCount(1, $figure->filter('figcaption'), $example);
             self::assertCount(0, $figure->filter('form, input, button, a, [id], turbo-frame'), $example . ' must not be interactive');
         }

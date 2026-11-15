@@ -1,10 +1,12 @@
 {#
     The frame of one example of the guide (docs/features/data-import/guided-flow.md §13 "Examples as real HTML"):
-    not interactive - `inert`, no form, no id, no Turbo frame - and labelled "Example". Closed by `</figure>` in the
+    not interactive - no form, no control, no link, no id, no Turbo frame (pinned by ImportGuideControllerTest; never
+    `inert`: an inert figure can not be scrolled, and the sample table scrolls sideways on a phone) - and labelled "Example" by a badge in its top right corner. Closed by `</figure>` in the
     including template. Variables: name (the example's test id), optional step (1-5: the flow's dots above it).
 #}
-<figure class="guide-example card card-body shadow-sm bg-light p-3 my-3" data-testid="guide-example-{{ name }}" inert>
-    <figcaption class="fs-xs text-uppercase text-muted fw-semibold mb-2">{{ 'import_guide.example'|trans }}</figcaption>
+<figure class="guide-example card card-body shadow-sm bg-light p-3 my-3 position-relative overflow-hidden" style="padding-top: 2.5rem !important;" data-testid="guide-example-{{ name }}">
+    {# The corner badge: says at a glance that this is a picture of the screen, not the screen (Jan, 2026-11-15) #}
+    <figcaption class="position-absolute top-0 end-0 bg-primary text-white text-uppercase fw-bold lh-1" style="font-size: 11px; letter-spacing: .08em; padding: 7px 12px; border-bottom-left-radius: .5rem;">{{ 'import_guide.example'|trans }}</figcaption>
     {% if step|default(null) is not null %}
         {% set keys = {1: 'file', 2: 'check', 3: 'people', 4: 'puzzles', 5: 'add'} %}
         <div class="d-flex align-items-center mb-1" aria-hidden="true">

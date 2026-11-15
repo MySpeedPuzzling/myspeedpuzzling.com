@@ -165,7 +165,7 @@ picture may be fetched from (`pictureHosts`, empty - stage 7 fetches).
 {"durations": {"two_part_text": {"rule": "minutes_seconds", "by": "player"}},
  "dateOrder": {"order": "dmy", "by": "rows"}, "shortDates": null, "typedDatesSwapped": null,
  "year": {"year": 2023, "by": "sheet_name"},
- "solvingType": null, "lookupSheetId": null, "collectionLabel": null}
+ "solvingType": null, "lookupSheetId": null, "collectionLabel": null, "partner": null, "solvingTypeAnswered": false}
 ```
 
 `by` says who settled it: `rows`, `header` (a unit in the header), `sheet_name`, `known_export`, `player`. What the player or a known
@@ -284,7 +284,9 @@ handler only. The import must be the player's and being set up, the version the 
 - `mapping`: the whole shape. Taken from it: kind, row meaning, the tables and which one, what each column is. A
   column the player left alone keeps its certainty; a changed one is `certain`, `by: player`. Certainty, reasons,
   roles, a layout and questions a browser sends are not taken.
-- `sheetWide`: `solvingType`, `lookupSheetId` (another sheet of the same import), `collectionLabel`.
+- `sheetWide`: `solvingType`, `lookupSheetId` (another sheet of the same import), `collectionLabel`, `partner`
+  (who every pair / team row of the sheet that names nobody was solved with - [people.md](people.md) "A sheet called
+  Pairs"; the question `sheet_solving_type` is described there too).
 - `valueAnswers`: replaces the sheet's.
 
 Then times and dates are settled again (answers kept), the version goes up, and - without a question - the sheet

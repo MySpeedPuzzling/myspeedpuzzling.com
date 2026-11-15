@@ -52,7 +52,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         // Confirmed long ago, but young enough to keep its file
         $confirmed = $this->uploaded('confirmed.xlsx', daysAgo: 2);
 
-        self::assertSame(['unconfirmed' => 2, 'files' => 0, 'discarded' => 0], $this->prune());
+        self::assertSame(['unconfirmed' => 2, 'files' => 0, 'discarded' => 0, 'finished' => 0], $this->prune());
 
         self::assertEqualsCanonicalizing([$fresh, $confirmed], $this->importIds());
         self::assertFalse($this->filesystem->fileExists($this->key($old, DataImportFileKind::Xlsx)));
@@ -65,7 +65,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         $old = $this->uploaded('old.xlsx', daysAgo: DataImportLimits::KEEP_FILE_DAYS + 1);
         $young = $this->uploaded('young.xlsx', daysAgo: DataImportLimits::KEEP_FILE_DAYS - 1);
 
-        self::assertSame(['unconfirmed' => 0, 'files' => 1, 'discarded' => 0], $this->prune());
+        self::assertSame(['unconfirmed' => 0, 'files' => 1, 'discarded' => 0, 'finished' => 0], $this->prune());
 
         self::assertEqualsCanonicalizing([$old, $young], $this->importIds());
         self::assertFalse($this->filesystem->fileExists($this->key($old, DataImportFileKind::Xlsx)));
@@ -75,7 +75,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         self::assertSame(['status' => 'uploaded', 'file_key' => null, 'file_removed_at' => TestClock::FROZEN_NOW], $row);
 
         // The next run finds nothing to do
-        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0], $this->prune());
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0, 'finished' => 0], $this->prune());
     }
 
     /**
@@ -97,7 +97,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         $this->filesystem->write($key, '0123456789');
 
         // Discarded a moment ago: the URL may still be valid - the row that knows the key stays
-        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0], $this->prune());
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0, 'finished' => 0], $this->prune());
         self::assertEqualsCanonicalizing([$discarded, $kept], $this->importIds());
 
         $this->database->executeStatement('UPDATE data_import SET discarded_at = :at WHERE id = :id', [
@@ -105,7 +105,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
             'id' => $discarded,
         ]);
 
-        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1], $this->prune());
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1, 'finished' => 0], $this->prune());
 
         self::assertSame([$kept], $this->importIds());
         self::assertFalse($this->filesystem->fileExists($key), 'The object that came back is gone with the row');
@@ -127,7 +127,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
             'id' => $importId,
         ]);
 
-        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1], $this->prune());
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1, 'finished' => 0], $this->prune());
         self::assertSame([], $this->importIds());
         self::assertFalse($this->filesystem->fileExists($key));
     }
@@ -151,7 +151,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
             $storage->setFailing(false);
         }
 
-        self::assertSame(['unconfirmed' => 1, 'files' => 1, 'discarded' => 0], $removed);
+        self::assertSame(['unconfirmed' => 1, 'files' => 1, 'discarded' => 0, 'finished' => 0], $removed);
         self::assertSame([$old], $this->importIds());
     }
 
@@ -182,14 +182,14 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
     }
 
     /**
-     * @return array{unconfirmed: int, files: int, discarded: int}
+     * @return array{unconfirmed: int, files: int, discarded: int, finished: int}
      */
     private function prune(): array
     {
         // Like the daily run: nothing of the test's own writes in memory
         self::getContainer()->get(EntityManagerInterface::class)->clear();
 
-        /** @var array{unconfirmed: int, files: int, discarded: int} $removed */
+        /** @var array{unconfirmed: int, files: int, discarded: int, finished: int} $removed */
         $removed = $this->bus->dispatch(new PruneDataImports())->last(HandledStamp::class)?->getResult();
 
         return $removed;

@@ -31,14 +31,15 @@ final class PruneDataImportsCommand extends Command
 
         /** @var HandledStamp $handledStamp */
         $handledStamp = $envelope->last(HandledStamp::class);
-        /** @var array{unconfirmed: int, files: int, discarded: int} $removed */
+        /** @var array{unconfirmed: int, files: int, discarded: int, finished: int} $removed */
         $removed = $handledStamp->getResult();
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Removed %d unconfirmed uploads, %d files kept long enough and %d discarded imports.',
+            'Removed %d unconfirmed uploads, %d files kept long enough and %d discarded imports. Finished %d imports with nothing left to add.',
             $removed['unconfirmed'],
             $removed['files'],
             $removed['discarded'],
+            $removed['finished'],
         ));
 
         return Command::SUCCESS;

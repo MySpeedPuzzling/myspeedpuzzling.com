@@ -85,7 +85,7 @@ final class ImportAddingTest extends KernelTestCase
 
         [$import, $sheet] = $this->importOf($player);
         $soloRow = $this->resultRow($import, $sheet, 'Zq Add Lighthouse', 500, 'Zqadd', '2024-03-01', 3723, ['firstTry' => true, 'comment' => 'A public comment']);
-        $pairRow = $this->resultRow($import, $sheet, 'Zq Add Harbour', 1000, 'Zqadd', '2024-03-02', 5400, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $pairRow = $this->resultRow($import, $sheet, 'Zq Add Harbour', 1000, 'Zqadd', '2024-03-02', 5400, ['type' => 'duo', 'people' => ['#zz9zz9']]);
         $untimedRow = $this->resultRow($import, $sheet, 'Zq Add Meadow', 300, 'Zqadd', '2024-03-03', null);
         $this->pair($import);
 
@@ -107,13 +107,13 @@ final class ImportAddingTest extends KernelTestCase
         self::assertSame(['spreadsheet_import'], array_values(array_unique(array_map(static fn (array $result): string => self::text($result['created_via']), $results))));
         // Noon of the solve day (UTC for a player without a zone or a country), never "now"
         self::assertStringStartsWith('2024-03-01 12:', self::text($results[0]['tracked_at']));
-        // A partner written as a player's code is a guest of that name: an import never puts a result on another
-        // registered player's profile (README D12) - the pair has exactly one registered member, the importer
+        // A partner written as a code nobody has is a guest of that name, as in the add form - the pair has exactly
+        // one registered member, the importer (a code that is a player's: ImportPeopleTest)
         $team = json_decode(self::text($results[1]['team']), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($team);
         self::assertIsArray($team['puzzlers']);
         self::assertSame(
-            [[$player->id->toString(), null], [null, $partner->code]],
+            [[$player->id->toString(), null], [null, 'zz9zz9']],
             array_map(static fn (mixed $puzzler): array => is_array($puzzler) ? [$puzzler['player_id'] ?? null, $puzzler['player_name'] ?? null] : [], $team['puzzlers']),
         );
         self::assertSame(

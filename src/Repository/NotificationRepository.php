@@ -28,6 +28,11 @@ readonly final class NotificationRepository
     ) {
     }
 
+    public function find(string $notificationId): null|Notification
+    {
+        return $this->entityManager->find(Notification::class, $notificationId);
+    }
+
     public function save(Notification $notification): void
     {
         $this->entityManager->persist($notification);

@@ -108,6 +108,16 @@ class DataImportBatch
     #[Column(options: ['default' => false])]
     public bool $predictionsOwed = false;
 
+    /**
+     * The registered partners the batch put results on, with the number of those results - what each partner's one
+     * notification says (docs/features/data-import/people.md). Written once, when the batch ends.
+     *
+     * @var array<string, int> player id => results
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, options: ['jsonb' => true, 'default' => '{}'])]
+    public array $partnerResults = [];
+
     /** An Undo stopped the batch: its queued rows wait again, and its end tells the player nothing ("N added") */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => false])]
@@ -215,6 +225,14 @@ class DataImportBatch
         $this->resultsAdded = $counts['results'];
         $this->collectionItemsAdded = $counts['collectionItems'];
         $this->wishListItemsAdded = $counts['wishListItems'];
+    }
+
+    /**
+     * @param array<string, int> $partnerResults player id => results
+     */
+    public function partnersCounted(array $partnerResults): void
+    {
+        $this->partnerResults = $partnerResults;
     }
 
     public function playerNotified(DateTimeImmutable $now): void

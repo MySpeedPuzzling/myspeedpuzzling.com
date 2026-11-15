@@ -76,6 +76,9 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
             // "My data": the shared result is a row of their table too - with their own fields, never A's
             '/en/my-data',
             '/en/my-data?tab=puzzles',
+            // ... and its row sheet is theirs to open: their own inputs, never A's
+            '/en/my-data/result/{time}',
+            'frame:/en/my-data/result/{time}',
             '/en/export-puzzler-data/{b}/download/json',
             '/en/export-puzzler-data/{b}/download/csv',
             '/en/export-puzzler-data/{b}/download/xml',
@@ -107,6 +110,12 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
 
             self::assertResponseIsSuccessful($page);
             $this->assertCarriesNothingOfA((string) $browser->getInternalResponse()->getContent(), $secrets, $page);
+        }
+
+        // The row sheet of "My data" is there for who is on the result only
+        if ($viewer !== self::B) {
+            $browser->request('GET', '/en/my-data/result/' . $timeId);
+            self::assertContains($browser->getResponse()->getStatusCode(), $viewer === null ? [302] : [404]);
         }
     }
 
@@ -155,6 +164,16 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringContainsString($timeId, $content);
+
+        foreach ([self::FIELD_NAME, self::CHOICE_FIELD_NAME, self::TEXT_VALUE, self::CHOICE_VALUE, self::TAG_VALUE] as $own) {
+            self::assertStringContainsString($own, $content);
+        }
+
+        // ... and in the row sheet of the result there
+        $browser->request('GET', '/en/my-data/result/' . $timeId);
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
 
         foreach ([self::FIELD_NAME, self::CHOICE_FIELD_NAME, self::TEXT_VALUE, self::CHOICE_VALUE, self::TAG_VALUE] as $own) {
             self::assertStringContainsString($own, $content);
@@ -226,6 +245,9 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
         // The edit form of the owner's item is not there for anybody else
         $browser->request('GET', '/en/edit-collection-item-comment/' . CollectionItemFixture::ITEM_01);
         self::assertContains($browser->getResponse()->getStatusCode(), $viewer === null ? [302] : [404]);
+        // ... and neither is its row sheet of "My data"
+        $browser->request('GET', '/en/my-data/puzzle/' . CollectionItemFixture::ITEM_01);
+        self::assertContains($browser->getResponse()->getStatusCode(), $viewer === null ? [302] : [404]);
     }
 
     /**
@@ -263,7 +285,7 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
         }
 
         // What the canary looks for is really there where the owner may see it - otherwise it would prove nothing
-        foreach (['/en/edit-collection-item-comment/' . CollectionItemFixture::ITEM_01, '/en/export-puzzler-data/' . self::COLLECTOR . '/library/json', '/en/my-data?tab=puzzles'] as $own) {
+        foreach (['/en/edit-collection-item-comment/' . CollectionItemFixture::ITEM_01, '/en/export-puzzler-data/' . self::COLLECTOR . '/library/json', '/en/my-data?tab=puzzles', '/en/my-data/puzzle/' . CollectionItemFixture::ITEM_01] as $own) {
             $browser->request('GET', $own);
             self::assertResponseIsSuccessful($own);
             $content = (string) $browser->getResponse()->getContent();

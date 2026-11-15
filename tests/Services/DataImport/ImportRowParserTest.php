@@ -53,7 +53,7 @@ final class ImportRowParserTest extends TestCase
     {
         $rows = $this->parse('2020', [
             1 => ['Puzzle', 'Brand', 'Pieces', 'Date', 'Time', 'Solo/pair/team', 'Attempt', 'EAN'],
-            2 => ['Glass Garden', 'Heye', '13x99', Kit::date('2020-04-21'), '1:13:??', 'trio', 'second', '4.00556E+12'],
+            2 => ['Glass Garden', 'Heye', '13x99', Kit::date('2020-04-21'), '1:13:??', 'a crowd', 'second', '4.00556E+12'],
             3 => ['Copper Kettles', 'Jumbo', '?', Kit::date('2028-06-30'), '1:40:11 with a break', 'pair', 3, ''],
             4 => ['Thimble Shop', 'Jumbo', 5, 'last summer', '6:07:01, 6:23:02', 'solo', 1, 'n/a'],
             5 => ['Lemon Grove', 'Heye', 1000, Kit::date('2020-01-18'), Kit::duration(4391), 'solo', 1, 8590000000015],
@@ -66,7 +66,7 @@ final class ImportRowParserTest extends TestCase
             [
                 ['field' => 'pieces', 'code' => 'pieces_multipack', 'value' => '13x99', 'choices' => [13, 99]],
                 ['field' => 'time', 'code' => 'time_unreadable', 'value' => '1:13:??'],
-                ['field' => 'solving_type', 'code' => 'type_unknown', 'value' => 'trio'],
+                ['field' => 'solving_type', 'code' => 'type_unknown', 'value' => 'a crowd'],
                 ['field' => 'attempt_number', 'code' => 'attempt_unreadable', 'value' => 'second'],
                 ['field' => 'barcode', 'code' => 'barcode_scientific_notation', 'value' => '4.00556E+12'],
             ],

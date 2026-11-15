@@ -33,6 +33,10 @@ enum ImportRowRefusal: string
     case EqualRowNotAdded = 'equal_row_not_added';
     /** The comment of an owned puzzle is longer than a collection item takes */
     case CommentTooLong = 'comment_too_long';
+    /** The "Add" already put results on DataImportLimits::MAX_PARTNERS_PER_BATCH registered players - this row names another */
+    case TooManyPartners = 'too_many_partners';
+    /** A registered partner already got DataImportLimits::MAX_RESULTS_PER_PARTNER_PER_DAY results from this player's imports today */
+    case PartnerDailyLimit = 'partner_daily_limit';
     /** The row threw - ours, logged once per batch */
     case Error = 'error';
 }

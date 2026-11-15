@@ -62,6 +62,8 @@ readonly final class ImportRowAdder
         private CollectionItemRepository $collectionItemRepository,
         private WishListItemRepository $wishListItemRepository,
         private UnlistedRowWriter $unlistedRows,
+        private ImportRowPeople $rowPeople,
+        private ImportPartnerLimits $partnerLimits,
         private ClockInterface $clock,
     ) {
     }
@@ -355,7 +357,7 @@ readonly final class ImportRowAdder
     /**
      * The result part of a row: already the player's (how, which result), refused (why), or made by the writer.
      *
-     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
+     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string, people: list<string>, registeredPlayerIds: list<string>} $said
      *
      * @return array{refused: null|string, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
      */
@@ -418,7 +420,7 @@ readonly final class ImportRowAdder
             day: $said['day'],
             seconds: $said['seconds'],
             type: $said['type'],
-            people: self::people($row->parsed['people'] ?? null),
+            people: $said['people'],
             firstTry: is_bool($row->parsed['firstTry'] ?? null) ? $row->parsed['firstTry'] : null,
             comment: $comment,
             position: $row->rowNumber,
@@ -427,6 +429,8 @@ readonly final class ImportRowAdder
             precision: $said['precision'],
             hintedSolvingTimeId: $row->alreadyYoursSolvingTimeId?->toString(),
             finerRowsResult: $finerRowsResult,
+            // Asked last, of a result that would really be written: a registered partner is never flooded
+            lastCheck: fn (): null|string => $this->partnerLimits->refusal($player, $batchId, $said['registeredPlayerIds'], $this->clock->now()),
         );
 
         if ($asked['refused'] !== null) {
@@ -525,7 +529,11 @@ readonly final class ImportRowAdder
      * stored as that (README D13: a date we do not know is never stored as a day). `day` is then the first day of
      * the period. A result without any date is not added.
      *
-     * @return null|array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string}
+     * The people are the row's as the import's people are decided **now** (ImportRowPeople): a registered player
+     * for a code that resolved or a name the importing player mapped, a guest for everybody else, the importing
+     * player themself left out - and the kind with them.
+     *
+     * @return null|array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string, people: list<string>, registeredPlayerIds: list<string>}
      */
     private function resultSaid(DataImportRow $row): null|array
     {
@@ -541,14 +549,24 @@ readonly final class ImportRowAdder
 
         $seconds = is_int($parsed['seconds'] ?? null) && $parsed['seconds'] > 0 ? $parsed['seconds'] : null;
 
-        return ['day' => $dated['day'], 'precision' => $dated['precision'], 'seconds' => $seconds, 'type' => $type, 'sourceKey' => $sourceKey];
+        $people = $this->rowPeople->of($row);
+
+        return [
+            'day' => $dated['day'],
+            'precision' => $dated['precision'],
+            'seconds' => $seconds,
+            'type' => ImportRowPeople::typeWithout($type, $people['named'], count($people['people']), $people['meByWord']),
+            'sourceKey' => $sourceKey,
+            'people' => $people['people'],
+            'registeredPlayerIds' => $people['registeredPlayerIds'],
+        ];
     }
 
     /**
      * The rows still queued in the batch that say the same result as this month- or year-row and know more of its
      * date: the same distinct puzzle, time and solo/pair/team, a date inside this row's period.
      *
-     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
+     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string, people: list<string>, registeredPlayerIds: list<string>} $said
      *
      * @return list<DataImportRow>
      */
@@ -652,11 +670,11 @@ readonly final class ImportRowAdder
     }
 
     /**
-     * The other people of a row - **guests, every one of them** (README D12): an import never puts a result on
-     * another registered player's profile. The writer reads an entry that starts with `#` as a player's code, like
-     * the add form does; no entry leaves here with one, so that door is not reachable from an import - a `#CODE` in a
-     * file is the guest's name without the sign (what the form makes of a code nobody has). The existing consent flow
-     * (GuestLinkRequest) links a guest to a player later.
+     * The other people of a row **as guests, every one of them** - what the unlisted puzzles keep and pair with
+     * (UnlistedRowWriter, UnlistedPairer: an unlisted result is private, and its pairing writes guests). A row of
+     * an "Add" does not come through here: its people are ImportRowPeople's - a code that resolved or a name the
+     * importing player mapped is that player (docs/features/data-import/people.md). No entry leaves here with a
+     * `#`, so the writer never resolves a code for these.
      *
      * @return list<string> one guest's name per entry
      */

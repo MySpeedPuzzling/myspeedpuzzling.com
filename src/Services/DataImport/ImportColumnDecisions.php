@@ -23,7 +23,10 @@ use SpeedPuzzling\Web\Value\DataImport\ImportQuestionType;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImport\ReadDate;
 use SpeedPuzzling\Web\Value\DataImport\ShortDateMeaning;
+use SpeedPuzzling\Web\Value\DataImport\SolvingTypeWords;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\DataImportSheetKind;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 
 /**
  * Settles how a sheet's times and dates are read - and what must be asked (docs/features/data-import/columns.md
@@ -62,6 +65,65 @@ final readonly class ImportColumnDecisions
      * @return array{ImportSheetOptions, list<ImportQuestion>}
      */
     public function settle(ImportMapping $mapping, ImportSheetOptions $options, string $sheetTitle, iterable $rows): array
+    {
+        [$options, $questions] = $this->timesAndDates($mapping, $options, $sheetTitle, $rows);
+        $asked = self::solvingTypeQuestion($mapping, $options, $sheetTitle);
+
+        return [$options, $asked === null ? $questions : [$asked, ...$questions]];
+    }
+
+    /** The answer "each row says" of the sheet's solo / pair / team question - offered where a column says it */
+    public const string SOLVING_TYPE_BY_ROWS = 'rows';
+
+    /**
+     * **A sheet whose title says pair or team and that has no column for the partners asks** - "500 piece Pairs"
+     * without one would be read as solo results, on the solo leaderboards, silently; taking the title's word would
+     * be as silent the other way. Not asked when the player (or a layout, or the sheet's own setting) already said
+     * what every row is, when a column names the people (the rows say it themselves: the number of people), or when
+     * the player answered before.
+     */
+    private static function solvingTypeQuestion(ImportMapping $mapping, ImportSheetOptions $options, string $sheetTitle): null|ImportQuestion
+    {
+        $table = $mapping->table();
+
+        if ($table === null || $mapping->isImported() === false || $mapping->kind !== DataImportSheetKind::Results) {
+            return null;
+        }
+
+        if ($options->solvingType !== null || $options->solvingTypeAnswered || $mapping->column(ImportField::SolvedWith) !== null) {
+            return null;
+        }
+
+        // Any pair or team word in the title asks - also beside other words ("Pairs and Teams", "Doubles - single
+        // sitting"); the one kind the title says, if it says one, is what the question suggests
+        if (SolvingTypeWords::titleNamesPairOrTeam($sheetTitle) === false) {
+            return null;
+        }
+
+        $said = SolvingTypeWords::ofTitle($sheetTitle);
+
+        $choices = [PuzzlingType::Solo->value, PuzzlingType::Duo->value, PuzzlingType::Team->value];
+
+        if ($mapping->column(ImportField::SolvingType) !== null) {
+            $choices[] = self::SOLVING_TYPE_BY_ROWS;
+        }
+
+        return new ImportQuestion(
+            ImportQuestionType::SheetSolvingType,
+            $mapping->column(ImportField::PuzzleName)->column ?? $table->firstColumn,
+            $choices,
+            $said?->value,
+            [mb_substr($sheetTitle, 0, 200)],
+            rows: $table->lastRow === null ? 0 : max(0, $table->lastRow - $table->firstRow + 1),
+        );
+    }
+
+    /**
+     * @param iterable<int, array<int, array<string, mixed>>> $rows
+     *
+     * @return array{ImportSheetOptions, list<ImportQuestion>}
+     */
+    private function timesAndDates(ImportMapping $mapping, ImportSheetOptions $options, string $sheetTitle, iterable $rows): array
     {
         $options = $options->keptAnswers();
         $table = $mapping->table();
@@ -194,6 +256,9 @@ final readonly class ImportColumnDecisions
                 ImportQuestionType::DateOrder => $options->withDateOrder(DateOrder::from($answer), ImportSheetOptions::BY_PLAYER),
                 ImportQuestionType::TypedDates => $options->withTypedDatesSwapped($answer === 'yes'),
                 ImportQuestionType::Year => $options->withYear($answer === ImportQuestion::YEAR_AS_STORED ? $answer : (int) $answer, ImportSheetOptions::BY_PLAYER),
+                ImportQuestionType::SheetSolvingType => $options
+                    ->withSolvingType($answer === self::SOLVING_TYPE_BY_ROWS ? null : PuzzlingType::from($answer))
+                    ->withSolvingTypeAnswered(),
             };
         }
 

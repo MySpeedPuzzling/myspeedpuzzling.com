@@ -60,7 +60,7 @@ final class ImportMappingTest extends TestCase
             $mapping['questions'][0],
         );
         self::assertSame(
-            ['durations' => [], 'dateOrder' => null, 'shortDates' => null, 'typedDatesSwapped' => null, 'year' => ['year' => 2023, 'by' => 'sheet_name'], 'solvingType' => null, 'lookupSheetId' => null, 'collectionLabel' => null],
+            ['durations' => [], 'dateOrder' => null, 'shortDates' => null, 'typedDatesSwapped' => null, 'year' => ['year' => 2023, 'by' => 'sheet_name'], 'solvingType' => null, 'lookupSheetId' => null, 'collectionLabel' => null, 'partner' => null, 'solvingTypeAnswered' => false],
             $sheet['proposal']->options->toArray(),
         );
     }

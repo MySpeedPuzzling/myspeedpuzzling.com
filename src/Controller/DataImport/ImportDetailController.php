@@ -8,9 +8,12 @@ use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPairing;
+use SpeedPuzzling\Web\Query\GetImportPeople;
+use SpeedPuzzling\Web\Services\DataImport\ImportFlow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -18,10 +21,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * One import of the signed-in player: its file, its state, the reading's live progress, the sheets the file has once
- * it is read - or why it was not (docs/features/data-import/reading.md) - and, once its puzzles are paired, what is
- * ready to be added to the profile (docs/features/data-import/adding-screens.md "Ready to add"). Another player's
+ * "Where you are" - one import of the signed-in player (docs/features/data-import/guided-flow.md §5.3): the five
+ * steps of its flow with one status sentence each, the ONE next action, and - while the file is not read - the
+ * reading's live progress or why it could not be read (docs/features/data-import/reading.md). Another player's
  * import - or a discarded one - is a 404.
+ *
+ * `?after=<screen>` is the "Continue" of the flow's screens: it answers with a redirect to the next screen that has
+ * something waiting (ImportFlow::nextAfter()) - worked out here, from what this page loads anyway, so no screen
+ * needs a statement more to know where its Continue leads. Nothing is stored about where the player is.
  */
 final class ImportDetailController extends AbstractController
 {
@@ -30,6 +37,7 @@ final class ImportDetailController extends AbstractController
         readonly private GetDataImports $getDataImports,
         readonly private GetImportPairing $getImportPairing,
         readonly private GetImportAddScreen $getImportAddScreen,
+        readonly private GetImportPeople $getImportPeople,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -41,7 +49,7 @@ final class ImportDetailController extends AbstractController
         methods: ['GET'],
     )]
     #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
-    public function __invoke(string $importId): Response
+    public function __invoke(Request $request, string $importId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
         assert($player !== null);
@@ -68,14 +76,28 @@ final class ImportDetailController extends AbstractController
 
         $sheets = $this->getDataImports->sheetsOfPlayer($importId, $player->playerId);
 
+        // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
+        $pairing = $this->getImportPairing->summary($importId);
+        // What is ready to be added, what is not and why, and what the import added so far - one statement
+        $add = $this->getImportAddScreen->summary($importId, $player->playerId);
+        // The people the file names - one statement: step 3 says "Nobody else is named." or the exact counts
+        $flow = ImportFlow::of($import, $sheets, $pairing, $add, $this->getImportPeople->counts($importId, $player->playerId));
+
+        $after = $request->query->getString('after');
+
+        if ($after !== '') {
+            $next = $flow->nextAfter($after);
+
+            return $this->redirectToRoute($next['route'], $next['parameters']);
+        }
+
         return $this->render('data_import/detail.html.twig', [
             'import' => $import,
             'sheets' => $sheets,
-            'summary' => ImportColumnsController::summary($sheets),
-            // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
-            'pairing' => $this->getImportPairing->summary($importId),
-            // What is ready to be added, what is not and why, and what the import added so far - one statement
-            'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
+            'import_flow' => $flow,
+            'add' => $add,
+            // A finished import can be gone on with while its rows still hold what the spreadsheet said
+            'can_go_on' => $add->wiped === false,
             // What the page's live line starts from: it follows the reading of the rows and the pairing by itself
             'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,

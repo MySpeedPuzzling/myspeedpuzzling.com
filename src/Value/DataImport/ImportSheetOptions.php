@@ -48,6 +48,16 @@ final readonly class ImportSheetOptions
         public null|string $lookupSheetId = null,
         /** What the sheet's owned puzzles are filed under - null = the player's collection */
         public null|string $collectionLabel = null,
+        /**
+         * "Who was your partner on this sheet?" - the people of every pair / team row that names nobody, as the
+         * player typed them: names or `#codes`, separated by commas (docs/features/data-import/people.md)
+         */
+        public null|string $partner = null,
+        /**
+         * The player answered "are these pair results?" - whatever the answer ("each row says" leaves `solvingType`
+         * empty): a sheet whose title says pair or team asks once, not again after every change of its columns
+         */
+        public bool $solvingTypeAnswered = false,
     ) {
     }
 
@@ -74,6 +84,8 @@ final readonly class ImportSheetOptions
             $this->solvingType,
             $this->lookupSheetId,
             $this->collectionLabel,
+            $this->partner,
+            $this->solvingTypeAnswered,
         );
     }
 
@@ -132,6 +144,16 @@ final readonly class ImportSheetOptions
         return $this->with(['solvingType' => $type]);
     }
 
+    public function withPartner(null|string $partner): self
+    {
+        return $this->with(['partner' => $partner === null || trim($partner) === '' ? null : mb_substr(trim($partner), 0, 200)]);
+    }
+
+    public function withSolvingTypeAnswered(): self
+    {
+        return $this->with(['solvingTypeAnswered' => true]);
+    }
+
     public function withCollectionLabel(null|string $label): self
     {
         return $this->with(['collectionLabel' => $label]);
@@ -142,7 +164,7 @@ final readonly class ImportSheetOptions
      */
     private function with(array $changed): self
     {
-        /** @var array{durations: array<string, array{rule: DurationReadingRule, by: string}>, dateOrder: null|array{order: DateOrder, by: string}, shortDates: null|array{meaning: ShortDateMeaning, by: string}, typedDatesSwapped: null|bool, year: null|array{year: int|string, by: string}, solvingType: null|PuzzlingType, lookupSheetId: null|string, collectionLabel: null|string} $all */
+        /** @var array{durations: array<string, array{rule: DurationReadingRule, by: string}>, dateOrder: null|array{order: DateOrder, by: string}, shortDates: null|array{meaning: ShortDateMeaning, by: string}, typedDatesSwapped: null|bool, year: null|array{year: int|string, by: string}, solvingType: null|PuzzlingType, lookupSheetId: null|string, collectionLabel: null|string, partner: null|string, solvingTypeAnswered: bool} $all */
         $all = [...get_object_vars($this), ...$changed];
 
         return new self(...$all);
@@ -165,6 +187,8 @@ final readonly class ImportSheetOptions
             'solvingType' => $this->solvingType?->value,
             'lookupSheetId' => $this->lookupSheetId,
             'collectionLabel' => $this->collectionLabel,
+            'partner' => $this->partner,
+            'solvingTypeAnswered' => $this->solvingTypeAnswered,
         ];
     }
 
@@ -224,6 +248,8 @@ final readonly class ImportSheetOptions
             StoredShape::nullableEnum($data, 'solvingType', PuzzlingType::class),
             $lookupSheetId,
             StoredShape::nullableString($data, 'collectionLabel', 200),
+            StoredShape::nullableString($data, 'partner', 200),
+            ($data['solvingTypeAnswered'] ?? false) === true,
         );
     }
 

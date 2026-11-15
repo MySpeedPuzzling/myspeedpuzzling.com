@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleKey;
 use SpeedPuzzling\Web\Value\DataImport\ImportQuestion;
+use SpeedPuzzling\Web\Value\DataImport\ImportQuestionType;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowLeftOut;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImport\ImportSourceKey;
@@ -31,6 +32,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportWordMeaning;
 use SpeedPuzzling\Web\Value\DataImport\KnownExportLayout;
 use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
 use SpeedPuzzling\Web\Value\DataImport\ParsedImportRow;
+use SpeedPuzzling\Web\Value\DataImport\SolvingTypeWords;
 use SpeedPuzzling\Web\Value\DataImport\PiecesCertainty;
 use SpeedPuzzling\Web\Value\DataImport\YesNoCertainty;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
@@ -67,13 +69,6 @@ final readonly class ImportRowParser
             'in progress', 'neslozeno', 'ceka', 'nove', 'offen', 'ungelegt', 'neu', 'pendiente', 'por hacer', 'a faire', '未完成', '未開封',
         ],
         'wish_list' => ['wish list', 'wishlist', 'wish', 'wanted', 'prani', 'chci', 'wunschliste', 'wunsch', 'deseos', 'souhait', '欲しい'],
-    ];
-
-    /** Folded words of a solo / pair / team column */
-    private const array TYPE_WORDS = [
-        'solo' => ['solo', 'single', 'individual', 'alone', 'me', 'sam', 'sama', 'jednotlivec', 'einzel', 'allein', 'seul', 'seule', 'ソロ', '1'],
-        'duo' => ['duo', 'pair', 'pairs', 'double', 'couple', 'dvojice', 'par', 'paar', 'pareja', 'ペア', '2'],
-        'team' => ['team', 'teams', 'group', 'family', 'tym', 'equipo', 'equipe', 'gruppe', 'チーム'],
     ];
 
     public function __construct(
@@ -188,6 +183,24 @@ final readonly class ImportRowParser
         }
 
         $isResult = $kind === DataImportRowKind::Result || $kind === DataImportRowKind::Both;
+
+        // "Who was your partner on this sheet?" - the player's one answer for a sheet of pair / team results that has
+        // no column for it (docs/features/data-import/people.md "A sheet called Pairs"): the people of every row
+        // that names nobody and is not solo. Who that person is - a player, a guest - is the import's people's to say
+        if ($row->people === [] && $options->partner !== null && in_array($row->type ?? $options->solvingType, [PuzzlingType::Duo, PuzzlingType::Team], true)) {
+            $row->people = self::peopleOf($options->partner);
+        }
+
+        // The sheet asks "are these pair results?" (its title says pair or team, no column names the partners): until
+        // it is answered, a result that says nothing itself is not solo - it waits (PendingQuestionRows)
+        if ($isResult && $row->type === null && $row->people === [] && $options->solvingType === null) {
+            foreach ($mapping->questions as $question) {
+                if ($question->type === ImportQuestionType::SheetSolvingType) {
+                    $row->problem(ImportField::SolvingType, PendingQuestionRows::TYPE_OPEN);
+                }
+            }
+        }
+
         $type = $row->type ?? $options->solvingType ?? match (true) {
             count($row->people) === 0 => PuzzlingType::Solo,
             count($row->people) === 1 => PuzzlingType::Duo,
@@ -311,9 +324,7 @@ final readonly class ImportRowParser
                 $this->time($cell, $text, $options, $row);
                 break;
             case ImportField::SolvedWith:
-                $people = preg_split('/[,;&+\n]|\s+(?:and|und|et)\s+/iu', $text) ?: [];
-                $people = array_filter(array_map(static fn (string $name): string => mb_substr(trim($name), 0, 100), $people), static fn (string $name): bool => $name !== '');
-                $row->people = array_slice(array_values(array_unique([...$row->people, ...$people])), 0, self::MAX_PEOPLE);
+                $row->people = array_slice(array_values(array_unique([...$row->people, ...self::peopleOf($text)])), 0, self::MAX_PEOPLE);
                 break;
             case ImportField::SolvingType:
                 $type = self::solvingType($text);
@@ -652,14 +663,28 @@ final readonly class ImportRowParser
         return $kind;
     }
 
+    /**
+     * The people a text names: one per comma, semicolon, ampersand, plus, line - or "and".
+     *
+     * @return list<string>
+     */
+    private static function peopleOf(string $text): array
+    {
+        $people = preg_split('/[,;&+\n]|\s+(?:and|und|et)\s+/iu', $text) ?: [];
+        $people = array_filter(array_map(static fn (string $name): string => mb_substr(trim($name), 0, 100), $people), static fn (string $name): bool => $name !== '');
+
+        return array_slice(array_values(array_unique($people)), 0, self::MAX_PEOPLE);
+    }
+
     private static function solvingType(string $text): null|PuzzlingType
     {
         $word = ImportText::plain($text);
 
-        foreach (self::TYPE_WORDS as $type => $words) {
-            if (in_array($word, $words, true)) {
-                return PuzzlingType::from($type);
-            }
+        // The one list of the words that say solo, pair or team (SolvingTypeWords) - a sheet's title is read by it too
+        $said = SolvingTypeWords::ofCell($word);
+
+        if ($said !== null) {
+            return $said;
         }
 
         // A number of people

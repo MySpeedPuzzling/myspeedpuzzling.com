@@ -52,7 +52,10 @@ use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\FinishImport;
+use SpeedPuzzling\Web\Message\FinishSettledImport;
 use SpeedPuzzling\Web\Message\GenerateTableLayout;
+use SpeedPuzzling\Web\Message\GoOnWithImport;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
 use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
@@ -124,6 +127,11 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame('data-import-add-018d0000-0000-0000-0000-00000000000a', $key);
         self::assertSame($key, (new AddImportRows('other-request', 'other-import', strtolower($player), ['row'], ['puzzle']))->lockKey());
         self::assertNotSame($key, (new AddImportRows('request', 'import', '018d0000-0000-0000-0000-00000000000b'))->lockKey());
+
+        // Finishing an import, going on with it and the daily sweep's look wait for the player's "Add" (and it for them)
+        self::assertSame($key, (new FinishImport('import', $player))->lockKey());
+        self::assertSame($key, (new GoOnWithImport('import', $player))->lockKey());
+        self::assertSame($key, (new FinishSettledImport('import', $player))->lockKey());
 
         $import = '018D0000-0000-0000-0000-0000000000C1';
         $undo = (new UndoImportRows('request', $import, $player, DataImportUndoScope::Import))->lockKey();

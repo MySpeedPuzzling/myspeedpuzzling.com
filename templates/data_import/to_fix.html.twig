@@ -16,13 +16,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-    {name: 'data_import.puzzles.title'|trans, url: path('data_import_puzzles', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-to-fix-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-to-fix-page" data-import-flow-screen="to_fix">
     <h1 class="h3 mb-2">{{ 'data_import.to_fix.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.to_fix.intro'|trans }}</p>
 
@@ -71,7 +67,7 @@
                             {{ hint == 'data_import.to_fix.hint.' ~ group.input ? '' : hint }}
                             {% if group.proposal is not null and typed[group.key] is not defined %}{{ 'data_import.to_fix.proposal_hint'|trans }}{% endif %}
                         </div>
-                        <button type="submit" name="action" value="answer" class="btn btn-primary w-100 mt-2 text-wrap" style="min-height: 44px;" data-testid="import-to-fix-use">
+                        <button type="submit" name="action" value="answer" class="btn btn-outline-primary w-100 mt-2 text-wrap" style="min-height: 44px;" data-testid="import-to-fix-use">
                             <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.use'|trans({'%number%': group.rows|format_number}) }}
                         </button>
                     </form>
@@ -84,12 +80,12 @@
                         <input type="hidden" name="_token" value="{{ csrf }}">
                         <input type="hidden" name="group" value="{{ group.key }}">
                         <input type="hidden" name="page" value="{{ page }}">
-                        <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-to-fix-leave-out"
+                        <button type="submit" name="action" value="leave_out" class="btn btn-link text-wrap" style="min-height: 44px;" data-testid="import-to-fix-leave-out"
                                 data-turbo-confirm="{{ 'data_import.to_fix.leave_out_confirm'|trans({'%number%': group.rows|format_number}) }}">
                             <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.leave_out'|trans }}
                         </button>
                     </form>
-                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: group.sampleRowId}) }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-to-fix-open-row">
+                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: group.sampleRowId}) }}" class="btn btn-link d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-to-fix-open-row">
                         <i class="bi bi-card-text me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.open_row'|trans }}
                     </a>
                 </div>
@@ -116,8 +112,6 @@
         </details>
     {% endif %}
 
-    <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-link px-0 mt-3" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.back_to_summary'|trans }}
-    </a>
+    {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'rows', hint: groups is empty ? '' : 'data_import.to_fix.continue_hint'|trans, offer_add: true}, with_context = false) }}
 </div>
 {% endblock %}

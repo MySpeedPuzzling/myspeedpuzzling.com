@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
+use SpeedPuzzling\Web\Repository\DataImportDailyCountRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
@@ -69,6 +70,7 @@ readonly final class ImportResultQuestions
         private ImportedResultWriter $writer,
         private ImportNeverTwice $neverTwice,
         private ImportRowTimeCheck $timeCheck,
+        private DataImportDailyCountRepository $dailyCounts,
         private ResultDuplicatePreventionRepository $duplicatePreventionRepository,
         private SuspiciousTimeConfirmationRepository $confirmationRepository,
         private ClockInterface $clock,
@@ -79,7 +81,10 @@ readonly final class ImportResultQuestions
      * @param string $day Y-m-d - the day, or the first day of the month or year the file knows ($precision); an
      *        undated result never gets here
      * @param null|int $seconds null = solved without a time
-     * @param list<string> $people the other people, one per entry, guests every one (ImportRowAdder::people())
+     * @param list<string> $people the other people, one per entry: `#code` for a registered player the import
+     *        resolved (ImportRowPeople), a guest's name otherwise - the writer resolves nothing else
+     * @param null|Closure(): (null|string) $lastCheck asked when nothing else refuses the result, right before the
+     *        writer: a refusal code, or null (ImportRowAdder: the limits that protect a registered partner)
      * @param null|bool $firstTry what the file said
      * @param bool $saidAlreadyOnProfile the file says the result is on MySpeedPuzzling already
      * @param bool $countedOnItsOwn the player said of two equal rows "these are two"
@@ -113,6 +118,7 @@ readonly final class ImportResultQuestions
         DatePrecision $precision = DatePrecision::Day,
         null|string $hintedSolvingTimeId = null,
         null|Closure $finerRowsResult = null,
+        null|Closure $lastCheck = null,
     ): array {
         $playerId = $player->id->toString();
         $puzzleId = $puzzle->id->toString();
@@ -186,6 +192,12 @@ readonly final class ImportResultQuestions
             return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
         }
 
+        $lastRefusal = $lastCheck === null ? null : $lastCheck();
+
+        if ($lastRefusal !== null) {
+            return self::answer(refused: $lastRefusal);
+        }
+
         $outcome = $this->writer->write(new ImportedResult(
             importRowId: $row->id->toString(),
             sourceKey: $sourceKey,
@@ -213,6 +225,10 @@ readonly final class ImportResultQuestions
         }
 
         $solvingTime = $this->scheduledResult((string) $outcome->solvingTimeId);
+
+        // What the daily limits count: a result made today, for the importing player and for every registered
+        // partner on it - never taken back by an Undo (docs/features/data-import/people.md "Limits")
+        $this->dailyCounts->made($playerId, $solvingTime->memberPlayerIds(), $this->clock->now());
 
         // Two equal rows the player confirmed as two: the form's "it's another solve, save it" - the daily duplicate
         // job takes such a result as confirmed real (writer.md "What 6b calls", step 5)

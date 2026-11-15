@@ -18,13 +18,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import_id})},
-    {name: 'data_import.columns.title'|trans, url: path('data_import_columns', {importId: import_id})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-sheet-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-sheet-page" data-import-flow-screen="sheet">
     <h1 class="h3 mb-2 text-break"><i class="bi bi-table me-2"></i>{{ sheet_name }}</h1>
     {% if sheet.hidden %}
         <span class="badge bg-faded-warning text-warning mb-2"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
@@ -88,9 +84,12 @@
         {% for question in questions %}
             <div class="card card-body shadow-sm mb-3 border-warning" role="group" aria-labelledby="question-title-{{ loop.index }}" data-testid="import-question" data-question="{{ question.id }}">
                 <h3 class="h6 mb-2" id="question-title-{{ loop.index }}">
-                    {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter})}) }}
+                    {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter}), '%title%': question.examples|first|default('')}) }}
                 </h3>
-                {% if question.examples is not empty %}
+                {% if question.type == 'sheet_solving_type' %}
+                    {# The sheet's title says pair or team and no column names the partners: asked, never taken either way #}
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.columns.sheet.solving_question_hint'|trans }}</p>
+                {% elseif question.examples is not empty %}
                     <p class="fs-sm text-muted mb-2">
                         {{ 'data_import.columns.sheet.examples'|trans }}
                         {% for example in question.examples %}<code class="text-body bg-secondary rounded px-1 me-1 text-break" data-testid="import-question-example">{{ example }}</code>{% endfor %}
@@ -131,7 +130,12 @@
                 {% if question.error %}
                     <div class="text-danger fs-sm mt-2" role="alert" data-testid="import-question-error">{{ ('data_import.columns.error.' ~ question.error)|trans }}</div>
                 {% endif %}
-                <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
+                {% if question.type == 'sheet_solving_type' %}
+                    {{ include('data_import/_sheet_partner.html.twig', {sheet_partner: sheet_partner}) }}
+                {% endif %}
+                {% if question.rows > 0 %}
+                    <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
+                {% endif %}
             </div>
         {% endfor %}
 
@@ -166,6 +170,10 @@
                             <label class="btn btn-outline-primary text-start text-wrap" for="solving-type-{{ choice|default('rows') }}" style="min-height: 44px;">{{ ('data_import.columns.solving_type.' ~ (choice|default('rows')))|trans }}</label>
                         {% endfor %}
                     </div>
+                    {# Asked with the question while the sheet asks "are these pair results?" - one field of that name #}
+                    {% if questions|filter(question => question.type == 'sheet_solving_type') is empty %}
+                        {{ include('data_import/_sheet_partner.html.twig', {sheet_partner: sheet_partner}) }}
+                    {% endif %}
                 </div>
             {% endif %}
 
@@ -244,9 +252,12 @@
         {% endif %}
     </turbo-frame>
 
-    <a href="{{ path('data_import_columns', {importId: import_id}) }}" class="btn btn-link px-0 mt-2" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.columns.back_to_sheets'|trans }}
-    </a>
+    {# The sheet's one primary is its Save; a sheet that has none yet leads back to how the file was read #}
+    {{ include('data_import/_flow_footer.html.twig', {
+        import: import,
+        primary: mapping is null ? {label: 'data_import.columns.back_to_sheets'|trans, url: path('data_import_columns', {importId: import_id}), testid: 'import-flow-back-primary'} : null,
+        back: mapping is null ? null : {label: 'data_import.columns.back_to_sheets'|trans, url: path('data_import_columns', {importId: import_id})},
+    }, with_context = false) }}
 </div>
 {% endblock %}
 

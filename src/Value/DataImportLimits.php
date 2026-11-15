@@ -48,7 +48,6 @@ final class DataImportLimits
     public const int GOOGLE_MAX_REDIRECTS = 5;
     /** An import "being fetched" - waiting for the worker or with it - without any news for this long ends as failed */
     public const int FETCHING_STALLED_AFTER_SECONDS = 900;
-    /** Imports whose file arrived and that are neither finished nor discarded */
     /** The widest sheet the reader hands over (its own sanity cap) - a column number beyond it is no column */
     public const int MAX_COLUMNS = 1000;
     /** A mapped table is at most this wide (README Q8); a wider one is cut on its right */
@@ -70,7 +69,21 @@ final class DataImportLimits
     /** Names a puzzle list is looked up by */
     public const int MAX_LOOKUP_NAMES = 50_000;
 
+    /**
+     * Imports in progress per player: neither finished nor discarded - which of them count is
+     * Services\DataImport\ImportSlots' to say
+     */
     public const int MAX_UNFINISHED_PER_PLAYER = 3;
+    /**
+     * An import that added rows, has none ready and only waits for the player is finished by the daily sweep after
+     * so many days without anything happening to it (upload.md "Finished")
+     */
+    public const int FINISHED_AFTER_WAITING_DAYS = 7;
+    /**
+     * … and an import with nothing left at all after so many hours of rest: "Go on with this import" is not undone
+     * by the next night's sweep
+     */
+    public const int FINISHED_AFTER_SETTLED_HOURS = 24;
     /** How long the uploaded file is kept in object storage */
     public const int KEEP_FILE_DAYS = 30;
     /** An upload the browser never confirmed is removed after this */
@@ -87,6 +100,15 @@ final class DataImportLimits
 
     /** Results one player's imports add per day, UTC (README Q4) - the rest is offered tomorrow */
     public const int MAX_RESULTS_ADDED_PER_DAY = 2000;
+    /**
+     * Registered players - other than the importing one - that one "Add" puts results on at most
+     * (docs/features/data-import/people.md "Limits"); a row naming one more waits with the reason
+     */
+    public const int MAX_PARTNERS_PER_BATCH = 20;
+    /** Results one player's imports put on one registered partner per day, UTC - the rest waits: nobody is flooded */
+    public const int MAX_RESULTS_PER_PARTNER_PER_DAY = 200;
+    /** ... and from every importing player together: no player's profile takes more imported results a day */
+    public const int MAX_RESULTS_PER_PARTNER_PER_DAY_FROM_EVERYBODY = 500;
     /** Rows of an "Add" or an Undo the worker goes through before it gives the queue to the next job */
     public const int ROWS_PER_TURN = 50;
     /** ... or after so many seconds (README "no message works longer than about ten seconds") */

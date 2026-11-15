@@ -1,11 +1,14 @@
 {% extends 'base.html.twig' %}
 
 {#
-    The review before adding (docs/features/data-import/adding-screens.md "Review before adding"): what will be
-    added to the profile - counts by kind, a line per sheet, the first results as they will appear - the groups
-    that need a word first (unusual times in their own frame, rows that are the same result), the rows already on
-    the profile, what an import does and does not do, what is not ready yet - and the button. Nothing is added by
-    opening the page and nothing starts by itself. Phone first: one column, every target 44 px.
+    "Check and add" - step 5 (docs/features/data-import/guided-flow.md §5.9): what goes onto the profile, as lines
+    with counts and the way to the list of all of it ("What will be added", with "Don't import" per row); **how the
+    file was read** - per sheet what its rows are added as (solo / pair / team and with whom - a guest or a player -,
+    puzzles owned, wishes), how its dates and times were read, one row as the example: nothing guessed is added
+    without having been a line here -; the first results as they will look; the groups that need a word first
+    (unusual times in their own frame, rows that repeat another row); what is not added this time, each with where
+    it is settled; what adding does - and the ONE button. Nothing is added by opening the page and nothing starts by
+    itself. Phone first: one column, every target 44 px.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -16,12 +19,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page" data-import-flow-screen="add">
     <h1 class="h3 mb-2">{{ 'data_import.add.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.add.intro'|trans }}</p>
 
@@ -35,63 +35,217 @@
     {% if add.runningBatchId is not null %}
         <div class="alert alert-info fs-sm" data-testid="import-add-running">
             <p class="mb-2">{{ 'data_import.add.ready.adding'|trans }}</p>
-            <a href="{{ path('data_import_batch', {importId: import.importId, batchId: add.runningBatchId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+            <a href="{{ path('data_import_batch', {importId: import.importId, batchId: add.runningBatchId}) }}" class="btn btn-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-follow">
                 <i class="bi bi-activity me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.follow'|trans }}
             </a>
         </div>
     {% endif %}
 
-    {# --- What will be added --- #}
+    {# --- Ready to add: one number a line, zeros left out --- #}
     <div class="card card-body shadow-sm mb-3" data-testid="import-add-counts"
          data-rows="{{ add.rowsToTake }}" data-later="{{ add.later }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
-        <h2 class="h5 mb-2">{{ 'data_import.add.will_add'|trans }}</h2>
+        <h2 class="h5 mb-2">{{ 'data_import.add_review.ready_title'|trans }}</h2>
+        {# A sheet the player just changed is read again in the background: none of its rows is ready - or counted in
+           the button - until it is settled (DataImportRowRepository::sqlReadyRows()) #}
+        {% if add.sheetsNotSetUp > 0 %}
+            <p class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-reading-again">
+                <span>{{ 'data_import.add_review.reading_again'|trans }}</span>
+                <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
+            </p>
+        {% endif %}
         {% if add.rowsReady == 0 %}
             <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
         {% else %}
-            <ul class="list-unstyled mb-0">
-                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-stopwatch me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.results'|trans }}</span><strong>{{ add.results|format_number }}</strong></li>
-                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.owned'|trans }}</span><strong>{{ add.owned|format_number }}</strong></li>
-                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-heart me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.wish_list'|trans }}</span><strong>{{ add.wishList|format_number }}</strong></li>
+            <ul class="list-unstyled mb-0" data-testid="import-add-lines">
+                {% if add.results > 0 %}
+                    <li class="py-1 fw-medium" data-testid="import-add-line-results"><i class="bi bi-stopwatch me-2" aria-hidden="true"></i>{{ 'data_import.add_review.line.results'|trans({'%count%': add.results, '%number%': add.results|format_number}) }}</li>
+                {% endif %}
+                {% if add.owned > 0 %}
+                    <li class="py-1 fw-medium" data-testid="import-add-line-owned"><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ 'data_import.add_review.line.owned'|trans({'%count%': add.owned, '%number%': add.owned|format_number}) }}</li>
+                {% endif %}
+                {% if add.wishList > 0 %}
+                    <li class="py-1 fw-medium" data-testid="import-add-line-wish-list"><i class="bi bi-heart me-2" aria-hidden="true"></i>{{ 'data_import.add_review.line.wish_list'|trans({'%count%': add.wishList, '%number%': add.wishList|format_number}) }}</li>
+                {% endif %}
                 {% if add.unlisted > 0 %}
                     {# Kept with the player's unlisted puzzles: nothing of them is public (docs/features/data-import/unlisted-puzzles.md) #}
-                    <li class="d-flex justify-content-between gap-2 py-1" data-testid="import-add-unlisted" data-rows="{{ add.unlisted }}"><span><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.kind'|trans }}</span><strong>{{ add.unlisted|format_number }}</strong></li>
-                    <li class="fs-sm text-muted ps-4 pb-1">{{ 'unlisted_puzzles.only_you'|trans }}</li>
-                {% endif %}
-                {% if add.alreadyYours > 0 %}
-                    <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.already_yours'|trans }}</span><span>{{ add.alreadyYours|format_number }}</span></li>
-                {% endif %}
-                {% if add.equalRows > 0 %}
-                    <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-files me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.equal_rows'|trans }}</span><span>{{ add.equalRows|format_number }}</span></li>
+                    <li class="py-1 fw-medium" data-testid="import-add-unlisted" data-rows="{{ add.unlisted }}"><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'data_import.add_review.line.unlisted'|trans({'%count%': add.unlisted, '%number%': add.unlisted|format_number}) }}</li>
+                    <li class="ps-4">{{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, fold: true, summary: 'data_import.explain.unlisted_summary'|trans, testid: 'import-explain-unlisted'}, with_context = false) }}</li>
                 {% endif %}
             </ul>
+
+            {% if add.rowsTaken > 0 %}
+                <a href="{{ path('data_import_add_list', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium mt-1" style="min-height: 44px;" data-testid="import-add-see-all">
+                    {{ 'data_import.add_review.see_all'|trans({'%count%': add.rowsTaken, '%number%': add.rowsTaken|format_number}) }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+
+            {% if add.alreadyYours - add.equalRows > 0 %}
+                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-add-line-already-yours">{{ 'data_import.add_review.line.already_yours'|trans({'%count%': add.alreadyYours - add.equalRows, '%number%': (add.alreadyYours - add.equalRows)|format_number}) }}</p>
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.on_profile'|trans, fold: true, summary: 'data_import.explain.on_profile_summary'|trans, testid: 'import-explain-on-profile'}, with_context = false) }}
+            {% endif %}
+            {% if add.equalRows > 0 %}
+                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-add-line-equal-rows">
+                    {{ 'data_import.add_review.line.equal_rows'|trans({'%count%': add.equalRows, '%number%': add.equalRows|format_number}) }}
+                    <a href="#equal-rows">{{ 'data_import.add_review.line.show'|trans }}</a>
+                </p>
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.repeat'|trans, fold: true, summary: 'data_import.explain.repeat_summary'|trans, testid: 'import-explain-repeat'}, with_context = false) }}
+            {% endif %}
+
             {% if add.overDailyLimit > 0 %}
-                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-add-daily-limit">
+                <p class="fs-sm mt-2 mb-1" data-testid="import-add-daily-limit">
                     <i class="bi bi-calendar-day me-1" aria-hidden="true"></i>{{ 'data_import.add.daily_limit'|trans({'%limit%': daily_limit|format_number, '%today%': add.resultsLeftToday|format_number, '%later%': add.overDailyLimit|format_number}) }}
                 </p>
-            {% endif %}
-            {% if sheets|length > 0 %}
-                <ul class="list-unstyled fs-sm text-muted border-top mt-2 pt-2 mb-0" data-testid="import-add-sheets">
-                    {% for sheet in sheets %}
-                        <li class="d-flex justify-content-between gap-2 py-1" data-testid="import-add-sheet">
-                            <span class="text-break">{% if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif %}</span>
-                            <span class="text-nowrap">{{ 'data_import.add.sheet_rows'|trans({'%number%': sheet.ready|format_number}) }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.daily_limit'|trans({'%number%': daily_limit|format_number}), testid: 'import-explain-daily-limit'}, with_context = false) }}
             {% endif %}
         {% endif %}
     </div>
 
-    {# --- The first results as they will appear --- #}
+    {# --- How we read your file: every assumption a line, before the button --- #}
+    {% if sheets|length > 0 %}
+        {% set names_guest = false %}
+        {% set names_player = false %}
+        {% set has_coarse = false %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-add-how">
+            <h2 class="h5 mb-1">{{ 'data_import.columns.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.add_review.how.hint'|trans }}</p>
+            <ul class="list-unstyled mb-0" data-testid="import-add-sheets">
+                {% for sheet in sheets %}
+                    {% set people = partners[sheet.sheetId]|default([]) %}
+                    {% set untyped = sheet.results - sheet.solo - sheet.duo - sheet.team %}
+                    <li class="py-2{{ loop.first ? '' : ' border-top' }}" data-testid="import-add-sheet" data-sheet-id="{{ sheet.sheetId }}" data-ready="{{ sheet.ready }}">
+                        <div class="fw-semibold text-break" data-testid="import-add-sheet-title">{{ 'data_import.add_review.quoted'|trans({'%text%': sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans}) }}</div>
+
+                        {# What its rows are added as - and with whom #}
+                        <ul class="list-unstyled mb-1" data-testid="import-add-sheet-as" data-results="{{ sheet.results }}" data-solo="{{ sheet.solo }}" data-duo="{{ sheet.duo }}" data-team="{{ sheet.team }}" data-owned="{{ sheet.owned }}" data-wish="{{ sheet.wish }}">
+                            {% if sheet.solo > 0 %}
+                                <li data-testid="import-add-as-solo">{{ 'data_import.add_review.as.solo'|trans({'%count%': sheet.solo, '%number%': sheet.solo|format_number}) }}</li>
+                            {% endif %}
+                            {% for type in ['duo', 'team'] %}
+                                {% set of_type = attribute(sheet, type) %}
+                                {% if of_type > 0 %}
+                                    <li class="text-break" data-testid="import-add-as-{{ type }}">
+                                        {{- ('data_import.add_review.as.' ~ type)|trans({'%count%': of_type, '%number%': of_type|format_number}) -}}
+                                        {%- if people is not empty %}
+                                            {%- set named = [] -%}
+                                            {%- for person in people|slice(0, 3) -%}
+                                                {%- set named = named|merge([('data_import.add_review.as.who.' ~ (person.who == 'player' ? 'player' : 'guest'))|trans({'%name%': person.name})]) -%}
+                                                {%- if person.who == 'player' %}{% set names_player = true %}{% else %}{% set names_guest = true %}{% endif -%}
+                                            {%- endfor %}
+                                            {{ 'data_import.add.sheet_as.with'|trans({'%people%': named|join(', ')}) }}{% if people|length > 3 %}…{% endif %}
+                                        {%- endif -%}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if untyped > 0 %}
+                                <li data-testid="import-add-as-results">{{ 'data_import.add_review.line.results'|trans({'%count%': untyped, '%number%': untyped|format_number}) }}</li>
+                            {% endif %}
+                            {% if sheet.both > 0 %}
+                                <li data-testid="import-add-as-both">{{ 'data_import.add_review.as.also_owned'|trans({'%count%': sheet.both, '%number%': sheet.both|format_number}) }}</li>
+                            {% endif %}
+                            {% if sheet.onlyOwned > 0 %}
+                                <li data-testid="import-add-as-owned">{{ 'data_import.add_review.as.owned'|trans({'%count%': sheet.onlyOwned, '%number%': sheet.onlyOwned|format_number}) }}</li>
+                            {% endif %}
+                            {% if sheet.wish > 0 %}
+                                <li data-testid="import-add-as-wish">{{ 'data_import.add_review.line.wish_list'|trans({'%count%': sheet.wish, '%number%': sheet.wish|format_number}) }}</li>
+                            {% endif %}
+                        </ul>
+
+                        {# How its dates and times were read #}
+                        {% set durations = sheet.readings|filter(reading => reading.type == 'duration') %}
+                        {% if sheet.readings is not empty or sheet.coarseDates > 0 %}
+                            <ul class="list-unstyled fs-sm text-muted mb-1" data-testid="import-add-readings">
+                                {% for reading in sheet.readings|filter(reading => reading.type != 'duration') %}
+                                    <li data-testid="import-add-reading" data-reading="{{ reading.type }}" data-value="{{ reading.value }}">
+                                        {%- if reading.type == 'date_order' -%}
+                                            {{ ('data_import.add_review.read.date_order.' ~ reading.value)|trans }}
+                                        {%- elseif reading.type == 'short_dates' -%}
+                                            {{ 'data_import.add_review.read.short_dates'|trans({'%reading%': ('data_import.columns.answer.short_dates.' ~ reading.value)|trans}) }}
+                                        {%- else -%}
+                                            {{ 'data_import.add_review.read.year'|trans({'%year%': reading.value}) }}
+                                        {%- endif -%}
+                                    </li>
+                                {% endfor %}
+                                {% if durations is not empty %}
+                                    <li data-testid="import-add-reading" data-reading="duration" data-value="{{ durations|map(reading => reading.value)|join(' ') }}">
+                                        {{- 'data_import.add_review.read.duration'|trans({'%reading%': durations|map(reading => ('data_import.columns.answer.duration.' ~ reading.value)|trans)|join(' · ')}) -}}
+                                    </li>
+                                {% endif %}
+                                {% if sheet.coarseDates > 0 %}
+                                    {% set has_coarse = true %}
+                                    <li data-testid="import-add-reading" data-reading="coarse_dates" data-value="{{ sheet.coarseDates }}">{{ 'data_import.add_review.read.coarse'|trans({'%count%': sheet.coarseDates, '%number%': sheet.coarseDates|format_number}) }}</li>
+                                {% endif %}
+                            </ul>
+                        {% endif %}
+
+                        {# One row of the sheet: what the file says, and what it is added as #}
+                        {% set example = sheet.exampleId is not null ? (examples[sheet.exampleId] ?? null) : null %}
+                        {% if example is not null %}
+                            <div class="border rounded-3 p-2 mt-2" data-testid="import-add-example">
+                                <p class="fs-xs text-muted mb-1 text-break">
+                                    {{ 'data_import.add_review.read.example'|trans({'%row%': example.said.rowNumber|format_number}) }}
+                                    {% set in_file = [sheet.exampleSaid.time, sheet.exampleSaid.date]|filter(value => value is not null) %}
+                                    {% if in_file is not empty %}
+                                        <span data-testid="import-add-example-said">{{ 'data_import.add_review.read.in_file'|trans({'%said%': in_file|map(value => 'data_import.add_review.quoted'|trans({'%text%': value}))|join(' · ')}) }}</span>
+                                    {% endif %}
+                                </p>
+                                {{ include('data_import/_add_row.html.twig', {row: example}) }}
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if add.owned > 0 %}
+                <p class="fs-sm text-muted border-top pt-2 mt-1 mb-2" data-testid="import-add-collection">{{ 'data_import.add_review.as.collection'|trans }}</p>
+            {% endif %}
+            {% if names_guest %}
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.guest'|trans, fold: true, summary: 'data_import.explain.guest_summary'|trans, testid: 'import-explain-guest'}, with_context = false) }}
+            {% endif %}
+            {% if names_player %}
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.player_partner'|trans, fold: true, summary: 'data_import.explain.player_partner_summary'|trans, testid: 'import-explain-player-partner'}, with_context = false) }}
+            {% endif %}
+            {% if has_coarse %}
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.month_only'|trans, fold: true, summary: 'data_import.explain.month_only_summary'|trans, testid: 'import-explain-month-only'}, with_context = false) }}
+            {% endif %}
+
+            {# People in your file: codes became players, names are guests unless the player says who they are #}
+            {% if people_counts.people > 0 %}
+                <div class="border-top pt-2 mt-1" id="people" data-testid="import-add-people"
+                     data-people="{{ people_counts.people }}" data-players="{{ people_counts.players }}" data-unanswered="{{ people_counts.unanswered }}">
+                    <p class="fs-sm mb-1">
+                        {{ 'data_import.people.card.people'|trans({'%count%': people_counts.people}) }} ·
+                        {{ 'data_import.people.card.players'|trans({'%count%': people_counts.players}) }} ·
+                        {{ 'data_import.people.card.guests'|trans({'%count%': people_counts.people - people_counts.players}) }}
+                    </p>
+                    <p class="fs-sm text-muted mb-0">{{ 'data_import.people.card.hint'|trans }}</p>
+                    <a href="{{ path('data_import_people', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-people-link">
+                        <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'data_import.people.card.open'|trans }}
+                    </a>
+                </div>
+            {% endif %}
+
+            <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="d-inline-flex align-items-center border-top pt-1 mt-1" style="min-height: 44px;" data-testid="import-add-how-change">
+                {{ 'data_import.add_review.how.change'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
+            </a>
+        </div>
+    {% endif %}
+
+    {# --- The first results as they will look: the first open, the others unfold --- #}
     {% if sample is not empty %}
         <div class="card card-body shadow-sm mb-3" data-testid="import-add-sample">
             <h2 class="h6 mb-1">{{ 'data_import.add.sample.title'|trans }}</h2>
             <p class="fs-sm text-muted mb-2">{{ 'data_import.add.sample.hint'|trans }}</p>
-            <div class="d-flex flex-column gap-3">
-                {% for row in sample %}
-                    {{ include('data_import/_add_row.html.twig', {row: row}) }}
-                {% endfor %}
-            </div>
+            {{ include('data_import/_add_row.html.twig', {row: sample|first}) }}
+            {% if sample|length > 1 %}
+                <details class="mt-2" data-testid="import-add-sample-more">
+                    <summary class="fs-sm d-inline-flex align-items-center" style="min-height: 44px; cursor: pointer;">{{ 'data_import.add_review.sample_more'|trans({'%count%': sample|length - 1, '%number%': (sample|length - 1)|format_number}) }}</summary>
+                    <div class="d-flex flex-column gap-3 mt-1">
+                        {% for row in sample|slice(1) %}
+                            {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -108,6 +262,7 @@
                     </a>
                 </div>
             </turbo-frame>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unusual_time'|trans, fold: true, summary: 'data_import.explain.unusual_time_summary'|trans, testid: 'import-explain-unusual-time'}, with_context = false) }}
         </div>
     {% endif %}
 
@@ -157,22 +312,24 @@
         </details>
     {% endif %}
 
-    {# --- What an import does, and what it does not --- #}
-    <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="import-add-what">
-        <p class="mb-1"><i class="bi bi-check2 me-1 text-success" aria-hidden="true"></i>{{ 'data_import.add.does.public'|trans }}</p>
-        <p class="mb-1"><i class="bi bi-check2 me-1 text-success" aria-hidden="true"></i>{{ 'data_import.add.does.undo'|trans }}</p>
-        <p class="mb-1"><i class="bi bi-dash me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.add.does_not.followers'|trans }}</p>
-        <p class="mb-0"><i class="bi bi-dash me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.add.does_not.dated'|trans }}</p>
-    </div>
-
-    {# --- Not ready yet --- #}
+    {# --- Not added this time: calm, each with where it is settled --- #}
     {% if add.hasNotReady %}
         <div class="card card-body shadow-sm mb-3" data-testid="import-add-not-ready">
             <h2 class="h6 mb-1">{{ 'data_import.add.not_ready.title'|trans }}</h2>
-            <p class="fs-sm text-muted mb-1">{{ 'data_import.add.not_ready.hint'|trans }}</p>
             {{ include('data_import/_not_ready.html.twig', {add: add, import_id: import.importId, daily_limit: daily_limit}) }}
+            <p class="fs-sm text-muted mt-1 mb-0">{{ 'data_import.add.not_ready.hint'|trans }}</p>
         </div>
     {% endif %}
+
+    {# --- What adding does: open before the import's first Add, folded afterwards --- #}
+    <details class="card card-body shadow-sm mb-3 py-0 fs-sm" data-testid="import-add-what"{% if not add.hasAdded %} open{% endif %}>
+        <summary class="d-flex align-items-center gap-2 py-3 fw-semibold" style="min-height: 56px; cursor: pointer;">
+            <i class="bi bi-info-circle text-muted" aria-hidden="true"></i>{{ 'data_import.add_review.what_adding_does'|trans }}
+        </summary>
+        <p class="mb-2">{{ 'data_import.explain.add'|trans }}</p>
+        <p class="mb-2">{{ 'data_import.explain.no_photo'|trans }}</p>
+        <p class="mb-3">{{ 'data_import.add.does.undo'|trans }}</p>
+    </details>
 
     {# --- The button: a real POST, one id per press --- #}
     {% if add.rowsToTake > 0 and not add.paused and add.runningBatchId is null %}
@@ -190,12 +347,19 @@
                     {{ 'data_import.add.button_settle'|trans({'%number%': add.rowsToTake|format_number}) }}
                 {%- endif -%}
             </button>
-            <p class="fs-sm text-muted text-center mt-2 mb-0">{{ 'data_import.add.button_hint'|trans }}</p>
+            <p class="fs-sm text-muted mt-2 mb-2">{{ 'data_import.add.button_hint'|trans }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, testid: 'import-explain-undo'}, with_context = false) }}
         </form>
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% elseif add.runningBatchId is not null or add.paused %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% elseif add.undecided > 0 %}
+        {# Nothing is ready: the way on is the step that holds the rows back #}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.puzzles.open'|trans, url: path('data_import_puzzles', {importId: import.importId}), icon: 'bi-puzzle', testid: 'import-flow-primary'}}, with_context = false) }}
+    {% elseif add.needLook > 0 %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.flow.primary.rows'|trans({'%count%': add.needLook, '%number%': add.needLook|format_number}), url: path('data_import_to_fix', {importId: import.importId}), testid: 'import-flow-primary'}}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add', continue_label: 'data_import.flow.where_you_are'|trans}, with_context = false) }}
     {% endif %}
-
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
 </div>
 {% endblock %}

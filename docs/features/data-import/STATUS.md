@@ -20,10 +20,10 @@ sandbox from the stage that can read them.
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
-| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
+| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361, #362), **6d live** (#369: the people of a file) | #359-#362, #369 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
 | 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
-| 2a-c | My data | not started | | | |
+| 2a-c | My data | **2a live 2026-11-15** (#365, read-only); **2b live 2026-11-15** (#367: edit a row); 2c (many at once) not started | #365, #367 | yes | sandbox: 1,466 results, 890 puzzles |
 | 8 | Entry points and the guide | not started | | | |
 
 ## How every stage is built
@@ -55,6 +55,76 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **guided flow, slices 1 and 2 live** (#370, #371). Slice 1 - the spine: the step header on every
+  import screen, "Where you are" (five steps, one status sentence each, ONE primary button, "or add what is ready
+  now"), the vocabulary of guided-flow.md §8 in six languages, the first explanations in place; no query, message
+  or route changed. Slice 2 - "Check and add" says every assumption per sheet (added as …, an example row, how
+  dates and times were read), and "What will be added" (`…/add/list`): every row an Add would take, with
+  "Don't import" per row / puzzle / sheet and "Put back" - tied to the queue by a test; a row is ready only when
+  its sheet is not being read again (closes: "don't import this sheet" then Add at once). Walked at 390 px on the
+  branch (slice 1) and on the sandbox with the ten-sheet workbook (both). Slice 3 (puzzles in bulk, #372) in its
+  fix round: a match the player took off came back pre-ticked in the grid.
+
+- 2026-11-15 - **stage 6d live** (#369): the people of a file. A `#code` becomes the player by itself (the add
+  form's rule + never across a block, checked again at write time); a name is a guest unless the importing player
+  says who it is (`…/import/{id}/people`; suggestions only among players they are connected to; a remembered
+  name → player answer asks again in every import; the importer's own name is asked, never assumed). A sheet whose
+  title says pair or team asks ("This sheet is called '500 piece Pairs' …", nothing preselected, one partner for
+  the sheet or per row) - the pairs-as-solo defect is closed. Partners: one notification per importer and day,
+  "These are not mine - take me off them" (they stay as a guest; that importer no longer resolves them), limits
+  that an Undo does not reset (`data_import_daily_count`: 200 a day per partner from one importer, 500 from
+  everybody, 20 partners an Add). Tried on the branch: the real training workbook's pairs sheet asks; an invented
+  file's people page; a blocked code stays a guest silently. Jan's three testers get a message when the first
+  guided-flow slice is live; the test imports of their files on the sandbox are to be taken back first.
+- 2026-11-15 - building: guided flow slice 1 (the spine).
+
+- 2026-11-15 - **stage 2b live** (#367): My data - edit a row. The row sheet (a result: time, day, first try,
+  comment, own fields; a collection puzzle: comment, own fields, collection) and editing in place on the wide table
+  (results where the player is the only registered member), through the edit form's messages and checks
+  (`FirstTryFormCheck`, `SuspiciousTimeFormCheck`; a parity test runs the same cases through `EditTimeController`
+  and through My data); the edit form's files untouched. Review: merge; fixed first - the three-way check moved
+  under a per-result lock, the collection comment's 500 limit, raw label keys in the sheet, the clipped refusal
+  note. On the sandbox: an impossible time typed in a cell is refused with a note and "Open the row"; the sheet's
+  labels read hrs / min / sec. Loose: the note says "confirm it below" in a table that has no below.
+
+- 2026-11-15 - **Jan on the experience** ("it is very complex it should have outstanding UX for everyone, even non
+  tech person understand it"; "am i able to manually skip rows"; "add small font with info icon explaining
+  ('unlisted' is great example) and/or prepare 'How import works' webpage ... with examples or screenshots"; the
+  welcome page and the guide get "Import your data from elsewhere" as an item). Going through all four real files
+  on the sandbox sheet by sheet: the column mappings are right; found - a sheet titled "500 piece Pairs" was
+  imported as SOLO (fixed with stage 6d), three imports that added something locked a player out (#368, live: an
+  import can be finished), the import's page is three equal buttons without an order, 400+ single puzzle
+  decisions for a collector's file, no list of what will be added with untick.
+  → **[guided-flow.md](guided-flow.md) is the design of record for the import's screens from now on**: five
+  steps (File, Check, People, Puzzles, Add) with one primary button a screen, "Where you are" instead of the
+  import's page, bulk decisions with their safety rules, "What will be added" with untick, the vocabulary
+  (matching instead of pairing, …), explanations in place, the guide around one sample spreadsheet. Build plan: 9
+  slices; slice 1 (the spine, UI only) starts when 6d is merged. **Stage 8 (#366) is held until 6d and the
+  first slices are live.**
+- 2026-11-15 - #368 live (finish an import); My data 2b (#367) in CI after its fix round.
+
+- 2026-11-15 - **Jan's answers:** (1) the entry points (stage 8, #366) are merged only AFTER the people of a file
+  are settled; (2) "code / id resolve to real person -> yes please, not sure about plain text names to avoid
+  conflicts (we could ask user whether to map and find and all matches map to existing players ... during / after
+  import)" - so a `#code` becomes the player by itself, a name is a guest unless the importing player says who it
+  is (stage 6d, building: `data_import_person`, suggestions only among players the importer is connected to, the
+  partner told once per batch, limits per partner; after the Add the existing guest-link consent flow); (3) the
+  results export keeps naming a private teammate - "puzzled with him so you know it was him"; (4) the mail to the
+  player with the empty photos was sent.
+- 2026-11-15 - stage 8 (#366): reviewed (no template, route or query problem; the add form intact in a browser on
+  the branch); the guide's copy is being made exact in six languages; HELD until 6d is live.
+
+- 2026-11-15 - **stage 2a live** (#365): My data `/{_locale}/my-data` - the player's own results, puzzles and wish
+  list as a table (≥ 992 px) or a compact list (phone), search, filters, sort, paging in SQL, own fields as
+  columns, a column chooser remembered per player; read-only. Production plans before the merge: the results page
+  13-18 ms for the heaviest accounts, 39 ms with search + year + first tries, the puzzles page 8 ms for the largest
+  library. Review: merge; fixed first - a private teammate was named in clear (now masked as on the profile); the
+  year filter, the chooser forgetting own-field choices, filters folded behind "Filters" on phones. On the sandbox
+  with the imported history: 1,466 results and 890 puzzles, pages in 0.2-0.4 s. Loose: the results EXPORT still
+  names a private teammate in clear (older behaviour, left alone - Jan's call).
+- 2026-11-15 - building: stage 8 (entry points and the public guide - the step that makes the import
+  discoverable) and 2b (editing one row of My data through the edit form's messages and checks).
 
 - 2026-11-15 - **stage 7 live** (#363): unlisted puzzles in their own tables (`unlisted_puzzle`, `unlisted_result`,
   `unlisted_ownership`, `unlisted_pairing` - nothing unlisted is ever a row of `puzzle`, `puzzle_solving_time`,

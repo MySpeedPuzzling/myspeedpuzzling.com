@@ -129,7 +129,7 @@ final class ImportLayoutsTest extends WebTestCase
         $list = $this->browser->request('GET', '/en/import/' . $second . '/columns');
         self::assertStringContainsString('We used what you set up last time (Training.xlsx - Log)', $list->filter('[data-testid="sheet-card-remembered"]')->text());
         $link = $list->filter('[data-testid="import-saved-layouts"]');
-        self::assertSame('Your saved layouts (1)', self::spaced($link->text()));
+        self::assertSame('Column set-ups we remember (1)', self::spaced($link->text()));
         // Nothing of a header or a value is in an address
         self::assertSame('/en/import/layouts?return=/en/import/' . $second . '/columns', urldecode((string) $link->attr('href')));
     }

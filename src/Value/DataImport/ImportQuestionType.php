@@ -20,4 +20,9 @@ enum ImportQuestionType: string
     case TypedDates = 'typed_dates';
     /** The year of dates written without one, when the sheet's name does not say it - or says another */
     case Year = 'year';
+    /**
+     * The sheet's title says pair or team ("500 piece Pairs") and no column names the partners: are these pair
+     * results? Never taken silently either way (docs/features/data-import/people.md "A sheet called Pairs")
+     */
+    case SheetSolvingType = 'sheet_solving_type';
 }

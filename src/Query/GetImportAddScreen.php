@@ -12,8 +12,13 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
+use SpeedPuzzling\Web\Results\ImportAddListRow;
 use SpeedPuzzling\Web\Results\ImportAddRow;
+use SpeedPuzzling\Web\Results\ImportAddSheetLine;
 use SpeedPuzzling\Web\Results\ImportAddSummary;
+use SpeedPuzzling\Web\Services\DataImport\ImportSheetReadings;
+use SpeedPuzzling\Web\Services\DataImport\StoredCells;
+use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImportStatus;
@@ -72,18 +77,25 @@ import AS (
 {$ready},
 -- What the daily guard counts (DataImportRowRepository::countResultsAddedOrQueuedSince())
 guard AS (
-    SELECT GREATEST(0, :limit - COUNT(*)) AS results_left
+    -- Rows queued for the profile now, plus the results made today - the day's count, which an Undo never lowers
+    -- (or, for results made before that count existed, the rows that still name them: whichever is more)
+    SELECT GREATEST(0, :limit
+        - COUNT(*) FILTER (WHERE r.state = 'queued' AND NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted'))
+        - GREATEST(
+            COUNT(*) FILTER (
+                WHERE r.solving_time_id IS NOT NULL
+                    AND (r.result_made_at >= :startOfDay OR (r.result_made_at IS NULL AND r.state = 'added' AND r.added_at >= :startOfDay))
+            ),
+            COALESCE((
+                SELECT SUM(made.results) FROM data_import_daily_count made
+                WHERE made.importer_id = :playerId AND made.partner_id = :playerId AND made.day = CAST(:startOfDay AS DATE)
+            ), 0)
+        )
+    ) AS results_left
     FROM data_import_row r
     INNER JOIN data_import other ON other.id = r.import_id
     WHERE other.player_id = :playerId
         AND r.kind IN ('result', 'both')
-        AND (
-            (r.state = 'queued' AND NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted'))
-            OR (
-                r.solving_time_id IS NOT NULL
-                AND (r.result_made_at >= :startOfDay OR (r.result_made_at IS NULL AND r.state = 'added' AND r.added_at >= :startOfDay))
-            )
-        )
 ),
 judged AS (
     SELECT
@@ -151,9 +163,69 @@ SQL;
         $notAdded = self::NOT_ADDED;
         $review = $forReview ? <<<SQL
 (
-    SELECT jsonb_agg(jsonb_build_object('title', sheet.title, 'ready', per_sheet.rows) ORDER BY sheet.position)
-    FROM (SELECT judged.sheet_id, COUNT(*) AS rows FROM judged WHERE judged.taken GROUP BY judged.sheet_id) per_sheet
+    -- A line per sheet, with what its rows will be added as - results (solo, pair, team - and with whom), puzzles the
+    -- player owns, wishes -, how its values are read and one row of it as the example: a sheet read as the wrong
+    -- kind, or a sheet of somebody else's results, is seen before the tap (guided-flow.md "How we read your file")
+    SELECT jsonb_agg(jsonb_build_object(
+        'id', sheet.id,
+        'title', sheet.title,
+        'mappingVersion', sheet.mapping_version,
+        'options', sheet.options,
+        'columns', sheet.mapping -> 'columns',
+        'ready', per_sheet.rows,
+        'results', per_sheet.results,
+        'solo', per_sheet.solo,
+        'duo', per_sheet.duo,
+        'team', per_sheet.team,
+        'owned', per_sheet.owned,
+        'both', per_sheet.both_rows,
+        'wish', per_sheet.wish,
+        'coarse', per_sheet.coarse,
+        'exampleId', example.id,
+        'exampleCells', example.cells,
+        'people', (
+            SELECT jsonb_agg(first_named.person)
+            FROM (
+                SELECT DISTINCT named.person
+                FROM judged named_row
+                INNER JOIN data_import_row named_said ON named_said.id = named_row.id
+                CROSS JOIN LATERAL jsonb_array_elements_text(
+                    CASE WHEN jsonb_typeof(named_said.parsed -> 'people') = 'array' THEN named_said.parsed -> 'people' ELSE '[]'::jsonb END
+                ) AS named(person)
+                WHERE named_row.taken AND named_row.sheet_id = per_sheet.sheet_id AND named_said.kind IN ('result', 'both')
+                ORDER BY named.person
+                LIMIT 4
+            ) first_named
+        )
+    ) ORDER BY sheet.position)
+    FROM (
+        SELECT
+            judged.sheet_id,
+            COUNT(*) AS rows,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both')) AS results,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'solo') AS solo,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'duo') AS duo,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'team') AS team,
+            COUNT(*) FILTER (WHERE said.kind IN ('owned', 'both')) AS owned,
+            COUNT(*) FILTER (WHERE said.kind = 'both') AS both_rows,
+            COUNT(*) FILTER (WHERE said.kind = 'wish_list') AS wish,
+            -- A day known to the month or the year only (date-precision.md)
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'datePrecision' IN ('month', 'year')) AS coarse,
+            -- The sheet's example: its first row that makes a new result - else its first row
+            COALESCE(MIN(judged.row_number) FILTER (WHERE judged.new_result), MIN(judged.row_number)) AS example_row
+        FROM judged
+        INNER JOIN data_import_row said ON said.id = judged.id
+        WHERE judged.taken
+        GROUP BY judged.sheet_id
+    ) per_sheet
     INNER JOIN data_import_sheet sheet ON sheet.id = per_sheet.sheet_id
+    LEFT JOIN LATERAL (
+        SELECT first_row.id, first_row.cells
+        FROM data_import_row first_row
+        WHERE first_row.sheet_id = per_sheet.sheet_id AND first_row.row_number = per_sheet.example_row
+        ORDER BY first_row.id
+        LIMIT 1
+    ) example ON TRUE
 ) AS sheets,
 (
     SELECT jsonb_agg(first.id)
@@ -240,11 +312,7 @@ CROSS JOIN guard
 CROSS JOIN waiting
 CROSS JOIN taken_before
 SQL, [
-            'importId' => $importId,
-            'playerId' => $playerId,
-            'explicit' => 0,
-            'limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
-            'startOfDay' => $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0)->format('Y-m-d H:i:s'),
+            ...$this->judgedParameters($importId, $playerId),
             ...($forReview ? ['sample' => self::SAMPLE, 'known' => self::KNOWN_SHOWN] : []),
         ])->fetchAssociative();
 
@@ -255,9 +323,31 @@ SQL, [
         $sheets = [];
 
         foreach (self::decoded($row['sheets']) as $sheet) {
-            if (is_array($sheet) && is_string($sheet['title'] ?? null) && is_int($sheet['ready'] ?? null)) {
-                $sheets[] = ['title' => $sheet['title'], 'ready' => $sheet['ready']];
+            if (is_array($sheet) === false || is_string($sheet['id'] ?? null) === false || is_string($sheet['title'] ?? null) === false || is_int($sheet['ready'] ?? null) === false) {
+                continue;
             }
+
+            $number = static fn (string $key): int => is_int($sheet[$key] ?? null) ? $sheet[$key] : 0;
+            $cells = $sheet['exampleCells'] ?? null;
+
+            $sheets[] = new ImportAddSheetLine(
+                sheetId: $sheet['id'],
+                title: $sheet['title'],
+                mappingVersion: $number('mappingVersion'),
+                ready: $sheet['ready'],
+                results: $number('results'),
+                solo: $number('solo'),
+                duo: $number('duo'),
+                team: $number('team'),
+                owned: $number('owned'),
+                both: $number('both'),
+                wish: $number('wish'),
+                coarseDates: $number('coarse'),
+                people: array_values(array_filter(is_array($sheet['people'] ?? null) ? $sheet['people'] : [], is_string(...))),
+                readings: ImportSheetReadings::of(is_array($sheet['options'] ?? null) ? $sheet['options'] : null),
+                exampleId: is_string($sheet['exampleId'] ?? null) ? $sheet['exampleId'] : null,
+                exampleSaid: ImportSheetReadings::said(['columns' => $sheet['columns'] ?? null], is_array($cells) ? $cells : null),
+            );
         }
 
         return new ImportAddSummary(
@@ -288,7 +378,207 @@ SQL, [
             sheets: $sheets,
             sampleIds: array_values(array_filter(self::decoded($row['sample_ids']), is_string(...))),
             knownIds: array_values(array_filter(self::decoded($row['known_ids']), is_string(...))),
+            wiped: $row['wiped'],
         );
+    }
+
+    /**
+     * **"What will be added"** (docs/features/data-import/guided-flow.md §7): a page of the rows an "Add" would take
+     * right now - `judged.taken`, on top of the one definition of "ready" (DataImportRowRepository::sqlReadyRows()),
+     * so the list *is* what "Add" queues, never a second rule (ImportAddListTest compares the two) - each with what
+     * it would make, in the file's order (the order the "Add" takes them in). And, in their place, the rows the
+     * player said "Don't import" about (`left_out` by the player - AnswerImportRows): one tap puts them back.
+     *
+     * One statement, whatever the import's size; `total` counts every row of the selection, `taken` the ones an "Add"
+     * would take.
+     *
+     * @param null|string $makes `results`, `collection`, `wish` - only the rows that make one; a row that is not
+     *        imported says nothing of what it would make and is listed without this filter only
+     * @param string $search the player's own text: a part of the puzzle's name - the catalogue's or the file's
+     *
+     * @return array{rows: list<ImportAddListRow>, total: int, taken: int}
+     */
+    public function readyRows(string $importId, string $playerId, null|string $makes, null|string $sheetId, string $search, int $limit, int $offset): array
+    {
+        $none = ['rows' => [], 'total' => 0, 'taken' => 0];
+
+        if (self::areIds($importId, $playerId) === false || ($sheetId !== null && Uuid::isValid($sheetId) === false)) {
+            return $none;
+        }
+
+        $judged = self::sqlJudged();
+        $now = $this->clock->now();
+        $parameters = [...$this->judgedParameters($importId, $playerId), 'now' => $now->format('Y-m-d H:i:s'), 'rowLimit' => $limit, 'rowOffset' => max(0, $offset)];
+        $conditions = [];
+
+        $makesColumn = match ($makes) {
+            'results' => 'listed.new_result',
+            'collection' => 'listed.new_owned',
+            'wish' => 'listed.new_wish',
+            default => null,
+        };
+
+        if ($makesColumn !== null) {
+            $conditions[] = $makesColumn;
+        }
+
+        if ($sheetId !== null) {
+            $conditions[] = 'listed.sheet_id = :sheetId';
+            $parameters['sheetId'] = strtolower($sheetId);
+        }
+
+        $search = trim(mb_substr($search, 0, 100));
+        $textSearch = PuzzleTextSearch::fromUserInput($search);
+
+        if ($search !== '') {
+            // The file's own name by the text as typed; the catalogue's names through the one puzzle text search. A
+            // row that is not imported kept only its cells: whatever one of them says
+            $catalogue = $textSearch->isEmpty() ? 'FALSE' : '(puzzle.id IS NOT NULL AND ' . $textSearch->condition('puzzle') . ')';
+            $conditions[] = "(LOWER(r.parsed ->> 'name') LIKE :needle OR {$catalogue} OR (listed.not_imported AND LOWER(CAST(r.cells AS TEXT)) LIKE :needle))";
+            $parameters = [...$parameters, ...$textSearch->parameters($now), 'needle' => '%' . addcslashes(mb_strtolower($search), '%_\\') . '%'];
+        }
+
+        $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
+
+        /** @var list<array{id: string, row_number: int, kind: null|string, parsed: null|string, title: string, state: string, failure: null|string, import_puzzle_id: null|string, puzzle_id: null|string, puzzle_name: null|string, brand_name: null|string, pieces_count: null|int, image: null|string, image_ratio: null|float|string, solving_time_id: null|string, made_collection_item: bool, made_wish_list_item: bool, added_at: null|string, kept_by_undo: bool, being_taken_back: bool, batch_id: null|string, equal_rows: int, add_as_separate: bool, sheet_id: string, not_imported: bool, new_result: bool, new_owned: bool, new_wish: bool, unlisted_row: bool, equal_row: bool, file_says: null|string, total: int, taken: int}> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+WITH {$judged},
+listed AS (
+    SELECT
+        judged.id, judged.sheet_id, judged.position, judged.row_number, FALSE AS not_imported,
+        judged.new_result, judged.new_owned, judged.new_wish, judged.unlisted_row, judged.has_result AND judged.equal_row AS equal_row
+    FROM judged
+    -- The player's own import only: `import` is empty for anybody else's
+    CROSS JOIN import
+    WHERE judged.taken
+
+    UNION ALL
+
+    -- The rows the player said "Don't import" about, in their place in the file (they kept nothing but their cells)
+    SELECT left_out.id, left_out.sheet_id, sheet.position, left_out.row_number, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE
+    FROM data_import_row left_out
+    INNER JOIN import ON import.id = left_out.import_id
+    INNER JOIN data_import_sheet sheet ON sheet.id = left_out.sheet_id
+    WHERE sheet.included
+        AND left_out.state = 'left_out'
+        AND left_out.parsed ->> 'leftOut' = 'by_player'
+        AND :selectsMakes = 0
+)
+SELECT
+    r.id,
+    r.row_number,
+    r.kind,
+    r.parsed,
+    sheet.title,
+    r.state,
+    r.failure,
+    r.import_puzzle_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    manufacturer.name AS brand_name,
+    puzzle.pieces_count,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
+    NULL AS solving_time_id,
+    FALSE AS made_collection_item,
+    FALSE AS made_wish_list_item,
+    NULL AS added_at,
+    FALSE AS kept_by_undo,
+    FALSE AS being_taken_back,
+    NULL AS batch_id,
+    1 AS equal_rows,
+    r.add_as_separate,
+    listed.sheet_id,
+    listed.not_imported,
+    listed.new_result,
+    listed.new_owned,
+    listed.new_wish,
+    listed.unlisted_row,
+    listed.equal_row,
+    -- What the name, time and date cells of a row that is not imported say, in that order
+    CASE WHEN listed.not_imported THEN (
+        SELECT jsonb_object_agg(mapped.col ->> 'field', r.cells -> (mapped.col ->> 'column'))
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(sheet.mapping -> 'columns') = 'array' THEN sheet.mapping -> 'columns' ELSE '[]'::jsonb END) AS mapped(col)
+        WHERE mapped.col ->> 'field' IN ('puzzle_name', 'time', 'solved_on')
+            AND jsonb_typeof(r.cells) = 'object'
+            AND jsonb_exists(r.cells, mapped.col ->> 'column')
+    ) END AS file_says,
+    COUNT(*) OVER () AS total,
+    COUNT(*) FILTER (WHERE listed.not_imported = FALSE) OVER () AS taken
+FROM listed
+INNER JOIN data_import_row r ON r.id = listed.id
+INNER JOIN data_import_sheet sheet ON sheet.id = listed.sheet_id
+LEFT JOIN data_import_puzzle import_puzzle ON import_puzzle.id = r.import_puzzle_id AND listed.not_imported = FALSE
+LEFT JOIN puzzle ON puzzle.id = import_puzzle.puzzle_id AND import_puzzle.choice = 'catalogue'
+LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+{$where}
+ORDER BY listed.position, listed.row_number, listed.id
+LIMIT :rowLimit OFFSET :rowOffset
+SQL, [...$parameters, 'selectsMakes' => $makesColumn === null ? 0 : 1])->fetchAllAssociative();
+
+        if ($rows === []) {
+            return $none;
+        }
+
+        return [
+            'rows' => array_map(static function (array $row): ImportAddListRow {
+                $fileSays = [];
+                $cells = self::decoded($row['file_says']);
+
+                foreach (['puzzle_name', 'time', 'solved_on'] as $field) {
+                    $text = is_array($cells[$field] ?? null) ? trim(mb_substr(StoredCells::shown($cells[$field]), 0, 120)) : '';
+
+                    if ($text !== '') {
+                        $fileSays[] = $text;
+                    }
+                }
+
+                return new ImportAddListRow(
+                    row: self::addRow($row),
+                    sheetId: $row['sheet_id'],
+                    sheetTitle: $row['title'],
+                    rowNumber: $row['row_number'],
+                    notImported: $row['not_imported'],
+                    newResult: $row['new_result'],
+                    newOwned: $row['new_owned'],
+                    newWish: $row['new_wish'],
+                    unlisted: $row['unlisted_row'],
+                    repeats: $row['equal_row'],
+                    fileSays: $fileSays,
+                );
+            }, $rows),
+            'total' => $rows[0]['total'],
+            'taken' => $rows[0]['taken'],
+        ];
+    }
+
+    /**
+     * The rows of one distinct puzzle of the import that an "Add" would take now - what "Don't import any of this
+     * puzzle" is said about. The same `judged.taken` as the list. One statement.
+     *
+     * @return list<string>
+     */
+    public function readyRowIdsOfPuzzle(string $importId, string $playerId, string $importPuzzleId, int $limit): array
+    {
+        if (self::areIds($importId, $playerId, $importPuzzleId) === false) {
+            return [];
+        }
+
+        $judged = self::sqlJudged();
+
+        /** @var list<string> $ids */
+        $ids = $this->database->executeQuery(<<<SQL
+WITH {$judged}
+SELECT judged.id
+FROM judged
+CROSS JOIN import
+INNER JOIN data_import_row r ON r.id = judged.id
+WHERE judged.taken AND r.import_puzzle_id = :importPuzzleId
+ORDER BY judged.position, judged.row_number, judged.id
+LIMIT :rowLimit
+SQL, [...$this->judgedParameters($importId, $playerId), 'importPuzzleId' => strtolower($importPuzzleId), 'rowLimit' => $limit])->fetchFirstColumn();
+
+        return $ids;
     }
 
     /**
@@ -1110,7 +1400,15 @@ SQL, [
             'offset' => $offset,
         ], isset($parameters['rowIds']) ? ['rowIds' => ArrayParameterType::STRING] : [])->fetchAllAssociative();
 
-        return array_map(static fn (array $row): ImportAddRow => new ImportAddRow(
+        return array_map(self::addRow(...), $rows);
+    }
+
+    /**
+     * @param array{id: string, row_number: int, kind: null|string, parsed: null|string, title: string, state: string, failure: null|string, import_puzzle_id: null|string, puzzle_id: null|string, puzzle_name: null|string, brand_name: null|string, pieces_count: null|int, image: null|string, image_ratio: null|float|string, solving_time_id: null|string, made_collection_item: bool, made_wish_list_item: bool, added_at: null|string, kept_by_undo: bool, being_taken_back: bool, batch_id: null|string, equal_rows: int, add_as_separate: bool, ...} $row
+     */
+    private static function addRow(array $row): ImportAddRow
+    {
+        return new ImportAddRow(
             rowId: $row['id'],
             said: GetImportPuzzleScreen::row([...$row, 'problems' => null]),
             state: $row['state'],
@@ -1131,7 +1429,23 @@ SQL, [
             batchId: $row['batch_id'],
             equalRows: $row['equal_rows'],
             addAsSeparate: $row['add_as_separate'],
-        ), $rows);
+        );
+    }
+
+    /**
+     * What sqlJudged() names.
+     *
+     * @return array{importId: string, playerId: string, explicit: int, limit: int, startOfDay: string}
+     */
+    private function judgedParameters(string $importId, string $playerId): array
+    {
+        return [
+            'importId' => $importId,
+            'playerId' => $playerId,
+            'explicit' => 0,
+            'limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
+            'startOfDay' => $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0)->format('Y-m-d H:i:s'),
+        ];
     }
 
     /**

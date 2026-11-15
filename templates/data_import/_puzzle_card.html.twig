@@ -60,7 +60,7 @@
                     <input type="hidden" name="catalogue" value="{{ shown.puzzleId }}">
                     <input type="hidden" name="group" value="{{ group }}">
                     <input type="hidden" name="page" value="{{ page }}">
-                    <button type="submit" name="action" value="catalogue" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-tick">
+                    <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-tick">
                         <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.yes'|trans }}
                     </button>
                 </form>
@@ -68,7 +68,7 @@
                     {{ 'data_import.puzzles.card.something_else'|trans }}
                 </a>
             {% else %}
-                <a href="{{ chooser }}" class="btn btn-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
+                <a href="{{ chooser }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
                     <i class="bi bi-hand-index-thumb me-1" aria-hidden="true"></i>{{ (shown is not null and shown.piecesDiffer ? 'data_import.puzzles.card.look' : 'data_import.puzzles.card.choose')|trans }}
                 </a>
             {% endif %}

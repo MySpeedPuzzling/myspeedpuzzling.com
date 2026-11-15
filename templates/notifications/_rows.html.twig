@@ -281,6 +281,41 @@
                     {{- (borrow_type == 'BorrowRequested' ? 'borrow_request.notification.answer' : 'borrow_request.notification.open')|trans -}}
                 </a>
             </td>
+        {% elseif notification.isImportPartnerNotification %}
+            {# "<importer> added N results with you from a spreadsheet" (docs/features/data-import/people.md): one per
+               "Add" of somebody's import that put results on the reader's profile - nothing of the import itself #}
+            {% set importer_name = notification.targetPlayerName ?? ('#' ~ notification.targetPlayerCode|upper) %}
+            <td class="text-center" style="width: 60px;">
+                {% if notification.targetPlayerAvatar is not null and not notification.targetPlayerIsPrivate %}
+                    <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                {% else %}
+                    <span class="avatar-name rounded-circle">{{ importer_name|trim('#')|slice(0, 1)|upper }}</span>
+                {% endif %}
+            </td>
+
+            <td class="align-middle fs-sm text-muted" data-testid="import-partner-notification" data-results="{{ notification.importRowsAdded }}">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {{ 'data_import.notification.with_you'|trans({
+                    '%count%': notification.importRowsAdded,
+                    '%player%': notification.targetPlayerIsPrivate
+                        ? '<b>' ~ importer_name|e ~ '</b>'
+                        : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: notification.targetPlayerId}) ~ '">' ~ importer_name|e ~ '</a>',
+                })|raw }}
+            </td>
+
+            <td class="" style="width: 80px;">
+                <a href="{{ path('pairs_and_teams') }}" class="btn btn-sm btn-outline-primary text-nowrap" data-testid="import-partner-notification-link">
+                    {{ 'data_import.notification.with_you_open'|trans }}
+                </a>
+                {# "These are not mine": one action - the reader becomes a guest of their name on those results, and
+                   that player's imports no longer find them (docs/features/data-import/people.md) #}
+                {% if notification.targetPlayerId is not null %}
+                    <form action="{{ path('imported_results_leave', {importerId: notification.targetPlayerId}) }}" method="post" class="mt-1" data-turbo="false" data-testid="import-partner-leave">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\LeaveImportedResultsController::CSRF_TOKEN_ID')) }}">
+                        <button type="submit" class="btn btn-sm btn-link text-muted p-0 text-start text-wrap" style="min-height: 44px;">{{ 'data_import.notification.leave'|trans }}</button>
+                    </form>
+                {% endif %}
+            </td>
         {% elseif notification.isImportNotification %}
             {# "Your import is done" (docs/features/data-import/adding.md): one per finished "Add" of the reader's own
                spreadsheet import - numbers only #}

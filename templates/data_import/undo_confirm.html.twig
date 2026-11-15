@@ -14,13 +14,11 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 560px;" data-testid="import-undo-confirm-page" data-scope="{{ scope }}" data-rows="{{ counts.added }}">
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-undo-confirm-page" data-import-flow-screen="undo_confirm" data-scope="{{ scope }}" data-rows="{{ counts.added }}">
     <h1 class="h3 mb-3">{{ ('data_import.undo.confirm.title_' ~ scope)|trans }}</h1>
+    {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, more: 'data_import.explain.undo_more'|trans, testid: 'import-explain-undo'}, with_context = false) }}
 
     {% if row is not null %}
         <div class="card card-body shadow-sm mb-3 p-3">
@@ -55,11 +53,18 @@
             <input type="hidden" name="scope" value="{{ scope }}">
             {% if row is not null %}<input type="hidden" name="row" value="{{ row.rowId }}">{% endif %}
             {% if batch is not null %}<input type="hidden" name="batch" value="{{ batch.id }}">{% endif %}
-            <button type="submit" class="btn btn-danger btn-lg text-wrap" style="min-height: 52px;" data-testid="import-undo-button">
+            <button type="submit" class="btn btn-primary btn-lg text-wrap" style="min-height: 52px;" data-testid="import-undo-button">
                 <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ ('data_import.undo.confirm.button_' ~ scope)|trans }}
             </button>
             <a href="{{ back_url }}" class="btn btn-outline-secondary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;">{{ 'data_import.undo.confirm.cancel'|trans }}</a>
         </form>
+    {% endif %}
+
+    {# The screen's one primary is the Undo button; with nothing to undo, the way on #}
+    {% if counts.added == 0 %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add'}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
     {% endif %}
 </div>
 {% endblock %}

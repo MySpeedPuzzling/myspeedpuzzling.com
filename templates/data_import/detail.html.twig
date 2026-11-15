@@ -1,10 +1,14 @@
 {% extends 'base.html.twig' %}
 
 {#
-    One import of the signed-in player (docs/features/data-import/upload.md, reading.md): its file, its state, the
-    reading's live progress, then the sheets the file holds - or why it could not be read, with "Try again" - what
-    is ready to be added to the profile (docs/features/data-import/adding-screens.md "Ready to add"), and Discard -
-    which an import that added something does not offer: it says what it keeps and how to take it back.
+    "Where you are" - the page of one import (docs/features/data-import/guided-flow.md §5.3): the one place that
+    always says what is done, what waits and what the next tap is. The flow's header, a headline, the five steps as
+    lines - each a link with one status sentence - ONE primary button, the quiet "or add what is ready now" line,
+    and, below a rule, what the player may do with the import itself (finish, discard, undo). Everything on it is
+    worked out by Services\DataImport\ImportFlow from what the page loads anyway.
+
+    While the file is not read (docs/features/data-import/upload.md, reading.md) it shows the reading's live
+    progress, or why the file could not be read with "Try again".
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -15,34 +19,14 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [{name: 'data_import.home.title'|trans, url: path('data_imports')}]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, import_flow: import_flow}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="data-import-page">
-    <h1 class="h3 mb-3 text-break"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ import_name }}</h1>
-
-    <div class="card card-body shadow-sm mb-3">
-        <dl class="row mb-0">
-            <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.state'|trans }}</dt>
-            <dd class="col-7 col-sm-8">{{ include('data_import/_status_badge.html.twig', {status: import.status}) }}</dd>
-
-            {% if import.fromGoogleSheet %}
-                <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.source'|trans }}</dt>
-                <dd class="col-7 col-sm-8" data-testid="import-source">{{ 'data_import.google.source'|trans }}</dd>
-            {% endif %}
-
-            {% if import.fileSize is not null %}
-                <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.size'|trans }}</dt>
-                <dd class="col-7 col-sm-8" data-testid="import-size">{{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}</dd>
-            {% endif %}
-
-            <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.started'|trans }}</dt>
-            <dd class="col-7 col-sm-8 mb-0">{{ import.createdAt|format_date('long') }}</dd>
-        </dl>
-    </div>
-
+<div class="mx-auto" style="max-width: 720px;" data-testid="data-import-page" data-import-flow-screen="detail" data-stage="{{ import_flow.stage }}" data-status="{{ import.status.value }}">
     {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
     {% set status = import.status.value %}
 
+    {% if import_flow.stage == 'file' %}
+        <h1 class="h4 mb-3" data-testid="import-flow-headline">{{ include('data_import/_flow_text.html.twig', {text: import_flow.headline}, with_context = false) }}</h1>
     {% if status == 'uploading' %}
         <div class="alert alert-warning fs-sm" data-testid="import-not-finished">
             <p class="mb-2">{{ 'data_import.detail.not_finished'|trans }}</p>
@@ -93,7 +77,7 @@
             </noscript>
         </div>
     {% elseif status == 'fetch_failed' %}
-        <div class="alert alert-danger" data-testid="import-fetch-failed" data-reason="{{ import.fetchFailure }}">
+        <div class="alert alert-warning" data-testid="import-fetch-failed" data-reason="{{ import.fetchFailure }}">
             <h2 class="h6 alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.fetch_failed.title'|trans }}</h2>
             <p class="fs-sm mb-3">{{ ('data_import.fetch_failed.' ~ import.fetchFailure)|trans(limits) }}</p>
             {% if import.fetchFailure == 'not_shared' %}
@@ -112,7 +96,7 @@
             </div>
         </div>
     {% elseif status == 'read_failed' %}
-        <div class="alert alert-danger" data-testid="import-read-failed" data-reason="{{ import.readFailure }}">
+        <div class="alert alert-warning" data-testid="import-read-failed" data-reason="{{ import.readFailure }}">
             <h2 class="h6 alert-heading"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.read_failed.title'|trans }}</h2>
             <p class="fs-sm mb-3">{{ ('data_import.read_failed.' ~ import.readFailure)|trans(limits) }}</p>
             <div class="d-flex flex-wrap gap-2">
@@ -124,96 +108,119 @@
                         </button>
                     </form>
                 {% endif %}
-                <a href="{{ path('data_import_new') }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+                <a href="{{ path('data_import_new') }}" class="btn {{ import.fileKept ? 'btn-outline-primary' : 'btn-primary' }} text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
                     <i class="bi bi-upload me-1"></i>{{ 'data_import.read_failed.upload_again'|trans }}
                 </a>
             </div>
         </div>
-    {% elseif sheets is not empty %}
+    {% endif %}
+    {% endif %}
+
+    {% if import_flow.stage != 'file' %}
         {#
-            While rows are read or puzzles paired the page follows by itself: the live line, and this frame loaded
-            again whenever a sheet's state or the pairing's changes (docs/features/data-import/pairing-screens.md
+            While rows are read or puzzles matched the page follows by itself: the live line, and this frame loaded
+            again whenever a sheet's state or the matching's changes (docs/features/data-import/pairing-screens.md
             "The live line")
         #}
-        {% if status == 'setting_up' %}
+        {% if import_flow.stage == 'steps' %}
             {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
         {% endif %}
         <turbo-frame id="import-detail-live" data-import-live target="_top">
-        {% if status == 'setting_up' %}
-            {# Where the import stands, and the way to its "Sheets and columns" screen (docs/features/data-import/columns-screen.md) #}
-            <div class="card card-body shadow-sm mb-3" data-testid="import-columns-summary">
-                <p class="fw-medium mb-1" data-testid="import-summary">
-                    {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
-                </p>
-                <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="btn btn-primary w-100 mt-2 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-open-columns">
-                    <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.open'|trans }}
+            <h1 class="h4 mb-3" data-testid="import-flow-headline">{{ include('data_import/_flow_text.html.twig', {text: import_flow.headline}, with_context = false) }}</h1>
+
+            {% if import_flow.stage == 'finished' %}
+                {# Finished: read-only - what it added can be undone below, and it can be gone on with #}
+                <div data-testid="import-finished">
+                    <p class="fs-sm text-muted">{{ 'data_import.finish.finished_help'|trans }}</p>
+                </div>
+            {% endif %}
+
+            <ol class="list-unstyled mb-3" data-testid="import-flow-lines">
+                {% for flow_step in import_flow.steps %}
+                    {% set url = flow_step.number == 1 ? null : (flow_step.route is not null ? path(flow_step.route, flow_step.parameters) : null) %}
+                    <li class="border-top{{ loop.last ? ' border-bottom' : '' }}" data-testid="import-flow-line" data-step="{{ flow_step.key }}" data-state="{{ flow_step.state }}" data-waiting="{{ flow_step.waiting }}">
+                        {% set line %}
+                            <span class="flex-shrink-0 pt-1" style="width: 24px;" aria-hidden="true">
+                                {%- if flow_step.state == 'done' -%}<i class="bi bi-check-circle-fill text-success"></i>
+                                {%- elseif flow_step.state == 'open' -%}<i class="bi bi-record-circle-fill text-primary"></i>
+                                {%- elseif flow_step.state == 'working' -%}<span class="spinner-border spinner-border-sm text-primary"></span>
+                                {%- else -%}<i class="bi bi-circle text-muted"></i>
+                                {%- endif -%}
+                            </span>
+                            <span class="flex-grow-1" style="min-width: 0;">
+                                <span class="d-block fw-semibold">{{ flow_step.number }} · {{ ('data_import.flow.step.' ~ flow_step.key)|trans }}</span>
+                                {% for text in flow_step.lines %}
+                                    <span class="d-block fs-sm {{ flow_step.state == 'open' ? 'text-body' : 'text-muted' }}" data-testid="import-flow-line-text">{{ include('data_import/_flow_text.html.twig', {text: text}, with_context = false) }}</span>
+                                {% endfor %}
+                            </span>
+                        {% endset %}
+                        {% if url is not null %}
+                            <a href="{{ url }}" class="d-flex gap-2 py-2 text-body text-decoration-none" style="min-height: 44px;" data-testid="import-flow-line-link">
+                                {{ line }}
+                                <span class="flex-shrink-0 fs-sm text-primary text-nowrap align-self-center">{% if flow_step.state == 'done' %}{{ 'data_import.flow.see'|trans }} {% endif %}<i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                            </a>
+                        {% else %}
+                            <div class="d-flex gap-2 py-2" style="min-height: 44px;">{{ line }}</div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+
+            {% if import_flow.primary is not null %}
+                {% set primary = import_flow.primary %}
+                <a href="{{ path(primary.route, primary.parameters) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;"
+                   data-testid="import-flow-primary" data-route="{{ primary.route }}">
+                    {{- include('data_import/_flow_text.html.twig', {text: primary.label}, with_context = false) -}}
                 </a>
-            </div>
-            {{ include('data_import/_pairing_summary.html.twig', {pairing: pairing, import_id: import.importId}) }}
-            {{ include('data_import/_ready_card.html.twig', {add: add, import_id: import.importId}) }}
-        {% endif %}
-        <div class="card shadow-sm mb-3" data-testid="import-sheets">
-            <div class="card-body pb-2">
-                <h2 class="h5 mb-0">{{ 'data_import.sheets.title'|trans }}</h2>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                    <thead>
-                        <tr class="fs-sm text-muted">
-                            <th scope="col" class="ps-3 fw-normal">{{ 'data_import.sheets.sheet'|trans }}</th>
-                            <th scope="col" class="text-end fw-normal">{{ 'data_import.sheets.rows'|trans }}</th>
-                            <th scope="col" class="text-end pe-3 fw-normal">{{ 'data_import.sheets.columns'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sheet in sheets %}
-                            <tr data-testid="import-sheet">
-                                <td class="ps-3 text-break">
-                                    {% if sheet.title != '' %}{{ sheet.title }}{% else %}<span class="text-muted">{{ 'data_import.sheets.untitled'|trans }}</span>{% endif %}
-                                    {% if sheet.hidden %}
-                                        <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-hidden"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
-                                    {% endif %}
-                                    {# What the import takes the sheet for and how its rows fared (docs/features/data-import/columns.md) - read only #}
-                                    <div class="fs-sm text-muted" data-testid="import-sheet-state">
-                                        {% if sheet.failed %}
-                                            <span class="badge bg-faded-danger text-danger" data-testid="import-sheet-failed"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.sheets.failed'|trans }}</span>
-                                        {% elseif not sheet.mapped %}
-                                            <span data-testid="import-sheet-recognising">{{ 'data_import.sheets.recognising'|trans }}</span>
-                                        {% else %}
-                                            {% if sheet.kind is not null %}
-                                                <span class="fw-medium" data-testid="import-sheet-kind" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
-                                            {% endif %}
-                                            {% if sheet.state == 'waiting' %}
-                                                <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
-                                            {% elseif not sheet.parsed %}
-                                                <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
-                                            {% elseif sheet.kind is not null and sheet.kind.value not in ['not_puzzles', 'somebody_else'] %}
-                                                {% if sheet.parsed %}
-                                                    <div data-testid="import-sheet-parsed">
-                                                        {{ 'data_import.sheets.understood'|trans({'%understood%': sheet.rowsUnderstood|format_number, '%look%': sheet.rowsNeedLook|format_number}) }}
-                                                        {%- if sheet.rowsWaiting > 0 %} · {{ 'data_import.columns.state.waiting_rows'|trans({'%number%': sheet.rowsWaiting|format_number}) }}{% endif %}
-                                                        {%- if sheet.rowsLeftOut > 0 %} · {{ 'data_import.columns.state.rows_left_out'|trans({'%number%': sheet.rowsLeftOut|format_number}) }}{% endif %}
-                                                    </div>
-                                                {% else %}
-                                                    <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td class="text-end text-nowrap" data-testid="import-sheet-rows">{{ sheet.rows|format_number }}</td>
-                                <td class="text-end text-nowrap pe-3" data-testid="import-sheet-columns">{{ sheet.columns|format_number }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            {% endif %}
+            {% if import_flow.secondary is not null %}
+                <p class="fs-sm mt-3 mb-0" data-testid="import-flow-add-ready" data-ready="{{ import_flow.secondary.label.count }}">
+                    <a href="{{ path(import_flow.secondary.route, import_flow.secondary.parameters) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                        {{- include('data_import/_flow_text.html.twig', {text: import_flow.secondary.label}, with_context = false) -}}
+                    </a>
+                </p>
+            {% endif %}
+            {% if add.unlisted > 0 and import_flow.stage == 'steps' %}
+                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-ready-unlisted" data-rows="{{ add.unlisted }}">
+                    <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.ready'|trans({'%number%': add.unlisted|format_number}) }}
+                </p>
+            {% endif %}
+            {% if add.hasAdded %}
+                <p class="fs-sm text-muted mt-3 mb-0" data-testid="{{ import_flow.stage == 'finished' ? 'import-finished-added' : 'import-ready-added' }}">
+                    {{ 'data_import.add.added_so_far'|trans({'%results%': add.resultsAdded|format_number, '%owned%': add.collectionItemsAdded|format_number, '%wish_list%': add.wishListItemsAdded|format_number}) }}
+                    {% if import_flow.primary is null or import_flow.primary.route != 'data_import_added' %}
+                        <a href="{{ path('data_import_added', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.add.see_added'|trans }}</a>
+                    {% endif %}
+                </p>
+            {% endif %}
+
+            {% if import_flow.stage == 'steps' %}
+                <p class="fs-sm text-muted mt-3 mb-0" data-testid="import-flow-saved">{{ 'data_import.flow.saved'|trans }}</p>
+            {% endif %}
         </turbo-frame>
+
+        {% if import.fromGoogleSheet and status == 'setting_up' %}
+            <p class="fs-sm text-muted mt-3" data-testid="import-sharing-off"><i class="bi bi-shield-check me-1"></i>{{ 'data_import.google.sharing_off'|trans }}</p>
+        {% endif %}
     {% endif %}
 
-    {% if import.fromGoogleSheet and status == 'setting_up' %}
-        <p class="fs-sm text-muted" data-testid="import-sharing-off"><i class="bi bi-shield-check me-1"></i>{{ 'data_import.google.sharing_off'|trans }}</p>
+    {# ---- Below a rule: the file, and what can be done with the import itself ---- #}
+    <hr class="my-4">
+
+    {% if import_flow.stage == 'finished' %}
+        {% if can_go_on %}
+            <form action="{{ path('data_import_go_on', {importId: import.importId}) }}" method="post" class="mb-3">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-go-on">
+                    <i class="bi bi-arrow-return-right me-1" aria-hidden="true"></i>{{ 'data_import.finish.go_on'|trans }}
+                </button>
+            </form>
+        {% else %}
+            <p class="fs-sm text-muted" data-testid="import-can-not-go-on">{{ 'data_import.finish.can_not_go_on_note'|trans }}</p>
+        {% endif %}
+        {% if sheets is not empty %}
+            {{ include('data_import/_sheets_table.html.twig', {sheets: sheets}, with_context = false) }}
+        {% endif %}
     {% endif %}
 
     {% if status != 'uploading' and status != 'fetching' and status != 'fetch_failed' and (import.fileKeptUntil is not null or import.fileRemovedAt is not null) %}
@@ -229,30 +236,30 @@
         </p>
     {% endif %}
 
-    {% if add.latestBatchId is not null %}
-        {# An import that added something is kept: its rows are how nothing is added twice and how it is taken back #}
-        <div class="card card-body shadow-sm mb-4" data-testid="import-kept">
-            <h2 class="h5">{{ 'data_import.detail.kept_title'|trans }}</h2>
-            <p class="fs-sm text-muted{{ add.hasAdded ? '' : ' mb-0' }}">{{ 'data_import.detail.kept_because_added'|trans }}</p>
+    {% if import_flow.canFinish %}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf}) }}
+    {% endif %}
+
+    {% if not import_flow.canDiscard %}
+        {# An import that added something is kept: its rows are how nothing is added twice and how it is undone #}
+        <div class="mb-4" data-testid="import-kept">
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.kept'|trans, testid: 'import-kept-why'}, with_context = false) }}
             {% if add.hasAdded %}
-                <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-outline-danger text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
+                <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-link px-0 text-danger text-start text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
                     <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'data_import.undo.import'|trans }}
                 </a>
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, more: 'data_import.explain.undo_more'|trans, fold: true, testid: 'import-explain-undo'}, with_context = false) }}
             {% endif %}
         </div>
     {% else %}
-        <div class="card card-body shadow-sm mb-4">
-            <h2 class="h5">{{ 'data_import.detail.discard'|trans }}</h2>
-            <p class="fs-sm text-muted">{{ 'data_import.detail.discard_help'|trans }}</p>
-
-            <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post">
-                <input type="hidden" name="_token" value="{{ csrf }}">
-                <button type="submit" class="btn btn-outline-danger text-wrap" style="min-height: 44px;" data-testid="discard-import"
-                        data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
-                    <i class="bi bi-trash me-1"></i>{{ 'data_import.detail.discard'|trans }}
-                </button>
-            </form>
-        </div>
+        <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post" class="mb-4">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <button type="submit" class="btn btn-link px-0 text-danger text-start text-wrap" style="min-height: 44px;" data-testid="discard-import"
+                    data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
+                <i class="bi bi-trash me-1"></i>{{ 'data_import.detail.discard'|trans }}
+            </button>
+            <p class="fs-sm text-muted mb-0">{{ 'data_import.explain.discard'|trans }}</p>
+        </form>
     {% endif %}
 </div>
 {% endblock %}

@@ -17,12 +17,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-not-added-page" data-rows="{{ counts.notAdded }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-not-added-page" data-import-flow-screen="not_added_rows" data-rows="{{ counts.notAdded }}">
     <h1 class="h3 mb-2">{{ 'data_import.not_added.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.not_added.intro'|trans({'%number%': counts.notAdded|format_number}) }}</p>
 
@@ -41,10 +38,10 @@
                 <label for="import-people-names" class="form-label fs-sm fw-medium">{{ 'data_import.not_added.people.names'|trans }}</label>
                 <input type="text" id="import-people-names" name="names" class="form-control mb-2" style="font-size: 16px; min-height: 44px;" maxlength="300" autocomplete="off">
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" name="action" value="guests" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-guests">
+                    <button type="submit" name="action" value="guests" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-guests">
                         <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'data_import.not_added.people.submit'|trans({'%number%': people_rows|format_number}) }}
                     </button>
-                    <button type="submit" name="action" value="solo" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-solo">
+                    <button type="submit" name="action" value="solo" class="btn btn-link text-wrap" style="min-height: 44px;" data-testid="import-not-added-people-solo">
                         {{ 'data_import.not_added.people.solo'|trans({'%number%': people_rows|format_number}) }}
                     </button>
                 </div>
@@ -84,7 +81,7 @@
                                 <input type="hidden" name="rows[]" value="{{ row.rowId }}">
                                 {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
                                 {% if code in wavable %}
-                                    <button type="submit" name="anyway" value="{{ code }}" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-anyway">
+                                    <button type="submit" name="anyway" value="{{ code }}" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-anyway">
                                         <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ (code == 'unusual_time' ? 'data_import.not_added.right' : 'data_import.not_added.anyway')|trans }}
                                     </button>
                                 {% else %}
@@ -112,8 +109,6 @@
         {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_not_added', parameters: batch_id is null ? {importId: import.importId} : {importId: import.importId, batch: batch_id}, label: 'data_import.not_added.title'|trans}) }}
     {% endif %}
 
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center mt-3" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
+    {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add'}, with_context = false) }}
 </div>
 {% endblock %}

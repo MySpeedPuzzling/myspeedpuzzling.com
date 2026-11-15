@@ -28,13 +28,18 @@ enum DataImportStatus: string
     case ReadFailed = 'read_failed';
     case SettingUp = 'setting_up';
     case Reviewing = 'reviewing';
+    /**
+     * Finished: nothing more is added from it, by the player's word or by the daily sweep. What it added stays and
+     * can be taken back; "Go on with this import" sets it up again (docs/features/data-import/upload.md "Finished")
+     */
     case Done = 'done';
     case Discarded = 'discarded';
 
     /**
      * The imports that count against DataImportLimits::MAX_UNFINISHED_PER_PLAYER: the file arrived - or is being
      * fetched from Google, where no confirmation follows that could count again - and the import is neither finished
-     * nor discarded.
+     * nor discarded. Which of them hold one of the player's places is Services\DataImport\ImportSlots' to say - an
+     * import that added rows and has nothing left to settle holds none.
      *
      * @return list<self>
      */

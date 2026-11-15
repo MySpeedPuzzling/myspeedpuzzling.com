@@ -56,29 +56,20 @@ final class XlsxTimeBoundTest extends TestCase
     }
 
     /**
+     * The markup itself is megabytes: made in the test, not here - a provider's data stays in the memory of the
+     * process that loads the suite, for every test class at once.
+     *
      * @return iterable<string, array{string, string}> what stands between two processing instructions, and where
      */
     public static function hiddenBehindAProcessingInstruction(): iterable
     {
-        $attributes = '';
-
-        for ($number = 0; $number < 120_000; $number++) {
-            $attributes .= ' a' . $number . '=""';
-        }
-
-        $namespaces = '';
-
-        for ($number = 0; $number < 150_000; $number++) {
-            $namespaces .= ($number % 600 === 0 ? ($number === 0 ? '<g' : '><g') : '') . ' xmlns:p' . $number . '="u"';
-        }
-
         foreach (['head', 'workbook', 'strings'] as $place) {
-            yield '120,000 attributes behind "<?a <!-- ?>", ' . $place => ['<?a <!-- ?><flood' . $attributes . '/><?b --> ?>', $place];
-            yield '120,000 attributes behind "<?a <![CDATA[ ?>", ' . $place => ['<?a <![CDATA[ ?><flood' . $attributes . '/><?b ]]> ?>', $place];
+            yield '120,000 attributes behind "<?a <!-- ?>", ' . $place => ['attributes in a comment', $place];
+            yield '120,000 attributes behind "<?a <![CDATA[ ?>", ' . $place => ['attributes in CDATA', $place];
         }
 
-        yield '150,000 namespace declarations behind "<?a <!-- ?>"' => ['<?a <!-- ?>' . $namespaces . '>' . str_repeat('</g>', 250) . '<?b --> ?>', 'head'];
-        yield 'a document type behind "<?a <!-- ?>"' => ['<?a <!-- ?><!DOCTYPE x [<!ENTITY e "v">]><?b --> ?>', 'head'];
+        yield '150,000 namespace declarations behind "<?a <!-- ?>"' => ['namespaces in a comment', 'head'];
+        yield 'a document type behind "<?a <!-- ?>"' => ['a document type in a comment', 'head'];
     }
 
     /**
@@ -86,8 +77,31 @@ final class XlsxTimeBoundTest extends TestCase
      * comment for real would see nothing of what follows. A workbook's parts have no processing instructions.
      */
     #[DataProvider('hiddenBehindAProcessingInstruction')]
-    public function testNothingHidesBehindAProcessingInstruction(string $markup, string $place): void
+    public function testNothingHidesBehindAProcessingInstruction(string $hidden, string $place): void
     {
+        $attributes = '';
+
+        if (str_starts_with($hidden, 'attributes')) {
+            for ($number = 0; $number < 120_000; $number++) {
+                $attributes .= ' a' . $number . '=""';
+            }
+        }
+
+        $namespaces = '';
+
+        if (str_starts_with($hidden, 'namespaces')) {
+            for ($number = 0; $number < 150_000; $number++) {
+                $namespaces .= ($number % 600 === 0 ? ($number === 0 ? '<g' : '><g') : '') . ' xmlns:p' . $number . '="u"';
+            }
+        }
+
+        $markup = match ($hidden) {
+            'attributes in a comment' => '<?a <!-- ?><flood' . $attributes . '/><?b --> ?>',
+            'attributes in CDATA' => '<?a <![CDATA[ ?><flood' . $attributes . '/><?b ]]> ?>',
+            'namespaces in a comment' => '<?a <!-- ?>' . $namespaces . '>' . str_repeat('</g>', 250) . '<?b --> ?>',
+            default => '<?a <!-- ?><!DOCTYPE x [<!ENTITY e "v">]><?b --> ?>',
+        };
+
         $this->assertRefusedAtOnce($this->workbookWith($place, $markup), 'a processing instruction');
     }
 

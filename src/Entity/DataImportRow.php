@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
+use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
@@ -30,6 +31,8 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
 #[Index(columns: ['sheet_id', 'row_number'])]
 #[Index(columns: ['import_id', 'state'])]
 #[Index(columns: ['import_id', 'source_key'])]
+// The database's last word on "a result is one row's": two rows can never name the same result (NULLs are distinct)
+#[UniqueConstraint(columns: ['solving_time_id'])]
 class DataImportRow
 {
     #[Column(type: UuidType::NAME, nullable: true)]
@@ -100,6 +103,16 @@ class DataImportRow
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $addedAt = null;
 
+    /**
+     * The result this row made (docs/features/data-import/writer.md "The link") - a plain id on purpose: it stays
+     * when the result is deleted, and whether the row's result exists is always asked of the results themselves.
+     * Written in the database by DataImportRowRepository::linkSolvingTime() (compare-and-set); resultCreated() keeps
+     * the loaded row in step
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $solvingTimeId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -122,6 +135,15 @@ class DataImportRow
         #[Column]
         public int $lastSeenVersion,
     ) {
+    }
+
+    /**
+     * ImportedResultWriter made a result of the row. A row whose earlier result is gone (deleted, undone) may make
+     * another - the link then names the new one.
+     */
+    public function resultCreated(UuidInterface $solvingTimeId): void
+    {
+        $this->solvingTimeId = $solvingTimeId;
     }
 
     /**

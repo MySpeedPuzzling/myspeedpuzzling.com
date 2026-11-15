@@ -15,4 +15,7 @@ enum SolvingTimeSource: string
     case Api = 'api';
     // An organizer's results sheet (docs/features/event-results-import/README.md) - the result is the event's
     case EventImport = 'event_import';
+    // A player's own spreadsheet (docs/features/data-import/writer.md) - the result is the player's, written by
+    // ImportedResultWriter beside the add form's handlers
+    case SpreadsheetImport = 'spreadsheet_import';
 }

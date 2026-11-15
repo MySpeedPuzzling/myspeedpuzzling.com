@@ -36,6 +36,18 @@ readonly final class FirstTryAssessor
     }
 
     /**
+     * The same assessment where nobody is signed in, or somebody else is: the entry's actor is the viewer, by id -
+     * a background job saving a player's results (the import's writer). People hidden from that player are left out
+     * exactly as assess() leaves them out for the signed-in player.
+     */
+    public function assessAsActor(FirstTryEntry $entry): FirstTryAssessment
+    {
+        [$times, $members] = $this->visibleTimes($entry, viewerIsActor: true);
+
+        return $this->firstTry($entry, $times, $members);
+    }
+
+    /**
      * The first-try rules (only when the tag is ticked) and the "same time already saved" check (only with a time,
      * docs/features/duplicate-results.md) from the same rows - the forms pay one query for both, none for neither.
      */
@@ -79,12 +91,14 @@ readonly final class FirstTryAssessor
      * @return array{list<FirstTryTime>, list<string>} the results the viewer may be told about, and the people of
      *                                                 the new result who are not hidden from the viewer
      */
-    private function visibleTimes(FirstTryEntry $entry): array
+    private function visibleTimes(FirstTryEntry $entry, bool $viewerIsActor = false): array
     {
         $members = array_values(array_unique(array_map('strtolower', $entry->memberPlayerIds)));
         $viewer = strtolower($entry->actorPlayerId);
 
-        $times = $this->getFirstTryTimes->ofPlayersOnPuzzle($entry->puzzleId, $members, $entry->editedTimeId);
+        $times = $viewerIsActor
+            ? $this->getFirstTryTimes->ofPlayersOnPuzzle($entry->puzzleId, $members, $entry->editedTimeId, viewerPlayerId: $viewer)
+            : $this->getFirstTryTimes->ofPlayersOnPuzzle($entry->puzzleId, $members, $entry->editedTimeId);
 
         // A teammate hidden from the viewer (private without the viewer on their allow list, or blocked) is left
         // out completely: nothing about them may reach the viewer, not even a refusal. Their own conflicts page

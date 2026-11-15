@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * One copy of a duplicate candidate, with every field "identical in every field" compares.
@@ -35,7 +36,18 @@ readonly final class DuplicateCandidateTime
         // A series pick (docs/features/events-page/high-frequency-series.md): the series the player picked - the
         // competition is then the edition MySpeedPuzzling found for it, or none (series-level)
         public null|string $competitionSeriesId = null,
+        // Where it was saved from - null for results older than the column
+        public null|SolvingTimeSource $createdVia = null,
     ) {
+    }
+
+    /**
+     * Written by a spreadsheet import (docs/features/data-import/writer.md): its `tracked_at` is made up from the
+     * solve day, so "saved seconds apart" says nothing about it.
+     */
+    public function isFromSpreadsheetImport(): bool
+    {
+        return $this->createdVia === SolvingTimeSource::SpreadsheetImport;
     }
 
     public function isGroup(): bool

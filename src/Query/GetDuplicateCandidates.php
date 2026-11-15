@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\DuplicateCandidate;
 use SpeedPuzzling\Web\Results\DuplicateCandidateTime;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * Every pair of results that can be a duplicate case, site-wide (docs/features/duplicate-results.md, "Detection").
@@ -191,7 +192,8 @@ SQL;
     {$alias}.unboxed AS {$alias}_unboxed,
     {$alias}.competition_id AS {$alias}_competition_id,
     {$alias}.competition_round_id AS {$alias}_competition_round_id,
-    {$alias}.competition_series_id AS {$alias}_competition_series_id
+    {$alias}.competition_series_id AS {$alias}_competition_series_id,
+    {$alias}.created_via AS {$alias}_created_via
 SQL;
     }
 
@@ -270,6 +272,7 @@ SQL;
             competitionId: $competitionId,
             competitionRoundId: $competitionRoundId,
             competitionSeriesId: $competitionSeriesId,
+            createdVia: is_string($row["{$alias}_created_via"] ?? null) ? SolvingTimeSource::tryFrom($row["{$alias}_created_via"]) : null,
         );
     }
 

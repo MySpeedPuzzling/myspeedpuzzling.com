@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Message\CreateImportFromGoogleSheet;
+use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportUpload;
 use SpeedPuzzling\Web\Services\DataImport\ImportUploadRefusalMessage;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -46,6 +47,7 @@ final class BringImportFileController extends AbstractController
         readonly private RateLimiterFactoryInterface $dataImportUploadLimiter,
         readonly private RateLimiterFactoryInterface $dataImportGoogleLimiter,
         readonly private MessageBusInterface $messageBus,
+        readonly private DataImportRepository $dataImportRepository,
         readonly private LoggerInterface $logger,
     ) {
     }
@@ -74,7 +76,7 @@ final class BringImportFileController extends AbstractController
             // The link's form has this field, the file's form does not
             $viaLink = $request->request->has('google_link');
             $link = $viaLink ? mb_substr($request->request->getString('google_link'), 0, 2000) : '';
-            $received = $viaLink ? $this->receiveLink($link, $player->playerId) : $this->receive($request, $player->playerId);
+            $received = $viaLink ? $this->receiveLink($link, $request->request->getString('import_id'), $player->playerId) : $this->receive($request, $player->playerId);
 
             if ($received['importId'] !== null) {
                 return $this->redirectToRoute('data_import_detail', ['importId' => $received['importId']]);
@@ -87,6 +89,7 @@ final class BringImportFileController extends AbstractController
         return $this->render('data_import/new.html.twig', [
             'refusal' => $refusal !== null ? $this->refusalMessage->of($refusal) : null,
             'google_link' => $link,
+            'google_import_id' => Uuid::uuid7()->toString(),
             'link_refusal' => $linkRefusal !== null ? $this->refusalMessage->of($linkRefusal) : null,
             'refusal_messages' => $this->refusalMessage->all(),
             'accept' => DataImportFileKind::acceptAttribute(),
@@ -99,7 +102,7 @@ final class BringImportFileController extends AbstractController
     /**
      * @return array{importId: null|string, refusal: null|string} the new import, or why the link was not taken
      */
-    private function receiveLink(string $pasted, string $playerId): array
+    private function receiveLink(string $pasted, string $formImportId, string $playerId): array
     {
         $link = GoogleSheetLink::parse($pasted);
 
@@ -108,11 +111,22 @@ final class BringImportFileController extends AbstractController
             return self::refused($link->problem ?? GoogleSheetLink::NOT_A_SHEET);
         }
 
+        // The id the form was rendered with: the same form sent twice (a double click) is one import and one request
+        // of the limit. An id that is not the player's own import is simply not used
+        $importId = Uuid::isValid($formImportId) ? strtolower($formImportId) : Uuid::uuid7()->toString();
+        $existing = $this->dataImportRepository->find($importId);
+
+        if ($existing !== null && $existing->isOwnedBy($playerId) && $existing->googleSpreadsheetId === $link->spreadsheetId) {
+            return ['importId' => $importId, 'refusal' => null];
+        }
+
+        if ($existing !== null) {
+            $importId = Uuid::uuid7()->toString();
+        }
+
         if ($this->dataImportGoogleLimiter->create($playerId)->consume()->isAccepted() === false) {
             return self::refused('google_rate_limited');
         }
-
-        $importId = Uuid::uuid7()->toString();
 
         try {
             $this->messageBus->dispatch(new CreateImportFromGoogleSheet($importId, $playerId, $link->spreadsheetId));

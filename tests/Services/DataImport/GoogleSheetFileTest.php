@@ -158,6 +158,41 @@ final class GoogleSheetFileTest extends TestCase
         self::assertCount(6, GoogleSheetHttpMock::requests());
     }
 
+    public function testAnAllowedHostInUpperCaseIsAskedInLowerCase(): void
+    {
+        GoogleSheetHttpMock::answer(
+            GoogleSheetHttpMock::redirect('https://DOC-0A-1B-Sheets.GoogleUserContent.COM/export/made-up?format=xlsx'),
+            new MockResponse(self::XLSX, ['response_headers' => ['content-type' => self::XLSX_TYPE]]),
+        );
+
+        self::assertSame(strlen(self::XLSX), $this->file()->fetchTo(self::ID, $this->path)->bytes);
+
+        // Looked up, pinned and asked under the one name that was checked
+        $second = GoogleSheetHttpMock::requests()[1];
+        self::assertSame('https://doc-0a-1b-sheets.googleusercontent.com/export/made-up?format=xlsx', $second['url']);
+        self::assertSame(['doc-0a-1b-sheets.googleusercontent.com' => FixedHostAddresses::PUBLIC_ADDRESS], $second['resolve']);
+    }
+
+    public function testARefusedRedirectsAddressIsNotInTheMessage(): void
+    {
+        GoogleSheetHttpMock::answer(GoogleSheetHttpMock::redirect('http://doc-0a-1b-sheets.googleusercontent.com/export/made-up?token=secret-of-the-download'));
+
+        try {
+            $this->file()->fetchTo(self::ID, $this->path);
+            self::fail('The sheet was fetched.');
+        } catch (GoogleSheetNotFetched $e) {
+            self::assertStringContainsString('doc-0a-1b-sheets.googleusercontent.com', $e->getMessage());
+            self::assertStringNotContainsString('secret-of-the-download', $e->getMessage());
+            self::assertStringNotContainsString('/export', $e->getMessage());
+        }
+    }
+
+    public function testADownloadHostWithALineBreakAfterItIsNotOnTheList(): void
+    {
+        self::assertFalse(GoogleSheetFile::isAllowedHost("doc-0a-1b-sheets.googleusercontent.com\n"));
+        self::assertFalse(GoogleSheetFile::isAllowedHost("docs.google.com\n"));
+    }
+
     public function testARefusedRedirectIsNeverRequested(): void
     {
         GoogleSheetHttpMock::answer(GoogleSheetHttpMock::redirect('https://example.com/export.xlsx'), new MockResponse(self::XLSX));

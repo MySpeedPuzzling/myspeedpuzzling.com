@@ -165,6 +165,45 @@ final class ImportGoogleSheetTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="import-soon"]'));
     }
 
+    public function testTheFormSentTwiceIsOneImport(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $this->browser->request('GET', '/en/import/new');
+        $form = $crawler->filter('[data-testid="import-google-card"] form');
+        $token = (string) $form->filter('input[name="_token"]')->attr('value');
+        $formId = (string) $form->filter('input[name="import_id"]')->attr('value');
+        self::assertTrue(Uuid::isValid($formId));
+        $limiter = self::getContainer()->get('limiter.data_import_google')->create(PlayerFixture::PLAYER_WITH_STRIPE);
+        $limiter->reset();
+
+        try {
+            // A double click
+            $this->browser->request('POST', '/en/import/new', ['_token' => $token, 'google_link' => self::LINK, 'import_id' => $formId]);
+            $this->assertResponseRedirects('/en/import/' . $formId);
+            $remaining = $limiter->consume(0)->getRemainingTokens();
+            $this->browser->request('POST', '/en/import/new', ['_token' => $token, 'google_link' => self::LINK, 'import_id' => $formId]);
+            $this->assertResponseRedirects('/en/import/' . $formId);
+
+            self::assertSame(1, $this->countImports(PlayerFixture::PLAYER_WITH_STRIPE));
+            self::assertSame([], $this->queued(StartImportFromGoogleSheet::class), 'Nothing more for the worker');
+            self::assertSame($remaining, $limiter->consume(0)->getRemainingTokens(), 'One form, one request of the limit');
+
+            // The page gives every form an id of its own
+            $crawler = $this->browser->request('GET', '/en/import/new');
+            self::assertNotSame($formId, $crawler->filter('[data-testid="import-google-card"] input[name="import_id"]')->attr('value'));
+
+            // Another player holding that id gets an import of their own - never this one
+            TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+            $this->browser->request('POST', '/en/import/new', ['_token' => $this->token(), 'google_link' => self::LINK, 'import_id' => $formId]);
+            $this->assertResponseStatusCodeSame(302);
+            self::assertNotSame('/en/import/' . $formId, $this->browser->getResponse()->headers->get('Location'));
+            self::assertSame(1, $this->countImports(PlayerFixture::PLAYER_WITH_STRIPE));
+            self::assertSame(1, $this->countImports(PlayerFixture::PLAYER_WITH_FAVORITES));
+        } finally {
+            $limiter->reset();
+        }
+    }
+
     public function testASheetThatIsNotSharedSaysSoAndCanBeTriedAgain(): void
     {
         $importId = $this->pasted(self::LINK);

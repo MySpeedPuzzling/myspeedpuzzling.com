@@ -25,6 +25,9 @@
         <form action="{{ path('data_import_new') }}" method="post">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
 
+            {# One form, one import: sent twice (a double click), the second answers the first's import #}
+            <input type="hidden" name="import_id" value="{{ google_import_id }}">
+
             <label for="data-import-google-link" class="form-label">{{ 'data_import.google.link_label'|trans }}</label>
             <input type="url" inputmode="url" id="data-import-google-link" name="google_link" value="{{ google_link }}"
                    class="form-control{{ link_refusal is not null ? ' is-invalid' }}" style="font-size: 16px; min-height: 44px;"

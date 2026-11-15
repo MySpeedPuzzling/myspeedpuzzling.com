@@ -44,7 +44,7 @@ readonly final class GoogleSheetFile
      * Where the export is downloaded from: `doc-0c-8k-sheets.googleusercontent.com` and its siblings. Not all of
      * `*.googleusercontent.com` - that domain also names Google Cloud customers' machines.
      */
-    public const string DOWNLOAD_HOST_PATTERN = '/^doc-[a-z0-9]{1,12}-[a-z0-9]{1,12}-sheets\.googleusercontent\.com$/';
+    public const string DOWNLOAD_HOST_PATTERN = '/^doc-[a-z0-9]{1,12}-[a-z0-9]{1,12}-sheets\.googleusercontent\.com\z/';
     /** A redirect there is Google asking to sign in: the sheet is not shared */
     private const string SIGN_IN_HOST = 'accounts.google.com';
 
@@ -129,7 +129,8 @@ readonly final class GoogleSheetFile
      */
     private function request(string $url, int $started): ResponseInterface
     {
-        $host = (string) parse_url($url, PHP_URL_HOST);
+        // Lower case already (exportUrl(), nextHop()) - once more, so the lookup, the pin and the check always agree
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         $addresses = $this->hostAddresses->of($host);
 
         if ($addresses === []) {
@@ -186,7 +187,7 @@ readonly final class GoogleSheetFile
             || isset($parts['pass'])
             || isset($parts['port'])
         ) {
-            throw new GoogleSheetNotFetched(GoogleSheetFetchFailure::Refused, 'A redirect to an address that is not plain https: ' . self::shortened($location), unexpected: true);
+            throw new GoogleSheetNotFetched(GoogleSheetFetchFailure::Refused, sprintf('A redirect to %s that is not plain https.', $host === '' ? 'an address without a host' : self::shortened($host)), unexpected: true);
         }
 
         if ($host === self::SIGN_IN_HOST) {
@@ -197,7 +198,8 @@ readonly final class GoogleSheetFile
             throw new GoogleSheetNotFetched(GoogleSheetFetchFailure::Refused, sprintf('A redirect to %s - not a host a Google sheet\'s export comes from.', self::shortened($host)), unexpected: true);
         }
 
-        return $location;
+        // Built again around the host that was checked - in lower case, as it is looked up, pinned and asked
+        return 'https://' . $host . ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
     }
 
     /**

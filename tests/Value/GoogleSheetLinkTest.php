@@ -50,6 +50,13 @@ final class GoogleSheetLinkTest extends TestCase
         yield 'spaces around' => ["  \n" . $base . "/edit#gid=0 \n"];
     }
 
+    public function testAnIdWithALineBreakAfterItIsNoId(): void
+    {
+        self::assertTrue(GoogleSheetLink::isSpreadsheetId(self::ID));
+        self::assertFalse(GoogleSheetLink::isSpreadsheetId(self::ID . "\n"));
+        self::assertFalse(GoogleSheetLink::isSpreadsheetId("\n" . self::ID));
+    }
+
     #[DataProvider('provideOtherLinks')]
     public function testAnythingThatIsNoSheetsDocumentLinkIsRefused(string $pasted, string $problem = GoogleSheetLink::NOT_A_SHEET): void
     {

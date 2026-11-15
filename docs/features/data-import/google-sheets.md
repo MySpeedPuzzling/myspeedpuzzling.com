@@ -14,6 +14,9 @@ posted to the page itself:
 - the link's form is a plain form (`google_link`, the page's CSRF token, no script): POST, then the import's page
   (PRG); a link that is not taken re-renders the page with 422 and the reason **under the link's field**, which keeps
   what was typed;
+- the form carries a hidden `import_id` (a fresh UUIDv7 per rendering): the same form sent twice - a double click -
+  answers the first import and costs one request of the limit; an id that is not the player's own import of that
+  sheet is not used;
 - the hint under the field says how to share the sheet: "Share → Anyone with the link → Viewer" (6 locales; the same
   hint stands next to the "not shared" failure).
 

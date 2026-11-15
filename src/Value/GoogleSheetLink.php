@@ -18,7 +18,7 @@ namespace SpeedPuzzling\Web\Value;
  */
 readonly final class GoogleSheetLink
 {
-    public const string ID_PATTERN = '/^[A-Za-z0-9_-]{20,100}$/';
+    public const string ID_PATTERN = '/^[A-Za-z0-9_-]{20,100}\z/';
 
     public const string NOT_A_SHEET = 'google_link';
     public const string PUBLISHED = 'google_published';

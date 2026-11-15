@@ -1,0 +1,154 @@
+// One conversation (templates/messaging/conversation_detail.html.twig): the page is exactly the
+// viewport high, only the messages scroll and the composer stays at the bottom. No site footer.
+// Phones and tablets get it edge to edge like a native chat app; desktop keeps the card.
+
+body.conversation-page {
+    // The site's `min-height: 100vh` on body (app.scss + the critical CSS) must go: on iPhone 100vh is the screen
+    // with Safari's toolbars hidden, so the page stood taller than the visible part and the composer sat below it
+    min-height: 0;
+    height: 100vh;
+    height: 100dvh;
+
+    > header {
+        flex-shrink: 0;
+    }
+
+    #main-content {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+}
+
+.conversation-section {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.conversation-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    // Below this the page scrolls instead of squeezing the messages away (open mobile menu, landscape phone)
+    min-height: 16rem;
+    overflow: hidden;
+}
+
+.conversation-header,
+.conversation-context,
+.conversation-composer {
+    flex-shrink: 0;
+}
+
+.conversation-header {
+    background-color: #f5f5f5;
+
+    .min-width-0 {
+        min-width: 0;
+    }
+}
+
+.conversation-back-label {
+    max-width: 12rem;
+}
+
+.conversation-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.conversation-composer {
+    background-color: #f5f5f5;
+}
+
+.conversation-input {
+    max-height: 8rem;
+    resize: none;
+}
+
+@include media-breakpoint-down(lg) {
+    body.conversation-page .topbar {
+        display: none;
+    }
+
+    .conversation-section {
+        max-width: none;
+        padding: 0;
+    }
+
+    .conversation-card {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none !important;
+    }
+
+    .conversation-header {
+        padding: .375rem .5rem;
+        background-color: $white;
+        border-bottom: 1px solid $gray-200;
+        border-radius: 0 !important;
+    }
+
+    // Icon-only back arrow and ⋯, like a native chat's navigation bar
+    .conversation-back,
+    .conversation-menu {
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        font-size: 1.125rem;
+    }
+
+    .conversation-back-label {
+        // The title stays for screen readers
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+    }
+
+    .conversation-context {
+        padding: .375rem .75rem !important;
+
+        // Listing actions: small enough to share one line on a phone, the messages keep the screen
+        .btn-sm {
+            padding: .1875rem .5rem;
+            font-size: .75rem;
+        }
+    }
+
+    .conversation-messages {
+        padding: .75rem;
+    }
+
+    .conversation-composer {
+        padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom));
+        background-color: $white;
+        border-top: 1px solid $gray-200;
+        border-radius: 0 !important;
+    }
+
+    .conversation-input {
+        // 16 px keeps iOS from zooming into the field
+        font-size: 1rem;
+        border-radius: 1.25rem;
+        padding: .5rem .875rem;
+    }
+
+    .conversation-send {
+        width: 2.625rem;
+        height: 2.625rem;
+        padding: 0;
+        border-radius: 50%;
+    }
+}

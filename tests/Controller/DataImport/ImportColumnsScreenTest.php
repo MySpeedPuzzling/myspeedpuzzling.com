@@ -54,43 +54,236 @@ final class ImportColumnsScreenTest extends WebTestCase
         $this->bus = self::getContainer()->get(MessageBusInterface::class);
     }
 
-    public function testEverySheetIsACardInItsStateAndThoseThatWaitComeFirst(): void
+    public function testTheCheckStepAsksOneQuestionAScreenAndThenSaysEachSheetInOneSentence(): void
     {
         $importId = $this->imported();
         $this->database->executeStatement("UPDATE data_import_sheet SET set_up_failure = 'parse_failed', parsed_version = NULL WHERE import_id = :id AND title = 'Competitions'", ['id' => $importId]);
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $base = '/en/import/' . $importId;
 
-        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
+        // ---- A sheet asks: the step opens on the question - one a screen, the player's own values read each way ----
+        $crawler = $this->browser->request('GET', $base . '/columns');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('noindex', (string) $this->browser->getResponse()->getContent());
-
+        $screen = $crawler->filter('[data-testid="import-columns-page"]');
+        self::assertSame('question', $screen->attr('data-mode'));
+        self::assertSame('Question 1 of 1', self::spaced($screen->filter('[data-testid="import-check-question-of"]')->text()));
+        self::assertSame('Sheet “2023”', self::spaced($screen->filter('[data-testid="import-check-question-sheet"]')->text()));
+        self::assertSame('How should we read the times in “Time”?', self::spaced($screen->filter('[data-testid="import-check-question-title"]')->text()));
         self::assertSame(
             [
-                // The sheet with a question first, then the file's order
-                ['2023', 'waiting', 'Waits for your answer', 'Results'],
-                ['Puzzle List', 'parsed', 'Rows read: 4 · Could not read: 0 · Not imported: 1', 'Puzzle list the other sheets point to'],
-                ['Results', 'parsed', 'Rows read: 5 · Could not read: 1 · Not imported: 2', 'Results'],
-                ['Competitions', 'failed', 'We could not work this sheet out - a fault on our side', 'Results'],
-                ['Stats', 'left_out', 'Not puzzles - not imported', 'Not puzzles'],
+                ['minutes_seconds', 'Minutes and seconds 45:10 → 0:45:10 52:31 → 0:52:31'],
+                ['hours_minutes', 'Hours and minutes 45:10 → 45:10:00 52:31 → 52:31:00'],
             ],
-            $crawler->filter('[data-testid="sheet-card"]')->each(static fn (Crawler $card): array => [
-                trim($card->filter('[data-testid="sheet-card-title"]')->text()),
-                $card->attr('data-sheet-state'),
-                self::spaced($card->filter('[data-testid="sheet-state"]')->text()),
-                trim($card->filter('[data-testid="sheet-card-kind-name"]')->text()),
+            $screen->filter('[data-testid="import-check-answer"]')->each(static fn (Crawler $answer): array => [$answer->attr('data-value'), self::spaced($answer->text())]),
+        );
+        // An answer is a button of the sheet's own form: nothing is preselected, and the screen has no other primary
+        self::assertCount(2, $screen->filter('form[action="' . $base . '/sheets/' . $this->sheetId($importId, '2023') . '"] button[type="submit"][name="answers[duration_shape.two_part_text]"]'));
+        self::assertCount(0, $screen->filter('input[type="radio"], .btn-primary'));
+        self::assertSame('This decides 2 rows.', self::spaced($screen->filter('[data-testid="import-check-decides"]')->text()));
+        self::assertStringContainsString('These rows depend on one question about your file.', $screen->filter('[data-testid="import-explain-wait"]')->text());
+        self::assertStringContainsString('Everything is saved as you go', $crawler->filter('[data-testid="import-flow-saved"]')->text());
+        self::assertSame($base . '/add', $crawler->filter('[data-testid="import-flow-add-ready"] a')->attr('href'));
+        // "Later" leaves the last question for the summary - the address holds a number, nothing of the file
+        self::assertSame($base . '/columns?summary=1', $screen->filter('[data-testid="import-check-later"]')->attr('href'));
+
+        // ---- The summary: ONE sentence a sheet - what needs a look first, then the file's order ----
+        $crawler = $this->browser->request('GET', $base . '/columns?summary=1');
+        self::assertResponseIsSuccessful();
+        $screen = $crawler->filter('[data-testid="import-columns-page"]');
+        self::assertSame('summary', $screen->attr('data-mode'));
+        self::assertSame('This is how we read your file', self::spaced($screen->filter('h1')->text()));
+        self::assertSame(
+            [
+                ['“Competitions”', 'check', 'failed', 'Something went wrong on our side with this sheet. Nothing is lost.'],
+                ['“2023”', 'check', 'waiting', '2 solo results'],
+                ['“Puzzle List”', 'ok', 'parsed', 'A list the other sheets look puzzles up in - not imported itself'],
+                ['“Results”', 'ok', 'parsed', '6 solo results'],
+            ],
+            $screen->filter('[data-testid="check-sheet"]')->each(static fn (Crawler $sheet): array => [
+                self::spaced($sheet->filter('[data-testid="check-sheet-title"]')->text()),
+                $sheet->attr('data-mark'),
+                $sheet->attr('data-sheet-state'),
+                self::spaced($sheet->filter('[data-testid="check-sheet-line"]')->text()),
             ]),
         );
-
-        // The import in one line, and where its rows are added from: the review (docs/features/data-import/adding-screens.md)
-        // One number a line, a zero is not printed
-        self::assertSame('9 rows read 1 row we could not read 2 rows wait for your answer 1 sheet is not puzzles - not imported', self::spaced($crawler->filter('[data-testid="import-summary"]')->text()));
-        self::assertStringContainsString('Everything is saved as you go', $crawler->filter('[data-testid="import-flow-saved"]')->text());
-        self::assertSame('/en/import/' . $importId . '/add', $crawler->filter('[data-testid="import-flow-add-ready"] a')->attr('href'));
-        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
+        // What the columns were recognised as, in one muted line - every column itself is behind "Change"
+        $results = $screen->filter('[data-testid="check-sheet"]')->eq(3);
+        self::assertSame('Puzzle name, Solved on, Solving time, Attempt number', self::spaced($results->filter('[data-testid="check-sheet-fields"]')->text()));
+        self::assertSame($base . '/sheets/' . $this->sheetId($importId, 'Results'), $results->filter('[data-testid="check-sheet-change"]')->attr('href'));
+        self::assertCount(0, $screen->filter('[data-testid="import-column-picker"], [data-testid="sheet-card-kind"], select'));
+        // The sheet that asks says so, and leads to its question
+        $asking = $screen->filter('[data-testid="check-sheet"]')->eq(1);
+        self::assertSame('1 question waits for you.', self::spaced($asking->filter('[data-testid="check-sheet-questions"]')->text()));
+        self::assertSame($base . '/columns', $asking->filter('[data-testid="check-sheet-answer"]')->attr('href'));
+        // The sheets that are not puzzles: one folded line
+        $notImported = $screen->filter('[data-testid="check-not-imported"]');
+        self::assertSame('1', $notImported->attr('data-sheets'));
+        self::assertSame('“Stats” Not puzzles - not imported. Show', self::spaced($notImported->filter('summary')->text()));
+        self::assertSame($base . '/sheets/' . $this->sheetId($importId, 'Stats'), $notImported->filter('[data-testid="check-not-imported-open"]')->attr('href'));
+        self::assertSame('It does hold puzzles', self::spaced($notImported->filter('[data-testid="check-not-imported-open"]')->text()));
+        // The other half of the step, and ONE primary: the question that still waits
+        self::assertSame($base . '/to-fix', $screen->filter('[data-testid="import-check-rows"] a')->attr('href'));
+        self::assertSame(['Answer 1 question'], $screen->filter('.btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+        self::assertSame($base . '?after=check', $screen->filter('[data-testid="import-flow-continue"]')->attr('href'));
+        self::assertSame(['9', '1', '2', '1'], [
+            $screen->filter('[data-testid="import-check-sheets"]')->attr('data-ready'),
+            $screen->filter('[data-testid="import-check-sheets"]')->attr('data-look'),
+            $screen->filter('[data-testid="import-check-sheets"]')->attr('data-waiting'),
+            $screen->filter('[data-testid="import-check-sheets"]')->attr('data-left-out'),
+        ]);
 
         // Nothing happens by itself any more: the live line is there for the script, hidden
         self::assertSame('false', $crawler->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-working-value'));
         self::assertNotNull($crawler->filter('[data-testid="import-setup-live"]')->attr('hidden'));
+
+        // ---- A tap on an answer saves it and comes back to the step: no question is left, so the summary ----
+        $question = $this->browser->request('GET', $base . '/columns');
+        $this->browser->request('POST', $base . '/sheets/' . $this->sheetId($importId, '2023'), [
+            '_token' => $this->token($question),
+            'version' => '1',
+            'back' => 'check',
+            'q' => '0',
+            'answers' => ['duration_shape.two_part_text' => 'minutes_seconds'],
+        ]);
+        self::assertResponseRedirects($base . '/columns');
+        $this->work();
+        $crawler = $this->browser->request('GET', $base . '/columns');
+        $screen = $crawler->filter('[data-testid="import-columns-page"]');
+        self::assertSame('summary', $screen->attr('data-mode'));
+        self::assertSame('2 solo results', self::spaced($screen->filter('[data-testid="check-sheet"][data-mark="ok"]')->last()->filter('[data-testid="check-sheet-line"]')->text()));
+        // How its times are read is said for the file - whoever settled it
+        self::assertStringContainsString('Minutes and seconds', self::spaced($screen->filter('[data-testid="import-check-readings"]')->text()));
+        // One sheet still needs a look (our fault): the primary says it is left for later
+        self::assertSame(['Continue - I\'ll look at “Competitions” later'], $screen->filter('.btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+        self::assertCount(0, $crawler->filter('[data-testid="import-soon"]'));
+        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
+    }
+
+    public function testASeveralQuestionsAreAskedAcrossSheetsTheSheetWithTheMostRowsFirstAndLaterSkipsOne(): void
+    {
+        $text = RawXlsx::inline(...);
+        // (headers of their own: two sheets with the same headers would share one answer)
+        $ambiguous = static fn (int $rows): array => [1 => [$text($rows > 2 ? 'Puzzle' : 'Title'), $text('Pieces'), $text($rows > 2 ? 'Time' : 'Duration')]] + array_combine(
+            range(2, $rows + 1),
+            array_map(static fn (int $row): array => [$text('Invented puzzle ' . $row), RawXlsx::n('500'), $text(sprintf('%d:1%d', 40 + $row, $row % 10))], range(2, $rows + 1)),
+        );
+        // The smaller sheet stands first in the file - the bigger one is asked about first
+        $importId = $this->imported(sheets: ['Small' => $ambiguous(2), 'Big' => $ambiguous(4)]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $base = '/en/import/' . $importId;
+
+        $first = $this->browser->request('GET', $base . '/columns')->filter('[data-testid="import-columns-page"]');
+        self::assertSame(['Question 1 of 2', 'Sheet “Big”', 'This decides 4 rows.'], [
+            self::spaced($first->filter('[data-testid="import-check-question-of"]')->text()),
+            self::spaced($first->filter('[data-testid="import-check-question-sheet"]')->text()),
+            self::spaced($first->filter('[data-testid="import-check-decides"]')->text()),
+        ]);
+        self::assertSame($base . '/columns?q=1', $first->filter('[data-testid="import-check-later"]')->attr('href'));
+
+        // "Later": the second question - and after the last one, the summary
+        $second = $this->browser->request('GET', $base . '/columns?q=1')->filter('[data-testid="import-columns-page"]');
+        self::assertSame(['Question 2 of 2', 'Sheet “Small”'], [
+            self::spaced($second->filter('[data-testid="import-check-question-of"]')->text()),
+            self::spaced($second->filter('[data-testid="import-check-question-sheet"]')->text()),
+        ]);
+        self::assertSame($base . '/columns?summary=1', $second->filter('[data-testid="import-check-later"]')->attr('href'));
+        self::assertSame('summary', $this->browser->request('GET', $base . '/columns?q=2')->filter('[data-testid="import-columns-page"]')->attr('data-mode'));
+
+        // The second one answered while the first was left: back at the place it was asked at - where nothing stands
+        // any more, so the summary, which still names the question that waits
+        $this->browser->request('POST', $base . '/sheets/' . $this->sheetId($importId, 'Small'), [
+            '_token' => (string) $second->filter('input[name="_token"]')->attr('value'),
+            'version' => '1',
+            'back' => 'check',
+            'q' => '1',
+            'answers' => ['duration_shape.two_part_text' => 'minutes_seconds'],
+        ]);
+        self::assertResponseRedirects($base . '/columns?q=1');
+        $this->work();
+        $summary = $this->browser->followRedirect()->filter('[data-testid="import-columns-page"]');
+        self::assertSame('summary', $summary->attr('data-mode'));
+        self::assertSame(['Answer 1 question'], $summary->filter('.btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+        self::assertSame('Question 1 of 1', self::spaced($this->browser->request('GET', $base . '/columns')->filter('[data-testid="import-check-question-of"]')->text()));
+
+        // What the step reads does not grow with the questions: a question's screen reads the import, its sheets and
+        // the one sheet that asks (3); the summary the import, its sheets, the live line's start and the number of
+        // column set-ups the player has (4)
+        $counts = [];
+
+        foreach (['question' => '/columns', 'summary' => '/columns?summary=1'] as $name => $path) {
+            $this->browser->request('GET', $base . $path);
+            $this->startCountingQueries($this->browser);
+            $this->browser->request('GET', $base . $path);
+            self::assertResponseIsSuccessful();
+            $counts[$name] = $this->queryCount($this->browser);
+        }
+
+        self::assertSame($counts['summary'] - 1, $counts['question']);
+
+        // Somebody else's import is not found - whatever the address asks for
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        foreach (['/columns', '/columns?q=1', '/columns?summary=1'] as $path) {
+            $this->browser->request('GET', $base . $path);
+            self::assertResponseStatusCodeSame(404, $path);
+        }
+    }
+
+    public function testTheStepIsPassedByItselfWhenNothingNeedsThePlayerAndASheetWeAreNotSureAboutIsMarked(): void
+    {
+        $importId = $this->imported();
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $base = '/en/import/' . $importId;
+        $question = $this->browser->request('GET', $base . '/columns');
+        $this->browser->request('POST', $base . '/sheets/' . $this->sheetId($importId, '2023'), ['_token' => $this->token($question), 'version' => '1', 'back' => 'check', 'answers' => ['duration_shape.two_part_text' => 'minutes_seconds']]);
+        $this->work();
+        // The one row that could not be read is not imported
+        $this->database->executeStatement("UPDATE data_import_sheet SET rows_need_look = 0 WHERE import_id = :id", ['id' => $importId]);
+
+        // Everything is certain: step 2 is ticked on "Where you are", and its own screen has ONE primary
+        $detail = $this->browser->request('GET', $base);
+        $check = $detail->filter('[data-testid="import-flow-line"][data-step="check"]');
+        self::assertSame('done', $check->attr('data-state'));
+        self::assertStringContainsString('Read as you would expect.', self::spaced($check->text()));
+        self::assertCount(0, $detail->filter('[data-testid="import-flow-primary"][href="' . $base . '/columns"]'));
+        $summary = $this->browser->request('GET', $base . '/columns')->filter('[data-testid="import-columns-page"]');
+        self::assertSame(['Looks right - continue'], $summary->filter('.btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+        self::assertCount(0, $summary->filter('[data-mark="check"]'));
+
+        // A sheet whose kind we only guessed, and one with a column we are not sure about: "!" and first - the step is
+        // not passed by itself any more, though it never becomes the one thing "Where you are" asks for
+        $this->database->executeStatement("UPDATE data_import_sheet SET mapping = jsonb_set(mapping, '{kindCertainty}', '\"probable\"') WHERE import_id = :id AND title = 'Stats'", ['id' => $importId]);
+        $this->database->executeStatement("UPDATE data_import_sheet SET mapping = jsonb_set(mapping, '{columns,3,certainty}', '\"probable\"') WHERE import_id = :id AND title = 'Results'", ['id' => $importId]);
+        $summary = $this->browser->request('GET', $base . '/columns')->filter('[data-testid="import-columns-page"]');
+        self::assertSame(
+            [
+                ['“Results”', 'check', '5 solo results', 'Have a look'],
+                ['“Stats”', 'check', '2 rows - we are not sure what this sheet is.', 'Tell us'],
+            ],
+            $summary->filter('[data-testid="check-sheet"][data-mark="check"]')->each(static fn (Crawler $sheet): array => [
+                self::spaced($sheet->filter('[data-testid="check-sheet-title"]')->text()),
+                $sheet->attr('data-mark'),
+                self::spaced($sheet->filter('[data-testid="check-sheet-line"]')->text()),
+                self::spaced($sheet->filter('[data-testid="check-sheet-look"]')->text()),
+            ]),
+        );
+        self::assertSame('Please check 1 column.', self::spaced($summary->filter('[data-testid="check-sheet-columns"]')->text()));
+        self::assertCount(0, $summary->filter('[data-testid="check-not-imported"]'), 'the sheet we are not sure about is not folded away');
+        self::assertSame(['Continue - I\'ll look at them later'], $summary->filter('.btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+
+        $detail = $this->browser->request('GET', $base);
+        $check = $detail->filter('[data-testid="import-flow-line"][data-step="check"]');
+        self::assertSame('open', $check->attr('data-state'));
+        self::assertStringContainsString('We are not sure about 2 sheets - have a look.', self::spaced($check->text()));
+        self::assertCount(0, $detail->filter('[data-testid="import-flow-primary"][href="' . $base . '/columns"]'));
+    }
+
+    public function testTheImportsOwnPageSaysWhatTheCheckStepWaitsFor(): void
+    {
+        $importId = $this->imported();
+        $this->database->executeStatement("UPDATE data_import_sheet SET set_up_failure = 'parse_failed', parsed_version = NULL WHERE import_id = :id AND title = 'Competitions'", ['id' => $importId]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
 
         // The import's own page says the same and leads here
         $detail = $this->browser->request('GET', '/en/import/' . $importId);
@@ -251,7 +444,8 @@ final class ImportColumnsScreenTest extends WebTestCase
         $this->database->executeStatement('UPDATE data_import_sheet SET mapping_version = 0, mapping = NULL, parsed_version = NULL WHERE id = :id', ['id' => $failed]);
         $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $failed);
         self::assertResponseRedirects('/en/import/' . $importId . '/columns');
-        $list = $this->browser->followRedirect();
+        // (a sheet of the file still asks its question: the summary is one tap further)
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns?summary=1');
         self::assertSame('true', $list->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-working-value'));
         self::assertCount(1, $list->filter('[data-sheet-state="recognising"]'));
     }
@@ -303,7 +497,9 @@ final class ImportColumnsScreenTest extends WebTestCase
         self::assertStringContainsString('Time: 0:45:10', $crawler->filter('[data-testid="import-sheet-preview"] [data-testid="parsed-row"]')->eq(0)->text());
 
         $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        self::assertSame('13 rows read 1 row we could not read 1 sheet is not puzzles - not imported', self::spaced($list->filter('[data-testid="import-summary"]')->text()));
+        $sheets = $list->filter('[data-testid="import-check-sheets"]');
+        self::assertSame(['13', '1', '0', '1'], [$sheets->attr('data-ready'), $sheets->attr('data-look'), $sheets->attr('data-waiting'), $sheets->attr('data-left-out')]);
+        self::assertSame('1 row we could not read', self::spaced($list->filter('[data-testid="import-check-rows"]')->text()));
     }
 
     public function testAQuestionThatDecidesAFewRowsDoesNotHoldBackItsSheet(): void
@@ -324,13 +520,15 @@ final class ImportColumnsScreenTest extends WebTestCase
         );
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
 
-        // The card shows the sheet's counts - and the question as a button, with the rows it decides
-        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        $card = $list->filter('[data-testid="sheet-card"]');
+        // The step asks the question, with the rows it decides - and the summary counts every row of the sheet
+        $question = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
+        self::assertSame('This decides 2 rows.', self::spaced($question->filter('[data-testid="import-check-decides"]')->text()));
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns?summary=1');
+        $card = $list->filter('[data-testid="check-sheet"]');
         self::assertSame('parsed', $card->attr('data-sheet-state'));
-        self::assertSame('Rows read: 20 · Could not read: 0 · Wait for your answer: 2 · Not imported: 1', self::spaced($card->filter('[data-testid="sheet-state"]')->text()));
-        self::assertSame('Questions to answer: 1 (rows: 2)', $card->filter('[data-testid="sheet-card-answer-some"]')->text());
-        self::assertSame('20 rows read 2 rows wait for your answer', self::spaced($list->filter('[data-testid="import-summary"]')->text()));
+        self::assertSame('22 solo results', self::spaced($card->filter('[data-testid="check-sheet-line"]')->text()));
+        self::assertSame('1 question waits for you.', self::spaced($card->filter('[data-testid="check-sheet-questions"]')->text()));
+        self::assertSame(['20', '2'], [$list->filter('[data-testid="import-check-sheets"]')->attr('data-ready'), $list->filter('[data-testid="import-check-sheets"]')->attr('data-waiting')]);
 
         // The rows that wait are not rows that "need a look"
         $look = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $sheetId . '/need-a-look');
@@ -342,8 +540,9 @@ final class ImportColumnsScreenTest extends WebTestCase
         $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $sheetId, ['_token' => $this->token($page), 'version' => '1', 'answers' => ['duration_shape.two_part_text' => 'minutes_seconds']]);
         self::assertCount(1, $this->work());
         $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        self::assertSame('Rows read: 22 · Could not read: 0 · Not imported: 1', self::spaced($list->filter('[data-testid="sheet-state"]')->text()));
-        self::assertCount(0, $list->filter('[data-testid="sheet-card-answer-some"]'));
+        self::assertSame('summary', $list->filter('[data-testid="import-columns-page"]')->attr('data-mode'));
+        self::assertSame(['22', '0'], [$list->filter('[data-testid="import-check-sheets"]')->attr('data-ready'), $list->filter('[data-testid="import-check-sheets"]')->attr('data-waiting')]);
+        self::assertCount(0, $list->filter('[data-testid="check-sheet-questions"]'));
     }
 
     public function testAChangedColumnAndAOneTapKindAreSavedAsThePlayersWord(): void
@@ -376,17 +575,16 @@ final class ImportColumnsScreenTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $sheetId);
         self::assertStringContainsString('Notes → Public comment', self::spaced($crawler->filter('[data-testid="import-column-line"][data-column="5"]')->text()));
 
-        // One tap on the list: "Competitions" is not puzzles after all
+        // "Competitions" is not puzzles after all: said on its own page ("Change"), and the summary folds it away
         $competitions = $this->sheetId($importId, 'Competitions');
-        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $competitions, ['_token' => $this->token($list), 'version' => '1', 'back' => 'list', 'kind' => 'not_puzzles']);
+        $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $competitions, ['_token' => $this->token($page), 'version' => '1', 'back' => 'list', 'kind' => 'not_puzzles']);
         self::assertResponseRedirects('/en/import/' . $importId . '/columns');
         $this->work();
 
-        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        $card = $list->filter('[data-testid="sheet-card"]')->reduce(static fn (Crawler $card): bool => trim($card->filter('[data-testid="sheet-card-title"]')->text()) === 'Competitions');
-        self::assertSame(['left_out', 'not_puzzles'], [$card->attr('data-sheet-state'), $card->filter('[data-testid="sheet-card-kind-name"]')->attr('data-kind')]);
-        self::assertStringContainsString('2 sheets are not puzzles - not imported', $list->filter('[data-testid="import-summary"]')->text());
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns?summary=1');
+        self::assertSame('2', $list->filter('[data-testid="check-not-imported"]')->attr('data-sheets'));
+        self::assertSame('“Competitions”, “Stats” Not puzzles - not imported. Show', self::spaced($list->filter('[data-testid="check-not-imported"] summary')->text()));
+        self::assertSame('2', $list->filter('[data-testid="import-check-sheets"]')->attr('data-left-out'));
     }
 
     public function testARefusedChangeIsShownAtItsFieldWithA422AndChangesNothing(): void
@@ -519,7 +717,7 @@ final class ImportColumnsScreenTest extends WebTestCase
         foreach ([[PlayerFixture::PLAYER_REGULAR, $importId, $sheetId], [PlayerFixture::PLAYER_WITH_STRIPE, $small, $this->sheetId($small, 'Results')]] as [$player, $import, $sheet]) {
             TestingLogin::asPlayer($this->browser, $player);
 
-            foreach (['columns' => '/columns', 'sheet' => '/sheets/' . $sheet, 'rows' => '/sheets/' . $sheet . '/need-a-look'] as $name => $path) {
+            foreach (['columns' => '/columns?summary=1', 'sheet' => '/sheets/' . $sheet, 'rows' => '/sheets/' . $sheet . '/need-a-look'] as $name => $path) {
                 $this->browser->request('GET', '/en/import/' . $import . $path);
                 $this->startCountingQueries($this->browser);
                 $this->browser->request('GET', '/en/import/' . $import . $path);

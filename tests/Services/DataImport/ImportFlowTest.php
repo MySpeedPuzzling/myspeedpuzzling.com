@@ -153,6 +153,25 @@ final class ImportFlowTest extends TestCase
             'data_import.flow.primary.how_read', 'data_import_columns', 2, null,
         ];
 
+        yield 'a sheet we are not sure about: step 2 is not passed by itself - but never the one thing asked for' => [
+            [
+                'sheets' => [self::sheet(), self::sheet(columnsToCheck: 1), self::sheet(kindSure: false), self::sheet(kind: DataImportSheetKind::NotPuzzles, columnsToCheck: 3)],
+                'add' => ['rowsReady' => 300, 'rowsTaken' => 300, 'results' => 300],
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $done, 5 => $open],
+            [2 => ['data_import.flow.check.unsure']],
+            'data_import.flow.primary.check_and_add', 'data_import_add', 5, null,
+        ];
+
+        yield 'a sheet that asks is counted as a question, not as one we are not sure about' => [
+            ['sheets' => [self::sheet(questions: 1, rowsWaiting: 10, columnsToCheck: 2)]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $done, 5 => $ahead],
+            [2 => ['data_import.flow.check.questions']],
+            'data_import.flow.primary.questions', 'data_import_columns', 2, null,
+        ];
+
         yield 'nobody else is named: step 3 passed by itself' => [
             ['people' => ['people' => 0, 'players' => 0, 'unanswered' => 0], 'add' => ['rowsReady' => 5, 'rowsTaken' => 5, 'results' => 5]],
             ImportFlow::STAGE_STEPS,
@@ -379,6 +398,8 @@ final class ImportFlowTest extends TestCase
         int $rowsUnderstood = 300,
         int $rowsNeedLook = 0,
         int $rowsWaiting = 0,
+        int $columnsToCheck = 0,
+        bool $kindSure = true,
     ): DataImportSheetOverview {
         return new DataImportSheetOverview(
             position: 0,
@@ -395,6 +416,8 @@ final class ImportFlowTest extends TestCase
             failed: $failed,
             rowsWaiting: $rowsWaiting,
             questions: $questions,
+            columnsToCheck: $columnsToCheck,
+            kindSure: $kindSure,
         );
     }
 

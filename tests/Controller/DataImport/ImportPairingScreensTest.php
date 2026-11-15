@@ -157,10 +157,9 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('true', $detail->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-pairing-value'));
         self::assertStringNotContainsString('does not update by itself', (string) $this->browser->getResponse()->getContent());
 
-        // "We found N" on the columns screen
-        $columns = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        self::assertSame('We matched 1 of your 5 puzzles.', self::spaced($columns->filter('[data-testid="import-found-puzzles"] p')->text()));
-        self::assertSame('/en/import/' . $importId . '/puzzles', $columns->filter('[data-testid="import-found-puzzles-open"]')->attr('href'));
+        // Step 2 says nothing of the puzzles: only what needs the player about how the file was read (guided-flow.md §5.4)
+        $columns = $this->browser->request('GET', '/en/import/' . $importId . '/columns?summary=1');
+        self::assertCount(0, $columns->filter('[data-testid="import-found-puzzles"]'));
     }
 
     public function testAListShowsWhatTheFileSaysTheCataloguePuzzleAndWhyItWasPaired(): void

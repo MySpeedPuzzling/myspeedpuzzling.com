@@ -61,6 +61,16 @@
                 {% endif %}
             </p>
         </div>
+        {% if answer.stillWaiting > 0 %}
+            {# Said up front: these rows took the answer and wait with the other question an "Add" found on them #}
+            <p class="alert alert-info fs-sm" data-testid="import-group-answer-still-waiting" data-rows="{{ answer.stillWaiting }}">
+                <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'data_import.once.still_waiting'|trans({'%number%': answer.stillWaiting|format_number}) }}
+                <a href="{{ path('data_import_not_added', {importId: import.importId}) }}">{{ 'data_import.once.answer_them'|trans }}</a>
+            </p>
+        {% endif %}
+        {% if answer.action == 'add_anyway' and answer.addStatus != 'failed' %}
+            <p class="fs-sm text-muted" data-testid="import-group-answer-holds">{{ 'data_import.once.holds'|trans }}</p>
+        {% endif %}
         <div class="d-flex flex-column gap-2 mb-3">
             <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-group-answer-review">
                 <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.review'|trans }}

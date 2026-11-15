@@ -262,10 +262,17 @@ final class ImportAddScreensTest extends WebTestCase
             ['6', '3', '0', '4', '2', '1'],
             [$outcome->attr('data-added'), $outcome->attr('data-already-yours'), $outcome->attr('data-not-added'), $outcome->attr('data-results'), $outcome->attr('data-owned'), $outcome->attr('data-wish-list')],
         );
-        self::assertSame('Results: 4 · Puzzles you own: 2 · Wish list: 1', self::spaced($outcome->filter('[data-testid="import-batch-made"]')->text()));
-        // ... and what explains the gap between rows and things: how the other rows were the player's already
+        // What was added, in plain lines - one number a line
+        self::assertSame(
+            ['4 results', '2 puzzles in your collection', '1 puzzle on your wish list'],
+            $outcome->filter('[data-testid="import-batch-made"] li')->each(static fn (Crawler $line): string => self::spaced($line->text())),
+        );
+        // ... and, folded, what explains the gap between rows and things: how the other rows were the player's already
+        $nothing = $crawler->filter('details[data-testid="import-batch-already-yours"]');
+        self::assertSame('Why some rows added nothing (3)', self::spaced($nothing->filter('summary')->text()));
+        self::assertStringContainsString('These results are on MySpeedPuzzling already', $nothing->filter('[data-testid="import-explain-on-profile"]')->text());
         $how = [];
-        $outcome->filter('[data-testid="import-batch-how"]')->each(static function (Crawler $line) use (&$how): void {
+        $nothing->filter('[data-testid="import-batch-how"]')->each(static function (Crawler $line) use (&$how): void {
             $how[(string) $line->attr('data-how')] = self::spaced($line->text());
         });
         ksort($how);
@@ -277,7 +284,11 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertSame('/en/import/' . $importId . '/added?batch=' . $batchId, $crawler->filter('[data-testid="import-batch-added-link"]')->attr('href'));
         self::assertSame('/en/import/' . $importId . '/undo?batch=' . $batchId, $crawler->filter('[data-testid="import-undo-batch"]')->attr('href'));
         self::assertSame('/en/import/' . $importId . '/undo', $crawler->filter('[data-testid="import-undo-import"]')->attr('href'));
+        // Undo is folded, with what it does said in place - and nothing waits for an answer: ONE primary, the profile
+        self::assertStringContainsString('Undo removes from your profile what this import added', $crawler->filter('details[data-testid="import-batch-undo"] [data-testid="import-explain-undo"]')->text());
+        self::assertSame(['See them on my profile'], $crawler->filter('[data-testid="import-batch-page"] .btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
         self::assertCount(0, $crawler->filter('[data-testid="import-batch-reasons"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-batch-wait"]'));
         $this->browser->request('GET', '/en/import/' . $importId . '/batches/' . $batchId . '/progress');
         self::assertStringContainsString('"running":false', (string) $this->browser->getResponse()->getContent());
 
@@ -699,6 +710,24 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertStringNotContainsString('rror', $crawler->filter('[data-testid="import-batch-page"]')->text());
         self::assertStringNotContainsString('nvalid', $content);
         self::assertSame('/en/import/' . $importId . '/not-added?batch=' . $batchId, $crawler->filter('[data-testid="import-batch-not-added-link"]')->attr('href'));
+        // What waits is asked as question cards, ordered by what the player can do: one answer for the rows that
+        // name nobody, one for "the file says they are here", then the possible duplicates one by one
+        self::assertSame('3 rows wait for your answer.', self::spaced($crawler->filter('[data-testid="import-batch-wait"]')->text()));
+        self::assertStringContainsString('These rows are not on your profile yet', $crawler->filter('[data-testid="import-batch-page"] [data-testid="import-explain-wait"]')->text());
+        self::assertSame(
+            ['import-group-people', 'import-group-said', 'import-group-one-by-one'],
+            $crawler->filter('[data-testid="import-batch-page"] .card[data-testid^="import-group-"]')->each(static fn (Crawler $card): string => (string) $card->attr('data-testid')),
+        );
+        self::assertSame('1 row says pair or team and names nobody.', self::spaced($crawler->filter('[data-testid="import-group-people"] p')->text()));
+        self::assertSame('/en/import/' . $importId . '/not-added?batch=' . $batchId . '#import-not-added-people', $crawler->filter('[data-testid="import-group-people-open"]')->attr('href'));
+        self::assertStringContainsString('Your file says 1 result is on MySpeedPuzzling already - we did not find it.', self::spaced($crawler->filter('[data-testid="import-group-said"]')->text()));
+        self::assertStringContainsString('A column of your file marks these results as already logged here', $crawler->filter('[data-testid="import-explain-said"]')->text());
+        self::assertStringContainsString('Add it only if it is another solve.', $crawler->filter('[data-testid="import-explain-duplicate"]')->text());
+        // ONE primary: the first card's button. "See them on my profile" is quiet beside a question
+        self::assertSame(['Say who you solved with'], $crawler->filter('[data-testid="import-batch-page"] .btn-primary')->each(static fn (Crawler $button): string => self::spaced($button->text())));
+        self::assertStringContainsString('btn-outline-primary', (string) $crawler->filter('[data-testid="import-batch-profile"]')->attr('class'));
+        // A question is asked once per file (slice 6): no "one more question may follow" on the page
+        self::assertCount(0, $crawler->filter('[data-testid="import-batch-one-more"]'));
 
         // The list: each row with its reason and, where it helps, the way to settle it
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/not-added?batch=' . $batchId);
@@ -1081,17 +1110,24 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertCount(10, $this->browser->request('GET', '/en/import/' . $importId . '/added?page=2')->filter('[data-testid="import-added-row"]'));
         // A page past the end is the last one
         self::assertCount(10, $this->browser->request('GET', '/en/import/' . $importId . '/added?page=99')->filter('[data-testid="import-added-row"]'));
+        // A filter is paged in SQL too, and its pages keep it; the search narrows the pages as well
+        $filtered = $this->browser->request('GET', '/en/import/' . $importId . '/added?makes=results');
+        self::assertSame(['60', '50'], [$filtered->filter('[data-testid="import-added-page"]')->attr('data-total'), (string) $filtered->filter('[data-testid="import-added-row"]')->count()]);
+        self::assertSame('/en/import/' . $importId . '/added?makes=results&page=2', $filtered->filter('[data-testid="import-pages-next"]')->attr('href'));
+        self::assertCount(10, $this->browser->request('GET', '/en/import/' . $importId . '/added?makes=results&q=budgetpage&page=2')->filter('[data-testid="import-added-row"]'));
+        self::assertCount(0, $this->browser->request('GET', '/en/import/' . $importId . '/added?makes=wish')->filter('[data-testid="import-added-row"]'));
 
         // What the screens themselves read, on top of what every signed-in page loads: the review - the import, the
         // summary, the sheets, the sample, the equal rows, the rows already yours, the people of the file (stage 6d);
         // the done page - the import and
         // the batch (2; +1 with rows that could not be added)
-        // the batch (2; +1 with rows that could not be added); a list - the import, its counts, a page of rows (3);
+        // the batch, and what is left of the import (3; +1 with rows that could not be added); "What this import
+        // added" - the import, its counts, what the filters offer, a page of rows (4); the rows that wait - 5;
         // the step before an Undo - the import, the batch, what would be taken back (3); an Undo - the import and
-        // the Undo (2; +1 with results it kept); Imports home - the imports and what each added (2)
+        // the Undo (2; +1 with results it kept); Imports home - the imports and where each stands (2)
         $signedIn = $budgets['few']['home'] - 2;
         self::assertSame(
-            ['review' => $signedIn + 5, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 5, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
+            ['review' => $signedIn + 5, 'done' => $signedIn + 3, 'added' => $signedIn + 4, 'not-added' => $signedIn + 5, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
             array_intersect_key($budgets['few'], ['review' => 1, 'done' => 1, 'added' => 1, 'not-added' => 1, 'undo-step' => 1, 'undone' => 1]),
         );
         // The progress the live line asks for: one statement on top of the session's own
@@ -1107,18 +1143,24 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertCount(1, $crawler->filter('button[data-testid="discard-import"]'));
         $token = $this->token($crawler);
-        self::assertCount(0, $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import-added"]'));
+        // Imports home: ONE sentence of status and ONE button a card - before anything was added, what is ready
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertSame(['2 rows ready to add'], $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text())));
+        self::assertSame(['Check and add', '/en/import/' . $importId . '/add'], [self::spaced($card->filter('[data-testid="data-import-button"]')->text()), $card->filter('[data-testid="data-import-button"]')->attr('href')]);
 
-        // While it adds: said on home
+        // While it adds: said on home, with the way to how far it is
         $outcome = $this->add($importId, $player);
-        $home = $this->browser->request('GET', '/en/import');
-        self::assertCount(1, $home->filter('[data-testid="data-import-adding"]'));
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertSame(['Being added to your profile right now.'], $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text())));
+        self::assertSame(['See how far it is', '/en/import/' . $importId . '/batches/' . $outcome->id], [self::spaced($card->filter('[data-testid="data-import-button"]')->text()), $card->filter('[data-testid="data-import-button"]')->attr('href')]);
         $this->work($outcome->id);
 
-        $home = $this->browser->request('GET', '/en/import');
-        self::assertCount(0, $home->filter('[data-testid="data-import-adding"]'));
-        self::assertSame('2', $home->filter('[data-testid="data-import-added"]')->attr('data-results'));
-        self::assertStringContainsString('Added so far - results: 2 · puzzles you own: 0 · wish list: 0', self::spaced($home->filter('[data-testid="data-import-added"]')->text()));
+        // Added, nothing left: the day it was added, and a quiet button
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertMatchesRegularExpression('/^Added 2 on .+\.$/', self::spaced($card->filter('[data-testid="data-import-status"]')->text()));
+        self::assertSame(['See what was added', '/en/import/' . $importId . '/added'], [self::spaced($card->filter('[data-testid="data-import-button"]')->text()), $card->filter('[data-testid="data-import-button"]')->attr('href')]);
+        self::assertStringContainsString('btn-outline-primary', (string) $card->filter('[data-testid="data-import-button"]')->attr('class'));
+        self::assertCount(0, $card->filter('.badge'));
 
         // The import's page: no Discard - it says what is kept, and how to take back what was added
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);

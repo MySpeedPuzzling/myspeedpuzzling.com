@@ -1,8 +1,10 @@
 {% extends 'base.html.twig' %}
 
 {#
-    Imports home - the signed-in player's spreadsheets (docs/features/data-import/upload.md). Phone first: one column
-    of cards, every button at least 44 px tall, long file names break.
+    Imports home - the signed-in player's spreadsheets (docs/features/data-import/guided-flow.md §5.1): each import
+    is a card with its name, ONE status and ONE button; the finished ones are folded below. Phone first: one column
+    of cards, every button at least 44 px tall, long file names break. Variables: in_progress, finished (lists of
+    Services\DataImport\ImportHomeCard), places_taken, limit, results_a_day.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -12,43 +14,52 @@
 
 {% block content %}
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set waiting_cards = in_progress|filter(card => not card.quiet) %}
 <div class="mx-auto" style="max-width: 720px;" data-testid="data-imports-page">
-    <h1 class="h3 mb-2"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ 'data_import.home.title'|trans }}</h1>
-    <p class="text-muted">{{ 'data_import.home.intro'|trans }} <a href="{{ path('import_guide') }}" class="text-nowrap" data-testid="import-guide-link">{{ 'import_guide.to_guide'|trans }}</a></p>
+    <h1 class="h3 mb-2"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'data_import.home.title'|trans }}</h1>
+    <p class="text-muted">{{ 'data_import.after.home.lead'|trans }} <a href="{{ path('import_guide') }}" class="text-nowrap" data-testid="import-guide-link">{{ 'import_guide.to_guide'|trans }}</a></p>
 
-    <a href="{{ path('data_import_new') }}" class="btn btn-primary text-wrap d-inline-flex align-items-center mb-4" style="min-height: 44px;" data-testid="import-a-spreadsheet">
-        <i class="bi bi-upload me-2"></i>{{ 'data_import.home.import_button'|trans }}
-    </a>
-
-    {% if imports is empty %}
-        {# The first visit: what the import is and the ways to start (docs/features/data-import/entry-points.md) #}
-        {{ include('data_import/_first_visit.html.twig', with_context = false) }}
+    {% if places_taken %}
+        {# Three in progress: the sentence instead of the button - each card leads to where one is finished or discarded #}
+        <div data-testid="import-places-taken">
+            <p class="fw-medium mb-1">{{ 'data_import.after.home.places_taken'|trans({'%count%': limit, '%number%': limit|format_number}) }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.places'|trans({'%count%': limit, '%number%': limit|format_number}), testid: 'import-explain-places'}, with_context = false) }}
+        </div>
     {% else %}
-        {# Finished imports hold none of the player's places: folded below the ones in progress (upload.md "Finished") #}
-        {% set in_progress = imports|filter(import => import.status.value != 'done') %}
-        {% set finished = imports|filter(import => import.status.value == 'done') %}
-        {% if in_progress is not empty %}
-            <div class="d-flex flex-column gap-2 mb-4" data-testid="data-imports-in-progress">
-                {% for import in in_progress %}
-                    {{ include('data_import/_import_card.html.twig', {import: import, added: added, csrf: csrf}) }}
-                {% endfor %}
-            </div>
-        {% endif %}
-        {% if finished is not empty %}
-            <details class="mb-4" data-testid="data-imports-finished">
-                <summary class="fw-medium py-2" style="min-height: 44px; cursor: pointer;">{{ 'data_import.finish.group'|trans({'%number%': finished|length}) }}</summary>
-                <div class="d-flex flex-column gap-2 mt-2">
-                    {% for import in finished %}
-                        {{ include('data_import/_import_card.html.twig', {import: import, added: added, csrf: csrf}) }}
-                    {% endfor %}
-                </div>
-            </details>
-        {% endif %}
+        {# The page's own action; while an import waits for the player its card carries the filled button #}
+        <a href="{{ path('data_import_new') }}" class="btn {{ waiting_cards is empty ? 'btn-primary' : 'btn-outline-primary' }} w-100 text-wrap d-flex align-items-center justify-content-center mb-4" style="min-height: 48px;" data-testid="import-a-spreadsheet">
+            <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>{{ 'data_import.home.import_button'|trans }}
+        </a>
     {% endif %}
 
-    {# Puzzles of a spreadsheet that are not in the catalogue - the reader's own page (docs/features/data-import/unlisted-puzzles.md) #}
+    {% if in_progress is empty and finished is empty %}
+        {# The first visit: what the import is and the ways to bring a file (docs/features/data-import/entry-points.md) #}
+        {{ include('data_import/_first_visit.html.twig', with_context = false) }}
+    {% endif %}
+
+    {% if in_progress is not empty %}
+        <div class="d-flex flex-column gap-3 mb-4" data-testid="data-imports-in-progress">
+            {% for card in in_progress %}
+                {{ include('data_import/_import_card.html.twig', {card: card, csrf: csrf, results_a_day: results_a_day}, with_context = false) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if finished is not empty %}
+        {# Finished imports hold none of the player's places: folded below the ones in progress #}
+        <details class="mb-4" data-testid="data-imports-finished">
+            <summary class="fw-medium d-flex align-items-center" style="min-height: 44px; cursor: pointer;">{{ 'data_import.finish.group'|trans({'%number%': finished|length}) }}</summary>
+            <div class="d-flex flex-column gap-3 mt-2">
+                {% for card in finished %}
+                    {{ include('data_import/_import_card.html.twig', {card: card, csrf: csrf, results_a_day: results_a_day}, with_context = false) }}
+                {% endfor %}
+            </div>
+        </details>
+    {% endif %}
+
+    {# Puzzles of a spreadsheet that are not in our database - the player's own page (docs/features/data-import/unlisted-puzzles.md) #}
     <p class="fs-sm text-muted mb-0">
-        <a href="{{ path('unlisted_puzzles') }}" class="d-inline-flex align-items-center py-2" data-testid="unlisted-puzzles-link"><i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.link'|trans }}</a>
+        <a href="{{ path('unlisted_puzzles') }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="unlisted-puzzles-link"><i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.link'|trans }}</a>
     </p>
 </div>
 {% endblock %}

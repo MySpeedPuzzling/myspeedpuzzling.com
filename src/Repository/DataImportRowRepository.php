@@ -266,55 +266,90 @@ SQL, ['importId' => $import->id->toString(), 'rowIds' => $rowIds], ['rowIds' => 
 
     /**
      * The next rows of the import that wait with one reason (refused by an "Add" - of one "Add", or of all), by
-     * their ids' order: what a group answer goes through, a chunk at a time.
+     * their ids' order: what a group answer goes through, a chunk at a time. A row that waits with two questions is
+     * in the group of the first (its `failure`) - the other is answered on the same screen (DataImportGroupAnswer::
+     * $also), or the row joins the other's group once the first is answered.
      *
      * @return list<string>
      */
     public function idsRefusedWith(DataImport $import, string $code, null|string $batchId, null|string $afterRowId, int $limit): array
     {
-        $query = $this->entityManager->createQueryBuilder()
-            ->select('r.id')
-            ->from(DataImportRow::class, 'r')
-            ->where('r.import = :import')
-            ->andWhere('r.state = :waiting')
-            ->andWhere('r.failure = :code')
-            ->orderBy('r.id')
-            ->setParameter('import', $import)
-            ->setParameter('waiting', DataImportRowState::Waiting->value)
-            ->setParameter('code', $code)
-            ->setMaxResults($limit);
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
+SELECT r.id
+FROM data_import_row r
+WHERE r.import_id = :importId
+    AND r.state = 'waiting'
+    AND r.failure = :code
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+    AND (CAST(:after AS UUID) IS NULL OR r.id > CAST(:after AS UUID))
+ORDER BY r.id
+LIMIT :limit
+SQL, [
+            'importId' => $import->id->toString(),
+            'code' => $code,
+            'batchId' => $batchId !== null && Uuid::isValid($batchId) ? $batchId : null,
+            'after' => $afterRowId !== null && Uuid::isValid($afterRowId) ? $afterRowId : null,
+            'limit' => $limit,
+        ])->fetchFirstColumn();
 
-        if ($batchId !== null && Uuid::isValid($batchId)) {
-            $query->andWhere('r.batchId = :batch')->setParameter('batch', $batchId);
-        }
-
-        if ($afterRowId !== null && Uuid::isValid($afterRowId)) {
-            $query->andWhere('r.id > :after')->setParameter('after', $afterRowId);
-        }
-
-        /** @var list<array{id: UuidInterface}> $rows */
-        $rows = $query->getQuery()->getArrayResult();
-
-        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
+        return $ids;
     }
 
     public function countRefusedWith(DataImport $import, string $code, null|string $batchId): int
     {
-        $query = $this->entityManager->createQueryBuilder()
-            ->select('COUNT(r.id)')
-            ->from(DataImportRow::class, 'r')
-            ->where('r.import = :import')
-            ->andWhere('r.state = :waiting')
-            ->andWhere('r.failure = :code')
-            ->setParameter('import', $import)
-            ->setParameter('waiting', DataImportRowState::Waiting->value)
-            ->setParameter('code', $code);
+        /** @var int|string $count */
+        $count = $this->entityManager->getConnection()->executeQuery(<<<SQL
+SELECT COUNT(*)
+FROM data_import_row r
+WHERE r.import_id = :importId
+    AND r.state = 'waiting'
+    AND r.failure = :code
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+SQL, [
+            'importId' => $import->id->toString(),
+            'code' => $code,
+            'batchId' => $batchId !== null && Uuid::isValid($batchId) ? $batchId : null,
+        ])->fetchOne();
 
-        if ($batchId !== null && Uuid::isValid($batchId)) {
-            $query->andWhere('r.batchId = :batch')->setParameter('batch', $batchId);
-        }
+        return (int) $count;
+    }
 
-        return (int) $query->getQuery()->getSingleScalarResult();
+    /**
+     * The next ready results of the import whose file says "already on MySpeedPuzzling" and that have no word of
+     * the player about it, by their ids' order - what the review counts and what an answer given before an "Add"
+     * goes through, each shown to the engine's own question first (ImportRowAdder::openQuestionsOf()). "Ready" is
+     * the one definition (sqlReadyRows()).
+     *
+     * @return list<string>
+     */
+    public function idsOfSaidAlreadyReady(DataImport $import, null|string $afterRowId, int $limit): array
+    {
+        $ready = self::sqlReadyRows();
+
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
+WITH {$ready}
+SELECT r.id
+FROM ready
+INNER JOIN data_import_row r ON r.id = ready.id
+WHERE ready.has_result
+    -- A row kept with the player's unlisted puzzles makes no result on the profile: nothing is asked of it
+    AND ready.choice = 'catalogue'
+    AND ready.equal_row = FALSE
+    AND r.parsed ->> 'alreadyOnMsp' = 'true'
+    AND r.answers -> 'addAnyway' ->> 'said_already_on_profile' IS NULL
+    AND (CAST(:after AS UUID) IS NULL OR r.id > CAST(:after AS UUID))
+ORDER BY r.id
+LIMIT :limit
+SQL, [
+            'importId' => $import->id->toString(),
+            'explicit' => 0,
+            'after' => $afterRowId !== null && Uuid::isValid($afterRowId) ? $afterRowId : null,
+            'limit' => $limit,
+        ])->fetchFirstColumn();
+
+        return $ids;
     }
 
     /**
@@ -514,8 +549,11 @@ SQL;
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
      * @param string $selection more conditions on the row `r` (" AND r.id IN (:rowIds)")
+     * @param string $imports which imports' rows: one import (the default, `:importId`) - or, for a read that counts
+     *        the ready rows of several imports at once (Imports home), a condition on `r.import_id` of its own. The
+     *        rule of "ready" is the same either way; only whose rows are looked at differs
      */
-    public static function sqlReadyRows(string $selection = ''): string
+    public static function sqlReadyRows(string $selection = '', string $imports = 'r.import_id = :importId'): string
     {
         return <<<SQL
 chosen AS (
@@ -541,7 +579,7 @@ chosen AS (
     FROM data_import_row r
     INNER JOIN data_import_sheet sheet ON sheet.id = r.sheet_id
     INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
-    WHERE r.import_id = :importId
+    WHERE {$imports}
         AND sheet.included
         -- The sheet is settled: its rows are read for its current columns and kind, and it is one whose rows are
         -- imported. A sheet the player just changed ("not puzzles", another column) waits for its re-read - until
@@ -592,7 +630,7 @@ SQL;
      *
      * A bulk statement on purpose, in native SQL: "add everything that is ready" of an import is up to 50,000 rows
      * (DataImportLimits::MAX_ROWS) that must not be loaded as objects in a web request to change two columns each;
-     * it writes nothing but `state`, `batch_id` and `failure`.
+     * it writes nothing but `state`, `batch_id`, `failure` and `open_questions`.
      *
      * @param null|list<string> $rowIds only these rows (also rows that were refused or failed before - asked for again)
      * @param null|list<string> $importPuzzleIds only the rows of these distinct puzzles
@@ -631,7 +669,7 @@ SQL;
 WITH {$ready},
 taken AS (
     UPDATE data_import_row
-    SET state = :queued, batch_id = :batchId, failure = NULL
+    SET state = :queued, batch_id = :batchId, failure = NULL, open_questions = NULL
     FROM ready
     WHERE data_import_row.id = ready.id
         AND (ready.has_result = FALSE OR ready.choice = 'unlisted' OR ready.results_so_far <= :resultsLeft)

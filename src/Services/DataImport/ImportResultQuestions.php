@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
+use SpeedPuzzling\Web\Value\SuspicionAssessment;
 
 /**
  * **The one way a result of a spreadsheet becomes a result of the profile**
@@ -59,6 +60,14 @@ use SpeedPuzzling\Web\Value\SolvingTimeSource;
  *
  * Questions 4-7 are waved through by the player's word on the row (`answers.addAnyway`, given for the row as it reads
  * and the puzzle it is paired with - DataImportRow::isWavedThrough()).
+ *
+ * **A question is asked once** (adding.md "A question is asked once"): questions 6 and 7 - the two one answer is
+ * right for - are looked at together. A result that has both open is refused with the first and told both
+ * (`questions`), so its row is not sent back a second time for the other. And an "Add" honours the import's
+ * standing answers (DataImport::$standingAnswers - only an "Add": $standingAnswers): a question the player answered
+ * "add them" for the whole file is not asked of a row that reaches it later - the row's own waiver is written here,
+ * with the row's fingerprint, and everything a single "it is right" stores is stored (SuspiciousTimeConfirmation).
+ * Questions 4 and 5 - a possible duplicate - are never covered by either: one by one, with the result beside them.
  *
  * Called inside a handler's transaction, under the player's import lock: it persists and never flushes.
  */
@@ -94,9 +103,12 @@ readonly final class ImportResultQuestions
      * @param null|Closure(): (null|string) $finerRowsResult asked for a result known to its month or year only: the
      *        result of a finer row of the same file that still waits in the caller's batch (ImportRowAdder adds it
      *        first), by id - null: there is none
+     * @param bool $standingAnswers an "Add" of the import: the import's standing answers count (never for the
+     *        pairing of an unlisted puzzle - a pairing asks again)
      *
-     * @return array{refused: null|string, made: null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string}, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItem: null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable}}
-     *         `refused`: why not (ImportRowRefusal / ImportedResultRefusal); `made`: what the writer wrote
+     * @return array{refused: null|string, questions: list<string>, made: null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string}, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItem: null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable}}
+     *         `refused`: why not (ImportRowRefusal / ImportedResultRefusal); `questions`: every question the result
+     *         waits with when it is refused for one the player can answer for a group - `refused` first; `made`: what the writer wrote
      *         (ImportRowAdder::resultFacts()) - `alreadyTimeId` is then the new result's id; `alreadyHow`: the result
      *         is the player's already - `this_row`, `earlier_import`, `profile`, `equal_row` (a finer row of the
      *         same file is this result) - and `alreadyTimeId` names it
@@ -119,77 +131,40 @@ readonly final class ImportResultQuestions
         null|string $hintedSolvingTimeId = null,
         null|Closure $finerRowsResult = null,
         null|Closure $lastCheck = null,
+        bool $standingAnswers = false,
     ): array {
         $playerId = $player->id->toString();
         $puzzleId = $puzzle->id->toString();
 
-        $known = $this->knownResult($row, $playerId, $sourceKey);
+        $judged = $this->judge($row, $player, $puzzle, $sourceKey, $day, $seconds, $type, $people, $saidAlreadyOnProfile, $precision, $hintedSolvingTimeId, $finerRowsResult, true);
 
-        if ($known !== null) {
-            return self::answer(how: $known['how'], timeId: $known['id']);
+        if ($judged['already'] !== null) {
+            return self::answer(how: $judged['already']['how'], timeId: $judged['already']['id']);
         }
 
-        $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
-        $equal = ImportNeverTwice::equal($free, $day, $seconds, $type, $hintedSolvingTimeId, $precision);
-
-        if ($equal !== null) {
-            return self::answer(how: 'profile', timeId: $equal);
+        if ($judged['refused'] !== null) {
+            return self::answer(refused: $judged['refused']);
         }
 
-        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the coarser row is the result the
-        // finer row of the same file made or was settled with - not a second one (README "Never twice", step 2)
-        if ($precision !== DatePrecision::Day && $seconds !== null) {
-            // A finer row that still waits in the caller's batch goes first (the batch's own part)
-            $finer = $finerRowsResult === null ? null : $finerRowsResult();
-            $finer ??= ImportNeverTwice::equal(
-                $this->neverTwice->resultsOfThisImport($player, $puzzle, $row->import->id->toString()),
-                $day,
-                $seconds,
-                $type,
-                null,
-                $precision,
-            );
+        $unusual = $judged['unusual'];
+        $open = [];
 
-            if ($finer !== null) {
-                return self::answer(how: 'equal_row', timeId: $finer);
+        foreach ($judged['open'] as $question) {
+            // The player's answer for the whole file ("add them"): the row's own word is written now, for the row
+            // as it reads now - exactly what a single answer on the row would have stored
+            if ($standingAnswers && $row->import->hasStandingAnswerFor($question)) {
+                $row->addAnyway([$question], $puzzleId);
+
+                continue;
             }
+
+            $open[] = $question;
         }
 
-        // What the writer would build must be what the row says it is: a "pair" without a partner named would be
-        // written as a solo result, on the solo leaderboard
-        if (PuzzlingType::fromPuzzlersCount(count($people) + 1) !== $type) {
-            return self::answer(refused: ImportRowRefusal::PeopleDoNotFitType->value);
-        }
-
-        if (
-            $type !== PuzzlingType::Solo
-            && $seconds !== null
-            && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzleId) === false
-            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $day, $seconds, $precision)
-        ) {
-            return self::answer(refused: ImportRowRefusal::SomebodyElsesResult->value);
-        }
-
-        if (
-            $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzleId) === false
-            && ImportNeverTwice::similar($free, $day, $seconds, $precision) !== null
-        ) {
-            return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
-        }
-
-        // The time verification's own judgement, as the add form asks it: an unusual time needs the player's "it is
-        // right" (README "Time verification") - and with it the result is added and the answer stored for the scan
-        $unusual = $seconds === null
-            ? null
-            : $this->timeCheck->unusual($playerId, $puzzleId, $seconds, $type, count($people) + 1, $day);
-
-        if ($unusual !== null && $row->isWavedThrough(ImportRowRefusal::UnusualTime->value, $puzzleId) === false) {
-            return self::answer(refused: ImportRowRefusal::UnusualTime->value);
-        }
-
-        // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
-        if ($saidAlreadyOnProfile && $row->isWavedThrough(ImportRowRefusal::SaidAlreadyOnProfile->value, $puzzleId) === false) {
-            return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
+        // Both looked at before the row is sent back: it is told every question it waits with, the first as its
+        // reason
+        if ($open !== []) {
+            return self::answer(refused: $open[0], questions: $open);
         }
 
         $lastRefusal = $lastCheck === null ? null : $lastCheck();
@@ -265,6 +240,140 @@ readonly final class ImportResultQuestions
     }
 
     /**
+     * The questions a result would be sent back with **now**, without writing anything - what the review says before
+     * an "Add" ("Your file says 441 results are on MySpeedPuzzling already - we did not find them") and what an
+     * answer given before an "Add" is taken for. The very steps ask() takes (judge()): a result the player already
+     * has, or one refused by a rule or a possible duplicate, waits with neither question here.
+     *
+     * It reads what is in the database now: the rows of the same "Add" that go first are not added yet, so a
+     * result one of them will pair off with can still look free here. The "Add" itself has the last word.
+     *
+     * @param list<string> $people
+     * @param bool $withTimeCheck false: only "the file says it is on MySpeedPuzzling" is looked at - the time
+     *        verification costs several statements a row
+     *
+     * @return list<string> of ImportRowRefusal::UnusualTime / SaidAlreadyOnProfile, in the order they are asked
+     */
+    public function openQuestions(
+        DataImportRow $row,
+        Player $player,
+        Puzzle $puzzle,
+        string $sourceKey,
+        string $day,
+        null|int $seconds,
+        PuzzlingType $type,
+        array $people,
+        bool $saidAlreadyOnProfile,
+        DatePrecision $precision = DatePrecision::Day,
+        null|string $hintedSolvingTimeId = null,
+        bool $withTimeCheck = true,
+    ): array {
+        return $this->judge($row, $player, $puzzle, $sourceKey, $day, $seconds, $type, $people, $saidAlreadyOnProfile, $precision, $hintedSolvingTimeId, null, $withTimeCheck)['open'];
+    }
+
+    /**
+     * Steps 1-7: everything that is asked before the writer, and nothing written.
+     *
+     * @param list<string> $people
+     * @param null|Closure(): (null|string) $finerRowsResult
+     *
+     * @return array{already: null|array{id: string, how: string}, refused: null|string, open: list<string>, unusual: null|SuspicionAssessment}
+     *         `open`: of the two questions one answer is right for, those the row has no word for - both looked at
+     */
+    private function judge(
+        DataImportRow $row,
+        Player $player,
+        Puzzle $puzzle,
+        string $sourceKey,
+        string $day,
+        null|int $seconds,
+        PuzzlingType $type,
+        array $people,
+        bool $saidAlreadyOnProfile,
+        DatePrecision $precision,
+        null|string $hintedSolvingTimeId,
+        null|Closure $finerRowsResult,
+        bool $withTimeCheck,
+    ): array {
+        $playerId = $player->id->toString();
+        $puzzleId = $puzzle->id->toString();
+        $none = ['already' => null, 'refused' => null, 'open' => [], 'unusual' => null];
+
+        $known = $this->knownResult($row, $playerId, $sourceKey);
+
+        if ($known !== null) {
+            return [...$none, 'already' => $known];
+        }
+
+        $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
+        $equal = ImportNeverTwice::equal($free, $day, $seconds, $type, $hintedSolvingTimeId, $precision);
+
+        if ($equal !== null) {
+            return [...$none, 'already' => ['id' => $equal, 'how' => 'profile']];
+        }
+
+        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the coarser row is the result the
+        // finer row of the same file made or was settled with - not a second one (README "Never twice", step 2)
+        if ($precision !== DatePrecision::Day && $seconds !== null) {
+            // A finer row that still waits in the caller's batch goes first (the batch's own part)
+            $finer = $finerRowsResult === null ? null : $finerRowsResult();
+            $finer ??= ImportNeverTwice::equal(
+                $this->neverTwice->resultsOfThisImport($player, $puzzle, $row->import->id->toString()),
+                $day,
+                $seconds,
+                $type,
+                null,
+                $precision,
+            );
+
+            if ($finer !== null) {
+                return [...$none, 'already' => ['id' => $finer, 'how' => 'equal_row']];
+            }
+        }
+
+        // What the writer would build must be what the row says it is: a "pair" without a partner named would be
+        // written as a solo result, on the solo leaderboard
+        if (PuzzlingType::fromPuzzlersCount(count($people) + 1) !== $type) {
+            return [...$none, 'refused' => ImportRowRefusal::PeopleDoNotFitType->value];
+        }
+
+        if (
+            $type !== PuzzlingType::Solo
+            && $seconds !== null
+            && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzleId) === false
+            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $day, $seconds, $precision)
+        ) {
+            return [...$none, 'refused' => ImportRowRefusal::SomebodyElsesResult->value];
+        }
+
+        if (
+            $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzleId) === false
+            && ImportNeverTwice::similar($free, $day, $seconds, $precision) !== null
+        ) {
+            return [...$none, 'refused' => ImportRowRefusal::SimilarResultExists->value];
+        }
+
+        $open = [];
+
+        // The time verification's own judgement, as the add form asks it: an unusual time needs the player's "it is
+        // right" (README "Time verification") - and with it the result is added and the answer stored for the scan
+        $unusual = $seconds === null || $withTimeCheck === false
+            ? null
+            : $this->timeCheck->unusual($playerId, $puzzleId, $seconds, $type, count($people) + 1, $day);
+
+        if ($unusual !== null && $row->isWavedThrough(ImportRowRefusal::UnusualTime->value, $puzzleId) === false) {
+            $open[] = ImportRowRefusal::UnusualTime->value;
+        }
+
+        // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
+        if ($saidAlreadyOnProfile && $row->isWavedThrough(ImportRowRefusal::SaidAlreadyOnProfile->value, $puzzleId) === false) {
+            $open[] = ImportRowRefusal::SaidAlreadyOnProfile->value;
+        }
+
+        return [...$none, 'open' => $open, 'unusual' => $unusual];
+    }
+
+    /**
      * The writer's own two questions (ImportedResultWriter, "never twice" steps 2 and 3), asked before the profile is
      * looked at: the result this row made that still exists, else a result a row with the same key made - in any of
      * the player's imports. The writer asks them again when it is called.
@@ -324,10 +433,12 @@ readonly final class ImportResultQuestions
      * @param null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string} $made
      * @param null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable} $removed
      *
-     * @return array{refused: null|string, made: null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string}, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItem: null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable}}
+     * @param list<string> $questions
+     *
+     * @return array{refused: null|string, questions: list<string>, made: null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string}, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItem: null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable}}
      */
-    private static function answer(null|string $refused = null, null|array $made = null, null|string $how = null, null|string $timeId = null, null|array $removed = null): array
+    private static function answer(null|string $refused = null, null|array $made = null, null|string $how = null, null|string $timeId = null, null|array $removed = null, array $questions = []): array
     {
-        return ['refused' => $refused, 'made' => $made, 'alreadyHow' => $how, 'alreadyTimeId' => $timeId, 'removedWishListItem' => $removed];
+        return ['refused' => $refused, 'questions' => $questions, 'made' => $made, 'alreadyHow' => $how, 'alreadyTimeId' => $timeId, 'removedWishListItem' => $removed];
     }
 }

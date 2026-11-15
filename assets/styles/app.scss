@@ -166,6 +166,9 @@
 // "My data": the player's own results and puzzles as a table (docs/features/my-data.md)
 @import "my-data";
 
+// One conversation: full-height chat, composer pinned to the bottom (templates/messaging/conversation_detail.html.twig)
+@import "conversation-page";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

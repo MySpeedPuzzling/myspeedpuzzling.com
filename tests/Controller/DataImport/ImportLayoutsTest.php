@@ -127,7 +127,9 @@ final class ImportLayoutsTest extends WebTestCase
         self::assertCount(0, $page->filter('[data-testid="import-question"]'));
 
         $list = $this->browser->request('GET', '/en/import/' . $second . '/columns');
-        self::assertStringContainsString('We used what you set up last time (Training.xlsx - Log)', $list->filter('[data-testid="sheet-card-remembered"]')->text());
+        // The summary of step 2 says it in three words, with what it means - the sheet's own page names the set-up
+        self::assertSame('Read like last time', self::spaced($list->filter('[data-testid="check-sheet-remembered"]')->text()));
+        self::assertStringContainsString('When you confirm how a sheet is read, we remember it.', $list->filter('[data-testid="import-explain-set-ups"]')->text());
         $link = $list->filter('[data-testid="import-saved-layouts"]');
         self::assertSame('Column set-ups we remember (1)', self::spaced($link->text()));
         // Nothing of a header or a value is in an address
@@ -203,8 +205,8 @@ final class ImportLayoutsTest extends WebTestCase
             [2, 1, false],
             array_values((array) $this->database->fetchAssociative('SELECT mapping_version, parsed_version, confirmed_by_player FROM data_import_sheet WHERE id = :id', ['id' => $y2022])),
         );
-        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
-        self::assertCount(3, $list->filter('[data-sheet-state="parsing"]'));
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns?summary=1');
+        self::assertCount(3, $list->filter('[data-testid="check-sheet"][data-sheet-state="parsing"]'));
         // (the queue of a test is emptied with every request: what the confirmation queued is sent again)
         $this->bus->dispatch(new ParseImportSheet($importId, $y2021, 2));
         $layoutId = $this->database->fetchOne('SELECT id FROM import_layout');

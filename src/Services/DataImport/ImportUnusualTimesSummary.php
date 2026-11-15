@@ -31,7 +31,7 @@ readonly final class ImportUnusualTimesSummary
     }
 
     /**
-     * @param array{reasons: array<string, int>, timedResults: int} $counts GetImportAddScreen::notAddedByReason()
+     * @param array{reasons: array<string, int>, timedResults: int, ...} $counts GetImportAddScreen::notAddedByReason()
      *
      * @return array{rows: int, lookedAt: int, faster: int, slower: int, fasterFrom: null|float, fasterTo: null|float, slowerFrom: null|float, slowerTo: null|float, examples: list<array{row: ImportAddRow, direction: string, expected: null|int}>, most: null|string}
      */

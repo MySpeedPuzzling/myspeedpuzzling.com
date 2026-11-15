@@ -48,12 +48,12 @@ renames itself in the guide, in six languages. Only the narration and the questi
 |---|---|---|---|
 | (top) | "How the import works", the lead, the start button, "Free for everyone." | the sample as a small spreadsheet (grey header, row numbers, scrolls inside its card) | `to_guide`, `lead`, `sample.*` |
 | `#step-file` | 1 Your file | the step dots, the file's name, "Rows read: 6" + what happens to the file | `steps.file`, `data_import.explain.file` |
-| `#step-check` | 2 Check | the question "How should we read "3:26"?" with both readings, the sheet's one-sentence summary, the month-only line | `steps.check.*` |
+| `#step-check` | 2 Check | the question "How should we read "3:26"?" with both readings, the sheet's one-sentence summary, the month-only line, the button "Looks right - continue"; a question is asked once per file | `steps.check.*`, `data_import.flow.looks_right` |
 | `#step-people` | 3 People | "Who is Anna?" with the screen's two answers + guest / player explanations | `steps.people`, `data_import.people.*`, `data_import.explain.guest`, `.player_partner` |
 | `#step-puzzles` | 4 Puzzles | Matched (4) with a card, Looks like a match (1) with its tick, Not in our database (1) with "Keep it just for me" / "Don't import it" + the unlisted explanation | `steps.puzzles.*`, `data_import.puzzles.*`, `data_import.explain.unlisted` + `_more` |
 | `#step-add` | 5 Check and add | "5 results ready to add · 1 puzzle kept just for you", three rows (one not imported), the button "Add 5 to my profile" (a `<span>`, `aria-disabled`) + "Don't import" and the daily limit | `steps.add.*`, `data_import.add.button`, `data_import.explain.dont_import`, `.daily_limit` |
 | `#on-your-profile` | What ends up on your profile | the six rows with what each became + what an imported result is | `profile.*`, `data_import.explain.add` |
-| `#take-back` | Undo | an added row with its Undo button | `data_import.undo.*`, `data_import.explain.undo` + `_more` |
+| `#take-back` | Undo - also several rows at once ("Select several" on "What this import added") | an added row with its Undo button | `data_import.undo.*`, `data_import.explain.undo` + `_more`, `several` |
 | `#questions` | Questions people ask - eleven, `<details open>` (no script), also `FAQPage` structured data through `json_ld` | - | `questions.q1..11`, `.a1..11` |
 | `#what`, `#your-file`, `#never-twice`, `#imported-result`, `#unlisted`, `#not-yet` | what the steps did not say: formats and limits, known exports, the file (discard / finish), never twice, an imported result, unlisted puzzles (the screens' explanation), "Not yet" | - | `what.*`, `file.*`, `never_twice.*`, `result.*`, `not_yet.*` |
 | `#start` | the button again | - | `start.title` |
@@ -118,7 +118,8 @@ Have your results or your collection in a spreadsheet? Bring the file - we read 
 profile.", the three ways to bring it - a file, a Google Sheets link, "Coming from Puzzle Tracker?" (export a CSV
 in the app, its columns are known) - and the file's explanation with §12's exact text plus "Nothing is added until
 you … pressed Add". No button of its own: "Import a spreadsheet" above is the page's one primary. Keys
-`import_guide.first.*`, `data_import.home.empty`, `data_import.explain.file`, `data_import.nothing_until_add`. The
+`import_guide.first.*`, `data_import.after.home.empty` (the home's own sentence), `data_import.explain.file`,
+`data_import.nothing_until_add`. The
 page's statements are unchanged.
 
 ## Deliberately not linked, not built

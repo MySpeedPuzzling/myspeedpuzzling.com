@@ -41,6 +41,13 @@ readonly final class ImportAddRow
         /** How many rows of the file are this very result (the row itself counted) - only where a list asks */
         public int $equalRows = 1,
         public bool $addAsSeparate = false,
+        /**
+         * The other questions the row waits with beside its reason (`failure`) - an "Add" found them at the same
+         * time, so they are asked on the same card (docs/features/data-import/adding.md "A question is asked once")
+         *
+         * @var list<string>
+         */
+        public array $alsoWaitsWith = [],
     ) {
     }
 

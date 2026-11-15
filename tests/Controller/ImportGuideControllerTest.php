@@ -129,7 +129,7 @@ final class ImportGuideControllerTest extends WebTestCase
         $text = $crawler->filter('main')->text();
 
         // The screens' own words (guided-flow.md §8) - and none of the engine's or the old ones
-        foreach (['Looks like a match', 'Not in our database', 'Keep it just for me', "Don't import", 'Check and add', 'Undo', 'Add 5 to my profile'] as $word) {
+        foreach (['Looks like a match', 'Not in our database', 'Keep it just for me', "Don't import", 'Check and add', 'Undo', 'Add 5 to my profile', 'Looks right - continue', 'Select several', 'What this import added'] as $word) {
             self::assertStringContainsString($word, $text, $word);
         }
 

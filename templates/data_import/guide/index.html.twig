@@ -81,6 +81,7 @@
             <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">2</span>{{ 'data_import.flow.step.check'|trans }}</h2>
             <p>{{ 'import_guide.steps.check.text'|trans }}</p>
             <p>{{ 'import_guide.steps.check.detail'|trans }}</p>
+            <p>{{ 'import_guide.steps.check.once'|trans({'%button%': 'data_import.flow.looks_right'|trans}) }}</p>
             {{ include('data_import/guide/_figure_open.html.twig', {name: 'check', step: 2}, with_context = false) }}
                 <div class="bg-white border rounded-2 p-2 mb-2">
                     <div class="fw-medium mb-1">{{ 'import_guide.steps.check.question'|trans }}</div>
@@ -89,6 +90,7 @@
                 </div>
                 <div class="fs-sm"><i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>{{ 'import_guide.steps.check.summary'|trans }}</div>
                 <div class="fs-sm text-muted mt-1">{{ 'import_guide.steps.check.month'|trans({'%cell%': 'import_guide.sample.month'|trans}) }}</div>
+                <span class="btn btn-primary w-100 text-wrap mt-2" aria-disabled="true">{{ 'data_import.flow.looks_right'|trans }}</span>
             </figure>
         </section>
 
@@ -176,6 +178,7 @@
         <section class="mb-5" id="take-back" style="{{ anchor_style }}">
             <h2 class="h4">{{ 'data_import.undo.title'|trans }}</h2>
             <p>{{ 'data_import.explain.undo'|trans }} {{ 'data_import.explain.undo_more'|trans }}</p>
+            <p>{{ 'import_guide.several'|trans({'%page%': 'data_import.added.title'|trans, '%select%': 'data_import.after.list.select'|trans}) }}</p>
             {{ include('data_import/guide/_figure_open.html.twig', {name: 'undo'}, with_context = false) }}
                 <div class="d-flex align-items-center gap-2">
                     <div class="flex-grow-1" style="min-width: 0;">{{ include('data_import/guide/_puzzle.html.twig', {row: sample[0]}, with_context = false) }}</div>

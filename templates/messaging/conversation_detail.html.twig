@@ -1,29 +1,37 @@
 {% extends 'base.html.twig' %}
 
 {% set hide_comparison_launcher = true %}
+{# Full-height chat: the messages scroll, the composer stays at the bottom (_conversation-page.scss) #}
+{% set page_body_class = 'conversation-page' %}
 
 {% block title %}{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}{% endblock %}
 
-{% block content %}
-{% include '_return_back_button.html.twig' with {fallbackUrl: path('conversations_list'), fallbackTitle: 'messaging.back_to_messages'|trans} %}
+{% block footer %}{% endblock %}
 
-<div class="card shadow-custom" data-controller="messaging conversation-realtime"
+{% block full_content %}
+<section class="container conversation-section">
+{# safe_return_url rejects anything that could leave the site, like _return_back_button.html.twig #}
+{% set back_url = safe_return_url(app.request.query.get('return'), path('conversations_list')) %}
+{% set back_title = app.request.query.get('return_title') ?? 'messaging.back_to_messages'|trans %}
+
+<div class="card shadow-custom conversation-card" data-controller="messaging conversation-realtime"
      data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
      data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
      data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
-    <div class="card-header d-flex align-items-center justify-content-between" style="background-color: #f5f5f5;">
-        <div class="d-flex align-items-center">
-            {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
-            <div>
-                <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
-                    {{ other_player.name ?? other_player.code }}
-                </a>
-            </div>
-        </div>
+    <div class="card-header conversation-header d-flex align-items-center gap-2">
+        <a href="{{ back_url }}" class="conversation-back btn btn-sm btn-outline-secondary d-inline-flex align-items-center flex-shrink-0" title="{{ back_title }}">
+            <i class="ci-arrow-left" aria-hidden="true"></i>
+            <span class="conversation-back-label text-truncate ms-1">{{ back_title }}</span>
+        </a>
 
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-three-dots"></i>
+        <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="d-flex align-items-center min-width-0 flex-grow-1 text-decoration-none">
+            {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 36, class: 'me-2'}) }}
+            <span class="fw-bold text-truncate">{{ other_player.name ?? other_player.code }}</span>
+        </a>
+
+        <div class="dropdown flex-shrink-0">
+            <button class="btn btn-sm btn-outline-secondary conversation-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'messaging.more_actions'|trans }}">
+                <i class="bi bi-three-dots" aria-hidden="true"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 {% if conversation.status.value == 'accepted' %}
@@ -47,7 +55,7 @@
     </div>
 
     {% if puzzle_context is not null %}
-        <div class="card-body border-bottom bg-light py-2 px-3">
+        <div class="card-body conversation-context border-bottom bg-light py-2 px-3">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="d-flex align-items-center min-width-0">
                     {% if puzzle_context.image %}
@@ -107,7 +115,7 @@
         </div>
     {% endif %}
 
-    <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
+    <div class="card-body conversation-messages" id="messages-container"
          data-messaging-target="messages"
          data-conversation-realtime-target="messages">
 
@@ -170,19 +178,19 @@
     </div>
 
     {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
-        <div class="card-footer position-relative" style="background-color: #f5f5f5;">
+        <div class="card-footer conversation-composer position-relative">
             <div class="d-flex align-items-center text-muted small position-absolute d-none" style="top: -24px; left: 16px;"
                  data-conversation-realtime-target="typingIndicator">
                 <div class="typing-dots me-2"><span></span><span></span><span></span></div>
                 <span>{{ 'messaging.typing'|trans }}</span>
             </div>
-            <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
-                <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-send"></i>
+            <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex align-items-end gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
+                <textarea name="message" class="form-control conversation-input" rows="1" aria-label="{{ 'messaging.type_message'|trans }}" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
+                <button type="submit" class="btn btn-primary conversation-send flex-shrink-0" aria-label="{{ 'messaging.send'|trans }}">
+                    <i class="bi bi-send" aria-hidden="true"></i>
                 </button>
             </form>
-            <div class="text-muted d-none d-md-block mt-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>{{ 'messaging.shift_enter_hint'|trans }}</div>
+            <div class="text-muted d-none d-lg-block mt-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>{{ 'messaging.shift_enter_hint'|trans }}</div>
         </div>
     {% endif %}
 </div>
@@ -212,4 +220,5 @@
         </div>
     </div>
 {% endif %}
+</section>
 {% endblock %}

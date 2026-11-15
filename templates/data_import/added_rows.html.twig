@@ -1,13 +1,20 @@
 {% extends 'base.html.twig' %}
 
 {#
-    The rows the import added (docs/features/data-import/adding-screens.md "The lists"): fifty a page, each with
-    the puzzle, what the row says, what it made and "Take back" - which leads to the step that says what is
-    removed. The page number and a batch's id are all the address holds.
+    "What this import added" (docs/features/data-import/guided-flow.md §7): the rows the import added - of one "Add"
+    or of all - fifty a page, each with the puzzle, what the row says, what it made and "Undo", which leads to the
+    step that says what is removed. By what a row made (the tabs), by sheet and by a part of the puzzle's name -
+    plain links and a GET form, so the address is the list (ids, a kind, the page and the player's own search text).
+
+    "Select several" (`select=1`) turns the Undo buttons into tick boxes; the bar's "Undo the ticked" is a plain GET
+    form to the same step before an Undo, with the ids of the ticked rows - one Undo for all of them. A script only
+    counts the ticks on the button. Phone first: one column, every target 44 px.
 #}
 
 {% set hide_comparison_launcher = true %}
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set here = {importId: import.importId}|merge(filters) %}
+{% set filtered = filters.q is defined or filters.makes is defined or filters.sheet is defined %}
 
 {% block title %}{{ 'data_import.added.title'|trans }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -15,59 +22,151 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-added-page" data-import-flow-screen="added_rows" data-rows="{{ counts.added }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-added-page" data-import-flow-screen="added_rows" data-rows="{{ counts.added }}" data-total="{{ total }}" data-selecting="{{ selecting ? '1' : '0' }}">
     <h1 class="h3 mb-2">{{ 'data_import.added.title'|trans }}</h1>
+    <p class="text-muted fs-sm mb-2">{{ (batch_id is null ? 'data_import.added.intro' : 'data_import.added.intro_batch')|trans({'%number%': counts.added|format_number}) }}</p>
     {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, more: 'data_import.explain.undo_more'|trans, testid: 'import-explain-undo'}, with_context = false) }}
-    <p class="text-muted fs-sm">{{ (batch_id is null ? 'data_import.added.intro' : 'data_import.added.intro_batch')|trans({'%number%': counts.added|format_number}) }}</p>
 
-    {% if rows is empty %}
+    {% if counts.added == 0 and not filtered %}
         <p class="text-muted" data-testid="import-added-none">{{ 'data_import.added.none'|trans }}</p>
     {% else %}
-        <div class="d-flex flex-column gap-2">
-            {% for row in rows %}
-                <div class="card card-body shadow-sm p-3" data-testid="import-added-row" data-row-id="{{ row.rowId }}">
-                    {{ include('data_import/_add_row.html.twig', {row: row}) }}
-                    <div class="fs-sm mt-2">
-                        {% if row.solvingTimeId is not null %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.result'|trans }}</span>{% endif %}
-                        {% if row.madeCollectionItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.collection'|trans }}</span>{% endif %}
-                        {% if row.madeWishListItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.wish_list'|trans }}</span>{% endif %}
-                        {% if row.addedAt is not null %}<span class="text-muted">{{ row.addedAt|format_date('medium') }}</span>{% endif %}
-                    </div>
-                    {% if row.keptByUndo %}
-                        <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-added-kept">{{ 'data_import.added.kept'|trans }}</p>
-                    {% endif %}
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        {% if row.solvingTimeId is not null %}
-                            <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-result">
-                                <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.added.see_result'|trans }}
-                            </a>
+        {# What a row made #}
+        <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="{{ 'data_import.added.title'|trans }}" data-testid="import-added-tabs">
+            {% for makes, label in {all: 'data_import.add_list.tab.all', results: 'data_import.add_list.tab.results', collection: 'data_import.add_list.tab.collection', wish: 'data_import.add_list.tab.wish'} %}
+                {% set count = tabs[makes] %}
+                {% set active = filters.makes|default('all') == makes %}
+                {% if makes == 'all' or count > 0 or active %}
+                    <a href="{{ path('data_import_added', {importId: import.importId}|merge(filters|filter((value, key) => key != 'makes'))|merge(makes == 'all' ? {} : {makes: makes})) }}"
+                       class="btn btn-sm {{ active ? 'btn-secondary' : 'btn-outline-secondary' }} d-inline-flex align-items-center" style="min-height: 44px;"
+                       data-testid="import-added-tab" data-makes="{{ makes }}" data-count="{{ count }}"{% if active %} aria-current="page"{% endif %}>
+                        {{ label|trans }} <span class="ms-1{{ active ? '' : ' text-muted' }}">{{ count|format_number }}</span>
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </nav>
+
+        {# Search and sheet: a plain GET form - the player's own text is the only thing of a file an address holds #}
+        <form action="{{ path('data_import_added', {importId: import.importId}) }}" method="get" class="mb-2" data-testid="import-added-search" role="search">
+            {% for name in ['batch', 'makes', 'select'] %}
+                {% if filters[name] is defined %}<input type="hidden" name="{{ name }}" value="{{ filters[name] }}">{% endif %}
+            {% endfor %}
+            <div class="d-flex gap-2">
+                <input type="search" name="q" value="{{ filters.q|default('') }}" maxlength="100" class="form-control" style="min-height: 44px; font-size: 16px;"
+                       placeholder="{{ 'data_import.add_list.search.label'|trans }}" aria-label="{{ 'data_import.add_list.search.label'|trans }}" autocomplete="off" data-testid="import-added-q">
+                <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-added-go">{{ 'data_import.add_list.search.go'|trans }}</button>
+            </div>
+            {% if sheets|length > 1 %}
+                <label class="fs-sm text-muted mt-2 mb-1" for="import-added-sheet">{{ 'data_import.add_list.sheet.label'|trans }}</label>
+                <select name="sheet" id="import-added-sheet" class="form-select" style="min-height: 44px; font-size: 16px;" data-testid="import-added-sheet">
+                    <option value="">{{ 'data_import.add_list.sheet.all'|trans }}</option>
+                    {% for sheet in sheets %}
+                        <option value="{{ sheet.id }}"{% if filters.sheet|default('') == sheet.id %} selected{% endif %}>{% if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif %} ({{ sheet.rows|format_number }})</option>
+                    {% endfor %}
+                </select>
+            {% elseif filters.sheet is defined %}
+                <input type="hidden" name="sheet" value="{{ filters.sheet }}">
+            {% endif %}
+            {% if filters.q is defined or filters.sheet is defined %}
+                <a href="{{ path('data_import_added', {importId: import.importId}|merge(filters|filter((value, key) => key not in ['q', 'sheet']))) }}" class="d-inline-flex align-items-center fs-sm mt-1" style="min-height: 44px;" data-testid="import-added-clear">{{ 'data_import.add_list.search.clear'|trans }}</a>
+            {% endif %}
+        </form>
+
+        {# One row at a time - or several with one Undo #}
+        <p class="mb-3">
+            {% if selecting %}
+                <a href="{{ path('data_import_added', here|filter((value, key) => key != 'select')|merge({page: page})) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-select-off" rel="nofollow">{{ 'data_import.after.list.select_off'|trans }}</a>
+            {% elseif rows is not empty %}
+                <a href="{{ path('data_import_added', here|merge({select: 1, page: page})) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-select" rel="nofollow"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.after.list.select'|trans }}</a>
+            {% endif %}
+        </p>
+
+        {% if rows is empty %}
+            <p class="text-muted" data-testid="import-added-no-hit">{{ (filters.q is defined ? 'data_import.add_list.no_hit' : 'data_import.after.list.no_such')|trans }}</p>
+        {% else %}
+            {% if selecting %}
+                {# What the button says for 0, 1, 2 … ticked boxes - rendered here, so the script needs no plural rules #}
+                {% set labels = [] %}
+                {% for ticked in 0..rows|length %}
+                    {% set labels = labels|merge([ticked == 0 ? 'data_import.after.list.undo_ticked_plain'|trans : 'data_import.after.list.undo_ticked'|trans({'%count%': ticked, '%number%': ticked|format_number})]) %}
+                {% endfor %}
+                <form action="{{ path('data_import_undo', {importId: import.importId}) }}" method="get" data-testid="import-added-select-form"
+                      data-controller="data-import-ticks" data-data-import-ticks-labels-value="{{ labels|json_encode }}">
+                    <input type="hidden" name="ticked" value="1">
+                    {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+            {% endif %}
+
+            <div class="d-flex flex-column gap-2">
+                {% for row in rows %}
+                    <div class="card card-body shadow-sm p-3" data-testid="import-added-row" data-row-id="{{ row.rowId }}">
+                        {% if selecting and not row.beingTakenBack %}
+                            <label class="d-flex gap-2 mb-0" style="cursor: pointer;" for="undo-row-{{ row.rowId }}">
+                                <input type="checkbox" class="form-check-input flex-shrink-0 mt-1" style="width: 1.5rem; height: 1.5rem;" name="rows[]" value="{{ row.rowId }}" id="undo-row-{{ row.rowId }}"
+                                       data-data-import-ticks-target="box" data-action="data-import-ticks#count" data-testid="import-added-tick">
+                                <span class="flex-grow-1" style="min-width: 0;">{{ include('data_import/_add_row.html.twig', {row: row}) }}</span>
+                            </label>
+                        {% else %}
+                            {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                        {% endif %}
+                        <div class="fs-sm mt-2">
+                            {% if row.solvingTimeId is not null %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.result'|trans }}</span>{% endif %}
+                            {% if row.madeCollectionItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.collection'|trans }}</span>{% endif %}
+                            {% if row.madeWishListItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.wish_list'|trans }}</span>{% endif %}
+                            {% if row.addedAt is not null %}<span class="text-muted">{{ row.addedAt|format_date('medium') }}</span>{% endif %}
+                        </div>
+                        {% if row.keptByUndo %}
+                            <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-added-kept">{{ 'data_import.added.kept'|trans }}</p>
                         {% endif %}
                         {% if row.beingTakenBack %}
-                            <span class="fs-sm text-muted d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.added.being_taken_back'|trans }}</span>
-                        {% else %}
-                            <a href="{{ path('data_import_undo', {importId: import.importId, row: row.rowId}) }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-take-back" rel="nofollow">
-                                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.row'|trans }}
-                            </a>
+                            <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.added.being_taken_back'|trans }}</p>
+                        {% elseif not selecting %}
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% if row.solvingTimeId is not null %}
+                                    <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-result">
+                                        <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.added.see_result'|trans }}
+                                    </a>
+                                {% endif %}
+                                <a href="{{ path('data_import_undo', {importId: import.importId, row: row.rowId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-take-back" rel="nofollow">
+                                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.row'|trans }}
+                                </a>
+                            </div>
                         {% endif %}
                     </div>
-                </div>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
 
-        {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_added', parameters: batch_id is null ? {importId: import.importId} : {importId: import.importId, batch: batch_id}, label: 'data_import.added.title'|trans}) }}
-
-        <div class="d-flex flex-column gap-2 mt-4">
-            {% if batch_id is not null %}
-                <a href="{{ path('data_import_undo', {importId: import.importId, batch: batch_id}) }}" class="btn btn-outline-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-batch" rel="nofollow">
-                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.batch'|trans }}
-                </a>
+            {% if selecting %}
+                    {# The bar: ONE Undo for every ticked row of this page - the step after it says what is removed #}
+                    <div class="bg-body border-top py-2 mt-3" style="position: sticky; bottom: 0; z-index: 20;" data-testid="import-added-bar">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-data-import-ticks-target="button" data-testid="import-added-undo-ticked">
+                            <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i><span data-data-import-ticks-target="label">{{ 'data_import.after.list.undo_ticked_plain'|trans }}</span>
+                        </button>
+                        <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.after.list.undo_ticked_hint'|trans }}</p>
+                    </div>
+                </form>
             {% endif %}
-            <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-link text-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
-                {{ 'data_import.undo.import'|trans }}
-            </a>
-        </div>
+
+            {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_added', parameters: here, label: 'data_import.added.title'|trans}, with_context = false) }}
+        {% endif %}
+
+        {% if not selecting and counts.added > 0 %}
+            <div class="d-flex flex-column mt-4">
+                {% if batch_id is not null %}
+                    <a href="{{ path('data_import_undo', {importId: import.importId, batch: batch_id}) }}" class="btn btn-link px-0 text-start text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-undo-batch" rel="nofollow">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.batch'|trans }}
+                    </a>
+                {% endif %}
+                <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-link px-0 text-start text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.import'|trans }}
+                </a>
+            </div>
+        {% endif %}
     {% endif %}
 
-    {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add'}, with_context = false) }}
+    {# Selecting: the bar's "Undo the ticked" is the screen's one primary. Else the way on #}
+    {% if selecting and rows is not empty %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add'}, with_context = false) }}
+    {% endif %}
 </div>
 {% endblock %}

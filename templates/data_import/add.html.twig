@@ -266,6 +266,14 @@
         </div>
     {% endif %}
 
+    {# --- "Your file says these are on MySpeedPuzzling already - we did not find them": asked before the "Add",
+           looked up apart into this frame (ImportAddSaidAlreadyController). Nothing to ask: the frame stays empty --- #}
+    {% if add.rowsTaken > 0 %}
+        <div id="already-on" data-controller="data-import-times-frame">
+            <turbo-frame id="import-add-said" src="{{ path('data_import_add_said', {importId: import.importId}) }}" loading="lazy" data-testid="import-add-said-frame"></turbo-frame>
+        </div>
+    {% endif %}
+
     {# --- The same result on several rows: one result or three? --- #}
     {% if equal_groups is not empty %}
         <div class="card card-body shadow-sm mb-3" id="equal-rows" data-testid="import-add-equal">

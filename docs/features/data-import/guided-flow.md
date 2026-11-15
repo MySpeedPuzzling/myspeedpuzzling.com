@@ -1364,3 +1364,161 @@ card whose brand or piece count differs.
 script (`data_import_ticks_controller.js`, `data_import_pile_controller.js`) was executed; both were only parsed.
 The screens are covered by `ImportPuzzlesInBulkTest`, `ImportPuzzleBulkConfirmTest`, `ImportPairingScreensTest` and
 `ImportFlowScreensTest` as a browser without scripts sees them.
+
+## As built - slice 6 (a question is asked once per file)
+
+What shipped with slice 6, and where it differs from §5.9 / §5.10 - each with its reason. **[logic]**: the engine's
+question path changed *when* it asks, never *whether*; the full description is adding.md "A question is asked once"
+and adding-screens.md. One generated migration (`data_import.standing_answers`, `data_import_row.open_questions`,
+`data_import_group_answer.also` + `rows_still_waiting`). The add-result form and `ImportedResultWriter` are
+untouched.
+
+**Built**
+
+- **Both group questions in one pass** - `ImportResultQuestions::judge()`: an unusual time and "the file says it is
+  on MySpeedPuzzling" are looked at together; the row is told both (`open_questions`), its reason is the first.
+  The card of the unusual times asks the other question for the rows that have both, on the same screen; a row's
+  own card says both and its one button answers both. Answered for one, a row waits for the other only.
+- **"Already on MySpeedPuzzling" before the Add** - a lazy frame of "Check and add" with the count the engine
+  itself gives (`ImportSaidAlreadyCheck` → `ImportRowAdder::openQuestionsOf()` → the same `judge()`), and the two
+  answers as a group answer given before the "Add" (`AnswerImportRowsGroup` with `before_add` for this reason too).
+- **A standing answer per import** - `data_import.standing_answers`, written by every "add them" for a group, read
+  by `ImportResultQuestions::ask()` for an "Add": the row's own waiver (with its fingerprint) and the
+  `SuspiciousTimeConfirmation` are written when the row is added. Shown before every "Add" with what it covers
+  this time, and "Change".
+- Six locales (`data_import.once.*`), `ImportQuestionsOnceTest`, two more cases and one test in
+  `ImportResultQuestionsParityTest`.
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §5.9 "> 2 quick questions before adding" (one folded line) | Two blocks of the review, each a lazy frame: the times (as before) and "Already on MySpeedPuzzling?". No count of questions in a heading. | Each block asks the engine about rows one by one (several statements a row) - they stay off the review's own statements; the review can not know how many questions there are without them. |
+| §5.10 table: standing answer `{unusual_time: right, said_already: missing}` "read by `ImportRowAdder`" | `{"unusual_time": "<when>", "said_already_on_profile": "<when>"}` (the engine's codes, the moment as the value), read in `ImportResultQuestions::ask()` with `standingAnswers: true` passed by `ImportRowAdder`. | One place asks the questions; the pairing of an unlisted puzzle calls the same method and must **not** honour it. |
+| §5.10 "a standing answer" as a separate choice ("for all of them") | Every "add them" for a group **is** the standing answer; the screen says so under the buttons. "Don't import them" never stands. | A second button with nearly the same words would be one more thing to read; the group buttons already mean "all of them". Leaving out is not remembered: it removes rows, and a later row may be another case. |
+| §5.10 wording "416 times are much faster or slower than your results here" / "Your file says 441 results are…" | "Unusual times: 416" stays (slice 5 owns the cards); the new block says "Your file says these results are on MySpeedPuzzling already, and we did not find them: 441". | Counts stand after a colon everywhere in the import's texts - no plural forms to get wrong in six languages. |
+| A row edited after a standing answer | Covered: its waiver is written when it is added, for the row as it reads then. | The answer is to the question for the file. The per-row rule did not move: a waiver given before a change still fails closed, and without a standing answer the row is asked again. |
+| "Both answers on one screen" for "don't import" | On the unusual-times card the other answer is "They are missing - add them too" or "Don't import those (N)", required for "add them"; a form without it (an older page) leaves the rows waiting for the other question. | Nothing is preselected - "add" must never be a default. |
+| The done page's "Some rows can have one more question after this one." | Not on a screen (slice 5 did not ship the sentence); with this slice it would be untrue for the two group questions. A possible duplicate can still follow - it is asked first, alone. | - |
+| The count before the Add | Bounded at 500 marked rows ("Of the first 500 we looked at…"); the answer itself covers every marked row. | A few statements a row. |
+
+**Loose end closed:** "a row with two doubts is asked twice" (docs/TODO.md - the line is to be ticked by whoever
+merges; this slice does not edit that file).
+
+**Not verified:** nothing of this slice was run in a browser - no screen was looked at at 360 px; the radios'
+`required` and the second button's `formaction` / `formnovalidate` were only read as markup by the tests' browser
+without scripts. `partner_daily_limit` / `too_many_partners` under a standing answer are not in the new table test
+(they need hundreds of rows); `ImportPeopleTest` covers them unchanged and they are asked after the questions, as
+before.
+
+## As built - slices 4 and 5 (the Check step folded; after the Add)
+
+What shipped with slices 4 and 5 together, and where it differs from §5.1, §5.4, §5.10 and §7 - each with its
+reason. No table, no migration. Nothing the import reads, matches or adds was changed: `ImportRowAdder`, the
+matching, the writer, `UndoImportRowsHandler` and the add-result form are untouched. The one line of the engine's
+own SQL that moved is a parameter of `DataImportRowRepository::sqlReadyRows()` (below) whose default is the SQL as
+it was.
+
+**Built - slice 4, step 2 "Check"** (`columns.html.twig`, `ImportColumnsController`)
+
+- **The step shows only what needs the player.** While a sheet asks: **one question a screen**, across all sheets,
+  the sheet with the most rows first - "Question 1 of 2", the sheet's name, the question, and each answer as a
+  button with the player's own values read each way (the sheet page's question cards, the same `ImportSheetScreen`
+  view). **A tap on an answer is the action**: the button is a submit of the sheet's own form
+  (`ConfirmImportSheetController`, `ConfirmImportMapping` - no new message), with `back=check` and the place in the
+  row of questions (`q`, a number), so the answer comes back to the next question. Nothing is preselected; the
+  screen has no primary of its own. "This decides 212 rows." with the explanation of §12; **Later** (`?q=N+1` - after
+  the last question, the summary); "See every sheet" (`?summary=1`).
+- **The summary** - the last screen of the step, the only one when nothing is asked: ONE sentence a sheet of what
+  its rows are **added as** (the sentence table of §5.4: solo / pair / team results, "as each row says", results
+  whose puzzles go to the collection, puzzles owned, wishes, "a column says which", the puzzle list other sheets
+  look up in), the recognised fields in one muted line (or "We know this file…" for a known export, "Read like last
+  time" with its explanation for a remembered set-up), and **Change** - the sheet's own page, unchanged. A sheet
+  that asks, one whose reading went wrong on our side, and one we are **not sure about** (an unsure kind, or - on a
+  sheet that is imported - a column under "Please check these") stand first with "!" and a button ("Answer" /
+  "Have a look" / "Tell us"). The sheets that are not puzzles are **one folded line** ("“Notes”, “Stats” + 6 more -
+  Not puzzles - not imported. Show"), each with "It does hold puzzles". How dates and times are read is said once
+  for the file (`ImportSheetReadings`, every reading whoever settled it). ONE primary: **Looks right - continue**;
+  with something left - "Continue - I'll look at “2019” later" / "…at them later"; with a question skipped -
+  "Answer N questions" (and "Continue - I'll answer later" as a link). The file's own table of sheets stays folded
+  at the end.
+- **`DataImportSheetOverview`** **[small]** gains `rowMeaning`, `solvingType`, `fieldsRecognised`, `columnsToCheck`,
+  `kindSure`, `knownExport`, `readings` - read from the stored mapping and options **in the one statement**
+  `GetDataImports::sheetsOfPlayer()` already ran (jsonb expressions; no statement per sheet). `addedAs()` is the
+  sentence's key, `isUnsure()` the "!" rule. The summary reads four statements whatever the number of sheets, a
+  question's screen three (the import, its sheets, the one sheet that asks) - asserted in
+  `ImportColumnsScreenTest`.
+- **Passed by itself:** `ImportFlow` counts the sheets we are not sure about: step 2 then says "We are not sure
+  about N sheets - have a look." and is **open** - it is ticked only when every sheet is certain (§2).
+
+**Built - slice 5, after the Add**
+
+- **The done page** (`batch.html.twig`, `ImportBatchController`) in the order of §5.10: what was added as plain
+  lines (one number a line, zeros left out); "N rows wait for your answer" with what that means; the **question
+  cards** (`_group_cards.html.twig` with `cards`), ordered by what the player can do - who they solved with (one
+  answer), unusual times, "the file says they are here already" (its two forms unchanged), possible duplicates
+  (one by one) - each one sentence, its explanation of §12 and ONE button; **See them on my profile**; the links for what is left ("What was added - undo any row", the
+  rows of puzzles still to match, what can be added tomorrow with the daily limit's explanation - or what else is
+  ready); "Statistics, XP and achievements follow…"; and folded: "Not added this time", "Why some rows added
+  nothing (N)" with *on your profile already*, "Undo this" with what Undo does. **ONE primary:** the first question
+  card's button - else "See them on my profile" - else Continue. One statement more than before
+  (`GetImportAddScreen::summary()`, only once the Add is through) for the links.
+- **"What this import added"** (`added_rows.html.twig`, `ImportAddedRowsController`): tabs by what a row made (with
+  counts), a GET search (the player's own text - the only thing of a file an address holds; the catalogue's names
+  through `PuzzleTextSearch`, the file's name as typed), a sheet filter, fifty a page - **all in SQL**
+  (`GetImportAddScreen::added()` with `makes` / `sheetId` / `search`, `addedOverview()` for the tabs and the sheets
+  in one statement). Per row **Undo** (its confirm page kept). Four statements whatever the rows and the filters.
+- **"Undo the ticked"**: "Select several" (`?select=1`) turns the Undo buttons into tick boxes of one plain GET form
+  to the step before an Undo, which names the rows by their ids (`?rows[]=`), says what is removed, and posts them.
+  **`UndoImportRows` took a list of row ids already** (scope `rows`) - nothing was added to the message or its
+  handler: `StartImportUndoController` now passes every ticked id (at most 200) instead of one, so several rows are
+  **one** Undo under the handler's own locks, and `GetImportAddScreen::counts()` counts a list of rows for the
+  confirm page. "Remove it too" (`includeEdited`) stays a word about one named row. The form sent with no box
+  ticked is never read as "everything": back to the list, saying so. A script (slice 3's
+  `data_import_ticks_controller.js`) only counts the ticks on the button.
+- **Imports home** (`index.html.twig`, `_import_card.html.twig`, `ImportsHomeController`,
+  `Services/DataImport/ImportHomeCard` - pure, table-tested): a card is the file's name, ONE status (a sentence a
+  line, the table of §5.1) and ONE button; finished imports folded. `GetImportAddScreen::addedByImports()`
+  **[small]** grew what the sentences need - rows ready, rows that wait for an answer, questions, rows we could not
+  read, puzzles to match, the running Add - still **one statement for all imports**. "Ready" there is the engine's
+  own definition: `sqlReadyRows()` got an optional second parameter that says *whose* rows are looked at (default:
+  one import, the SQL as it was); the rule itself is one text. The page reads two statements whatever the number of
+  imports (`ImportAfterTheAddTest`).
+- **Explanations in place** (§12, the exact texts, six locales): wait for your answer (a question's rows), the file
+  says "already on MySpeedPuzzling", possible duplicate, the daily limit (and its short form on a card), 3 imports
+  in progress, column set-ups we remember, undo, on your profile already. "Rows wait for your answer" after an Add
+  has no text in §12; it says: "These rows are not on your profile yet - each depends on a question only you can
+  answer. Everything else was added."
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §2 "no column under Please check these" keeps step 2 open | Step 2 is open then (its dot, its line on "Where you are") - but it is **never the one primary action**: the primary stays the question / the rows / the next step. | Nothing records that the player has looked (§2 rule 3), and a plain Save of an unchanged sheet changes nothing - as the primary it would be asked for on every visit, for ever. |
+| §5.4 "Question 1 of 2 … then the summary", addresses | One address: `…/columns` shows the first question that waits, `?q=N` the N-th, `?summary=1` (or a `q` past the last) the summary. | "Same routes"; the place is a number, never anything of the file. |
+| §5.4 "Later skips the question" | "Later" moves on in the row of questions; the question still waits, and opening the step again starts with it. | Nothing is stored about a skipped question. |
+| §5.4 a refused answer (a year that is none) | Shown on the sheet's own page with a 422, as before. | The answer is the sheet's own form; one place renders its refusal. |
+| §5.4 "Partner: asked in step 3" on a pair sheet | The pair question is a question of the sheet (as 6d built it) and is asked here, with the partner's field. | Slice 1's table: moving it is a change of 6d's screen. |
+| §5.4 file-wide line with "Change" | The readings are listed once for the file, without a link; a sheet's "Change" changes its own. | A reading belongs to a sheet - there is no file-wide setting to open. |
+| §5.4 "Not imported: Show → It does hold puzzles" | A link to the sheet's page, where its kind is chosen. | The one-tap kind form left the summary with everything else behind "Change". |
+| The columns screen said "We matched N of your puzzles" | Gone. | Step 2 shows only what needs the player about the reading; step 4 says it. |
+| §5.10 "Some rows can have one more question after this one." | Not on the page. | Slice 6 (a question is asked once per file) merged first: the sentence was only to stand "until the [logic] rows are built". |
+| §5.10 the unusual-times card | On the done page a card with one sentence and "Look at these times" (the summary page); on the list of rows that wait it stays the frame that loads the summary in place. | §5.10's mock; the done page stays light, and its first card needs one button to be the primary. |
+| §5.10 wording of the two bulk cards | The done page's cards have the new sentences; the buttons of "the file says…" keep their texts ("They are missing - add all N"), and the times summary its own. | Their forms and `not_added_times.html.twig` are slice 6's. |
+| §5.10 "276 puzzles still to match" | "N rows wait for you to match their puzzle." | As slice 1: rows are what the add summary counts. |
+| §7 "Undo the ticked" over several pages | The ticks of one page (fifty rows) are one Undo. | A plain form without a script holds one page; nothing is stored for a tick. |
+| §7 tabs | An "All" tab first, as on "What will be added". | The same reason as slice 2. |
+| §5.1 "471 ready to add" | "471 rows ready to add" - ready **rows**, before the daily limit and before "on your profile already". | One statement for all imports counts the engine's ready rows; what a row would *make* is the review's own statement per import. |
+| §5.1 "Added 2,000 today · 1,240 more can be added tomorrow" | Said when the results all of the player's imports made today reach the limit and rows are ready; "more" counts ready rows. | The daily limit is the player's; the exact number of results over it is the review's. |
+| §5.1 "Answer 2 questions" after an Add | "Answer for N rows that wait" → the list of those rows. | As slice 1: the rows are counted, the questions are not. |
+| §5.1 step 3 on a card ("Tell us who 3 people are") | Not said on a card; "Continue" leads to "Where you are", which says it. | Counting the people of every import is a statement per import. |
+| §5.1 "each card's `...` has both" (finish / discard) | The card's name and "Continue" lead to "Where you are", which has both. | One button a card; the menu lives where the import's state is loaded. |
+| §5.1 three in progress | The sentence replaces the button when three cards wait for the player; whether a new file would really be refused is still the upload's own check (`ImportSlots`). | An import with nothing left gives its place back before the daily sweep finishes it - the page does not ask per import. |
+| §5.1 the first visit | The empty state is the sentence of §5.1 and the button; stage 8's introduction replaces the marked block in `index.html.twig`. | Another branch builds it. |
+| §12 keys `data_import.explain.<term>` | So for the explanations; the other texts of these slices are in two blocks of their own, `data_import.check.*` and `data_import.after.*`. 21 keys nothing renders any more were removed in every locale, and `_status_badge.html.twig`. | Three branches write the catalogues at once. |
+
+**Not verified:** nothing of these slices was run in a browser - no screen was looked at at 360 px, and the tick
+counter of "Undo the ticked" was not executed (it is slice 3's script, unchanged). The screens are covered as a
+browser without scripts sees them: `ImportColumnsScreenTest`, `ImportAfterTheAddTest`, `ImportAddScreensTest`,
+`ImportGroupAnswersTest`, `ImportFlowScreensTest` (one primary a screen, the words of §8, six locales with their
+plural forms), `ImportHomeCardTest`, `ImportFlowTest`.

@@ -64,6 +64,7 @@ final class ImportFlowScreensTest extends WebTestCase
         // ---- Before anything is added: each screen, the step it belongs to, its primary buttons ----
         $this->assertScreen($base, null, 1, 'Match your puzzles');
         $this->assertScreen($base . '/columns', 2, 1, 'Looks right - continue');
+        $this->assertScreen($base . '/columns?summary=1', 2, 1, 'Looks right - continue');
         $this->assertScreen($base . '/sheets/' . $sheetId, 2, 1);
         $this->assertScreen($base . '/sheets/' . $sheetId . '/need-a-look', 2, 1, 'Answer many rows at once');
         $this->assertScreen($base . '/to-fix', 2, 1, 'Continue');
@@ -87,11 +88,15 @@ final class ImportFlowScreensTest extends WebTestCase
         $this->assertScreen($base . '/add', 5, 1, 'Add 3 to my profile');
         $this->assertScreen($base . '/add/list', 5, 1, 'Done - back to the check');
         $this->assertScreen($base . '/add/times', 5, 1, 'Back to “Check and add”');
+        $this->assertScreen($base . '/add/already-on', 5, 1, 'Back to “Check and add”');
 
         // ---- An Add ran: the screens after it ----
         $batchId = (string) $this->addAndWork($importId, $player)->id;
         $this->assertScreen($base . '/batches/' . $batchId, 5, 1, 'See them on my profile');
         $this->assertScreen($base . '/added', 5, 1, 'Continue');
+        // Selecting several: "Undo the ticked" is the one primary - and so is the button of the step it leads to
+        $this->assertScreen($base . '/added?select=1', 5, 1, 'Undo the ticked');
+        $this->assertScreen($base . '/undo?ticked=1&rows%5B%5D=' . $rowIds[0] . '&rows%5B%5D=' . $rowIds[1], 5, 1, 'Undo these 2 rows');
         $this->assertScreen($base . '/not-added', 5, 1, 'Continue');
         $this->assertScreen($base . '/not-added/times', 5, 1, 'Rows that wait for your answer');
         $this->assertScreen($base . '/undo?batch=' . $batchId, 5, 1, 'Undo what was added just now');
@@ -258,7 +263,7 @@ final class ImportFlowScreensTest extends WebTestCase
         sort($screens);
         self::assertSame(
             [
-                'add.html.twig', 'add_list.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
+                'add.html.twig', 'add_list.html.twig', 'add_said.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
                 'group_answer.html.twig', 'not_added_rows.html.twig', 'not_added_times.html.twig', 'people.html.twig', 'puzzle_choose.html.twig',
                 'puzzle_group.html.twig', 'puzzles.html.twig', 'row.html.twig', 'sheet.html.twig', 'sheet_rows.html.twig', 'to_fix.html.twig',
                 'undo.html.twig', 'undo_confirm.html.twig',
@@ -307,7 +312,7 @@ final class ImportFlowScreensTest extends WebTestCase
             }
 
             foreach ($keys as $key) {
-                if (preg_match('/^data_import\.(flow|explain)\./', $key) !== 1 || in_array($key, $sameWord, true)) {
+                if (preg_match('/^data_import\.(flow|explain|check|after)\./', $key) !== 1 || in_array($key, $sameWord, true)) {
                     continue;
                 }
 
@@ -325,12 +330,12 @@ final class ImportFlowScreensTest extends WebTestCase
         foreach ($this->catalogue('en')->all('messages') as $key => $english) {
             $key = (string) $key;
 
-            if (is_string($english) === false || preg_match('/^data_import\.(flow|explain|columns\.summary_line)\.|^data_import\.puzzles\.list\.tick_all$/', $key) !== 1) {
+            if (is_string($english) === false || preg_match('/^data_import\.(flow|explain|check|after|columns\.summary_line)\.|^data_import\.puzzles\.list\.tick_all$/', $key) !== 1) {
                 continue;
             }
 
             foreach ([0, 1, 2, 3, 4, 5, 11, 21, 22, 100, 1240] as $count) {
-                $text = $translator->trans($key, ['%count%' => $count, '%number%' => (string) $count, '%rows%' => '792', '%step%' => '4', '%name%' => 'X', '%date%' => 'X', '%found%' => '5', '%puzzles%' => '9', '%players%' => '1', '%guests%' => '2', '%days%' => '30'], 'messages', $locale);
+                $text = $translator->trans($key, ['%count%' => $count, '%number%' => (string) $count, '%rows%' => '792', '%step%' => '4', '%name%' => 'X', '%date%' => 'X', '%found%' => '5', '%puzzles%' => '9', '%players%' => '1', '%guests%' => '2', '%days%' => '30', '%total%' => '9', '%sheet%' => 'X', '%names%' => 'X'], 'messages', $locale);
                 self::assertNotSame($key, $text, $locale . ': ' . $key);
                 self::assertNotSame('', trim($text), $locale . ': ' . $key . ' for ' . $count);
                 self::assertDoesNotMatchRegularExpression('/[|{}\[\]]|%[a-z_]+%/', $text, $locale . ': ' . $key . ' for ' . $count . ' left a plural form or a placeholder on the page');

@@ -83,7 +83,7 @@ final class ImportColumnsScreenTest extends WebTestCase
 
         // The import in one line, and the honest line about what is not built yet
         self::assertSame('Rows ready: 9 · Need a look: 1 · Waiting for your answer: 2 · Sheets left out: 1', self::spaced($crawler->filter('[data-testid="import-summary"]')->text()));
-        self::assertStringContainsString('Pairing your puzzles with the puzzle database and adding them to your profile arrive soon', $crawler->filter('[data-testid="import-soon"]')->text());
+        self::assertStringContainsString('Adding your puzzles and results to your profile arrives soon', $crawler->filter('[data-testid="import-soon"]')->text());
 
         // Nothing happens by itself any more: the live line is there for the script, hidden
         self::assertSame('false', $crawler->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-working-value'));
@@ -93,7 +93,7 @@ final class ImportColumnsScreenTest extends WebTestCase
         $detail = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertSame('Rows ready: 9 · Need a look: 1 · Waiting for your answer: 2 · Sheets left out: 1', self::spaced($detail->filter('[data-testid="import-summary"]')->text()));
         self::assertSame('/en/import/' . $importId . '/columns', $detail->filter('[data-testid="import-open-columns"]')->attr('href'));
-        self::assertStringContainsString('arrive soon', $detail->filter('[data-testid="import-soon"]')->text());
+        self::assertStringContainsString('arrives soon', $detail->filter('[data-testid="import-soon"]')->text());
     }
 
     public function testTheImportsPageSaysWhereThePairingOfItsPuzzlesStands(): void

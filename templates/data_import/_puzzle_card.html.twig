@@ -1,0 +1,77 @@
+{#
+    One puzzle of the import on a list (docs/features/data-import/pairing-screens.md "The lists"): what the file
+    says, the catalogue puzzle it was paired with - or the best candidate - and why, its state, and what the player
+    can do here: "Not this one" (Found), "Yes, this is it" (Probably - never ticked for the player), "Choose"
+    (opens the chooser), and for a decided card its state with "Change".
+
+    Variables: card (ImportPuzzleCard), import_id, group, page, csrf.
+#}
+{% set shown = card.shown %}
+{% set chooser = path('data_import_puzzle_choose', {importId: import_id, importPuzzleId: card.importPuzzleId}) %}
+<div class="card shadow-sm mb-2{{ card.isDecided ? '' : ' border-warning' }}" id="puzzle-{{ card.importPuzzleId }}" style="scroll-margin-top: 90px;"
+     data-testid="import-puzzle-card" data-choice="{{ card.choice }}" data-tier="{{ card.tier ?? 'none_yet' }}" data-version="{{ card.decisionVersion }}">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div style="min-width: 0;">
+                {{ include('data_import/_import_puzzle_said.html.twig', {card: card}, with_context = false) }}
+            </div>
+            {% if card.isDecided %}
+                <span class="badge flex-shrink-0 {{ card.choice == 'catalogue' ? 'bg-faded-success text-success' : 'bg-faded-primary text-primary' }}" data-testid="import-puzzle-state">
+                    <i class="bi {{ card.choice == 'catalogue' ? 'bi-check-lg' : (card.choice == 'left_out' ? 'bi-dash-circle' : 'bi-bookmark') }} me-1" aria-hidden="true"></i>{{ ('data_import.puzzles.card.state.' ~ card.choice)|trans }}
+                </span>
+            {% endif %}
+        </div>
+
+        {% if card.choice in ['catalogue', 'undecided'] %}
+            <hr class="my-2">
+            {% if shown is not null %}
+                {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: shown, file_pieces: card.piecesCount}, with_context = false) }}
+                {% if not card.isDecided and card.candidates|length > 1 %}
+                    <div class="fs-sm text-muted mt-1" data-testid="import-puzzle-candidates">{{ 'data_import.puzzles.card.candidates'|trans({'%number%': card.candidates|length}) }}</div>
+                {% endif %}
+            {% else %}
+                <div class="fs-sm text-muted" data-testid="import-puzzle-no-candidate">{{ 'data_import.puzzles.card.no_candidate'|trans }}</div>
+            {% endif %}
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            {% if card.isDecided %}
+                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="puzzle" value="{{ card.importPuzzleId }}">
+                    <input type="hidden" name="version" value="{{ card.decisionVersion }}">
+                    <input type="hidden" name="group" value="{{ group }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-untick">
+                        <i class="bi bi-x-lg me-1" aria-hidden="true"></i>
+                        {%- if card.choice != 'catalogue' %}{{ 'data_import.puzzles.card.take_back'|trans }}
+                        {%- elseif card.decidedHow == 'automatic' %}{{ 'data_import.puzzles.card.not_this_one'|trans }}
+                        {%- else %}{{ 'data_import.puzzles.card.untick'|trans }}{% endif -%}
+                    </button>
+                </form>
+                <a href="{{ chooser }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-change">
+                    <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.change'|trans }}
+                </a>
+            {% elseif group == 'probably' and card.canBeTickedInAGroup %}
+                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="puzzle" value="{{ card.importPuzzleId }}">
+                    <input type="hidden" name="version" value="{{ card.decisionVersion }}">
+                    <input type="hidden" name="catalogue" value="{{ shown.puzzleId }}">
+                    <input type="hidden" name="group" value="{{ group }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    <button type="submit" name="action" value="catalogue" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-tick">
+                        <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.yes'|trans }}
+                    </button>
+                </form>
+                <a href="{{ chooser }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
+                    {{ 'data_import.puzzles.card.something_else'|trans }}
+                </a>
+            {% else %}
+                <a href="{{ chooser }}" class="btn btn-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
+                    <i class="bi bi-hand-index-thumb me-1" aria-hidden="true"></i>{{ (shown is not null and shown.piecesDiffer ? 'data_import.puzzles.card.look' : 'data_import.puzzles.card.choose')|trans }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>

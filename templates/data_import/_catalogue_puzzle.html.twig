@@ -1,0 +1,36 @@
+{#
+    A catalogue puzzle as the pairing screens offer it (docs/features/data-import/pairing-screens.md): its picture,
+    its name (and the name in the viewer's language - puzzle/_name.html.twig), brand, pieces, why it is offered in
+    plain words, and - prominently - a piece count that is not the file's.
+
+    Variables: puzzle (ImportCataloguePuzzle), file_pieces (the file's piece count or null), large (a big picture on
+    top, for the chooser - default false: a small one beside the text).
+#}
+{% set large = large|default(false) %}
+{% set alt = 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.brandName ?? '') ~ ' ' ~ puzzle.name}) %}
+<span class="d-flex {{ large ? 'flex-column' : 'gap-2' }} text-start w-100" data-testid="catalogue-puzzle" data-puzzle-id="{{ puzzle.puzzleId }}" data-how="{{ puzzle.how }}">
+    {% if large %}
+        <span class="d-block text-center mb-2">
+            <img src="{{ puzzle.image|puzzle_image('puzzle_medium') }}" alt="{{ alt }}" loading="lazy" class="rounded-2 mw-100" style="max-height: 200px; width: auto; height: auto;" {{ puzzle_image_dimensions(puzzle.imageRatio, 320, 200) }}>
+        </span>
+    {% else %}
+        <span class="flex-shrink-0" style="width: 80px;">
+            {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', alt, 999, 80, 'rounded-2', 80, puzzle.imageRatio) }}
+        </span>
+    {% endif %}
+    <span class="d-block flex-grow-1" style="min-width: 0;">
+        <span class="d-block fw-medium text-break" data-testid="catalogue-puzzle-name">{{ puzzle.name }}</span>
+        {{ include('puzzle/_name.html.twig', {name: puzzle.name, alternative_names: puzzle.alternativeNames, class: 'd-block fs-sm text-break'}, with_context = false) }}
+        <span class="d-block fs-sm text-muted text-break">
+            {%- if puzzle.brandName is not null %}{{ puzzle.brandName }} · {% endif -%}
+            {{ 'data_import.columns.row.pieces'|trans({'%number%': puzzle.piecesCount|format_number}) }}
+        </span>
+        {% set why = ('data_import.puzzles.why.' ~ puzzle.how)|trans %}
+        <span class="d-block fs-sm mt-1" data-testid="catalogue-puzzle-why"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ why == 'data_import.puzzles.why.' ~ puzzle.how ? 'data_import.puzzles.why.chosen'|trans : why }}</span>
+        {% if puzzle.piecesDiffer and file_pieces is not null %}
+            <span class="d-block fs-sm fw-semibold text-danger mt-1" data-testid="catalogue-puzzle-pieces-differ">
+                <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.pieces_differ'|trans({'%file%': file_pieces|format_number, '%puzzle%': puzzle.piecesCount|format_number}) }}
+            </span>
+        {% endif %}
+    </span>
+</span>

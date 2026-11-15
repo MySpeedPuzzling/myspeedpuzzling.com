@@ -1,0 +1,112 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The row sheet of one import row (docs/features/data-import/pairing-screens.md "The row sheet"): what was
+    understood of the row, then every field its sheet's mapping gives it - the file's own text beside an input
+    (_answer_input.html.twig, the editors a later "My data" row sheet reuses). What the player types becomes the
+    row's answer; an emptied field goes back to what the file says. Everything of the file is shown escaped and
+    never stands in an address.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set sheet_name = detail.sheetTitle != '' ? detail.sheetTitle : 'data_import.sheets.untitled'|trans %}
+{% set save_url = path('data_import_row_save', {importId: import.importId, rowId: detail.rowId}) %}
+
+{% block title %}{{ 'data_import.row.title'|trans({'%number%': detail.row.rowNumber}) }} - {{ sheet_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+    {name: 'data_import.to_fix.title'|trans, url: path('data_import_to_fix', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-row-page" data-state="{{ detail.state }}">
+    <h1 class="h4 mb-1">{{ 'data_import.row.title'|trans({'%number%': detail.row.rowNumber|format_number}) }}</h1>
+    <p class="text-muted fs-sm text-break">{{ sheet_name }}</p>
+
+    {% if detail.state == 'left_out' %}
+        <p class="alert alert-info fs-sm" data-testid="import-row-left-out">{{ 'data_import.row.left_out_note'|trans }}</p>
+    {% elseif detail.row.kind != 'not_a_puzzle' %}
+        {{ include('data_import/_parsed_row.html.twig', {row: detail.row}, with_context = false) }}
+    {% endif %}
+
+    {% if not detail.canBeAnswered %}
+        <p class="alert alert-warning fs-sm" data-testid="import-row-not-answerable">{{ 'data_import.row.not_answerable'|trans }}</p>
+    {% else %}
+        {% if form_error is not null %}
+            <p class="alert alert-danger fs-sm" role="alert" data-testid="import-row-form-error">{{ 'data_import.to_fix.error.refused'|trans }}</p>
+        {% endif %}
+
+        {% if detail.state != 'left_out' and fields is not empty %}
+            <form action="{{ save_url }}" method="post" class="card card-body shadow-sm my-3" data-testid="import-row-form">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <input type="hidden" name="stamp" value="{{ detail.stamp }}">
+
+                {% for field in fields %}
+                    <div class="{{ loop.last ? 'mb-3' : 'mb-3 pb-3 border-bottom' }}" data-testid="import-row-field" data-field="{{ field.field }}">
+                        <label for="row-field-{{ field.field }}" class="form-label fw-medium mb-1">{{ ('data_import.columns.field.' ~ field.field)|trans }}</label>
+                        <div class="fs-sm text-muted text-break mb-1" id="row-field-help-{{ field.field }}">
+                            {{ 'data_import.row.in_file'|trans }}
+                            {% if field.original != '' %}<mark class="px-1 rounded" data-testid="import-row-original">{{ field.original }}</mark>{% else %}<span data-testid="import-row-original">{{ 'data_import.row.empty_cell'|trans }}</span>{% endif %}
+                            {% if field.understood is not null and field.understood != field.original %}
+                                · {{ 'data_import.row.we_read'|trans({'%value%': field.understood}) }}
+                            {% endif %}
+                        </div>
+                        {% for problem in field.problems %}
+                            {% set sentence = ('data_import.columns.problem.' ~ problem.code)|trans %}
+                            <div class="fs-sm mb-1 d-flex gap-2" data-testid="import-row-problem" data-code="{{ problem.code }}">
+                                <i class="bi bi-eye text-warning flex-shrink-0" aria-hidden="true"></i>
+                                <span>{{ sentence == 'data_import.columns.problem.' ~ problem.code ? 'data_import.columns.problem.other'|trans : sentence }}</span>
+                            </div>
+                        {% endfor %}
+                        {{ include('data_import/_answer_input.html.twig', {
+                            name: 'answers[' ~ field.field ~ ']',
+                            id: 'row-field-' ~ field.field,
+                            input: field.input,
+                            value: field.answer,
+                            choices: field.choices,
+                            empty_label: 'data_import.row.as_file'|trans,
+                            invalid: field.error is not null,
+                            described_by: 'row-field-help-' ~ field.field,
+                        }, with_context = false) }}
+                        {% if field.error is not null %}
+                            <div class="text-danger fs-sm mt-1" role="alert" data-testid="import-row-error">{{ ('data_import.to_fix.error.' ~ field.error)|trans }}</div>
+                        {% endif %}
+                        {% set hint = ('data_import.to_fix.hint.' ~ field.input)|trans %}
+                        {% if hint != 'data_import.to_fix.hint.' ~ field.input %}<div class="form-text">{{ hint }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+
+                <p class="fs-sm text-muted">{{ 'data_import.row.empty_hint'|trans }}</p>
+                <button type="submit" name="action" value="save" class="btn btn-primary w-100 text-wrap" style="min-height: 48px;" data-testid="import-row-save">
+                    <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.row.save'|trans }}
+                </button>
+            </form>
+        {% endif %}
+
+        <form action="{{ save_url }}" method="post" class="mb-3">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="stamp" value="{{ detail.stamp }}">
+            {% if detail.state == 'left_out' %}
+                {% if detail.row.parsed.leftOut|default('') == 'by_player' %}
+                    <button type="submit" name="action" value="take_in" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-row-take-in">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.row.take_in'|trans }}
+                    </button>
+                {% endif %}
+            {% else %}
+                <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-row-leave-out">
+                    <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.row.leave_out'|trans }}
+                </button>
+            {% endif %}
+        </form>
+    {% endif %}
+
+    <a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.row.back'|trans }}
+    </a>
+</div>
+{% endblock %}

@@ -132,13 +132,13 @@ SQL, ['importId' => $importId, 'settingUp' => DataImportStatus::SettingUp->value
      * of cells (the row that crosses the bound is the page's last; a page always holds a row while one is left):
      * a row may hold megabytes, and five hundred of them must never be in memory at once.
      *
-     * @return list<array{id: string, number: int, cells: array<int, array<string, mixed>>}>
+     * @return list<array{id: string, number: int, cells: array<int, array<string, mixed>>, answers: array<mixed>}>
      */
     public function page(string $sheetId, int $afterRowNumber, int $limit, null|int $throughRow = null, int $maxBytes = DataImportLimits::BYTES_PER_BATCH): array
     {
-        /** @var list<array{id: string, row_number: int, cells: null|string}> $rows */
+        /** @var list<array{id: string, row_number: int, cells: null|string, answers: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT sized.id, sized.row_number, stored.cells
+SELECT sized.id, sized.row_number, stored.cells, stored.answers
 FROM (
     SELECT next.id, next.row_number, COALESCE(SUM(next.bytes) OVER (ORDER BY next.row_number ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS bytes_before
     FROM (
@@ -160,7 +160,8 @@ SQL, ['sheetId' => $sheetId, 'after' => $afterRowNumber, 'through' => $throughRo
             /** @var array<int, array<string, mixed>> $cells */
             $cells = self::json($row['cells']) ?? [];
 
-            return ['id' => $row['id'], 'number' => $row['row_number'], 'cells' => $cells];
+            // What the player said about the row itself (AnswerImportRows) is read with it: every parse honours it
+            return ['id' => $row['id'], 'number' => $row['row_number'], 'cells' => $cells, 'answers' => self::json($row['answers']) ?? []];
         }, $rows);
     }
 

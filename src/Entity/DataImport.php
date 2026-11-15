@@ -421,6 +421,17 @@ class DataImport
         return $this->pairingRun;
     }
 
+    /**
+     * Rows of the import were read again (a sheet parsed, rows answered): the pairing is due once more - its run is
+     * queued. Until that run comes to rest the import says "not paired", so its pages keep following it and the
+     * safety net asks for the run again when its message is lost.
+     */
+    public function pairingDue(DateTimeImmutable $now): void
+    {
+        $this->pairedAt = null;
+        $this->lastActivityAt = $now;
+    }
+
     public function isPairingRun(int $run): bool
     {
         return $this->pairingRun === $run && $this->isBeingSetUp();

@@ -38,6 +38,14 @@ readonly final class DataImportProgress
         public int $rowsParsed = 0,
         /** Another one whenever a sheet's mapping, parse or failure changed - never anything of the file */
         public string $revision = '',
+        /**
+         * The pairing of the import's puzzles with the catalogue (docs/features/data-import/pairing-screens.md "The
+         * live line"): whether a run is under way, the counts by what is left to do, and a revision that changes
+         * when a run starts or comes to rest. Numbers only.
+         *
+         * @var array{running: bool, puzzles: int, found: int, probably: int, choose: int, notFound: int, searching: int, revision: string}
+         */
+        public array $pairing = ['running' => false, 'puzzles' => 0, 'found' => 0, 'probably' => 0, 'choose' => 0, 'notFound' => 0, 'searching' => 0, 'revision' => ''],
     ) {
     }
 
@@ -52,7 +60,7 @@ readonly final class DataImportProgress
     /**
      * What travels to the page - by the JSON endpoint and by the player's private topic alike.
      *
-     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int, sheetsMapped: int, sheetsParsed: int, sheetsWaiting: int, working: bool, rowsToParse: int, rowsParsed: int, revision: string}
+     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int, sheetsMapped: int, sheetsParsed: int, sheetsWaiting: int, working: bool, rowsToParse: int, rowsParsed: int, revision: string, pairing: array{running: bool, puzzles: int, found: int, probably: int, choose: int, notFound: int, searching: int, revision: string}}
      */
     public function toArray(): array
     {
@@ -71,6 +79,7 @@ readonly final class DataImportProgress
             'rowsToParse' => $this->rowsToParse,
             'rowsParsed' => min($this->rowsParsed, $this->rowsToParse),
             'revision' => $this->revision,
+            'pairing' => $this->pairing,
         ];
     }
 }

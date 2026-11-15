@@ -51,12 +51,16 @@ final class ImportColumnsController extends AbstractController
         // Those that ask the player something first, then the file's own order
         usort($sheets, static fn (DataImportSheetOverview $a, DataImportSheetOverview $b): int => [$a->asksThePlayer() === false, $a->position] <=> [$b->asksThePlayer() === false, $b->position]);
 
+        $progress = $this->getDataImports->progressOfPlayer($importId, $player->playerId);
+
         return $this->render('data_import/columns.html.twig', [
             'import' => $import,
             'sheets' => $sheets,
             'summary' => self::summary($sheets),
             // What the live line compares the progress with from its first moment (data_import_setup_controller.js)
-            'revision' => $this->getDataImports->progressOfPlayer($importId, $player->playerId)->revision,
+            'revision' => $progress->revision,
+            // "We found N of these puzzles" and the way to them - numbers the progress statement holds already
+            'pairing' => $progress->pairing,
         ]);
     }
 

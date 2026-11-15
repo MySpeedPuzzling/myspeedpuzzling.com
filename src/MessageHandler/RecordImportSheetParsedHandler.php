@@ -45,7 +45,8 @@ readonly final class RecordImportSheetParsedHandler
 
         $sheet->parsed($message->mappingVersion, $message->rowsUnderstood, $message->rowsNeedLook, $message->rowsLeftOut, $message->rowsWaiting);
 
-        $import->workedOn($this->clock->now());
+        // The rows changed: the pairing that follows (BuildImportPuzzles, queued by the parse) is due from here on
+        $import->pairingDue($this->clock->now());
 
         return true;
     }

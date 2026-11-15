@@ -27,4 +27,6 @@ enum ImportRowLeftOut: string
     case NotMine = 'not_mine';
     /** The sheet is "not puzzles" or somebody else's */
     case SheetLeftOut = 'sheet_left_out';
+    /** The player said so on the row itself, or for every row with one value ("Leave these rows out") */
+    case ByPlayer = 'by_player';
 }

@@ -129,6 +129,15 @@
             </div>
         </div>
     {% elseif sheets is not empty %}
+        {#
+            While rows are read or puzzles paired the page follows by itself: the live line, and this frame loaded
+            again whenever a sheet's state or the pairing's changes (docs/features/data-import/pairing-screens.md
+            "The live line")
+        #}
+        {% if status == 'setting_up' %}
+            {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
+        {% endif %}
+        <turbo-frame id="import-detail-live" data-import-live target="_top">
         {% if status == 'setting_up' %}
             {# Where the import stands, and the way to its "Sheets and columns" screen (docs/features/data-import/columns-screen.md) #}
             <div class="card card-body shadow-sm mb-3" data-testid="import-columns-summary">
@@ -139,7 +148,7 @@
                     <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.open'|trans }}
                 </a>
             </div>
-            {{ include('data_import/_pairing_summary.html.twig', {pairing: pairing}) }}
+            {{ include('data_import/_pairing_summary.html.twig', {pairing: pairing, import_id: import.importId}) }}
         {% endif %}
         <div class="card shadow-sm mb-3" data-testid="import-sheets">
             <div class="card-body pb-2">
@@ -197,13 +206,8 @@
                     </tbody>
                 </table>
             </div>
-            {% if sheets|filter(sheet => not sheet.failed and (not sheet.mapped or not sheet.parsed))|length > 0 %}
-                <div class="card-body pt-2 fs-sm text-muted" data-testid="import-sheets-working">
-                    <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.sheets.refresh_hint'|trans }}
-                    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" data-turbo="false">{{ 'data_import.reading.refresh'|trans }}</a>
-                </div>
-            {% endif %}
         </div>
+        </turbo-frame>
     {% endif %}
 
     {% if import.fromGoogleSheet and status == 'setting_up' %}
@@ -214,7 +218,7 @@
         <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
             <i class="bi bi-info-circle flex-shrink-0"></i>
             <span>
-                {{ (status == 'setting_up' ? 'data_import.columns.soon' : 'data_import.soon')|trans }}
+                {{ (status == 'setting_up' ? 'data_import.puzzles.soon' : 'data_import.soon')|trans }}
                 {% if import.fileKeptUntil is not null %}
                     {{ 'data_import.detail.kept'|trans({'%date%': import.fileKeptUntil|format_date('long')}) }}
                 {% elseif import.fileRemovedAt is not null %}

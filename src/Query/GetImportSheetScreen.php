@@ -139,9 +139,9 @@ SQL, ['sheetId' => $sheetId, 'importId' => $importId, 'playerId' => $playerId, '
         // A row a question that is not answered yet decides waits - it is not one that "needs a look"
         $needALook = $onlyNeedingALook ? "AND stored.problems IS NOT NULL AND NOT (stored.problems @> '[{\"waiting\": true}]'::jsonb)" : '';
 
-        /** @var list<array{row_number: int, kind: string, parsed: null|string, problems: null|string}> $rows */
+        /** @var list<array{id: string, row_number: int, kind: string, parsed: null|string, problems: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT stored.row_number, stored.kind, stored.parsed, stored.problems
+SELECT stored.id, stored.row_number, stored.kind, stored.parsed, stored.problems
 FROM data_import_row stored
 INNER JOIN data_import_sheet sheet ON sheet.id = stored.sheet_id
 INNER JOIN data_import ON data_import.id = stored.import_id
@@ -172,7 +172,7 @@ SQL, ['sheetId' => $sheetId, 'importId' => $importId, 'playerId' => $playerId, '
                 }
             }
 
-            return new ImportSheetRow($row['row_number'], $row['kind'], $parsed, $problems);
+            return new ImportSheetRow($row['row_number'], $row['kind'], $parsed, $problems, $row['id']);
         }, $rows);
     }
 

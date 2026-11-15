@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\RecordParsedImportRows;
 use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportEqualRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowAnswers;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowParser;
 use SpeedPuzzling\Web\Services\DataImport\PendingQuestionRows;
 use SpeedPuzzling\Web\Services\DataImport\SheetLookupFactory;
@@ -96,7 +97,10 @@ readonly final class ParseImportSheetHandler
                 $records = [];
 
                 foreach ($page as $row) {
-                    $parsed = PendingQuestionRows::mark($this->parser->parse($row['number'], $row['cells'], $mapping, $options, $valueAnswers, $lookup), $row['cells'], $mapping);
+                    $parsed = ImportRowAnswers::settled(
+                        PendingQuestionRows::mark($this->parser->parse($row['number'], $row['cells'], $mapping, $options, $valueAnswers, $lookup, $row['answers']), $row['cells'], $mapping),
+                        $row['answers'],
+                    );
                     $records[$row['id']] = $parsed->toRecord();
                     $after = $row['number'];
 

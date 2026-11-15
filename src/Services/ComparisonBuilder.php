@@ -246,12 +246,14 @@ readonly final class ComparisonBuilder
                 $row = $subjectRows[$key];
                 $anyRow ??= $row;
                 $day = $firstTries ? ($row->firstTryDay ?? $row->bestDay) : $row->bestDay;
+                $dayPrecision = $firstTries && $row->firstTryDay !== null ? $row->firstTryDayPrecision : $row->bestDayPrecision;
 
                 $cells[$key] = new ComparisonCell(
                     subject: $row->subject,
                     seconds: $value,
                     timeId: $firstTries ? (string) $row->firstTryTimeId : $row->bestTimeId,
                     day: $day,
+                    dayPrecision: $dayPrecision,
                     attempts: $row->attempts,
                     bestSeconds: $row->bestSeconds,
                     bestTimeId: $row->bestTimeId,

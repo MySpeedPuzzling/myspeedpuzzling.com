@@ -112,7 +112,7 @@
                             {% if time.suspicious %}
                                 <span class="badge rounded-pill bg-warning" data-testid="suspicious-badge"><i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}</span><br>
                             {% endif %}
-                            <span class="text-muted">{{ time.solvedAt|date('d.m.Y') }}</span>
+                            <span class="text-muted">{{ result_date(time.solvedAt, time.datePrecision) }}</span>
                         </td>
                     </tr>
                 {% endfor %}

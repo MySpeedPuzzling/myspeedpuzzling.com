@@ -132,7 +132,7 @@
         </dl>
 
         <p class="small text-muted mt-2 mb-0">
-            Solved {{ case.solvedAt|date('j M Y') }} &middot; saved {{ case.trackedAt|date('j M Y H:i') }}
+            Solved {{ case.datePrecision.value == 'day' ? case.solvedAt|date('j M Y') : result_date(case.solvedAt, case.datePrecision, 'medium') ~ ' (only the ' ~ case.datePrecision.value ~ ' is known)' }} &middot; saved {{ case.trackedAt|date('j M Y H:i') }}
             &middot; raised {{ case.detectedAt|date('j M Y') }}{% if case.detectorVersion %} (detector v{{ case.detectorVersion }}){% endif %}
             {# The result detail stays closed on a private profile - the card is all a moderator gets (open point) #}
             {% if not case.playerPrivate %}&middot; <a href="{{ path('puzzle_result_detail', {timeId: case.timeId}) }}">Result detail</a>{% endif %}

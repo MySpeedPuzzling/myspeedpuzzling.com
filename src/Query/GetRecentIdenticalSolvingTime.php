@@ -58,6 +58,8 @@ WHERE pst.player_id = :playerId
     AND pst.tracked_at >= :savedSince
     AND pst.seconds_to_solve = :secondsToSolve
     AND CAST(pst.finished_at AS DATE) IS NOT DISTINCT FROM CAST(:finishedOn AS DATE)
+    -- The twin of a typed entry is a typed entry: it knows its day (finished_at_precision, date-precision.md)
+    AND pst.finished_at_precision IS NULL
     AND team.composition_key IS NOT DISTINCT FROM CAST(:teamKey AS VARCHAR)
     AND (
         (CAST(:seriesId AS UUID) IS NOT NULL AND pst.competition_series_id = CAST(:seriesId AS UUID))

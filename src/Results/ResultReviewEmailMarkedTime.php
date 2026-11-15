@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * A mark of the "Your results" e-mail (docs/features/suspicious-time-review.md, "Where they see it"): one of the
@@ -20,6 +21,8 @@ readonly final class ResultReviewEmailMarkedTime
         public DateTimeImmutable $solvedAt,
         /** The "Add" of the player's spreadsheet import that made the result - null for a typed one */
         public null|string $importBatchId = null,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 }

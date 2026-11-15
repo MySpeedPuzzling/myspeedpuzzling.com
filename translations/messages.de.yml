@@ -11854,7 +11854,7 @@ data_import:
             sheets: "Blätter, deren Spalten noch nicht eingerichtet sind: %number%"
             not_added: "Zeilen, die nicht hinzugefügt werden konnten: %number%"
             unlisted: "Zeilen nicht gelisteter Puzzles: %number%. Nicht gelistete Puzzles kommen mit einem späteren Schritt - nichts geht verloren."
-            needs_exact_day: "Ergebnisse ohne genauen Tag: %number%. Sie kommen mit einem späteren Schritt - nichts geht verloren."
+            needs_exact_day: "Ergebnisse ohne Datum: %number%. Öffne die Zeilen und gib ihnen ein Datum - nichts geht verloren."
             over_daily_limit: "Ergebnisse, die bis morgen warten: %number% (höchstens %limit% Ergebnisse pro Tag)."
         kind:
             results: "Ergebnisse"
@@ -11951,7 +11951,7 @@ data_import:
         comment_too_long: "Der Kommentar ist länger, als MySpeedPuzzling annimmt. Kürze ihn in deiner Datei oder ordne die Spalte den privaten Notizen zu."
         not_ready: "Die Zeile war nicht mehr bereit, als sie an der Reihe war - ihr Puzzle oder etwas an der Zeile hat sich inzwischen geändert."
         unlisted_not_yet: "Das Puzzle wird als nicht gelistetes Puzzle geführt. Nicht gelistete Puzzles kommen mit einem späteren Schritt - nichts geht verloren."
-        needs_exact_day: "Das Ergebnis hat keinen genauen Tag. Ergebnisse, von denen nur Monat oder Jahr bekannt sind, kommen mit einem späteren Schritt - oder öffne die Zeile und gib ihr einen Tag."
+        needs_exact_day: "Das Ergebnis hat kein Datum. Öffne die Zeile und gib ihr einen Tag, einen Monat oder ein Jahr."
         puzzle_not_available: "Das Puzzle kann nicht mehr ausgewählt werden. Wähle das Puzzle erneut aus."
         similar_result_exists: "Auf deinem Profil gibt es schon ein Ergebnis dieses Puzzles, das dieser Zeile ähnelt - dieselbe Zeit an einem anderen Tag oder derselbe Tag mit einer anderen Zeit. Wenn es ein anderes Lösen war, füge es trotzdem hinzu."
         somebody_elses_result: "Jemand anderes hat für dieses Puzzle schon ein Paar- oder Teamergebnis mit diesem Tag und dieser Zeit eingetragen. Wenn ihr zusammen gepuzzelt habt, bitte die Person lieber, dich zu verknüpfen - oder füge es trotzdem hinzu."

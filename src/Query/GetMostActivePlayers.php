@@ -143,6 +143,9 @@ WHERE puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.suspicious = false
     AND puzzle_solving_time.finished_at >= :startDate
     AND puzzle_solving_time.finished_at < :endDate
+    -- "Most active of the month": a result known to its month is of that month; one known to its year only is of no
+    -- month (it stands on 1 January) - docs/features/data-import/date-precision.md
+    AND puzzle_solving_time.finished_at_precision IS DISTINCT FROM 'year'
     {$notHidden}
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC

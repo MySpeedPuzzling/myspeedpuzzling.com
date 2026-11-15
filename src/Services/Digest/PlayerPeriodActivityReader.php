@@ -224,6 +224,8 @@ WHERE (
   AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+  -- "Solved this week" needs a real day: a result known to its month or year only is in no week (date-precision.md)
+  AND pst.finished_at_precision IS NULL
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.id DESC
 SQL;
 
@@ -305,6 +307,8 @@ WHERE (
   AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+  -- "Solved this week" needs a real day: a result known to its month or year only is in no week (date-precision.md)
+  AND pst.finished_at_precision IS NULL
 SQL;
 
         /** @var array{puzzles: int|string, pieces: int|string} $row */
@@ -454,6 +458,8 @@ SELECT DISTINCT TO_CHAR(COALESCE(finished_at, tracked_at), 'YYYY-MM-DD') AS solv
 FROM puzzle_solving_time
 WHERE suspicious = false
   AND COALESCE(finished_at, tracked_at) >= '2000-01-01'
+  -- The days of a streak are real days (date-precision.md)
+  AND finished_at_precision IS NULL
   AND (
     player_id = :playerId
     OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -497,6 +503,8 @@ WHERE pst.player_id IN (:favoriteIds)
   AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+  -- "Solved this week" needs a real day: a result known to its month or year only is in no week (date-precision.md)
+  AND pst.finished_at_precision IS NULL
 GROUP BY p.id, p.name, p.code
 ORDER BY solves DESC, name ASC
 LIMIT 5
@@ -537,6 +545,8 @@ WHERE pst.suspicious = false
   AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+  -- "Solved this week" needs a real day: a result known to its month or year only is in no week (date-precision.md)
+  AND pst.finished_at_precision IS NULL
 GROUP BY pz.id, pz.name
 HAVING COUNT(DISTINCT pst.player_id) >= 3
 ORDER BY solvers DESC, pz.name ASC

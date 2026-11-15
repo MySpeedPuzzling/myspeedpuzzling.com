@@ -38,7 +38,7 @@
                             {{ 'result_review.case_line'|trans({
                                 '%puzzleName%': set.puzzleName,
                                 '%time%': set.secondsToSolve is not null ? set.secondsToSolve|puzzlingTime : '-',
-                                '%date%': set.solvedAt|format_date('medium', locale: locale),
+                                '%date%': result_date(set.solvedAt, set.datePrecision, 'medium', locale),
                             }) }}
                             <br><span style="color: #6b7488; font-size: 14px;">{{ ('result_review.kind_' ~ set.lineKind)|trans }}</span>
                     </li>
@@ -61,7 +61,7 @@
                             {{ 'result_review.case_line'|trans({
                                 '%puzzleName%': removal.puzzleName,
                                 '%time%': removal.secondsToSolve is not null ? removal.secondsToSolve|puzzlingTime : '-',
-                                '%date%': removal.solvedAt|format_date('medium', locale: locale),
+                                '%date%': result_date(removal.solvedAt, removal.datePrecision, 'medium', locale),
                             }) }}
                     </li>
                 {% endfor %}
@@ -89,7 +89,7 @@
                             {{ 'result_review.case_line'|trans({
                                 '%puzzleName%': markedTime.puzzleName,
                                 '%time%': markedTime.secondsToSolve is not null ? markedTime.secondsToSolve|puzzlingTime : '-',
-                                '%date%': markedTime.solvedAt|format_date('medium', locale: locale),
+                                '%date%': result_date(markedTime.solvedAt, markedTime.datePrecision, 'medium', locale),
                             }) }}
                     </li>
                 {% endfor %}

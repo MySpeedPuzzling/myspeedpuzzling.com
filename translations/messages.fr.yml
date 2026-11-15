@@ -11850,7 +11850,7 @@ data_import:
             sheets: "Feuilles dont les colonnes ne sont pas encore configurées : %number%"
             not_added: "Lignes qui n'ont pas pu être ajoutées : %number%"
             unlisted: "Lignes de puzzles hors catalogue : %number%. Les puzzles hors catalogue arriveront dans une étape ultérieure - rien n'est perdu."
-            needs_exact_day: "Résultats sans jour exact : %number%. Ils arriveront dans une étape ultérieure - rien n'est perdu."
+            needs_exact_day: "Résultats sans date : %number%. Ouvrez les lignes et donnez-leur une date - rien n'est perdu."
             over_daily_limit: "Résultats qui attendent demain : %number% (au plus %limit% résultats par jour)."
         kind:
             results: "Résultats"
@@ -11947,7 +11947,7 @@ data_import:
         comment_too_long: "Le commentaire est plus long que ce que MySpeedPuzzling accepte. Raccourcissez-le dans votre fichier, ou associez la colonne aux notes privées."
         not_ready: "La ligne n'était plus prête quand son tour est venu - son puzzle ou quelque chose dans la ligne a changé entre-temps."
         unlisted_not_yet: "Le puzzle est conservé comme puzzle hors catalogue. Les puzzles hors catalogue arriveront dans une étape ultérieure - rien n'est perdu."
-        needs_exact_day: "Le résultat n'a pas de jour exact. Les résultats connus au mois ou à l'année arriveront dans une étape ultérieure - ou ouvrez la ligne et donnez-lui un jour."
+        needs_exact_day: "Le résultat n'a pas de date. Ouvrez la ligne et donnez-lui un jour, un mois ou une année."
         puzzle_not_available: "Ce puzzle ne peut plus être choisi. Choisissez à nouveau le puzzle."
         similar_result_exists: "Votre profil a déjà un résultat de ce puzzle qui ressemble à cette ligne - le même temps un autre jour, ou le même jour avec un autre temps. S'il s'agit d'une autre fois, ajoutez-le quand même."
         somebody_elses_result: "Quelqu'un d'autre a déjà enregistré un résultat en duo ou en équipe de ce puzzle avec ce jour et ce temps. Si vous l'avez fait ensemble, demandez-lui plutôt de vous associer - ou ajoutez-le quand même."

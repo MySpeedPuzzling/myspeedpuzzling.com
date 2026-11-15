@@ -38,7 +38,7 @@
                 <span>
                     <a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}" class="fw-medium">{{ removal.puzzleName }}</a>
                     {% if removal.secondsToSolve is not null %}· {{ removal.secondsToSolve|puzzlingTime }}{% endif %}
-                    · {{ removal.solvedAt|date('d.m.Y') }}<br>
+                    · {{ result_date(removal.solvedAt, removal.datePrecision) }}<br>
                     <span class="text-muted">{{ 'review_results.removed.row'|trans({'%saved%': removal.savedAt|date('d.m.Y H:i:s'), '%removed%': removal.removedAt|date('d.m.Y')}) }}</span>
                     <a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}" class="text-muted ms-1">{{ 'review_results.removed.kept'|trans }}</a>
                 </span>

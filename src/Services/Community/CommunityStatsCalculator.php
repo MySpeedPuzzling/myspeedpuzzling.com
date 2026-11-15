@@ -50,6 +50,11 @@ SELECT
     t.puzzling_type,
     t.seconds_to_solve,
     LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) AS solved_at,
+    -- The same moment for what needs a real day (the last 7 / 30 / 60 days, a moment) and for what needs a real month
+    -- (this month, the monthly counts): NULL - in no such window - for a result known to its month or year only,
+    -- resp. to its year only. Such a result stands on the first day of its period (date-precision.md)
+    CASE WHEN t.finished_at_precision IS NULL THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END AS day_at,
+    CASE WHEN t.finished_at_precision IS DISTINCT FROM 'year' THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END AS month_at,
     t.tracked_at
 FROM puzzle_solving_time t
 WHERE (t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL)
@@ -64,6 +69,8 @@ SELECT
     t.puzzling_type,
     NULL,
     LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp),
+    CASE WHEN t.finished_at_precision IS NULL THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END,
+    CASE WHEN t.finished_at_precision IS DISTINCT FROM 'year' THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END,
     t.tracked_at
 FROM puzzle_solving_time t
 CROSS JOIN LATERAL (
@@ -95,8 +102,8 @@ SQL;
             $from = $monthStart->modify(sprintf('-%d months', $i));
             $parameters['m' . $i] = self::format($from);
             $monthly[] = $i === 0
-                ? 'COUNT(*) FILTER (WHERE r.solved_at >= :m0)'
-                : sprintf('COUNT(*) FILTER (WHERE r.solved_at >= :m%d AND r.solved_at < :m%d)', $i, $i - 1);
+                ? 'COUNT(*) FILTER (WHERE r.month_at >= :m0)'
+                : sprintf('COUNT(*) FILTER (WHERE r.month_at >= :m%d AND r.month_at < :m%d)', $i, $i - 1);
         }
         $monthlySql = 'jsonb_build_array(' . implode(', ', $monthly) . ')';
         $emptyMonths = 'jsonb_build_array(' . implode(', ', array_fill(0, self::MONTHS, '0')) . ')';
@@ -124,14 +131,14 @@ per_player AS (
         r.player_id,
         COUNT(*) AS solved_total,
         COALESCE(SUM(z.pieces_count), 0) AS pieces_total,
-        COUNT(*) FILTER (WHERE r.solved_at >= :d7) AS solves7d,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.solved_at >= :d7), 0) AS pieces7d,
-        COUNT(*) FILTER (WHERE r.solved_at >= :d30) AS solves30d,
-        COUNT(*) FILTER (WHERE r.solved_at >= :d60 AND r.solved_at < :d30) AS solves_prev30d,
-        COUNT(*) FILTER (WHERE r.solved_at >= :thisMonth) AS solves_this_month,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.solved_at >= :thisMonth), 0) AS pieces_this_month,
-        COUNT(*) FILTER (WHERE r.solved_at >= :lastMonth AND r.solved_at < :thisMonth) AS solves_last_month,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.solved_at >= :lastMonth AND r.solved_at < :thisMonth), 0) AS pieces_last_month,
+        COUNT(*) FILTER (WHERE r.day_at >= :d7) AS solves7d,
+        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.day_at >= :d7), 0) AS pieces7d,
+        COUNT(*) FILTER (WHERE r.day_at >= :d30) AS solves30d,
+        COUNT(*) FILTER (WHERE r.day_at >= :d60 AND r.day_at < :d30) AS solves_prev30d,
+        COUNT(*) FILTER (WHERE r.month_at >= :thisMonth) AS solves_this_month,
+        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.month_at >= :thisMonth), 0) AS pieces_this_month,
+        COUNT(*) FILTER (WHERE r.month_at >= :lastMonth AND r.month_at < :thisMonth) AS solves_last_month,
+        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.month_at >= :lastMonth AND r.month_at < :thisMonth), 0) AS pieces_last_month,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500) AS best500_seconds,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 1000) AS best1000_seconds,
         ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500))::int AS median500_seconds,

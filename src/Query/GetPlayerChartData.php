@@ -85,6 +85,9 @@ WHERE
     AND p.pieces_count = :pieces
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.suspicious = false
+    -- A point of the chart is a week or a month: a result known to its month only is in no week, one known to its
+    -- year only in neither (docs/features/data-import/date-precision.md)
+    AND (pst.finished_at_precision IS NULL OR (:period = 'month' AND pst.finished_at_precision = 'month'))
 SQL;
 
         if ($brandId !== null) {

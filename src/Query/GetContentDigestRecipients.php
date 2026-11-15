@@ -174,6 +174,8 @@ SELECT id FROM (
               AND own.tracked_at >= CAST(:periodStart AS TIMESTAMP)
               AND COALESCE(own.finished_at, own.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
               AND COALESCE(own.finished_at, own.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+              -- "Solved this week" needs a real day, as in PlayerPeriodActivityReader (date-precision.md)
+              AND own.finished_at_precision IS NULL
         )
         OR EXISTS (
             SELECT 1 FROM puzzling_team_member ptm
@@ -183,6 +185,7 @@ SELECT id FROM (
               AND grp.tracked_at >= CAST(:periodStart AS TIMESTAMP)
               AND COALESCE(grp.finished_at, grp.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
               AND COALESCE(grp.finished_at, grp.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+              AND grp.finished_at_precision IS NULL
         )
       )
     ORDER BY LOWER(TRIM(ua.email)), p.registered_at ASC

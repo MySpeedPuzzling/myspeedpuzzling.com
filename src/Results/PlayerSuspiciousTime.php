@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReason;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReasonCode;
@@ -43,6 +44,8 @@ readonly final class PlayerSuspiciousTime
          * import that were set aside together are shown as one group (suspicious-time-review.md "Import cards")
          */
         public null|string $importBatchId = null,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 

@@ -118,6 +118,8 @@ SELECT
     COUNT(*) FILTER (
         WHERE EXTRACT(ISODOW FROM COALESCE(pst.finished_at, pst.tracked_at)) IN (6, 7)
           AND COALESCE(pst.finished_at, pst.tracked_at) >= '2000-01-01'
+          -- A weekday needs a real day: a result known to its month or year only has none (date-precision.md)
+          AND pst.finished_at_precision IS NULL
     ) AS weekend_solves,
     MIN(pst.seconds_to_solve) FILTER (
         WHERE pst.puzzling_type = 'solo'
@@ -220,6 +222,8 @@ SELECT DISTINCT
 FROM puzzle_solving_time
 WHERE suspicious = false
   AND COALESCE(finished_at, tracked_at) >= '2000-01-01'
+  -- A result known to its year only is in no quarter (one known to its month is) - date-precision.md
+  AND finished_at_precision IS DISTINCT FROM 'year'
   AND (
     player_id = :playerId
     OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -335,6 +339,8 @@ SQL;
 SELECT DISTINCT TO_CHAR(COALESCE(finished_at, tracked_at), 'YYYY-MM-DD') AS solve_day
 FROM puzzle_solving_time
 WHERE suspicious = false
+  -- A streak is made of days: a result known to its month or year only is on none (date-precision.md)
+  AND finished_at_precision IS NULL
   AND (
     player_id = :playerId
     OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

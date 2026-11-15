@@ -29,6 +29,8 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *     dow: int,
  *     dated: bool,
  *     quarter: int,
+ *     exactDay: bool,
+ *     quarterKnown: bool,
  *     nightOwl: bool,
  *     onlineCompetition: bool,
  *     competition: string,
@@ -128,6 +130,10 @@ final class AchievementReplayState
             'day' => is_string($row['solve_day'] ?? null) ? $row['solve_day'] : '1970-01-01',
             'dow' => self::int($row['iso_dow'] ?? null) ?? 0,
             'dated' => (bool) ($row['dated'] ?? false),
+            // How exactly the solve day is known (docs/features/data-import/date-precision.md): a result known to its
+            // month or year only is on no day (streak, weekend), one known to its year only in no quarter
+            'exactDay' => (bool) ($row['exact_day'] ?? true),
+            'quarterKnown' => (bool) ($row['quarter_known'] ?? true),
             'quarter' => (self::int($row['solve_year'] ?? null) ?? 0) * 4 + (self::int($row['solve_quarter'] ?? null) ?? 0),
             'nightOwl' => (bool) ($row['night_owl'] ?? false),
             'onlineCompetition' => (bool) ($row['online_competition'] ?? false),
@@ -159,6 +165,8 @@ final class AchievementReplayState
             'dow' => 0,
             'dated' => false,
             'quarter' => 0,
+            'exactDay' => true,
+            'quarterKnown' => true,
             'nightOwl' => false,
             'onlineCompetition' => false,
             'competition' => $competition,
@@ -195,13 +203,15 @@ final class AchievementReplayState
         // Participation: the player's own results and the pair/team results they were in
         $this->puzzles[$event['puzzle']] = true;
         $this->pieces += $pieces;
-        $this->addDay($event['day']);
+        if ($event['exactDay']) {
+            $this->addDay($event['day']);
+        }
 
         if ($type === 'duo' || $type === 'team') {
             $this->teamSolves++;
         }
 
-        if ($event['dated']) {
+        if ($event['dated'] && $event['quarterKnown']) {
             $this->addQuarter($event['quarter']);
         }
 
@@ -237,7 +247,7 @@ final class AchievementReplayState
             $this->onlineCompetition++;
         }
 
-        if (($event['dow'] === 6 || $event['dow'] === 7) && $event['dated']) {
+        if (($event['dow'] === 6 || $event['dow'] === 7) && $event['dated'] && $event['exactDay']) {
             $this->weekend++;
         }
 

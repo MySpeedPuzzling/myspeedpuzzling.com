@@ -35,7 +35,7 @@ readonly final class ImportRowTimeCheck
     }
 
     /**
-     * @param string $day Y-m-d, the solve day
+     * @param string $day Y-m-d, the solve day - the first day of the month or year for a result that knows no more
      *
      * @return null|SuspicionAssessment only a raised one: the time is unusual for this player and puzzle
      */
@@ -62,7 +62,7 @@ readonly final class ImportRowTimeCheck
     /**
      * For the screens, before "Add" (6b-2 - no UI here): which of the rows carry a time the player will be asked
      * about, with what the verification expects. Only rows of the player's own import whose puzzle is decided as a
-     * catalogue puzzle and that have a time and an exact day; at most 200 rows a call.
+     * catalogue puzzle and that have a time and a date; at most 200 rows a call.
      *
      * @param list<string> $rowIds
      *
@@ -96,7 +96,8 @@ readonly final class ImportRowTimeCheck
             $importPuzzle = $row->importPuzzleId === null ? null : $this->entityManager->find(DataImportPuzzle::class, $row->importPuzzleId);
             $type = is_string($parsed['type'] ?? null) ? PuzzlingType::tryFrom($parsed['type']) : null;
             $seconds = $parsed['seconds'] ?? null;
-            $day = $parsed['date'] ?? null;
+            // A month or a year is judged as of its first day - the day the result is stored on (date-precision.md)
+            $day = ImportRowAdder::dateSaid($parsed)['day'] ?? null;
 
             if (
                 $importPuzzle === null
@@ -105,9 +106,7 @@ readonly final class ImportRowTimeCheck
                 || $type === null
                 || is_int($seconds) === false
                 || $seconds <= 0
-                || ($parsed['datePrecision'] ?? null) !== 'day'
-                || is_string($day) === false
-                || preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) !== 1
+                || $day === null
             ) {
                 continue;
             }

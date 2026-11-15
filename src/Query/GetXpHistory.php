@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\XpHistoryBlock;
 use SpeedPuzzling\Web\Results\XpHistoryEntry;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\XpReason;
 
 /**
@@ -102,6 +103,7 @@ SELECT
     pst.puzzle_id,
     p.name AS puzzle_name,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
+    pst.finished_at_precision,
     pst.puzzling_type,
     pst.seconds_to_solve,
     (
@@ -132,7 +134,7 @@ LEFT JOIN puzzle p ON p.id = pst.puzzle_id
 ORDER BY blocks.last_earned_at DESC, blocks.last_created_at DESC, blocks.solving_time_id DESC NULLS LAST, blocks.entry_id DESC
 SQL;
 
-        /** @var list<array{solving_time_id: null|string, entry_id: null|string, puzzle_id: null|string, puzzle_name: null|string, solved_at: null|string, puzzling_type: null|string, seconds_to_solve: null|int, earlier_solves: null|int|string}> $blockRows */
+        /** @var list<array{solving_time_id: null|string, entry_id: null|string, puzzle_id: null|string, puzzle_name: null|string, solved_at: null|string, finished_at_precision: null|string, puzzling_type: null|string, seconds_to_solve: null|int, earlier_solves: null|int|string}> $blockRows */
         $blockRows = $this->database
             ->executeQuery($blocksSql, ['playerId' => $playerId, 'limit' => $limit, 'offset' => $offset])
             ->fetchAllAssociative();
@@ -213,6 +215,7 @@ SQL;
                 puzzleId: $blockRow['puzzle_id'],
                 puzzleName: $blockRow['puzzle_name'],
                 solvedAt: $blockRow['solved_at'] !== null ? new DateTimeImmutable($blockRow['solved_at']) : null,
+                datePrecision: DatePrecision::ofStored($blockRow['finished_at_precision']),
                 puzzlingType: $blockRow['puzzling_type'],
                 isTimed: $blockRow['seconds_to_solve'] !== null,
                 occurrenceIndex: $blockRow['puzzle_id'] !== null && is_numeric($blockRow['earlier_solves']) ? (int) $blockRow['earlier_solves'] + 1 : null,

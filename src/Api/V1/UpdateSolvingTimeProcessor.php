@@ -112,6 +112,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             roundId: $solvingTime->competitionRound?->id->toString(),
             competitionId: $solvingTime->competition?->id->toString(),
             seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
+            datePrecision: $solvingTime->datePrecision()->value,
         );
     }
 }

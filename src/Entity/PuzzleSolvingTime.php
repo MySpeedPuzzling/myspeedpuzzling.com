@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeSuspicionChanged;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -134,6 +135,18 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::JSONB, nullable: true)]
     public null|array $finishedPuzzlePhotoUploadMetadata = null;
+
+    /**
+     * How exactly the solve day is known (docs/features/data-import/date-precision.md): NULL = to the day - every
+     * result typed into a form, and every row older than the column - else `month` or `year`, never `day`. A result
+     * known to its month or year has `finishedAt` on the first day of that period (the anchor) - an invented day
+     * that nothing may read as a day: ask datePrecision() / hasExactDay(). Written only by
+     * solveDayKnownOnlyTo() (the spreadsheet import's writer), restore(), and modify(), where a changed day makes
+     * the result exact.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, length: 8, nullable: true, enumType: DatePrecision::class)]
+    public null|DatePrecision $finishedAtPrecision = null;
 
     public function __construct(
         #[Id]
@@ -261,6 +274,35 @@ class PuzzleSolvingTime implements EntityWithEvents
     public function isImportedFromEvent(): bool
     {
         return $this->createdVia === SolvingTimeSource::EventImport;
+    }
+
+    /**
+     * The file a result came from knows its month or its year only (docs/features/data-import/date-precision.md).
+     * `finishedAt` must be the first day of that period. A day is the default and is never stored.
+     */
+    public function solveDayKnownOnlyTo(DatePrecision $precision): void
+    {
+        if ($precision === DatePrecision::Day) {
+            $this->finishedAtPrecision = null;
+
+            return;
+        }
+
+        if ($this->finishedAt === null || $precision->anchorOf($this->finishedAt)->format('Y-m-d') !== $this->finishedAt->format('Y-m-d')) {
+            throw new LogicException('A result known to its month or year is dated on the first day of that period.');
+        }
+
+        $this->finishedAtPrecision = $precision;
+    }
+
+    public function datePrecision(): DatePrecision
+    {
+        return $this->finishedAtPrecision ?? DatePrecision::Day;
+    }
+
+    public function hasExactDay(): bool
+    {
+        return $this->finishedAtPrecision === null;
     }
 
     /**
@@ -424,6 +466,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         // The shown prediction comes back as it was; its side-by-side rows (solving_time_prediction) went with the
         // deleted row - the prediction backfill cron writes the current model's again (a reconstructed one: the live
         // moment is gone), so nothing here has to rebuild them
+        $time->finishedAtPrecision = $snapshot->finishedAt === null || $snapshot->finishedAtPrecision === DatePrecision::Day ? null : $snapshot->finishedAtPrecision;
         $time->predictable = $snapshot->predictable;
         $time->predictionMethod = $snapshot->predictionMethod;
         $time->predictedSeconds = $snapshot->predictedSeconds;
@@ -768,6 +811,12 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->team = $puzzlersGroup;
         $this->puzzlingTeam = $puzzlersGroup === null ? null : $puzzlingTeam;
         $this->finishedAt = $finishedAt;
+
+        // Whoever picks another day has said the day: the result is exact from now on. A date left as it was keeps
+        // what is known of it (docs/features/data-import/date-precision.md "Editing")
+        if ($finishedAtBefore?->format('Y-m-d') !== $finishedAt?->format('Y-m-d')) {
+            $this->finishedAtPrecision = null;
+        }
 
         if ($finishedPuzzlePhotoUploaded) {
             $this->finishedPuzzlePhotoUploadMetadata = $finishedPuzzlePhoto !== null ? $finishedPuzzlePhotoUploadMetadata?->toArray() : null;

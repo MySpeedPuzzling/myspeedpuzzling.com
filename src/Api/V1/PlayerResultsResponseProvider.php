@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -79,6 +80,7 @@ final readonly class PlayerResultsResponseProvider implements ProviderInterface
                     difficulty: $insights->difficulty($puzzle->puzzleId),
                     teamId: $puzzle->teamId,
                     teamName: $puzzle->teamName,
+                    datePrecision: ($puzzle->finishedAt === null ? DatePrecision::Day : $puzzle->datePrecision)->value,
                 ),
                 $results,
             ),

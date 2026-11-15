@@ -55,7 +55,7 @@
                             <img class="rounded-2 flex-shrink-0" style="width: 64px; height: 64px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ copy.finishedPuzzlePhoto|thumbnail('puzzle_small') }}" loading="lazy">
                         {% endif %}
                         <div>
-                            <strong>{{ copy.solvedAt|date('d.m.Y') }}</strong>
+                            <strong>{{ result_date(copy.solvedAt, copy.datePrecision) }}</strong>
                             {% if copy.secondsToSolve is not null %}· {{ copy.secondsToSolve|puzzlingTime }}{% endif %}
                             · {{ _self.people_label(copy, player_id) }}
                             {% if copy.firstAttempt %}<span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span>{% endif %}

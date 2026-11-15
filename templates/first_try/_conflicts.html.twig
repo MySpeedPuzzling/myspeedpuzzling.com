@@ -43,7 +43,7 @@
                 <label class="d-flex align-items-start gap-2 border rounded-3 p-2 mb-2 fs-sm" style="cursor: pointer;">
                     <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="keep" value="{{ time.timeId }}" required {{ time.timeId == conflict.suggestedTimeId ? 'checked' }}>
                     <span>
-                        <strong>{{ time.solvedAt|date('d.m.Y') }}</strong>
+                        <strong>{{ result_date(time.solvedAt, time.datePrecision) }}</strong>
                         {% if time.secondsToSolve is not null %}· {{ time.secondsToSolve|puzzlingTime }}{% endif %}
                         · {{ _self.result_label(time, player_id) }}
                         <span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span>
@@ -83,7 +83,7 @@
             <div class="card card-body mb-2 py-2">
                 {{ _self.puzzle_heading(late.puzzle) }}
                 <p class="fs-sm mb-2">
-                    <strong>{{ late.time.solvedAt|date('d.m.Y') }}</strong>
+                    <strong>{{ result_date(late.time.solvedAt, late.time.datePrecision) }}</strong>
                     {% if late.time.secondsToSolve is not null %}· {{ late.time.secondsToSolve|puzzlingTime }}{% endif %}
                     · {{ _self.result_label(late.time, player_id) }}
                     <span class="badge rounded-pill bg-info ms-1">{{ 'first_attempt'|trans }}</span><br>

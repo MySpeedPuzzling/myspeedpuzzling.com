@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowState;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use SpeedPuzzling\Web\Value\PuzzlingType;
@@ -101,7 +102,9 @@ readonly final class ImportRowAdder
         $puzzle = $this->decidedPuzzle($row);
         $said = $this->resultSaid($row);
 
-        if ($puzzle === null || $said === null) {
+        // The exact ones first (README "Never twice", step 2): a row known to its month or year is compared in add(),
+        // when every exact row of the batch has found its result - it never takes a result an exact row is
+        if ($puzzle === null || $said === null || $said['precision'] !== DatePrecision::Day) {
             return false;
         }
 
@@ -307,7 +310,7 @@ readonly final class ImportRowAdder
     /**
      * The result part of a row: already the player's (how, which result), refused (why), or made by the writer.
      *
-     * @param array{day: string, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
+     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
      *
      * @return array{refused: null|string, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
      */
@@ -348,10 +351,42 @@ readonly final class ImportRowAdder
         }
 
         $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
-        $equal = ImportNeverTwice::equal($free, $said['day'], $said['seconds'], $said['type'], $row->alreadyYoursSolvingTimeId?->toString());
+        $equal = ImportNeverTwice::equal($free, $said['day'], $said['seconds'], $said['type'], $row->alreadyYoursSolvingTimeId?->toString(), $said['precision']);
 
         if ($equal !== null) {
             return self::answer(how: 'profile', timeId: $equal);
+        }
+
+        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the coarser row is the result the
+        // finer row of the same file made or was settled with - not a second one (README "Never twice", step 2)
+        if ($said['precision'] !== DatePrecision::Day && $said['seconds'] !== null) {
+            // The finer row may stand later in the file: it is added first, so that the rows' order changes nothing
+            // (its result is not in the database before this transaction ends - the row itself says what it became)
+            foreach ($this->finerQueuedRows($row, $batchId, $said) as $finerRow) {
+                $customValuesOf = $this->add($finerRow->id->toString(), $batchId, $playerId)['customValuesOf'];
+                $finerTimeId = match ($finerRow->state) {
+                    DataImportRowState::Added => $finerRow->solvingTimeId,
+                    DataImportRowState::AlreadyYours => $finerRow->alreadyYoursSolvingTimeId,
+                    default => null,
+                };
+
+                if ($finerTimeId !== null) {
+                    return self::answer(how: 'equal_row', timeId: $finerTimeId->toString(), customValuesOf: $customValuesOf);
+                }
+            }
+
+            $finer = ImportNeverTwice::equal(
+                $this->neverTwice->resultsOfThisImport($player, $puzzle, $row->import->id->toString()),
+                $said['day'],
+                $said['seconds'],
+                $said['type'],
+                null,
+                $said['precision'],
+            );
+
+            if ($finer !== null) {
+                return self::answer(how: 'equal_row', timeId: $finer);
+            }
         }
 
         $people = self::people($row->parsed['people'] ?? null);
@@ -366,14 +401,14 @@ readonly final class ImportRowAdder
             $said['type'] !== PuzzlingType::Solo
             && $said['seconds'] !== null
             && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzle->id->toString()) === false
-            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $said['day'], $said['seconds'])
+            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $said['day'], $said['seconds'], $said['precision'])
         ) {
             return self::answer(refused: ImportRowRefusal::SomebodyElsesResult->value);
         }
 
         if (
             $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzle->id->toString()) === false
-            && ImportNeverTwice::similar($free, $said['day'], $said['seconds']) !== null
+            && ImportNeverTwice::similar($free, $said['day'], $said['seconds'], $said['precision']) !== null
         ) {
             return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
         }
@@ -405,6 +440,7 @@ readonly final class ImportRowAdder
             groupPlayers: $people,
             comment: $comment,
             position: max(0, $row->rowNumber),
+            precision: $said['precision'],
         ));
 
         if ($outcome->status === ImportedResultStatus::Refused) {
@@ -529,30 +565,97 @@ readonly final class ImportRowAdder
     }
 
     /**
-     * What the row says of its result - only a result with an exact day (README D13: a date we do not know is never
-     * stored as a day).
+     * What the row says of its result - a result with a date: a day, or the month or year the file knows, which is
+     * stored as that (README D13: a date we do not know is never stored as a day). `day` is then the first day of
+     * the period. A result without any date is not added.
      *
-     * @return null|array{day: string, seconds: null|int, type: PuzzlingType, sourceKey: string}
+     * @return null|array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string}
      */
     private function resultSaid(DataImportRow $row): null|array
     {
         $parsed = $row->parsed ?? [];
-        $day = $parsed['date'] ?? null;
         $keys = is_array($parsed['keys'] ?? null) ? $parsed['keys'] : [];
         $sourceKey = is_string($keys['result'] ?? null) ? $keys['result'] : $row->sourceKey;
         $type = is_string($parsed['type'] ?? null) ? PuzzlingType::tryFrom($parsed['type']) : null;
+        $dated = self::dateSaid($parsed);
 
-        if (($parsed['datePrecision'] ?? null) !== 'day' || is_string($day) === false || preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) !== 1) {
-            return null;
-        }
-
-        if ($sourceKey === null || $sourceKey === '' || $type === null) {
+        if ($dated === null || $sourceKey === null || $sourceKey === '' || $type === null) {
             return null;
         }
 
         $seconds = is_int($parsed['seconds'] ?? null) && $parsed['seconds'] > 0 ? $parsed['seconds'] : null;
 
-        return ['day' => $day, 'seconds' => $seconds, 'type' => $type, 'sourceKey' => $sourceKey];
+        return ['day' => $dated['day'], 'precision' => $dated['precision'], 'seconds' => $seconds, 'type' => $type, 'sourceKey' => $sourceKey];
+    }
+
+    /**
+     * The rows still queued in the batch that say the same result as this month- or year-row and know more of its
+     * date: the same distinct puzzle, time and solo/pair/team, a date inside this row's period.
+     *
+     * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
+     *
+     * @return list<DataImportRow>
+     */
+    private function finerQueuedRows(DataImportRow $row, string $batchId, array $said): array
+    {
+        if ($row->importPuzzleId === null) {
+            return [];
+        }
+
+        $finer = [];
+
+        foreach ($this->rowRepository->queuedResultRowsOfPuzzle($batchId, $row->importPuzzleId, $row->id->toString()) as $other) {
+            $otherSaid = $this->resultSaid($other);
+
+            if (
+                $otherSaid !== null
+                && $otherSaid['seconds'] === $said['seconds']
+                && $otherSaid['type'] === $said['type']
+                && $otherSaid['precision'] !== $said['precision']
+                && ($otherSaid['precision'] === DatePrecision::Day || $said['precision'] === DatePrecision::Year)
+                && $said['precision']->holds(new DateTimeImmutable($said['day']), new DateTimeImmutable($otherSaid['day']))
+            ) {
+                $finer[] = $other;
+            }
+        }
+
+        return $finer;
+    }
+
+    /**
+     * The date of a parsed row (`parsed.date` is written at its precision: `2021-03-15`, `2021-03`, `2021`) as the
+     * day it is stored on - the first day of a month or a year - and how exactly it is known.
+     *
+     * @param array<mixed> $parsed `data_import_row.parsed`
+     *
+     * @return null|array{day: string, precision: DatePrecision}
+     */
+    public static function dateSaid(array $parsed): null|array
+    {
+        $date = $parsed['date'] ?? null;
+        $precision = is_string($parsed['datePrecision'] ?? null) ? DatePrecision::tryFrom($parsed['datePrecision']) : null;
+
+        if ($precision === null || is_string($date) === false) {
+            return null;
+        }
+
+        [$pattern, $rest] = match ($precision) {
+            DatePrecision::Day => ['/^\d{4}-\d{2}-\d{2}$/', ''],
+            DatePrecision::Month => ['/^\d{4}-\d{2}$/', '-01'],
+            DatePrecision::Year => ['/^\d{4}$/', '-01-01'],
+        };
+
+        if (preg_match($pattern, $date) !== 1) {
+            return null;
+        }
+
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date . $rest);
+
+        if ($day === false || $day->format('Y-m-d') !== $date . $rest) {
+            return null;
+        }
+
+        return ['day' => $date . $rest, 'precision' => $precision];
     }
 
     /**

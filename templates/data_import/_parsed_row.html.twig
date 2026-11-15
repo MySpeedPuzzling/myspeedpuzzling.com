@@ -20,6 +20,9 @@
         {%- if row.time is not null %}{% set facts = facts|merge(['data_import.columns.row.time'|trans({'%time%': row.time})]) %}{% endif -%}
         {%- if row.day is not null %}
             {%- set facts = facts|merge(['data_import.columns.row.solved_on'|trans({'%date%': row.day|format_date('medium', timezone='UTC')})]) -%}
+        {%- elseif row.period is not null %}
+            {#- Only the month or the year is known: written as that, never as a day -#}
+            {%- set facts = facts|merge(['data_import.columns.row.solved_on'|trans({'%date%': result_date(row.period.day, row.period.precision, 'medium')})]) -%}
         {%- elseif row.text('date') is not null %}
             {%- set facts = facts|merge(['data_import.columns.row.solved_on'|trans({'%date%': row.text('date')})]) -%}
         {%- endif -%}

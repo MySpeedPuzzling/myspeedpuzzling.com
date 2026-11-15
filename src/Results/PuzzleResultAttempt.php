@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One attempt of the subject (a player, or one exact pair/team) on a puzzle - a row of the result detail.
@@ -46,6 +47,8 @@ readonly final class PuzzleResultAttempt
         // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
         // deletes it, its claimers release their spot instead
         public bool $importedFromEvent = false,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -83,6 +86,7 @@ readonly final class PuzzleResultAttempt
             deltaToPrevious: $deltaToPrevious,
             gapToBest: $gapToBest,
             importedFromEvent: $this->importedFromEvent,
+            datePrecision: $this->datePrecision,
         );
     }
 }

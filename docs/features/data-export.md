@@ -55,6 +55,10 @@ Still the one statement. The progress towards a first rating (profile card, ladd
 on those counting puzzles only since the same day (`MspRatingCalculator::qualificationProgress()`), with the others shown
 apart as "+N first attempts on puzzles that don't count yet".
 
+**`date_precision`** (last column, since 2026-11): how exactly `finished_at` is known - `day`, or `month` / `year` for a
+result imported from a spreadsheet that knew no more; `finished_at` is then the first day of that month or year and
+keeps its value (`docs/features/data-import/date-precision.md`). Empty for a result without a `finished_at`.
+
 ## Own fields (custom fields, 2026-11-14)
 
 A player's own fields (`custom-fields.md`, "My fields") are in both downloads: on every result in the results file,

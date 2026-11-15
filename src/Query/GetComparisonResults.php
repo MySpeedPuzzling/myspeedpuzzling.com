@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\ComparisonLimits;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 use SpeedPuzzling\Web\Value\ComparisonTimes;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * The one aggregate statement of the comparison page (docs/features/player-comparison.md "Data rules", "Performance
@@ -163,6 +164,7 @@ WITH ranked AS (
         pst.seconds_to_solve,
         pst.first_attempt,
         COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
+        pst.finished_at_precision AS solved_precision,
         ROW_NUMBER() OVER (
             PARTITION BY {$subjectColumn}, pst.puzzle_id
             ORDER BY pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at, pst.id
@@ -186,9 +188,11 @@ per_subject AS (
         MIN(seconds_to_solve) AS best_seconds,
         (ARRAY_AGG(id) FILTER (WHERE best_rank = 1))[1] AS best_time_id,
         MAX(solved_at) FILTER (WHERE best_rank = 1) AS best_day,
+        MAX(solved_precision) FILTER (WHERE best_rank = 1) AS best_day_precision,
         MAX(seconds_to_solve) FILTER (WHERE first_attempt AND chronological_rank = 1) AS first_try_seconds,
         (ARRAY_AGG(id) FILTER (WHERE first_attempt AND chronological_rank = 1))[1] AS first_try_time_id,
-        MAX(solved_at) FILTER (WHERE first_attempt AND chronological_rank = 1) AS first_try_day
+        MAX(solved_at) FILTER (WHERE first_attempt AND chronological_rank = 1) AS first_try_day,
+        MAX(solved_precision) FILTER (WHERE first_attempt AND chronological_rank = 1) AS first_try_day_precision
     FROM ranked
     GROUP BY subject_id, puzzle_id
 ),
@@ -213,9 +217,11 @@ SELECT
     best_seconds,
     best_time_id,
     best_day,
+    best_day_precision,
     first_try_seconds,
     first_try_time_id,
     first_try_day,
+    first_try_day_precision,
     difficulty_tier,
     puzzle_name
 FROM counted
@@ -231,9 +237,11 @@ SQL;
          *     best_seconds: int,
          *     best_time_id: string,
          *     best_day: string,
+         *     best_day_precision: null|string,
          *     first_try_seconds: null|int,
          *     first_try_time_id: null|string,
          *     first_try_day: null|string,
+         *     first_try_day_precision: null|string,
          *     difficulty_tier: null|int,
          *     puzzle_name: null|string,
          * }> $rows
@@ -261,6 +269,8 @@ SQL;
                 firstTrySeconds: $row['first_try_seconds'] !== null ? (int) $row['first_try_seconds'] : null,
                 firstTryTimeId: $row['first_try_time_id'],
                 firstTryDay: $row['first_try_day'] !== null ? new DateTimeImmutable($row['first_try_day']) : null,
+                bestDayPrecision: DatePrecision::ofStored($row['best_day_precision']),
+                firstTryDayPrecision: DatePrecision::ofStored($row['first_try_day_precision']),
                 difficultyTier: $withDifficulty && $row['difficulty_tier'] !== null ? (int) $row['difficulty_tier'] : null,
                 puzzleName: $withPuzzleNames ? $row['puzzle_name'] : null,
             );

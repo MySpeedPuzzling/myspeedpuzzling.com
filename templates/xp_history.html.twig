@@ -48,7 +48,7 @@
 
                 <div class="xp-history-meta">
                     {% if block.solvedAt is not null %}
-                        {{ block.solvedAt|format_date('medium') }}
+                        {{ result_date(block.solvedAt, block.datePrecision, 'medium') }}
                         {% if block.puzzlingType is not null %}
                             <span aria-hidden="true">·</span>
                             {{ ('xp.history.type.' ~ block.puzzlingType)|trans }}

@@ -97,13 +97,13 @@
                             {%- if attemptsCount == 1 -%}
                                 <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                                 <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
-                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>{% endif -%}
+                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ result_date(myLast.finishedAt, myLast.datePrecision) }})</span>{% endif -%}
                             {%- elseif isNewPb -%}
                                 <i class="bi bi-star-fill text-warning me-1"></i>{{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}
                             {%- else -%}
                                 <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
                                 <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
-                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>{% endif -%}
+                                {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ result_date(myLast.finishedAt, myLast.datePrecision) }})</span>{% endif -%}
                             {%- endif -%}
                             {%- if myLast.isEditableBy(logged_user.profile.playerId) %}
                                 {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
@@ -145,7 +145,7 @@
                                 <span>
                                     <i class="bi bi-calendar3 text-muted me-1"></i>
                                     {% if row.attempt.finishedAt is not null %}
-                                        <span class="tabular-nums">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+                                        <span class="tabular-nums">{{ result_date(row.attempt.finishedAt, row.attempt.datePrecision) }}</span>
                                     {% else %}
                                         <span class="text-muted">&mdash;</span>
                                     {% endif %}

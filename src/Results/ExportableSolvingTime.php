@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\ResultRatingStatus;
 use SpeedPuzzling\Web\Value\SolvingTime;
 
@@ -50,6 +51,8 @@ readonly final class ExportableSolvingTime
         public string $mspRating = ResultRatingStatus::NOT_COUNTED,
         public null|string $mspRatingReason = null,
         public null|int $mspRatingPuzzleFirstTrySolvers = null,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
         $this->ppm = $secondsToSolve !== null && $secondsToSolve > 0
             ? (new SolvingTime($secondsToSolve))->calculatePpm($piecesCount, $playersCount)
@@ -65,6 +68,7 @@ readonly final class ExportableSolvingTime
      *     pieces_count: int,
      *     seconds_to_solve: null|int,
      *     finished_at: null|string,
+     *     finished_at_precision?: null|string,
      *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
@@ -145,6 +149,7 @@ readonly final class ExportableSolvingTime
             mspRating: $rating->status,
             mspRatingReason: $rating->reason,
             mspRatingPuzzleFirstTrySolvers: $solvers,
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
         );
     }
 
@@ -197,6 +202,9 @@ readonly final class ExportableSolvingTime
             'msp_rating' => $this->mspRating,
             'msp_rating_reason' => $this->mspRatingReason,
             'msp_rating_puzzle_first_try_solvers' => $this->mspRatingPuzzleFirstTrySolvers,
+            // How exactly `finished_at` is known: day, or month / year - `finished_at` is then the first day of that
+            // period (docs/features/data-import/date-precision.md). Empty without a `finished_at`
+            'date_precision' => $this->finishedAt === null ? null : $this->datePrecision->value,
         ];
     }
 }

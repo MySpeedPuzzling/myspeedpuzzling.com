@@ -341,7 +341,7 @@ written with `textContent`; the bar is a width. Without a script: a "Refresh the
 | `comment_too_long` | The comment is longer than MySpeedPuzzling takes. Shorten it in your file, or map the column to private notes. |
 | `not_ready` | The row was not ready any more when its turn came - its puzzle or something about the row changed meanwhile. |
 | `unlisted_not_yet` | The puzzle is kept as an unlisted puzzle. Unlisted puzzles arrive with a later step - nothing is lost. |
-| `needs_exact_day` | The result has no exact day. Results known to the month or year arrive with a later step - or open the row and give it a day. |
+| `needs_exact_day` | The result has no date. Open the row and give it a day, a month or a year. (Since stage 6c a month or a year is a date.) |
 | `puzzle_not_available` | The puzzle can not be chosen any more. Choose the puzzle again. |
 | `similar_result_exists` | Your profile already has a result of this puzzle that looks like this row - the same time on another day, or the same day with another time. If it is another solve, add it anyway. |
 | `somebody_elses_result` | Somebody else already logged a pair or team result of this puzzle with this day and time. If you solved it together, ask them to link you instead - or add it anyway. |

@@ -47,7 +47,8 @@ Every difference between an imported and a typed result. The parity test names e
 |---|---|---|---|
 | `created_via` | `form` / `stopwatch` / `api` | `spreadsheet_import` (`SolvingTimeSource::SpreadsheetImport`) | Readers that need a rule for imports (Night Owl, the hour-of-day chart - stage 6b) tell them apart by it |
 | `tracked_at` | now | noon of the solve day in the player's zone + the row's position in steps of 11 s, never in the future, never within 10 s of another result the player tracked of that puzzle (below) | "Now" would put ten years of puzzling into this week's statistics, feeds, digest and moments (README D5) |
-| `finished_at` | the picked day, or none ("today") | always the solve day, at midnight like the form's date | An imported result always has a day; only exact days are added until stage 6c |
+| `finished_at` | the picked day, or none ("today") | always the solve day, at midnight like the form's date; for a result known to its month or year, the first day of that period | An imported result always has a date |
+| `finished_at_precision` | always NULL (a day) - no form can say anything else | NULL for a day, `month` or `year` when the file knows no more (`ImportedResult::$precision` → `PuzzleSolvingTime::solveDayKnownOnlyTo()`) | A month stored as a day is an invented fact (README D13) - `date-precision.md` lists every reader and what it does with such a result |
 | Prediction columns | stored live for a solo result of today or yesterday; else left for the backfill | never live: left "not evaluated", the backfill reconstructs it | The insights tables already hold everything after an old solve's date; README "always reconstructed" |
 | Photo | optional | none | A spreadsheet has no photo |
 | `unboxed` | as ticked | always off | No column for it (yet) |

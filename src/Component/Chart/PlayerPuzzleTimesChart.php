@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Results\PuzzleResultAttempt;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\ResultDateFormatter;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
@@ -41,6 +43,7 @@ final class PlayerPuzzleTimesChart
         readonly private ChartBuilderInterface $chartBuilder,
         readonly private TranslatorInterface $translator,
         readonly private PuzzlingTimeFormatter $timeFormatter,
+        readonly private ResultDateFormatter $resultDateFormatter,
     ) {
     }
 
@@ -54,7 +57,9 @@ final class PlayerPuzzleTimesChart
             }
 
             $date = $result->finishedAt ?? $result->trackedAt;
-            $rows[] = ['date' => $date, 'tracked_at' => $result->trackedAt, 'time' => $result->time];
+            // A result known to its month or year is a point of that month or year - its label says so, never a day
+            $precision = $result->finishedAt === null ? DatePrecision::Day : $result->datePrecision;
+            $rows[] = ['date' => $date, 'precision' => $precision, 'tracked_at' => $result->trackedAt, 'time' => $result->time];
         }
 
         usort($rows, static fn (array $a, array $b): int => ($a['date'] <=> $b['date']) ?: ($a['tracked_at'] <=> $b['tracked_at']));
@@ -64,7 +69,7 @@ final class PlayerPuzzleTimesChart
 
         foreach ($rows as $row) {
             $chartData[] = $row['time'];
-            $labels[] = $row['date']->format('d.m.Y');
+            $labels[] = $this->resultDateFormatter->format($row['date'], $row['precision']);
         }
 
         $datasets = [

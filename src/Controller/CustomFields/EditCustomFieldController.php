@@ -91,9 +91,13 @@ final class EditCustomFieldController extends AbstractController
             }
         }
 
-        return $this->render('my_fields/edit.html.twig', [
+        $response = $this->render(CustomFieldsController::isPanelRequest($request) ? 'my_fields/panel_edit.html.twig' : 'my_fields/edit.html.twig', [
             'form' => $form,
             'field' => $field,
         ]);
+
+        $response->setVary('Turbo-Frame', false);
+
+        return $response;
     }
 }

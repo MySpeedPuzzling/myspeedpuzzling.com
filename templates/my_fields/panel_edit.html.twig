@@ -1,0 +1,8 @@
+{# Editing one own field inside the add-result form's dialog - see panel.html.twig #}
+<turbo-frame id="my-fields-panel">
+    <div data-testid="my-fields-panel-edit">
+        <h2 class="h4 mb-3">{{ 'my_fields.edit_page.title'|trans }}</h2>
+
+        {{ include('my_fields/_edit_form.html.twig') }}
+    </div>
+</turbo-frame>

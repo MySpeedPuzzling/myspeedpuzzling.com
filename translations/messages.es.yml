@@ -11649,6 +11649,7 @@ my_fields:
     archive_help: "Archivar oculta un campo en todas partes. Lo que escribiste en él se conserva y vuelve cuando restauras el campo."
     archived_title: "Archivados (%count%)"
     ready_made:
+        more_for_collection: "Más campos listos, para los puzzles de tu colección (%count%)"
         title: "Campos ya preparados"
         intro: "Un toque añade un campo. Su nombre sigue el idioma de la página."
         add: "Añadir %field%"
@@ -11717,6 +11718,12 @@ my_fields:
         title: "Mis campos"
         some_not_saved: "Tu resultado está guardado. Estos campos tuyos no se pudieron guardar: %fields%. Puedes rellenarlos en el resultado."
         not_saved: "Tu resultado está guardado. Tus propios campos no se pudieron guardar; puedes rellenarlos en el resultado."
+        invite: "Añadir tu propio campo"
+        invite_note: "una nota, una valoración, etiquetas: solo tú lo ves"
+        dialog_label: "Tus propios campos"
+        dialog_loading: "Cargando…"
+        dialog_unavailable: "No se pudo abrir aquí."
+        dialog_done: "Listo"
     values:
         title: "Mis campos en este resultado"
         saved: "Tus campos se han guardado."

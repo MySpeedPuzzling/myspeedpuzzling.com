@@ -1,0 +1,77 @@
+{#
+    The place of the player's own fields in the add-result form (docs/features/custom-fields.md "Making and managing
+    fields from the add form") - included by _solving_time_form.html.twig on the add page only, never on the edit form:
+
+    - the "My fields" block of a player who has fields (my_fields: CustomFieldsForm, else nothing),
+    - one quiet line for everybody: "Add your own field",
+    - an empty <dialog> the line and the block's "Manage my fields" open. It holds the manage page's body in a Turbo
+      Frame (panel.html.twig), so making, renaming, ordering and archiving fields never submits, re-renders or leaves
+      the form behind it. Closing it fetches the block again and the browser keeps what was typed
+      (my_fields_panel_controller.js).
+
+    This sits INSIDE the result's <form>, and a form can not hold another form. The dialog is therefore empty here and
+    the controller moves it out of the form before anything is loaded into it - to the end of the modal the form is in
+    when there is one (a Bootstrap modal takes the focus back from anything outside it), else to the end of the page.
+
+    Speed puzzling and relax only. The form's JavaScript hides the comment/photo card (the next element) in
+    collection mode - this follows it through the sibling rule below, so the form's controller stays as it is.
+#}
+<style>
+    .own-fields-area:has(+ [data-puzzle-add-form-target="commonSection"].d-none) { display: none; }
+    dialog.own-fields-dialog {
+        border: 0;
+        border-radius: .75rem;
+        padding: 0;
+        width: min(640px, calc(100vw - 16px));
+        max-width: none;
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+        background: var(--bs-body-bg, #fff);
+        color: var(--bs-body-color, inherit);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, .3);
+    }
+    dialog.own-fields-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+    dialog.own-fields-dialog .own-fields-dialog-bar { position: sticky; z-index: 2; background: inherit; }
+    dialog.own-fields-dialog .own-fields-dialog-bar.is-top { top: 0; border-bottom: 1px solid var(--bs-border-color, #dee2e6); }
+    dialog.own-fields-dialog .own-fields-dialog-bar.is-bottom { bottom: 0; border-top: 1px solid var(--bs-border-color, #dee2e6); }
+    /* "One of a list" is the only type with choices: where the browser can tell, the box shows for it alone */
+    @supports selector(:has(*)) {
+        form[name="custom_field_form"]:has(select[name="custom_field_form[type]"]):not(:has(select[name="custom_field_form[type]"] option[value="choice"]:checked)) .mb-3:has(textarea[name="custom_field_form[choices]"]) { display: none; }
+    }
+</style>
+<div class="own-fields-area"
+     data-controller="my-fields-panel"
+     data-my-fields-panel-panel-url-value="{{ path('my_fields') }}"
+     data-my-fields-panel-block-url-value="{{ path('my_fields_add_form_block') }}"
+     data-testid="own-fields-area">
+    <div data-my-fields-panel-target="block">
+        {{- my_fields|default(null) is not null ? include('my_fields/_add_form_block.html.twig') : '' -}}
+    </div>
+
+    <p class="fs-sm mb-3" data-testid="own-fields-invite">
+        <a href="{{ path('my_fields') }}" target="_blank" rel="noopener" class="text-decoration-none" data-action="my-fields-panel#open">
+            <i class="bi bi-stars me-1"></i>{{ 'my_fields.add_form.invite'|trans }}
+        </a>
+        <span class="text-muted">· {{ 'my_fields.add_form.invite_note'|trans }}</span>
+    </p>
+
+    <dialog class="own-fields-dialog" data-my-fields-panel-target="dialog" aria-label="{{ 'my_fields.add_form.dialog_label'|trans }}">
+        <div class="own-fields-dialog-bar is-top d-flex justify-content-end p-2">
+            <button type="button" class="btn-close" style="width: 28px; height: 28px;" data-own-fields-close aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+        <div class="px-3 pt-3">
+            <turbo-frame id="my-fields-panel" data-own-fields-frame>
+                <p class="text-muted" data-own-fields-loading>{{ 'my_fields.add_form.dialog_loading'|trans }}</p>
+            </turbo-frame>
+            <p class="d-none" data-own-fields-unavailable>
+                {{ 'my_fields.add_form.dialog_unavailable'|trans }}
+                <a href="{{ path('my_fields') }}" target="_blank" rel="noopener">{{ 'my_fields.manage_link'|trans }}</a>
+            </p>
+        </div>
+        <div class="own-fields-dialog-bar is-bottom d-flex justify-content-end p-2">
+            <button type="button" class="btn btn-primary" style="min-height: 44px;" data-own-fields-close>
+                <i class="bi bi-check-lg me-1"></i>{{ 'my_fields.add_form.dialog_done'|trans }}
+            </button>
+        </div>
+    </dialog>
+</div>

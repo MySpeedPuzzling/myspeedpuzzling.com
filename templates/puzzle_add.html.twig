@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        {{ include('_solving_time_form.html.twig', {has_active_membership: has_active_membership|default(true)}) }}
+        {{ include('_solving_time_form.html.twig', {has_active_membership: has_active_membership|default(true), my_fields_invite: my_fields_in_add_form()}) }}
     </div>
 
     {# Static text and one link, after and outside the form (docs/features/data-import/entry-points.md) #}

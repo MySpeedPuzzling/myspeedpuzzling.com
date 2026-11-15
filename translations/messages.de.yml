@@ -11648,6 +11648,7 @@ my_fields:
     archive_help: "Archivieren blendet ein Feld überall aus. Was du hineingeschrieben hast, bleibt erhalten und ist wieder da, sobald du das Feld wiederherstellst."
     archived_title: "Archiviert (%count%)"
     ready_made:
+        more_for_collection: "Weitere fertige Felder, für die Puzzles in deiner Sammlung (%count%)"
         title: "Fertige Felder"
         intro: "Ein Tippen fügt ein Feld hinzu. Sein Name richtet sich nach der Sprache der Seite."
         add: "%field% hinzufügen"
@@ -11716,6 +11717,12 @@ my_fields:
         title: "Meine Felder"
         some_not_saved: "Dein Ergebnis ist gespeichert. Diese Felder von dir konnten nicht gespeichert werden: %fields%. Du kannst sie beim Ergebnis ausfüllen."
         not_saved: "Dein Ergebnis ist gespeichert. Deine eigenen Felder konnten nicht gespeichert werden - du kannst sie beim Ergebnis ausfüllen."
+        invite: "Eigenes Feld hinzufügen"
+        invite_note: "eine Notiz, eine Bewertung, Tags - nur du siehst es"
+        dialog_label: "Deine eigenen Felder"
+        dialog_loading: "Wird geladen…"
+        dialog_unavailable: "Das ließ sich hier nicht öffnen."
+        dialog_done: "Fertig"
     values:
         title: "Meine Felder bei diesem Ergebnis"
         saved: "Deine Felder wurden gespeichert."

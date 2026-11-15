@@ -81,6 +81,7 @@ final class CustomValuesCoverageTest extends TestCase
         'Controller/CustomFields/ArchiveCustomFieldController.php' => self::MANAGE_PAGE,
         'Controller/CustomFields/EditCustomFieldController.php' => self::MANAGE_PAGE,
         'Controller/CustomFields/MoveCustomFieldController.php' => self::MANAGE_PAGE,
+        'Controller/CustomFields/AddFormMyFieldsBlockController.php' => 'The "My fields" block of the add form on its own, fetched when the fields dialog closes (signed-in only): the fields for results of RetrieveLoggedUserProfile\'s player as EMPTY inputs - GetCustomFields only, no value is read.',
         'Controller/CustomFields/SolvingTimeCustomValuesController.php' => 'The values form of a result (signed-in only): 404 unless RetrieveLoggedUserProfile\'s player is on the result, then that player\'s fields and that player\'s values (GetCustomValues::forViewer with their id).',
 
         // The collection item's edit form - the only page that shows an item's values

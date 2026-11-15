@@ -11638,6 +11638,7 @@ my_fields:
     archive_help: "アーカイブすると、項目はどこにも表示されなくなります。入力した内容は保存され、項目を元に戻すと再び表示されます。"
     archived_title: "アーカイブ済み（%count%）"
     ready_made:
+        more_for_collection: "コレクションのパズル用の、ほかの用意済み項目（%count%）"
         title: "用意された項目"
         intro: "ワンタップで項目を追加できます。項目名はページの言語で表示されます。"
         add: "%field%を追加"
@@ -11706,6 +11707,12 @@ my_fields:
         title: "マイ項目"
         some_not_saved: "結果は保存されました。次のマイ項目は保存できませんでした：%fields%。結果のページで入力できます。"
         not_saved: "結果は保存されました。マイ項目は保存できませんでした。結果のページで入力できます。"
+        invite: "マイ項目を追加"
+        invite_note: "メモ、評価、タグなど。見られるのは自分だけです"
+        dialog_label: "マイ項目"
+        dialog_loading: "読み込み中…"
+        dialog_unavailable: "ここでは開けませんでした。"
+        dialog_done: "完了"
     values:
         title: "この結果のマイ項目"
         saved: "マイ項目を保存しました。"

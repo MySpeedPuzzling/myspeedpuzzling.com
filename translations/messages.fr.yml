@@ -11644,6 +11644,7 @@ my_fields:
     archive_help: "Archiver masque un champ partout. Ce que tu y as écrit est conservé et revient quand tu restaures le champ."
     archived_title: "Archivés (%count%)"
     ready_made:
+        more_for_collection: "D’autres champs prêts à l’emploi, pour les puzzles de ta collection (%count%)"
         title: "Champs tout prêts"
         intro: "Un geste ajoute un champ. Son nom suit la langue de la page."
         add: "Ajouter %field%"
@@ -11712,6 +11713,12 @@ my_fields:
         title: "Mes champs"
         some_not_saved: "Ton résultat est enregistré. Ces champs à toi n’ont pas pu être enregistrés : %fields%. Tu peux les remplir sur le résultat."
         not_saved: "Ton résultat est enregistré. Tes propres champs n’ont pas pu être enregistrés - tu peux les remplir sur le résultat."
+        invite: "Ajouter ton propre champ"
+        invite_note: "une note, une évaluation, des tags - toi seul le vois"
+        dialog_label: "Tes propres champs"
+        dialog_loading: "Chargement…"
+        dialog_unavailable: "Impossible de l’ouvrir ici."
+        dialog_done: "Terminé"
     values:
         title: "Mes champs sur ce résultat"
         saved: "Tes champs ont été enregistrés."

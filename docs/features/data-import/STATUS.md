@@ -17,7 +17,7 @@ sandbox from the stage that can read them.
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); **3c live 2026-11-15** (#352: Google Sheets link). Stage 3 is complete | #345, #347, #350, #351, #352 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); 4c (memory) not started | #348, #353, #354 | yes | deploy green |
+| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); 5b (the screens) building | #356 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
 | 6b | Add, never twice, Undo | not started | | | |
@@ -55,6 +55,18 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 4c live** (#357): `import_layout` per player (signature of the header row, 50 a player),
+  saved when a sheet is confirmed, applied to a later sheet of the same shape (whole match, or ≥ 80 % of the
+  headers) and - in the background - to the unconfirmed sibling sheets of the same workbook; "Start over for this
+  sheet", the saved-layouts page (rename, forget). Review blocker fixed before the merge: a layout carried the sheet's
+  kind and solo/pair/team to same-header tabs ("Solo" / "Pairs" / "Teams", "Collection" / "Wishlist") - a layout now
+  carries the columns; kind and solving type only when the sheet's own reading agrees; an answer only to a column the
+  layout knew; a remembered column whose values do not fit is "please check". Tried on the branch and on the
+  sandbox with the ten-sheet workbook: one sheet confirmed → a layout saved, two sibling sheets followed at once
+  with the notice, the same file again asked nothing for that sheet.
+- 2026-11-15 - building: 5b (the pairing screens), 6b-1 (the engine of Add: batches, never twice, Undo, the
+  safety switch, `/admin/imports` - no player-facing buttons yet).
 
 - 2026-11-15 - **stage 5a live** (#356): `data_import_puzzle` (one per distinct puzzle of an import),
   `import_puzzle_decision` (a player's remembered answers, "not this puzzle" included), `BuildImportPuzzles` after

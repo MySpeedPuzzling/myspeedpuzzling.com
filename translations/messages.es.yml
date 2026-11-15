@@ -11835,7 +11835,7 @@ data_import:
         back_to_review: "Volver a la revisión"
         sheet_rows: "Filas listas: %number%"
         daily_limit: "Desde hojas de cálculo se añaden como máximo %limit% resultados al día. Hoy: %today%. Los %later% restantes estarán listos mañana; no se pierde nada."
-        with_guests: "con %people% (como invitados)"
+        with_guests: "con %people%"
         first_try: "primer intento"
         button: "Añadir %number% a mi perfil"
         button_part: "Añadir ahora %number% de %total%: el resto mañana"
@@ -11898,7 +11898,7 @@ data_import:
             hint: "No hay nada que hacer. Estas filas no se añaden por segunda vez."
             more: "Y %number% más."
         does:
-            public: "Los resultados aparecen en tu perfil y en la clasificación de cada puzzle, igual que los que escribes a mano. Las personas con las que montaste el puzzle se añaden como invitados."
+            public: "Los resultados aparecen en tu perfil y en la clasificación de cada puzzle, igual que los que escribes a mano. Un código de jugador en tu archivo se convierte en ese jugador; los nombres se quedan como invitados hasta que digas quiénes son."
             undo: "Puedes deshacer una sola fila, un añadido o todo lo que añadió esta importación."
         does_not:
             followers: "No se avisa a tus seguidores."
@@ -11917,6 +11917,16 @@ data_import:
             rate_limited: "Han sido muchos añadidos en poco tiempo. Inténtalo de nuevo dentro de un rato."
             not_addable: "Ahora mismo no se pueden añadir filas de esta importación."
             daily_limit: "Los %number% resultados de hoy desde hojas de cálculo ya se han usado. El resto estará listo mañana; no se pierde nada."
+        sheet_as:
+            results: "{1}1 resultado|[0,Inf[%count% resultados"
+            all_solo: "individual"
+            all_duo: "pareja"
+            all_team: "equipo"
+            some_solo: "%count% individual"
+            some_duo: "%count% pareja"
+            some_team: "%count% equipo"
+            with: "con %people%"
+            hint: "Revisa cada hoja: individual, pareja o equipo - y que los resultados sean tuyos, no de otra persona."
     batch:
         how:
             owned: "Filas cuyo puzzle ya tenías, por otra fila del archivo o de antes: %number%"
@@ -11962,6 +11972,8 @@ data_import:
         equal_row_not_added: "Es el mismo resultado que otra fila de tu archivo, y esa fila no se añadió."
         error: "Algo salió mal por nuestra parte con esta fila. Ya lo sabemos; puedes intentarlo de nuevo."
         over_daily_limit: "Por encima del límite de hoy de resultados desde hojas de cálculo: mañana volverán a estar listos."
+        too_many_partners: "Esta tanda ya alcanzó su límite de 20 jugadores más en sus resultados. Añade esta fila de nuevo en la siguiente."
+        partner_daily_limit: "Un jugador de este resultado ya recibió hoy 200 resultados de tus hojas de cálculo. La fila estará lista de nuevo mañana."
     added:
         title: "Lo que añadió esta importación"
         intro: "Filas añadidas por esta importación: %number%. Puedes deshacer una fila: lo que añadió se quita de tu perfil."
@@ -11980,7 +11992,7 @@ data_import:
         people:
             title: "¿Con quién los montaste?"
             hint: "Filas que dicen pareja o equipo y no nombran a nadie: %number%. Una respuesta para todas; después se añaden."
-            names: "Nombres separados por comas: se añaden como invitados"
+            names: "Nombres o códigos de jugador (#abc123) separados por comas: un código se convierte en ese jugador, un nombre se queda como invitado"
             submit: "Usar para estas filas y añadirlas (%number%)"
             solo: "Fueron individuales: añadirlas (%number%)"
             no_names: "Escribe al menos un nombre, o elige individual."
@@ -12313,6 +12325,10 @@ data_import:
             save_help: "No se añade nada a tu perfil. Las filas de esta hoja se leen de nuevo con tus opciones."
             preview_title: "Las primeras filas, tal como las entendimos"
             preview_empty: "No encontramos ningún puzzle en las filas de esta hoja."
+            solving_question_hint: "Ninguna columna dice con quién montaste el puzzle, así que preguntamos en vez de adivinar. Tu respuesta vale para todos los resultados de esta hoja."
+            partner_label: "¿Con quién los hiciste?"
+            partner_placeholder: "Ana o #abc123"
+            partner_help: "Una respuesta para toda la hoja: un nombre o un código de jugador (#abc123), varios separados por comas. ¿Compañeros distintos en filas distintas? Déjalo vacío - podrás decirlo fila por fila más tarde."
         row_meaning:
             result: "Un resultado"
             both: "Un resultado, y el puzzle es mío"
@@ -12330,6 +12346,7 @@ data_import:
             date_order: "En las fechas de «%column%», ¿qué va primero?"
             typed_dates: "En algunas fechas de «%column%» la hoja de cálculo pudo intercambiar el día y el mes. ¿Fue así?"
             year: "Las fechas de «%column%» no muestran el año. ¿De qué año son?"
+            sheet_solving_type: "Esta hoja se llama «%title%». ¿Son resultados de pareja o de equipo?"
         answer:
             duration:
                 minutes_seconds: "Minutos y segundos"
@@ -12355,6 +12372,11 @@ data_import:
                 "no": "No, están bien como están"
             year:
                 stored: "El año que guarda cada celda"
+            sheet_solving_type:
+                solo: "No - los hice en individual"
+                duo: "Sí - resultados de pareja"
+                team: "Resultados de equipo"
+                rows: "Lo dice cada fila"
         group:
             puzzle: "El puzzle"
             result: "El resultado"
@@ -12439,6 +12461,7 @@ data_import:
             attempt_unreadable: "No pudimos leer aquí un número de intento."
             status_unknown: "No sabemos qué significa este estado."
             yes_no_unknown: "No pudimos saber si esto es un sí o un no."
+            type_open: "La hoja pregunta si son resultados de pareja o de equipo - responde primero."
     home:
         adding: "Añadiendo ahora"
         nothing_added_now: "Ahora mismo no hay nada de esta importación en tu perfil."
@@ -12602,6 +12625,56 @@ data_import:
         taken_back_reason: "Motivo: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+        with_you: "{1}%player% añadió un resultado contigo desde una hoja de cálculo.|[0,Inf[%player% añadió %count% resultados contigo desde una hoja de cálculo."
+        with_you_open: "Parejas y equipos"
+        leave: "Estos no son míos - quítame de ellos"
+        left: "{0}Ya no estabas en ninguno de esos resultados. Las importaciones de este jugador ya no te añadirán.|{1}Se te quitó de 1 resultado. Las importaciones de este jugador ya no te añadirán.|[0,Inf[Se te quitó de %count% resultados. Las importaciones de este jugador ya no te añadirán."
+    people:
+        title: "Personas en tu archivo"
+        intro: "Estas son las personas que tu archivo nombra en resultados de pareja y de equipo. Un código de jugador (#abc123) en el archivo se convierte en ese jugador. Un nombre se queda como invitado hasta que digas quién es."
+        added_note: "Los resultados que ya están añadidos se quedan como están. Lo que elijas aquí vale para las filas que añadas a partir de ahora."
+        none: "Tu archivo no nombra a nadie más que a ti."
+        rows: "{1}1 fila|[0,Inf[%count% filas"
+        who: "¿Quién es %name%?"
+        maybe: "quizá"
+        solved_together: "Ya tenéis resultados juntos"
+        save: "Guardar"
+        to_review: "Volver a la revisión"
+        ask_hint: "En los resultados que ya añadiste, «%guest%» es un invitado. Solo esa persona puede convertir al invitado en su propio perfil."
+        ask: "Pedir a %player% que confirme que es «%guest%»"
+        state:
+            player_code: "%player% - encontrado por el código de jugador de tu archivo"
+            player_player: "%player% - lo dijiste tú"
+            player_remembered: "%player% - recordado de una importación anterior"
+            me: "Eres tú - no cuentas entre tus compañeros"
+            guest: "Un invitado (sin cuenta)"
+            guest_remembered: "Un invitado (sin cuenta) - recordado de una importación anterior"
+        answer:
+            player: "Es %player% (#%code%)"
+            guest: "No está en MySpeedPuzzling - dejar como invitado"
+            code: "Es el jugador con este código:"
+            me: "Soy yo"
+        refused:
+            unknown_player: "No encontramos con eso a ningún jugador que puedas añadir. Revisa el código de jugador o deja a la persona como invitada."
+            invalid: "Elige primero quién es."
+        flash:
+            saved: "Guardado."
+        card:
+            people: "{1}1 persona|[0,Inf[%count% personas"
+            players: "{0}ningún jugador|{1}1 jugador|]1,Inf[%count% jugadores"
+            guests: "{0}ningún invitado|{1}1 invitado|]1,Inf[%count% invitados"
+            hint: "Los códigos de jugador se convirtieron en el jugador. Los nombres se quedan como invitados hasta que digas quiénes son."
+            open: "Ver quién es quién"
+        remembered:
+            player: "La última vez «%name%» era %player% - ¿sigue siendo así?"
+            me: "La última vez dijiste que «%name%» eres tú - ¿sigue siendo así?"
+            yes: "Sí, sigue siendo así"
+            all_title: "Ya respondiste a algunos de estos nombres en una importación anterior"
+            all_hint: "Se quedan como invitados hasta que los confirmes aquí - nada se aplica por sí solo."
+            all: "Sí, todos como la última vez"
+        own_name:
+            question: "«%name%» es tu propio nombre. ¿Eres tú?"
+            yes: "Sí, soy yo"
 unlisted_puzzles:
     title: "Puzzles fuera del catálogo"
     link: "Tus puzzles fuera del catálogo"

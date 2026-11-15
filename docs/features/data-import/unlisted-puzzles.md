@@ -202,8 +202,9 @@ error.
 What a pairing makes public counts like what an "Add" makes public: at most
 `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` results a day and player (UTC).
 `DataImportRowRepository::countResultsAddedOrQueuedSince()` counts the rows whose result was **made** today
-(`result_made_at` - whenever the row itself was added) or is queued for the profile; a result that was undone is
-not counted, a row kept as unlisted never. Before a pairing converts a result it asks, under the lock, what is left
+(`data_import_daily_count`, raised when the result is made - whenever the row itself was added) or is queued for
+the profile; **a result that was undone since still counts** (stage 6d: the count is what was made that day, so
+making public and taking back can not churn - people.md "Limits"), a row kept as unlisted never. Before a pairing converts a result it asks, under the lock, what is left
 of the day: nothing left → the result is left as it is (no reason on it), the pairing is marked
 (`daily_limit_reached_at`) and **stays at work** - the page says "Today's limit … is reached. The rest is added
 tomorrow, by itself" - and the sweeper (`myspeedpuzzling:continue-import-batches`, every 5 minutes) goes on with it

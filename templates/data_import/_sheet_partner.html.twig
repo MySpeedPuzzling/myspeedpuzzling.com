@@ -1,0 +1,11 @@
+{#
+    "Who was your partner on this sheet?" (docs/features/data-import/people.md "A sheet called Pairs"): one answer
+    for every pair / team row of the sheet that names nobody - names or player codes (#abc123), separated by commas.
+    Left empty, such rows wait and are answered per row or together later. Variables: sheet_partner (string).
+#}
+<div class="mt-3" data-testid="import-sheet-partner">
+    <label class="form-label fs-sm fw-medium mb-1" for="sheet-partner">{{ 'data_import.columns.sheet.partner_label'|trans }}</label>
+    <input type="text" class="form-control" id="sheet-partner" name="sheet_partner" value="{{ sheet_partner }}" maxlength="200"
+           style="min-height: 44px; font-size: 16px;" autocomplete="off" autocapitalize="words" placeholder="{{ 'data_import.columns.sheet.partner_placeholder'|trans }}">
+    <div class="form-text">{{ 'data_import.columns.sheet.partner_help'|trans }}</div>
+</div>

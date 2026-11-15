@@ -122,6 +122,7 @@ final class CustomValuesCoverageTest extends TestCase
         'MessageHandler/DeletePlayerHandler.php' => 'Account deletion: deletes the player\'s fields and their values on every result, by player id.',
         'MessageHandler/RemoveCustomValuesOfFormerMembers.php' => self::MEMBER_LEFT,
         'MessageHandler/ReplaceGroupMemberWithGuestHandler.php' => self::MEMBER_LEFT,
+        'MessageHandler/LeaveImportedResultsHandler.php' => self::MEMBER_LEFT,
         'Services/EventResultsImport/EventResultSlotRelease.php' => self::MEMBER_LEFT,
         'MessageHandler/KeepDuplicateCopyHandler.php' => self::COPY_REMOVED,
         'MessageHandler/AutoRemoveCertainDuplicateHandler.php' => self::COPY_REMOVED,

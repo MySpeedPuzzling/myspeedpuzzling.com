@@ -78,4 +78,33 @@ SQL;
             )
             ->fetchFirstColumn();
     }
+
+    /**
+     * Of the given players: those with a block between them and the player, **in either direction** - whoever
+     * blocks whom. For write-side code that must leave both alone and must not tell the two cases apart
+     * (docs/features/data-import/people.md "Safeguards").
+     *
+     * @param list<string> $otherPlayerIds
+     * @return list<string>
+     */
+    public function blockedEitherWay(string $playerId, array $otherPlayerIds): array
+    {
+        if ($otherPlayerIds === []) {
+            return [];
+        }
+
+        /** @var list<string> */
+        return $this->database
+            ->executeQuery(
+                <<<SQL
+SELECT DISTINCT CASE WHEN blocker_id = :playerId THEN blocked_id ELSE blocker_id END
+FROM user_block
+WHERE (blocker_id = :playerId AND blocked_id IN (:otherIds))
+    OR (blocked_id = :playerId AND blocker_id IN (:otherIds))
+SQL,
+                ['playerId' => $playerId, 'otherIds' => $otherPlayerIds],
+                ['otherIds' => ArrayParameterType::STRING],
+            )
+            ->fetchFirstColumn();
+    }
 }

@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetProposal;
 use SpeedPuzzling\Web\Value\DataImport\KnownExportLayout;
 use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
+use SpeedPuzzling\Web\Value\DataImport\SolvingTypeWords;
 use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImport\SavedImportLayout;
 use SpeedPuzzling\Web\Value\DataImportRowMeaning;
@@ -252,7 +253,9 @@ final readonly class ImportLayoutMatcher
             [$kind, $certainty, $rowMeaning] = [$saidKind, ColumnCertainty::Certain, $saidMeaning];
         }
 
-        $solvingType = $sameName ? $content->solvingType : null;
+        // "Every row is a pair result" goes with a sheet of the same name - and never onto a sheet whose title says
+        // another kind, by the one list of those words (SolvingTypeWords)
+        $solvingType = $sameName && SolvingTypeWords::titleDisagrees($sheetTitle, $content->solvingType) === false ? $content->solvingType : null;
         $meaningKept = $kind !== $saidKind || $rowMeaning !== $saidMeaning || $solvingType !== $content->solvingType;
 
         $applied = new ImportMapping(
@@ -433,7 +436,9 @@ final readonly class ImportLayoutMatcher
                 ImportQuestionType::DateOrder => $key === null || $key !== $layout->datesColumn ? null : $layout->dateOrder?->value,
                 ImportQuestionType::ShortDates => $key === null || $key !== $layout->datesColumn ? null : $layout->shortDates?->value,
                 // The year is the sheet's own; whether a spreadsheet turned typed dates around is the file's
-                ImportQuestionType::Year, ImportQuestionType::TypedDates => null,
+                // ... and "are these pair results?" is asked of each sheet by its own title - a layout's word for
+                // every row travels as the sheet's `solvingType`, by the rule above, and then nothing is asked
+                ImportQuestionType::Year, ImportQuestionType::TypedDates, ImportQuestionType::SheetSolvingType => null,
             };
 
             if ($answer === null || in_array($answer, $question->choices, true) === false) {

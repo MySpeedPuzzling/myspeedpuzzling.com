@@ -12081,7 +12081,7 @@ data_import:
         back_to_review: "Back to the review"
         sheet_rows: "Rows ready: %number%"
         daily_limit: "At most %limit% results a day are added from spreadsheets. Today: %today%. The remaining %later% are ready tomorrow - nothing is lost."
-        with_guests: "with %people% (as guests)"
+        with_guests: "with %people%"
         first_try: "first try"
         button: "Add %number% to my profile"
         button_part: "Add %number% of %total% now - the rest tomorrow"
@@ -12144,7 +12144,7 @@ data_import:
             hint: "Nothing to do. These rows are not added a second time."
             more: "And %number% more."
         does:
-            public: "Results appear on your profile and on each puzzle's leaderboard, like the ones you type. People you solved with are added as guests."
+            public: "Results appear on your profile and on each puzzle's leaderboard, like the ones you type. A player code in your file becomes that player; names stay guests unless you say who they are."
             undo: "You can take back a single row, one adding, or everything this import added."
         does_not:
             followers: "Your followers are not notified."
@@ -12163,6 +12163,16 @@ data_import:
             rate_limited: "That was a lot of adding in a short time. Please try again in a while."
             not_addable: "Rows can not be added from this import right now."
             daily_limit: "Today's %number% results from spreadsheets are used up. The rest is ready tomorrow - nothing is lost."
+        sheet_as:
+            results: "{1}1 result|[0,Inf[%count% results"
+            all_solo: "solo"
+            all_duo: "pair"
+            all_team: "team"
+            some_solo: "%count% solo"
+            some_duo: "%count% pair"
+            some_team: "%count% team"
+            with: "with %people%"
+            hint: "Check each sheet: solo, pair or team - and that the results are yours, not somebody else's."
     batch:
         how:
             owned: "Rows whose puzzle you already had - from another row of the file, or from before: %number%"
@@ -12208,6 +12218,8 @@ data_import:
         equal_row_not_added: "It is the same result as another row of your file, and that row was not added."
         error: "Something went wrong on our side with this row. We know about it - you can try again."
         over_daily_limit: "Over today's limit of results from spreadsheets - ready again tomorrow."
+        too_many_partners: "This add already reached its limit of 20 other players on its results. Add this row again in the next add."
+        partner_daily_limit: "A player on this result already got 200 results from your spreadsheets today. The row is ready again tomorrow."
     added:
         title: "What this import added"
         intro: "Rows added by this import: %number%. You can take a row back - what it added is removed from your profile."
@@ -12226,7 +12238,7 @@ data_import:
         people:
             title: "Who did you solve these with?"
             hint: "Rows that say pair or team and name nobody: %number%. One answer for all of them - they are then added."
-            names: "Names, separated by commas - they are added as guests"
+            names: "Names or player codes (#abc123), separated by commas - a code becomes that player, a name stays a guest"
             submit: "Use for these rows and add them (%number%)"
             solo: "They were solo - add them (%number%)"
             no_names: "Please type at least one name - or choose solo."
@@ -12559,6 +12571,10 @@ data_import:
             save_help: "Nothing is added to your profile. The rows of this sheet are read again with your choices."
             preview_title: "The first rows, as we understood them"
             preview_empty: "We found no puzzle in the rows of this sheet."
+            solving_question_hint: "No column says who you solved with, so we ask instead of guessing. Your answer goes for every result of this sheet."
+            partner_label: "Who did you solve these with?"
+            partner_placeholder: "Anna or #abc123"
+            partner_help: "One answer for the whole sheet: a name or a player code (#abc123), several separated by commas. Different partners on different rows? Leave it empty - you can say it per row later."
         row_meaning:
             result: "A result"
             both: "A result, and I own the puzzle"
@@ -12576,6 +12592,7 @@ data_import:
             date_order: "In the dates of “%column%”, what comes first?"
             typed_dates: "Some dates in “%column%” may have had their day and month swapped by the spreadsheet. Were they?"
             year: "The dates in “%column%” show no year. Which year are they from?"
+            sheet_solving_type: "This sheet is called “%title%”. Are these pair or team results?"
         answer:
             duration:
                 minutes_seconds: "Minutes and seconds"
@@ -12601,6 +12618,11 @@ data_import:
                 "no": "No, they are right as they are"
             year:
                 stored: "The year each cell stores"
+            sheet_solving_type:
+                solo: "No - I solved these solo"
+                duo: "Yes - pair results"
+                team: "Team results"
+                rows: "Each row says it"
         group:
             puzzle: "The puzzle"
             result: "The result"
@@ -12685,6 +12707,7 @@ data_import:
             attempt_unreadable: "We could not read an attempt number here."
             status_unknown: "We do not know what this status means."
             yes_no_unknown: "We could not tell whether this is a yes or a no."
+            type_open: "The sheet asks whether these are pair or team results - answer it first."
     home:
         adding: "Adding now"
         nothing_added_now: "Nothing of it is on your profile now."
@@ -12848,6 +12871,56 @@ data_import:
         taken_back_reason: "Reason: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+        with_you: "{1}%player% added a result with you from a spreadsheet.|[0,Inf[%player% added %count% results with you from a spreadsheet."
+        with_you_open: "Pairs & teams"
+        leave: "These are not mine - take me off them"
+        left: "{0}You were on none of those results any more. This player's imports will no longer add you.|{1}You were taken off 1 result. This player's imports will no longer add you.|[0,Inf[You were taken off %count% results. This player's imports will no longer add you."
+    people:
+        title: "People in your file"
+        intro: "These are the people your file names in pair and team results. A player code (#abc123) in the file becomes that player. A name stays a guest unless you say who it is."
+        added_note: "Results that are already added stay as they are. What you choose here goes for the rows you add from now on."
+        none: "Your file names nobody besides you."
+        rows: "{1}1 row|[0,Inf[%count% rows"
+        who: "Who is %name%?"
+        maybe: "maybe"
+        solved_together: "You already have results together"
+        save: "Save"
+        to_review: "Back to the review"
+        ask_hint: "In the results you already added, “%guest%” is a guest. Only they can turn that guest into their own profile."
+        ask: "Ask %player% to confirm they are “%guest%”"
+        state:
+            player_code: "%player% - found by the player code in your file"
+            player_player: "%player% - you said so"
+            player_remembered: "%player% - remembered from an earlier import"
+            me: "This is you - left out of the people you solved with"
+            guest: "A guest (no account)"
+            guest_remembered: "A guest (no account) - remembered from an earlier import"
+        answer:
+            player: "It is %player% (#%code%)"
+            guest: "Not on MySpeedPuzzling - keep as a guest"
+            code: "It is the player with this code:"
+            me: "That is me"
+        refused:
+            unknown_player: "We found no player you can add with that. Check the player code, or keep the person as a guest."
+            invalid: "Choose who this is first."
+        flash:
+            saved: "Saved."
+        card:
+            people: "{1}1 person|[0,Inf[%count% people"
+            players: "{0}no players|{1}1 player|]1,Inf[%count% players"
+            guests: "{0}no guests|{1}1 guest|]1,Inf[%count% guests"
+            hint: "Player codes became the player. Names stay guests unless you say who they are."
+            open: "See who is who"
+        remembered:
+            player: "Last time “%name%” was %player% - still right?"
+            me: "Last time you said “%name%” is you - still right?"
+            yes: "Yes, still right"
+            all_title: "You answered some of these names in an earlier import"
+            all_hint: "They stay guests until you confirm them here - nothing is taken over by itself."
+            all: "Yes, all as last time"
+        own_name:
+            question: "“%name%” is your own name. Is this you?"
+            yes: "Yes, that is me"
 unlisted_puzzles:
     title: "Unlisted puzzles"
     link: "Your unlisted puzzles"

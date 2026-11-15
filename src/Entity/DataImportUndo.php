@@ -87,6 +87,16 @@ class DataImportUndo
     #[Column(options: ['default' => 0])]
     public int $rowsFailed = 0;
 
+    /**
+     * The registered partners whose results this Undo deleted: each is owed one recalculation of their achievements
+     * when the Undo is through - once per partner, however many results (docs/features/data-import/people.md).
+     *
+     * @var list<string>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, options: ['jsonb' => true, 'default' => '[]'])]
+    public array $partnerPlayerIds = [];
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -169,6 +179,14 @@ class DataImportUndo
         $this->collectionItemsKept += $outcome['collectionItemKept'] ? 1 : 0;
         $this->wishListItemsRemoved += $outcome['wishListItemRemoved'] ? 1 : 0;
         $this->wishListItemsRestored += $outcome['wishListItemsRestored'];
+    }
+
+    /**
+     * @param list<string> $playerIds
+     */
+    public function partnersOwed(array $playerIds): void
+    {
+        $this->partnerPlayerIds = array_values(array_unique([...$this->partnerPlayerIds, ...$playerIds]));
     }
 
     public function rowFailed(DateTimeImmutable $now): void

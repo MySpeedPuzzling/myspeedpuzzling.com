@@ -11837,7 +11837,7 @@ data_import:
         back_to_review: "Zpět na kontrolu"
         sheet_rows: "Připravené řádky: %number%"
         daily_limit: "Z tabulek se přidá nejvýše %limit% výsledků denně. Dnes: %today%. Zbývajících %later% bude připraveno zítra - nic se neztratí."
-        with_guests: "s: %people% (jako hosté)"
+        with_guests: "s: %people%"
         first_try: "první pokus"
         button: "Přidat na můj profil (%number%)"
         button_part: "Přidat teď %number% z %total% - zbytek zítra"
@@ -11900,7 +11900,7 @@ data_import:
             hint: "Není potřeba nic dělat. Tyto řádky se podruhé nepřidají."
             more: "A dalších: %number%."
         does:
-            public: "Výsledky se objeví na vašem profilu a v žebříčku každého puzzle stejně jako ty, které zadáváte ručně. Lidé, se kterými jste skládali, se přidají jako hosté."
+            public: "Výsledky se objeví na vašem profilu a v žebříčku každého puzzle stejně jako ty, které zadáváte ručně. Kód hráče ve vašem souboru se stane tím hráčem; jména zůstanou hosty, dokud neřeknete, kdo to je."
             undo: "Zpět můžete vzít jeden řádek, jedno přidání nebo vše, co tento import přidal."
         does_not:
             followers: "Vaši sledující nedostanou žádné oznámení."
@@ -11919,6 +11919,16 @@ data_import:
             rate_limited: "To bylo hodně přidávání v krátkém čase. Zkuste to prosím za chvíli znovu."
             not_addable: "Z tohoto importu teď nelze řádky přidávat."
             daily_limit: "Dnešních %number% výsledků z tabulek je vyčerpáno. Zbytek bude připraven zítra - nic se neztratí."
+        sheet_as:
+            results: "{1}1 výsledek|[2,4]%count% výsledky|[0,Inf[%count% výsledků"
+            all_solo: "sólo"
+            all_duo: "dvojice"
+            all_team: "tým"
+            some_solo: "%count% sólo"
+            some_duo: "%count% dvojice"
+            some_team: "%count% tým"
+            with: "s: %people%"
+            hint: "Zkontrolujte každý list: sólo, dvojice, nebo tým - a že jsou výsledky vaše, ne někoho jiného."
     batch:
         how:
             owned: "Řádky, jejichž puzzle jste už měli - z jiného řádku souboru nebo z dřívějška: %number%"
@@ -11964,6 +11974,8 @@ data_import:
         equal_row_not_added: "Jde o stejný výsledek jako na jiném řádku vašeho souboru a ten řádek se nepřidal."
         error: "U tohoto řádku se něco pokazilo na naší straně. Víme o tom - můžete to zkusit znovu."
         over_daily_limit: "Nad dnešním limitem výsledků z tabulek - zítra budou znovu připravené."
+        too_many_partners: "Toto přidání už dosáhlo limitu 20 dalších hráčů na svých výsledcích. Přidejte tento řádek znovu v dalším přidání."
+        partner_daily_limit: "Hráč na tomto výsledku už dnes dostal 200 výsledků z vašich tabulek. Řádek bude zítra znovu připravený."
     added:
         title: "Co tento import přidal"
         intro: "Řádky přidané tímto importem: %number%. Řádek můžete vzít zpět - co přidal, se z vašeho profilu odstraní."
@@ -11982,7 +11994,7 @@ data_import:
         people:
             title: "S kým jste je skládali?"
             hint: "Řádky, které uvádějí dvojici nebo tým a nikoho nejmenují: %number%. Jedna odpověď pro všechny - potom se přidají."
-            names: "Jména oddělená čárkami - přidají se jako hosté"
+            names: "Jména nebo kódy hráčů (#abc123) oddělené čárkami - z kódu se stane ten hráč, jméno zůstane hostem"
             submit: "Použít pro tyto řádky a přidat je (%number%)"
             solo: "Byly sólo - přidat je (%number%)"
             no_names: "Napište prosím alespoň jedno jméno - nebo zvolte sólo."
@@ -12315,6 +12327,10 @@ data_import:
             save_help: "Na váš profil se nic nepřidá. Řádky tohoto listu se přečtou znovu podle vašich voleb."
             preview_title: "První řádky, jak jsme je pochopili"
             preview_empty: "V řádcích tohoto listu jsme nenašli žádné puzzle."
+            solving_question_hint: "Žádný sloupec neříká, s kým jste skládali, a tak se ptáme, místo abychom hádali. Vaše odpověď platí pro všechny výsledky tohoto listu."
+            partner_label: "S kým jste je skládali?"
+            partner_placeholder: "Anna nebo #abc123"
+            partner_help: "Jedna odpověď pro celý list: jméno nebo kód hráče (#abc123), více jich oddělte čárkami. Různí spoluhráči na různých řádcích? Nechte prázdné - řeknete to později u řádků."
         row_meaning:
             result: "Výsledek"
             both: "Výsledek a puzzle vlastním"
@@ -12332,6 +12348,7 @@ data_import:
             date_order: "Co je v datech ve sloupci „%column%“ první?"
             typed_dates: "U některých dat ve sloupci „%column%“ mohla tabulka prohodit den a měsíc. Stalo se to?"
             year: "Data ve sloupci „%column%“ neukazují rok. Ze kterého roku jsou?"
+            sheet_solving_type: "Tento list se jmenuje „%title%“. Jsou to výsledky dvojic nebo týmů?"
         answer:
             duration:
                 minutes_seconds: "Minuty a sekundy"
@@ -12357,6 +12374,11 @@ data_import:
                 "no": "Ne, jsou správně tak, jak jsou"
             year:
                 stored: "Rok, který má každá buňka uložený"
+            sheet_solving_type:
+                solo: "Ne - skládal(a) jsem je sólo"
+                duo: "Ano - výsledky dvojic"
+                team: "Výsledky týmů"
+                rows: "Říká to každý řádek"
         group:
             puzzle: "Puzzle"
             result: "Výsledek"
@@ -12441,6 +12463,7 @@ data_import:
             attempt_unreadable: "Tady jsme nedokázali přečíst číslo pokusu."
             status_unknown: "Nevíme, co tento stav znamená."
             yes_no_unknown: "Nepoznali jsme, jestli je to ano, nebo ne."
+            type_open: "List se ptá, jestli jde o výsledky dvojic nebo týmů - nejdřív na to odpovězte."
     home:
         adding: "Právě se přidává"
         nothing_added_now: "Na vašem profilu z něj teď nic není."
@@ -12604,6 +12627,56 @@ data_import:
         taken_back_reason: "Důvod: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+        with_you: "{1}%player% přidal(a) z tabulky výsledek s vámi.|[2,4]%player% přidal(a) z tabulky %count% výsledky s vámi.|[0,Inf[%player% přidal(a) z tabulky %count% výsledků s vámi."
+        with_you_open: "Dvojice a týmy"
+        leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
+        left: "{0}Na žádném z těch výsledků už jste nebyli. Importy tohoto hráče vás už nepřidají.|{1}Byli jste odebráni z 1 výsledku. Importy tohoto hráče vás už nepřidají.|[2,4]Byli jste odebráni ze %count% výsledků. Importy tohoto hráče vás už nepřidají.|[0,Inf[Byli jste odebráni z %count% výsledků. Importy tohoto hráče vás už nepřidají."
+    people:
+        title: "Lidé ve vašem souboru"
+        intro: "Tohle jsou lidé, které váš soubor jmenuje u výsledků dvojic a týmů. Kód hráče (#abc123) v souboru se stane tím hráčem. Jméno zůstane hostem, dokud neřeknete, kdo to je."
+        added_note: "Výsledky, které už jsou přidané, zůstávají, jak jsou. Co tady vyberete, platí pro řádky, které přidáte odteď."
+        none: "Váš soubor nejmenuje nikoho kromě vás."
+        rows: "{1}1 řádek|[2,4]%count% řádky|[0,Inf[%count% řádků"
+        who: "Kdo je %name%?"
+        maybe: "možná"
+        solved_together: "Už spolu máte výsledky"
+        save: "Uložit"
+        to_review: "Zpět na kontrolu"
+        ask_hint: "Ve výsledcích, které už jste přidali, je „%guest%“ host. Jen on sám může z hosta udělat svůj profil."
+        ask: "Požádat hráče %player%, ať potvrdí, že je „%guest%“"
+        state:
+            player_code: "%player% - nalezen podle kódu hráče ve vašem souboru"
+            player_player: "%player% - řekli jste to vy"
+            player_remembered: "%player% - zapamatováno z dřívějšího importu"
+            me: "To jste vy - mezi spoluhráče se nepočítáte"
+            guest: "Host (bez účtu)"
+            guest_remembered: "Host (bez účtu) - zapamatováno z dřívějšího importu"
+        answer:
+            player: "Je to %player% (#%code%)"
+            guest: "Není na MySpeedPuzzling - nechat jako hosta"
+            code: "Je to hráč s tímto kódem:"
+            me: "To jsem já"
+        refused:
+            unknown_player: "S tímto údajem jsme nenašli hráče, kterého můžete přidat. Zkontrolujte kód hráče, nebo nechte osobu jako hosta."
+            invalid: "Nejdřív vyberte, kdo to je."
+        flash:
+            saved: "Uloženo."
+        card:
+            people: "{1}1 člověk|[2,4]%count% lidé|[0,Inf[%count% lidí"
+            players: "{0}žádný hráč|{1}1 hráč|[2,4]%count% hráči|[5,Inf[%count% hráčů"
+            guests: "{0}žádný host|{1}1 host|[2,4]%count% hosté|[5,Inf[%count% hostů"
+            hint: "Z kódů hráčů se stali hráči. Jména zůstávají hosty, dokud neřeknete, kdo to je."
+            open: "Podívat se, kdo je kdo"
+        remembered:
+            player: "Minule byl(a) „%name%“ hráč %player% - platí to pořád?"
+            me: "Minule jste řekli, že „%name%“ jste vy - platí to pořád?"
+            yes: "Ano, platí"
+            all_title: "Na některá z těchto jmen jste odpověděli už v dřívějším importu"
+            all_hint: "Zůstanou hosty, dokud je tady nepotvrdíte - samo se nic nepřevezme."
+            all: "Ano, všechna jako minule"
+        own_name:
+            question: "„%name%“ je vaše vlastní jméno. Jste to vy?"
+            yes: "Ano, to jsem já"
 unlisted_puzzles:
     title: "Puzzle mimo databázi"
     link: "Vaše puzzle mimo databázi"

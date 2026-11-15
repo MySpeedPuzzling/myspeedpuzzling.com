@@ -76,11 +76,43 @@
                             <span class="text-break">{% if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif %}</span>
                             <span class="text-nowrap">{{ 'data_import.add.sheet_rows'|trans({'%number%': sheet.ready|format_number}) }}</span>
                         </li>
+                        {# What the sheet's results will be added as - and with whom: a wrong kind, or a sheet of
+                           somebody else's results, is seen here before the tap #}
+                        {% if sheet.results > 0 %}
+                            {% set kinds = [] %}
+                            {% for type in ['solo', 'duo', 'team'] %}
+                                {% if sheet[type] > 0 %}
+                                    {% set kinds = kinds|merge([(sheet[type] == sheet.results ? 'data_import.add.sheet_as.all_' ~ type : 'data_import.add.sheet_as.some_' ~ type)|trans({'%count%': sheet[type]})]) %}
+                                {% endif %}
+                            {% endfor %}
+                            <li class="pb-1 text-body text-break" data-testid="import-add-sheet-as" data-results="{{ sheet.results }}" data-solo="{{ sheet.solo }}" data-duo="{{ sheet.duo }}" data-team="{{ sheet.team }}">
+                                {{- 'data_import.add.sheet_as.results'|trans({'%count%': sheet.results}) }} · {{ kinds|join(' · ') }}
+                                {%- if sheet.people is not empty %} · {{ 'data_import.add.sheet_as.with'|trans({'%people%': sheet.people|slice(0, 3)|join(', ')}) }}{% if sheet.people|length > 3 %}…{% endif %}{% endif -%}
+                            </li>
+                        {% endif %}
                     {% endfor %}
                 </ul>
+                <p class="fs-xs text-muted mt-1 mb-0">{{ 'data_import.add.sheet_as.hint'|trans }}</p>
             {% endif %}
         {% endif %}
     </div>
+
+    {# --- People in your file: codes became players, names are guests unless the player says who they are --- #}
+    {% if people_counts.people > 0 %}
+        <div class="card card-body shadow-sm mb-3" id="people" data-testid="import-add-people"
+             data-people="{{ people_counts.people }}" data-players="{{ people_counts.players }}" data-unanswered="{{ people_counts.unanswered }}">
+            <h2 class="h6 mb-1">{{ 'data_import.people.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">
+                {{ 'data_import.people.card.people'|trans({'%count%': people_counts.people}) }} ·
+                {{ 'data_import.people.card.players'|trans({'%count%': people_counts.players}) }} ·
+                {{ 'data_import.people.card.guests'|trans({'%count%': people_counts.people - people_counts.players}) }}
+            </p>
+            <p class="fs-sm mb-2">{{ 'data_import.people.card.hint'|trans }}</p>
+            <a href="{{ path('data_import_people', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-testid="import-add-people-link">
+                <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'data_import.people.card.open'|trans }}
+            </a>
+        </div>
+    {% endif %}
 
     {# --- The first results as they will appear --- #}
     {% if sample is not empty %}

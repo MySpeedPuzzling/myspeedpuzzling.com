@@ -162,7 +162,7 @@ readonly final class UndoImportRowHandler
                 return;
             }
 
-            $this->deleteResult($solvingTime, $player);
+            $this->deleteResult($solvingTime, $player, $undo);
             $outcome['resultDeleted'] = true;
         }
 
@@ -227,7 +227,7 @@ readonly final class UndoImportRowHandler
      * What DeletePuzzleSolvingTimeHandler does around the one delete - without its "may this player delete it?":
      * the result is the import's own.
      */
-    private function deleteResult(PuzzleSolvingTime $solvingTime, Player $owner): void
+    private function deleteResult(PuzzleSolvingTime $solvingTime, Player $owner, DataImportUndo $undo): void
     {
         $puzzleId = $solvingTime->puzzle->id->toString();
         $solvingTimeId = $solvingTime->id->toString();
@@ -235,12 +235,12 @@ readonly final class UndoImportRowHandler
 
         $this->solvingTimeRepository->delete($solvingTime, SolvingTimeDeletedVia::ImportUndo);
 
-        // The owner's achievements once, when the Undo is through (finish()) - a registered partner's here
-        foreach ($memberPlayerIds as $memberPlayerId) {
-            if ($memberPlayerId !== $owner->id->toString()) {
-                $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
-            }
-        }
+        // Everybody's achievements once, when the Undo is through (finish()): the owner's, and each registered
+        // partner's - written down here, so a partner on two hundred results is recalculated once, not two hundred times
+        $undo->partnersOwed(array_values(array_filter(
+            $memberPlayerIds,
+            static fn (string $memberPlayerId): bool => $memberPlayerId !== $owner->id->toString(),
+        )));
 
         $this->messageBus->dispatch(new CompensateXpForDeletedSolve($solvingTimeId, $puzzleId, $memberPlayerIds));
     }
@@ -295,6 +295,10 @@ readonly final class UndoImportRowHandler
 
         if ($undo->resultsDeleted > 0) {
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($undo->import->player->id->toString()));
+        }
+
+        foreach ($undo->partnerPlayerIds as $partnerPlayerId) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($partnerPlayerId));
         }
 
         // An admin took something back: the player is told once, in the app, with the reason - no e-mail. The player's

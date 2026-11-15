@@ -12756,6 +12756,7 @@ data_import:
     add_review:
         ready_title: "Připraveno k přidání"
         quoted: "„%text%“"
+        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         line:
             results: "{1}1 výsledek|[2,4]%number% výsledky|[0,Inf[%number% výsledků"
             owned: "{1}1 puzzle do vaší sbírky|[0,Inf[%number% puzzle do vaší sbírky"
@@ -12831,7 +12832,7 @@ data_import:
             done: "Hotovo - zpět na kontrolu"
         empty: "Zatím není nic připraveno k přidání."
         no_hit: "Žádný řádek s takovým puzzle."
-        reading_again: "Jeden list se právě čte znovu - tento seznam se za chvíli upraví."
+        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         refresh: "Obnovit"
         flash:
             left_out: "Neimportuje se. Tlačítkem „Vrátit“ řádek zase přidáte."

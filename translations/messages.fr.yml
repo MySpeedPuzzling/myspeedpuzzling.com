@@ -12749,6 +12749,7 @@ data_import:
     add_review:
         ready_title: "Prêt à être ajouté"
         quoted: "« %text% »"
+        reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
         line:
             results: "{0,1}%number% résultat|[2,Inf[%number% résultats"
             owned: "{0,1}%number% puzzle pour votre collection|[2,Inf[%number% puzzles pour votre collection"
@@ -12824,7 +12825,7 @@ data_import:
             done: "Terminé - retour à la vérification"
         empty: "Rien n'est encore prêt à être ajouté."
         no_hit: "Aucune ligne avec ce puzzle."
-        reading_again: "Une feuille est en cours de relecture - cette liste suivra dans un instant."
+        reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
         refresh: "Actualiser"
         flash:
             left_out: "Non importée. « Remettre » fait revenir la ligne."

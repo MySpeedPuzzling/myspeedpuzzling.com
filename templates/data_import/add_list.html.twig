@@ -36,7 +36,7 @@
         {% endfor %}
 
         {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
-           then its rows are still here - said, so the list and what was just answered never seem to disagree #}
+           it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
         {% if add.sheetsNotSetUp > 0 %}
             <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again">
                 <span>{{ 'data_import.add_list.reading_again'|trans }}</span>

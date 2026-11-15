@@ -12754,6 +12754,7 @@ data_import:
     add_review:
         ready_title: "Listo para añadir"
         quoted: "«%text%»"
+        reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
         line:
             results: "{1}1 resultado|[0,Inf[%number% resultados"
             owned: "{1}1 puzzle para tu colección|[0,Inf[%number% puzzles para tu colección"
@@ -12829,7 +12830,7 @@ data_import:
             done: "Hecho - volver a la revisión"
         empty: "Todavía no hay nada listo para añadir."
         no_hit: "Ninguna fila con ese puzzle."
-        reading_again: "Se está leyendo de nuevo una hoja - esta lista se pondrá al día en un momento."
+        reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
         refresh: "Actualizar"
         flash:
             left_out: "No se importa. Con «Volver a incluir» la fila vuelve."

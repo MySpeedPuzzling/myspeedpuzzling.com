@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
@@ -196,7 +197,9 @@ final class ImportAddListTest extends WebTestCase
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out', 'row' => $meadow, 'page' => 1]);
         self::assertResponseStatusCodeSame(303);
         self::assertResponseRedirects($path . '?page=1#row-' . $meadow);
-        // The existing state of a row that is left out - no second one
+        // The existing state of a row that is left out - no second one. It is written in the request itself (the row
+        // is read again there, no worker): from the answer on, no "Add" can take the row
+        self::assertSame(4, self::getContainer()->get(GetImportAddScreen::class)->summary($importId, $playerId)->rowsReady);
         self::assertSame(['left_out', 'by_player', 'true'], $this->database->fetchNumeric("SELECT state, parsed ->> 'leftOut', answers ->> 'leftOut' FROM data_import_row WHERE id = :id", ['id' => $meadow]));
         $this->matched($importId, $puzzles);
         $crawler = $this->browser->request('GET', $path);
@@ -263,11 +266,25 @@ final class ImportAddListTest extends WebTestCase
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out_sheet', 'sheet' => $sheetId, 'version' => $version]);
         self::assertResponseRedirects($path . '?page=1');
         self::assertSame('not_puzzles', $this->database->fetchOne('SELECT kind FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]));
-        // Its rows are read again in the background (here: at once)
+        // "Don't import this sheet" holds from the moment it is said: its rows are read again in the background, and
+        // until then none of them is ready. What the engine's own summary says, and an "Add" pressed right now -
+        // BEFORE the worker ran - takes the other sheet's row only
+        $olderRows = array_values(array_filter($this->database->fetchFirstColumn('SELECT id FROM data_import_row WHERE sheet_id = :id', ['id' => $sheetId]), is_string(...)));
+        self::assertSame(['waiting', 'waiting'], $this->database->fetchFirstColumn("SELECT state FROM data_import_row WHERE sheet_id = :id AND kind = 'result' ORDER BY row_number", ['id' => $sheetId]), 'not read again yet');
+        $summary = self::getContainer()->get(GetImportAddScreen::class)->summary($importId, $playerId);
+        self::assertSame([1, 1, 1], [$summary->rowsReady, $summary->results, $summary->sheetsNotSetUp]);
+        $early = (string) $this->add($importId, $player)->id;
+        $taken = array_values(array_filter($this->database->fetchFirstColumn('SELECT id FROM data_import_row WHERE batch_id = :batchId', ['batchId' => $early]), is_string(...)));
+        self::assertCount(1, $taken);
+        self::assertSame([], array_values(array_intersect($taken, $olderRows)), 'no row of the sheet that is not imported is queued');
+        // (the row goes back to waiting: this test goes on with it)
+        $this->database->executeStatement("UPDATE data_import_row SET state = 'waiting', batch_id = NULL WHERE batch_id = :batchId", ['batchId' => $early]);
+        $this->database->executeStatement('DELETE FROM data_import_batch WHERE id = :batchId', ['batchId' => $early]);
+
+        // The worker reads the sheet again: its rows are no puzzles - and what is ready is what it was
         $this->workImportsQueue();
         $this->matched($importId, $puzzles);
         $crawler = $this->browser->request('GET', $path);
-        self::assertSame('The rows of “Older” are not imported. You can change this in step 2, “How we read your file”.', self::spaced($crawler->filter('[data-testid="import-add-list-flash"]')->text()));
         self::assertCount(0, $crawler->filter('[data-testid="import-add-list-reading-again"]'));
         self::assertSame(['“Solo 500” - 1 row'], $crawler->filter('[data-testid="import-add-list-sheet-heading"] h2')->each(static fn (Crawler $heading): string => self::spaced($heading->text())));
         self::assertSame(['1', '1'], $this->reviewCounts($importId));
@@ -278,9 +295,20 @@ final class ImportAddListTest extends WebTestCase
         self::assertEqualsCanonicalizing($ticked, $this->database->fetchFirstColumn('SELECT id FROM data_import_row WHERE batch_id = :batchId', ['batchId' => $batchId]));
         self::assertCount(1, $ticked);
 
-        // While a sheet is being read again its rows are still listed - the list says so
-        $this->database->executeStatement('UPDATE data_import_sheet SET mapping_version = mapping_version + 1 WHERE import_id = :id AND title = :title', ['id' => $importId, 'title' => 'Solo 500']);
-        self::assertSame('A sheet is being read again - this list follows in a moment. Refresh', self::spaced($this->browser->request('GET', $path)->filter('[data-testid="import-add-list-reading-again"]')->text()));
+        // A sheet whose columns were changed waits for its re-read the same way: none of its rows is listed, counted
+        // or taken - the list and the review say "being read again"
+        $second = $this->importedSheets($player, ['Later' => [['Zq Untick Harbour', 500, '2024-03-01', 3300], ['Zq Untick Meadow', 1000, '2024-03-02', 5200]]]);
+        $this->matched($second, $puzzles);
+        self::assertSame(2, self::getContainer()->get(GetImportAddScreen::class)->summary($second, $playerId)->rowsReady);
+        $this->database->executeStatement('UPDATE data_import_sheet SET mapping_version = mapping_version + 1 WHERE import_id = :id', ['id' => $second]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $second . '/add/list');
+        self::assertSame('A sheet is being read again - a moment. Its rows are not counted here until it is read. Refresh', self::spaced($crawler->filter('[data-testid="import-add-list-reading-again"]')->text()));
+        self::assertCount(0, $crawler->filter('[data-testid="import-add-list-row"]'));
+        $review = $this->browser->request('GET', '/en/import/' . $second . '/add');
+        self::assertCount(1, $review->filter('[data-testid="import-add-reading-again"]'));
+        self::assertSame('0', $review->filter('[data-testid="import-add-counts"]')->attr('data-rows'));
+        self::assertCount(0, $review->filter('[data-testid="import-add-form"]'), 'no Add button while nothing is ready');
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND batch_id IS NOT NULL', ['id' => $second]));
     }
 
     public function testCheckAndAddSaysWhatEverySheetIsAddedAsAndHowItWasRead(): void
@@ -477,6 +505,7 @@ final class ImportAddListTest extends WebTestCase
         $sheet = new DataImportSheet(Uuid::uuid7(), $managed, $position, $title);
         $entityManager->persist($sheet);
         $entityManager->flush();
+        $this->database->executeStatement('UPDATE data_import_sheet SET mapping_version = 1, parsed_version = 1 WHERE id = :id', ['id' => $sheet->id->toString()]);
 
         return $sheet;
     }

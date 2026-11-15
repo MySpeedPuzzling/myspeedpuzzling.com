@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
+use SpeedPuzzling\Web\Message\ProcessImportBatch;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\StartImport;
@@ -109,7 +110,8 @@ trait ImportedWorkbookScenario
         for ($round = 0; $round < 20; $round++) {
             $messages = array_values(array_filter(
                 array_map(static fn ($envelope): object => $envelope->getMessage(), $queue->getSent()),
-                static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false,
+                // ... and the turns of an "Add": ImportAddingScenario::work() takes them by hand
+                static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false && $message instanceof ProcessImportBatch === false,
             ));
 
             if ($messages === []) {

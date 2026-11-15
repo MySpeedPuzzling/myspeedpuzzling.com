@@ -13000,6 +13000,7 @@ data_import:
     add_review:
         ready_title: "Ready to add"
         quoted: "“%text%”"
+        reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
         line:
             results: "{1}1 result|[0,Inf[%number% results"
             owned: "{1}1 puzzle for your collection|[0,Inf[%number% puzzles for your collection"
@@ -13075,7 +13076,7 @@ data_import:
             done: "Done - back to the check"
         empty: "Nothing is ready to add yet."
         no_hit: "No row with that puzzle."
-        reading_again: "A sheet is being read again - this list follows in a moment."
+        reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
         refresh: "Refresh"
         flash:
             left_out: "Not imported. “Put back” brings the row back."

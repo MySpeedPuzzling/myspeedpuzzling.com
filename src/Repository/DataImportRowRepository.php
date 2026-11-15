@@ -499,7 +499,9 @@ SQL;
      * them: "Add" itself (queueReadyRows()) and the screens that say beforehand what an "Add" would take
      * (Query\GetImportAddScreen), so the two can never drift apart.
      *
-     * - `chosen`: the rows of the import an "Add" may look at - data without a problem on a sheet that is in, not
+     * - `chosen`: the rows of the import an "Add" may look at - data without a problem on a sheet that is in **and
+     *   settled** (parsed for its current mapping, of a kind whose rows are imported: a sheet that waits for a
+     *   re-read gives no row, so "Don't import this sheet" holds from the moment it is said), not
      *   held by an Undo, waiting and not refused before (a refused or failed row only when it is asked for by name -
      *   `:explicit = 1`), or settled as "already yours" with a result that is gone since ("already yours" is what
      *   exists now; puzzle_solving_time is asked only whether the id exists - whatever the result's state, tracked
@@ -541,6 +543,11 @@ chosen AS (
     INNER JOIN data_import_puzzle puzzle ON puzzle.id = r.import_puzzle_id
     WHERE r.import_id = :importId
         AND sheet.included
+        -- The sheet is settled: its rows are read for its current columns and kind, and it is one whose rows are
+        -- imported. A sheet the player just changed ("not puzzles", another column) waits for its re-read - until
+        -- then its rows still say what the former reading made of them, and none of them is taken
+        AND sheet.parsed_version = sheet.mapping_version
+        AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
         AND r.kind IN ('result', 'owned', 'both', 'wish_list')
         AND r.problems IS NULL
         AND r.undo_id IS NULL

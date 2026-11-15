@@ -12743,6 +12743,7 @@ data_import:
     add_review:
         ready_title: "追加の準備ができたもの"
         quoted: "「%text%」"
+        reading_again: "シートを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
         line:
             results: "記録 %number% 件"
             owned: "コレクションに入るパズル %number% 件"
@@ -12818,7 +12819,7 @@ data_import:
             done: "完了 - 確認に戻る"
         empty: "追加の準備ができたものはまだありません。"
         no_hit: "そのパズルの行はありません。"
-        reading_again: "シートを読み直しています - このリストもまもなく更新されます。"
+        reading_again: "シートを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
         refresh: "更新"
         flash:
             left_out: "インポートしません。「戻す」で行を元に戻せます。"

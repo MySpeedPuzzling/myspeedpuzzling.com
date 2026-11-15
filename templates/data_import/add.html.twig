@@ -45,6 +45,14 @@
     <div class="card card-body shadow-sm mb-3" data-testid="import-add-counts"
          data-rows="{{ add.rowsToTake }}" data-later="{{ add.later }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
         <h2 class="h5 mb-2">{{ 'data_import.add_review.ready_title'|trans }}</h2>
+        {# A sheet the player just changed is read again in the background: none of its rows is ready - or counted in
+           the button - until it is settled (DataImportRowRepository::sqlReadyRows()) #}
+        {% if add.sheetsNotSetUp > 0 %}
+            <p class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-reading-again">
+                <span>{{ 'data_import.add_review.reading_again'|trans }}</span>
+                <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
+            </p>
+        {% endif %}
         {% if add.rowsReady == 0 %}
             <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
         {% else %}

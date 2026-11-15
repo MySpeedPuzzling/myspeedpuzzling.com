@@ -12753,6 +12753,7 @@ data_import:
     add_review:
         ready_title: "Bereit zum Hinzufügen"
         quoted: "„%text%“"
+        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
         line:
             results: "{1}1 Ergebnis|[0,Inf[%number% Ergebnisse"
             owned: "{1}1 Puzzle für deine Sammlung|[0,Inf[%number% Puzzles für deine Sammlung"
@@ -12828,7 +12829,7 @@ data_import:
             done: "Fertig - zurück zum Prüfen"
         empty: "Noch ist nichts zum Hinzufügen bereit."
         no_hit: "Keine Zeile mit diesem Puzzle."
-        reading_again: "Ein Blatt wird gerade neu gelesen - diese Liste zieht gleich nach."
+        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
         refresh: "Aktualisieren"
         flash:
             left_out: "Nicht importiert. Mit „Zurücknehmen“ holst du die Zeile wieder herein."

@@ -1207,9 +1207,9 @@ started; everything below is **[UI]**: no query, message, handler or route chang
 
 ## As built - slice 2 (step 5 says everything; "What will be added")
 
-What shipped with slice 2, and where it differs from §5.9 and §7 - each with its reason. No table, no migration, no
-engine rule: `ImportRowAdder`, `ImportResultQuestions`, the writer, the batches and Undo are untouched, and an "Add"
-adds exactly what it added before.
+What shipped with slice 2, and where it differs from §5.9 and §7 - each with its reason. No table, no migration:
+`ImportRowAdder`, `ImportResultQuestions`, the writer, the batches and Undo are untouched. One rule of "ready" was
+tightened (a sheet must be settled - below); apart from it an "Add" adds exactly what it added before.
 
 **Built**
 
@@ -1251,6 +1251,14 @@ adds exactly what it added before.
   A row that is not imported stays in its place in the list, with what its name, time and date cells say, and
   "Put back". Without a script every tap is a page; with Turbo the list and its bar are one frame
   (`import-add-list`), so a tap swaps them and the page stays where it is.
+- **A sheet must be settled for its rows to be ready** - the one engine-side change of the slice, in the shared
+  definition `DataImportRowRepository::sqlReadyRows()`: a row is ready only when its sheet is parsed for its current
+  mapping (`parsed_version = mapping_version`) and is of a kind whose rows are imported. A sheet the player just
+  changed ("not puzzles", another column) is read again in the background; until then none of its rows is listed,
+  counted in "Add N" or taken by an "Add" - the review and the list say "A sheet is being read again - a moment".
+  So "Don't import this sheet" holds from the moment it is said (tested: an "Add" dispatched before the worker ran
+  queues none of the sheet's rows). A single row's "Don't import" needs no such guard: the row is read again inside
+  the request itself and is `left_out` when the answer comes back.
 - **"Where you are"**: `ImportDetailController` passes `GetImportPeople::counts()` - step 3 says "Nobody else is
   named." or the exact counts, and is the next action while a name has no answer. One statement more on that page
   (six of its own now; `ImportFlowScreensTest`).
@@ -1267,7 +1275,7 @@ adds exactly what it added before.
 | §7 per puzzle → `DecideImportPuzzles(left_out)` | The puzzle's ready rows are left out through `AnswerImportRows`, like single rows. | A puzzle decided as "left out" loses its match - "Put back" would send it to step 4 to be matched again. Rows put back are ready again as they were. One state for a row that is not imported. |
 | §7 order "by puzzle name then date" | The file's order (sheet, row). | It is the order the "Add" takes rows in, and a row that is not imported keeps nothing but its place in the file - by name it could not stay "in place". |
 | §7 tabs Results · Collection · Wish list | An "All" tab first; the three follow where they have something. | "All" is exactly what an "Add" queues - rows that add nothing (on the profile already, repeats) and rows kept just for the player are queued too and belong to no other tab. |
-| §7 a sheet's "Don't import any" is undone in the list | Undone in step 2 (as the confirm says); while the sheet is read again in the background the list says "A sheet is being read again". | The sheet's former kind is not stored; step 2 is where a sheet's kind is chosen. |
+| §7 a sheet's "Don't import any" is undone in the list | Undone in step 2 (as the confirm says). | The sheet's former kind is not stored; step 2 is where a sheet's kind is chosen. |
 | §5.9 "Dates: day first - 03/04/2023 is 3 April 2023" with the player's own value | The sentence names the rule with a fixed example; the player's own values are the sheet's example row ("Your file says “45:10” · “03/04/2023”, added as: …"). | A question's stored examples are gone once it is answered, and a sheet's first row need not be of the shape a rule is about - the example row is always true. |
 | §5.9 "94 results with no date - Give >" | The line has its explanation, no link. | No screen lists these rows yet; each is given a date on its own row's page. |
 | §5.9 "Quick questions before adding" | Not built. | Slice 6. |

@@ -18,7 +18,7 @@ sandbox from the stage that can read them.
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); **3c live 2026-11-15** (#352: Google Sheets link). Stage 3 is complete | #345, #347, #350, #351, #352 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
-| 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); 5b (the screens) building | #356 | yes | sandbox: tiers on the real catalogue for two sample files |
+| 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
 | 6b | Add, never twice, Undo | not started | | | |
 | 6c | Date precision | not started | | | |
@@ -55,6 +55,18 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 5b live** (#358): the pairing screens - Puzzles summary (`…/import/{id}/puzzles`), the group
+  lists (50 a page, the paired puzzle's picture and why, "Not this one", tick / "Tick all I see here"), the
+  one-puzzle chooser with candidate cards and a search, "To fix" (one answer for every row of a value,
+  `AnswerImportRows`), the row page. Review: merge, fixed first - a valueless group ("no name") offered one shared
+  answer for all its rows (would have made one puzzle of unrelated rows); a failed pairing looked running while the
+  player worked (`pairing_alive_at`); another piece count confirmed only in the browser (now `confirmedOtherPieces`
+  on the server); a 50,000-row lookup built in the web request. Tried at 390 px on the branch against the real
+  catalogue (41,328 puzzles copied into the orchestrator's own test database) and on the sandbox: summary, the
+  "Probably" list (pictures, "Another brand: …" on 13 of 21 cards), one confirmation saved, "To fix" empty for the
+  Puzzle Tracker export. Left out: "keep all not-found as unlisted" in one go, "one result or two?", brand
+  shorthand answers; the page polls (no Mercure for pairing).
 
 - 2026-11-15 - **stage 4c live** (#357): `import_layout` per player (signature of the header row, 50 a player),
   saved when a sheet is confirmed, applied to a later sheet of the same shape (whole match, or ≥ 80 % of the

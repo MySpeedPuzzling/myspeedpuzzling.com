@@ -1,0 +1,28 @@
+{#
+    The live line of an import that is being set up (docs/features/data-import/columns-screen.md "The live line"):
+    "Reading your rows… 1,200 of 3,400" while sheets are recognised or their rows are read, moved by the player's
+    private Mercure topic and - when no event arrives - by asking the progress endpoint
+    (data_import_setup_controller.js). Whenever a sheet's state changes, every <turbo-frame data-import-live> of the
+    page is loaded again, so counts and lists update without a reload. Numbers only - nothing of the file.
+
+    Variables: import_id, working (something still happens by itself).
+#}
+<div class="card card-body shadow-sm mb-3 py-2" data-testid="import-setup-live"
+     data-controller="data-import-setup"
+     data-data-import-setup-import-id-value="{{ import_id }}"
+     data-data-import-setup-url-value="{{ path('data_import_progress', {importId: import_id}) }}"
+     data-data-import-setup-working-value="{{ working ? 'true' : 'false' }}"
+     data-data-import-setup-working-text-value="{{ 'data_import.columns.live.working'|trans }}"
+     data-data-import-setup-rows-text-value="{{ 'data_import.columns.live.rows'|trans }}"
+     {% if not working %}hidden{% endif %}>
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-data-import-setup-target="spinner"></div>
+        <span class="fs-sm fw-medium" role="status" data-data-import-setup-target="line" data-testid="import-setup-line">{{ 'data_import.columns.live.working'|trans }}</span>
+    </div>
+    <div class="fs-sm text-muted mt-2" data-data-import-setup-target="stale" hidden>
+        {{ 'data_import.reading.stale'|trans }}
+    </div>
+    <noscript>
+        <a href="{{ app.request.pathInfo }}" class="btn btn-outline-primary btn-sm mt-2" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
+    </noscript>
+</div>

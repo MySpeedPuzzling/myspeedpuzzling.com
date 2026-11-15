@@ -1,0 +1,266 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One sheet of an import (docs/features/data-import/columns-screen.md "One sheet"): how it stands, its questions -
+    a plain sentence, the sheet's own examples and big buttons each - what it is, what a row is, its columns (those
+    we are sure about as one line each, the others as cards with sample values and a picker), one Save, and the first
+    rows as they were understood. Phone first: one column, every target 44 px, no sideways scrolling.
+
+    One form, one message (ConfirmImportMapping). The form posts to its own route - never to the page's address.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set sheet_name = sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans %}
+{% set working = state in ['recognising', 'parsing'] %}
+
+{% block title %}{{ sheet_name }} - {{ 'data_import.columns.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import_id})},
+    {name: 'data_import.columns.title'|trans, url: path('data_import_columns', {importId: import_id})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-sheet-page">
+    <h1 class="h3 mb-2 text-break"><i class="bi bi-table me-2"></i>{{ sheet_name }}</h1>
+    {% if sheet.hidden %}
+        <span class="badge bg-faded-warning text-warning mb-2"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
+    {% endif %}
+
+    {{ include('data_import/_setup_live.html.twig', {import_id: import_id, working: working}) }}
+
+    <turbo-frame id="import-sheet-live" data-import-live target="_top">
+        <div class="card card-body shadow-sm mb-3" data-testid="import-sheet-standing">
+            {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut}) }}
+            {% if state == 'failed' %}
+                <p class="fs-sm text-muted mb-0 mt-2" data-testid="import-sheet-failed-hint">{{ (mapping is null ? 'data_import.columns.sheet.failed_unmapped' : 'data_import.columns.sheet.failed_hint')|trans }}</p>
+            {% elseif state == 'left_out' %}
+                <p class="fs-sm text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.left_out_hint'|trans }}</p>
+            {% elseif state == 'parsed' and sheet.rowsNeedLook > 0 %}
+                <a href="{{ path('data_import_sheet_rows', {importId: import_id, sheetId: sheet.sheetId}) }}"
+                   class="btn btn-outline-primary w-100 mt-3 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-sheet-need-look">
+                    <i class="bi bi-eye me-1"></i>{{ 'data_import.columns.sheet.need_look_link'|trans({'%number%': sheet.rowsNeedLook|format_number}) }}
+                </a>
+            {% endif %}
+        </div>
+    </turbo-frame>
+
+    {% if mapping is not null %}
+    <form action="{{ path('data_import_sheet_confirm', {importId: import_id, sheetId: sheet.sheetId}) }}" method="post" data-testid="import-sheet-form" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+        <input type="hidden" name="version" value="{{ sheet.mappingVersion }}">
+
+        {% if errors is not empty %}
+            <div class="alert alert-warning fs-sm" role="alert" data-testid="import-sheet-error">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ (errors.form is defined ? 'data_import.columns.error.refused' : 'data_import.columns.error.check_below')|trans }}
+            </div>
+        {% endif %}
+
+        {# ---- The questions only this sheet needs ---- #}
+        {% if questions is not empty %}
+            <h2 class="h5 mt-4 mb-2"><i class="bi bi-question-circle me-1 text-warning"></i>{{ 'data_import.columns.sheet.questions_title'|trans }}</h2>
+        {% endif %}
+        {% for question in questions %}
+            <fieldset class="card card-body shadow-sm mb-3 border-warning" data-testid="import-question" data-question="{{ question.id }}">
+                <legend class="h6 mb-2 float-none w-auto">
+                    {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter})}) }}
+                </legend>
+                {% if question.examples is not empty %}
+                    <p class="fs-sm text-muted mb-2">
+                        {{ 'data_import.columns.sheet.examples'|trans }}
+                        {% for example in question.examples %}<code class="text-body bg-secondary rounded px-1 me-1 text-break" data-testid="import-question-example">{{ example }}</code>{% endfor %}
+                    </p>
+                {% endif %}
+                <div class="d-grid gap-2">
+                    {% for choice in question.choices %}
+                        {% set input_id = 'answer-' ~ loop.parent.loop.index ~ '-' ~ loop.index %}
+                        <input type="radio" class="btn-check" name="answers[{{ question.id }}]" id="{{ input_id }}" value="{{ choice.value }}" autocomplete="off"
+                               {% if question.selected == choice.value %}checked{% endif %}>
+                        <label class="btn btn-outline-primary text-start text-wrap" for="{{ input_id }}" style="min-height: 44px;" data-testid="import-question-choice" data-value="{{ choice.value }}">
+                            <span class="fw-medium d-block">{{ choice.label is null ? choice.value : choice.label|trans }}</span>
+                            {% for reading in choice.readings %}
+                                <span class="d-block fs-sm fw-normal text-break" data-testid="import-question-reading">
+                                    {{ reading.example }} →
+                                    {% if reading.time is not null %}
+                                        {{ reading.time }}
+                                    {% elseif reading.month %}
+                                        {{ reading.date|format_datetime(pattern='LLLL y', timezone='UTC') }}
+                                    {% else %}
+                                        {{ reading.date|format_date('long', timezone='UTC') }}
+                                    {% endif %}
+                                </span>
+                            {% endfor %}
+                        </label>
+                    {% endfor %}
+                    {% if question.type == 'year' %}
+                        <input type="radio" class="btn-check" name="answers[{{ question.id }}]" id="answer-{{ loop.index }}-other" value="other" autocomplete="off"
+                               {% if question.selected == 'other' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary text-start text-wrap" for="answer-{{ loop.index }}-other" style="min-height: 44px;">
+                            <span class="fw-medium">{{ 'data_import.columns.sheet.year_other'|trans }}</span>
+                        </label>
+                        <input type="number" inputmode="numeric" min="1950" max="2100" step="1" name="year_other" value="{{ question.year_other }}"
+                               class="form-control{{ question.error ? ' is-invalid' : '' }}" style="min-height: 44px; font-size: 16px;"
+                               aria-label="{{ 'data_import.columns.sheet.year_other'|trans }}" placeholder="2024" data-testid="import-question-year">
+                    {% endif %}
+                </div>
+                {% if question.error %}
+                    <div class="text-danger fs-sm mt-2" role="alert" data-testid="import-question-error">{{ ('data_import.columns.error.' ~ question.error)|trans }}</div>
+                {% endif %}
+                <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
+            </fieldset>
+        {% endfor %}
+
+        {# ---- What the sheet is, what a row is ---- #}
+        <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-kind">
+            <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.kind_title'|trans }}</legend>
+            <div class="d-grid gap-2">
+                {% for choice in kinds %}
+                    <input type="radio" class="btn-check" name="kind" id="kind-{{ choice }}" value="{{ choice }}" autocomplete="off" {% if kind == choice %}checked{% endif %}>
+                    <label class="btn btn-outline-primary text-start text-wrap" for="kind-{{ choice }}" style="min-height: 44px;">{{ ('data_import.sheets.kind.' ~ choice)|trans }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        {% if mapping.imported %}
+            <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-row-meaning">
+                <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.row_title'|trans }}</legend>
+                <div class="d-grid gap-2">
+                    {% for choice in row_meanings %}
+                        <input type="radio" class="btn-check" name="row_meaning" id="row-meaning-{{ choice }}" value="{{ choice }}" autocomplete="off" {% if row_meaning == choice %}checked{% endif %}>
+                        <label class="btn btn-outline-primary text-start text-wrap" for="row-meaning-{{ choice }}" style="min-height: 44px;">{{ ('data_import.columns.row_meaning.' ~ choice)|trans }}</label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            {% if kind == 'results' %}
+                <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-solving-type">
+                    <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.solving_title'|trans }}</legend>
+                    <div class="d-grid gap-2">
+                        {% for choice in ['']|merge(solving_types) %}
+                            <input type="radio" class="btn-check" name="solving_type" id="solving-type-{{ choice|default('rows') }}" value="{{ choice }}" autocomplete="off" {% if solving_type == choice %}checked{% endif %}>
+                            <label class="btn btn-outline-primary text-start text-wrap" for="solving-type-{{ choice|default('rows') }}" style="min-height: 44px;">{{ ('data_import.columns.solving_type.' ~ (choice|default('rows')))|trans }}</label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endif %}
+
+            {# ---- The columns ---- #}
+            <h2 class="h5 mt-4 mb-2">{{ 'data_import.columns.sheet.columns_title'|trans }}</h2>
+            {% if layout is not null %}
+                <p class="fs-sm text-muted" data-testid="import-sheet-known-export"><i class="bi bi-patch-check me-1"></i>{{ ('data_import.columns.sheet.known_export.' ~ layout)|trans }}</p>
+            {% endif %}
+            {% if sheet.lookupSheetTitle is not null %}
+                <p class="fs-sm text-muted" data-testid="import-sheet-lookup"><i class="bi bi-link-45deg me-1"></i>{{ 'data_import.columns.sheet.lookup'|trans({'%sheet%': sheet.lookupSheetTitle}) }}</p>
+            {% endif %}
+            {% if table is not null %}
+                <p class="fs-sm text-muted">
+                    {{ 'data_import.columns.sheet.table'|trans({'%range%': table.range}) }}
+                    {% if tables > 1 %}{{ 'data_import.columns.sheet.more_tables'|trans({'%number%': tables|format_number}) }}{% endif %}
+                </p>
+            {% endif %}
+
+
+            {% if open_columns is not empty %}
+                <h3 class="h6 text-muted mb-2">{{ 'data_import.columns.sheet.open_title'|trans }}</h3>
+            {% endif %}
+            {% for column in open_columns %}
+                {{ block('column_card') }}
+            {% endfor %}
+
+            {% if sure_columns is not empty %}
+                <h3 class="h6 text-muted mt-3 mb-2">{{ 'data_import.columns.sheet.sure_title'|trans }}</h3>
+                <div class="card shadow-sm mb-3">
+                    <div class="list-group list-group-flush">
+                        {% for column in sure_columns %}
+                            {% set header = column.header != '' ? column.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': column.letter}) %}
+                            {% if column.role is not null %}
+                                <div class="list-group-item fs-sm" data-testid="import-column-line" data-column="{{ column.column }}">
+                                    <span class="fw-medium text-break">{{ header }}</span> <span class="text-muted">→ {{ ('data_import.columns.role.' ~ column.role)|trans }}</span>
+                                </div>
+                            {% else %}
+                                <details class="list-group-item p-0" data-testid="import-column-line" data-column="{{ column.column }}" {% if column.error %}open{% endif %}>
+                                    <summary class="d-flex align-items-center gap-2 px-3 fs-sm" style="min-height: 44px; cursor: pointer;">
+                                        <span class="text-break"><span class="fw-medium">{{ header }}</span> <span class="text-muted">→ {{ column.label|trans }}</span></span>
+                                        <span class="ms-auto text-primary text-nowrap"><i class="bi bi-pencil me-1"></i>{{ 'data_import.columns.change'|trans }}</span>
+                                    </summary>
+                                    <div class="px-3 pb-3">
+                                        {{ block('column_picker') }}
+                                    </div>
+                                </details>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <div class="d-grid mb-2">
+            <button type="submit" class="btn btn-primary btn-lg text-wrap" style="min-height: 48px;" data-testid="import-sheet-save">
+                <i class="bi bi-check2 me-1"></i>{{ 'data_import.columns.sheet.save'|trans }}
+            </button>
+        </div>
+        <p class="fs-sm text-muted mb-4">{{ 'data_import.columns.sheet.save_help'|trans }}</p>
+    </form>
+    {% elseif state != 'failed' %}
+        <p class="text-muted fs-sm" data-testid="import-sheet-not-recognised">{{ 'data_import.columns.sheet.not_recognised'|trans }}</p>
+    {% endif %}
+
+    {# ---- The first rows, as they were understood ---- #}
+    <turbo-frame id="import-sheet-preview" data-import-live target="_top">
+        {% if state == 'parsed' %}
+            <h2 class="h5 mt-2 mb-2">{{ 'data_import.columns.sheet.preview_title'|trans }}</h2>
+            <div data-testid="import-sheet-preview">
+                {% for row in preview %}
+                    {{ include('data_import/_parsed_row.html.twig', {row: row}) }}
+                {% else %}
+                    <p class="text-muted fs-sm">{{ 'data_import.columns.sheet.preview_empty'|trans }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </turbo-frame>
+
+    <a href="{{ path('data_import_columns', {importId: import_id}) }}" class="btn btn-link px-0 mt-2" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.columns.back_to_sheets'|trans }}
+    </a>
+</div>
+{% endblock %}
+
+{# A column we are not sure about: its header, what the sheet holds in it, and what it is #}
+{% block column_card %}
+    {% set header = column.header != '' ? column.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': column.letter}) %}
+    <div class="card card-body shadow-sm mb-3{{ column.error ? ' border-danger' : '' }}" data-testid="import-column-card" data-column="{{ column.column }}" data-certainty="{{ column.certainty }}">
+        <div class="fw-medium text-break mb-1">{{ header }}</div>
+        {% if column.certainty == 'unknown' and column.offered is not null %}
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.columns.sheet.offered'|trans({'%field%': column.offered|trans}) }}</p>
+        {% endif %}
+        {{ block('column_picker') }}
+    </div>
+{% endblock %}
+
+{% block column_picker %}
+    <p class="fs-sm text-muted mb-2" data-testid="import-column-samples">
+        {% if column.samples is not empty %}
+            {{ 'data_import.columns.sheet.samples'|trans }}
+            {% for sample in column.samples %}<code class="text-body bg-secondary rounded px-1 me-1 text-break">{{ sample }}</code>{% endfor %}
+        {% else %}
+            {{ 'data_import.columns.sheet.no_samples'|trans }}
+        {% endif %}
+    </p>
+    <label class="form-label fs-sm mb-1" for="column-{{ column.column }}">{{ 'data_import.columns.sheet.this_is'|trans }}</label>
+    <select class="form-select{{ column.error ? ' is-invalid' : '' }}" name="columns[{{ column.column }}]" id="column-{{ column.column }}" style="min-height: 44px; font-size: 16px;" data-testid="import-column-picker">
+        {% for group, choices in field_groups %}
+            <optgroup label="{{ ('data_import.columns.group.' ~ group)|trans }}">
+                {% for choice in choices %}<option value="{{ choice.value }}" {% if choice.value == column.value %}selected{% endif %}>{{ choice.label|trans }}</option>{% endfor %}
+            </optgroup>
+        {% endfor %}
+    </select>
+    {% if column.value == 'computed' %}
+        <div class="fs-xs text-muted mt-1">{{ 'data_import.columns.sheet.computed_hint'|trans }}</div>
+    {% endif %}
+    {% if column.error %}
+        <div class="text-danger fs-sm mt-1" role="alert" data-testid="import-column-error">{{ ('data_import.columns.error.' ~ column.error)|trans }}</div>
+    {% endif %}
+{% endblock %}

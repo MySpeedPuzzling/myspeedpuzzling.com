@@ -1,0 +1,191 @@
+/* stimulusFetch: 'lazy' */
+import { Controller } from '@hotwired/stimulus';
+
+/**
+ * The live line of an import that is being set up - "Reading your rows… 1,200 of 3,400" - on the "Sheets and columns"
+ * screen (docs/features/data-import/columns-screen.md "The live line").
+ *
+ * The same mechanism as the reading's line (data_import_progress_controller.js, docs/features/data-import/reading.md
+ * "Progress"): progress arrives by the player's own private Mercure topic (`mercure:message` events of
+ * `mercure_hub_controller.js`, `type: import_progress`), and whenever no event came for a few seconds while something
+ * is still worked on, the page asks the JSON endpoint instead - more and more seldom when it does not answer, and
+ * not at all after ten minutes without one answer.
+ *
+ * The payload carries numbers and a `revision` only. Whenever the revision changes - a sheet got its mapping, its
+ * rows were read, its set-up failed - or the work ends, every `<turbo-frame data-import-live>` of the page is loaded
+ * again (the page's own address, Turbo takes the frame out of it): counts, states and the preview update without a
+ * reload, and the form the player may be filling in is never touched (it stands outside those frames).
+ *
+ * While nothing is worked on the controller only listens: no request is made on a page that has nothing to wait for.
+ */
+
+const ASK_EVERY_MS = 4000;
+// An event younger than this: the stream works, no need to ask
+const QUIET_MS = 4000;
+const BACK_OFF_MS = [4000, 8000, 16000, 30000];
+const GIVE_UP_AFTER_MS = 10 * 60 * 1000;
+
+export default class extends Controller {
+    static targets = ['line', 'spinner', 'stale'];
+
+    static values = {
+        importId: String,
+        url: String,
+        working: Boolean,
+        workingText: String,
+        rowsText: String,
+    };
+
+    connect() {
+        this.lastEventAt = 0;
+        this.asking = false;
+        this.stopped = false;
+        this.failures = 0;
+        this.failingSince = 0;
+        this.revision = null;
+        this.working = this.workingValue;
+        this.numbers = new Intl.NumberFormat(document.documentElement.lang || undefined);
+
+        this.onMessage = (event) => {
+            const data = event.detail;
+
+            if (!data || data.type !== 'import_progress' || data.importId !== this.importIdValue) {
+                return;
+            }
+
+            this.lastEventAt = Date.now();
+            this.show(data);
+        };
+
+        document.addEventListener('mercure:message', this.onMessage);
+
+        if (this.working) {
+            // What happened between the page's rendering and now is asked for at once
+            this.ask(true).then(() => this.askLater(ASK_EVERY_MS));
+        }
+    }
+
+    disconnect() {
+        document.removeEventListener('mercure:message', this.onMessage);
+        this.stopped = true;
+        window.clearTimeout(this.timer);
+    }
+
+    askLater(ms) {
+        window.clearTimeout(this.timer);
+
+        if (this.stopped || !this.working) {
+            return;
+        }
+
+        this.timer = window.setTimeout(async () => {
+            await this.ask(false);
+            this.askLater(this.failures > 0 ? BACK_OFF_MS[Math.min(this.failures, BACK_OFF_MS.length) - 1] : ASK_EVERY_MS);
+        }, ms);
+    }
+
+    async ask(now) {
+        if (this.asking || this.stopped) {
+            return;
+        }
+
+        if (!now && (document.hidden || Date.now() - this.lastEventAt < QUIET_MS)) {
+            return;
+        }
+
+        this.asking = true;
+
+        try {
+            const response = await fetch(this.urlValue, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const isJson = (response.headers.get('Content-Type') || '').includes('json');
+
+            // Signed out meanwhile, or the import was discarded in another tab: the page itself says what is
+            if ([401, 403, 404].includes(response.status) || (response.ok && (response.redirected || !isJson))) {
+                this.stopped = true;
+                window.location.reload();
+
+                return;
+            }
+
+            if (!response.ok) {
+                this.failed();
+
+                return;
+            }
+
+            this.failures = 0;
+            this.failingSince = 0;
+            this.show(await response.json());
+        } catch {
+            // Offline or a deploy
+            this.failed();
+        } finally {
+            this.asking = false;
+        }
+    }
+
+    failed() {
+        this.failures += 1;
+        this.failingSince = this.failingSince || Date.now();
+
+        if (Date.now() - this.failingSince < GIVE_UP_AFTER_MS) {
+            return;
+        }
+
+        this.stopped = true;
+        window.clearTimeout(this.timer);
+
+        if (this.hasSpinnerTarget) {
+            this.spinnerTarget.hidden = true;
+        }
+
+        if (this.hasStaleTarget) {
+            this.staleTarget.hidden = false;
+        }
+    }
+
+    show(data) {
+        const wasWorking = this.working;
+        const changed = this.revision !== null && typeof data.revision === 'string' && data.revision !== this.revision;
+
+        if (typeof data.revision === 'string') {
+            this.revision = data.revision;
+        }
+
+        this.working = data.working === true;
+        this.element.hidden = !this.working;
+
+        if (this.working && this.hasLineTarget) {
+            this.lineTarget.textContent = Number.isInteger(data.rowsToParse) && data.rowsToParse > 0
+                ? this.rowsTextValue
+                    .replace('%done%', this.numbers.format(data.rowsParsed || 0))
+                    .replace('%total%', this.numbers.format(data.rowsToParse))
+                : this.workingTextValue;
+        }
+
+        if (changed || wasWorking !== this.working) {
+            this.reloadFrames();
+        }
+
+        if (this.working && !wasWorking) {
+            // Work began again (a change saved in another tab): the line is kept moving from here on
+            this.askLater(ASK_EVERY_MS);
+        }
+    }
+
+    /**
+     * The page's live parts are fetched again: the page's own address, of which Turbo takes each frame.
+     */
+    reloadFrames() {
+        document.querySelectorAll('turbo-frame[data-import-live]').forEach((frame) => {
+            if (frame.getAttribute('src')) {
+                frame.reload();
+            } else {
+                frame.src = window.location.href;
+            }
+        });
+    }
+}

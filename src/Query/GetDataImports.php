@@ -195,7 +195,14 @@ SELECT
     same_file.id AS same_file_as,
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0) AS sheets_mapped,
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND sheet.parsed_version = sheet.mapping_version) AS sheets_parsed,
-    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) > 0) AS sheets_waiting
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) > 0) AS sheets_waiting,
+    -- What still happens by itself while the import is set up (docs/features/data-import/columns-screen.md "The live
+    -- line"): sheets without a mapping yet, and sheets whose rows are read for their current mapping
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND (sheet.mapping_version = 0 OR (sheet.parsed_version IS DISTINCT FROM sheet.mapping_version AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0))) AS sheets_working,
+    (SELECT COALESCE(SUM(sheet.rows_total), 0) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND sheet.mapping_version > 0 AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0) AS rows_to_parse,
+    (SELECT COUNT(*) FROM data_import_sheet sheet INNER JOIN data_import_row parsed_row ON parsed_row.sheet_id = sheet.id AND parsed_row.parsed_version = sheet.mapping_version WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND sheet.mapping_version > 0 AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0) AS rows_parsed,
+    -- Changes whenever a sheet's state does: the screen loads its lists again when it sees another one
+    (SELECT md5(COALESCE(string_agg(sheet.id::text || ':' || sheet.mapping_version || ':' || COALESCE(sheet.parsed_version, 0) || ':' || COALESCE(sheet.set_up_failure, ''), ',' ORDER BY sheet.position), '')) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id) AS revision
 FROM data_import
 LEFT JOIN data_import same_file
     ON same_file.id = data_import.same_file_as_import_id
@@ -204,7 +211,7 @@ LEFT JOIN data_import same_file
 WHERE data_import.id = :importId
 SQL;
 
-        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int} $row */
+        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int, sheets_working: int, rows_to_parse: int|string, rows_parsed: int, revision: string} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'discarded' => DataImportStatus::Discarded->value,
@@ -232,6 +239,10 @@ SQL;
             sheetsMapped: $row['sheets_mapped'],
             sheetsParsed: $row['sheets_parsed'],
             sheetsWaiting: $row['sheets_waiting'],
+            sheetsWorking: $row['status'] === DataImportStatus::SettingUp->value ? $row['sheets_working'] : 0,
+            rowsToParse: (int) $row['rows_to_parse'],
+            rowsParsed: $row['rows_parsed'],
+            revision: $row['revision'],
         );
     }
 
@@ -248,6 +259,7 @@ SQL;
 
         $query = <<<SQL
 SELECT
+    data_import_sheet.id,
     data_import_sheet.position,
     data_import_sheet.title,
     data_import_sheet.hidden,
@@ -260,6 +272,7 @@ SELECT
     data_import_sheet.rows_need_look,
     data_import_sheet.rows_left_out,
     data_import_sheet.set_up_failure IS NOT NULL AS failed,
+    data_import_sheet.set_up_failure,
     jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions
 FROM data_import_sheet
 INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
@@ -269,7 +282,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, failed: bool, questions: int}> $rows */
+        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, failed: bool, set_up_failure: null|string, questions: int}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -290,6 +303,9 @@ SQL;
             rowsNeedLook: $row['rows_need_look'],
             rowsLeftOut: $row['rows_left_out'],
             failed: $row['failed'],
+            sheetId: $row['id'],
+            mappingVersion: $row['mapping_version'],
+            failure: $row['set_up_failure'],
         ), $rows);
     }
 }

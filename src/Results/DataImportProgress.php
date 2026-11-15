@@ -31,6 +31,13 @@ readonly final class DataImportProgress
         public int $sheetsParsed = 0,
         /** Of those: sheets that wait for the player's answer */
         public int $sheetsWaiting = 0,
+        /** Sheets a step that runs by itself is still due for: no mapping yet, or rows not read for the current one */
+        public int $sheetsWorking = 0,
+        /** The rows of the sheets being read for their current mapping - and how many of them are done */
+        public int $rowsToParse = 0,
+        public int $rowsParsed = 0,
+        /** Another one whenever a sheet's mapping, parse or failure changed - never anything of the file */
+        public string $revision = '',
     ) {
     }
 
@@ -45,7 +52,7 @@ readonly final class DataImportProgress
     /**
      * What travels to the page - by the JSON endpoint and by the player's private topic alike.
      *
-     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int, sheetsMapped: int, sheetsParsed: int, sheetsWaiting: int}
+     * @return array{type: string, importId: string, status: string, moving: bool, sheetsTotal: null|int, sheetsRead: int, rowsRead: int, sheetsMapped: int, sheetsParsed: int, sheetsWaiting: int, working: bool, rowsToParse: int, rowsParsed: int, revision: string}
      */
     public function toArray(): array
     {
@@ -60,6 +67,10 @@ readonly final class DataImportProgress
             'sheetsMapped' => $this->sheetsMapped,
             'sheetsParsed' => $this->sheetsParsed,
             'sheetsWaiting' => $this->sheetsWaiting,
+            'working' => $this->sheetsWorking > 0,
+            'rowsToParse' => $this->rowsToParse,
+            'rowsParsed' => min($this->rowsParsed, $this->rowsToParse),
+            'revision' => $this->revision,
         ];
     }
 }

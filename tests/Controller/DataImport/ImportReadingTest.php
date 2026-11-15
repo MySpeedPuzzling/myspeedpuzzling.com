@@ -138,9 +138,12 @@ final class ImportReadingTest extends WebTestCase
         self::assertNotEmpty($published);
         $last = end($published);
         self::assertSame(
-            ['type' => 'import_progress', 'importId' => $importId, 'status' => 'setting_up', 'moving' => false, 'sheetsTotal' => 2, 'sheetsRead' => 2, 'rowsRead' => 4, 'sheetsMapped' => 0, 'sheetsParsed' => 0, 'sheetsWaiting' => 0],
-            $last,
+            ['type' => 'import_progress', 'importId' => $importId, 'status' => 'setting_up', 'moving' => false, 'sheetsTotal' => 2, 'sheetsRead' => 2, 'rowsRead' => 4, 'sheetsMapped' => 0, 'sheetsParsed' => 0, 'sheetsWaiting' => 0, 'working' => true, 'rowsToParse' => 0, 'rowsParsed' => 0],
+            array_diff_key($last, ['revision' => true]),
         );
+        // What the "Sheets and columns" screen loads its lists again by: a sign of the sheets' states, nothing of the file
+        self::assertIsString($last['revision']);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $last['revision']);
         self::assertSame('reading', $published[0]['status']);
 
         // Nothing of the file stays on the worker's disk

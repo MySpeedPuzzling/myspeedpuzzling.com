@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The rows of one sheet that need a look (docs/features/data-import/columns-screen.md "Rows that need a look"):
+    fifty a page, each with what was understood and - in plain words, the sheet's own value shown - what was not.
+    Read only in this stage. The page number is the only thing in the address - never a cell's value.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set sheet_name = sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans %}
+
+{% block title %}{{ 'data_import.columns.rows.title'|trans }} - {{ sheet_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import_id})},
+    {name: 'data_import.columns.title'|trans, url: path('data_import_columns', {importId: import_id})},
+    {name: sheet_name, url: path('data_import_sheet', {importId: import_id, sheetId: sheet.sheetId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-sheet-rows-page">
+    <h1 class="h3 mb-2">{{ 'data_import.columns.rows.title'|trans }}</h1>
+    <p class="text-muted fs-sm text-break">{{ sheet_name }} · {{ 'data_import.columns.state.need_look'|trans({'%number%': total|format_number}) }}</p>
+
+    {% if state in ['recognising', 'parsing'] %}
+        <p class="alert alert-info fs-sm" data-testid="import-rows-not-ready">{{ 'data_import.columns.rows.not_ready'|trans }}</p>
+    {% elseif rows is empty %}
+        <p class="alert alert-info fs-sm" data-testid="import-rows-empty">{{ 'data_import.columns.rows.empty'|trans }}</p>
+    {% else %}
+        <p class="fs-sm text-muted">{{ 'data_import.columns.rows.intro'|trans }}</p>
+
+        {% for row in rows %}
+            {{ include('data_import/_parsed_row.html.twig', {row: row}) }}
+        {% endfor %}
+
+        {% if pages > 1 %}
+            <nav class="d-flex align-items-center justify-content-between gap-2 mt-3" aria-label="{{ 'data_import.columns.rows.title'|trans }}" data-testid="import-rows-pages">
+                {% if page > 1 %}
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center" style="min-height: 44px;" rel="prev" data-testid="import-rows-previous"
+                       href="{{ path('data_import_sheet_rows', {importId: import_id, sheetId: sheet.sheetId, page: page - 1}) }}"><i class="bi bi-chevron-left me-1"></i>{{ 'data_import.columns.rows.previous'|trans }}</a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+                <span class="fs-sm text-muted text-center">{{ 'data_import.columns.rows.page'|trans({'%page%': page|format_number, '%pages%': pages|format_number}) }}</span>
+                {% if page < pages %}
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center" style="min-height: 44px;" rel="next" data-testid="import-rows-next"
+                       href="{{ path('data_import_sheet_rows', {importId: import_id, sheetId: sheet.sheetId, page: page + 1}) }}">{{ 'data_import.columns.rows.next'|trans }}<i class="bi bi-chevron-right ms-1"></i></a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+
+    <a href="{{ path('data_import_sheet', {importId: import_id, sheetId: sheet.sheetId}) }}" class="btn btn-link px-0 mt-3" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.columns.back_to_sheet'|trans }}
+    </a>
+</div>
+{% endblock %}

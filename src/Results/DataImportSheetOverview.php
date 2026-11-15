@@ -34,6 +34,33 @@ readonly final class DataImportSheetOverview
         public int $rowsLeftOut = 0,
         /** Its set-up ended without its rows (a fault of ours) - nothing more happens to it by itself */
         public bool $failed = false,
+        public string $sheetId = '',
+        /** The version a change of the player must name (ConfirmImportMapping) */
+        public int $mappingVersion = 0,
+        /** Why its set-up ended (DataImportSheet::SET_UP_*) - null while nothing failed */
+        public null|string $failure = null,
     ) {
+    }
+
+    /**
+     * What the "Sheets and columns" screen says about the sheet (docs/features/data-import/columns-screen.md):
+     * `failed`, `recognising`, `waiting` (for the player's answer), `left_out` (not puzzles, somebody else's),
+     * `parsing`, `parsed`.
+     */
+    public function state(): string
+    {
+        return match (true) {
+            $this->failed => 'failed',
+            $this->mapped === false => 'recognising',
+            $this->isLeftOut() => $this->parsed ? 'left_out' : 'parsing',
+            $this->waitsForAnAnswer => 'waiting',
+            $this->parsed === false => 'parsing',
+            default => 'parsed',
+        };
+    }
+
+    public function isLeftOut(): bool
+    {
+        return $this->kind === DataImportSheetKind::NotPuzzles || $this->kind === DataImportSheetKind::SomebodyElse;
     }
 }

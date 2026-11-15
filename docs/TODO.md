@@ -1616,8 +1616,6 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 
 ## Data import - reading the file (stage 3b, `docs/features/data-import/reading.md`)
 
-- [ ] Run the page's live progress in a real browser on the branch (Mercure event → the line moves; the stream
-  blocked → polling; the end → the sheets list) - written without one.
 - [ ] lily.srv: the `imports` consumer needs the Mercure publisher settings (`MERCURE_URL`, `MERCURE_PUBLIC_URL`,
   `MERCURE_JWT_SECRET`) and object storage like the web container, a writable temporary folder with room for a
   25 MB file plus the reader's shared strings, and a cron row for `myspeedpuzzling:read-waiting-imports` (every 5

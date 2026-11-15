@@ -60,7 +60,7 @@
              data-data-import-progress-sheets-text-value="{{ 'data_import.reading.sheets'|trans }}"
              data-data-import-progress-rows-text-value="{{ 'data_import.reading.rows'|trans }}">
             <div class="d-flex align-items-center gap-2">
-                <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true"></div>
+                <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-data-import-progress-target="spinner"></div>
                 <strong data-data-import-progress-target="state" data-testid="import-reading-state" role="status">
                     {{- (status == 'reading' ? 'data_import.reading.reading' : 'data_import.reading.waiting')|trans -}}
                 </strong>
@@ -72,6 +72,13 @@
                 {%- if status == 'reading' %}{{ 'data_import.reading.rows'|trans({'%count%': import.rowsRead|format_number}) }}{% endif -%}
             </div>
             <p class="fs-sm text-muted mb-0 mt-2">{{ 'data_import.reading.leave'|trans }}</p>
+            {# Shown by the script when the progress could not be asked for ten minutes #}
+            <div class="alert alert-warning fs-sm mt-3 mb-0" data-data-import-progress-target="stale" data-testid="import-reading-stale" role="status" hidden>
+                <p class="mb-2">{{ 'data_import.reading.stale'|trans }}</p>
+                <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo="false">
+                    <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.reading.refresh'|trans }}
+                </a>
+            </div>
             <noscript>
                 <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-outline-primary mt-2" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
             </noscript>

@@ -12063,6 +12063,7 @@ data_import:
         rows: "Rows read: %count%"
         leave: "You can leave this page - reading goes on without it."
         refresh: "Refresh the page"
+        stale: "We could not check on the reading for a while. Reload the page to see where it stands."
     sheets:
         title: "What the file holds"
         sheet: "Sheet"

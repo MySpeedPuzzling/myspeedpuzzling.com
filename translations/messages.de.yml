@@ -11816,6 +11816,7 @@ data_import:
         rows: "Eingelesene Zeilen: %count%"
         leave: "Du kannst diese Seite verlassen - das Einlesen läuft auch ohne sie weiter."
         refresh: "Seite aktualisieren"
+        stale: "Wir konnten eine Weile nicht nachsehen, wie weit das Einlesen ist. Lade die Seite neu, um den Stand zu sehen."
     sheets:
         title: "Was die Datei enthält"
         sheet: "Blatt"

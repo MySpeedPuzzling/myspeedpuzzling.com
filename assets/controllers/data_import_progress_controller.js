@@ -10,6 +10,9 @@ import { visit } from '@hotwired/turbo';
  * to the document as a `mercure:message` event, and the ones of this import (`type: import_progress`) move the line.
  * The stream only brings it sooner - the progress is always in the database: whenever no event came for a few
  * seconds (the stream could not be opened, dropped, or the worker is busy) the page asks the JSON endpoint instead.
+ * An endpoint that does not answer (offline, a deploy, a 5xx) is asked more and more seldom - 4, 8, 16, then every
+ * 30 seconds - and after ten minutes without one answer not at all: the page says to reload. Signed out meanwhile
+ * (401, 403, or the sign-in page instead of JSON) reloads the page at once.
  *
  * When nothing moves any more (read, failed, or closed as a file the player already imported) the endpoint says
  * where to go: this page again - now with the sheets, or with why the file was not read - or the other import.
@@ -18,9 +21,13 @@ import { visit } from '@hotwired/turbo';
 const ASK_EVERY_MS = 4000;
 // An event younger than this: the stream works, no need to ask
 const QUIET_MS = 4000;
+// After an answer that was none (offline, a deploy, a 5xx): asked more and more seldom …
+const BACK_OFF_MS = [4000, 8000, 16000, 30000];
+// … and after this long without one answer not at all: the page says to reload
+const GIVE_UP_AFTER_MS = 10 * 60 * 1000;
 
 export default class extends Controller {
-    static targets = ['state', 'sheets', 'rows'];
+    static targets = ['state', 'sheets', 'rows', 'spinner', 'stale'];
 
     static values = {
         importId: String,
@@ -35,6 +42,9 @@ export default class extends Controller {
         this.lastEventAt = 0;
         this.asking = false;
         this.leaving = false;
+        this.stopped = false;
+        this.failures = 0;
+        this.failingSince = 0;
         this.numbers = new Intl.NumberFormat(document.documentElement.lang || undefined);
 
         this.onMessage = (event) => {
@@ -54,16 +64,30 @@ export default class extends Controller {
         };
 
         document.addEventListener('mercure:message', this.onMessage);
-        this.timer = window.setInterval(() => this.ask(false), ASK_EVERY_MS);
+        this.askLater(ASK_EVERY_MS);
+    }
+
+    askLater(ms) {
+        window.clearTimeout(this.timer);
+
+        if (this.stopped || this.leaving) {
+            return;
+        }
+
+        this.timer = window.setTimeout(async () => {
+            await this.ask(false);
+            this.askLater(this.failures > 0 ? BACK_OFF_MS[Math.min(this.failures, BACK_OFF_MS.length) - 1] : ASK_EVERY_MS);
+        }, ms);
     }
 
     disconnect() {
         document.removeEventListener('mercure:message', this.onMessage);
-        window.clearInterval(this.timer);
+        this.stopped = true;
+        window.clearTimeout(this.timer);
     }
 
     async ask(now) {
-        if (this.asking || this.leaving) {
+        if (this.asking || this.leaving || this.stopped) {
             return;
         }
 
@@ -78,28 +102,58 @@ export default class extends Controller {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
+            const isJson = (response.headers.get('Content-Type') || '').includes('json');
 
-            if (response.status === 404) {
-                // Discarded meanwhile (another tab): this page is no more
+            // Signed out meanwhile (the answer is a refusal, or the sign-in page it was redirected to), or the import
+            // was discarded in another tab: nothing more to ask for from here - the page itself says what is
+            if ([401, 403, 404].includes(response.status) || (response.ok && (response.redirected || !isJson))) {
                 this.leave(window.location.href);
 
                 return;
             }
 
             if (!response.ok) {
+                this.failed();
+
                 return;
             }
 
             const data = await response.json();
+            this.failures = 0;
+            this.failingSince = 0;
             this.show(data);
 
             if (data.moving === false && data.url) {
                 this.leave(data.url);
             }
         } catch {
-            // Offline or a deploy: the next tick asks again
+            // Offline or a deploy
+            this.failed();
         } finally {
             this.asking = false;
+        }
+    }
+
+    /**
+     * No answer: the next question comes later each time, and after ten minutes of none the page stops asking.
+     */
+    failed() {
+        this.failures += 1;
+        this.failingSince = this.failingSince || Date.now();
+
+        if (Date.now() - this.failingSince < GIVE_UP_AFTER_MS) {
+            return;
+        }
+
+        this.stopped = true;
+        window.clearTimeout(this.timer);
+
+        if (this.hasSpinnerTarget) {
+            this.spinnerTarget.hidden = true;
+        }
+
+        if (this.hasStaleTarget) {
+            this.staleTarget.hidden = false;
         }
     }
 
@@ -127,7 +181,7 @@ export default class extends Controller {
         }
 
         this.leaving = true;
-        window.clearInterval(this.timer);
+        window.clearTimeout(this.timer);
         visit(url, { action: 'replace' });
     }
 }

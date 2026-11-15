@@ -11817,6 +11817,7 @@ data_import:
         rows: "Filas leídas: %count%"
         leave: "Puedes salir de esta página: la lectura continúa sin ella."
         refresh: "Actualizar la página"
+        stale: "Durante un rato no pudimos comprobar cómo va la lectura. Recarga la página para ver en qué punto está."
     sheets:
         title: "Qué contiene el archivo"
         sheet: "Hoja"

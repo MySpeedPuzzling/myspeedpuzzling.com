@@ -101,12 +101,12 @@ readonly final class DataImportRepository
     }
 
     /**
-     * Uploaded imports nobody started to read (the message was lost, or they were uploaded before reading existed)
-     * whose file is still there.
+     * Uploaded imports nobody started to read whose file is still there: never asked for (uploaded before reading
+     * existed) and resting since `$restingSince`, or asked for before `$requestedBefore` (the message was lost).
      *
      * @return list<string> ids
      */
-    public function idsWaitingToBeReadSince(DateTimeImmutable $uploadedBefore, int $limit): array
+    public function idsWaitingToBeRead(DateTimeImmutable $restingSince, DateTimeImmutable $requestedBefore, int $limit): array
     {
         /** @var list<array{id: UuidInterface}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
@@ -114,9 +114,10 @@ readonly final class DataImportRepository
             ->from(DataImport::class, 'i')
             ->where('i.status = :status')
             ->andWhere('i.fileKey IS NOT NULL')
-            ->andWhere('i.lastActivityAt < :before')
+            ->andWhere('(i.readRequestedAt IS NULL AND i.lastActivityAt < :resting) OR i.readRequestedAt < :requested')
             ->setParameter('status', DataImportStatus::Uploaded)
-            ->setParameter('before', $uploadedBefore)
+            ->setParameter('resting', $restingSince)
+            ->setParameter('requested', $requestedBefore)
             ->orderBy('i.lastActivityAt', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()

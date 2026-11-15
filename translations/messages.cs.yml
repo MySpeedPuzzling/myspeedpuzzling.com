@@ -11819,6 +11819,7 @@ data_import:
         rows: "Načtené řádky: %count%"
         leave: "Stránku můžete opustit - načítání pokračuje i bez ní."
         refresh: "Obnovit stránku"
+        stale: "Chvíli se nám nedařilo zjistit, jak načítání pokračuje. Obnovte stránku a uvidíte, v jakém je stavu."
     sheets:
         title: "Co soubor obsahuje"
         sheet: "List"

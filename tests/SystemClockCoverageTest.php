@@ -55,6 +55,7 @@ final class SystemClockCoverageTest extends TestCase
         'ConsoleCommands/XpBackfillConsoleCommand.php' => [['microtime('], self::DURATION],
         'EventSubscriber/ApiUsageSubscriber.php' => [['hrtime('], self::DURATION],
         'MessageHandler/EvaluateGroupPredictionsHandler.php' => [['microtime('], self::DURATION],
+        'Services/DataImport/ImportFileStorage.php' => [['hrtime('], self::DURATION],
         'Services/DataImport/ImportProgress.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/CpuClock.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/TemporaryFolder.php' => [['hrtime('], self::DURATION],

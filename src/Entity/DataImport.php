@@ -68,6 +68,14 @@ class DataImport
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $discardedAt = null;
 
+    /**
+     * When reading was last asked for (ReadImportFile queued): the safety net asks again only when this is old - never
+     * a second message for the same waiting import on every run.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $readRequestedAt = null;
+
     /** The worker took the file for reading - a read that never ends is seen by this (ReadWaitingImportsHandler) */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -175,6 +183,7 @@ class DataImport
 
         $this->status = DataImportStatus::Uploaded;
         $this->uploadedAt = $now;
+        $this->readRequestedAt = $now;
         $this->lastActivityAt = $now;
     }
 
@@ -267,7 +276,28 @@ class DataImport
         $this->status = DataImportStatus::Uploaded;
         $this->readError = null;
         $this->readingStartedAt = null;
+        $this->readRequestedAt = $now;
         $this->lastActivityAt = $now;
+
+        return true;
+    }
+
+    /**
+     * The safety net asks for the read of an import that still waits for it.
+     *
+     * @return bool false: it does not wait (any more), or it was asked for after `$notAskedSince`
+     */
+    public function readRequestedAgain(DateTimeImmutable $now, DateTimeImmutable $notAskedSince): bool
+    {
+        if ($this->status !== DataImportStatus::Uploaded || $this->fileKey === null) {
+            return false;
+        }
+
+        if ($this->readRequestedAt !== null && $this->readRequestedAt >= $notAskedSince) {
+            return false;
+        }
+
+        $this->readRequestedAt = $now;
 
         return true;
     }

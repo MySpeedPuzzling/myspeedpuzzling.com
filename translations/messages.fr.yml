@@ -11812,6 +11812,7 @@ data_import:
         rows: "Lignes lues : %count%"
         leave: "Vous pouvez quitter cette page : la lecture continue sans elle."
         refresh: "Actualiser la page"
+        stale: "Nous n'avons pas pu vérifier l'avancement de la lecture pendant un moment. Rechargez la page pour voir où elle en est."
     sheets:
         title: "Ce que contient le fichier"
         sheet: "Feuille"

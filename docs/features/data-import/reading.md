@@ -33,7 +33,7 @@ so handled at once, each in its own short transaction - and **each answers wheth
 | # | Message | What |
 |---|---|---|
 | 1 | `BeginImportReading` | `uploaded` → `reading`, `read_attempt` + 1, under the import's lock, committed **before the file is touched**. Answers the job's plain values, or nothing when there is nothing to read - a second copy of the message, a second worker |
-| 2 | - | the object is streamed from storage into a temporary file (never into memory), its sha256 worked out on the way; another size than the confirmed one is a fault of ours |
+| 2 | - | the object is streamed from storage into a temporary file (never into memory), its sha256 worked out on the way; another size than the confirmed one is a fault of ours. **Bounded in time**: the object-storage client gives a request 3 s without bytes and 10 s in all (`ObjectStorageHttpClientFactory`), and `ImportFileStorage::downloadTo()` itself gives up a read that gets nothing for 20 s and the whole download after 120 s (`ImportDownloadTimedOut`) - a fault of ours: `failed`, logged with the exception, the player can try again |
 | 3 | `RecordImportFileHash` | `file_sha256`; "the same file again" is answered here (below) |
 | 4 | `RecordImportSheets` | the file is opened **once**; its sheets before any row: position, title, hidden, and the hints the file gives (below). `sheets_total` |
 | 5 | `RecordImportRows` | **every sheet in one streaming pass**, never opened again to resume; rows in batches of 500 (or 4 MiB, whichever comes first), each batch one transaction together with the progress. A fresh entity manager per batch. The sheet's last batch - also an empty one - marks the sheet read |
@@ -46,8 +46,12 @@ worker left is pruned by the next read once it is a day old.
 
 **Every write of a read is refused once the import is not being read by that very read** (`DataImport::isBeingReadBy()`:
 state `reading` and the read's own `read_attempt`), under the import's advisory lock - which a discard, "Try again"
-and the rescue take too. So a discard while a file is read stops the read at its next batch and no row is written
-behind it; a read that was given up as stalled can not write into the next attempt.
+and the rescue take too - and **on fresh state**: every `Record*` message is a `RequiresFreshEntityManagerState`
+one, because the worker's entity manager still holds the import as it was when the read began, while a discard (a
+web request) or a second worker after "Try again" changed it in the database. So a discard while a file is
+downloaded, opened or read stops the read at its next write - no hash, sheet or row is written behind it and a file
+that then proves unreadable does not turn `discarded` into `read_failed`; a read that was given up as stalled can not
+write into the next attempt.
 
 The plan's "one job per sheet and per 2,000 rows" is **dropped**: a streaming reader can only read a sheet from its
 start, so slicing would re-read (and pay the budget for) the same bytes again and again. One job reads the file; its
@@ -151,7 +155,10 @@ The page (`data_import_progress_controller.js`) listens to the `mercure:message`
 already hands out, and **falls back to asking** `GET /{_locale}/import/{importId}/progress` (`data_import_progress`,
 the same JSON plus `url`; another player's import = 404; `no-store`) every 4 seconds whenever no event arrived in the
 last 4. When nothing moves any more it goes where the endpoint says: the page again - now with the sheets, or the
-reason - or the import the player already has. Without JavaScript the page has a "Refresh the page" link.
+reason - or the import the player already has. An endpoint that does not answer (offline, a deploy, a 5xx) is asked
+after 4, 8, 16 and then every 30 seconds, and after ten minutes without one answer not at all: the line "We could
+not check on the reading for a while. Reload the page to see where it stands." A 401 or 403 - or the sign-in page
+instead of JSON - reloads the page at once. Without JavaScript the page has a "Refresh the page" link.
 
 No e-mail and no bell notification in this stage (README: no "file is ready" before the import can add anything; a
 notification type is its own piece of work - `docs/TODO.md`).
@@ -161,9 +168,11 @@ notification type is its own piece of work - `docs/TODO.md`).
 `php bin/console myspeedpuzzling:read-waiting-imports` (**cron: every 5 minutes**; the command dispatches
 `ReadWaitingImports`, the handler has the logic, outside a transaction):
 
-1. imports resting in `uploaded` for more than 2 minutes whose file is still there - uploaded before this stage
-   shipped, or their message was lost - get `ReadImportFile` again. A second message for an import somebody reads
-   meanwhile finds nothing to do;
+1. imports waiting in `uploaded` whose file is still there get `ReadImportFile` again (`RequestImportRead`):
+   never asked for - uploaded before this stage shipped - and resting for 2 minutes, or **asked for more than 15
+   minutes ago** (`data_import.read_requested_at`, stamped by the upload's confirmation, by "Try again" and by this
+   very request) - their message was lost. So the same waiting import is queued once per quarter of an hour, not on
+   every run; a second message for an import somebody reads meanwhile finds nothing to do;
 2. imports in `reading` **without any progress for 15 minutes** (`last_activity_at`; every batch moves it) - the
    worker died or was killed - are failed as `stalled` (a warning in the log), their page is told, and the player
    can try again. The reading state always ends.
@@ -173,9 +182,9 @@ notification type is its own piece of work - `docs/TODO.md`).
 | | |
 |---|---|
 | Routes | `data_import_progress` (GET JSON), `data_import_read_again` (POST, CSRF `data_import`); `data_import_detail` shows the progress, the sheets, the failure |
-| Messages | `ReadImportFile` (→ `imports`), `BeginImportReading`, `RecordImportFileHash`, `RecordImportSheets`, `RecordImportRows`, `RecordImportRead`, `RecordImportReadFailed`, `ReadImportAgain`, `ReadWaitingImports` |
+| Messages | `ReadImportFile` (→ `imports`), `BeginImportReading`, `RecordImportFileHash`, `RecordImportSheets`, `RecordImportRows`, `RecordImportRead`, `RecordImportReadFailed`, `ReadImportAgain`, `ReadWaitingImports`, `RequestImportRead` |
 | Command | `myspeedpuzzling:read-waiting-imports` |
-| Migration | `data_import`: `reading_started_at`, `read_finished_at`, `read_attempt`, `sheets_total`, `sheets_read`, `rows_read`, `same_file_as_import_id`; `data_import_sheet`: `hidden`, `columns_total`, `hints` |
+| Migrations (two, generated) | `data_import`: `read_requested_at`, `reading_started_at`, `read_finished_at`, `read_attempt`, `sheets_total`, `sheets_read`, `rows_read`, `same_file_as_import_id`; `data_import_sheet`: `hidden`, `columns_total`, `hints` |
 
 ## What the consumer needs
 
@@ -216,7 +225,9 @@ sheets list, the JSON endpoint; a CSV with semicolons; a file over each limit (s
 password-protected one, one cut short, a picture - each with its sentence on the page; a fault of ours and "Try
 again"; the same file twice (and another player's same file untouched); another player's import = 404 on the
 endpoint, the page and "Try again"; the stalled-read rescue, the re-queue of an unread import, and a dead read's late
-rows refused; nothing written into an import discarded while it was read; a hub that is down.
+rows refused; nothing written into an import discarded while it was read; nothing written by a read whose import
+another process changed behind the worker's entity manager (discarded, failed as stalled, taken by a second
+worker); a download that takes too long; a hub that is down.
 `tests/MessageHandler/ReadImportFileLargeTest.php` - opt-in, the measurements above.
 Reader: `ReadBudgetTest`, and in `XlsxTimeBoundTest` the blank-run attack and the pretty-printed sheet.
 
@@ -224,4 +235,4 @@ Reader: `ReadBudgetTest`, and in `XlsxTimeBoundTest` the blank-run attack and th
 
 Columns and mapping, kind guessing, parsing values, pairing, adding anything to a profile, versions (reading the
 same source again), merged cells, Google Sheets, e-mail, the bell notification, admin pages, entry points from other
-pages. **The page's live progress was written without a browser run** - `docs/TODO.md`.
+pages.

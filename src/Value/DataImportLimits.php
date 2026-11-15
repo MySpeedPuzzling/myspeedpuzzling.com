@@ -31,6 +31,11 @@ final class DataImportLimits
     public const int READ_HARD_SECONDS = 420;
     /** An uploaded import nobody started to read after this long is queued again (a message that was lost) */
     public const int UNREAD_AFTER_SECONDS = 120;
+    /** … and once a read was asked for, it is asked for again only after this long */
+    public const int READ_REQUESTED_AGAIN_AFTER_SECONDS = 900;
+    /** Downloading the file from object storage: no answer for this long, or this long in all, is a fault of ours */
+    public const int DOWNLOAD_IDLE_SECONDS = 20;
+    public const float DOWNLOAD_TOTAL_SECONDS = 120.0;
     /** An import "being read" without any progress for this long: its worker died */
     public const int READING_STALLED_AFTER_SECONDS = 900;
     /** Imports whose file arrived and that are neither finished nor discarded */

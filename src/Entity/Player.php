@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
+use SpeedPuzzling\Web\Value\MyDataColumns;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use DateTimeImmutable;
@@ -233,6 +234,16 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ComparisonView::class, options: ['default' => 'table'])]
     public ComparisonView $comparisonView = ComparisonView::Table;
+
+    /**
+     * The columns the player switched off in "My data", per tab (Value\MyDataColumns, docs/features/my-data.md);
+     * null = never chose any.
+     *
+     * @var null|array<string, list<string>>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $myDataColumns = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
@@ -623,6 +634,11 @@ class Player
     public function changeComparisonView(ComparisonView $view): void
     {
         $this->comparisonView = $view;
+    }
+
+    public function changeMyDataColumns(MyDataColumns $columns): void
+    {
+        $this->myDataColumns = $columns->toStored();
     }
 
     public function changeExperienceSystemOptedOut(bool $optedOut): void

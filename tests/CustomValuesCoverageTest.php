@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
  *   three methods `customValues` / `changeCustomValues` / `fillCustomValueGapsFrom` - or
  * - anything that hands fields or values out: the readers `GetCustomFields` / `GetCustomValues` /
  *   `GetCollectionItemCustomValues`, the services `ViewerResultFields`, `OwnCustomValuesOnResults`,
- *   `AddFormCustomFields`, `OwnCustomValuesInExport`, `CustomValuesOfRemovedCopy`, `SubmittedValuesChange`,
+ *   `AddFormCustomFields`, `OwnCustomValuesInExport`, `OwnFieldsInMyData`, `CustomValuesOfRemovedCopy`, `SubmittedValuesChange`,
  *   `CustomFieldLabels`, and the objects that carry them - `CustomValues`, `OwnCustomValues`, `OwnCustomColumns`,
  *   `CustomFieldOverview`, `CustomFieldsForm`
  *
@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class CustomValuesCoverageTest extends TestCase
 {
-    private const string NEEDLES = '/custom_field|custom_values|\b(?:CustomField|CustomFieldRepository|SolvingTimeCustomValues|SolvingTimeCustomValuesRepository|GetCustomFields|GetCustomValues|GetCollectionItemCustomValues|ViewerResultFields|OwnCustomValuesOnResults|AddFormCustomFields|OwnCustomValuesInExport|CustomValuesOfRemovedCopy|SubmittedValuesChange|CustomFieldLabels|CustomValues|OwnCustomValues|OwnCustomColumns|CustomFieldOverview|CustomFieldsForm|customValues|changeCustomValues|fillCustomValueGapsFrom)\b/';
+    private const string NEEDLES = '/custom_field|custom_values|\b(?:CustomField|CustomFieldRepository|SolvingTimeCustomValues|SolvingTimeCustomValuesRepository|GetCustomFields|GetCustomValues|GetCollectionItemCustomValues|ViewerResultFields|OwnCustomValuesOnResults|AddFormCustomFields|OwnCustomValuesInExport|OwnFieldsInMyData|CustomValuesOfRemovedCopy|SubmittedValuesChange|CustomFieldLabels|CustomValues|OwnCustomValues|OwnCustomColumns|CustomFieldOverview|CustomFieldsForm|customValues|changeCustomValues|fillCustomValueGapsFrom)\b/';
 
     private const string MANAGE_PAGE = 'The manage page "My fields" (signed-in only): lists and changes the fields of RetrieveLoggedUserProfile\'s player - no player id comes from the URL; a field id from the URL is looked up among that player\'s fields only.';
     private const string FIELD_WRITE = 'Write side of a player\'s own fields: loads the acting player\'s fields (CustomFieldRepository::ofPlayer / getOwnedBy) - somebody else\'s field is "not found".';
@@ -65,6 +65,7 @@ final class CustomValuesCoverageTest extends TestCase
         'Services/CustomFields/OwnCustomValuesOnResults.php' => 'The owner-only block of the result detail. Takes no player id: resolves the signed-in viewer itself and reads only the attempts that viewer is on.',
         'Services/CustomFields/AddFormCustomFields.php' => 'The add-result form. Takes no player id: resolves the signed-in player itself, shows their fields and saves their values on the result they just saved.',
         'Services/CustomFields/OwnCustomValuesInExport.php' => 'The owner-only exports. Takes no player id: resolves the signed-in player itself and reads that player\'s fields and values (results / collection items) for the file they download.',
+        'Services/MyData/OwnFieldsInMyData.php' => 'The owner-only page "My data" (docs/features/my-data.md). Takes no player id: resolves the signed-in player itself, reads that player\'s fields in use and - through the two viewer-bound readers - that player\'s values on the rows of the page being shown, and hands them out as worded texts (MyDataOwnFields).',
         'Services/CustomFields/SubmittedValuesChange.php' => 'The one rule of both writers: checks submitted values against the acting player\'s fields and returns what the row holds afterwards - pure, runs no query, shows nothing.',
         'Services/CustomFields/CustomValuesOfRemovedCopy.php' => self::COPY_REMOVED,
         'Services/CustomFields/SubmittedCustomValues.php' => 'Reads the `my_fields[…]` inputs of the current request (their name is CustomFieldsForm::INPUT) - what the signed-in player just typed, never stored values.',
@@ -84,6 +85,9 @@ final class CustomValuesCoverageTest extends TestCase
 
         // The collection item's edit form - the only page that shows an item's values
         'Controller/EditCollectionItemCommentController.php' => 'The owner\'s edit form of one collection item (signed-in only, 404 unless the item is RetrieveLoggedUserProfile\'s player\'s): that player\'s fields for collection items and that item\'s values through GetCollectionItemCustomValues::forViewer with their id.',
+
+        // "My data" - the owner's own table (no player id in its address)
+        'Controller/MyData/MyDataController.php' => '"My data" (signed-in only, no player id in the address): calls OwnFieldsInMyData::onResultsOfSignedInViewer() / onCollectionItemsOfSignedInViewer(), which take no player id - the columns can only be the signed-in player\'s own, on rows GetMyDataResults / GetMyDataPuzzles read for that same player.',
 
         // The owner-only exports
         'Controller/ExportPuzzlerDataDownloadController.php' => 'The results export (403 unless the URL\'s player is the signed-in one): calls OwnCustomValuesInExport::onResultsOfSignedInViewer(), which takes no player id.',
@@ -165,6 +169,8 @@ final class CustomValuesCoverageTest extends TestCase
             \SpeedPuzzling\Web\Services\CustomFields\AddFormCustomFields::class => ['forForm', 'saveSubmitted'],
             // Not a shared page, but the same rule: an export can only carry the downloading player's own
             \SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesInExport::class => ['onResultsOfSignedInViewer', 'onCollectionItemsOfSignedInViewer'],
+            // "My data": the same rule - the table can only carry the signed-in player's own
+            \SpeedPuzzling\Web\Services\MyData\OwnFieldsInMyData::class => ['onResultsOfSignedInViewer', 'onCollectionItemsOfSignedInViewer'],
         ];
 
         foreach ($services as $class => $expectedMethods) {
@@ -205,6 +211,11 @@ final class CustomValuesCoverageTest extends TestCase
             $root . '/Query/GetUnsolvedPuzzles.php',
             $root . '/Query/GetBorrowCandidates.php',
             $root . '/Query/GetExportableCollectionItems.php',
+            // "My data" gets the values from the viewer-bound readers - its own row queries select nothing of them
+            $root . '/Query/GetMyDataResults.php',
+            $root . '/Query/GetMyDataPuzzles.php',
+            $root . '/Results/MyData/MyDataResultRow.php',
+            $root . '/Results/MyData/MyDataPuzzleRow.php',
             $root . '/Results/CollectionItemOverview.php',
             $root . '/Results/Export/ExportableCollectionItem.php',
             $root . '/Controller/CollectionDetailController.php',

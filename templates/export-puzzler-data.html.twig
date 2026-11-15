@@ -10,6 +10,10 @@
         {{ 'export.heading'|trans }}
     </h1>
 
+    <p class="mb-4">
+        <a href="{{ path('my_data') }}" data-testid="my-data-link"><i class="bi bi-table me-1" aria-hidden="true"></i>{{ 'my_data.export_link'|trans }}</a>
+    </p>
+
     <section class="mb-5" aria-labelledby="export-results-heading">
         <h2 class="h5 mb-3" id="export-results-heading">{{ 'export.results.heading'|trans }}</h2>
 

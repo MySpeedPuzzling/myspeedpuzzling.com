@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "My data" (docs/features/my-data.md): the signed-in player's own results, the puzzles of their collections and
+    their wish list - read-only. From 992 px a real table (sticky header, sideways scroll inside its own box, a column
+    chooser); below it a compact list, never a table squeezed onto a phone. The address is the state (MyDataCriteria).
+
+    Variables: criteria (MyDataCriteria), page (MyDataPage), all_rows (rows of the tab without filters), columns
+    (column id => shown), own_fields (MyDataOwnFields - the signed-in player's own, for this page's rows only),
+    years (results), collections (puzzles).
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set tab = criteria.tab.value %}
+
+{% block title %}{{ 'my_data.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="my-data" data-testid="my-data" data-tab="{{ tab }}">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+        <h1 class="h3 mb-0"><i class="bi bi-table me-2" aria-hidden="true"></i>{{ 'my_data.title'|trans }}</h1>
+        <a class="fs-sm" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}"><i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'my_data.to_export'|trans }}</a>
+    </div>
+    <p class="text-muted fs-sm mb-3">{{ 'my_data.intro'|trans }}</p>
+
+    <ul class="nav nav-tabs mb-3" data-testid="my-data-tabs">
+        {% for name in ['results', 'puzzles', 'wishlist'] %}
+            <li class="nav-item">
+                <a class="nav-link {{ name == tab ? 'active' }}" {% if name == tab %}aria-current="page"{% endif %}
+                   href="{{ path('my_data', name == 'results' ? {} : {tab: name}) }}">{{ ('my_data.tab.' ~ name)|trans }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {{ include('my_data/_toolbar.html.twig') }}
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <p class="fs-sm text-muted mb-0" data-testid="my-data-summary" data-total="{{ page.total }}">
+            {% if page.total > 0 %}
+                {{ 'my_data.summary.range'|trans({'%from%': page.firstRow|format_number, '%to%': page.lastRow|format_number, '%total%': page.total|format_number}) }}
+                {% if page.total != all_rows %}· {{ 'my_data.summary.all'|trans({'%all%': all_rows|format_number}) }}{% endif %}
+            {% elseif all_rows > 0 %}
+                {{ 'my_data.empty.filtered'|trans }}
+            {% else %}
+                {{ ('my_data.empty.' ~ tab)|trans }}
+            {% endif %}
+        </p>
+
+        {{ include('my_data/_columns.html.twig') }}
+    </div>
+
+    {% if page.rows is not empty %}
+        {{ include(tab == 'results' ? 'my_data/_results.html.twig' : 'my_data/_puzzles.html.twig') }}
+
+        {% if page.pages > 1 %}
+            <nav class="d-flex align-items-center justify-content-between gap-2 mt-3" aria-label="{{ 'my_data.pages.label'|trans }}" data-testid="my-data-pages">
+                {% if page.page > 1 %}
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center my-data-tap" rel="prev" data-testid="my-data-previous"
+                       href="{{ path('my_data', criteria.query({page: page.page > 2 ? page.page - 1 : null})) }}"><i class="bi bi-chevron-left me-1" aria-hidden="true"></i>{{ 'my_data.pages.previous'|trans }}</a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+                <span class="fs-sm text-muted text-center">{{ 'my_data.pages.page'|trans({'%page%': page.page|format_number, '%pages%': page.pages|format_number}) }}</span>
+                {% if page.page < page.pages %}
+                    <a class="btn btn-outline-primary d-inline-flex align-items-center my-data-tap" rel="next" data-testid="my-data-next"
+                       href="{{ path('my_data', criteria.query({page: page.page + 1})) }}">{{ 'my_data.pages.next'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i></a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

@@ -163,6 +163,9 @@
 // The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
 @import "xp-recap";
 
+// "My data": the player's own results and puzzles as a table (docs/features/my-data.md)
+@import "my-data";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

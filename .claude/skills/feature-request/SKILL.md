@@ -151,7 +151,9 @@ Delegate to the existing `feature-dev` agents (they already know how to explore 
 - **1–3 `feature-dev:code-explorer` agents in parallel** — each targeting a different slice of the codebase relevant to the change (similar features, domain entities, templates/UI, message handlers, tests).
 - **1 `feature-dev:code-architect` agent** (after explorers return) — receive all exploration findings, the **clarified spec + `$GUIDANCE` verbatim**, and project conventions; produce a concrete build sequence. `$GUIDANCE` is a direct instruction from the project owner — prefer it over default choices when they conflict.
 
-Reference `/Users/janmikes/www/speedpuzzling.cz/CLAUDE.md` for project rules you must follow in the plan:
+Reference `/Users/janmikes/www/speedpuzzling.cz/CLAUDE.md` for project rules you must follow in the plan, and give the
+agents the area's rule file from `.claude/rules/features/` (+ `.claude/rules/queries.md` when the change reads data) - those
+hold the as-built rules of the features the change touches:
 
 - CQRS: controllers/console commands dispatch messages, handlers contain logic
 - Repositories `persist()` only, never `flush()` (Messenger middleware handles it)
@@ -160,7 +162,7 @@ Reference `/Users/janmikes/www/speedpuzzling.cz/CLAUDE.md` for project rules you
 - `Uuid::uuid7()` for new IDs
 - Texts in English while building; once implemented, every new translation key goes to all 6 locales (cs, de, es, fr, ja)
 - Services with instance state implement `ResetInterface` (FrankenPHP worker mode)
-- Never write migrations manually — always generate via `docker compose exec web php bin/console make:migration`
+- Never write migrations manually — always generate via `docker compose exec web php bin/console doctrine:migrations:diff`
 - When renaming tables, update raw SQL in `src/Query/`
 - Test **services/handlers**, not controllers or console commands directly (per project preference)
 - Log exceptions with full object: `'exception' => $e`
@@ -245,8 +247,8 @@ Follow the plan's **Files** and **Build sequence** exactly. Key reminders:
 
 - Keep changes scoped to what the plan says. No opportunistic refactors.
 - Tests live alongside the code they verify and target handlers/services, not controllers or commands.
-- If you need a migration: `docker compose exec web php bin/console make:migration` — never hand-write one, unless the plan specifically called for a custom index (then see `CLAUDE.md` §Custom Database Indexes).
-- If the change touches templates or the service worker: remember the notes in `CLAUDE.md` (docker restart for templates; bump `CACHE_VERSION` for service-worker changes).
+- If you need a migration: `docker compose exec web php bin/console doctrine:migrations:diff` — never hand-write one, unless the plan specifically called for a custom index (then see `.claude/rules/database.md`).
+- If the change touches templates or the service worker: remember the notes in `.claude/rules/frontend.md` and `.claude/rules/service-worker.md` (`CACHE_VERSION` is bumped only when something in visitors' caches must be evicted).
 - When the implementation is done, add every translation key the job introduced to all 6 locales (cs, de, es, fr, ja next to en) and check that each new key exists in all of them - the `missing-translations` skill does the same at scale.
 
 ### 4. Run all mandatory checks

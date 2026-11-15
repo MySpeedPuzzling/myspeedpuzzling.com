@@ -17,7 +17,7 @@ the import; stages 3-5 write nothing to real data; **stage 6 is the first that w
 editor, which is the same component. The phone list of My data is prototyped on real phones while the import is
 built. The stage numbers below are names, not the order.
 
-**Every stage, not only the last:** texts in all 6 locales, the feature's entry in CLAUDE.md and the docs it names
+**Every stage, not only the last:** texts in all 6 locales, the feature's entry in `.claude/rules/features/<area>.md` (never root CLAUDE.md) and the docs it names
 (`docs/features/feature_flags.md` for the safety switch, `docs/database-indexes.md`; nothing here is members-only),
 cron rows in lily.srv, `docs/TODO.md` for loose ends.
 
@@ -70,7 +70,7 @@ Ships alone, in two pull requests: **1a** fields on results, **1b** fields on co
 9. Guards: `CustomValuesCoverageTest` (the table and column names appear only in listed owner-only classes); a canary
    with member B on A's pair result - the edit form, the result detail, API v1 and the profile show B nothing of A's;
    `SolvingTimeDeletionCoverageTest` if a new file trips it.
-10. Six locales, CLAUDE.md, `docs/features/custom-fields.md`.
+10. Six locales, `.claude/rules/features/results.md` (custom fields entry), `docs/features/custom-fields.md`.
 
 **1b - collection items and the export**
 

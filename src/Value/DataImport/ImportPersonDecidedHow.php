@@ -15,8 +15,10 @@ enum ImportPersonDecidedHow: string
     case Code = 'code';
     /** The importing player said so on "People in your file" */
     case Player = 'player';
-    /** The importing player's answer for the same name in an earlier import */
+    /**
+     * The importing player's "keep as a guest" for the same name in an earlier import - the safe default, applied
+     * silently. A remembered player (or "me") is never applied by itself: it is offered, and the importing
+     * player's yes in this import makes it `Player`
+     */
     case Remembered = 'remembered';
-    /** The name is the importing player's own name */
-    case OwnName = 'own_name';
 }

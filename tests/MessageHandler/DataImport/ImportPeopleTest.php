@@ -7,11 +7,14 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\ImportPersonChoiceRefused;
+use SpeedPuzzling\Web\Message\ApplyImportRow;
 use SpeedPuzzling\Web\Message\DecideImportPerson;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\LeaveImportedResults;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Query\GetImportPeople;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Results\ImportPersonCard;
 use SpeedPuzzling\Web\Results\ImportPersonSuggestion;
 use SpeedPuzzling\Web\Tests\TestClock;
@@ -24,6 +27,7 @@ use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -164,7 +168,8 @@ final class ImportPeopleTest extends KernelTestCase
         self::assertSame('player', $this->peopleOf($import->id->toString(), $importer)[0]->choice->value);
 
         $this->block($partner, $importer);
-        // The page and the engine agree: a guest
+        // The page, the review's card and the engine agree: a guest
+        self::assertSame(0, self::getContainer()->get(GetImportPeople::class)->counts($import->id->toString(), $importer->id->toString())['players']);
         self::assertSame(['guest', null], [$this->peopleOf($import->id->toString(), $importer)[0]->choice->value, $this->peopleOf($import->id->toString(), $importer)[0]->playerId]);
 
         $this->addAndWork($import, $importer);
@@ -219,43 +224,117 @@ final class ImportPeopleTest extends KernelTestCase
         $this->addAndWork($import, $importer);
         self::assertSame([$friend->id->toString()], $this->registeredPartnersOf($this->resultsOf($importer)[0]['id'], $importer));
 
-        // The answer is remembered for the same name in the next file - shown as remembered, and changeable
-        [$next, $nextSheet] = $this->importOf($importer);
-        $this->resultRow($next, $nextSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-05-01', 6000, ['type' => 'duo', 'people' => ['ANA ZQNOVAK']]);
-        $this->pair($next);
-        $remembered = $this->peopleOf($next->id->toString(), $importer)[0];
-        self::assertSame(['player', 'remembered', $friend->id->toString(), true], [$remembered->choice->value, $remembered->decidedHow->value, $remembered->playerId, $remembered->isRemembered()]);
+        // "Ben" is kept as a guest by the player's own word
+        [$guestImport, $guestSheet] = $this->importOf($importer);
+        $this->resultRow($guestImport, $guestSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-04-01', 5900, ['type' => 'duo', 'people' => ['Ben Zqguest']]);
+        $this->pair($guestImport);
+        $this->decide($guestImport->id->toString(), $importer, $this->peopleOf($guestImport->id->toString(), $importer)[0]->personId, ImportPersonChoice::Guest);
 
-        $this->decide($next->id->toString(), $importer, $remembered->personId, ImportPersonChoice::Guest);
+        // The next file names both again. The remembered PLAYER is offered, never applied: the name is a guest for
+        // adding until the player says "still right" in this import. The remembered GUEST applies silently
+        [$next, $nextSheet] = $this->importOf($importer);
+        $offeredRow = $this->resultRow($next, $nextSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-05-01', 6000, ['type' => 'duo', 'people' => ['ANA ZQNOVAK']]);
+        $this->resultRow($next, $nextSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-05-02', 6100, ['type' => 'duo', 'people' => ['ANA ZQNOVAK']]);
+        $this->resultRow($next, $nextSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-05-03', 6200, ['type' => 'duo', 'people' => ['ben zqguest']]);
+        $this->pair($next);
+        $nextId = $next->id->toString();
+        [$ana, $ben] = $this->peopleOf($nextId, $importer);
+        self::assertSame(['guest', 'default', null, 'player', $friend->id->toString()], [$ana->choice->value, $ana->decidedHow->value, $ana->playerId, $ana->rememberedChoice?->value, $ana->rememberedPlayerId]);
+        self::assertSame(['guest', 'remembered', null], [$ben->choice->value, $ben->decidedHow->value, $ben->rememberedChoice]);
+        self::assertSame(['people' => 2, 'players' => 0, 'unanswered' => 1], self::getContainer()->get(GetImportPeople::class)->counts($nextId, $importer->id->toString()));
+
+        // Added before the answer: a guest
+        $this->addAndWork($next, $importer, [$offeredRow]);
+        self::assertSame([], $this->registeredPartnersOf($this->rowNow($offeredRow)['solving_time_id'], $importer));
+
+        // "Yes, still right" - one tap, the player's word in this import
+        $this->pairingEntityManager()->clear();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new DecideImportPerson($nextId, $importer->id->toString(), $ana->personId, ImportPersonChoice::Guest, asRemembered: true));
+        $this->pairingEntityManager()->clear();
+        $confirmed = $this->peopleOf($nextId, $importer)[0];
+        self::assertSame(['player', 'player', $friend->id->toString(), null], [$confirmed->choice->value, $confirmed->decidedHow->value, $confirmed->playerId, $confirmed->rememberedChoice]);
         $this->addAndWork($next, $importer);
-        self::assertSame([], $this->registeredPartnersOf($this->resultsOf($importer, null)[1]['id'], $importer));
+        // The friend is on the first file's result and on the row added after the answer - not on the one added before
+        self::assertSame(2, $this->resultsWith($friend));
+
+        // "Yes for all remembered" in a further file; a remembered player who blocks since is not offered at all
+        [$third, $thirdSheet] = $this->importOf($importer);
+        $this->resultRow($third, $thirdSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-06-01', 6300, ['type' => 'duo', 'people' => ['Ana Zqnovak']]);
+        $this->pair($third);
+        $thirdId = $third->id->toString();
+        self::assertSame('player', $this->peopleOf($thirdId, $importer)[0]->rememberedChoice?->value);
+        $this->pairingEntityManager()->clear();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new DecideImportPerson($thirdId, $importer->id->toString(), '', ImportPersonChoice::Guest, allRemembered: true));
+        $this->pairingEntityManager()->clear();
+        self::assertSame(['player', $friend->id->toString()], [$this->peopleOf($thirdId, $importer)[0]->choice->value, $this->peopleOf($thirdId, $importer)[0]->playerId]);
+
+        $this->block($friend, $importer);
+        [$fourth, $fourthSheet] = $this->importOf($importer);
+        $this->resultRow($fourth, $fourthSheet, 'Zq Map Meadow', 1000, 'Zqmap', '2024-07-01', 6400, ['type' => 'duo', 'people' => ['Ana Zqnovak']]);
+        $this->pair($fourth);
+        $blocked = $this->peopleOf($fourth->id->toString(), $importer)[0];
+        self::assertSame(['guest', null, null], [$blocked->choice->value, $blocked->rememberedChoice, $blocked->rememberedPlayerId]);
+        self::assertSame(ImportPersonChoiceRefused::UNKNOWN_PLAYER, $this->decideRefused($fourth->id->toString(), $importer, $blocked->personId, asRemembered: true));
     }
 
-    public function testTheImportersOwnNameAndCodeAreLeftOutOfThePartners(): void
+    public function testTheImportersOwnNameIsAskedNeverAssumedAndAPairNeverBecomesSoloOnAnAssumption(): void
     {
         $importer = $this->named($this->seedPairingPlayer('self'), 'Zq Selfie');
         $brand = $this->seedBrand('Zqself');
-        $this->seedCataloguePuzzle('Zq Self Harbour', 1000, $brand);
-        $this->seedCataloguePuzzle('Zq Self Meadow', 1000, $brand);
-        $this->seedCataloguePuzzle('Zq Self Castle', 1000, $brand);
+
+        foreach (['Harbour', 'Meadow', 'Castle', 'Tower', 'Bridge', 'Garden'] as $name) {
+            $this->seedCataloguePuzzle('Zq Self ' . $name, 1000, $brand);
+        }
 
         [$import, $sheet] = $this->importOf($importer);
-        // "Me & Ana" is two names - the parser counts a team of three; without "me" it is the pair it was
+        // "Zq Selfie & Ana": two names, a team of three as the parser counts - the importing player may have a
+        // namesake, so nothing is assumed: a team with two guests
         $byName = $this->resultRow($import, $sheet, 'Zq Self Harbour', 1000, 'Zqself', '2024-03-01', 5400, ['type' => 'team', 'people' => ['zq  selfie', 'Ana']]);
+        // Their own CODE is them, as in the add form: left out - a pair with Ben
         $byCode = $this->resultRow($import, $sheet, 'Zq Self Meadow', 1000, 'Zqself', '2024-03-02', 5500, ['type' => 'team', 'people' => ['#' . $importer->code, 'Ben']]);
-        // Only "me": the solo result it is
+        // Only their own name: a pair with a guest of that name - never a solo result
         $alone = $this->resultRow($import, $sheet, 'Zq Self Castle', 1000, 'Zqself', '2024-03-03', 5600, ['type' => 'duo', 'people' => ['Zq Selfie']]);
+        // Only their own code: a pair that names nobody else - asked, like the add form refuses a group of oneself
+        $codeAlone = $this->resultRow($import, $sheet, 'Zq Self Tower', 1000, 'Zqself', '2024-03-04', 5700, ['type' => 'duo', 'people' => ['#' . $importer->code]]);
         $this->pair($import);
 
-        self::assertEqualsCanonicalizing(
-            [['me', 'own_name'], ['me', 'code'], ['guest', 'default'], ['guest', 'default']],
-            array_map(static fn (ImportPersonCard $person): array => [$person->choice->value, $person->decidedHow->value], $this->peopleOf($import->id->toString(), $importer)),
-        );
+        $people = [];
+
+        foreach ($this->peopleOf($import->id->toString(), $importer) as $person) {
+            $people[$person->personKey] = [$person->choice->value, $person->decidedHow->value, $person->isOwnName];
+        }
+
+        self::assertSame(['guest', 'default', true], $people['g:zq selfie']);
+        self::assertSame(['me', 'code', false], $people['#' . $importer->code]);
+        self::assertSame(['guest', 'default', false], $people['g:ana']);
 
         $this->addAndWork($import, $importer);
 
         self::assertSame(['added', 'added', 'added'], [$this->rowNow($byName)['state'], $this->rowNow($byCode)['state'], $this->rowNow($alone)['state']]);
-        self::assertSame(['duo', 'duo', 'solo'], array_column($this->resultsOf($importer), 'puzzling_type'));
+        self::assertSame(['team', 'duo', 'duo'], array_column($this->resultsOf($importer), 'puzzling_type'));
+        self::assertSame(['waiting', ImportRowRefusal::PeopleDoNotFitType->value], [$this->rowNow($codeAlone)['state'], $this->rowNow($codeAlone)['failure']]);
+
+        // "Yes, that is me" - the player's own answer: left out, and with nobody else the row is the solo result it is
+        [$second, $secondSheet] = $this->importOf($importer);
+        $pairRow = $this->resultRow($second, $secondSheet, 'Zq Self Bridge', 1000, 'Zqself', '2024-04-01', 5800, ['type' => 'team', 'people' => ['Zq Selfie', 'Ana']]);
+        $soloRow = $this->resultRow($second, $secondSheet, 'Zq Self Garden', 1000, 'Zqself', '2024-04-02', 5900, ['type' => 'duo', 'people' => ['Zq Selfie']]);
+        $this->pair($second);
+        $secondId = $second->id->toString();
+        $own = array_values(array_filter($this->peopleOf($secondId, $importer), static fn (ImportPersonCard $person): bool => $person->personKey === 'g:zq selfie'))[0];
+        // The earlier files said nothing about the name: asked again, nothing remembered, nothing assumed
+        self::assertSame([true, null, 'guest'], [$own->isOwnName, $own->rememberedChoice, $own->choice->value]);
+        $this->decide($secondId, $importer, $own->personId, ImportPersonChoice::Me);
+        $this->addAndWork($second, $importer);
+
+        self::assertSame(['duo', 'solo'], [$this->resultsOf($importer, null)[3]['puzzling_type'], $this->resultsOf($importer, null)[4]['puzzling_type']]);
+        self::assertSame(['added', 'added'], [$this->rowNow($pairRow)['state'], $this->rowNow($soloRow)['state']]);
+
+        // Remembered "me" is offered in the next file - not applied
+        [$third, $thirdSheet] = $this->importOf($importer);
+        $this->resultRow($third, $thirdSheet, 'Zq Self Tower', 1000, 'Zqself', '2024-05-01', 6000, ['type' => 'duo', 'people' => ['Zq Selfie']]);
+        $this->pair($third);
+        $offered = $this->peopleOf($third->id->toString(), $importer)[0];
+        self::assertSame(['guest', 'default', 'me'], [$offered->choice->value, $offered->decidedHow->value, $offered->rememberedChoice?->value]);
     }
 
     public function testAResultThePartnerAlreadyTrackedIsNeverASecondResult(): void
@@ -386,6 +465,166 @@ final class ImportPeopleTest extends KernelTestCase
         self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_person WHERE import_id = :id', ['id' => $import->id->toString()]));
     }
 
+    public function testUndoGivesNoRoomBackTheDailyLimitsCountWhatWasMade(): void
+    {
+        $importer = $this->seedPairingPlayer('churn');
+        $partner = $this->seedPairingPlayer('churned');
+        $brand = $this->seedBrand('Zqchurn');
+        $this->seedCataloguePuzzle('Zq Churn Harbour', 1000, $brand);
+
+        [$import, $sheet] = $this->importOf($importer);
+        $day = new \DateTimeImmutable('2020-01-01');
+
+        for ($index = 0; $index < DataImportLimits::MAX_RESULTS_PER_PARTNER_PER_DAY; $index++) {
+            $this->resultRow($import, $sheet, 'Zq Churn Harbour', 1000, 'Zqchurn', $day->modify('+' . $index . ' days')->format('Y-m-d'), 5400 + $index * 7, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        }
+
+        $this->pair($import);
+        $outcome = $this->addAndWork($import, $importer);
+        self::assertSame(DataImportLimits::MAX_RESULTS_PER_PARTNER_PER_DAY, $this->resultsWith($partner));
+        $guard = self::getContainer()->get(DataImportRowRepository::class);
+        self::assertSame(200, $guard->countResultsAddedOrQueuedSince($importer->id->toString(), TestClock::now()));
+
+        // Add 200, undo, add again: the partner's profile is not churned - the day's 200 are used up
+        $this->undo($import, $importer, DataImportUndoScope::Batch, $outcome->id);
+        self::assertSame(0, $this->resultsWith($partner));
+        self::assertSame(200, $guard->countResultsAddedOrQueuedSince($importer->id->toString(), TestClock::now()));
+
+        $again = $this->addAndWork($import, $importer);
+        self::assertSame(0, $this->resultsWith($partner));
+        self::assertSame([0, 200], [$this->batchNow($again->id)['rows_added'], $this->batchNow($again->id)['rows_refused']]);
+        self::assertSame(200, $this->pairingCount('SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND failure = :why', ['id' => $import->id->toString(), 'why' => ImportRowRefusal::PartnerDailyLimit->value]));
+
+        // The importing player's own 2,000 a day are counted the same way: used up, an "Add" takes no result
+        $this->pairingDatabase()->executeStatement('UPDATE data_import_daily_count SET results = :limit WHERE importer_id = :id AND partner_id = :id', ['limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, 'id' => $importer->id->toString()]);
+        [$solo, $soloSheet] = $this->importOf($importer);
+        $this->resultRow($solo, $soloSheet, 'Zq Churn Harbour', 1000, 'Zqchurn', '2024-03-01', 9000);
+        $this->pair($solo);
+        $refused = $this->add($solo, $importer);
+        self::assertSame([0, ['over_daily_limit' => 1]], [$refused->rows, $refused->skipped]);
+    }
+
+    public function testNoPlayerGetsMoreThanFiveHundredImportedResultsADayFromEverybodyTogether(): void
+    {
+        $importer = $this->seedPairingPlayer('lastone');
+        $partner = $this->seedPairingPlayer('popular');
+        $brand = $this->seedBrand('Zqpop');
+        $this->seedCataloguePuzzle('Zq Pop Harbour', 1000, $brand);
+
+        // Three other importing players already put 499 results on the partner today
+        foreach ([200, 200, 99] as $index => $results) {
+            $other = $this->seedPairingPlayer('popother' . $index);
+            $this->pairingDatabase()->insert('data_import_daily_count', ['id' => Uuid::uuid7()->toString(), 'importer_id' => $other->id->toString(), 'partner_id' => $partner->id->toString(), 'day' => substr(TestClock::FROZEN_NOW, 0, 10), 'results' => $results]);
+        }
+
+        [$import, $sheet] = $this->importOf($importer);
+        $first = $this->resultRow($import, $sheet, 'Zq Pop Harbour', 1000, 'Zqpop', '2024-03-01', 5400, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $second = $this->resultRow($import, $sheet, 'Zq Pop Harbour', 1000, 'Zqpop', '2024-03-02', 5500, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $this->pair($import);
+        $this->addAndWork($import, $importer);
+
+        self::assertSame('added', $this->rowNow($first)['state']);
+        self::assertSame(['waiting', ImportRowRefusal::PartnerDailyLimit->value], [$this->rowNow($second)['state'], $this->rowNow($second)['failure']]);
+    }
+
+    public function testAPartnerIsToldOncePerImporterAndDayAndUnlessTheyBlockTheImporter(): void
+    {
+        $importer = $this->named($this->seedPairingPlayer('daily'), 'Zq Daily');
+        $partner = $this->seedPairingPlayer('dailypartner');
+        $blocker = $this->seedPairingPlayer('dailyblocker');
+        $brand = $this->seedBrand('Zqdaily');
+        $this->seedCataloguePuzzle('Zq Daily Harbour', 1000, $brand);
+
+        [$import, $sheet] = $this->importOf($importer);
+        $rows = [];
+
+        foreach ([$partner, $partner, $partner, $blocker] as $index => $with) {
+            $rows[] = $this->resultRow($import, $sheet, 'Zq Daily Harbour', 1000, 'Zqdaily', '2024-03-0' . ($index + 1), 5400 + $index * 11, ['type' => 'duo', 'people' => ['#' . $with->code]]);
+        }
+
+        $this->pair($import);
+
+        // Every press of "Add" is a batch: two batches the same day
+        $this->addAndWork($import, $importer, [$rows[0]]);
+        $notifications = self::getContainer()->get(GetNotifications::class);
+        self::assertSame([1], array_map(static fn ($told): int => $told->importRowsAdded, $notifications->forPlayer($partner->id->toString(), 10, 0)));
+        $this->pairingDatabase()->executeStatement('UPDATE notification SET read_at = notified_at WHERE player_id = :id', ['id' => $partner->id->toString()]);
+
+        // The importing player's own block does not silence it (and stops nothing that was resolved before only
+        // through the write-time check: here the block comes after the rows were written). Whoever blocks the
+        // importing player is told nothing
+        $this->add($import, $importer, [$rows[1], $rows[2], $rows[3]]);
+        $batchId = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id ORDER BY started_at DESC, id DESC LIMIT 1', ['id' => $import->id->toString()]);
+        self::assertIsString($batchId);
+
+        foreach ([$rows[1], $rows[2], $rows[3]] as $rowId) {
+            self::getContainer()->get(MessageBusInterface::class)->dispatch(new ApplyImportRow($rowId, $batchId, $importer->id->toString()));
+            $this->pairingEntityManager()->clear();
+        }
+
+        self::assertSame(['added', 'added', 'added'], [$this->rowNow($rows[1])['state'], $this->rowNow($rows[2])['state'], $this->rowNow($rows[3])['state']]);
+        $this->block($importer, $partner);
+        $this->block($blocker, $importer);
+        $this->work($batchId);
+
+        // Still ONE notification for the day - moved, unread again, with the day's count
+        $told = $notifications->forPlayer($partner->id->toString(), 10, 0);
+        self::assertSame([3], array_map(static fn ($one): int => $one->importRowsAdded, $told));
+        self::assertNull($told[0]->readAt);
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id', ['id' => $partner->id->toString()]));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id', ['id' => $blocker->id->toString()]));
+    }
+
+    public function testAPartnerTakesThemselfOffTheImportedResultsAndIsNotResolvedByThatImporterAgain(): void
+    {
+        $importer = $this->seedPairingPlayer('pushy');
+        $partner = $this->named($this->seedPairingPlayer('leaver'), 'Zq Leaver');
+        $brand = $this->seedBrand('Zqleaver');
+        $typedPuzzle = $this->seedCataloguePuzzle('Zq Leaver Typed', 1000, $brand);
+        $this->seedCataloguePuzzle('Zq Leaver Harbour', 1000, $brand);
+        $this->seedCataloguePuzzle('Zq Leaver Meadow', 1000, $brand);
+        // A result the two typed together is theirs and stays
+        $typed = $this->typedResult($importer, $typedPuzzle, '2023-01-01', 7000, ['#' . $partner->code]);
+
+        [$import, $sheet] = $this->importOf($importer);
+        $this->resultRow($import, $sheet, 'Zq Leaver Harbour', 1000, 'Zqleaver', '2024-03-01', 5400, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $this->resultRow($import, $sheet, 'Zq Leaver Harbour', 1000, 'Zqleaver', '2024-03-02', 5500, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $this->pair($import);
+        $this->addAndWork($import, $importer);
+        self::assertSame(3, $this->resultsWith($partner));
+
+        $this->async->reset();
+        $this->pairingEntityManager()->clear();
+        $left = self::getContainer()->get(MessageBusInterface::class)->dispatch(new LeaveImportedResults($partner->id->toString(), $importer->id->toString()))->last(HandledStamp::class)?->getResult();
+        $this->pairingEntityManager()->clear();
+
+        self::assertSame(2, $left);
+        // The results keep existing, tracked by the importing player - with a guest of the partner's name
+        $results = $this->resultsOf($importer);
+        self::assertCount(3, $results);
+        self::assertSame([$typed], array_values(array_filter(array_column($results, 'id'), fn (mixed $id): bool => $this->registeredPartnersOf($id, $importer) === [$partner->id->toString()])));
+        self::assertSame(1, $this->resultsWith($partner));
+        self::assertSame(2, $this->pairingCount("SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id AND created_via = 'spreadsheet_import' AND (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_name', 'Zq Leaver'))", ['id' => $importer->id->toString()]));
+        // Achievements once for each of the two, however many results
+        self::assertEqualsCanonicalizing([$partner->id->toString(), $importer->id->toString()], $this->badgeJobs());
+
+        // From now on this importing player's files do not find them: a guest, like a code nobody has - on the page,
+        // for a typed code, and in the result
+        [$next, $nextSheet] = $this->importOf($importer);
+        $row = $this->resultRow($next, $nextSheet, 'Zq Leaver Meadow', 1000, 'Zqleaver', '2024-04-01', 5600, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $this->pair($next);
+        $person = $this->peopleOf($next->id->toString(), $importer)[0];
+        self::assertSame(['guest', 'default', null], [$person->choice->value, $person->decidedHow->value, $person->playerId]);
+        self::assertSame(ImportPersonChoiceRefused::UNKNOWN_PLAYER, $this->decideRefused($next->id->toString(), $importer, $person->personId, code: $partner->code));
+        $this->addAndWork($next, $importer);
+        self::assertSame([], $this->registeredPartnersOf($this->rowNow($row)['solving_time_id'], $importer));
+        self::assertSame(1, $this->resultsWith($partner));
+
+        // Pressed again: nothing left to do
+        self::assertSame(0, self::getContainer()->get(MessageBusInterface::class)->dispatch(new LeaveImportedResults($partner->id->toString(), $importer->id->toString()))->last(HandledStamp::class)?->getResult());
+        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM import_partner_opt_out WHERE player_id = :id', ['id' => $partner->id->toString()]));
+    }
+
     private function named(Player $player, string $name): Player
     {
         $this->pairingDatabase()->update('player', ['name' => $name], ['id' => $player->id->toString()]);
@@ -435,9 +674,16 @@ final class ImportPeopleTest extends KernelTestCase
         $this->pairingEntityManager()->clear();
     }
 
-    private function decideRefused(string $importId, Player $importer, string $personId, null|string $targetPlayerId = null, null|string $code = null): null|string
+    private function decideRefused(string $importId, Player $importer, string $personId, null|string $targetPlayerId = null, null|string $code = null, bool $asRemembered = false): null|string
     {
         try {
+            if ($asRemembered) {
+                $this->pairingEntityManager()->clear();
+                self::getContainer()->get(MessageBusInterface::class)->dispatch(new DecideImportPerson($importId, $importer->id->toString(), $personId, ImportPersonChoice::Guest, asRemembered: true));
+
+                return null;
+            }
+
             $this->decide($importId, $importer, $personId, ImportPersonChoice::Player, $targetPlayerId, $code);
         } catch (HandlerFailedException $exception) {
             $this->pairingEntityManager()->clear();

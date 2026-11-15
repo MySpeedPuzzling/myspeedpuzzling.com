@@ -307,6 +307,14 @@
                 <a href="{{ path('pairs_and_teams') }}" class="btn btn-sm btn-outline-primary text-nowrap" data-testid="import-partner-notification-link">
                     {{ 'data_import.notification.with_you_open'|trans }}
                 </a>
+                {# "These are not mine": one action - the reader becomes a guest of their name on those results, and
+                   that player's imports no longer find them (docs/features/data-import/people.md) #}
+                {% if notification.targetPlayerId is not null %}
+                    <form action="{{ path('imported_results_leave', {importerId: notification.targetPlayerId}) }}" method="post" class="mt-1" data-turbo="false" data-testid="import-partner-leave">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\LeaveImportedResultsController::CSRF_TOKEN_ID')) }}">
+                        <button type="submit" class="btn btn-sm btn-link text-muted p-0 text-start text-wrap" style="min-height: 44px;">{{ 'data_import.notification.leave'|trans }}</button>
+                    </form>
+                {% endif %}
             </td>
         {% elseif notification.isImportNotification %}
             {# "Your import is done" (docs/features/data-import/adding.md): one per finished "Add" of the reader's own

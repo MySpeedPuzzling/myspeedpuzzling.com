@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImport;
@@ -14,6 +13,7 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowState;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * The people of an import (docs/features/data-import/people.md) - and what the limits and the partners'
@@ -165,42 +165,28 @@ SQL, [
     }
 
     /**
-     * How many results of the importing player's imports, made since $since and still there, each of these players
-     * is on - what the partner's daily limit counts.
+     * The results the importing player's imports made - tracked by them, made by a spreadsheet import - that this
+     * player is a registered person of: what "take me off them" goes through.
      *
-     * @param list<string> $partnerIds
-     *
-     * @return array<string, int> player id => results
+     * @return list<string>
      */
-    public function partnerResultsSince(string $importerId, array $partnerIds, DateTimeImmutable $since): array
+    public function importedResultIdsWith(string $importerId, string $playerId): array
     {
-        if ($partnerIds === []) {
-            return [];
-        }
-
-        /** @var list<array{partnerId: string, results: int|string}> $rows */
+        /** @var list<array{id: \Ramsey\Uuid\UuidInterface}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(teamMember.player) AS partnerId', 'COUNT(DISTINCT r.id) AS results')
-            ->from(DataImportRow::class, 'r')
-            ->join('r.import', 'import')
-            ->join(PuzzleSolvingTime::class, 'time', 'WITH', 'time.id = r.solvingTimeId')
+            ->select('time.id')
+            ->from(PuzzleSolvingTime::class, 'time')
             ->join(PuzzlingTeamMember::class, 'teamMember', 'WITH', 'teamMember.team = time.puzzlingTeam')
-            ->where('import.player = :importer')
-            ->andWhere('r.resultMadeAt >= :since')
-            ->andWhere('teamMember.player IN (:partners)')
+            ->where('time.player = :importer')
+            ->andWhere('time.createdVia = :import')
+            ->andWhere('teamMember.player = :player')
             ->setParameter('importer', $importerId)
-            ->setParameter('since', $since)
-            ->setParameter('partners', $partnerIds)
-            ->groupBy('teamMember.player')
+            ->setParameter('import', SolvingTimeSource::SpreadsheetImport)
+            ->setParameter('player', $playerId)
+            ->orderBy('time.id')
             ->getQuery()
             ->getArrayResult();
 
-        $byPartner = [];
-
-        foreach ($rows as $row) {
-            $byPartner[strtolower((string) $row['partnerId'])] = (int) $row['results'];
-        }
-
-        return $byPartner;
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
     }
 }

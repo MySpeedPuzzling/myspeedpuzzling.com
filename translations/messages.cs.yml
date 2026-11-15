@@ -12629,6 +12629,8 @@ data_import:
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% přidal(a) z tabulky výsledek s vámi.|[2,4]%player% přidal(a) z tabulky %count% výsledky s vámi.|[0,Inf[%player% přidal(a) z tabulky %count% výsledků s vámi."
         with_you_open: "Dvojice a týmy"
+        leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
+        left: "{0}Na žádném z těch výsledků už jste nebyli. Importy tohoto hráče vás už nepřidají.|{1}Byli jste odebráni z 1 výsledku. Importy tohoto hráče vás už nepřidají.|[2,4]Byli jste odebráni ze %count% výsledků. Importy tohoto hráče vás už nepřidají.|[0,Inf[Byli jste odebráni z %count% výsledků. Importy tohoto hráče vás už nepřidají."
     people:
         title: "Lidé ve vašem souboru"
         intro: "Tohle jsou lidé, které váš soubor jmenuje u výsledků dvojic a týmů. Kód hráče (#abc123) v souboru se stane tím hráčem. Jméno zůstane hostem, dokud neřeknete, kdo to je."
@@ -12665,6 +12667,16 @@ data_import:
             guests: "{0}žádný host|{1}1 host|[2,4]%count% hosté|[5,Inf[%count% hostů"
             hint: "Z kódů hráčů se stali hráči. Jména zůstávají hosty, dokud neřeknete, kdo to je."
             open: "Podívat se, kdo je kdo"
+        remembered:
+            player: "Minule byl(a) „%name%“ hráč %player% - platí to pořád?"
+            me: "Minule jste řekli, že „%name%“ jste vy - platí to pořád?"
+            yes: "Ano, platí"
+            all_title: "Na některá z těchto jmen jste odpověděli už v dřívějším importu"
+            all_hint: "Zůstanou hosty, dokud je tady nepotvrdíte - samo se nic nepřevezme."
+            all: "Ano, všechna jako minule"
+        own_name:
+            question: "„%name%“ je vaše vlastní jméno. Jste to vy?"
+            yes: "Ano, to jsem já"
 unlisted_puzzles:
     title: "Puzzle mimo databázi"
     link: "Vaše puzzle mimo databázi"

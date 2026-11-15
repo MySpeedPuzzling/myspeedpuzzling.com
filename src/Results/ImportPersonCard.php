@@ -33,6 +33,16 @@ readonly final class ImportPersonCard
         public array $suggestions,
         /** The importing player has pair/team results with a guest of this name - the consent flow can be offered */
         public bool $isGuestOfTheirs,
+        /**
+         * What the importing player answered for this name in an earlier file - a player or "me" - while nothing
+         * is decided in this one: offered ("last time ... - still right?"), never applied by itself. Null: nothing
+         */
+        public null|ImportPersonChoice $rememberedChoice = null,
+        public null|string $rememberedPlayerId = null,
+        public null|string $rememberedPlayerName = null,
+        public null|string $rememberedPlayerCode = null,
+        /** The name is the importing player's own and nothing is decided: asked "is this you?", never assumed */
+        public bool $isOwnName = false,
     ) {
     }
 

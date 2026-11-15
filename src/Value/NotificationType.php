@@ -87,8 +87,9 @@ enum NotificationType: string
     case ImportRowsTakenBack = 'ImportRowsTakenBack';
 
     // Somebody's spreadsheet import put results on the player's profile - the player is a registered partner on
-    // them (docs/features/data-import/people.md "What the partner is told"): ONE per "Add" whatever the number of
-    // results, no e-mail. Target = the batch (whose `partner_results` holds the player's count), actor = the importer
+    // them (docs/features/data-import/people.md "What the partner is told"): ONE per importing player and day
+    // whatever the number of results and of "Add"s, no e-mail. Target = the first batch of the day, actor = the
+    // importer; the count is the day's (`data_import_daily_count.notification_id`)
     case ImportResultsAddedWithYou = 'ImportResultsAddedWithYou';
 
     // The daily look found catalogue puzzles for some of the player's unlisted puzzles

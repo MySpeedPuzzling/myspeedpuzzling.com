@@ -10,13 +10,12 @@ use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImportBatch;
 use SpeedPuzzling\Web\Entity\Notification;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\FinishImportBatch;
 use SpeedPuzzling\Web\Message\SendImportAddedEmail;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
+use SpeedPuzzling\Web\Repository\DataImportDailyCountRepository;
 use SpeedPuzzling\Web\Repository\DataImportPersonRepository;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportedResultsFollowUp;
@@ -32,7 +31,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *
  * - once per person: the achievements of the importing player and of every registered partner on the batch's
  *   results, and one prediction backfill when a solo result waits for one (ImportedResultsFollowUp::forPeople());
- * - every registered partner told once, in the app: ONE notification per batch whatever the number of results
+ * - every registered partner told once, in the app: ONE notification per importing player, partner and day
  *   (docs/features/data-import/people.md "What the partner is told");
  * - the batch finished, with what its rows say now;
  * - the player told once: ONE notification and - when `player.import_emails` is on - ONE e-mail. No follower is told
@@ -49,7 +48,7 @@ readonly final class FinishImportBatchHandler
         private DataImportRowRepository $rowRepository,
         private NotificationRepository $notificationRepository,
         private DataImportPersonRepository $personRepository,
-        private PlayerRepository $playerRepository,
+        private DataImportDailyCountRepository $dailyCounts,
         private GetUserBlocks $getUserBlocks,
         private ImportedResultsFollowUp $followUp,
         private MessageBusInterface $messageBus,
@@ -121,9 +120,14 @@ readonly final class FinishImportBatchHandler
     }
 
     /**
-     * ONE notification per registered partner, whatever the number of results: "<importer> added N results with you
-     * from a spreadsheet" - in the app only, never an e-mail. Nothing is created about the importing player for
-     * somebody with a block between the two (a block that came after the results were written).
+     * **ONE notification per importing player, partner and day**, whatever the number of results and of "Add"s
+     * (every press is a batch): "<importer> added N results with you from a spreadsheet" - in the app only, never
+     * an e-mail. A later batch of the same day moves that notification (unread again, on top) instead of adding
+     * one; N is the day's count (`data_import_daily_count`).
+     *
+     * The partner is told unless **they** block the importing player (nothing is created about a player for
+     * somebody who blocks them); the importing player's own block does not silence it - whoever is put on results
+     * hears of it.
      *
      * @param array<string, int> $partnerResults player id => results
      */
@@ -136,27 +140,39 @@ readonly final class FinishImportBatchHandler
         }
 
         $importer = $batch->import->player;
-        $blocked = array_map(strtolower(...), $this->getUserBlocks->blockedEitherWay($importer->id->toString(), $partnerIds));
+        $importerId = $importer->id->toString();
+        $blockers = array_map(strtolower(...), $this->getUserBlocks->blockersOf([$importerId]));
 
         foreach ($partnerIds as $partnerId) {
-            if (in_array(strtolower($partnerId), $blocked, true)) {
+            if (in_array(strtolower($partnerId), $blockers, true)) {
                 continue;
             }
 
-            try {
-                $partner = $this->playerRepository->get($partnerId);
-            } catch (PlayerNotFound) {
+            $day = $this->dailyCounts->latest($importerId, $partnerId);
+
+            if ($day === null) {
                 continue;
             }
 
-            $this->notificationRepository->save(new Notification(
+            $told = $day->notificationId === null ? null : $this->notificationRepository->find($day->notificationId->toString());
+
+            if ($told !== null) {
+                $told->notifiedAt = $now;
+                $told->readAt = null;
+
+                continue;
+            }
+
+            $notification = new Notification(
                 Uuid::uuid7(),
-                $partner,
+                $day->partner,
                 NotificationType::ImportResultsAddedWithYou,
                 $now,
                 actorPlayer: $importer,
                 targetDataImportBatch: $batch,
-            ));
+            );
+            $this->notificationRepository->save($notification);
+            $day->toldBy($notification->id);
         }
     }
 }

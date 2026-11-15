@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
+use SpeedPuzzling\Web\Repository\DataImportDailyCountRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
@@ -69,6 +70,7 @@ readonly final class ImportResultQuestions
         private ImportedResultWriter $writer,
         private ImportNeverTwice $neverTwice,
         private ImportRowTimeCheck $timeCheck,
+        private DataImportDailyCountRepository $dailyCounts,
         private ResultDuplicatePreventionRepository $duplicatePreventionRepository,
         private SuspiciousTimeConfirmationRepository $confirmationRepository,
         private ClockInterface $clock,
@@ -223,6 +225,10 @@ readonly final class ImportResultQuestions
         }
 
         $solvingTime = $this->scheduledResult((string) $outcome->solvingTimeId);
+
+        // What the daily limits count: a result made today, for the importing player and for every registered
+        // partner on it - never taken back by an Undo (docs/features/data-import/people.md "Limits")
+        $this->dailyCounts->made($playerId, $solvingTime->memberPlayerIds(), $this->clock->now());
 
         // Two equal rows the player confirmed as two: the form's "it's another solve, save it" - the daily duplicate
         // job takes such a result as confirmed real (writer.md "What 6b calls", step 5)

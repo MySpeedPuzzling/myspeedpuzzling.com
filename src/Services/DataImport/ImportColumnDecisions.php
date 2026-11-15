@@ -94,11 +94,13 @@ final readonly class ImportColumnDecisions
             return null;
         }
 
-        $said = SolvingTypeWords::ofTitle($sheetTitle);
-
-        if ($said === null || $said === PuzzlingType::Solo) {
+        // Any pair or team word in the title asks - also beside other words ("Pairs and Teams", "Doubles - single
+        // sitting"); the one kind the title says, if it says one, is what the question suggests
+        if (SolvingTypeWords::titleNamesPairOrTeam($sheetTitle) === false) {
             return null;
         }
+
+        $said = SolvingTypeWords::ofTitle($sheetTitle);
 
         $choices = [PuzzlingType::Solo->value, PuzzlingType::Duo->value, PuzzlingType::Team->value];
 
@@ -110,7 +112,7 @@ final readonly class ImportColumnDecisions
             ImportQuestionType::SheetSolvingType,
             $mapping->column(ImportField::PuzzleName)->column ?? $table->firstColumn,
             $choices,
-            $said->value,
+            $said?->value,
             [mb_substr($sheetTitle, 0, 200)],
             rows: $table->lastRow === null ? 0 : max(0, $table->lastRow - $table->firstRow + 1),
         );

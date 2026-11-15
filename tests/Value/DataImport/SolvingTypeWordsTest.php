@@ -41,12 +41,30 @@ final class SolvingTypeWordsTest extends TestCase
             'Binômes' => PuzzlingType::Duo, 'En duo' => PuzzlingType::Duo, 'Équipes' => PuzzlingType::Team, 'Seule' => PuzzlingType::Solo,
             // Japanese
             'ペア500ピース' => PuzzlingType::Duo, 'チーム戦' => PuzzlingType::Team, 'ソロ' => PuzzlingType::Solo, '個人' => PuzzlingType::Solo,
-            // Says nothing - or two things: nothing is taken from it
-            'Results' => null, '2023' => null, 'Pairs and teams' => null, 'Repairs' => null, 'Teamwork' => null, 'Me and Ana' => null, 'Sheet 2' => null,
+            // A pair or team word beside other words still says it; a solo word beside it says nothing
+            'Pairs with Sam' => PuzzlingType::Duo, 'Doubles - single sitting' => PuzzlingType::Duo, 'Partner puzzles' => PuzzlingType::Duo,
+            'Duet' => PuzzlingType::Duo, 'Trio' => PuzzlingType::Team, '2 player results' => PuzzlingType::Duo, '2-player' => PuzzlingType::Duo,
+            'Zu zweit' => PuzzlingType::Duo, 'À deux' => PuzzlingType::Duo, 'Ve dvou' => PuzzlingType::Duo,
+            // German writes it in one word
+            'Paarpuzzle' => PuzzlingType::Duo, 'Teamwertung 2024' => PuzzlingType::Team, 'Doppelwertung' => PuzzlingType::Duo,
+            '2人' => PuzzlingType::Duo, 'デュオ' => PuzzlingType::Duo, 'ダブルス大会' => PuzzlingType::Duo,
+            // Says nothing - or pair and team at once: no one kind is taken from it
+            'Results' => null, '2023' => null, 'Pairs and teams' => null, 'Repairs' => null, 'Me and Ana' => null, 'Sheet 2' => null, '12 players' => null,
         ];
 
         foreach ($titles as $title => $said) {
             yield (string) $title => [(string) $title, $said];
+        }
+    }
+
+    public function testAnyPairOrTeamWordMakesASheetAskAndASoloWordAloneNever(): void
+    {
+        foreach (['500 piece Pairs', 'Pairs with Sam', 'Pairs and Teams', 'Doubles - single sitting', 'Teamwertung', 'チーム戦', '2 player'] as $title) {
+            self::assertTrue(SolvingTypeWords::titleNamesPairOrTeam($title), $title);
+        }
+
+        foreach (['Solo', 'Single sitting', 'Results 2023', 'Repairs', 'Einzel', '個人'] as $title) {
+            self::assertFalse(SolvingTypeWords::titleNamesPairOrTeam($title), $title);
         }
     }
 
@@ -77,7 +95,8 @@ final class SolvingTypeWordsTest extends TestCase
 
         $address = ImportPersonText::of('https://myspeedpuzzling.com/en/player-profile/018D0000-0000-7000-8000-000000000001');
         self::assertNotNull($address);
-        self::assertSame(['id:018d0000-0000-7000-8000-000000000001', '018d0000-0000-7000-8000-000000000001'], [$address->key, $address->playerId]);
+        // Never the address itself as a name: unresolved, it is what a guest is called on a public result
+        self::assertSame(['id:018d0000-0000-7000-8000-000000000001', '018d0000-0000-7000-8000-000000000001', 'Player 018d0000'], [$address->key, $address->playerId, $address->name]);
 
         // A name is never a code: the same letters without the sign are a name, folded like a guest's
         $name = ImportPersonText::of('  Žofie   Nováková ');

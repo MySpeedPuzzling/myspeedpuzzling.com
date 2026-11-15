@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
+use SpeedPuzzling\Web\Repository\ImportPartnerOptOutRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 
 /**
@@ -19,14 +20,16 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
  * guest of that name. Nothing else decides there.
  *
  * **On top, because nobody watches a bulk import**: a player with a block between them and the importing player -
- * in either direction - is never resolved. The answer is the same `null` as for a code nobody has, so the importing
- * player can not tell the two apart.
+ * in either direction - is never resolved, and neither is a player who took themself off this importing player's
+ * imports (ImportPartnerOptOut). The answer is the same `null` as for a code nobody has, so the importing player
+ * can not tell them apart.
  */
 readonly final class ImportPartnerEligibility
 {
     public function __construct(
         private PlayerRepository $playerRepository,
         private GetUserBlocks $getUserBlocks,
+        private ImportPartnerOptOutRepository $optOuts,
     ) {
     }
 
@@ -67,7 +70,12 @@ readonly final class ImportPartnerEligibility
      */
     public function notAllowedAmong(Player $importer, array $playerIds): array
     {
-        return array_map(strtolower(...), $this->getUserBlocks->blockedEitherWay($importer->id->toString(), $playerIds));
+        $importerId = $importer->id->toString();
+
+        return array_values(array_unique([
+            ...array_map(strtolower(...), $this->getUserBlocks->blockedEitherWay($importerId, $playerIds)),
+            ...$this->optOuts->among($importerId, $playerIds),
+        ]));
     }
 
     /**
@@ -79,6 +87,6 @@ readonly final class ImportPartnerEligibility
             return $player;
         }
 
-        return $this->getUserBlocks->blockedEitherWay($importer->id->toString(), [$player->id->toString()]) === [] ? $player : null;
+        return $this->notAllowedAmong($importer, [$player->id->toString()]) === [] ? $player : null;
     }
 }

@@ -555,7 +555,7 @@ readonly final class ImportRowAdder
             'day' => $dated['day'],
             'precision' => $dated['precision'],
             'seconds' => $seconds,
-            'type' => ImportRowPeople::typeWithout($type, $people['named'], count($people['people'])),
+            'type' => ImportRowPeople::typeWithout($type, $people['named'], count($people['people']), $people['meByWord']),
             'sourceKey' => $sourceKey,
             'people' => $people['people'],
             'registeredPlayerIds' => $people['registeredPlayerIds'],

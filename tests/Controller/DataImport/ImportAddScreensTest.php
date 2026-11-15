@@ -1234,6 +1234,14 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
             self::assertSame(['solo'], $this->database->fetchFirstColumn("SELECT parsed ->> 'type' FROM data_import_row WHERE import_id = :id AND row_number > 1", ['id' => $quiet]), $title);
         }
 
+        // Two kinds in the title, a pair word beside other words: asked all the same - with nothing suggested where
+        // the title says both
+        foreach (['Pairs and Teams' => null, 'Doubles - single sitting' => 'duo', 'Pairs with Sam' => 'duo'] as $title => $suggested) {
+            $asking = $this->importedWorkbook($this->seedPairingPlayer('titleasks'), [['Zq Title Puzzle', 500, '2023-05-01', 3301]], $title);
+            self::assertSame(['sheet_solving_type' => ['choices' => '["solo", "duo", "team"]', 'suggested' => $suggested]], $this->sheetQuestions($asking), $title);
+            self::assertSame(['type_open'], $this->database->fetchFirstColumn("SELECT problems -> 0 ->> 'code' FROM data_import_row WHERE import_id = :id AND row_number > 1", ['id' => $asking]), $title);
+        }
+
         // "Týmy": asked - and "solo" is an answer like any other, kept: the sheet does not ask again
         $player = $this->seedPairingPlayer('titleteams');
         $playerId = $player->id->toString();

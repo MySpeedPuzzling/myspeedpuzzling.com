@@ -141,7 +141,38 @@ final class ImportPeopleScreenTest extends WebTestCase
         self::assertStringContainsString('added 2 results with you from a spreadsheet.', $told->text());
         self::assertStringNotContainsString('results.xlsx', (string) $this->browser->getResponse()->getContent());
 
+        // "These are not mine - take me off them": one action on that notification, with its token
+        $leave = $told->closest('tr')?->filter('[data-testid="import-partner-leave"]');
+        self::assertNotNull($leave);
+        self::assertSame('/en/imported-results/' . $importer->id->toString() . '/leave', $leave->attr('action'));
+        $this->browser->request('POST', '/en/imported-results/' . $importer->id->toString() . '/leave');
+        self::assertResponseStatusCodeSame(403);
+        $this->browser->submit($leave->selectButton('These are not mine - take me off them')->form());
+        self::assertResponseRedirects('/en/notifications');
+        self::assertStringContainsString('You were taken off 2 results.', $this->browser->followRedirect()->text());
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM puzzling_team_member member INNER JOIN puzzle_solving_time result ON result.puzzling_team_id = member.team_id WHERE member.player_id = :partner AND result.player_id = :importer', ['partner' => $partner->id->toString(), 'importer' => $importer->id->toString()]));
+        self::assertSame(3, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :importer', ['importer' => $importer->id->toString()]));
+
         TestingLogin::asPlayer($this->browser, $importer->id->toString());
+
+        // The next file: the name answered before is offered ("still right?"), a guest until one tap says yes - and
+        // the partner who took themself off is a guest the page can not tell from an unknown code
+        [$next, $nextSheet] = $this->importOf($importer);
+        $this->resultRow($next, $nextSheet, 'Zq Page Meadow', 1000, 'Zqpage', '2024-06-01', 6000, ['type' => 'duo', 'people' => ['Zq Pagefriend']]);
+        $this->resultRow($next, $nextSheet, 'Zq Page Meadow', 1000, 'Zqpage', '2024-06-02', 6100, ['type' => 'duo', 'people' => ['#' . $partner->code]]);
+        $this->pair($next);
+        $nextPath = '/en/import/' . $next->id->toString() . '/people';
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 1, mapping_version = 1 WHERE import_id = :id', ['id' => $next->id->toString()]);
+        $crawler = $this->browser->request('GET', $nextPath);
+        self::assertSame(['guest', 'guest'], $crawler->filter('[data-testid="import-person"]')->each(static fn ($person): string => (string) $person->attr('data-choice')));
+        $offer = $crawler->filter('[data-testid="import-person-remembered"]');
+        self::assertSame(['player', $friend->id->toString()], [$offer->attr('data-remembered'), $offer->attr('data-player')]);
+        self::assertStringContainsString('Last time “Zq Pagefriend” was Zq Pagefriend - still right?', $offer->text());
+        $this->browser->submit($offer->selectButton('Yes, still right')->form());
+        self::assertResponseRedirects();
+        $crawler = $this->browser->followRedirect();
+        self::assertCount(0, $crawler->filter('[data-testid="import-person-remembered"]'));
+        self::assertSame($friend->id->toString(), $crawler->filter('[data-testid="import-person"][data-name="Zq Pagefriend"]')->attr('data-player'));
 
         foreach (['cs', 'de', 'es', 'fr', 'ja'] as $locale) {
             $crawler = $this->browser->request('GET', '/' . $locale . '/import/' . $importId . '/people');

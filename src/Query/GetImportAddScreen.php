@@ -72,18 +72,25 @@ import AS (
 {$ready},
 -- What the daily guard counts (DataImportRowRepository::countResultsAddedOrQueuedSince())
 guard AS (
-    SELECT GREATEST(0, :limit - COUNT(*)) AS results_left
+    -- Rows queued for the profile now, plus the results made today - the day's count, which an Undo never lowers
+    -- (or, for results made before that count existed, the rows that still name them: whichever is more)
+    SELECT GREATEST(0, :limit
+        - COUNT(*) FILTER (WHERE r.state = 'queued' AND NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted'))
+        - GREATEST(
+            COUNT(*) FILTER (
+                WHERE r.solving_time_id IS NOT NULL
+                    AND (r.result_made_at >= :startOfDay OR (r.result_made_at IS NULL AND r.state = 'added' AND r.added_at >= :startOfDay))
+            ),
+            COALESCE((
+                SELECT SUM(made.results) FROM data_import_daily_count made
+                WHERE made.importer_id = :playerId AND made.partner_id = :playerId AND made.day = CAST(:startOfDay AS DATE)
+            ), 0)
+        )
+    ) AS results_left
     FROM data_import_row r
     INNER JOIN data_import other ON other.id = r.import_id
     WHERE other.player_id = :playerId
         AND r.kind IN ('result', 'both')
-        AND (
-            (r.state = 'queued' AND NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted'))
-            OR (
-                r.solving_time_id IS NOT NULL
-                AND (r.result_made_at >= :startOfDay OR (r.result_made_at IS NULL AND r.state = 'added' AND r.added_at >= :startOfDay))
-            )
-        )
 ),
 judged AS (
     SELECT

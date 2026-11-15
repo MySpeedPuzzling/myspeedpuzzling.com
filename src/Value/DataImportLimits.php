@@ -107,6 +107,8 @@ final class DataImportLimits
     public const int MAX_PARTNERS_PER_BATCH = 20;
     /** Results one player's imports put on one registered partner per day, UTC - the rest waits: nobody is flooded */
     public const int MAX_RESULTS_PER_PARTNER_PER_DAY = 200;
+    /** ... and from every importing player together: no player's profile takes more imported results a day */
+    public const int MAX_RESULTS_PER_PARTNER_PER_DAY_FROM_EVERYBODY = 500;
     /** Rows of an "Add" or an Undo the worker goes through before it gives the queue to the next job */
     public const int ROWS_PER_TURN = 50;
     /** ... or after so many seconds (README "no message works longer than about ten seconds") */

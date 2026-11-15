@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\DataImportPerson;
 use SpeedPuzzling\Web\Entity\ImportPersonDecision;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportPersonChoiceRefused;
 use SpeedPuzzling\Web\Message\DecideImportPerson;
@@ -33,8 +35,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *   has and a code of a player with a block are refused with the same reason;
  * - "that is me" needs nothing but the importing player's word (a nickname the file uses for them).
  *
- * Then the person takes the answer, and the answer is remembered for the same name in the player's next file. Rows
- * that are added already keep their results as they are.
+ * Then the person takes the answer, and the answer is remembered for the same name in the player's next file - where
+ * a remembered player or "me" is **offered, not applied**: only "yes, still right" (`asRemembered`, or
+ * `allRemembered` for every such name at once) takes it, as the importing player's word in that import. Rows that
+ * are added already keep their results as they are.
  */
 #[AsMessageHandler]
 readonly final class DecideImportPersonHandler
@@ -62,13 +66,49 @@ readonly final class DecideImportPersonHandler
 
         $this->idLock->lockUntilCommit(Uuid::fromString($message->importId));
         $import = $this->dataImportRepository->getOwnedBy($message->importId, $message->playerId);
+        $importer = $import->player;
+        $now = $this->clock->now();
+
+        // "Yes for all remembered": each name with an earlier answer of a player or "me" and nothing decided here -
+        // those whose player may still be added; the others stay guests
+        if ($message->allRemembered) {
+            $waiting = array_filter(
+                $this->personRepository->ofImport($import),
+                static fn (DataImportPerson $person): bool => $person->isUndecided() && $person->writtenAsPlayer === false,
+            );
+            $answers = $this->decisionRepository->ofPlayerByKeys($importer, array_values(array_map(static fn (DataImportPerson $person): string => $person->personKey, $waiting)));
+
+            foreach ($waiting as $person) {
+                $answer = $answers[$person->personKey] ?? null;
+                $taken = $answer === null ? null : $this->remembered($importer, $answer);
+
+                if ($taken !== null) {
+                    $person->decide($taken[0], $taken[1], ImportPersonDecidedHow::Player, $now);
+                }
+            }
+
+            return;
+        }
+
         $person = $this->personRepository->find($message->personId);
 
         if ($person === null || $person->import->id->equals($import->id) === false) {
             throw new ImportPersonChoiceRefused(ImportPersonChoiceRefused::UNKNOWN_PERSON);
         }
 
-        $importer = $import->player;
+        if ($message->asRemembered) {
+            $answer = $this->decisionRepository->ofPlayerByKeys($importer, [$person->personKey])[$person->personKey] ?? null;
+            $taken = $answer === null ? null : $this->remembered($importer, $answer);
+
+            if ($taken === null) {
+                throw new ImportPersonChoiceRefused(ImportPersonChoiceRefused::UNKNOWN_PLAYER);
+            }
+
+            $person->decide($taken[0], $taken[1], ImportPersonDecidedHow::Player, $now);
+
+            return;
+        }
+
         $linked = null;
 
         if ($message->choice === ImportPersonChoice::Player) {
@@ -97,7 +137,6 @@ readonly final class DecideImportPersonHandler
             $linked = null;
         }
 
-        $now = $this->clock->now();
         $person->decide($choice, $linked, ImportPersonDecidedHow::Player, $now);
 
         $remembered = $this->decisionRepository->ofPlayerByKeys($importer, [$person->personKey])[$person->personKey] ?? null;
@@ -107,5 +146,26 @@ readonly final class DecideImportPersonHandler
         } else {
             $remembered->decide($choice, $linked, $now);
         }
+    }
+
+    /**
+     * An earlier answer as it can be taken now: "me", or the player while they may still be added - null: nothing
+     * to take (an earlier "guest" is applied when the people are built; a player who may not be added is no answer).
+     *
+     * @return null|array{ImportPersonChoice, null|Player}
+     */
+    private function remembered(Player $importer, ImportPersonDecision $answer): null|array
+    {
+        if ($answer->choice === ImportPersonChoice::Me) {
+            return [ImportPersonChoice::Me, null];
+        }
+
+        if ($answer->choice !== ImportPersonChoice::Player || $answer->linkedPlayer === null) {
+            return null;
+        }
+
+        $linked = $this->eligibility->byId($importer, $answer->linkedPlayer->id->toString());
+
+        return $linked === null || $linked->id->equals($importer->id) ? null : [ImportPersonChoice::Player, $linked];
     }
 }

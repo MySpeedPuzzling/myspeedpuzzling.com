@@ -20,15 +20,17 @@ use SpeedPuzzling\Web\Value\DataImport\ImportPersonText;
  * nothing that was decided: a person still named keeps their row and their decision, a person no row names any more
  * goes, a new one arrives.
  *
- * A person nobody decided anything about is decided here, by the three things that need no person:
+ * A person nobody decided anything about is decided here only by what needs no person:
  *
- * 1. the importing player's remembered answer for the same name (ImportPersonDecision);
+ * 1. the importing player's remembered **"keep as a guest"** for the same name (ImportPersonDecision) - the safe
+ *    default, applied silently;
  * 2. **a code, id or profile address resolves by itself** - when the add form would let the importing player add
- *    that player and no block stands between them (ImportPartnerEligibility); the importing player's own code is
- *    "me";
- * 3. the importing player's own name is "me".
+ *    that player and nothing stands between them (ImportPartnerEligibility); the importing player's own code is
+ *    "me".
  *
- * **A plain name is never resolved to a player here** - only the importing player's answer does that.
+ * **A name never becomes a player - or "me" - here**: not by a remembered answer of an earlier file (it is offered
+ * on the page, "last time Anna was ... - still right?", and the name stays a guest for adding until the importing
+ * player says yes in this import), and not because it is the importing player's own name (asked: "is this you?").
  */
 readonly final class ImportPeopleBuilder
 {
@@ -71,7 +73,6 @@ readonly final class ImportPeopleBuilder
 
         $importer = $import->player;
         $remembered = $this->decisionRepository->ofPlayerByKeys($importer, array_map(strval(...), array_keys($named)));
-        $ownNameKey = $importer->name === null || trim($importer->name) === '' ? null : ImportPersonText::nameKey($importer->name);
 
         foreach ($named as $key => $said) {
             $key = (string) $key;
@@ -91,15 +92,15 @@ readonly final class ImportPeopleBuilder
 
             $answer = $remembered[$key] ?? null;
 
-            if ($answer !== null) {
-                $linked = $answer->linkedPlayer === null ? null : $this->eligibility->byId($importer, $answer->linkedPlayer->id->toString());
+            if ($answer !== null && $answer->choice === ImportPersonChoice::Guest) {
+                $person->decide(ImportPersonChoice::Guest, null, ImportPersonDecidedHow::Remembered, $now);
 
-                // A remembered player who may not be added any more is no answer: the person is a guest, as by default
-                if ($answer->choice !== ImportPersonChoice::Player || $linked !== null) {
-                    $person->decide($answer->choice, $linked, ImportPersonDecidedHow::Remembered, $now);
+                continue;
+            }
 
-                    continue;
-                }
+            // A remembered player or "me" for a name is the page's to offer - nothing is decided by it here
+            if ($answer !== null && $text->isWrittenAsPlayer() === false) {
+                continue;
             }
 
             if ($text->isWrittenAsPlayer()) {
@@ -112,12 +113,6 @@ readonly final class ImportPeopleBuilder
                 } elseif ($player !== null) {
                     $person->decide(ImportPersonChoice::Player, $player, ImportPersonDecidedHow::Code, $now);
                 }
-
-                continue;
-            }
-
-            if ($ownNameKey !== null && $key === $ownNameKey) {
-                $person->decide(ImportPersonChoice::Me, null, ImportPersonDecidedHow::OwnName, $now);
             }
         }
     }

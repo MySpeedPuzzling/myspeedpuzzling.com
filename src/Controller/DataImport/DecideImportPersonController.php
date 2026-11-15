@@ -21,7 +21,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The importing player's answer about one person of their file (docs/features/data-import/people.md "Answers"):
  * POST + CSRF, one person per form. `answer` is `guest`, `me`, `code` (with the typed `code`) or the id of one of
- * the players offered.
+ * the players offered - or `remembered` ("yes, still right": the answer of an earlier file for this name) and
+ * `remembered_all` (for every such name of the import).
  *
  * - taken: a redirect back to the page, at the person;
  * - not taken (a code nobody has - or a player who may not be added: one message for both, a player who was not
@@ -59,6 +60,9 @@ final class DecideImportPersonController extends AbstractController
         $answer = $request->request->getString('answer');
 
         $message = match (true) {
+            // "Yes, still right" - what the player answered for the name in an earlier file; for one name, or all
+            $answer === 'remembered' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Guest, asRemembered: true),
+            $answer === 'remembered_all' => new DecideImportPerson($importId, $player->playerId, '', ImportPersonChoice::Guest, allRemembered: true),
             $answer === 'guest' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Guest),
             $answer === 'me' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Me),
             $answer === 'code' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Player, code: $request->request->getString('code')),

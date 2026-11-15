@@ -22,6 +22,13 @@ readonly final class DecideImportPerson
         public ImportPersonChoice $choice,
         public null|string $targetPlayerId = null,
         public null|string $code = null,
+        /**
+         * "Yes, still right": take what the importing player answered for this name in an earlier file (a player or
+         * "me") - `choice` and the other fields are not read then
+         */
+        public bool $asRemembered = false,
+        /** ... for every person of the import that has such an answer and nothing decided yet (`personId` is not read) */
+        public bool $allRemembered = false,
     ) {
     }
 }

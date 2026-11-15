@@ -12616,6 +12616,8 @@ data_import:
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "[0,Inf[%player% さんが表計算ファイルから、あなたとの記録を %count% 件追加しました。"
         with_you_open: "ペアとチーム"
+        leave: "自分の記録ではありません - 外してください"
+        left: "[0,Inf[%count% 件の記録からあなたを外しました。このプレイヤーのインポートであなたが追加されることはもうありません。"
     people:
         title: "ファイルに出てくる人"
         intro: "ファイルのペア・チームの記録に書かれている人の一覧です。ファイルにプレイヤーコード(#abc123)があれば、そのプレイヤーになります。名前は、誰なのかを指定するまでゲストのままです。"
@@ -12652,6 +12654,16 @@ data_import:
             guests: "{0}ゲストなし|[1,Inf[ゲスト %count% 人"
             hint: "プレイヤーコードはそのプレイヤーになりました。名前は、誰なのかを指定するまでゲストのままです。"
             open: "誰が誰かを見る"
+        remembered:
+            player: "前回、「%name%」は %player% でした - 今回も同じですか?"
+            me: "前回、「%name%」はあなた自身だと指定しました - 今回も同じですか?"
+            yes: "はい、同じです"
+            all_title: "以前のインポートで回答済みの名前があります"
+            all_hint: "ここで確認するまではゲストのままです - 自動では引き継がれません。"
+            all: "はい、すべて前回と同じ"
+        own_name:
+            question: "「%name%」はあなた自身の名前です。あなたですか?"
+            yes: "はい、自分です"
 unlisted_puzzles:
     title: "未掲載パズル"
     link: "未掲載パズルを見る"

@@ -35,6 +35,19 @@
         <div class="card card-body shadow-sm mb-3 text-muted" data-testid="import-people-none">{{ 'data_import.people.none'|trans }}</div>
     {% endif %}
 
+    {# Names answered in an earlier file: offered, never applied by themselves - one tap takes them all #}
+    {% set remembered_people = people|filter(person => person.rememberedChoice is not null) %}
+    {% if remembered_people|length > 1 %}
+        <div class="card card-body shadow-sm mb-3 border-primary" data-testid="import-people-remembered" data-people="{{ remembered_people|length }}">
+            <h2 class="h6 mb-1">{{ 'data_import.people.remembered.all_title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.people.remembered.all_hint'|trans }}</p>
+            <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <button type="submit" name="answer" value="remembered_all" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-people-remembered-all">{{ 'data_import.people.remembered.all'|trans }}</button>
+            </form>
+        </div>
+    {% endif %}
+
     {% for person in people %}
         {% set player_label = person.playerName ?? ('#' ~ (person.playerCode ?? '')|upper) %}
         <div class="card card-body shadow-sm mb-3" id="person-{{ person.personId }}" data-testid="import-person"
@@ -66,6 +79,30 @@
                 </div>
             {% endif %}
 
+            {# Answered in an earlier file: the name stays a guest for adding until the player says "still right" here #}
+            {% if person.rememberedChoice is not null %}
+                <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="alert alert-primary py-2 mb-2" data-testid="import-person-remembered" data-remembered="{{ person.rememberedChoice.value }}" data-player="{{ person.rememberedPlayerId }}">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="person" value="{{ person.personId }}">
+                    <p class="fs-sm mb-2">
+                        {%- if person.rememberedChoice.value == 'me' -%}
+                            {{ 'data_import.people.remembered.me'|trans({'%name%': person.name}) }}
+                        {%- else -%}
+                            {{ 'data_import.people.remembered.player'|trans({'%name%': person.name, '%player%': person.rememberedPlayerName ?? ('#' ~ (person.rememberedPlayerCode ?? '')|upper)}) }}
+                        {%- endif -%}
+                    </p>
+                    <button type="submit" name="answer" value="remembered" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-person-remembered-yes">{{ 'data_import.people.remembered.yes'|trans }}</button>
+                </form>
+            {% elseif person.isOwnName %}
+                {# The importing player's own name: asked, never assumed #}
+                <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="alert alert-primary py-2 mb-2" data-testid="import-person-own-name">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="person" value="{{ person.personId }}">
+                    <p class="fs-sm mb-2">{{ 'data_import.people.own_name.question'|trans({'%name%': person.name}) }}</p>
+                    <button type="submit" name="answer" value="me" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-person-own-name-yes">{{ 'data_import.people.own_name.yes'|trans }}</button>
+                </form>
+            {% endif %}
+
             {% if refused_person_id == person.personId %}
                 <div class="alert alert-warning fs-sm py-2" role="alert" data-testid="import-person-refused">
                     {{ ('data_import.people.refused.' ~ (refusal in ['unknown_player', 'invalid'] ? refusal : 'invalid'))|trans }}
@@ -81,7 +118,7 @@
                     {% for suggestion in person.suggestions %}
                         {% set suggestion_label = suggestion.name ?? ('#' ~ suggestion.code|upper) %}
                         <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;" data-testid="import-person-suggestion" data-player="{{ suggestion.playerId }}" data-exact="{{ suggestion.exact ? 'true' : 'false' }}">
-                            <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ person.playerId == suggestion.playerId ? 'checked' }}>
+                            <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ person.playerId == suggestion.playerId or (person.rememberedPlayerId == suggestion.playerId and person.rememberedChoice is not null) ? 'checked' }}>
                             <span class="text-break">
                                 {{ 'data_import.people.answer.player'|trans({'%player%': suggestion_label, '%code%': suggestion.code|upper}) }}
                                 {% if not suggestion.exact %}<span class="badge bg-light text-dark border ms-1">{{ 'data_import.people.maybe'|trans }}</span>{% endif %}
@@ -91,7 +128,7 @@
                     {% endfor %}
 
                     <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                        <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not person.isPlayer and person.choice.value != 'me' ? 'checked' }}>
+                        <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not person.isPlayer and person.choice.value != 'me' and person.rememberedChoice is null ? 'checked' }}>
                         <span>{{ 'data_import.people.answer.guest'|trans }}</span>
                     </label>
 
@@ -104,7 +141,7 @@
                     </div>
 
                     <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                        <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ person.choice.value == 'me' ? 'checked' }}>
+                        <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ person.choice.value == 'me' or (person.rememberedChoice is not null and person.rememberedChoice.value == 'me') ? 'checked' }}>
                         <span>{{ 'data_import.people.answer.me'|trans }}</span>
                     </label>
                 </fieldset>

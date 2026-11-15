@@ -42,7 +42,9 @@ readonly final class ImportPersonText
 
         // A bare id, or the address of a profile: the id is the address's last part
         if (preg_match('~^(?:https?://\S+/)?(' . self::UUID . ')/?$~', $text, $match) === 1) {
-            return new self('id:' . strtolower($match[1]), $text, null, strtolower($match[1]));
+            // Never the address itself: when the player is not resolved the name is what a guest is called, on a
+            // public result - a neutral one, apart for every id
+            return new self('id:' . strtolower($match[1]), 'Player ' . substr(strtolower($match[1]), 0, 8), null, strtolower($match[1]));
         }
 
         $name = trim($text, "# \t\n\r\0\x0B");

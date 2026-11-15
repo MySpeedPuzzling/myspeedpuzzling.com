@@ -12622,6 +12622,8 @@ data_import:
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% a ajouté un résultat avec vous depuis un tableur.|[0,Inf[%player% a ajouté %count% résultats avec vous depuis un tableur."
         with_you_open: "Duos et équipes"
+        leave: "Ce ne sont pas les miens - retirez-moi"
+        left: "{0}Vous n'étiez plus sur aucun de ces résultats. Les imports de ce joueur ne vous ajouteront plus.|{1}Vous avez été retiré de 1 résultat. Les imports de ce joueur ne vous ajouteront plus.|[0,Inf[Vous avez été retiré de %count% résultats. Les imports de ce joueur ne vous ajouteront plus."
     people:
         title: "Les personnes de votre fichier"
         intro: "Voici les personnes que votre fichier nomme dans les résultats en duo et en équipe. Un code joueur (#abc123) dans le fichier devient ce joueur. Un nom reste un invité tant que vous ne dites pas qui c'est."
@@ -12658,6 +12660,16 @@ data_import:
             guests: "{0}aucun invité|{1}1 invité|]1,Inf[%count% invités"
             hint: "Les codes joueur sont devenus le joueur. Les noms restent des invités tant que vous ne dites pas qui ils sont."
             open: "Voir qui est qui"
+        remembered:
+            player: "La dernière fois, « %name% » était %player% - est-ce toujours le cas ?"
+            me: "La dernière fois, vous avez dit que « %name% », c'est vous - est-ce toujours le cas ?"
+            yes: "Oui, toujours"
+            all_title: "Vous avez déjà répondu pour certains de ces noms lors d'un import précédent"
+            all_hint: "Ils restent des invités tant que vous ne les confirmez pas ici - rien n'est repris automatiquement."
+            all: "Oui, tous comme la dernière fois"
+        own_name:
+            question: "« %name% » est votre propre nom. Est-ce vous ?"
+            yes: "Oui, c'est moi"
 unlisted_puzzles:
     title: "Puzzles hors catalogue"
     link: "Vos puzzles hors catalogue"

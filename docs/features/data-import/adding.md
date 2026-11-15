@@ -48,7 +48,7 @@ Not ready, and said so in the outcome's `skipped` (the screens word it):
 |---|---|
 | `unlisted_not_yet` | Until stage 7: the puzzle is kept as an unlisted puzzle. No "Add" answers it any more - such rows are ready now ([unlisted-puzzles.md](unlisted-puzzles.md)); the code stays for batches made before |
 | `needs_exact_day` | A result without any date - the player gives it one. (Until stage 6c also a result known to the month or year only; those are added with their precision now - `date-precision.md`. The code kept its name) |
-| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports **made public** today (UTC) - by an "Add" or by the pairing of an unlisted puzzle (`data_import_row.result_made_at`, written with the link); the rest is ready tomorrow. Owned and wish-list rows and rows kept as unlisted are not counted |
+| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports **made public** today (UTC) - by an "Add" or by the pairing of an unlisted puzzle (`data_import_daily_count`, raised with every result made and **never lowered by an Undo** - [people.md](people.md) "Limits"); the rest is ready tomorrow. Owned and wish-list rows and rows kept as unlisted are not counted |
 
 A row that was **refused** before (below) is left alone by "add everything that is ready" and taken again only when
 it is asked for by its id or its puzzle's - the player fixed or answered something.

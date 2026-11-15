@@ -12873,6 +12873,8 @@ data_import:
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% added a result with you from a spreadsheet.|[0,Inf[%player% added %count% results with you from a spreadsheet."
         with_you_open: "Pairs & teams"
+        leave: "These are not mine - take me off them"
+        left: "{0}You were on none of those results any more. This player's imports will no longer add you.|{1}You were taken off 1 result. This player's imports will no longer add you.|[0,Inf[You were taken off %count% results. This player's imports will no longer add you."
     people:
         title: "People in your file"
         intro: "These are the people your file names in pair and team results. A player code (#abc123) in the file becomes that player. A name stays a guest unless you say who it is."
@@ -12909,6 +12911,16 @@ data_import:
             guests: "{0}no guests|{1}1 guest|]1,Inf[%count% guests"
             hint: "Player codes became the player. Names stay guests unless you say who they are."
             open: "See who is who"
+        remembered:
+            player: "Last time “%name%” was %player% - still right?"
+            me: "Last time you said “%name%” is you - still right?"
+            yes: "Yes, still right"
+            all_title: "You answered some of these names in an earlier import"
+            all_hint: "They stay guests until you confirm them here - nothing is taken over by itself."
+            all: "Yes, all as last time"
+        own_name:
+            question: "“%name%” is your own name. Is this you?"
+            yes: "Yes, that is me"
 unlisted_puzzles:
     title: "Unlisted puzzles"
     link: "Your unlisted puzzles"

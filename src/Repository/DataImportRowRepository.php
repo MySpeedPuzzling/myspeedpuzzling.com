@@ -645,34 +645,50 @@ SQL, $parameters, $types)->fetchAssociative();
     }
 
     /**
-     * How many results of the player's imports **became results of the profile** since $since - by an "Add" or by
-     * the pairing of an unlisted puzzle, whenever their row was added (`result_made_at`, written with the link) - or
-     * are queued for one right now: what the daily guard counts (README Q4). A result that was undone since is not
-     * counted, and neither is a row kept with the player's unlisted puzzles - it is private until it is paired
-     * (docs/features/data-import/unlisted-puzzles.md "The daily guard").
+     * What the daily guard counts (README Q4): the results the player's imports **made** on the day of $since -
+     * by an "Add" or by the pairing of an unlisted puzzle (`data_import_daily_count`, raised with every result and
+     * **never lowered by an Undo**: add 2,000, undo, add again is still 2,000 for the day) - plus the rows queued
+     * for the profile right now. A row kept with the player's unlisted puzzles is not counted - it is private until
+     * it is paired (docs/features/data-import/unlisted-puzzles.md "The daily guard").
      */
     public function countResultsAddedOrQueuedSince(string $playerId, DateTimeImmutable $since): int
     {
-        return (int) $this->entityManager->createQueryBuilder()
+        $queued = (int) $this->entityManager->createQueryBuilder()
             ->select('COUNT(r.id)')
             ->from(DataImportRow::class, 'r')
             ->join('r.import', 'i')
             ->where('i.player = :player')
             ->andWhere('r.kind IN (:kinds)')
-            ->andWhere(
-                // Queued for the profile - or a result made since $since (one made before the stamp existed: by its
-                // row's own moment)
-                '(r.state = :queued AND NOT EXISTS (SELECT 1 FROM ' . DataImportPuzzle::class . ' kept WHERE kept.id = r.importPuzzleId AND kept.choice = :unlisted))'
-                . ' OR (r.solvingTimeId IS NOT NULL AND (r.resultMadeAt >= :since OR (r.resultMadeAt IS NULL AND r.state = :added AND r.addedAt >= :since)))',
-            )
+            ->andWhere('r.state = :queued AND NOT EXISTS (SELECT 1 FROM ' . DataImportPuzzle::class . ' kept WHERE kept.id = r.importPuzzleId AND kept.choice = :unlisted)')
             ->setParameter('player', $playerId)
             ->setParameter('kinds', [DataImportRowKind::Result->value, DataImportRowKind::Both->value])
             ->setParameter('queued', DataImportRowState::Queued->value)
-            ->setParameter('added', DataImportRowState::Added->value)
             ->setParameter('unlisted', ImportPuzzleChoice::Unlisted->value)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $madeToday = $this->entityManager->getConnection()->fetchOne(
+            'SELECT COALESCE(SUM(results), 0) FROM data_import_daily_count WHERE importer_id = :id AND partner_id = :id AND day = :day',
+            ['id' => $playerId, 'day' => $since->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d')],
+        );
+        $made = is_numeric($madeToday) ? (int) $madeToday : 0;
+
+        // Results made before the count existed (the day it went live) are known only by their rows: whichever is more
+        $stillThere = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(r.id)')
+            ->from(DataImportRow::class, 'r')
+            ->join('r.import', 'i')
+            ->where('i.player = :player')
+            ->andWhere('r.kind IN (:kinds)')
+            ->andWhere('r.solvingTimeId IS NOT NULL AND (r.resultMadeAt >= :since OR (r.resultMadeAt IS NULL AND r.state = :added AND r.addedAt >= :since))')
+            ->setParameter('player', $playerId)
+            ->setParameter('kinds', [DataImportRowKind::Result->value, DataImportRowKind::Both->value])
+            ->setParameter('added', DataImportRowState::Added->value)
             ->setParameter('since', $since)
             ->getQuery()
             ->getSingleScalarResult();
+
+        return $queued + max($made, $stillThere);
     }
 
 

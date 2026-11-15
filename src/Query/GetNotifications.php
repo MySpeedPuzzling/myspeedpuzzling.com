@@ -1787,7 +1787,8 @@ SELECT * FROM (
         CASE WHEN notification.type = 'ImportResultsAddedWithYou' THEN NULL ELSE data_import.file_name END AS import_file_name,
         CASE
             WHEN notification.type = 'ImportResultsAddedWithYou'
-                THEN COALESCE((import_batch.partner_results ->> notification.player_id::text)::int, 0)
+                -- The day's count: one notification per importing player, partner and day
+                THEN COALESCE((SELECT daily.results FROM data_import_daily_count daily WHERE daily.notification_id = notification.id), 0)
             ELSE import_batch.rows_added
         END AS import_rows_added,
         import_batch.rows_already_yours AS import_rows_already_yours,

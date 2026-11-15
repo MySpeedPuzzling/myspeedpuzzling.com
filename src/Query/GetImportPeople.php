@@ -45,19 +45,24 @@ readonly final class GetImportPeople
             throw new DataImportNotFound();
         }
 
-        $owned = $this->database->fetchOne(
-            'SELECT 1 FROM data_import WHERE id = :importId AND player_id = :playerId AND status <> :discarded',
+        // The import is the player's - and their own name, by which "is this you?" is asked
+        $owner = $this->database->fetchAssociative(
+            'SELECT player.name FROM data_import INNER JOIN player ON player.id = data_import.player_id WHERE data_import.id = :importId AND data_import.player_id = :playerId AND data_import.status <> :discarded',
             ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImportStatus::Discarded->value],
         );
 
-        if ($owned === false) {
+        if ($owner === false) {
             throw new DataImportNotFound();
         }
+
+        $ownNameKey = is_string($owner['name']) && trim($owner['name']) !== '' ? ImportPersonText::nameKey($owner['name']) : null;
+        $wasAllowed = self::sqlNoBlockBetween('was.id');
+        $wasNameHidden = self::sqlNameHidden('was');
 
         $noBlock = self::sqlNoBlockBetween('linked.id');
         $nameHidden = self::sqlNameHidden('linked');
 
-        /** @var list<array{id: string, person_key: string, name: string, rows_count: int, written_as_player: bool, choice: string, decided_how: string, example_row_ids: string, player_id: null|string, player_name: null|string, player_code: null|string, is_guest_of_theirs: bool}> $rows */
+        /** @var list<array{id: string, person_key: string, name: string, rows_count: int, written_as_player: bool, choice: string, decided_how: string, example_row_ids: string, player_id: null|string, player_name: null|string, player_code: null|string, is_guest_of_theirs: bool, remembered_choice: null|string, was_id: null|string, was_name: null|string, was_code: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 SELECT
     person.id,
@@ -76,10 +81,22 @@ SELECT
         FROM puzzling_team_member guest
         INNER JOIN puzzling_team_member me ON me.team_id = guest.team_id AND me.player_id = :playerId
         WHERE guest.member_key = person.person_key AND guest.player_id IS NULL
-    ) AS is_guest_of_theirs
+    ) AS is_guest_of_theirs,
+    remembered.choice AS remembered_choice,
+    was.id AS was_id,
+    CASE WHEN {$wasNameHidden} THEN NULL ELSE was.name END AS was_name,
+    was.code AS was_code
 FROM data_import_person person
--- A player who may not be added any more (a block since) is a guest for the page as for the engine
+-- A player who may not be added any more (a block since, or they took themself off) is a guest for the page as for
+-- the engine
 LEFT JOIN player linked ON linked.id = person.player_id AND person.choice = 'player' AND {$noBlock}
+-- What the importing player answered for the same name in an earlier file: offered, never applied by itself
+LEFT JOIN import_person_decision remembered ON remembered.player_id = :playerId
+    AND remembered.person_key = person.person_key
+    AND remembered.choice IN ('player', 'me')
+    AND person.decided_how = 'default'
+    AND person.written_as_player = FALSE
+LEFT JOIN player was ON was.id = remembered.linked_player_id AND remembered.choice = 'player' AND {$wasAllowed}
 WHERE person.import_id = :importId
 ORDER BY person.rows_count DESC, person.person_key
 SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAllAssociative();
@@ -110,6 +127,16 @@ SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAllAssociative();
                 exampleRowIds: is_array($exampleRowIds) ? array_values(array_filter($exampleRowIds, is_string(...))) : [],
                 suggestions: $row['written_as_player'] ? [] : self::suggestionsFor($row['person_key'], $suggestable),
                 isGuestOfTheirs: $row['is_guest_of_theirs'],
+                // A remembered player who may not be added any more is not offered: the name is a plain guest
+                rememberedChoice: match (true) {
+                    $row['remembered_choice'] === 'me' => ImportPersonChoice::Me,
+                    $row['remembered_choice'] === 'player' && $row['was_id'] !== null => ImportPersonChoice::Player,
+                    default => null,
+                },
+                rememberedPlayerId: $row['was_id'],
+                rememberedPlayerName: $row['was_name'],
+                rememberedPlayerCode: $row['was_code'],
+                isOwnName: $ownNameKey !== null && $row['person_key'] === $ownNameKey && $row['decided_how'] === ImportPersonDecidedHow::ByDefault->value,
             );
         }
 
@@ -128,14 +155,18 @@ SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAllAssociative();
             return ['people' => 0, 'players' => 0, 'unanswered' => 0];
         }
 
+        $noBlock = self::sqlNoBlockBetween('linked.id');
+
         /** @var false|array{people: int, players: int, unanswered: int} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     COUNT(*) AS people,
-    COUNT(*) FILTER (WHERE person.choice = 'player' AND person.player_id IS NOT NULL) AS players,
+    -- As the page shows them: a player who may not be added any more is a guest
+    COUNT(*) FILTER (WHERE linked.id IS NOT NULL) AS players,
     COUNT(*) FILTER (WHERE person.decided_how = 'default') AS unanswered
 FROM data_import_person person
 INNER JOIN data_import ON data_import.id = person.import_id
+LEFT JOIN player linked ON linked.id = person.player_id AND person.choice = 'player' AND {$noBlock}
 WHERE person.import_id = :importId
     AND data_import.player_id = :playerId
 SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAssociative();
@@ -243,7 +274,9 @@ SQL, ['playerId' => $playerId])->fetchAllAssociative();
     }
 
     /**
-     * No block between the importing player (`:playerId`) and the player in `$column`, in either direction.
+     * The player in `$column` may be put on a result of the importing player (`:playerId`) - what
+     * ImportPartnerEligibility checks: no block between the two in either direction, and the player did not take
+     * themself off this importing player's imports.
      */
     private static function sqlNoBlockBetween(string $column): string
     {
@@ -252,6 +285,10 @@ NOT EXISTS (
         SELECT 1 FROM user_block
         WHERE (user_block.blocker_id = {$column} AND user_block.blocked_id = :playerId)
             OR (user_block.blocker_id = :playerId AND user_block.blocked_id = {$column})
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM import_partner_opt_out
+        WHERE import_partner_opt_out.player_id = {$column} AND import_partner_opt_out.importer_id = :playerId
     )
 SQL;
     }

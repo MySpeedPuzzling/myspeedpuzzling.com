@@ -571,15 +571,17 @@ SQL,
 
         // Tomorrow (nothing was made public "today" any more) the sweeper's turn goes on and finishes it
         $this->pairingDatabase()->executeStatement("UPDATE data_import_row SET result_made_at = '2020-01-01 00:00:00', added_at = '2020-01-01 00:00:00' WHERE import_id = :id", ['id' => $import->id->toString()]);
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_daily_count SET day = '2020-01-01' WHERE importer_id = :id", ['id' => $playerId]);
         $this->workPairing((string) $outcome->pairingId);
         $done = $this->pairingNow($outcome->pairingId);
         self::assertSame(['finished', 3, 0, null], [$done['state'], $done['results_added'], $done['results_kept'], $done['daily_limit_reached_at']]);
         self::assertCount(3, $this->resultsOf($player, $catalogue));
 
-        // An Undo gives the day back: a result that is gone is not counted
+        // An Undo gives nothing of the day back: what was made today is counted, gone or not - making public and
+        // taking back again can not churn (docs/features/data-import/people.md "Limits")
         self::assertSame(1, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
         $this->undoPairing($player, (string) $outcome->pairingId);
-        self::assertSame(0, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+        self::assertSame(1, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
     }
 
     public function testAPuzzleMergedBetweenTheTapAndTheStepTakesTheResultsOnTheSurvivor(): void

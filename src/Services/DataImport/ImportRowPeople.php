@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Repository\DataImportPersonRepository;
 use SpeedPuzzling\Web\Value\DataImport\ImportPersonChoice;
+use SpeedPuzzling\Web\Value\DataImport\ImportPersonDecidedHow;
 use SpeedPuzzling\Web\Value\DataImport\ImportPersonText;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 
@@ -32,9 +33,10 @@ readonly final class ImportRowPeople
     }
 
     /**
-     * @return array{people: list<string>, registeredPlayerIds: list<string>, named: int}
+     * @return array{people: list<string>, registeredPlayerIds: list<string>, named: int, meByWord: bool}
      *         people: one entry per other person, for ImportedResult::$groupPlayers; registeredPlayerIds: the players
-     *         among them; named: how many people the row names (with "me", before anybody was left out)
+     *         among them; named: how many people the row names (with "me", before anybody was left out); meByWord:
+     *         everybody left out as "me" was the importing player's own answer (never only their code in the file)
      */
     public function of(DataImportRow $row): array
     {
@@ -49,7 +51,7 @@ readonly final class ImportRowPeople
         }
 
         if ($texts === []) {
-            return ['people' => [], 'registeredPlayerIds' => [], 'named' => 0];
+            return ['people' => [], 'registeredPlayerIds' => [], 'named' => 0, 'meByWord' => true];
         }
 
         $importer = $row->import->player;
@@ -70,6 +72,7 @@ readonly final class ImportRowPeople
 
         $people = [];
         $registered = [];
+        $meByWord = true;
 
         foreach ($texts as $key => $text) {
             $person = $decided[$key] ?? null;
@@ -84,10 +87,14 @@ readonly final class ImportRowPeople
             }
 
             if ($person !== null && $person->choice === ImportPersonChoice::Me) {
+                $meByWord = $meByWord && $person->decidedHow === ImportPersonDecidedHow::Player;
+
                 continue;
             }
 
             if ($player !== null && $player->id->equals($importer->id)) {
+                $meByWord = false;
+
                 continue;
             }
 
@@ -105,6 +112,7 @@ readonly final class ImportRowPeople
             'people' => array_values(array_unique($people)),
             'registeredPlayerIds' => array_values(array_unique($registered)),
             'named' => count($texts),
+            'meByWord' => $meByWord,
         ];
     }
 
@@ -112,10 +120,18 @@ readonly final class ImportRowPeople
      * Solo, pair or team once "me" is left out of the people: a file that writes "Jan & Ana" for a pair of the
      * importing Jan names two people, and its kind was counted from them (ImportRowParser) - it is a pair, not a
      * team. Only a kind that was the count of the named people moves with them; a kind a column said stays.
+     *
+     * **A pair row never becomes a solo result on an assumption**: with nobody left, the kind moves to solo only
+     * when "that is me" was the importing player's own answer ($meByWord). Their own code as the only partner
+     * leaves the row a pair that names nobody - refused and asked, like the add form refuses a group of oneself.
      */
-    public static function typeWithout(PuzzlingType $said, int $named, int $others): PuzzlingType
+    public static function typeWithout(PuzzlingType $said, int $named, int $others, bool $meByWord = true): PuzzlingType
     {
         if ($named === $others || PuzzlingType::fromPuzzlersCount($named + 1) !== $said) {
+            return $said;
+        }
+
+        if ($others === 0 && $meByWord === false) {
             return $said;
         }
 

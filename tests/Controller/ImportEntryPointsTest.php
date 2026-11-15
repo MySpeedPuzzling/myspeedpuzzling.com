@@ -127,6 +127,8 @@ final class ImportEntryPointsTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame('/en/unlisted-puzzles', $crawler->filter('[data-testid="my-data-unlisted"]')->attr('href'));
         self::assertSame(self::IMPORT, $crawler->filter('[data-testid="my-data-import"]')->attr('href'));
+        // "Unlisted" is explained where it is met, with the screens' own text
+        self::assertStringContainsString('A puzzle we do not have in our database yet.', $crawler->filter('[data-testid="my-data-explain-unlisted"]')->text());
     }
 
     public function testOwnProfileMenuAndLibraryLeadToMyDataAndTheImport(): void
@@ -274,10 +276,13 @@ final class ImportEntryPointsTest extends WebTestCase
         self::assertCount(1, $first);
         self::assertCount(3, $first->filter('li'), 'A file, a Google Sheets link, Puzzle Tracker');
         self::assertStringContainsString('Puzzle Tracker', $first->text());
-        self::assertStringNotContainsString('No imports yet', $crawler->filter('main')->text());
+        self::assertStringContainsString('No imports yet. Have your results or your collection in a spreadsheet? Bring the file - we read it, you check it, and it is on your profile.', $first->text());
+        // One primary on the page: the card has no button of its own
+        self::assertCount(1, $crawler->filter('[data-testid="data-imports-page"] .btn-primary'));
+        self::assertCount(0, $first->filter('.btn'));
 
         $privacy = $first->filter('[data-testid="import-privacy"]')->text();
-        self::assertStringContainsString('Only you see your file', $privacy);
+        self::assertStringContainsString('Only you see the file', $privacy);
         self::assertStringContainsString('30 days', $privacy);
         self::assertStringContainsString('Nothing is added to your profile until', $privacy);
 

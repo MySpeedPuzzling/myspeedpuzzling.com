@@ -157,6 +157,29 @@ final class ImportFlowScreensTest extends WebTestCase
         self::assertCount(0, $puzzles->filter('[data-testid="import-flow-menu-discard"]'));
     }
 
+    /**
+     * "How this step works" (guided-flow.md §13 "Links from the flow"): every screen's footer leads to the guide's
+     * section of its step, with the way back to the screen.
+     */
+    public function testEveryScreensFooterLeadsToTheGuidesSectionOfItsStep(): void
+    {
+        [$player, $importId] = $this->importInTheMiddleOfItsFlow('guide');
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $base = '/en/import/' . $importId;
+
+        foreach (['/columns' => 'step-check', '/to-fix' => 'step-check', '/people' => 'step-people', '/puzzles' => 'step-puzzles', '/puzzles/found' => 'step-puzzles', '/add' => 'step-add'] as $screen => $anchor) {
+            $link = $this->browser->request('GET', $base . $screen)->filter('[data-testid="import-flow-guide"]');
+            self::assertCount(1, $link, $screen);
+            self::assertSame('/en/import-your-spreadsheet?return=' . $base . $screen . '#' . $anchor, $link->attr('href'), $screen);
+            self::assertSame('How this step works', trim($link->text()), $screen);
+            self::assertStringNotContainsString('btn', (string) $link->attr('class'), $screen . ': a link, never a second button');
+        }
+
+        // ... and the guide then offers the way back to that very screen
+        $guide = $this->browser->request('GET', '/en/import-your-spreadsheet?return=' . $base . '/people');
+        self::assertSame($base . '/people', $guide->filter('[data-testid="import-guide-back"]')->attr('href'));
+    }
+
     public function testContinueLeadsToTheNextScreenThatHasSomethingWaiting(): void
     {
         [$player, $importId] = $this->importInTheMiddleOfItsFlow('continue');

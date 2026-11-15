@@ -21,27 +21,8 @@
     </a>
 
     {% if imports is empty %}
-        {# The first visit (docs/features/data-import/entry-points.md): the ways to start instead of a bare "No imports yet" #}
-        <div class="card card-body shadow-sm p-3 mb-4" data-testid="no-imports">
-            <h2 class="h5 mb-3">{{ 'import_guide.first.title'|trans }}</h2>
-            <ul class="list-unstyled mb-3">
-                {% for way in [
-                    {key: 'file', icon: 'bi-file-earmark-arrow-up'},
-                    {key: 'google', icon: 'bi-link-45deg'},
-                    {key: 'tracker', icon: 'bi-box-arrow-in-right'},
-                ] %}
-                    <li class="d-flex gap-2 mb-2">
-                        <i class="bi {{ way.icon }} text-primary flex-shrink-0" aria-hidden="true"></i>
-                        <span><strong>{{ ('import_guide.first.' ~ way.key ~ '.title')|trans }}</strong> - {{ ('import_guide.first.' ~ way.key ~ '.text')|trans }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
-            <p class="fs-sm text-muted mb-0" data-testid="import-privacy">
-                <i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'import_guide.file.only_you'|trans }}
-                {{ 'data_import.nothing_until_add'|trans }}
-                {{ 'data_import.new.kept_note'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\DataImportLimits::KEEP_FILE_DAYS')}) }}
-            </p>
-        </div>
+        {# The first visit: what the import is and the ways to start (docs/features/data-import/entry-points.md) #}
+        {{ include('data_import/_first_visit.html.twig', with_context = false) }}
     {% else %}
         {# Finished imports hold none of the player's places: folded below the ones in progress (upload.md "Finished") #}
         {% set in_progress = imports|filter(import => import.status.value != 'done') %}

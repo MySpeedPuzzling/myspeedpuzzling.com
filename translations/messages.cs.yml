@@ -11789,6 +11789,7 @@ data_import:
         continue_later: "Pokračovat - odpovím později"
         looks_right: "Vypadá to správně - pokračovat"
         saved: "Vše se průběžně ukládá. Můžete kdykoli odejít a vrátit se."
+        how_step_works: "Jak tento krok funguje"
         add_ready_now: "Nebo přidejte to, co je připravené už teď (%number%) - ke zbytku se můžete kdykoli vrátit."
         add_ready: "Nebo přidejte to, co je připravené už teď - ke zbytku se můžete kdykoli vrátit."
         state:
@@ -12770,107 +12771,6 @@ data_import:
         taken_back: "{0}Vzali jsme zpět, co přidal váš import souboru %file%.|{1}Vzali jsme zpět 1 výsledek, který přidal váš import souboru %file%.|[2,4]Vzali jsme zpět %count% výsledky, které přidal váš import souboru %file%.|[5,Inf[Vzali jsme zpět %count% výsledků, které přidal váš import souboru %file%."
         taken_back_reason: "Důvod: %reason%"
 
-# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
-import_guide:
-    meta:
-        title: "Import tabulky s puzzle - časy, kolekce, seznam přání"
-        description: "Přeneste si na MySpeedPuzzling časy a kolekci puzzle, které si vedete v Excelu, CSV nebo Google Tabulkách. Zdarma: soubor přečteme, vy ho zkontrolujete a nic se nikdy nepřidá dvakrát."
-    title: "Přeneste si svoji tabulku"
-    lead: "Vedete si časy nebo kolekci puzzle v tabulce? Nemusíte nic přepisovat. MySpeedPuzzling soubor přečte, vy zkontrolujete, jak mu porozuměl, a pak vše přidáte na svůj profil."
-    free: "Zdarma pro všechny."
-    start_guest: "Vytvořit účet zdarma a začít"
-    sign_in: "Už mám účet - přihlásit se"
-    to_guide: "Jak import funguje"
-    what:
-        title: "Co si můžete přenést"
-        results: "<strong>Výsledky</strong> - puzzle, která jste složili, s časem i bez něj. Výsledek potřebuje datum - den, nebo jen měsíc či rok; výsledek bez data počká, dokud mu ho nedoplníte."
-        owned: "<strong>Puzzle, která vlastníte</strong> - přidají se do vaší hlavní kolekce."
-        wish_list: "<strong>Seznam přání</strong> - řádky, které máte v souboru označené jako přání."
-        formats: "<strong>Z</strong> excelového souboru (.xlsx), souboru CSV nebo TSV, nebo z odkazu na Google tabulku. Soubor může mít až 25 MB, 50 000 řádků a 100 listů."
-        apps: "<strong>Přecházíte z aplikace Puzzle Tracker?</strong> Její export do CSV poznáme sami, stejně jako vlastní export výsledků z MySpeedPuzzling - žádné sloupce nenastavujete."
-        fields: "<strong>Vaše vlastní poznámky</strong> - hodnocení, cena, kde jste puzzle koupili: takové sloupce můžou jít do připravených soukromých polí, která vidíte jen vy."
-    how:
-        title: "Jak to probíhá v šesti krocích"
-        step1:
-            title: "Přineste soubor"
-            text: "Vyberte soubor z telefonu nebo počítače, nebo vložte odkaz na Google tabulku."
-        step2:
-            title: "Přečteme ho"
-            text: "Většinou pár sekund. Velký soubor může trvat minuty - stránku můžete zavřít a vrátit se později."
-        step3:
-            title: "Zkontrolujte sloupce"
-            text: "Ukážeme, co který sloupec nejspíš je - název puzzle, čas, datum. Co jsme neodhadli, opravíte. Rozložení si zapamatujeme pro váš příští soubor."
-        step4:
-            title: "Najdeme vaše puzzle"
-            text: "Každé puzzle z vašeho souboru hledáme v naší databázi podle názvu, značky, počtu dílků a čárového kódu. Jisté shody uděláme za vás, u ostatních vybíráte podle obrázků."
-        step5:
-            title: "Projděte si to"
-            text: "Uvidíte, co se přidá: kolik výsledků, vlastněných puzzle a přání. Na profilu zatím nic není."
-        step6:
-            title: "Přidejte"
-            text: "Jedním tlačítkem vše přidáte na svůj profil. Nemusíte to dokončit najednou - všechno, co jste rozhodli, je uložené a můžete pokračovat jindy."
-    file:
-        title: "Co se děje s vaším souborem"
-        only_you: "Váš soubor a to, co jsme z něj přečetli, vidíte jen vy."
-        kept: "Samotný soubor uchováme %days% dní a pak ho odstraníme. To, co jsme z něj přečetli, zůstává u vašeho importu, aby se nic nepřidalo dvakrát a dalo se to vzít zpět."
-        google: "Google tabulka musí být po dobu načítání sdílená pro „Všechny, kdo mají odkaz“. Jakmile ji máme, můžete sdílení zase vypnout."
-        discard: "Dokud nestisknete Přidat, můžete import zahodit a hned zmizí; potom už vracíte zpět to, co přidal. Se smazáním účtu zmizí všechno."
-    never_twice:
-        title: "Nic se nikdy nepřidá dvakrát"
-        text: "Když přinesete stejný soubor znovu, nic nového se nepřidá. Když do tabulky připíšete třicet řádků a přinesete ji znovu, přidá se těch třicet. Výsledek, který už na MySpeedPuzzling máte zadaný se stejným dnem a časem, poznáme také a znovu ho nepřidáme."
-    take_back:
-        title: "Dá se to vrátit zpět"
-        text: "Všechno, co import přidal, je vypsané na jeho stránce. Zpět můžete vrátit jeden řádek, jedno „Přidat“ nebo celý import - než se cokoli odstraní, ukážeme vám, co zmizí a co zůstane. Výsledek, který jste potom upravili, zůstane, pokud neřeknete jinak."
-    result:
-        title: "Jak vypadá importovaný výsledek"
-        counts: "Je to výsledek jako každý jiný, který zadáte ručně: počítá se do vašich statistik a s časem je v žebříčku daného puzzle. Výsledek bez času se počítá jen jako složené puzzle."
-        dated: "Nese den, který je v souboru. Když soubor zná jen měsíc nebo rok, ukazujeme právě to - den si nikdy nevymýšlíme."
-        photo: "Nemá fotku - tabulka žádnou nenese. Můžete ji přidat později úpravou výsledku."
-        partners: "Lidé, se kterými jste skládali, se přidají jako hosté pod jménem ze souboru - nikdy jako registrovaní hráči. Hosta lze později propojit s hráčem, s jeho souhlasem."
-        unusual: "Čas o hodně rychlejší nebo pomalejší, než bychom u vás čekali, se nepřidá potichu: zeptáme se, jestli je správně, stejně jako ve formuláři pro přidání času."
-        limit: "Z tabulek se přidá nejvýše 2 000 výsledků za den. Zbytek je připraven další den: stisknete Přidat znovu - nic se neztratí."
-    unlisted:
-        title: "Puzzle, která ještě nemáme"
-        text: "Puzzle z vašeho souboru, které není v naší databázi, se neztratí: ponechte si ho jako puzzle mimo databázi. Jeho výsledky a to, zda ho vlastníte, zůstanou na stránce, kterou vidíte jen vy, a nikde veřejně se nepočítají. Až se puzzle v databázi najde, spárujete ho a výsledky se přesunou na váš profil."
-    not_yet:
-        title: "Co zatím neumí"
-        old_formats: "Staré excelové soubory (.xls) a soubory OpenDocument (.ods) - uložte je nejdřív jako .xlsx nebo CSV."
-        photos: "Fotky a obrázky: žádné ze souboru ani z odkazů v něm nebereme."
-        lists: "Seznamy půjčování a prodeje/výměny - poznámka typu „půjčeno …“ zůstane poznámkou."
-        events: "Akce nebo soutěž u výsledku - dá se nastavit později úpravou výsledku."
-        own_columns: "Sloupec, který neodpovídá žádnému z připravených polí, se zatím vynechá."
-        unlisted: "Puzzle mimo databázi zatím nejde z jeho stránky upravit ani navrhnout do databáze; jeho poznámky a vlastní pole se neuchovávají a výsledek bez data zůstane při spárování mimo databázi."
-        sync: "Google tabulku přečteme jednou, když ji přinesete - změny v ní nesledujeme."
-    start:
-        title: "Jdeme na to?"
-        text: "Na váš profil se nic nepřidá, dokud si to neprohlédnete a nestisknete Přidat."
-    entry:
-        question: "Už si to vedete v tabulce?"
-        bring: "Přeneste si ji sem"
-        many_results: "Máte hodně výsledků v tabulce?"
-        import_them: "Importujte je"
-        puzzles_question: "Vedete si puzzle v tabulce?"
-    newcomer:
-        title: "Importujte svá data odjinud"
-        hint: "Tabulka nebo export z jiné aplikace - výsledky, kolekce, seznam přání"
-        text: "Vedete si časy nebo kolekci v tabulce či jiné aplikaci? Nemusíte nic přepisovat. Přineste soubor Excel nebo CSV nebo Google tabulku, zkontrolujte, jak jsme jí porozuměli, a přidejte vše na svůj profil - nic se nepřidá dvakrát a dá se to vrátit zpět."
-        where: "Vaše nabídka nahoře na každé stránce: <strong>Importovat tabulku</strong>."
-    export_card:
-        title: "Přenést data sem"
-        text: "Vedete si výsledky nebo kolekci v tabulce? Importujte soubor Excel nebo CSV nebo Google tabulku - než se cokoli přidá, všechno si zkontrolujete."
-    first:
-        title: "Tři způsoby, jak začít"
-        file:
-            title: "Soubor"
-            text: "Excelový soubor (.xlsx) nebo CSV z telefonu či počítače."
-        google:
-            title: "Odkaz na Google Tabulky"
-            text: "Nasdílejte tabulku všem, kdo mají odkaz, a odkaz vložte - šikovné na telefonu."
-        tracker:
-            title: "Přecházíte z Puzzle Trackeru?"
-            text: "V aplikaci si vyexportujte puzzle do souboru CSV a ten sem přineste. Jeho sloupce známe - nic nenastavujete."
-
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% přidal(a) z tabulky výsledek s vámi.|[2,4]%player% přidal(a) z tabulky %count% výsledky s vámi.|[0,Inf[%player% přidal(a) z tabulky %count% výsledků s vámi."
         with_you_open: "Dvojice a týmy"
         leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
@@ -13008,6 +12908,148 @@ import_guide:
             left_out_puzzle: "{1}1 řádek se neimportuje. Můžete ho vrátit.|[2,4]%number% řádky se neimportují. Každý můžete vrátit.|[0,Inf[%number% řádků se neimportuje. Každý můžete vrátit."
             left_out_sheet: "Řádky listu „%title%“ se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
             changed_meanwhile: "Mezitím se to změnilo - takto to vypadá teď. Nic se neuložilo."
+
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
+import_guide:
+    meta:
+        title: "Import tabulky s puzzle - časy, kolekce, seznam přání"
+        description: "Přeneste si na MySpeedPuzzling časy a kolekci puzzle, které si vedete v Excelu, CSV nebo Google Tabulkách. Zdarma: soubor přečteme, vy ho zkontrolujete a nic se nikdy nepřidá dvakrát."
+    lead: "Máte výsledky nebo kolekci v tabulce? Přineste soubor - my ho přečteme, vy ho zkontrolujete a je na vašem profilu. Tady je jedna malá tabulka, kterou projdeme od začátku do konce."
+    free: "Zdarma pro všechny."
+    back: "Zpět k vašemu importu"
+    example: "Příklad"
+    start_guest: "Vytvořit účet zdarma a začít"
+    sign_in: "Už mám účet - přihlásit se"
+    to_guide: "Jak import funguje"
+    what:
+        title: "Co si můžete přenést"
+        results: "Výsledky - puzzle, která jste složili, s časem i bez něj. Výsledek potřebuje datum - den, nebo jen měsíc či rok; výsledek bez data počká, dokud mu ho nedoplníte."
+        owned: "Puzzle, která vlastníte - přidají se do vaší hlavní kolekce."
+        wish_list: "Seznam přání - řádky, které máte v souboru označené jako přání."
+        formats: "Z excelového souboru (.xlsx), souboru CSV nebo TSV, nebo z odkazu na Google tabulku. Soubor může mít až 25 MB, 50 000 řádků a 100 listů."
+        apps: "Přecházíte z aplikace Puzzle Tracker? Její export do CSV poznáme sami, stejně jako vlastní export výsledků z MySpeedPuzzling - žádné sloupce nenastavujete."
+        fields: "Vaše vlastní poznámky - hodnocení, cena, kde jste puzzle koupili: takové sloupce můžou jít do připravených soukromých polí, která vidíte jen vy."
+    file:
+        title: "Co se děje s vaším souborem"
+        google: "Google tabulka musí být po dobu načítání sdílená pro „Všechny, kdo mají odkaz“. Jakmile ji máme, můžete sdílení zase vypnout."
+        discard: "Dokud nestisknete Přidat, můžete import zahodit a hned zmizí; potom vracíte zpět to, co přidal, nebo ho označíte jako dokončený. Se smazáním účtu zmizí všechno."
+    never_twice:
+        title: "Nic se nikdy nepřidá dvakrát"
+        text: "Když přinesete stejný soubor znovu, nic nového se nepřidá. Když do tabulky připíšete třicet řádků a přinesete ji znovu, přidá se těch třicet. Výsledek, který už na MySpeedPuzzling máte zadaný se stejným dnem a časem, poznáme také a znovu ho nepřidáme."
+    result:
+        title: "Jak vypadá importovaný výsledek"
+        dated: "Nese den, který je v souboru. Když soubor zná jen měsíc nebo rok, ukazujeme právě to - den si nikdy nevymýšlíme."
+        partners: "Kód hráče ve vašem souboru se stane tímto hráčem; jména zůstávají hosty, dokud neřeknete, kdo to je."
+    not_yet:
+        title: "Zatím ne"
+        old_formats: "Staré excelové soubory (.xls) a soubory OpenDocument (.ods) - uložte je nejdřív jako .xlsx nebo CSV."
+        photos: "Fotky a obrázky: žádné ze souboru ani z odkazů v něm nebereme."
+        lists: "Seznamy půjčování a prodeje/výměny - poznámka typu „půjčeno …“ zůstane poznámkou."
+        events: "Akce nebo soutěž u výsledku - dá se nastavit později úpravou výsledku."
+        own_columns: "Sloupec, který neodpovídá žádnému z připravených polí, se zatím neimportuje."
+        unlisted: "Puzzle ponechané jen pro vás zatím nejde z jeho stránky upravit ani navrhnout do naší databáze; jeho poznámky a vlastní pole se neuchovávají a výsledek bez data tam zůstane, i když se puzzle přiřadí."
+        sync: "Google tabulku přečteme jednou, když ji přinesete - změny v ní nesledujeme."
+    start:
+        title: "Jdeme na to?"
+    entry:
+        question: "Už si to vedete v tabulce?"
+        bring: "Přeneste si ji sem"
+        many_results: "Máte hodně výsledků v tabulce?"
+        import_them: "Importujte je"
+        puzzles_question: "Vedete si puzzle v tabulce?"
+    newcomer:
+        title: "Importujte svá data odjinud"
+        hint: "Tabulka nebo export z jiné aplikace - výsledky, kolekce, seznam přání"
+        text: "Vedete si časy nebo kolekci v tabulce či jiné aplikaci? Nemusíte nic přepisovat. Přineste soubor Excel nebo CSV nebo Google tabulku, zkontrolujte, jak jsme jí porozuměli, a přidejte vše na svůj profil - nic se nepřidá dvakrát a dá se to vrátit zpět."
+        where: "Vaše nabídka nahoře na každé stránce: <strong>Importovat tabulku</strong>."
+    export_card:
+        title: "Přenést data sem"
+        text: "Vedete si výsledky nebo kolekci v tabulce? Importujte soubor Excel nebo CSV nebo Google tabulku - než se cokoli přidá, všechno si zkontrolujete."
+    first:
+        lead: "Máte výsledky nebo kolekci v tabulce? Přineste soubor - my ho přečteme, vy ho zkontrolujete a je na vašem profilu."
+        file:
+            title: "Soubor"
+            text: "Excelový soubor (.xlsx) nebo CSV z telefonu či počítače."
+        google:
+            title: "Odkaz na Google Tabulky"
+            text: "Nasdílejte tabulku všem, kdo mají odkaz, a odkaz vložte - šikovné na telefonu."
+        tracker:
+            title: "Přecházíte z Puzzle Trackeru?"
+            text: "V aplikaci si vyexportujte puzzle do souboru CSV a ten sem přineste. Jeho sloupce známe - nic nenastavujete."
+    sample:
+        caption: "Ukázková tabulka: šest řádků, každý z nich má svůj důvod."
+        col:
+            puzzle: "Puzzle"
+            brand: "Značka"
+            pieces: "Dílky"
+            time: "Čas"
+            date: "Datum"
+            with: "S kým"
+        puzzle1: "Přístav za úsvitu"
+        puzzle2: "Podzimní trh"
+        puzzle3: "Horské jezero"
+        puzzle4: "Noční vlak"
+        puzzle5: "Babiččina kuchyně"
+        puzzle6: "Maják č. 7"
+        own_brand: "Ručně řezané, vlastní"
+        month: "březen 2021"
+        row: "Řádek %number%"
+    steps:
+        file: "Vyberte soubor nebo vložte odkaz na Google Tabulky. Excel, CSV, TSV - jakékoli uspořádání a názvy sloupců, až 25 MB."
+        check:
+            text: "Zjistíme, co který sloupec je. Ptáme se jen na to, co vědět nemůžeme."
+            detail: "Řádek 2 říká „1h 05“ - to se dá přečíst jen jedním způsobem, takže se neptáme. Sloupec jako „3:26“ můžou být hodiny a minuty, nebo minuty a sekundy: pak ukážeme vaše vlastní hodnoty přečtené oběma způsoby a vy vyberete."
+            question: "Jak máme číst „3:26“?"
+            hours: "3 hodiny 26 minut"
+            minutes: "3 minuty 26 sekund"
+            summary: "6 výsledků - sólo, nebo s uvedenou osobou"
+            month: "„%cell%“ nemá den: přidá se jako %cell%."
+        people: "Řádek 4 uvádí Annu. Přidá se jako host - jen jméno u vašeho výsledku - pokud neřeknete, že je to hráčka, kterou znáte. Kód hráče ve vašem souboru se stane tímto hráčem; jména zůstávají hosty, dokud neřeknete, kdo to je."
+        puzzles:
+            text: "Každé puzzle z vašeho souboru vyhledáme v naší databázi. Výsledek se dostane do veřejného žebříčku, proto mezi dvěma puzzle nikdy nevybíráme za vás."
+            matched: "Řádky 1-4: nalezeno podle názvu, počtu dílků a značky."
+            looks: "Řádek 5 nemá v souboru značku: jedno puzzle odpovídá, ale nic se nepřiřadí, dokud to nepotvrdíte."
+            not_in_db: "Řádek 6 je ručně řezané puzzle - to nemáme. Ponecháte si ho jen pro sebe, nebo ho neimportujete."
+        add:
+            text: "Než se cokoli přidá, uvidíte všechno - a kterýkoli řádek můžete vynechat. Na vašem profilu není nic, dokud nestisknete tlačítko."
+            ready: "5 výsledků připraveno k přidání · 1 puzzle ponecháno jen pro vás"
+            finish: "Jste se souborem hotovi? Označte import jako dokončený: uvolní místo dalšímu a to, co přidal, zůstane na vašem profilu."
+    profile:
+        title: "Co nakonec bude na vašem profilu"
+        row1: "Sólo výsledek, 0:47:12 - v žebříčku daného puzzle."
+        row2: "„1h 05“ se stane 1:05:00."
+        row3: "S datem %cell% - počítá se všude kromě míst, kde je potřeba den, jako kalendář a série."
+        row4: "Výsledek dvojice s Annou (host)."
+        row5: "Výsledek u puzzle, které jste potvrdili."
+        row6: "Vidíte ho jen vy, dokud se nepřiřadí k puzzle v naší databázi."
+    questions:
+        title: "Na co se lidé ptají"
+        q1: "Přidá se něco dvakrát?"
+        a1: "Ne. Když přinesete stejný soubor znovu, přidají se jen řádky, které na vašem profilu ještě nejsou. Poznáme i výsledek, který jste sami zadali se stejným dnem a časem."
+        q2: "Dá se to vrátit zpět?"
+        a2: "Ano - jeden řádek, jedno přidání, nebo všechno, co import přidal. Nejdřív uvidíte, co zmizí. Výsledek, který jste potom změnili, zůstane, pokud neřeknete jinak."
+        q3: "Kdo vidí můj soubor?"
+        a3: "Jen vy. Uchováme ho 30 dní, pak ho odstraníme; to, co jste přidali, zůstane na vašem profilu."
+        q4: "Co s puzzle, která nemáte?"
+        a4: "Zůstanou i s výsledky na stránce, kterou vidíte jen vy. Do statistik ani žebříčků se nepočítají, dokud se nepřiřadí k puzzle v naší databázi - dáme vám vědět, až se takové objeví."
+        q5: "Můj parťák je na MySpeedPuzzling - dostane výsledek taky?"
+        a5: "Pokud je ve vašem souboru jeho kód hráče, ano. Samotné jméno je host, dokud neřeknete, kdo to je; pak se to dozví jednou a výsledek je i na jeho profilu."
+        q6: "Mám sloupce ve svém jazyce a pořadí - vadí to?"
+        a6: "Ne. Záhlaví poznáme v šesti jazycích a zeptáme se, když si nejsme jistí. Příště se soubor se stejnými záhlavími přečte stejně sám od sebe."
+        q7: "U některých výsledků znám jen měsíc nebo rok."
+        a7: "Přidají se jen s měsícem nebo rokem. Výsledek úplně bez data počká, dokud mu ho nedoplníte."
+        q8: "Dostanou moji sledující stovky oznámení?"
+        a8: "Ne. Nikdo nedostane oznámení a výsledky si nechávají den, kdy jste puzzle složili - neobjeví se jako nová aktivita."
+        q9: "Mám tisíce výsledků."
+        a9: "Přidá se až 2 000 za den; zbytek je připraven další den - stiskněte Přidat znovu. Můžete také přidávat po částech a kdykoli se vrátit."
+        q10: "Musím to dokončit najednou?"
+        a10: "Ne. Všechno se průběžně ukládá. Odejděte a vraťte se - import na vás počká, dokud soubor uchováváme."
+        q11: "Bude čas, který vypadá příliš rychle, odmítnut?"
+        a11: "Zeptáme se na něj, neodmítneme ho. Řekněte, že je správně, a přidá se; jako každý výsledek se na něj můžou podívat moderátoři."
+    more:
+        title: "Dobré vědět"
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Puzzle mimo databázi"
     link: "Vaše puzzle mimo databázi"

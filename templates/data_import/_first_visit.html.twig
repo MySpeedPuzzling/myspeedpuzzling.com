@@ -1,0 +1,22 @@
+{#
+    Imports home for a player without an import (docs/features/data-import/guided-flow.md §5.1 "Empty state",
+    entry-points.md): what the import does in one sentence, the ways to bring a file and what happens to it. No button of its own - "Import a spreadsheet" above is the page's one. No variables.
+#}
+<div class="card card-body shadow-sm p-3 mb-4" data-testid="no-imports">
+    <p class="mb-3"><span class="fw-medium">{{ 'data_import.home.empty'|trans }}</span> {{ 'import_guide.first.lead'|trans }}</p>
+    <ul class="list-unstyled mb-3">
+        {% for way in [
+            {key: 'file', icon: 'bi-file-earmark-arrow-up'},
+            {key: 'google', icon: 'bi-link-45deg'},
+            {key: 'tracker', icon: 'bi-box-arrow-in-right'},
+        ] %}
+            <li class="d-flex gap-2 mb-2">
+                <i class="bi {{ way.icon }} text-primary flex-shrink-0" aria-hidden="true"></i>
+                <span><span class="fw-medium">{{ ('import_guide.first.' ~ way.key ~ '.title')|trans }}</span> - {{ ('import_guide.first.' ~ way.key ~ '.text')|trans }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    <div data-testid="import-privacy">
+        {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.file'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\DataImportLimits::KEEP_FILE_DAYS')}), more: 'data_import.nothing_until_add'|trans, testid: 'import-explain-file'}, with_context = false) }}
+    </div>
+</div>

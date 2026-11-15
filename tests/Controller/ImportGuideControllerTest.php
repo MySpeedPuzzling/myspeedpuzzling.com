@@ -24,7 +24,15 @@ final class ImportGuideControllerTest extends WebTestCase
     /**
      * Linked from other pages and from outside - renaming one breaks those links
      */
-    private const array ANCHORS = ['what', 'how', 'your-file', 'never-twice', 'take-back', 'imported-result', 'unlisted', 'not-yet', 'start'];
+    private const array ANCHORS = [
+        'step-file', 'step-check', 'step-people', 'step-puzzles', 'step-add', 'on-your-profile', 'take-back', 'questions',
+        'what', 'your-file', 'never-twice', 'imported-result', 'unlisted', 'not-yet', 'start',
+    ];
+
+    /**
+     * Every example is real HTML with the screens' own texts - its root is pinned (guided-flow.md §13)
+     */
+    private const array EXAMPLES = ['sample', 'file', 'check', 'people', 'puzzles', 'add', 'profile', 'undo'];
 
     private const array URLS = [
         'cs' => '/import-tabulky',
@@ -54,7 +62,34 @@ final class ImportGuideControllerTest extends WebTestCase
         self::assertStringNotContainsString('import_guide.', $text);
         self::assertStringNotContainsString('data_import.', $text);
         self::assertStringNotContainsString('%days%', $text);
-        self::assertCount(6, $crawler->filter('#how ol > li'));
+
+        // The sample and the examples: there, labelled, and nothing in them can be used
+        self::assertCount(6, $crawler->filter('[data-testid="guide-sample-row"]'));
+        self::assertCount(6, $crawler->filter('[data-testid="guide-profile-row"]'));
+
+        foreach (self::EXAMPLES as $example) {
+            $figure = $crawler->filter('figure[data-testid="guide-example-' . $example . '"]');
+            self::assertCount(1, $figure, $example);
+            self::assertNotNull($figure->attr('inert'), $example);
+            self::assertCount(1, $figure->filter('figcaption'), $example);
+            self::assertCount(0, $figure->filter('form, input, button, a, [id], turbo-frame'), $example . ' must not be interactive');
+        }
+
+        // The questions: open without a script, and the same ones as structured data
+        self::assertCount(11, $crawler->filter('#questions details[open]'));
+        $faq = null;
+
+        foreach ($crawler->filter('script[type="application/ld+json"]') as $script) {
+            $data = json_decode($script->textContent, true, flags: JSON_THROW_ON_ERROR);
+
+            if (is_array($data) && ($data['@type'] ?? null) === 'FAQPage') {
+                $faq = $data;
+            }
+        }
+
+        self::assertIsArray($faq);
+        self::assertIsArray($faq['mainEntity']);
+        self::assertCount(11, $faq['mainEntity']);
 
         // Indexable, its own canonical, and every language's address
         self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
@@ -81,6 +116,47 @@ final class ImportGuideControllerTest extends WebTestCase
     {
         foreach (array_keys(self::URLS) as $locale) {
             yield $locale => [$locale];
+        }
+    }
+
+    public function testTheGuideSpeaksTheFlowsWords(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/import-your-spreadsheet');
+
+        self::assertSame('How the import works', $crawler->filter('h1')->text());
+        $text = $crawler->filter('main')->text();
+
+        // The screens' own words (guided-flow.md §8) - and none of the engine's or the old ones
+        foreach (['Looks like a match', 'Not in our database', 'Keep it just for me', "Don't import", 'Check and add', 'Undo', 'Add 5 to my profile'] as $word) {
+            self::assertStringContainsString($word, $text, $word);
+        }
+
+        self::assertDoesNotMatchRegularExpression('/\\b(pairing|paired|tiers?|candidates?|mappings?|layouts?|batch(es)?|pars(e|ed|ing)|twins?|errors?|invalid|take back|catalogue)\\b/i', $text);
+        self::assertStringContainsString('A player code in your file becomes that player; names stay guests unless you say who they are.', $text);
+        // "Unlisted" is explained where it is met, with the screens' exact text
+        self::assertStringContainsString('A puzzle we do not have in our database yet. Only you see it, with its results and whether you own it - nothing is lost.', $crawler->filter('#unlisted')->text());
+        self::assertStringContainsString('press Add again', $crawler->filter('#step-add')->text());
+    }
+
+    /**
+     * "How this step works" on a screen of an import: the guide says the way back first - and only to an import.
+     */
+    public function testTheWayBackToTheImportIsOfferedOnlyForAnImportsAddress(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/import-your-spreadsheet?return=/en/import/0198a1b2-0000-7000-8000-000000000001/puzzles');
+        self::assertResponseIsSuccessful();
+        self::assertSame('/en/import/0198a1b2-0000-7000-8000-000000000001/puzzles', $crawler->filter('[data-testid="import-guide-back"]')->attr('href'));
+        // An address with a query is not for the index
+        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+
+        foreach (['//evil.example/en/import', 'https://evil.example/en/import', '/en/hub', '/en/import/../admin'] as $return) {
+            $crawler = $browser->request('GET', '/en/import-your-spreadsheet?return=' . rawurlencode($return));
+            self::assertResponseIsSuccessful();
+            self::assertCount(0, $crawler->filter('[data-testid="import-guide-back"]'), $return);
         }
     }
 
@@ -174,7 +250,7 @@ final class ImportGuideControllerTest extends WebTestCase
     public function testEveryTextExistsInEveryLocale(): void
     {
         $english = $this->texts('en');
-        self::assertGreaterThan(60, count($english));
+        self::assertGreaterThan(100, count($english));
 
         foreach (['cs', 'de', 'es', 'fr', 'ja'] as $locale) {
             $texts = $this->texts($locale);

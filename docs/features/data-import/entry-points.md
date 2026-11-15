@@ -15,10 +15,11 @@ Two rules held everything here:
 
 ## The guide - `import_guide`
 
-Public, indexable, all 6 locales with their own copy and address, canonical + hreflang from the base layout, in
-`sitemap-static.xml`. No screenshots (the platform guide's rule). No JSON-LD of its own - the platform guide has none.
-`ImportGuideController` reads nothing (`keep_days` is `DataImportLimits::KEEP_FILE_DAYS`); the page costs a guest
-exactly what the platform guide costs.
+"How the import works". Public, indexable, all 6 locales with their own copy and address, canonical + hreflang from
+the base layout, in `sitemap-static.xml`; `noindex, follow` with any query string (the way back from the flow).
+Design of record: [guided-flow.md](guided-flow.md) §13. `ImportGuideController` reads nothing: the sample is
+`Value\ImportGuideSample` (fixed data), `keep_days` / `daily_limit` are `DataImportLimits`' constants - the page
+costs a guest exactly what the platform guide costs.
 
 | Locale | Address |
 |---|---|
@@ -29,21 +30,45 @@ exactly what the platform guide costs.
 | fr | `/fr/importer-un-tableur` |
 | ja | `/ja/スプレッドシートをインポート` |
 
-Template `templates/data_import/guide.html.twig`, texts `import_guide.*`. Sections and their anchors (pinned by
-`ImportGuideControllerTest::ANCHORS` - they are linked from elsewhere):
+**One sample spreadsheet, followed through the five steps.** Six rows of invented puzzles and one invented person
+(no catalogue name, no player), the same in every language (puzzle names are texts): a clean row, a time written
+"1h 05", a date that knows only its month, a pair with Anna, a puzzle without a brand, a hand-cut puzzle we do not
+have.
 
-| Anchor | Section | Keys |
-|---|---|---|
-| (top) | title, lead, the start button | `title`, `lead`, `free`, `start_guest`, `sign_in` |
-| `#what` | What you can bring: results (a result needs a date - a day, a month or a year), puzzles you own (the main collection), wish list; Excel / CSV / TSV / Google Sheets, up to 25 MB, 50,000 rows, 100 sheets; Puzzle Tracker's CSV and our own results export; ready-made private fields | `what.*` |
-| `#how` | Six steps: bring the file → we read it → check the columns → we find your puzzles → review → add | `how.step1..6.*` |
-| `#your-file` | Only you see it; the file is kept 30 days, what was read stays with the import; Google sharing can be switched off again; an import can be discarded until it added something (`DiscardImportHandler` refuses afterwards - then it is taken back); account deletion | `file.*` |
-| `#never-twice` | The same file again adds nothing; new rows are added; a typed result with the same day and time is recognised | `never_twice.*` |
-| `#take-back` | One row, one "Add" or the whole import; shown first what goes; an edited result is kept | `take_back.*` |
-| `#imported-result` | Counts like a typed one (the leaderboard only with a time); its day, or only the month / year; no photo; partners are guests; unusual times are asked about; at most 2,000 results a day - the rest is ready the next day and the player presses Add again (an "Add" over the guard skips the rows as `over_daily_limit`; only the pairing of an unlisted puzzle goes on by itself) | `result.*` |
-| `#unlisted` | A puzzle we do not have is kept on a page only the player sees, and paired later | `unlisted.*` |
-| `#not-yet` | `.xls` / `.ods`, photos, lending and sell/swap lists, the event of a result, columns outside the ready-made fields, editing / proposing an unlisted puzzle (its notes and own fields are not kept, an undated result stays unlisted when paired), watching a Google sheet | `not_yet.*` |
-| `#start` | The button again | `start.*` |
+**The examples are real HTML, not pictures** - `templates/data_import/guide/` (`index`, `_figure_open`, `_sample`,
+`_puzzle`). Each is a `<figure class="guide-example" inert>` labelled "Example": no form, no input, no link, no id,
+no Turbo frame. They are dedicated partials in the look of the screens (the flow's own partials take the import's
+result objects and carry forms and ids), but **their words are the screens' own keys** - step names, "Matched",
+"Looks like a match", "Not in our database", "Keep it just for me", "Don't import", "Add N to my profile", "Undo",
+"Who is Anna?" and every explanation (`data_import.explain.*` through `_explain.html.twig`) - so a renamed button
+renames itself in the guide, in six languages. Only the narration and the questions are the guide's own texts
+(`import_guide.*`). No `|raw` anywhere (the flow's guard covers the directory).
+
+| Anchor | Section | The example | Texts |
+|---|---|---|---|
+| (top) | "How the import works", the lead, the start button, "Free for everyone." | the sample as a small spreadsheet (grey header, row numbers, scrolls inside its card) | `to_guide`, `lead`, `sample.*` |
+| `#step-file` | 1 Your file | the step dots, the file's name, "Rows read: 6" + what happens to the file | `steps.file`, `data_import.explain.file` |
+| `#step-check` | 2 Check | the question "How should we read "3:26"?" with both readings, the sheet's one-sentence summary, the month-only line | `steps.check.*` |
+| `#step-people` | 3 People | "Who is Anna?" with the screen's two answers + guest / player explanations | `steps.people`, `data_import.people.*`, `data_import.explain.guest`, `.player_partner` |
+| `#step-puzzles` | 4 Puzzles | Matched (4) with a card, Looks like a match (1) with its tick, Not in our database (1) with "Keep it just for me" / "Don't import it" + the unlisted explanation | `steps.puzzles.*`, `data_import.puzzles.*`, `data_import.explain.unlisted` + `_more` |
+| `#step-add` | 5 Check and add | "5 results ready to add · 1 puzzle kept just for you", three rows (one not imported), the button "Add 5 to my profile" (a `<span>`, `aria-disabled`) + "Don't import" and the daily limit | `steps.add.*`, `data_import.add.button`, `data_import.explain.dont_import`, `.daily_limit` |
+| `#on-your-profile` | What ends up on your profile | the six rows with what each became + what an imported result is | `profile.*`, `data_import.explain.add` |
+| `#take-back` | Undo | an added row with its Undo button | `data_import.undo.*`, `data_import.explain.undo` + `_more` |
+| `#questions` | Questions people ask - eleven, `<details open>` (no script), also `FAQPage` structured data through `json_ld` | - | `questions.q1..11`, `.a1..11` |
+| `#what`, `#your-file`, `#never-twice`, `#imported-result`, `#unlisted`, `#not-yet` | what the steps did not say: formats and limits, known exports, the file (discard / finish), never twice, an imported result, unlisted puzzles (the screens' explanation), "Not yet" | - | `what.*`, `file.*`, `never_twice.*`, `result.*`, `not_yet.*` |
+| `#start` | the button again | - | `start.title` |
+
+All anchors are pinned by `ImportGuideControllerTest::ANCHORS`, every example's root by `::EXAMPLES`.
+
+**From the flow:** `_flow_footer.html.twig` ends every screen of an import with "How this step works" → the guide's
+section of the screen's step (`#step-check`, `#step-people`, `#step-puzzles`, `#step-add`, `#take-back` for the undo
+screens; "Where you are" → the top) with `?return=` = the screen. The step is read from the screen's route (the
+footer is included without the page's context, so no screen had to change). The guide then starts with "Back to
+your import" - only for a return that is an import's address.
+
+**Not built of §13:** the six illustrations of the invented puzzles (a neutral puzzle icon stands in their place),
+the `og:image` screenshot script, the profile's own result partial in `#on-your-profile` (it needs a result object;
+the outcome is a plain list), "over 40,000" in step 4 (no number is claimed).
 
 The start button: a player → `data_imports`; a guest → `register` (and `login`) with `?return=` = the import's own
 path, validated where it is used (`docs/features/return-url.md`). **Sign-in lands on the import. Sign-up lands on
@@ -55,9 +80,10 @@ nothing there. Nothing else of the registration flow changed. **Social sign-up d
 sign-up (`SocialRegisterConfirmController`) holds no return path, so it lands on the plain welcome screen - where
 the import is one of the four choices anyway.
 
-**Wording:** the guide promises only what is built - `#not-yet` is the docs' "left for later" lists; a feature that
-ships moves its line out of there. Czech and French address the reader formally, like the import's screens; the
-catalogue is "databáze" in Czech and an unlisted puzzle is each locale's `unlisted_puzzles.title`.
+**Wording:** the vocabulary of guided-flow.md §8 (matching, "Keep it just for me", "Don't import", "Undo", "Check
+and add" - never pairing, catalogue, take back); the guide promises only what is built - `#not-yet` is the docs'
+"left for later" lists; a feature that ships moves its line out of there. Czech and French address the reader
+formally, like the import's screens.
 
 ## Every place that links
 
@@ -76,8 +102,9 @@ catalogue is "databáze" in Czech and an unlisted puzzle is each locale's `unlis
 | Own empty collection | `templates/collections/_empty_state.html.twig` (only with `own_collection`, passed by `collections/detail.html.twig`; the Turbo streams do not pass it) | "Kept your puzzles in a spreadsheet? Bring it over" | the guide | `import_guide.entry.puzzles_question`, `.bring` |
 | Own empty wish list | `templates/wishlist/_empty_state.html.twig` (the owner's branch) | the same | the guide | the same |
 | Own library overview | `templates/puzzle_library.html.twig` | buttons "My data" (its Puzzles tab) and "Import a spreadsheet" beside "Export"; the line in the "no collections" state | `my_data?tab=puzzles`, `data_imports`, the guide | `my_data.title`, `data_import.home.import_button` |
-| My data | `templates/my_data/index.html.twig` | one line: "Unlisted puzzles" · "Import a spreadsheet" | `unlisted_puzzles`, `data_imports` | `unlisted_puzzles.title`, `data_import.home.import_button` |
+| My data | `templates/my_data/index.html.twig` | one line: "Unlisted puzzles" · "Import a spreadsheet", with the unlisted explanation folded under it | `unlisted_puzzles`, `data_imports` | `unlisted_puzzles.title`, `data_import.home.import_button` |
 | Imports home | `templates/data_import/index.html.twig` | "How the import works" beside the intro; the first visit below | the guide | `import_guide.to_guide` |
+| Every screen of an import | `templates/data_import/_flow_footer.html.twig` | "How this step works" | the guide's section of the step, with the way back | `data_import.flow.how_step_works` |
 
 The checklist's steps are derived exactly as before (`GetGettingStartedProgress` is not touched): a result or a
 collection puzzle added by an import is a result or a collection puzzle, so it ticks "Log your first puzzle" /
@@ -85,11 +112,14 @@ collection puzzle added by an import is a result or a collection puzzle, so it t
 
 ## Imports home, the first visit
 
-A player without an import no longer reads a bare "No imports yet" (`data-testid="no-imports"` stays): a card
-"Three ways to start" - a file, a Google Sheets link, "Coming from Puzzle Tracker?" (export a CSV in the app, its
-columns are known) - and the privacy line: only you see your file, nothing is added until you press Add, the file is
-kept 30 days. Keys `import_guide.first.*`, `import_guide.file.only_you`, and the existing
-`data_import.nothing_until_add` / `data_import.new.kept_note`. The page's two statements are unchanged.
+A player without an import reads guided-flow.md §5.1's empty state (`templates/data_import/_first_visit.html.twig`,
+a small include so the home's own template stays the flow's; `data-testid="no-imports"` stays): "No imports yet.
+Have your results or your collection in a spreadsheet? Bring the file - we read it, you check it, and it is on your
+profile.", the three ways to bring it - a file, a Google Sheets link, "Coming from Puzzle Tracker?" (export a CSV
+in the app, its columns are known) - and the file's explanation with §12's exact text plus "Nothing is added until
+you … pressed Add". No button of its own: "Import a spreadsheet" above is the page's one primary. Keys
+`import_guide.first.*`, `data_import.home.empty`, `data_import.explain.file`, `data_import.nothing_until_add`. The
+page's statements are unchanged.
 
 ## Deliberately not linked, not built
 
@@ -108,10 +138,15 @@ kept 30 days. Keys `import_guide.first.*`, `import_guide.file.only_you`, and the
 
 ## Tests
 
-- `ImportGuideControllerTest`: 6 locales (anchors, six steps, `index, follow`, canonical, every hreflang, own
-  address), the sitemap, the guest's and the player's start button (a `?return=` `ReturnUrl::tryFrom()` accepts),
-  no statement of its own, and every `import_guide.*` + FAQ key in every catalogue (present, not empty, same
-  placeholders, not the English sentence).
+- `ImportGuideControllerTest`: 6 locales (every anchor, the six sample rows, every example's root - `inert`,
+  captioned, nothing interactive in it - the eleven questions open and as `FAQPage`, `index, follow`, canonical,
+  every hreflang, own address), the sitemap, the flow's words and none of the engine's, the way back only for an
+  import's address (and `noindex` with a query), the guest's and the player's start button, no statement of its
+  own, and every `import_guide.*` + FAQ key in every catalogue (present, not empty, same placeholders, not the
+  English sentence).
+- `ImportFlowScreensTest::testEveryScreensFooterLeadsToTheGuidesSectionOfItsStep()`; its guards (one primary a
+  screen, no engine word in `data_import.*`, six locales, no `|raw` under `templates/data_import/`) hold for what
+  this stage added.
 - `ImportEntryPointsTest`: every place above for a player and, where public, a guest; somebody else's profile,
   library and empty lists show none of it; a newcomer with nothing (the welcome screen's four choices, Hub card with
   its five derived steps, profile, statistics, collection, wish list); a sign-up from the guide (the hidden return,

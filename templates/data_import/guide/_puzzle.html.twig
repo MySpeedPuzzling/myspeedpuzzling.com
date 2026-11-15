@@ -1,0 +1,14 @@
+{# One invented puzzle as the screens show a puzzle: a picture's place, name, brand · pieces. Variables: row, state (optional text), state_class. #}
+<div class="d-flex align-items-center gap-2 bg-white border rounded-2 p-2">
+    <span class="d-flex align-items-center justify-content-center rounded-2 bg-secondary-subtle text-muted flex-shrink-0" style="width: 48px; height: 48px;" aria-hidden="true"><i class="bi bi-puzzle"></i></span>
+    <span style="min-width: 0;">
+        <span class="d-block fw-medium text-break">{{ ('import_guide.sample.puzzle' ~ row.number)|trans }}</span>
+        <span class="d-block fs-sm text-muted">
+            {%- if row.brand is not null %}{{ row.brand }} · {% elseif row.own_brand %}{{ 'import_guide.sample.own_brand'|trans }} · {% endif -%}
+            {{ 'data_import.columns.row.pieces'|trans({'%number%': row.pieces|format_number}) }}
+        </span>
+    </span>
+    {% if state|default('') != '' %}
+        <span class="badge {{ state_class|default('bg-success') }} ms-auto flex-shrink-0 text-wrap">{{ state }}</span>
+    {% endif %}
+</div>

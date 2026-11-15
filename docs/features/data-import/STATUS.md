@@ -16,8 +16,8 @@ sandbox from the stage that can read them.
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
-| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked); 3b (reading + progress) building; 3c (Google link) next | #345, #347, #350 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b (the screen), 4c (memory, known exports) not started | #348 | yes | deploy green |
+| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked), **3b live 2026-11-15** (#351: reading + live progress); 3c (Google link) building | #345, #347, #350, #351 | queue + consumer | consumer up and waiting on both |
+| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b-1 (recognise + parse, known exports) building; 4b-2 (the screen), 4c (memory) not started | #348 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
@@ -55,6 +55,25 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 3b live** (#351): `ReadImportFile` on `imports` (one streaming pass per sheet, rows in batches
+  of 500, budget 60 s CPU / 300 s wall, the cap on distinct blank runs), same file again → the first import, live
+  progress on the player's private topic with polling as the fallback, "Try again", the safety net
+  `myspeedpuzzling:read-waiting-imports` (cron every 5 min at :02 on production and the sandbox, lily 9b05ae5).
+  Measured through the whole handler at 512 MB: 50,000 x 20 in 11.4 s wall / 6.1 s CPU, +13.6 MiB. Review: no
+  blocker; fixed before the merge - records worked on a stale import (a discard during a read could come back as
+  failed), the safety net queued duplicates, the download had no time bound, the page polled forever. Left as is
+  by Jan's earlier word (data in Sentry is wanted): a failed batch write carries its rows into the Sentry event.
+  Tried in Chrome on the branch (three of the sample files: 20 sheets / 5,209 rows; 10 sheets; the CSV 460 rows; the
+  same file twice; the 3-unfinished refusal) and on the sandbox (the 4.5 MB workbook read in under 6 s, the page
+  moved to the sheet list by itself). Not seen: whether that was the live event or the 4 s poll.
+- 2026-11-15 - **the test suite's memory**: ParaTest's main process built the test database in-process and kept
+  ~210 MB of it; main stood at 523 of 512 MB on a cold runner. `tests/bootstrap.php` now builds it in a child process
+  (cold peak 200 MB). Shipped with #351.
+- 2026-11-15 - lily cron rows take effect when pushed, not with the app's deploy: the safety-net row ran once before
+  the image had the command and once before the sandbox's migration (exit 1 / 7, 01:22 and 01:27 UTC). Next time the
+  cron row follows the deploy.
+- 2026-11-15 - building in parallel: 4b-1 (recognising columns, parsing rows - no screen) and 3c (Google Sheets link).
 
 - 2026-11-14 - **stage 3a live** (#350): the three import tables, upload straight to storage (fallback form reuses
   the started import), Imports home / Bring the file / one import / Discard, daily prune (cron 03:44 on production and

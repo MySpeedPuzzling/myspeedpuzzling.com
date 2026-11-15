@@ -115,6 +115,9 @@ trait ImportPairingScenario
         $this->pairingEntityManager()->persist($import);
         $this->pairingEntityManager()->persist($sheet);
         $this->pairingEntityManager()->flush();
+        // The sheet stands for one that is mapped and read: only a settled sheet's rows are ready to be added
+        $this->pairingDatabase()->executeStatement('UPDATE data_import_sheet SET mapping_version = 1, parsed_version = 1 WHERE id = :id', ['id' => $sheet->id->toString()]);
+        $this->pairingEntityManager()->refresh($sheet);
 
         return [$import, $sheet];
     }

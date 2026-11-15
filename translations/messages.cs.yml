@@ -11871,6 +11871,22 @@ data_import:
         another_brand_summary: "Jiná značka nebo počet dílků?"
         wrong_puzzle: "Přiřazení se zruší a puzzle na vás znovu čeká. Zapamatujeme si to i pro váš příští soubor."
         wrong_puzzle_summary: "Co udělá „Špatné puzzle“?"
+        # Slice 2 of the guided flow: "Check and add" and "What will be added"
+        on_profile: "Tyto výsledky už na MySpeedPuzzling jsou - stejné puzzle, den i čas. Podruhé se nepřidají."
+        on_profile_summary: "Co znamená „už je na vašem profilu“?"
+        repeat: "Ve vašem souboru je stejné puzzle, den i čas na více řádcích. Počítáme je jako jeden výsledek - pokud jde o samostatná složení, řekněte nám to."
+        repeat_summary: "Co je řádek, který opakuje jiný řádek?"
+        dont_import: "Řádky zůstanou tady ve vašem souboru a nepřidají se. Kdykoli je můžete vrátit."
+        player_partner: "Výsledek se objeví i na jeho profilu, jako výsledek dvojice nebo týmu s vámi. Dozví se to jednou a může se z něj odebrat."
+        player_partner_summary: "Co se stane, když je partner hráčem?"
+        month_only: "Váš soubor neuvádí přesný den. Výsledek se přidá jako „březen 2021“ - počítá se všude kromě toho, co potřebuje den, jako je kalendář a série."
+        month_only_summary: "Co s výsledkem, který má jen měsíc nebo rok?"
+        no_date: "Aby se výsledek mohl přidat, potřebuje aspoň rok. Doplňte den, měsíc, nebo rok - jinak zůstanou tady."
+        unusual_time: "Mnohem rychlejší nebo pomalejší, než by odpovídalo vašim ostatním výsledkům u tohoto puzzle. Ptáme se, aby se do žebříčku nedostal překlep - pokud je čas správně, řekněte to a přidá se."
+        unusual_time_summary: "Co je neobvyklý čas?"
+        daily_limit: "Z tabulek přidáváme nejvýše %number% výsledků denně, aby žebříčky a statistiky stíhaly. Zbytek bude připraven zítra - stiskněte pak znovu Přidat. Nic se neztratí."
+        add: "Importovaný výsledek se počítá stejně jako ten, který zadáte ručně: na vašem profilu a - pokud má čas - v žebříčku puzzle. Ponechá si den, kdy jste puzzle složili, takže se neukáže jako nová aktivita a vaši sledující nedostanou upozornění."
+        no_photo: "Importované výsledky nemají fotku. Ke kterémukoli výsledku ji můžete přidat později."
     group:
         title: "Procházíme vaše řádky"
         line: "Procházíme vaše řádky… %done% z %total%"
@@ -11924,13 +11940,11 @@ data_import:
         intro: "Podívejte se, co se přidá na váš profil. Nic se nepřidá, dokud nestisknete tlačítko dole."
         paused: "Přidávání náš tým na chvíli pozastavil. Vše, co jste nastavili, zůstává a o nic nepřijdete - můžete dál přiřazovat puzzle a procházet řádky a přidat je, až přidávání znovu zapneme."
         paused_running: "Přidávání náš tým na chvíli pozastavil. Bude pokračovat samo - nic se neztratí."
-        will_add: "Tohle se přidá na váš profil"
         counts: "Výsledky: %results% · Puzzle, které vlastníte: %owned% · Seznam přání: %wish_list%"
         added_so_far: "Zatím přidáno - výsledky: %results% · puzzle, které vlastníte: %owned% · seznam přání: %wish_list%"
         see_added: "Zobrazit, co se přidalo"
         back_to_review: "Zpět na „Zkontrolovat a přidat“"
-        sheet_rows: "Připraveno k přidání: %number%"
-        daily_limit: "Z tabulek se přidá nejvýše %limit% výsledků denně. Dnes: %today%. Zbývajících %later% bude připraveno zítra - nic se neztratí."
+        daily_limit: "Přidáváme nejvýše %limit% výsledků denně. Dnes: %today%. Zbývajících %later% se dá přidat zítra - nic se neztratí."
         with_guests: "s: %people%"
         first_try: "první pokus"
         button: "Přidat na můj profil (%number%)"
@@ -11956,8 +11970,6 @@ data_import:
             results: "Výsledky"
             owned: "Puzzle, které vlastníte"
             wish_list: "Puzzle na seznam přání"
-            already_yours: "Už je na vašem profilu - nepřidá se podruhé"
-            equal_rows: "Řádky, které opakují jiný řádek - počítají se jednou"
         sample:
             title: "První výsledky, jak budou vypadat"
             hint: "Zkontrolujte puzzle, čas a datum. Pokud tady něco nesedí, nejspíš to nesedí ani v dalších řádcích."
@@ -11993,11 +12005,7 @@ data_import:
             hint: "Není potřeba nic dělat. Tyto řádky se podruhé nepřidají."
             more: "A dalších: %number%."
         does:
-            public: "Výsledky se objeví na vašem profilu a v žebříčku každého puzzle stejně jako ty, které zadáváte ručně. Kód hráče ve vašem souboru se stane tím hráčem; jména zůstanou hosty, dokud neřeknete, kdo to je."
             undo: "Můžete vrátit zpět jediný řádek, jedno přidání, nebo vše, co tento import přidal."
-        does_not:
-            followers: "Vaši sledující nedostanou žádné oznámení."
-            dated: "Výsledky nesou datum dne, kdy jste puzzle složili - neobjeví se jako nová aktivita."
         flash:
             nothing_chosen: "Nic nebylo vybráno."
             changed_meanwhile: "Tyto řádky se mezitím změnily - nic se neuložilo. Takto vypadají teď."
@@ -12013,15 +12021,7 @@ data_import:
             not_addable: "Z tohoto importu teď nelze řádky přidávat."
             daily_limit: "Dnešních %number% výsledků z tabulek je vyčerpáno. Zbytek bude připraven zítra - nic se neztratí."
         sheet_as:
-            results: "{1}1 výsledek|[2,4]%count% výsledky|[0,Inf[%count% výsledků"
-            all_solo: "sólo"
-            all_duo: "dvojice"
-            all_team: "tým"
-            some_solo: "%count% sólo"
-            some_duo: "%count% dvojice"
-            some_team: "%count% tým"
             with: "s: %people%"
-            hint: "Zkontrolujte každý list: sólo, dvojice, nebo tým - a že jsou výsledky vaše, ne někoho jiného."
     batch:
         how:
             owned: "Řádky, jejichž puzzle jste už měli - z jiného řádku souboru nebo z dřívějška: %number%"
@@ -12817,6 +12817,94 @@ data_import:
         own_name:
             question: "„%name%“ je vaše vlastní jméno. Jste to vy?"
             yes: "Ano, to jsem já"
+    # --- Guided flow, slice 2: "Check and add" says everything (add_review), "What will be added" (add_list) ---
+    add_review:
+        ready_title: "Připraveno k přidání"
+        quoted: "„%text%“"
+        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        line:
+            results: "{1}1 výsledek|[2,4]%number% výsledky|[0,Inf[%number% výsledků"
+            owned: "{1}1 puzzle do vaší sbírky|[0,Inf[%number% puzzle do vaší sbírky"
+            wish_list: "{1}1 puzzle na váš seznam přání|[0,Inf[%number% puzzle na váš seznam přání"
+            unlisted: "{1}1 řádek ponechaný jen pro vás|[2,4]%number% řádky ponechané jen pro vás|[0,Inf[%number% řádků ponechaných jen pro vás"
+            already_yours: "{1}1 řádek už je na vašem profilu - nepřidá se podruhé.|[2,4]%number% řádky už jsou na vašem profilu - nepřidají se podruhé.|[0,Inf[%number% řádků už je na vašem profilu - nepřidají se podruhé."
+            equal_rows: "{1}1 řádek opakuje jiný řádek - počítá se jednou.|[2,4]%number% řádky opakují jiný řádek - počítají se jednou.|[0,Inf[%number% řádků opakuje jiný řádek - počítají se jednou."
+            show: "Zobrazit"
+        see_all: "{1}Podívat se na něj - a případně ho odškrtnout|[0,Inf[Zobrazit všech %number% a odškrtnout, co nechcete"
+        how:
+            hint: "Zkontrolujte každý list: sólo, dvojice, nebo tým, s kým - a že jsou výsledky vaše, ne někoho jiného."
+            change: "Něco nesedí? Změnit, jak se soubor čte"
+        as:
+            solo: "{1}1 sólo výsledek|[2,4]%number% sólo výsledky|[0,Inf[%number% sólo výsledků"
+            duo: "{1}1 výsledek ve dvojici|[2,4]%number% výsledky ve dvojici|[0,Inf[%number% výsledků ve dvojici"
+            team: "{1}1 týmový výsledek|[2,4]%number% týmové výsledky|[0,Inf[%number% týmových výsledků"
+            also_owned: "{1}Jeho puzzle se přidá také do vaší sbírky.|[0,Inf[Jejich puzzle se přidají také do vaší sbírky (%number%)."
+            owned: "{1}1 puzzle, které vlastníte|[0,Inf[%number% puzzle, která vlastníte"
+            collection: "Puzzle, která vlastníte, se přidají do vaší sbírky."
+            who:
+                guest: "%name% (host)"
+                player: "%name% (hráč)"
+        read:
+            date_order:
+                dmy: "Data: nejdřív den - 03/04/2023 je 3. dubna 2023."
+                mdy: "Data: nejdřív měsíc - 03/04/2023 je 4. března 2023."
+                ymd: "Data: nejdřív rok - 2023/04/03 je 3. dubna 2023."
+            duration: "Časy čteme jako: %reading%"
+            short_dates: "Krátká data jako „Jan 23“ čteme jako: %reading%"
+            year: "Data zapsaná bez roku: %year%."
+            coarse: "{1}1 výsledek má jen měsíc nebo rok - tak se i přidá.|[2,4]%number% výsledky mají jen měsíc nebo rok - tak se i přidají.|[0,Inf[%number% výsledků má jen měsíc nebo rok - tak se i přidají."
+            example: "Například řádek %row%."
+            in_file: "Ve vašem souboru je %said%, přidá se jako:"
+        sample_more: "{1}1 další|[2,4]%number% další|[0,Inf[%number% dalších"
+        verb:
+            match: "Přiřadit"
+            look: "Podívat se"
+            check: "Zkontrolovat"
+            answer: "Odpovědět"
+        what_adding_does: "Co přidání udělá"
+    add_list:
+        title: "Co se přidá"
+        intro: "Vše, co by se po stisknutí Přidat právě teď přidalo, v pořadí vašeho souboru. Řádek, který přidat nechcete, odškrtněte - uloží se to hned."
+        tab:
+            all: "Vše"
+            results: "Výsledky"
+            collection: "Sbírka"
+            wish: "Seznam přání"
+        search:
+            label: "Hledat puzzle"
+            go: "Hledat"
+            clear: "Zobrazit zase vše"
+        sheet:
+            label: "List"
+            all: "Všechny listy"
+            rows: "{1}1 řádek|[2,4]%number% řádky|[0,Inf[%number% řádků"
+            leave_out: "Neimportovat žádný"
+            confirm: "{1}Neimportovat 1 řádek listu „%title%“? Můžete to změnit v kroku 2.|[2,4]Neimportovat %number% řádky listu „%title%“? Můžete to změnit v kroku 2.|[0,Inf[Neimportovat %number% řádků listu „%title%“? Můžete to změnit v kroku 2."
+            confirm_button: "Ano, tento list neimportovat"
+        row:
+            leave_out: "Tento řádek neimportovat"
+            not_imported: "Neimportuje se"
+            put_back: "Vrátit"
+            open: "Otevřít řádek"
+            plus_collection: "+ sbírka"
+            unlisted: "Ponecháno jen pro vás"
+            repeats: "Opakuje jiný řádek - počítá se jednou"
+            on_profile: "Už je na vašem profilu - nepřidá se podruhé"
+        puzzle:
+            leave_out: "{1}Toto puzzle neimportovat (1 řádek)|[2,4]Neimportovat nic z tohoto puzzle (%number% řádky)|[0,Inf[Neimportovat nic z tohoto puzzle (%number% řádků)"
+        bar:
+            will_add: "{0}Nepřidá se nic|[0,Inf[Přidá se: %number%"
+            done: "Hotovo - zpět na kontrolu"
+        empty: "Zatím není nic připraveno k přidání."
+        no_hit: "Žádný řádek s takovým puzzle."
+        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        refresh: "Obnovit"
+        flash:
+            left_out: "Neimportuje se. Tlačítkem „Vrátit“ řádek zase přidáte."
+            put_back: "Vráceno. V seznamu bude znovu, jakmile se přiřadí jeho puzzle - obvykle hned."
+            left_out_puzzle: "{1}1 řádek se neimportuje. Můžete ho vrátit.|[2,4]%number% řádky se neimportují. Každý můžete vrátit.|[0,Inf[%number% řádků se neimportuje. Každý můžete vrátit."
+            left_out_sheet: "Řádky listu „%title%“ se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
+            changed_meanwhile: "Mezitím se to změnilo - takto to vypadá teď. Nic se neuložilo."
 unlisted_puzzles:
     title: "Puzzle mimo databázi"
     link: "Vaše puzzle mimo databázi"
@@ -12841,7 +12929,6 @@ unlisted_puzzles:
         left: "Stále mimo databázi: %number%. U každého je níže důvod."
         try_again: "Zkusit přidat zbytek znovu"
     add:
-        kind: "Řádky ponechané jen pro vás"
         ready: "Řádky ponechané jen pro vás: %number% - vidíte je jen vy."
     batch:
         kept: "Řádky ponechané jen pro vás: %number%. Vidíte je jen vy a do přiřazení se nepočítají."

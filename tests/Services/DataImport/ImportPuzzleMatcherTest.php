@@ -200,6 +200,8 @@ final class ImportPuzzleMatcherTest extends KernelTestCase
         [$import, $sheet] = $this->seedImport($player);
         $this->seedRow($import, $sheet, 'Zq Waiting For Its Pairing', 500);
         $importId = $import->id->toString();
+        // This import's sheet is not parsed yet (the scenario's sheets stand for parsed ones)
+        $this->pairingDatabase()->executeStatement('UPDATE data_import_sheet SET mapping_version = 1, parsed_version = NULL WHERE id = :id', ['id' => $sheet->id->toString()]);
         $bus = self::getContainer()->get(MessageBusInterface::class);
         $transport = self::getContainer()->get('messenger.transport.imports');
         self::assertInstanceOf(InMemoryTransport::class, $transport);

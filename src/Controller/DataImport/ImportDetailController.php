@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPairing;
+use SpeedPuzzling\Web\Query\GetImportPeople;
 use SpeedPuzzling\Web\Services\DataImport\ImportFlow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
@@ -36,6 +37,7 @@ final class ImportDetailController extends AbstractController
         readonly private GetDataImports $getDataImports,
         readonly private GetImportPairing $getImportPairing,
         readonly private GetImportAddScreen $getImportAddScreen,
+        readonly private GetImportPeople $getImportPeople,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -78,7 +80,8 @@ final class ImportDetailController extends AbstractController
         $pairing = $this->getImportPairing->summary($importId);
         // What is ready to be added, what is not and why, and what the import added so far - one statement
         $add = $this->getImportAddScreen->summary($importId, $player->playerId);
-        $flow = ImportFlow::of($import, $sheets, $pairing, $add);
+        // The people the file names - one statement: step 3 says "Nobody else is named." or the exact counts
+        $flow = ImportFlow::of($import, $sheets, $pairing, $add, $this->getImportPeople->counts($importId, $player->playerId));
 
         $after = $request->query->getString('after');
 

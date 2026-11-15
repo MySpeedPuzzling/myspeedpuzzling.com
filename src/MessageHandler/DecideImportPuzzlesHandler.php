@@ -36,7 +36,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *   and only with the player's explicit yes (`confirmedOtherPieces`);
  * - **several catalogue puzzles at once** ("Yes, these N are right", `bulkConfirm`) only where each is the same
  *   puzzle with less proof (ImportPuzzleBulkConfirm::isPartA()): one possible puzzle, found by the whole name, the
- *   barcode or the brand's code, neither the brand nor the piece count differs, and it still waits. Anything else
+ *   barcode or the brand's code, neither the brand nor the piece count differs, it still waits and the player
+ *   never said a word against it (a match taken off, a remembered "not this puzzle"). Anything else
  *   in the set refuses the whole message - it is confirmed on its own, after a look (guided-flow.md §6.1).
  *
  * Then each puzzle takes the decision as the player's, and the player's remembered decision for its key is written
@@ -139,6 +140,13 @@ readonly final class DecideImportPuzzlesHandler
         }
 
         $puzzles = $this->puzzleRepository->findByIds($chosenIds);
+        $keys = [];
+
+        foreach ($message->decisions as $decision) {
+            $keys[] = $importPuzzles[strtolower($decision->importPuzzleId)]->puzzleKey;
+        }
+
+        $remembered = $this->decisionRepository->ofPlayerByKeys($import->player, array_values(array_unique($keys)));
         $confirmedTogether = $message->bulkConfirm || count(array_filter($message->decisions, static fn ($decision): bool => $decision->puzzleId !== null)) > 1;
 
         foreach ($confirmedTogether ? $message->decisions : [] as $decision) {
@@ -149,19 +157,12 @@ readonly final class DecideImportPuzzlesHandler
             $puzzle = $decision->puzzleId === null ? null : ($puzzles[strtolower($decision->puzzleId)] ?? null);
 
             // "These are right" names a puzzle for each - and only one that needs no closer look
-            if ($puzzle === null || ImportPuzzleBulkConfirm::isPartA($importPuzzles[strtolower($decision->importPuzzleId)], $puzzle) === false) {
+            if ($puzzle === null || ImportPuzzleBulkConfirm::isPartA($importPuzzles[strtolower($decision->importPuzzleId)], $puzzle, $remembered[$importPuzzles[strtolower($decision->importPuzzleId)]->puzzleKey] ?? null) === false) {
                 throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $decision->importPuzzleId);
             }
         }
 
         // Checked - from here on nothing refuses
-        $keys = [];
-
-        foreach ($message->decisions as $decision) {
-            $keys[] = $importPuzzles[strtolower($decision->importPuzzleId)]->puzzleKey;
-        }
-
-        $remembered = $this->decisionRepository->ofPlayerByKeys($import->player, array_values(array_unique($keys)));
         $moved = [];
 
         foreach ($importPuzzles as $importPuzzle) {

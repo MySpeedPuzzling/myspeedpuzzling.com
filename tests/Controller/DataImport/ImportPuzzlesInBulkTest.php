@@ -10,17 +10,21 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Message\AnswerImportPuzzlePile;
+use SpeedPuzzling\Web\Message\ContinueImportBatches;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
 use SpeedPuzzling\Web\MessageHandler\AnswerImportPuzzlePileHandler;
+use SpeedPuzzling\Web\MessageHandler\ContinueImportBatchesHandler;
+use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
+use SpeedPuzzling\Web\Repository\DataImportPileAnswerRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportPuzzlePile;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
-use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -253,12 +257,19 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
 
         $pile = new ImportPuzzlePile(
             self::getContainer()->get(GetImportPuzzleScreen::class),
+            self::getContainer()->get(GetDataImports::class),
+            self::getContainer()->get(DataImportPileAnswerRepository::class),
             $racing,
             self::getContainer()->get(EntityManagerInterface::class),
-            self::getContainer()->get('import_puzzle_pile_cache'),
         );
+        $revision = $this->revision($importId);
 
-        self::assertSame(['state' => ImportPuzzlePile::DONE, 'decided' => 2, 'skipped' => 1, 'waiting' => 0], $pile->answer($importId, $playerId, 'not-found', 'unlisted'));
+        self::assertSame(['state' => ImportPuzzlePile::DONE, 'decided' => 2, 'skipped' => 1, 'waiting' => 0], $pile->answer($importId, $playerId, 'not-found', 'unlisted', $revision));
+        // What the answer did is written down with it, and it has ended
+        self::assertSame(
+            ['pile' => 'not-found', 'choice' => 'unlisted', 'puzzles_total' => 3, 'puzzles_decided' => 2, 'puzzles_skipped' => 1, 'ended_as' => 'done'],
+            $this->database->fetchAssociative('SELECT pile, choice, puzzles_total, puzzles_decided, puzzles_skipped, ended_as FROM data_import_pile_answer WHERE import_id = :id', ['id' => $importId]),
+        );
         // The first message was refused whole; the second named the two that had not changed
         self::assertSame(2, $racing->sent);
         self::assertSame(
@@ -267,11 +278,19 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         );
 
         // An answer the pile does not allow, a pile there is not, somebody else: nothing - or "not found"
-        self::assertSame(ImportPuzzlePile::REFUSED, $pile->answer($importId, $playerId, 'choose', 'left_out')['state']);
-        self::assertSame(ImportPuzzlePile::REFUSED, $pile->answer($importId, $playerId, 'found', 'unlisted')['state']);
-        self::assertSame(['decided' => 0, 'skipped' => 0, 'after' => null], $pile->turn($importId, $playerId, 'choose', ImportPuzzleChoice::LeftOut, null));
-        self::assertSame(['decided' => 0, 'skipped' => 0, 'after' => null], $pile->turn($importId, PlayerFixture::PLAYER_REGULAR, 'choose', ImportPuzzleChoice::Unlisted, null));
+        self::assertSame(ImportPuzzlePile::REFUSED, $pile->answer($importId, $playerId, 'choose', 'left_out', $revision)['state']);
+        self::assertSame(ImportPuzzlePile::REFUSED, $pile->answer($importId, $playerId, 'found', 'unlisted', $revision)['state']);
+        self::assertSame(ImportPuzzlePile::CHANGED, $pile->answer($importId, $playerId, 'choose', 'unlisted', 'another|1:1')['state']);
+        self::assertFalse($pile->turn('01900000-0000-7000-8000-000000000000'));
+
+        try {
+            $pile->answer($importId, PlayerFixture::PLAYER_REGULAR, 'choose', 'unlisted', $revision);
+            self::fail('Somebody else answered for a pile of this import.');
+        } catch (DataImportNotFound) {
+        }
+
         self::assertSame('undecided', $this->importPuzzle($importId, 'Zq9f Twin Lighthouse')['choice']);
+        self::assertSame(1, $this->number('SELECT COUNT(*) FROM data_import_pile_answer WHERE import_id = :id', ['id' => $importId]));
     }
 
     public function testALargePileGoesToTheWorkerInChunksAndThePageFollowsIt(): void
@@ -300,7 +319,10 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/not-found');
         // (the queue is looked at before the next request: every request empties the in-memory transport)
         $sent = array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), $queue->getSent());
-        self::assertEquals([new AnswerImportPuzzlePile($importId, $playerId, 'not-found', 'unlisted')], $sent);
+        // The answer is a row of its own - written under the import's lock - and the job carries nothing but its id
+        $answerId = $this->database->fetchOne("SELECT id FROM data_import_pile_answer WHERE import_id = :id AND pile = 'not-found' AND choice = 'unlisted' AND finished_at IS NULL AND puzzles_total = 208", ['id' => $importId]);
+        self::assertIsString($answerId);
+        self::assertEquals([new AnswerImportPuzzlePile($answerId)], $sent);
         $first = $sent[0];
         self::assertInstanceOf(AnswerImportPuzzlePile::class, $first);
         $pile = $this->browser->followRedirect();
@@ -319,41 +341,122 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/not-found');
         self::assertCount(0, $queue->getSent(), 'no second job');
         self::assertStringContainsString('Your earlier answer is still being saved. Nothing was changed.', $this->browser->followRedirect()->filter('body')->text());
+        self::assertSame(1, $this->number('SELECT COUNT(*) FROM data_import_pile_answer WHERE import_id = :id', ['id' => $importId]), 'no second answer beside the first');
+        // ... while another pile of the same import can be answered: it is another set of puzzles
+        self::assertSame(ImportPuzzlePile::DONE, self::getContainer()->get(ImportPuzzlePile::class)->answer($importId, $playerId, 'choose', 'unlisted', $answer['revision'])['state']);
+        self::assertSame('unlisted', $this->importPuzzle($importId, 'Zq9g Twin Lighthouse')['choice']);
 
         // The worker's first turn: a chunk - and the job sends itself again with where it got to
         $queue->reset();
         $handler = self::getContainer()->get(AnswerImportPuzzlePileHandler::class);
         $handler($first);
-        self::assertSame(ImportPuzzlePile::CHUNK, $this->decidedByThePlayer($importId));
+        // (the chunk - and the one puzzle of the other pile)
+        self::assertSame(ImportPuzzlePile::CHUNK + 1, $this->decidedByThePlayer($importId));
         $next = array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), $queue->getSent());
         self::assertCount(1, $next);
         self::assertInstanceOf(AnswerImportPuzzlePile::class, $next[0]);
-        self::assertNotNull($next[0]->after);
+        self::assertSame($answerId, $next[0]->answerId);
+        self::assertSame([200, false], [$this->number('SELECT puzzles_decided FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId]), $this->database->fetchOne('SELECT finished_at IS NOT NULL FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId])]);
         $pile = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/not-found');
         self::assertSame('Saving your answer… Puzzles left: 8', self::spaced($pile->filter('[data-testid="import-pile-working"] [role="status"]')->text()));
 
-        // The same turn delivered twice repeats nothing: what was decided no longer waits
+        // The next turn goes on where the answer's row says: the eight that are left - and the answer has ended
         $queue->reset();
-        $handler($first);
-        self::assertSame(208, $this->decidedByThePlayer($importId));
-        self::assertSame(208, $this->number("SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id AND choice = 'unlisted' AND decision_version = 1", ['id' => $importId]));
-        self::assertCount(0, $queue->getSent());
-
-        // The second turn finds nothing left: the answer has ended, the page is itself again
         $handler($next[0]);
-        self::assertSame(208, $this->decidedByThePlayer($importId));
-        self::assertNull(self::getContainer()->get(ImportPuzzlePile::class)->running($importId));
+        self::assertSame(209, $this->decidedByThePlayer($importId));
+        self::assertSame(208, $this->number("SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id AND tier = 'none' AND choice = 'unlisted' AND decision_version = 1", ['id' => $importId]));
+        self::assertCount(0, $queue->getSent());
+        self::assertSame(
+            ['puzzles_decided' => 208, 'puzzles_skipped' => 0, 'ended_as' => 'done'],
+            $this->database->fetchAssociative('SELECT puzzles_decided, puzzles_skipped, ended_as FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId]),
+        );
+
+        // A turn delivered twice, or one that waited in a long queue: the answer has ended - nothing is done again
+        $handler($first);
+        $handler($next[0]);
+        self::assertSame(209, $this->decidedByThePlayer($importId));
+        self::assertSame(208, $this->number('SELECT puzzles_decided FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId]));
+        self::assertCount(0, $queue->getSent());
         $pile = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/not-found');
         self::assertCount(0, $pile->filter('[data-testid="import-pile-working"]'));
         self::assertCount(0, $pile->filter('[data-controller="data-import-pile"]'));
         self::assertCount(1, $pile->filter('[data-testid="import-pile-nothing-left"]'));
         // The rest of the import was not touched
-        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq9g Twin Lighthouse')['choice']);
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq9g Looks Like Meadow')['choice']);
 
-        // An import that is gone ends the job quietly
-        $gone = new AnswerImportPuzzlePile('01900000-0000-7000-8000-000000000000', $playerId, 'not-found', 'unlisted');
-        $handler($gone);
+        // An answer that is not there ends the job quietly
+        $handler(new AnswerImportPuzzlePile('01900000-0000-7000-8000-000000000000'));
         self::assertCount(0, $queue->getSent());
+    }
+
+    public function testARunningAnswerTakesOnlyThePileItWasGivenForAndEndsWhenTheImportChangesOrItStandsStill(): void
+    {
+        $player = $this->seedPairingPlayer('pile-run');
+        $playerId = $player->id->toString();
+        $importId = $this->importWithPiles($player, 'Zq9p');
+        $many = "INSERT INTO data_import_puzzle (id, import_id, puzzle_key, name, created_at, tier, rows_results) SELECT gen_random_uuid(), :id, :key || number, 'Zq9p Many Qxv ' || :key || number, :at, 'none', 1 FROM generate_series(1, :count) number";
+        $this->database->executeStatement($many, ['id' => $importId, 'key' => 'a', 'at' => TestClock::FROZEN_NOW, 'count' => 205]);
+        $pile = self::getContainer()->get(ImportPuzzlePile::class);
+        $handler = self::getContainer()->get(AnswerImportPuzzlePileHandler::class);
+        $queue = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
+        $open = fn (): array => $this->database->fetchFirstColumn('SELECT id FROM data_import_pile_answer WHERE import_id = :id AND finished_at IS NULL', ['id' => $importId]);
+
+        // ---- An answer is given for the 208 puzzles of the pile ----
+        self::assertSame(['state' => ImportPuzzlePile::QUEUED, 'decided' => 0, 'skipped' => 0, 'waiting' => 208], $pile->answer($importId, $playerId, 'not-found', 'unlisted', $this->revision($importId)));
+        $answerId = $open()[0];
+        self::assertIsString($answerId);
+
+        // Two more puzzles enter the pile while it runs: one built after the answer, one looked up after it. They were
+        // not on the screen the player answered - no turn answers them
+        $later = TestClock::now()->modify('+1 minute')->format('Y-m-d H:i:s');
+        $this->database->executeStatement($many, ['id' => $importId, 'key' => 'built-later-', 'at' => $later, 'count' => 1]);
+        $this->database->executeStatement($many, ['id' => $importId, 'key' => 'looked-up-later-', 'at' => TestClock::FROZEN_NOW, 'count' => 1]);
+        $this->database->executeStatement("UPDATE data_import_puzzle SET searched_at = :later WHERE import_id = :id AND puzzle_key = 'looked-up-later-1'", ['id' => $importId, 'later' => $later]);
+
+        $handler(new AnswerImportPuzzlePile($answerId));
+        $handler(new AnswerImportPuzzlePile($answerId));
+        $handler(new AnswerImportPuzzlePile($answerId));
+        self::assertSame([], $open());
+        self::assertSame(208, $this->decidedByThePlayer($importId));
+        self::assertSame(
+            ['undecided', 'undecided'],
+            $this->database->fetchFirstColumn("SELECT choice FROM data_import_puzzle WHERE import_id = :id AND puzzle_key IN ('built-later-1', 'looked-up-later-1')", ['id' => $importId]),
+        );
+        self::assertSame(['done', 208], array_values((array) $this->database->fetchAssociative('SELECT ended_as, puzzles_decided FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId])));
+
+        // ---- The import changes under a running answer: the turn that finds it ends the answer, deciding nothing ----
+        $this->database->executeStatement($many, ['id' => $importId, 'key' => 'b', 'at' => TestClock::FROZEN_NOW, 'count' => 300]);
+        self::assertSame(ImportPuzzlePile::QUEUED, $pile->answer($importId, $playerId, 'not-found', 'left_out', $this->revision($importId))['state']);
+        $answerId = $open()[0];
+        self::assertIsString($answerId);
+        // (its sheet was read again with another set-up of its columns)
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 2, mapping_version = 2 WHERE import_id = :id', ['id' => $importId]);
+        $queue->reset();
+        $handler(new AnswerImportPuzzlePile($answerId));
+        self::assertSame([], $open());
+        self::assertCount(0, $queue->getSent());
+        self::assertSame(['changed', 0], array_values((array) $this->database->fetchAssociative('SELECT ended_as, puzzles_decided FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId])));
+        self::assertSame(0, $this->number("SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id AND choice = 'left_out'", ['id' => $importId]));
+        // The screen the player holds is stale too: its answer is refused; the screen as it stands now is taken
+        self::assertSame(ImportPuzzlePile::CHANGED, $pile->answer($importId, $playerId, 'not-found', 'left_out', 'stale|1:1')['state']);
+
+        // ---- An answer whose worker died: no sign of life for a quarter of an hour - the sweeper ends it ----
+        self::assertSame(ImportPuzzlePile::QUEUED, $pile->answer($importId, $playerId, 'not-found', 'unlisted', $this->revision($importId))['state']);
+        $answerId = $open()[0];
+        self::assertIsString($answerId);
+        self::assertSame(ImportPuzzlePile::BUSY, $pile->answer($importId, $playerId, 'not-found', 'left_out', $this->revision($importId))['state']);
+        $sweeper = self::getContainer()->get(ContinueImportBatchesHandler::class);
+        $this->handled($sweeper, new ContinueImportBatches());
+        self::assertSame([$answerId], $open(), 'an answer that gave a sign of life just now is left alone');
+        $this->database->executeStatement('UPDATE data_import_pile_answer SET last_activity_at = :then WHERE id = :id', ['id' => $answerId, 'then' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s')]);
+        $this->handled($sweeper, new ContinueImportBatches());
+        self::assertSame([], $open());
+        self::assertSame('failed', $this->database->fetchOne('SELECT ended_as FROM data_import_pile_answer WHERE id = :id', ['id' => $answerId]));
+        // Its job, should it come after all, does nothing - and the pile can be answered again
+        $handler(new AnswerImportPuzzlePile($answerId));
+        self::assertSame(208, $this->decidedByThePlayer($importId));
+        self::assertSame(ImportPuzzlePile::QUEUED, $pile->answer($importId, $playerId, 'not-found', 'unlisted', $this->revision($importId))['state']);
     }
 
     // ---- "Looks like a match": the picture grid (§6.1) ----
@@ -549,6 +652,24 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertResponseRedirects($base . '?part=same&after=' . $ids[2]);
         self::assertStringContainsString('3 matched.', $this->browser->followRedirect()->filter('body')->text());
         self::assertSame(4, $this->decidedByThePlayer($importId));
+
+        // "Wrong puzzle" on one of them: it waits again - and it is NOT back on the grid, ticked. It is looked at on
+        // its own, with what the player said about it
+        $first = $this->importPuzzle($importId, 'Zq9i Grid 01 <b>');
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $first['id'], 'version' => (string) $first['decision_version'], 'group' => 'probably', 'page' => '1']);
+        self::assertResponseRedirects();
+        self::assertSame(['probably', 'undecided'], [$this->importPuzzle($importId, 'Zq9i Grid 01 <b>')['tier'], $this->importPuzzle($importId, 'Zq9i Grid 01 <b>')['choice']]);
+        $grid = $this->browser->request('GET', $base);
+        self::assertCount(0, $grid->filter('[data-testid="import-puzzle-tile"]'));
+        self::assertCount(0, $grid->filter('[data-testid="import-puzzle-tick-all"]'));
+        $closer = $grid->filter('[data-testid="import-puzzle-closer"] #puzzle-' . $first['id']);
+        self::assertCount(1, $closer, 'the grid has nothing left: the screen is the cards to look at closer');
+        self::assertSame('You said this is not it.', self::spaced($closer->filter('[data-testid="catalogue-puzzle-rejected"]')->text()));
+        // A form that still holds its tile gets nothing through
+        $this->browser->request('POST', $decide, [...$form, 'cards' => self::crafted($this->importPuzzle($importId, 'Zq9i Grid 01 <b>'), $first['candidates'][0]['puzzleId'])]);
+        self::assertResponseRedirects($base . '?part=same');
+        self::assertStringContainsString('needs a closer look', $this->browser->followRedirect()->filter('body')->text());
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq9i Grid 01 <b>')['choice']);
 
         // Somebody else: neither the grid nor its answer
         $somebody = $this->seedPairingPlayer('grid-guards-other');
@@ -923,6 +1044,17 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         }
 
         return $choices;
+    }
+
+    /**
+     * The import as a puzzles' screen shows it now - what an answer for a pile is given for.
+     */
+    private function revision(string $importId): string
+    {
+        $progress = self::getContainer()->get(GetDataImports::class)->progress($importId);
+        self::assertNotNull($progress);
+
+        return $progress->puzzlesRevision();
     }
 
     private function decidedByThePlayer(string $importId): int

@@ -12275,6 +12275,7 @@ data_import:
             taken_back: "Rückgängig gemacht. Das Puzzle wartet wieder auf dich."
             group_done: "In dieser Gruppe wartet nichts mehr auf dich."
         bulk:
+            rejected: "Du hast gesagt, dass es das nicht ist."
             nothing_left: "Hier ist nichts mehr übrig."
             see_all: "Den ganzen Stapel ansehen (%number%)"
             working: "Wir speichern deine Antwort… Verbleibende Puzzles: %number%"

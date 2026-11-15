@@ -69,7 +69,7 @@ final class ImportPuzzlesController extends AbstractController
     {
         return [
             'working' => $progress->sheetsWorking > 0 || $progress->pairing['running'],
-            'revision' => $progress->revision . '|' . $progress->pairing['revision'],
+            'revision' => $progress->puzzlesRevision(),
             'searching' => $progress->pairing['searching'],
             'puzzles' => $progress->pairing['puzzles'],
         ];

@@ -21,7 +21,6 @@
 {% set pile_url = path('data_import_puzzle_group', {importId: import.importId, group: group}) %}
 {% set back_to_summary = {label: 'data_import.puzzles.back_to_summary'|trans, url: summary_url} %}
 {% set continue = {label: 'data_import.flow.continue'|trans, url: summary_url, testid: 'import-flow-continue'} %}
-{% set is_running = running is not null and running.pile == group %}
 
 {% block title %}{{ group_title }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}

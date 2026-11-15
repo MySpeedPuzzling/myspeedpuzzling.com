@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\ImportPuzzleDecidedMeanwhile;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
 use SpeedPuzzling\Web\MessageHandler\DecideImportPuzzlesHandler;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
+use SpeedPuzzling\Web\Repository\ImportPuzzleDecisionRepository;
 use SpeedPuzzling\Web\Results\ImportPuzzleCard;
 use SpeedPuzzling\Web\Services\DataImport\ImportPuzzleBulkConfirm;
 use SpeedPuzzling\Web\Tests\TestClock;
@@ -97,9 +98,27 @@ final class ImportPuzzleBulkConfirmTest extends KernelTestCase
         $database->executeStatement('UPDATE puzzle SET pieces_count = 1000 WHERE id = :id', ['id' => $catalogue[$name]]);
         self::assertFalse($inPartA());
         self::assertFalse($this->isPartA($importId, $name, $catalogue[$name]));
-        $database->executeStatement('UPDATE puzzle SET pieces_count = 501 WHERE id = :id', ['id' => $catalogue[$name]]);
-        self::assertTrue($inPartA(), 'one piece apart is the same count (a box says 501)');
+        // One piece apart is good enough for the rules to suggest a puzzle - never to confirm it with others
+        foreach ([499, 501] as $oneApart) {
+            $database->executeStatement('UPDATE puzzle SET pieces_count = :pieces WHERE id = :id', ['id' => $catalogue[$name], 'pieces' => $oneApart]);
+            self::assertFalse($inPartA(), $oneApart . ' is not 500');
+            self::assertFalse($this->isPartA($importId, $name, $catalogue[$name]));
+        }
+
+        $database->executeStatement('UPDATE puzzle SET pieces_count = 500 WHERE id = :id', ['id' => $catalogue[$name]]);
+        self::assertTrue($inPartA());
         self::assertTrue($this->isPartA($importId, $name, $catalogue[$name]));
+
+        // ... for a match by the brand's code too (the file says 500, the box 499)
+        $byCode = 'Zq8 box with a brand code';
+        $inPartAByCode = fn (): bool => in_array($byCode, self::names($screen->partPage($importId, $playerId, GetImportPuzzleScreen::PART_SAME, 50, null)), true);
+        self::assertTrue($inPartAByCode());
+        $database->executeStatement('UPDATE puzzle SET pieces_count = 499 WHERE id = :id', ['id' => $catalogue[$byCode]]);
+        self::assertFalse($inPartAByCode());
+        self::assertFalse($this->isPartA($importId, $byCode, $catalogue[$byCode]));
+        self::assertContains($this->refusal($importId, $playerId, [new ImportPuzzleDecisionChange($this->importPuzzle($importId, $byCode)['id'], ImportPuzzleChoice::Catalogue, $catalogue[$byCode], 0)], true), [ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK]);
+        $database->executeStatement('UPDATE puzzle SET pieces_count = 500 WHERE id = :id', ['id' => $catalogue[$byCode]]);
+        self::assertTrue($inPartAByCode());
 
         // The file's brand stands for another brand than the puzzle's
         $database->executeStatement("UPDATE data_import_puzzle SET manufacturer_id = (SELECT id FROM manufacturer WHERE name = 'Zq8other') WHERE id = :id", ['id' => $id]);
@@ -129,6 +148,76 @@ final class ImportPuzzleBulkConfirmTest extends KernelTestCase
         self::assertFalse($inPartA());
         self::assertFalse($this->isPartA($importId, $name, $catalogue[$name]));
         self::assertSame(2, $screen->partCounts($importId, $playerId, null)['same']);
+    }
+
+    public function testAMatchThePlayerTookOffNeverComesBackInABulkConfirm(): void
+    {
+        [$import, $playerId, $catalogue] = $this->pile();
+        $importId = $import->id->toString();
+        $screen = self::getContainer()->get(GetImportPuzzleScreen::class);
+        $name = 'Zq8 Same Name No Brand';
+        $id = $this->importPuzzle($importId, $name)['id'];
+        $partA = fn (): array => self::names($screen->partPage($importId, $playerId, GetImportPuzzleScreen::PART_SAME, 50, null));
+        $partB = fn (): array => $screen->partPage($importId, $playerId, GetImportPuzzleScreen::PART_DIFFERS, 50, null);
+        self::assertContains($name, $partA());
+
+        // The player confirms it (one tap on its tile's screen) - and then says "Wrong puzzle"
+        $this->decide($importId, $playerId, [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Catalogue, $catalogue[$name], 0)], true);
+        $this->decide($importId, $playerId, [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Undecided, null, 1)]);
+        $takenOff = $this->importPuzzle($importId, $name);
+        // As the rules left it - "probably", one candidate, waiting - but with the player's word on it
+        self::assertSame(['probably', 'undecided', 'player', [$catalogue[$name]]], [$takenOff['tier'], $takenOff['choice'], $takenOff['decided_how'], self::candidateIds($takenOff)]);
+        self::assertSame('not_this_puzzle', $this->pairingDatabase()->fetchOne('SELECT choice FROM import_puzzle_decision WHERE player_id = :id AND puzzle_id = :puzzle', ['id' => $playerId, 'puzzle' => $catalogue[$name]]));
+
+        // It is not on the grid again, the handler refuses it in "these are right" - alone or with others
+        self::assertNotContains($name, $partA());
+        self::assertFalse($this->isPartA($importId, $name, $catalogue[$name]));
+        $again = new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Catalogue, $catalogue[$name], 2);
+        $other = new ImportPuzzleDecisionChange($this->importPuzzle($importId, 'Zq8 box with a barcode')['id'], ImportPuzzleChoice::Catalogue, $catalogue['Zq8 box with a barcode'], 0);
+        self::assertSame(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $this->refusal($importId, $playerId, [$again], true));
+        self::assertSame(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $this->refusal($importId, $playerId, [$other, $again], true));
+        self::assertSame(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $this->refusal($importId, $playerId, [$other, $again], false));
+        self::assertSame('undecided', $this->importPuzzle($importId, $name)['choice']);
+
+        // It is shown one by one, and what the player rejected is marked
+        $card = array_values(array_filter($partB(), static fn (ImportPuzzleCard $card): bool => $card->name === $name));
+        self::assertCount(1, $card);
+        self::assertTrue($card[0]->candidates[0]->rejected);
+
+        // Each of the two words is enough alone. Only the import's own (the remembered one is gone):
+        $this->pairingDatabase()->executeStatement('DELETE FROM import_puzzle_decision WHERE player_id = :id', ['id' => $playerId]);
+        self::assertNotContains($name, $partA());
+        self::assertFalse($this->isPartA($importId, $name, $catalogue[$name]));
+        self::assertSame(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $this->refusal($importId, $playerId, [$again], true));
+
+        // Only the remembered one - the same puzzle in the player's NEXT file, which no decision of theirs touched yet
+        $this->decide($importId, $playerId, [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Catalogue, $catalogue[$name], 2)]);
+        $this->decide($importId, $playerId, [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Undecided, null, 3)]);
+        [$next, $nextSheet] = $this->seedImport($this->reloadImport($importId)[0]->player);
+        $this->seedRow($next, $nextSheet, $name, 500);
+        $this->seedRow($next, $nextSheet, 'Zq8 Twin Editions', 1000);
+        $this->pair($next);
+        $nextId = $next->id->toString();
+        $inNext = $this->importPuzzle($nextId, $name);
+        self::assertSame(['probably', 'undecided', null, [$catalogue[$name]]], [$inNext['tier'], $inNext['choice'], $inNext['decided_how'], self::candidateIds($inNext)]);
+        self::assertSame([], self::names($screen->partPage($nextId, $playerId, GetImportPuzzleScreen::PART_SAME, 50, null)));
+        self::assertFalse($this->isPartA($nextId, $name, $catalogue[$name]));
+        self::assertSame(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $this->refusal($nextId, $playerId, [new ImportPuzzleDecisionChange($inNext['id'], ImportPuzzleChoice::Catalogue, $catalogue[$name], 0)], true));
+
+        // Where several puzzles fit, the one the player rejected stands last - and says so
+        $rejected = $this->importPuzzle($nextId, 'Zq8 Twin Editions')['candidates'][0]['puzzleId'];
+        $this->pairingDatabase()->executeStatement(
+            "INSERT INTO import_puzzle_decision (id, player_id, puzzle_key, choice, puzzle_id, decided_at) SELECT gen_random_uuid(), :player, puzzle_key, 'not_this_puzzle', :puzzle, :now FROM data_import_puzzle WHERE id = :id",
+            ['player' => $playerId, 'puzzle' => $rejected, 'now' => TestClock::FROZEN_NOW, 'id' => $this->importPuzzle($nextId, 'Zq8 Twin Editions')['id']],
+        );
+        $twin = $screen->one($nextId, $playerId, $this->importPuzzle($nextId, 'Zq8 Twin Editions')['id']);
+        self::assertCount(2, $twin->candidates);
+        self::assertSame([false, true], [$twin->candidates[0]->rejected, $twin->candidates[1]->rejected]);
+        self::assertSame($rejected, $twin->candidates[1]->puzzleId);
+
+        // The player's own deliberate tap on that one card still takes it - it is theirs to change their mind
+        $this->decide($nextId, $playerId, [new ImportPuzzleDecisionChange($inNext['id'], ImportPuzzleChoice::Catalogue, $catalogue[$name], 0)]);
+        self::assertSame('catalogue', $this->importPuzzle($nextId, $name)['choice']);
     }
 
     public function testABulkConfirmHoldingAnythingButPartAIsRefusedWholeAndNothingIsWritten(): void
@@ -254,8 +343,9 @@ final class ImportPuzzleBulkConfirmTest extends KernelTestCase
         $puzzle = $entityManager->find(Puzzle::class, $cataloguePuzzleId);
         self::assertNotNull($importPuzzle);
         self::assertNotNull($puzzle);
+        $remembered = self::getContainer()->get(ImportPuzzleDecisionRepository::class)->ofPlayerByKeys($importPuzzle->import->player, [$importPuzzle->puzzleKey]);
 
-        return ImportPuzzleBulkConfirm::isPartA($importPuzzle, $puzzle);
+        return ImportPuzzleBulkConfirm::isPartA($importPuzzle, $puzzle, $remembered[$importPuzzle->puzzleKey] ?? null);
     }
 
     /**

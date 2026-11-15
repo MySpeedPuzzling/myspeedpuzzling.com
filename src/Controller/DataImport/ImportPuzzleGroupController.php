@@ -8,7 +8,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
-use SpeedPuzzling\Web\Services\DataImport\ImportPuzzlePile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -45,7 +44,6 @@ final class ImportPuzzleGroupController extends AbstractController
         readonly private GetDataImports $getDataImports,
         readonly private GetImportPuzzleScreen $getImportPuzzleScreen,
         readonly private GetImportAddScreen $getImportAddScreen,
-        readonly private ImportPuzzlePile $pile,
     ) {
     }
 
@@ -87,8 +85,8 @@ final class ImportPuzzleGroupController extends AbstractController
             'page' => $page,
             'pages' => $pages,
             'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
-            // An answer for a whole pile that still runs on the worker - a cache entry, no statement
-            'running' => $this->pile->running($importId),
+            // An answer for the whole pile still runs on the worker (DataImportPileAnswer - read with the overview)
+            'is_running' => in_array($group, $overview->pilesBeingAnswered, true),
             'tiles_per_screen' => self::TILES_PER_SCREEN,
             'portion' => NextImportPuzzleController::PORTION,
         ];

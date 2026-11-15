@@ -12278,6 +12278,7 @@ data_import:
             taken_back: "Vráceno zpět. Puzzle na vás znovu čeká."
             group_done: "V této skupině už na vás nic nečeká."
         bulk:
+            rejected: "Řekli jste, že tohle to není."
             nothing_left: "Tady už nic nezbývá."
             see_all: "Zobrazit celou hromádku (%number%)"
             working: "Ukládáme vaši odpověď… Zbývá puzzle: %number%"

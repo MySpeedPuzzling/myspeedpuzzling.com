@@ -197,7 +197,7 @@ final class DecideImportPuzzlesController extends AbstractController
     /**
      * One answer for every puzzle of a pile that waits (guided-flow.md §6.3). Nothing is applied when the import
      * does not stand as the screen showed it - its sheets were read again, its puzzles looked up again - or while
-     * puzzles are still looked up. Another player's import is a 404 (the progress is read for the player).
+     * puzzles are still looked up, nor beside another answer for the same pile. Another player's import is a 404.
      */
     private function answerForThePile(string $importId, string $playerId, string $pile, string $choice, string $shownRevision): Response
     {
@@ -206,21 +206,8 @@ final class DecideImportPuzzlesController extends AbstractController
         }
 
         $back = $this->redirectToRoute('data_import_puzzle_group', ['importId' => $importId, 'group' => $pile]);
-        $live = ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $playerId));
-
-        if ($live['working'] || $live['searching'] > 0) {
-            $this->addFlash('warning', $this->translator->trans('data_import.puzzles.bulk.flash.still_looking'));
-
-            return $back;
-        }
-
-        if (hash_equals($live['revision'], $shownRevision) === false) {
-            $this->addFlash('warning', $this->translator->trans('data_import.puzzles.bulk.flash.changed'));
-
-            return $back;
-        }
-
-        $answer = $this->pile->answer($importId, $playerId, $pile, $choice);
+        // Everything is checked where the answer is written down, under the import's lock (ImportPuzzlePile)
+        $answer = $this->pile->answer($importId, $playerId, $pile, $choice, $shownRevision);
 
         switch ($answer['state']) {
             case ImportPuzzlePile::DONE:
@@ -243,6 +230,10 @@ final class DecideImportPuzzlesController extends AbstractController
                 return $back;
             case ImportPuzzlePile::BUSY:
                 $this->addFlash('warning', $this->translator->trans('data_import.puzzles.bulk.flash.busy'));
+
+                return $back;
+            case ImportPuzzlePile::CHANGED:
+                $this->addFlash('warning', $this->translator->trans('data_import.puzzles.bulk.flash.changed'));
 
                 return $back;
             case ImportPuzzlePile::STILL_LOOKING:

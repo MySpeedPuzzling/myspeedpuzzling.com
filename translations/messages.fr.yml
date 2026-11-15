@@ -12271,6 +12271,7 @@ data_import:
             taken_back: "Annulé. Le puzzle vous attend à nouveau."
             group_done: "Plus rien ne vous attend dans ce groupe."
         bulk:
+            rejected: "Vous avez dit que ce n'est pas celui-ci."
             nothing_left: "Il ne reste rien ici."
             see_all: "Voir toute la pile (%number%)"
             working: "Enregistrement de votre réponse… Puzzles restants : %number%"

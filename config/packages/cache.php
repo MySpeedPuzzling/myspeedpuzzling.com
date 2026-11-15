@@ -99,11 +99,6 @@ return App::config([
                 'online_watch_spectators' => [
                     'adapters' => ['cache.adapter.redis'],
                 ],
-                // "An answer for a whole pile of this import's puzzles runs on the worker" (ImportPuzzlePile): one short
-                // entry per import, shared by the web and the worker containers, freeing itself after ten minutes
-                'import_puzzle_pile_cache' => [
-                    'adapters' => ['cache.app'],
-                ],
                 // Insights page parts of one player (InsightsCache): keyed by the batch generation + a fingerprint of the
                 // player's results, so a stale entry is never asked for again - disposable (a miss is one recompute),
                 // hence the cache Redis, never redis-state. TTL 45 minutes

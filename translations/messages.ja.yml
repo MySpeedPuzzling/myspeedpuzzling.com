@@ -12265,6 +12265,7 @@ data_import:
             taken_back: "元に戻しました。このパズルは再びあなたの確認を待っています。"
             group_done: "このグループに対応待ちのものはもうありません。"
         bulk:
+            rejected: "これは違うと指定済みです。"
             nothing_left: "ここにはもう何も残っていません。"
             see_all: "このグループをすべて見る（%number% 件）"
             working: "回答を保存しています… 残りのパズル: %number% 件"

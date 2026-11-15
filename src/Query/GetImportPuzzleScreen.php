@@ -82,6 +82,7 @@ SELECT
     data_import.status,
     data_import.paired_at IS NOT NULL AS paired,
     counts.*,
+    answered.piles AS piles_answered,
     (
         SELECT COALESCE(SUM(sheet.rows_need_look), 0)
         FROM data_import_sheet sheet
@@ -121,12 +122,19 @@ LEFT JOIN LATERAL (
     FROM data_import_puzzle
     WHERE data_import_puzzle.import_id = data_import.id
 ) counts ON TRUE
+LEFT JOIN LATERAL (
+    -- One answer for a whole pile that still runs (DataImportPileAnswer)
+    SELECT string_agg(DISTINCT pile_answer.pile, ',') AS piles
+    FROM data_import_pile_answer pile_answer
+    WHERE pile_answer.import_id = data_import.id
+        AND pile_answer.ended_as IS NULL
+) answered ON TRUE
 WHERE data_import.id = :importId
     AND data_import.player_id = :playerId
     AND data_import.status <> :discarded
 SQL;
 
-        /** @var false|array{status: string, paired: bool, puzzles: int, found: int, found_open: int, probably: int, probably_open: int, choose: int, choose_open: int, none: int, none_open: int, remembered: int, searching: int, matched: int, unlisted: int, left_out: int, rows_need_look: int|string, rows_already_yours: int} $row */
+        /** @var false|array{status: string, paired: bool, puzzles: int, found: int, found_open: int, probably: int, probably_open: int, choose: int, choose_open: int, none: int, none_open: int, remembered: int, searching: int, matched: int, unlisted: int, left_out: int, piles_answered: null|string, rows_need_look: int|string, rows_already_yours: int} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -154,6 +162,7 @@ SQL;
             rowsAlreadyYours: $row['rows_already_yours'],
             rowsNeedLook: (int) $row['rows_need_look'],
             matched: $row['matched'],
+            pilesBeingAnswered: $row['piles_answered'] === null ? [] : explode(',', $row['piles_answered']),
         );
     }
 
@@ -340,11 +349,13 @@ SQL;
 
     /**
      * The puzzles of a pile that wait **now**, by id, after one of them - with the version each has: what one
-     * answer for a whole pile is given to (ImportPuzzlePile). Never ids from a form. One statement.
+     * answer for a whole pile is given to (ImportPuzzlePile). Never ids from a form. `$inThePileSince`: only puzzles
+     * that were in the pile at that moment - one built or looked up afterwards was not on the screen the player
+     * answered. One statement.
      *
      * @return list<array{id: string, version: int}>
      */
-    public function waitingOfPile(string $importId, string $playerId, string $pile, int $limit, null|string $afterImportPuzzleId): array
+    public function waitingOfPile(string $importId, string $playerId, string $pile, int $limit, null|string $afterImportPuzzleId, null|\DateTimeImmutable $inThePileSince = null): array
     {
         if (isset(self::PILES[$pile]) === false || Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
             return [];
@@ -361,6 +372,10 @@ WHERE import_puzzle.import_id = :importId
     AND import_puzzle.tier = :tier
     AND import_puzzle.choice = 'undecided'
     AND (CAST(:after AS UUID) IS NULL OR import_puzzle.id > CAST(:after AS UUID))
+    AND (
+        CAST(:since AS TIMESTAMP) IS NULL
+        OR (import_puzzle.created_at <= CAST(:since AS TIMESTAMP) AND (import_puzzle.searched_at IS NULL OR import_puzzle.searched_at <= CAST(:since AS TIMESTAMP)))
+    )
 ORDER BY import_puzzle.id
 LIMIT :limit
 SQL, [
@@ -369,6 +384,7 @@ SQL, [
             'discarded' => DataImportStatus::Discarded->value,
             'tier' => self::PILES[$pile],
             'after' => self::validId($afterImportPuzzleId),
+            'since' => $inThePileSince?->format('Y-m-d H:i:s'),
             'limit' => $limit,
         ])->fetchAllAssociative();
 
@@ -607,7 +623,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
     puzzle.manufacturer_id AS puzzle_manufacturer_id,
-    manufacturer.name AS brand_name
+    manufacturer.name AS brand_name,
+    rejected.id IS NOT NULL AS rejected
 FROM page
 LEFT JOIN offered ON offered.import_puzzle_id = page.id
 LEFT JOIN puzzle
@@ -615,10 +632,16 @@ LEFT JOIN puzzle
     -- A decided puzzle is shown as decided; a candidate only while it may be offered
     AND (offered.position = 0 OR {$candidate})
 LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+-- The player's own "this is not it" about a puzzle of this key (a match they took off)
+LEFT JOIN import_puzzle_decision rejected
+    ON rejected.player_id = :playerId
+    AND rejected.puzzle_key = page.puzzle_key
+    AND rejected.choice = 'not_this_puzzle'
+    AND rejected.puzzle_id = puzzle.id
 ORDER BY lower(page.name), page.id, offered.position
 SQL;
 
-        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, said_manufacturer_id: null|string, rows_results: int, rows_owned: int, rows_wish_list: int, tier: null|string, choice: string, decided_how: null|string, decision_version: int, position: null|int, how: null|string, puzzle_id: null|string, puzzle_name: null|string, alternative_names: null|string, puzzle_pieces: null|int, image: null|string, image_ratio: null|float|string, puzzle_manufacturer_id: null|string, brand_name: null|string}> $rows */
+        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, said_manufacturer_id: null|string, rows_results: int, rows_owned: int, rows_wish_list: int, tier: null|string, choice: string, decided_how: null|string, decision_version: int, position: null|int, how: null|string, puzzle_id: null|string, puzzle_name: null|string, alternative_names: null|string, puzzle_pieces: null|int, image: null|string, image_ratio: null|float|string, puzzle_manufacturer_id: null|string, brand_name: null|string, rejected: bool}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -658,6 +681,7 @@ SQL;
                     how: $how,
                     piecesDiffer: $row['pieces_count'] !== null && abs($row['puzzle_pieces'] - $row['pieces_count']) > 1,
                     brandDiffers: self::brandDiffers($row['said_manufacturer_id'], $row['puzzle_manufacturer_id']),
+                    rejected: $row['rejected'],
                 ),
             ];
         }
@@ -694,6 +718,12 @@ SQL;
                     $decided->brandDiffers,
                 );
             }
+
+            // What the player said it is not comes last - the order of the others is the rules'
+            $candidates = [
+                ...array_filter($candidates, static fn (ImportCataloguePuzzle $puzzle): bool => $puzzle->rejected === false),
+                ...array_filter($candidates, static fn (ImportCataloguePuzzle $puzzle): bool => $puzzle->rejected),
+            ];
 
             $cards[] = new ImportPuzzleCard(
                 importPuzzleId: $id,

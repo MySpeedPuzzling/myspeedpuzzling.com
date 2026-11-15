@@ -69,6 +69,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetInsightsContext' => 'The viewer\'s own batch inputs; its ladder place uses GetPlayerRatingRanking::sqlRankOf(), which closes up the viewer\'s hidden players like the ladder - returns no identity.',
         'GetInsightsFingerprint' => 'A hash of the viewer\'s own results, teams, collections and lending - returns no identity.',
         'GetInsightsShelf' => 'The viewer\'s own shelf; "faster than N % of its solvers" counts times without identity.',
+        'GetMyDataColumns' => 'Reads one column of the signed-in player\'s own row (which columns of "My data" they switched off) - no other player.',
+        'GetMyDataResults' => '"My data" (docs/features/my-data.md): the signed-in player\'s own results; the people named are the co-puzzlers of their own pair/team results, kept like the profile\'s own results keep them - HiddenPlayers::sqlExcludeTeam() never drops a result the viewer took part in, so there is nothing to exclude; a private teammate is masked through PrivateProfileAccess.',
         'GetPersonalEstimates' => 'The viewer\'s own estimates: their own attempts, paces and ratios; other players only as aggregates (difficulty, the community\'s median pace by piece count) - returns no identity.',
         'GetPlayerKarma' => self::OWN_DATA,
         'GetProgressionDrift' => 'Nightly safety net (cron, no viewer): player ids whose stored progression disagrees with their records - nothing is shown to anybody.',

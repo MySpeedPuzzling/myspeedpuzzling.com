@@ -1,0 +1,117 @@
+// "My data" (docs/features/my-data.md): a real table from 992 px, a compact list below it. Everything is scoped
+// under .my-data - nothing here styles another page.
+.my-data {
+    .my-data-tap {
+        min-height: 44px;
+    }
+
+    // The table scrolls inside this box, both ways: the page itself never scrolls sideways and the header row stays
+    // in sight
+    .my-data-scroll {
+        max-height: calc(100vh - 140px);
+        overflow: auto;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+
+        table {
+            font-size: $font-size-sm;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: $gray-100;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        td,
+        th {
+            padding: .375rem .625rem;
+        }
+    }
+
+    // Phone: the filters fold behind "Filters" so the rows start on the first screen
+    .my-data-more > summary {
+        display: inline-flex;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .my-data-more[open] > summary {
+        margin-bottom: .5rem;
+    }
+
+    // Wide: always open, no summary. A browser without ::details-content keeps the disclosure - still usable
+    @media (min-width: 992px) {
+        @supports selector(::details-content) {
+            .my-data-more::details-content {
+                content-visibility: visible;
+            }
+
+            .my-data-more > summary {
+                display: none;
+            }
+        }
+    }
+
+    .my-data-puzzle {
+        min-width: 16rem;
+        max-width: 24rem;
+        font-weight: 400;
+    }
+
+    // What the player wrote (a comment, an own field): wide enough to read, never wider than a line of prose
+    .my-data-text {
+        min-width: 8rem;
+        max-width: 20rem;
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+
+    .my-data-sort {
+        color: inherit;
+    }
+
+    .my-data-columns > summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .my-data-columns-panel {
+        position: absolute;
+        right: 0;
+        z-index: 5;
+        min-width: 16rem;
+        max-height: 70vh;
+        overflow-y: auto;
+        margin-top: .25rem;
+    }
+
+    .my-data-item {
+        display: flex;
+        align-items: center;
+        gap: .625rem;
+        min-height: 56px;
+        padding: .5rem 0;
+        border-bottom: 1px solid $border-color;
+    }
+
+    .my-data-item-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .my-data-item-side {
+        flex: 0 0 auto;
+        text-align: right;
+        white-space: nowrap;
+    }
+}

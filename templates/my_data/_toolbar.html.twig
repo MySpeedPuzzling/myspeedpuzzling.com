@@ -1,0 +1,121 @@
+{#
+    Search, filters and the sort of "My data" - one GET form, so the address carries the state. The piece-count chips
+    are links (PiecesRange's quick picks); a chosen one travels with the form as a hidden input. The direction of the
+    sort is a link beside the select (and the wide table's headers). On a phone only the search is in sight; the rest
+    is behind "Filters".
+#}
+{% set pieces_param = criteria.pieces is not null ? criteria.pieces.toParam : '' %}
+<form method="get" action="{{ path('my_data') }}" class="my-data-toolbar mb-2" data-testid="my-data-filters" data-turbo-action="advance">
+    {% if tab != 'results' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
+    {% if pieces_param != '' %}<input type="hidden" name="pieces" value="{{ pieces_param }}">{% endif %}
+
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-lg-4">
+            <label class="form-label fs-sm mb-1" for="my-data-q">{{ 'my_data.filter.search_label'|trans }}</label>
+            <input type="search" class="form-control" id="my-data-q" name="q" maxlength="100" value="{{ criteria.search }}" placeholder="{{ 'my_data.filter.search_placeholder'|trans }}" autocomplete="off">
+        </div>
+    </div>
+
+    {#
+        Below 992 px everything but the search folds behind one "Filters" disclosure, so the rows start on the first
+        screen; open by itself while a filter is on. From 992 px it is always open and has no summary (CSS,
+        `::details-content` - a browser without it keeps the disclosure, still usable).
+    #}
+    {% set active_filters = criteria.activeFilterCount %}
+    <details class="my-data-more mt-2" data-testid="my-data-more" {{ active_filters > 0 ? 'open' }}>
+        <summary class="btn btn-outline-secondary btn-sm my-data-tap align-items-center">
+            <i class="bi bi-funnel me-1" aria-hidden="true"></i>{{ 'my_data.filter.more'|trans }}
+            {% if active_filters > 0 %}<span class="badge bg-primary ms-2" data-testid="my-data-active-filters">{{ active_filters }}</span>{% endif %}
+        </summary>
+
+    <div class="row g-2 align-items-end my-data-more-first">
+
+        {% if tab == 'results' %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label fs-sm mb-1" for="my-data-type">{{ 'my_data.filter.type'|trans }}</label>
+                <select class="form-select" id="my-data-type" name="type">
+                    <option value="">{{ 'my_data.filter.any'|trans }}</option>
+                    {% for type in ['solo', 'duo', 'team'] %}
+                        <option value="{{ type }}" {{ criteria.solvingType == type ? 'selected' }}>{{ ('my_data.type.' ~ type)|trans }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label fs-sm mb-1" for="my-data-year">{{ 'my_data.filter.year'|trans }}</label>
+                <select class="form-select" id="my-data-year" name="year">
+                    <option value="">{{ 'my_data.filter.any'|trans }}</option>
+                    {% if criteria.year is not null and criteria.year not in years %}<option value="{{ criteria.year }}" selected>{{ criteria.year }}</option>{% endif %}
+                    {% for year in years %}
+                        <option value="{{ year }}" {{ criteria.year == year ? 'selected' }}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% elseif tab == 'puzzles' %}
+            <div class="col-12 col-md-4 col-lg-3">
+                <label class="form-label fs-sm mb-1" for="my-data-collection">{{ 'my_data.filter.collection'|trans }}</label>
+                <select class="form-select" id="my-data-collection" name="collection">
+                    <option value="">{{ 'my_data.filter.any'|trans }}</option>
+                    <option value="main" {{ criteria.collectionParam == 'main' ? 'selected' }}>{{ 'my_data.main_collection'|trans }}</option>
+                    {% for collection in collections %}
+                        <option value="{{ collection.collectionId }}" {{ criteria.collectionParam == collection.collectionId ? 'selected' }}>{{ collection.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+        <div class="col-12 col-md-4 col-lg-3">
+            <label class="form-label fs-sm mb-1" for="my-data-sort">{{ 'my_data.filter.sort'|trans }}</label>
+            <div class="d-flex gap-2">
+                <select class="form-select" id="my-data-sort" name="sort">
+                    {% for sort in criteria.tab.sorts %}
+                        <option value="{{ sort.value }}" {{ criteria.sort == sort ? 'selected' }}>{{ ('my_data.sort.' ~ sort.value)|trans }}</option>
+                    {% endfor %}
+                </select>
+                {# The direction is a link, not a field: choosing another sort starts in that sort's own direction #}
+                <a class="btn btn-outline-secondary my-data-tap d-inline-flex align-items-center" data-testid="my-data-direction"
+                   href="{{ path('my_data', criteria.sortQuery(criteria.sort.value)) }}" title="{{ (criteria.descending ? 'my_data.dir.desc' : 'my_data.dir.asc')|trans }}">
+                    <i class="bi bi-sort-{{ criteria.descending ? 'down' : 'up' }}" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ (criteria.descending ? 'my_data.dir.desc' : 'my_data.dir.asc')|trans }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-testid="my-data-pieces">
+        <span class="fs-sm text-muted me-1">{{ 'my_data.filter.pieces'|trans }}</span>
+        {% set preset_chosen = false %}
+        {% for preset in pieces_presets() %}
+            {% set active = pieces_param == preset.toParam %}
+            {% if active %}{% set preset_chosen = true %}{% endif %}
+            <a class="btn btn-sm {{ active ? 'btn-primary' : 'btn-outline-secondary' }} rounded-pill" {% if active %}aria-current="true"{% endif %}
+               href="{{ path('my_data', criteria.query({pieces: active ? null : preset.toParam})) }}">{{ preset.label }}</a>
+        {% endfor %}
+        {% if pieces_param != '' and not preset_chosen %}
+            <a class="btn btn-sm btn-primary rounded-pill" aria-current="true" href="{{ path('my_data', criteria.query({pieces: null})) }}">{{ criteria.pieces.label }} <i class="bi bi-x" aria-hidden="true"></i></a>
+        {% endif %}
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+        {% if tab == 'results' %}
+            {% for name, checked in {first: criteria.firstTryOnly, imported: criteria.importedOnly, comment: criteria.withComment, photo: criteria.withPhoto} %}
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" id="my-data-{{ name }}" name="{{ name }}" value="1" {{ checked ? 'checked' }}>
+                    <label class="form-check-label fs-sm" for="my-data-{{ name }}">{{ ('my_data.filter.' ~ name)|trans }}</label>
+                </div>
+            {% endfor %}
+        {% elseif tab == 'puzzles' %}
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="my-data-comment" name="comment" value="1" {{ criteria.withComment ? 'checked' }}>
+                <label class="form-check-label fs-sm" for="my-data-comment">{{ 'my_data.filter.comment'|trans }}</label>
+            </div>
+        {% endif %}
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+            {% if criteria.hasFilters %}
+                <a class="fs-sm" href="{{ path('my_data', tab == 'results' ? {} : {tab: tab}) }}" data-testid="my-data-clear">{{ 'my_data.filter.clear'|trans }}</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm my-data-tap px-3">{{ 'my_data.filter.submit'|trans }}</button>
+        </div>
+    </div>
+    </details>
+</form>

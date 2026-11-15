@@ -1,0 +1,124 @@
+{#
+    The player's own results: a real table from 992 px (sticky header, sideways scroll inside its own box), a compact
+    list below it. Both are rendered; CSS shows one. A row opens the existing result detail.
+
+    The cells of the player's own fields are texts OwnFieldsInMyData worded for the signed-in player alone.
+#}
+{% macro head(criteria, column, sort) %}
+    {% if sort is not null %}
+        {% set sorted = criteria.sort.value == sort %}
+        <th scope="col" {% if sorted %}aria-sort="{{ criteria.descending ? 'descending' : 'ascending' }}"{% endif %} data-column="{{ column }}">
+            <a href="{{ path('my_data', criteria.sortQuery(sort)) }}" class="my-data-sort">{{ ('my_data.column.' ~ column)|trans }}{% if sorted %} <i class="bi bi-caret-{{ criteria.descending ? 'down' : 'up' }}-fill" aria-hidden="true"></i>{% endif %}</a>
+        </th>
+    {% else %}
+        <th scope="col" data-column="{{ column }}">{{ ('my_data.column.' ~ column)|trans }}</th>
+    {% endif %}
+{% endmacro %}
+
+{# "Anna, Hidden Puzzler" - a teammate hidden from this player is worded like on the profile, never named #}
+{% set hidden_name = 'secret_puzzler_name'|trans %}
+
+{% set sorts = {brand: 'brand', pieces: 'pieces', time: 'time', date: 'date'} %}
+
+<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr>
+                {{ _self.head(criteria, 'puzzle', 'name') }}
+                {% for column, shown in columns %}
+                    {% if shown %}
+                        {% if own_fields.columns[column] is defined %}
+                            <th scope="col" data-column="{{ column }}" data-own-field>{{ own_fields.columns[column] }}</th>
+                        {% else %}
+                            {{ _self.head(criteria, column, sorts[column] ?? null) }}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.rows %}
+                {% set date = row.finishedAt ?? row.trackedAt %}
+                {% set precision = row.finishedAt is not null ? row.datePrecision : null %}
+                <tr data-testid="my-data-row" data-row-id="{{ row.timeId }}">
+                    <th scope="row" class="my-data-puzzle">
+                        <a href="{{ path('puzzle_result_detail', {timeId: row.timeId}) }}" data-turbo-frame="modal-frame" rel="nofollow" class="d-flex align-items-center gap-2 text-reset">
+                            {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 40, 'rounded-1 flex-shrink-0') }}
+                            <span class="d-block" style="min-width: 0;">
+                                <span class="d-block fw-medium">{{ row.puzzle.name }}</span>
+                                {{ include('puzzle/_name.html.twig', {name: row.puzzle.name, alternative_names: row.puzzle.otherNames, class: 'd-block fs-xs'}, with_context = false) }}
+                            </span>
+                        </a>
+                    </th>
+                    {% for column, shown in columns %}
+                        {% if shown %}
+                            {% if own_fields.columns[column] is defined %}
+                                <td data-column="{{ column }}" class="my-data-text">{{ own_fields.cell(row.timeId, column) }}</td>
+                            {% elseif column == 'brand' %}
+                                <td data-column="brand">{{ row.puzzle.brandName }}</td>
+                            {% elseif column == 'pieces' %}
+                                <td data-column="pieces" class="text-end text-nowrap">{{ row.puzzle.piecesCount|format_number }}</td>
+                            {% elseif column == 'time' %}
+                                <td data-column="time" class="text-end text-nowrap fw-medium">
+                                    {%- if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif -%}
+                                    {%- if row.suspicious %} <span class="badge bg-warning text-dark fw-normal">{{ 'my_data.cell.needs_verification'|trans }}</span>{% endif -%}
+                                </td>
+                            {% elseif column == 'date' %}
+                                <td data-column="date" class="text-nowrap"><time datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time></td>
+                            {% elseif column == 'group' %}
+                                <td data-column="group">
+                                    {{ ('my_data.type.' ~ row.solvingType)|trans }}
+                                    {%- if row.teamName is not null %} · {{ row.teamName }}{% endif -%}
+                                    {%- if row.coPuzzlers is not empty %}<span class="d-block fs-xs text-muted" data-testid="my-data-with">{{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}</span>{% endif -%}
+                                </td>
+                            {% elseif column == 'first_try' %}
+                                <td data-column="first_try" class="text-center">{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
+                            {% elseif column == 'comment' %}
+                                <td data-column="comment" class="my-data-text">{{ row.comment }}</td>
+                            {% elseif column == 'photo' %}
+                                <td data-column="photo" class="text-center">{% if row.hasPhoto %}<i class="bi bi-image" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
+                            {% elseif column == 'source' %}
+                                <td data-column="source">{% if row.source is not null %}<span class="badge bg-secondary text-dark fw-normal">{{ ('my_data.source.' ~ row.source.value)|trans }}</span>{% endif %}</td>
+                            {% elseif column == 'ppm' %}
+                                <td data-column="ppm" class="text-end text-nowrap">{% if row.ppm is not null %}{{ row.ppm|format_number({fraction_digit: 2}) }}{% endif %}</td>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<ul class="my-data-list list-unstyled d-lg-none mb-0" data-testid="my-data-list">
+    {% for row in page.rows %}
+        {% set date = row.finishedAt ?? row.trackedAt %}
+        {% set precision = row.finishedAt is not null ? row.datePrecision : null %}
+        <li>
+            <a href="{{ path('puzzle_result_detail', {timeId: row.timeId}) }}" data-turbo-frame="modal-frame" rel="nofollow" class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.timeId }}">
+                {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 48, 'rounded-1 flex-shrink-0') }}
+                <span class="my-data-item-main">
+                    <span class="d-block fw-medium text-truncate">{{ row.puzzle.name }}</span>
+                    <span class="d-block fs-xs text-muted text-truncate">
+                        {%- if row.puzzle.brandName is not null %}{{ row.puzzle.brandName }} · {% endif -%}
+                        {{ row.puzzle.piecesCount|format_number }}
+                        {%- if row.solvingType != 'solo' %} · {{ ('my_data.type.' ~ row.solvingType)|trans }}{% if row.coPuzzlers is not empty %} {{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}{% endif %}{% endif -%}
+                        {%- if row.firstAttempt %} · {{ 'my_data.column.first_try'|trans }}{% endif -%}
+                        {%- if row.source is not null and row.source.value == 'spreadsheet_import' %} · {{ 'my_data.source.spreadsheet_import'|trans }}{% endif -%}
+                    </span>
+                    {% set own_line = [] %}
+                    {% for column, label in own_fields.columns %}
+                        {% if columns[column] and own_fields.cell(row.timeId, column) is not null and own_line|length < 3 %}
+                            {% set own_line = own_line|merge([label ~ ': ' ~ own_fields.cell(row.timeId, column)]) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if own_line is not empty %}<span class="d-block fs-xs text-muted text-truncate" data-own-field>{{ own_line|join(' · ') }}</span>{% endif %}
+                </span>
+                <span class="my-data-item-side">
+                    <span class="d-block fw-medium">{% if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif %}</span>
+                    <time class="d-block fs-xs text-muted" datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time>
+                </span>
+            </a>
+        </li>
+    {% endfor %}
+</ul>

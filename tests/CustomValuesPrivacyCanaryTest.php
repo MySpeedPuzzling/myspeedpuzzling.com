@@ -22,6 +22,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * The same for the puzzles of a collection, whose page is often PUBLIC: what the owner wrote into their own fields on
  * them is on no page another player or a guest can open, in no API answer - and not on the collection's page for the
  * owner either. **Add every new surface that shows a collection, its puzzles or a list made from them here.**
+ *
+ * "My data" (docs/features/my-data.md) is the one page besides the forms and the exports that shows a player their own
+ * values - an owner-only page with no player id in its address; the canary opens it as everybody else.
  */
 final class CustomValuesPrivacyCanaryTest extends WebTestCase
 {
@@ -70,11 +73,14 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
             '/en/puzzle-add',
             '/en/puzzle-add/{puzzle}',
             '/en/my-profile',
+            // "My data": the shared result is a row of their table too - with their own fields, never A's
+            '/en/my-data',
+            '/en/my-data?tab=puzzles',
             '/en/export-puzzler-data/{b}/download/json',
             '/en/export-puzzler-data/{b}/download/csv',
             '/en/export-puzzler-data/{b}/download/xml',
         ]];
-        yield 'another player' => [self::C, [...$shared, '/en/custom-fields', '/en/puzzle-add/{puzzle}']];
+        yield 'another player' => [self::C, [...$shared, '/en/custom-fields', '/en/puzzle-add/{puzzle}', '/en/my-data', '/en/my-data?tab=puzzles', '/en/my-data?tab=wishlist']];
         yield 'a guest' => [null, $shared];
     }
 
@@ -142,6 +148,17 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
         foreach ([self::FIELD_NAME, self::CHOICE_FIELD_NAME, self::TEXT_VALUE, self::CHOICE_VALUE, self::TAG_VALUE] as $own) {
             self::assertStringContainsString($own, $content);
         }
+
+        // And in their own table of "My data", as columns
+        $browser->request('GET', '/en/my-data');
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString($timeId, $content);
+
+        foreach ([self::FIELD_NAME, self::CHOICE_FIELD_NAME, self::TEXT_VALUE, self::CHOICE_VALUE, self::TAG_VALUE] as $own) {
+            self::assertStringContainsString($own, $content);
+        }
     }
 
     /**
@@ -173,6 +190,10 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
             '/en/collection/' . CollectionFixture::COLLECTION_PRIVATE,
             '/en/puzzle-collection/' . self::A,
             '/en/puzzle-library/' . self::A,
+            '/en/my-data?tab=puzzles',
+            '/en/my-data?tab=puzzles&collection=' . CollectionFixture::COLLECTION_PUBLIC,
+            '/en/my-data?tab=wishlist',
+            '/en/my-data',
             '/en/export-puzzler-data/' . self::A . '/library/json',
             '/en/export-puzzler-data/' . self::A . '/library/xml',
             '/en/export-puzzler-data/' . self::A . '/download/json',
@@ -209,9 +230,10 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
 
     /**
      * Not even the owner gets them on a collection page: the lists are shared between viewers. The owner's values are
-     * in the item's edit form and in their own export - nowhere else.
+     * in the item's edit form, in their own export and in their own table of "My data" (an owner-only page without a
+     * player id in its address) - nowhere else.
      */
-    public function testTheCollectorSeesThemInTheItemsEditFormAndTheExportOnly(): void
+    public function testTheCollectorSeesThemInTheItemsEditFormTheExportAndMyDataOnly(): void
     {
         $browser = self::createClient();
         $secrets = $this->publicCollectionWithValuesOfItsOwner();
@@ -227,6 +249,9 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
                 '/en/my-profile',
                 '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01,
                 '/en/export-puzzler-data/' . self::COLLECTOR . '/download/json',
+                // The other tabs of "My data" have nothing of the items' values
+                '/en/my-data',
+                '/en/my-data?tab=wishlist',
             ] as $page
         ) {
             $browser->followRedirects();
@@ -238,7 +263,7 @@ final class CustomValuesPrivacyCanaryTest extends WebTestCase
         }
 
         // What the canary looks for is really there where the owner may see it - otherwise it would prove nothing
-        foreach (['/en/edit-collection-item-comment/' . CollectionItemFixture::ITEM_01, '/en/export-puzzler-data/' . self::COLLECTOR . '/library/json'] as $own) {
+        foreach (['/en/edit-collection-item-comment/' . CollectionItemFixture::ITEM_01, '/en/export-puzzler-data/' . self::COLLECTOR . '/library/json', '/en/my-data?tab=puzzles'] as $own) {
             $browser->request('GET', $own);
             self::assertResponseIsSuccessful($own);
             $content = (string) $browser->getResponse()->getContent();

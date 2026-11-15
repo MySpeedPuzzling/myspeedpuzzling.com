@@ -100,6 +100,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetInsightsSoloResults.php' => self::SOLO,
         'Query/GetMostActivePlayers.php' => self::PER_PLAYER,
         'Query/GetMostSolvedPuzzles.php' => self::COUNTS,
+        'Query/GetMyDataResults.php' => self::OWN,
         'Query/GetNotifications.php' => self::PER_PLAYER,
         'Query/GetPendingPuzzleProposals.php' => self::ADMIN,
         'Query/GetPersonalEstimates.php' => self::OWN,

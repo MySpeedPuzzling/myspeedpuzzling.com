@@ -1,0 +1,113 @@
+{#
+    The puzzles of the player's collections (tab "puzzles") or their wish list (tab "wishlist"): a real table from
+    992 px, a compact list below it. Both are rendered; CSS shows one. A row opens the puzzle's page.
+
+    The cells of the player's own fields are texts OwnFieldsInMyData worded for the signed-in player alone - they are
+    on this owner-only page and nowhere on a collection's own page.
+#}
+{% macro head(criteria, column, sort) %}
+    {% if sort is not null %}
+        {% set sorted = criteria.sort.value == sort %}
+        <th scope="col" {% if sorted %}aria-sort="{{ criteria.descending ? 'descending' : 'ascending' }}"{% endif %} data-column="{{ column }}">
+            <a href="{{ path('my_data', criteria.sortQuery(sort)) }}" class="my-data-sort">{{ ('my_data.column.' ~ column)|trans }}{% if sorted %} <i class="bi bi-caret-{{ criteria.descending ? 'down' : 'up' }}-fill" aria-hidden="true"></i>{% endif %}</a>
+        </th>
+    {% else %}
+        <th scope="col" data-column="{{ column }}">{{ ('my_data.column.' ~ column)|trans }}</th>
+    {% endif %}
+{% endmacro %}
+
+{% macro solved(row) %}
+    {%- if row.solved is not null -%}
+        {{ 'my_data.cell.solved'|trans({'%count%': row.solved.solvedCount|format_number}) }}
+        {%- if row.solved.bestSoloSeconds is not null %} · {{ 'my_data.cell.best'|trans({'%time%': row.solved.bestSoloSeconds|puzzlingTime}) }}{% endif -%}
+    {%- else -%}
+        <span class="text-muted">{{ 'my_data.cell.not_solved'|trans }}</span>
+    {%- endif -%}
+{% endmacro %}
+
+{% set sorts = {brand: 'brand', pieces: 'pieces', added: 'added'} %}
+
+<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr>
+                {{ _self.head(criteria, 'puzzle', 'name') }}
+                {% for column, shown in columns %}
+                    {% if shown %}
+                        {% if own_fields.columns[column] is defined %}
+                            <th scope="col" data-column="{{ column }}" data-own-field>{{ own_fields.columns[column] }}</th>
+                        {% else %}
+                            {{ _self.head(criteria, column, sorts[column] ?? null) }}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.rows %}
+                <tr data-testid="my-data-row" data-row-id="{{ row.itemId }}">
+                    <th scope="row" class="my-data-puzzle">
+                        <a href="{{ path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" class="d-flex align-items-center gap-2 text-reset">
+                            {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 40, 'rounded-1 flex-shrink-0') }}
+                            <span class="d-block" style="min-width: 0;">
+                                <span class="d-block fw-medium">{{ row.puzzle.name }}</span>
+                                {{ include('puzzle/_name.html.twig', {name: row.puzzle.name, alternative_names: row.puzzle.otherNames, class: 'd-block fs-xs'}, with_context = false) }}
+                            </span>
+                        </a>
+                    </th>
+                    {% for column, shown in columns %}
+                        {% if shown %}
+                            {% if own_fields.columns[column] is defined %}
+                                <td data-column="{{ column }}" class="my-data-text">{{ own_fields.cell(row.itemId, column) }}</td>
+                            {% elseif column == 'brand' %}
+                                <td data-column="brand">{{ row.puzzle.brandName }}</td>
+                            {% elseif column == 'pieces' %}
+                                <td data-column="pieces" class="text-end text-nowrap">{{ row.puzzle.piecesCount|format_number }}</td>
+                            {% elseif column == 'collection' %}
+                                <td data-column="collection">{{ row.collectionName ?? 'my_data.main_collection'|trans }}</td>
+                            {% elseif column == 'added' %}
+                                <td data-column="added" class="text-nowrap"><time datetime="{{ row.addedAt|date('Y-m-d') }}">{{ result_date(row.addedAt) }}</time></td>
+                            {% elseif column == 'comment' %}
+                                <td data-column="comment" class="my-data-text">{{ row.comment }}</td>
+                            {% elseif column == 'solved' %}
+                                <td data-column="solved" class="text-nowrap">{{ _self.solved(row) }}</td>
+                            {% elseif column == 'lent' %}
+                                <td data-column="lent">{% if row.lentOut %}<span class="badge bg-info text-dark fw-normal">{{ 'my_data.cell.lent'|trans }}</span>{% endif %}</td>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<ul class="my-data-list list-unstyled d-lg-none mb-0" data-testid="my-data-list">
+    {% for row in page.rows %}
+        <li>
+            <a href="{{ path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.itemId }}">
+                {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 48, 'rounded-1 flex-shrink-0') }}
+                <span class="my-data-item-main">
+                    <span class="d-block fw-medium text-truncate">{{ row.puzzle.name }}</span>
+                    <span class="d-block fs-xs text-muted text-truncate">
+                        {%- if row.puzzle.brandName is not null %}{{ row.puzzle.brandName }} · {% endif -%}
+                        {{ row.puzzle.piecesCount|format_number }}
+                        {%- if tab == 'puzzles' %} · {{ row.collectionName ?? 'my_data.main_collection'|trans }}{% endif -%}
+                        {%- if row.lentOut %} · {{ 'my_data.cell.lent'|trans }}{% endif -%}
+                    </span>
+                    {% set own_line = [] %}
+                    {% for column, label in own_fields.columns %}
+                        {% if columns[column] and own_fields.cell(row.itemId, column) is not null and own_line|length < 3 %}
+                            {% set own_line = own_line|merge([label ~ ': ' ~ own_fields.cell(row.itemId, column)]) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if own_line is not empty %}<span class="d-block fs-xs text-muted text-truncate" data-own-field>{{ own_line|join(' · ') }}</span>{% endif %}
+                </span>
+                <span class="my-data-item-side">
+                    <span class="d-block fs-sm">{{ _self.solved(row) }}</span>
+                    <time class="d-block fs-xs text-muted" datetime="{{ row.addedAt|date('Y-m-d') }}">{{ result_date(row.addedAt) }}</time>
+                </span>
+            </a>
+        </li>
+    {% endfor %}
+</ul>

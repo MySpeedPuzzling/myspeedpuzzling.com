@@ -1,0 +1,24 @@
+{#
+    The column chooser of the wide table: every built-in column of the tab and the player's own fields, ticked = shown.
+    Saved on the player (ChangeMyDataColumnsController). The phone list has no columns to choose.
+#}
+<details class="my-data-columns d-none d-lg-block position-relative" data-testid="my-data-columns">
+    <summary class="btn btn-outline-secondary btn-sm"><i class="bi bi-layout-three-columns me-1" aria-hidden="true"></i>{{ 'my_data.columns.button'|trans }}</summary>
+    <form method="post" action="{{ path('my_data_columns') }}" class="my-data-columns-panel card card-body shadow p-3">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MyData\\ChangeMyDataColumnsController::CSRF_TOKEN_ID')) }}">
+        <input type="hidden" name="state" value="{{ criteria.query({page: criteria.page > 1 ? criteria.page : null})|url_encode }}">
+        <p class="fw-medium mb-2">{{ 'my_data.columns.title'|trans }}</p>
+        {% for column, shown in columns %}
+            {% set own = own_fields.columns[column] is defined %}
+            {% if own and loop.index0 > 0 and own_fields.columns|keys|first == column %}
+                <p class="fs-sm text-muted mt-2 mb-1">{{ 'my_data.columns.own_fields'|trans }}</p>
+            {% endif %}
+            <div class="form-check">
+                <input type="hidden" name="columns[]" value="{{ column }}">
+                <input class="form-check-input" type="checkbox" id="my-data-column-{{ loop.index }}" name="shown[]" value="{{ column }}" {{ shown ? 'checked' }}>
+                <label class="form-check-label" for="my-data-column-{{ loop.index }}">{{ own ? own_fields.columns[column] : ('my_data.column.' ~ column)|trans }}</label>
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-sm mt-3">{{ 'my_data.columns.save'|trans }}</button>
+    </form>
+</details>

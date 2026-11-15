@@ -1,11 +1,15 @@
 {#
-    One answer for a whole group of rows that could not be added (docs/features/data-import/group-answers.md) - on
-    the done page of an "Add" and on the list of rows that could not be added. A card per reason that has one
-    action for all its rows - every row of the reason, on all pages, worked out by the server (the forms name the
-    reason, never the rows) - then a line for the reasons that have none, saying why.
+    One answer for a whole group of rows that wait after an "Add" (docs/features/data-import/group-answers.md) - on
+    the done page of an "Add" and on the list of rows that wait. Ordered by what the player can do: the rows one
+    answer settles first (who they solved with, unusual times, "the file says they are here already"), then the rows
+    that are answered one by one, then the ones that need nothing. Every form names the reason, never the rows - all
+    rows of the reason, on all pages, are worked out by the server.
 
     Variables: import_id, batch_id (null: of the whole import), reasons (code => rows), group_request_ids
-    (missing, leave_out), csrf, people_link (bool: say where the "who did you solve these with" card is).
+    (missing, leave_out), csrf,
+      cards    (bool, the done page - guided-flow.md §5.10) every group is a question card with ONE button that
+               leads to where it is answered; the first card's button is the screen's primary when `primary` is set
+      primary  (bool) see `cards`
 #}
 {% set times = reasons.unusual_time ?? 0 %}
 {% set said = reasons.said_already_on_profile ?? 0 %}
@@ -13,35 +17,61 @@
 {% set twins = reasons.equal_row_not_added ?? 0 %}
 {% set duplicates = (reasons.similar_result_exists ?? 0) + (reasons.somebody_elses_result ?? 0) %}
 {% set scope = batch_id is null ? {importId: import_id} : {importId: import_id, batch: batch_id} %}
+{% set cards = cards|default(false) %}
+{% set first = primary|default(false) ? (people > 0 ? 'people' : (times > 0 ? 'times' : (said > 0 ? 'said' : (duplicates > 0 ? 'duplicates' : '')))) : '' %}
+
+{% if cards and people > 0 %}
+    <div class="card card-body shadow-sm mb-3" data-testid="import-group-people" data-rows="{{ people }}">
+        <p class="mb-2">{{ 'data_import.after.done.card.people'|trans({'%count%': people, '%number%': people|format_number}) }}</p>
+        <a href="{{ path('data_import_not_added', scope) }}#import-not-added-people" class="btn {{ first == 'people' ? 'btn-primary' : 'btn-outline-primary' }} w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-group-people-open" rel="nofollow">
+            {{ 'data_import.after.done.card.people_button'|trans }}
+        </a>
+    </div>
+{% endif %}
 
 {% if times > 0 %}
-    {# The summary asks the time verification about a sample of the rows: a page of its own, loaded into this frame #}
-    <div data-controller="data-import-times-frame" data-testid="import-group-times" data-rows="{{ times }}">
-        <turbo-frame id="import-group-times" src="{{ path('data_import_not_added_times', scope) }}" loading="lazy">
-            <div class="card card-body shadow-sm mb-3">
-                <h2 class="h6 mb-1">{{ 'data_import.group.times.title'|trans({'%number%': times|format_number}) }}</h2>
-                <p class="fs-sm text-muted mb-2">{{ 'data_import.group.times.loading'|trans }}</p>
-                <a href="{{ path('data_import_not_added_times', scope) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo-frame="_top" rel="nofollow">
-                    {{ 'data_import.group.times.open'|trans }}
-                </a>
-            </div>
-        </turbo-frame>
-    </div>
+    {% if cards %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-group-times" data-rows="{{ times }}">
+            <p class="mb-1">{{ 'data_import.after.done.card.times'|trans({'%count%': times, '%number%': times|format_number}) }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unusual_time'|trans, fold: true, summary: 'data_import.explain.unusual_time_summary'|trans, testid: 'import-explain-unusual-time'}, with_context = false) }}
+            <a href="{{ path('data_import_not_added_times', scope) }}" class="btn {{ first == 'times' ? 'btn-primary' : 'btn-outline-primary' }} w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-group-times-open" rel="nofollow">
+                {{ 'data_import.group.times.open'|trans }}
+            </a>
+        </div>
+    {% else %}
+        {# The summary asks the time verification about a sample of the rows: a page of its own, loaded into this frame #}
+        <div data-controller="data-import-times-frame" data-testid="import-group-times" data-rows="{{ times }}">
+            <turbo-frame id="import-group-times" src="{{ path('data_import_not_added_times', scope) }}" loading="lazy">
+                <div class="card card-body shadow-sm mb-3">
+                    <h2 class="h6 mb-1">{{ 'data_import.group.times.title'|trans({'%number%': times|format_number}) }}</h2>
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.group.times.loading'|trans }}</p>
+                    <a href="{{ path('data_import_not_added_times', scope) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo-frame="_top" rel="nofollow">
+                        {{ 'data_import.group.times.open'|trans }}
+                    </a>
+                </div>
+            </turbo-frame>
+        </div>
+    {% endif %}
 {% endif %}
 
 {% if said > 0 %}
     <div class="card card-body shadow-sm mb-3" data-testid="import-group-said" data-rows="{{ said }}">
-        <h2 class="h6 mb-1">{{ 'data_import.group.said.title'|trans({'%number%': said|format_number}) }}</h2>
-        <p class="fs-sm text-muted mb-2">{{ 'data_import.group.said.hint'|trans }}</p>
+        {% if cards %}
+            <p class="mb-1">{{ 'data_import.after.done.card.said'|trans({'%count%': said, '%number%': said|format_number}) }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.said_already'|trans, testid: 'import-explain-said'}, with_context = false) }}
+        {% else %}
+            <h2 class="h6 mb-1">{{ 'data_import.group.said.title'|trans({'%number%': said|format_number}) }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.group.said.hint'|trans }}</p>
+        {% endif %}
         <div class="d-flex flex-wrap gap-2">
             {% for action, key in {add_anyway: 'missing', leave_out: 'leave_out'} %}
-                <form action="{{ path('data_import_group_answer_start', {importId: import_id}) }}" method="post">
+                <form action="{{ path('data_import_group_answer_start', {importId: import_id}) }}" method="post"{% if cards and action == 'add_anyway' %} class="flex-grow-1"{% endif %}>
                     <input type="hidden" name="_token" value="{{ csrf }}">
                     <input type="hidden" name="request_id" value="{{ group_request_ids[key] }}">
                     <input type="hidden" name="code" value="said_already_on_profile">
                     <input type="hidden" name="action" value="{{ action }}">
                     {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
-                    <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-outline-primary' : 'btn-link' }} text-wrap" style="min-height: 44px;" data-testid="import-group-said-{{ key }}">
+                    <button type="submit" class="btn {{ action == 'add_anyway' ? (first == 'said' ? 'btn-primary' : 'btn-outline-primary') : 'btn-link' }} text-wrap{{ cards and action == 'add_anyway' ? ' w-100' : '' }}" style="min-height: {{ cards and action == 'add_anyway' ? 48 : 44 }}px;" data-testid="import-group-said-{{ key }}">
                         {{ ('data_import.group.said.' ~ key)|trans({'%number%': said|format_number}) }}
                     </button>
                 </form>
@@ -50,18 +80,20 @@
     </div>
 {% endif %}
 
-{% if people > 0 and people_link|default(false) %}
-    <p class="fs-sm" data-testid="import-group-people">
-        <a href="{{ path('data_import_not_added', scope) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
-            <i class="bi bi-people me-2" aria-hidden="true"></i>{{ 'data_import.group.people_link'|trans({'%number%': people|format_number}) }}
-        </a>
-    </p>
-{% endif %}
-
 {% if duplicates > 0 %}
-    <p class="fs-sm text-muted" data-testid="import-group-one-by-one" data-rows="{{ duplicates }}">
-        <i class="bi bi-files me-2" aria-hidden="true"></i>{{ 'data_import.group.one_by_one'|trans({'%number%': duplicates|format_number}) }}
-    </p>
+    {% if cards %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-group-one-by-one" data-rows="{{ duplicates }}">
+            <p class="mb-1">{{ 'data_import.after.done.card.duplicates'|trans({'%count%': duplicates, '%number%': duplicates|format_number}) }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.possible_duplicate'|trans, fold: true, testid: 'import-explain-duplicate'}, with_context = false) }}
+            <a href="{{ path('data_import_not_added', scope) }}" class="btn {{ first == 'duplicates' ? 'btn-primary' : 'btn-outline-primary' }} w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-group-one-by-one-open" rel="nofollow">
+                {{ 'data_import.after.done.card.duplicates_button'|trans }}
+            </a>
+        </div>
+    {% else %}
+        <p class="fs-sm text-muted" data-testid="import-group-one-by-one" data-rows="{{ duplicates }}">
+            <i class="bi bi-files me-2" aria-hidden="true"></i>{{ 'data_import.group.one_by_one'|trans({'%number%': duplicates|format_number}) }}
+        </p>
+    {% endif %}
 {% endif %}
 
 {% if twins > 0 %}

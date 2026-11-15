@@ -1,9 +1,17 @@
 {% extends 'base.html.twig' %}
 
 {#
-    "Sheets and columns" of one import (docs/features/data-import/columns-screen.md): every sheet of the file as a
-    card - its name, what MySpeedPuzzling takes it for (one tap changes it), how its rows fared - the sheets that
-    wait for an answer first. Phone first: one column of cards, every target 44 px.
+    Step 2 of the import's flow, "Check" (docs/features/data-import/guided-flow.md §5.4) - only what needs the player:
+
+    - a question (`question` is set): ONE question a screen, across all sheets - the sheet's name, the question, the
+      player's own values read each way. A tap on an answer is the action: it saves and brings the next question.
+      No answer is preselected; "Later" leaves it. The screen has no primary button of its own - the answers are it.
+    - the summary: ONE sentence per sheet of what its rows are added as, the sheets we are not sure about first, the
+      sheets that are not imported as one folded line, and ONE primary - "Looks right - continue". Everything else
+      about a sheet (what it is, what a row is, every column) is behind "Change": the sheet's own page.
+
+    Phone first: one column, every target 44 px. Sheet names, headers and example values are the player's own text:
+    escaped, never part of an address.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -16,118 +24,251 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-columns-page" data-import-flow-screen="columns">
-    <h1 class="h3 mb-2">{{ 'data_import.columns.title'|trans }}</h1>
-    <p class="text-muted fs-sm">{{ 'data_import.columns.intro'|trans }}</p>
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-columns-page" data-import-flow-screen="columns" data-mode="{{ question is null ? 'summary' : 'question' }}">
+{% if question is not null %}
+    {# ---------------------------------------------------------------- One question ---------------------------------------------------------------- #}
+    {% set sheet_name = question_sheet.title != '' ? question_sheet.title : 'data_import.sheets.untitled'|trans %}
+    {% set column_name = question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter}) %}
+    <p class="fs-sm text-muted mb-1" data-testid="import-check-question-of">{{ 'data_import.check.question_of'|trans({'%number%': question_number|format_number, '%total%': question_total|format_number}) }}</p>
+    <p class="fw-medium text-break mb-1" data-testid="import-check-question-sheet">{{ 'data_import.check.sheet'|trans({'%sheet%': sheet_name}) }}</p>
+
+    <form action="{{ path('data_import_sheet_confirm', {importId: import.importId, sheetId: question_sheet.sheetId}) }}" method="post" data-testid="import-check-question" data-question="{{ question.id }}" data-type="{{ question.type }}">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <input type="hidden" name="version" value="{{ question_sheet.mappingVersion }}">
+        <input type="hidden" name="back" value="check">
+        <input type="hidden" name="q" value="{{ question_place }}">
+
+        <h1 class="h4 mb-3 text-break" data-testid="import-check-question-title">
+            {{- ('data_import.columns.question.' ~ question.type)|trans({'%column%': column_name, '%title%': question.examples|first|default('')}) -}}
+        </h1>
+
+        {% if question.type == 'sheet_solving_type' %}
+            {# The sheet's title says pair or team and no column names the partners: asked, never taken either way #}
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.columns.sheet.solving_question_hint'|trans }}</p>
+            {{ include('data_import/_sheet_partner.html.twig', {sheet_partner: sheet_partner}) }}
+        {% endif %}
+
+        {# An answer is a button: the tap saves it. Nothing is chosen for the player #}
+        <div class="d-grid gap-2 mt-3">
+            {% for choice in question.choices %}
+                <button type="submit" name="answers[{{ question.id }}]" value="{{ choice.value }}" class="btn btn-outline-primary text-start text-wrap p-3" style="min-height: 56px;" data-testid="import-check-answer" data-value="{{ choice.value }}">
+                    <span class="fw-medium d-block">{{ choice.label is null ? choice.value : choice.label|trans }}</span>
+                    {% for reading in choice.readings %}
+                        <span class="d-block fs-sm fw-normal text-break" data-testid="import-check-reading">
+                            {{ reading.example }} →
+                            {% if reading.time is not null %}
+                                {{ reading.time }}
+                            {% elseif reading.month %}
+                                {{ reading.date|format_datetime(pattern='LLLL y', timezone='UTC') }}
+                            {% else %}
+                                {{ reading.date|format_date('long', timezone='UTC') }}
+                            {% endif %}
+                        </span>
+                    {% endfor %}
+                </button>
+            {% endfor %}
+        </div>
+
+        {% if question.type == 'year' %}
+            <div class="mt-3">
+                <label class="form-label fs-sm fw-medium mb-1" for="check-year-other">{{ 'data_import.columns.sheet.year_other'|trans }}</label>
+                <div class="d-flex gap-2">
+                    <input type="number" inputmode="numeric" min="1950" max="2100" step="1" name="year_other" id="check-year-other" class="form-control" style="min-height: 44px; font-size: 16px;" placeholder="2024" data-testid="import-check-year">
+                    <button type="submit" name="answers[{{ question.id }}]" value="other" class="btn btn-outline-primary text-nowrap" style="min-height: 44px;" data-testid="import-check-year-use">{{ 'data_import.check.use_year'|trans }}</button>
+                </div>
+            </div>
+        {% endif %}
+    </form>
+
+    {% if question.rows > 0 %}
+        <p class="fw-medium mt-3 mb-1" data-testid="import-check-decides" data-rows="{{ question.rows }}">{{ 'data_import.check.decides'|trans({'%count%': question.rows, '%number%': question.rows|format_number}) }}</p>
+        {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.wait_for_answer'|trans, testid: 'import-explain-wait'}, with_context = false) }}
+    {% endif %}
+
+    <div class="d-flex flex-wrap column-gap-4 mt-2">
+        <a href="{{ path('data_import_columns', {importId: import.importId}|merge(later)) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-check-later" rel="nofollow">
+            {{ 'data_import.check.later'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
+        </a>
+        <a href="{{ path('data_import_columns', {importId: import.importId, summary: 1}) }}" class="d-inline-flex align-items-center text-muted" style="min-height: 44px;" data-testid="import-check-all-sheets" rel="nofollow">
+            {{ 'data_import.check.all_sheets'|trans }}
+        </a>
+    </div>
+
+    {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true}, with_context = false) }}
+{% else %}
+    {# ---------------------------------------------------------------- The summary ---------------------------------------------------------------- #}
+    <h1 class="h3 mb-3">{{ 'data_import.check.headline'|trans }}</h1>
 
     {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: summary.working, revision: revision}) }}
 
     <turbo-frame id="import-sheets-live" data-import-live target="_top">
-        {# One number a line, a zero is not printed (guided-flow.md §2 rule 5) #}
-        <ul class="list-unstyled fs-sm fw-medium mb-3" data-testid="import-summary" data-ready="{{ summary.ready }}" data-look="{{ summary.look }}" data-waiting="{{ summary.waiting }}" data-left-out="{{ summary.left_out }}">
-            {% if summary.ready > 0 %}<li>{{ 'data_import.columns.summary_line.ready'|trans({'%count%': summary.ready, '%number%': summary.ready|format_number}) }}</li>{% endif %}
-            {% if summary.look > 0 %}
-                <li><a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.columns.summary_line.look'|trans({'%count%': summary.look, '%number%': summary.look|format_number}) }}</a></li>
+        <ul class="list-unstyled mb-3" data-testid="import-check-sheets" data-ready="{{ summary.ready }}" data-look="{{ summary.look }}" data-waiting="{{ summary.waiting }}" data-left-out="{{ summary.left_out }}">
+            {% for sheet in sheets %}
+                {% set state = sheet.state %}
+                {% set sheet_name = sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans %}
+                {% set sheet_url = path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) %}
+                {% set added_as = sheet.addedAs %}
+                {% set rows = sheet.puzzleRows %}
+                {% set mark = state in ['recognising', 'parsing'] ? 'working' : (sheet.asksThePlayer or sheet.failed or sheet.isUnsure ? 'check' : 'ok') %}
+                <li class="d-flex gap-2 py-2 border-bottom" data-testid="check-sheet" data-sheet-state="{{ state }}" data-mark="{{ mark }}" data-added-as="{{ added_as }}">
+                    <span class="flex-shrink-0 pt-1" style="width: 1.25rem;">
+                        {% if mark == 'working' %}
+                            <span class="spinner-border spinner-border-sm text-muted" aria-hidden="true"></span>
+                        {% elseif mark == 'check' %}
+                            <i class="bi bi-exclamation-circle text-warning" aria-hidden="true"></i>
+                        {% else %}
+                            <i class="bi bi-check-lg text-success" aria-hidden="true"></i>
+                        {% endif %}
+                    </span>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="fw-medium text-break" data-testid="check-sheet-title">{{ 'data_import.add_review.quoted'|trans({'%text%': sheet_name}) }}</div>
+
+                        {% if state == 'failed' %}
+                            <div class="fs-sm" data-testid="check-sheet-line">{{ 'data_import.check.sheet_failed'|trans }}</div>
+                        {% elseif state == 'recognising' %}
+                            <div class="fs-sm text-muted" data-testid="check-sheet-line">{{ 'data_import.sheets.recognising'|trans }}</div>
+                        {% elseif state == 'parsing' %}
+                            <div class="fs-sm text-muted" data-testid="check-sheet-line">{{ 'data_import.sheets.parsing'|trans }}</div>
+                        {% elseif not sheet.kindSure %}
+                            <div class="fs-sm" data-testid="check-sheet-line">{{ 'data_import.check.unsure_kind'|trans({'%count%': sheet.rows, '%number%': sheet.rows|format_number}) }}</div>
+                        {% else %}
+                            {# The ONE sentence: what the sheet's rows are added as #}
+                            {% if added_as is not null %}
+                                <div class="fs-sm" data-testid="check-sheet-line">{{ ('data_import.check.as.' ~ added_as)|trans({'%count%': rows, '%number%': rows|format_number}) }}</div>
+                            {% endif %}
+                            {% if sheet.asksThePlayer %}
+                                <div class="fs-sm fw-medium" data-testid="check-sheet-questions">{{ 'data_import.check.questions_wait'|trans({'%count%': sheet.questions, '%number%': sheet.questions|format_number}) }}</div>
+                            {% elseif sheet.columnsToCheck > 0 %}
+                                <div class="fs-sm fw-medium" data-testid="check-sheet-columns">{{ 'data_import.check.unsure_columns'|trans({'%count%': sheet.columnsToCheck, '%number%': sheet.columnsToCheck|format_number}) }}</div>
+                            {% endif %}
+                            {% if sheet.knownExport is not null %}
+                                <div class="fs-sm text-muted" data-testid="check-sheet-known">{{ ('data_import.columns.sheet.known_export.' ~ sheet.knownExport)|trans }}</div>
+                            {% elseif sheet.fieldsRecognised is not empty %}
+                                {# What its columns were recognised as, in one muted line #}
+                                <div class="fs-sm text-muted text-break" data-testid="check-sheet-fields">
+                                    {{- sheet.fieldsRecognised|filter(field => field not in ['computed', 'ready_made_field'])|map(field => ('data_import.columns.field.' ~ field)|trans)|join(', ') -}}
+                                </div>
+                            {% endif %}
+                            {% if sheet.rememberedLayout is not null %}
+                                <div class="fs-sm text-muted" data-testid="check-sheet-remembered"><i class="bi bi-bookmark-check me-1" aria-hidden="true"></i>{{ 'data_import.check.like_last_time'|trans }}</div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="flex-shrink-0">
+                        {% if mark == 'working' %}
+                        {% elseif sheet.asksThePlayer %}
+                            <a href="{{ path('data_import_columns', {importId: import.importId}|merge((first_question_of[sheet.sheetId] ?? 0) > 0 ? {q: first_question_of[sheet.sheetId]} : {})) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="check-sheet-answer" rel="nofollow">{{ 'data_import.check.answer'|trans }}</a>
+                        {% elseif mark == 'check' %}
+                            <a href="{{ sheet_url }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="check-sheet-look">{{ (sheet.kindSure ? 'data_import.check.have_a_look' : 'data_import.check.tell_us')|trans }}</a>
+                        {% else %}
+                            <a href="{{ sheet_url }}" class="d-inline-flex align-items-center fs-sm" style="min-height: 44px;" data-testid="check-sheet-change">{{ 'data_import.columns.change'|trans }}</a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+
+            {% if not_imported is not empty %}
+                {# The sheets that are not puzzles: one folded line #}
+                <li class="py-2 border-bottom" data-testid="check-not-imported" data-sheets="{{ not_imported|length }}">
+                    <details>
+                        <summary class="d-flex gap-2" style="min-height: 44px; cursor: pointer;">
+                            <span class="flex-shrink-0 pt-1" style="width: 1.25rem;"><i class="bi bi-dash-lg text-muted" aria-hidden="true"></i></span>
+                            <span class="flex-grow-1" style="min-width: 0;">
+                                <span class="d-block text-break" data-testid="check-not-imported-names">
+                                    {%- set names = not_imported|slice(0, 2)|map(sheet => 'data_import.add_review.quoted'|trans({'%text%': sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans}))|join(', ') -%}
+                                    {%- if not_imported|length > 2 -%}
+                                        {{ 'data_import.check.and_more'|trans({'%names%': names, '%count%': not_imported|length - 2, '%number%': (not_imported|length - 2)|format_number}) }}
+                                    {%- else -%}
+                                        {{ names }}
+                                    {%- endif -%}
+                                </span>
+                                <span class="d-block fs-sm text-muted">{{ 'data_import.check.not_imported'|trans }}</span>
+                            </span>
+                            <span class="flex-shrink-0 fs-sm text-primary pt-1">{{ 'data_import.check.show'|trans }}</span>
+                        </summary>
+                        <ul class="list-unstyled mb-0 ps-4">
+                            {% for sheet in not_imported %}
+                                <li class="d-flex flex-wrap align-items-center justify-content-between column-gap-2" data-testid="check-not-imported-sheet">
+                                    <span class="text-break">{{ sheet.title != '' ? sheet.title : 'data_import.sheets.untitled'|trans }}</span>
+                                    <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) }}" class="d-inline-flex align-items-center fs-sm" style="min-height: 44px;" data-testid="check-not-imported-open">{{ 'data_import.check.holds_puzzles'|trans }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                </li>
             {% endif %}
-            {% if summary.waiting > 0 %}<li>{{ 'data_import.columns.summary_line.waiting'|trans({'%count%': summary.waiting, '%number%': summary.waiting|format_number}) }}</li>{% endif %}
-            {% if summary.left_out > 0 %}<li class="fw-normal text-muted">{{ 'data_import.columns.summary_line.left_out'|trans({'%count%': summary.left_out, '%number%': summary.left_out|format_number}) }}</li>{% endif %}
         </ul>
 
-        {# Right after the first layout: what the matching found (pairing-screens.md "We found N") - step 4 is the way to it #}
-        {% if pairing.puzzles > 0 %}
-            <div class="fs-sm text-muted mb-3" data-testid="import-found-puzzles">
-                <p class="mb-0">{{ 'data_import.puzzles.we_found'|trans({'%found%': pairing.found|format_number, '%puzzles%': pairing.puzzles|format_number}) }}</p>
-                <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-found-puzzles-open">{{ 'data_import.puzzles.open'|trans }}</a>
-            </div>
+        {% if readings is not empty %}
+            {# How dates and times are read - each reading once for the file; a sheet's "Change" changes its own #}
+            {% set durations = readings|filter(reading => reading.type == 'duration') %}
+            <ul class="list-unstyled fs-sm text-muted mb-3" data-testid="import-check-readings">
+                {% for reading in readings|filter(reading => reading.type != 'duration') %}
+                    <li data-testid="import-check-reading-line" data-reading="{{ reading.type }}" data-value="{{ reading.value }}">
+                        {%- if reading.type == 'date_order' -%}
+                            {{ ('data_import.add_review.read.date_order.' ~ reading.value)|trans }}
+                        {%- elseif reading.type == 'short_dates' -%}
+                            {{ 'data_import.add_review.read.short_dates'|trans({'%reading%': ('data_import.columns.answer.short_dates.' ~ reading.value)|trans}) }}
+                        {%- else -%}
+                            {{ 'data_import.add_review.read.year'|trans({'%year%': reading.value}) }}
+                        {%- endif -%}
+                    </li>
+                {% endfor %}
+                {% if durations is not empty %}
+                    <li data-testid="import-check-reading-line" data-reading="duration">
+                        {{- 'data_import.add_review.read.duration'|trans({'%reading%': durations|map(reading => ('data_import.columns.answer.duration.' ~ reading.value)|trans)|join(' · ')}) -}}
+                    </li>
+                {% endif %}
+            </ul>
         {% endif %}
 
-        {% for sheet in sheets %}
-            {% set state = sheet.state %}
-            <div class="card shadow-sm mb-3{{ sheet.asksThePlayer ? ' border-warning' : '' }}" data-testid="sheet-card" data-sheet-state="{{ state }}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <h2 class="h5 mb-1 text-break" data-testid="sheet-card-title">
-                            {%- if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif -%}
-                        </h2>
-                        <span class="fs-xs text-muted text-nowrap flex-shrink-0 pt-1">{{ 'data_import.columns.card.rows'|trans({'%number%': sheet.rows|format_number}) }}</span>
-                    </div>
-                    {% if sheet.hidden %}
-                        <span class="badge bg-faded-warning text-warning mb-1"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
-                    {% endif %}
+        {% if sheets|filter(sheet => sheet.rememberedLayout is not null) is not empty %}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.set_ups'|trans, fold: true, summary: 'data_import.explain.set_ups_summary'|trans, testid: 'import-explain-set-ups'}, with_context = false) }}
+        {% endif %}
 
-                    {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
+        {# Every sheet as the file has it - rows, columns, what became of its rows: read only, folded #}
+        {{ include('data_import/_sheets_table.html.twig', {sheets: all_sheets}, with_context = false) }}
 
-                    {% if sheet.rememberedLayout is not null %}
-                        <p class="fs-sm text-muted mb-0 mt-2 text-break" data-testid="sheet-card-remembered">
-                            <i class="bi bi-bookmark-check me-1"></i>{{ ('data_import.layouts.notice.' ~ sheet.rememberedLayout.how)|trans({'%name%': sheet.rememberedLayout.name != '' ? sheet.rememberedLayout.name : 'data_import.layouts.unnamed'|trans}) }}
-                        </p>
-                    {% endif %}
+        {% if summary.look > 0 %}
+            {# The other half of step 2 (§5.5) - "Continue" leads there by itself #}
+            <p class="fs-sm mb-3" data-testid="import-check-rows">
+                <a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.columns.summary_line.look'|trans({'%count%': summary.look, '%number%': summary.look|format_number}) }}</a>
+            </p>
+        {% endif %}
 
-                    {% if sheet.mapped and sheet.kind is not null %}
-                        {# One tap changes what the sheet is: the choices fold out, each a button of the same form #}
-                        <details class="mt-3" data-testid="sheet-card-kind">
-                            <summary class="d-flex align-items-center gap-2" style="min-height: 44px; cursor: pointer;">
-                                <span class="text-muted fs-sm">{{ 'data_import.columns.card.this_is'|trans }}</span>
-                                <span class="fw-medium" data-testid="sheet-card-kind-name" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
-                                <span class="ms-auto fs-sm text-primary text-nowrap"><i class="bi bi-pencil me-1"></i>{{ 'data_import.columns.change'|trans }}</span>
-                            </summary>
-                            <form action="{{ path('data_import_sheet_confirm', {importId: import.importId, sheetId: sheet.sheetId}) }}" method="post" class="d-grid gap-2 mt-2">
-                                <input type="hidden" name="_token" value="{{ csrf }}">
-                                <input type="hidden" name="version" value="{{ sheet.mappingVersion }}">
-                                <input type="hidden" name="back" value="list">
-                                {% for kind in ['results', 'owned', 'wish_list', 'puzzle_list', 'not_puzzles', 'somebody_else'] %}
-                                    <button type="submit" name="kind" value="{{ kind }}"
-                                            class="btn btn-outline-primary{{ kind == sheet.kind.value ? ' active' : '' }} text-wrap text-start"
-                                            style="min-height: 44px;" data-testid="sheet-card-kind-{{ kind }}"
-                                            {% if kind == sheet.kind.value %}aria-pressed="true"{% endif %}>
-                                        {{ ('data_import.sheets.kind.' ~ kind)|trans }}
-                                    </button>
-                                {% endfor %}
-                            </form>
-                        </details>
-
-                        <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) }}"
-                           class="btn btn-outline-primary w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
-                           style="min-height: 44px;" data-testid="sheet-card-open">
-                            {% if state == 'waiting' %}
-                                <i class="bi bi-question-circle me-1"></i>{{ 'data_import.columns.card.answer'|trans }}
-                            {% elseif sheet.asksThePlayer and state == 'parsed' %}
-                                {# A question that decides a few rows: the rest of the sheet is read already #}
-                                <i class="bi bi-question-circle me-1"></i><span data-testid="sheet-card-answer-some">{{ 'data_import.columns.card.answer_some'|trans({'%questions%': sheet.questions|format_number, '%rows%': sheet.rowsWaiting|format_number}) }}</span>
-                            {% else %}
-                                <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.card.open'|trans }}
-                            {% endif %}
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-
-        {{ include('data_import/_sheets_table.html.twig', {sheets: sheets}, with_context = false) }}
-
-        {# The ONE primary of the screen: a question first, else on to the next step #}
-        {% set asking = sheets|filter(sheet => sheet.asksThePlayer)|first %}
-        {% if asking %}
+        {# The ONE primary of the screen #}
+        {% if summary.working %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+        {% elseif questions > 0 %}
             {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, primary: {
-                label: 'data_import.columns.card.answer'|trans,
-                url: path('data_import_sheet', {importId: import.importId, sheetId: asking.sheetId}),
+                label: 'data_import.flow.primary.questions'|trans({'%count%': questions, '%number%': questions|format_number}),
+                url: path('data_import_columns', {importId: import.importId}),
                 icon: 'bi-question-circle',
                 testid: 'import-flow-answer',
+                nofollow: true,
             }}, with_context = false) }}
             <a href="{{ path('data_import_detail', {importId: import.importId, after: 'check'}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-continue" rel="nofollow">{{ 'data_import.flow.continue_later'|trans }}</a>
-        {% elseif not summary.working %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: true}, with_context = false) }}
+        {% elseif unsure is not empty %}
+            {% set first_unsure = unsure|first %}
+            {{ include('data_import/_flow_footer.html.twig', {
+                import: import,
+                continue_after: 'check',
+                continue_label: unsure|length == 1
+                    ? 'data_import.check.continue_one'|trans({'%sheet%': first_unsure.title != '' ? first_unsure.title : 'data_import.sheets.untitled'|trans})
+                    : 'data_import.check.continue_many'|trans,
+                offer_add: true,
+            }, with_context = false) }}
         {% else %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: true}, with_context = false) }}
         {% endif %}
     </turbo-frame>
 
     {% if saved_layouts > 0 %}
         <a href="{{ path('data_import_layouts', {return: path('data_import_columns', {importId: import.importId})}) }}"
            class="btn btn-link px-0 d-flex align-items-center" style="min-height: 44px;" data-testid="import-saved-layouts">
-            <i class="bi bi-bookmarks me-1"></i>{{ 'data_import.layouts.link'|trans({'%number%': saved_layouts|format_number}) }}
+            <i class="bi bi-bookmarks me-1" aria-hidden="true"></i>{{ 'data_import.layouts.link'|trans({'%number%': saved_layouts|format_number}) }}
         </a>
     {% endif %}
-
+{% endif %}
 </div>
 {% endblock %}

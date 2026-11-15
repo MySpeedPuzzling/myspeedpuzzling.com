@@ -259,12 +259,17 @@ SQL, ['rowId' => $said[0]]);
         self::assertSame(['unusual_time', 'unusual_time', 'unusual_time', 'unusual_time'], array_map(fn (string $row): null|string => $this->rowNow($row)['failure'], $fast));
         TestingLogin::asPlayer($this->browser, $playerId);
 
-        // The done page holds the group as a frame of its own (the summary asks the time verification)
+        // The done page holds the group as a question card: one sentence, what an unusual time is, and ONE button -
+        // the screen's primary - to the summary (which asks the time verification)
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/batches/' . $batchId);
         $group = $crawler->filter('[data-testid="import-group-times"]');
         self::assertSame('4', $group->attr('data-rows'));
-        self::assertSame('/en/import/' . $importId . '/not-added/times?batch=' . $batchId, $group->filter('turbo-frame#import-group-times')->attr('src'));
-        self::assertSame('/en/import/' . $importId . '/not-added/times?batch=' . $batchId, $group->filter('a')->attr('href'));
+        self::assertStringContainsString('4 times are much faster or slower than your others.', self::spaced($group->text()));
+        self::assertSame('/en/import/' . $importId . '/not-added/times?batch=' . $batchId, $group->filter('a.btn-primary')->attr('href'));
+        self::assertSame(['Look at these times'], $crawler->filter('[data-testid="import-batch-page"] .btn-primary')->each(static fn (\Symfony\Component\DomCrawler\Crawler $button): string => self::spaced($button->text())));
+        // ... and the list of the rows that wait holds it as a frame of its own
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/not-added?batch=' . $batchId);
+        self::assertSame('/en/import/' . $importId . '/not-added/times?batch=' . $batchId, $list->filter('[data-testid="import-group-times"] turbo-frame#import-group-times')->attr('src'));
         // The reasons with one action stand first
         self::assertSame('unusual_time', $crawler->filter('[data-testid="import-batch-reason"]')->first()->attr('data-code'));
 

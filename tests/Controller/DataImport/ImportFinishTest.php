@@ -190,7 +190,8 @@ final class ImportFinishTest extends WebTestCase
         self::assertNull($group->attr('open'));
         self::assertSame('Finished (1)', self::spaced($group->filter('summary')->text()));
         self::assertStringContainsString('history.xlsx', $group->text());
-        self::assertSame('1', $group->filter('[data-testid="data-import-added"]')->attr('data-results'));
+        self::assertMatchesRegularExpression('/^Added 1 on .+\.$/', self::spaced($group->filter('[data-testid="data-import-status"]')->text()));
+        self::assertSame('See what was added', self::spaced($group->filter('[data-testid="data-import-button"]')->text()));
 
         // The engine refuses a finished import the way it refuses any import that is not being set up
         self::assertSame(AddImportRowsOutcome::NOT_ADDABLE, $this->add($importId, $playerId)->status);

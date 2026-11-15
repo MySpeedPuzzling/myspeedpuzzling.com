@@ -20,8 +20,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Undo (docs/features/data-import/adding-screens.md "Undo"): one row, one "Add", or everything the import added is
- * taken back (UndoImportRows) - the player's own word, from the form of the step before. POST + CSRF, `request_id`
+ * Undo (docs/features/data-import/adding-screens.md "Undo"): one row, several ticked rows (`rows[]` - ONE Undo of
+ * them all, the engine's own scope `rows`), one "Add", or everything the import added is taken back (UndoImportRows) - the player's own word, from the form of the step before. POST + CSRF, `request_id`
  * as for "Add" (the same form sent again answers the same Undo); always a redirect: to the Undo's page, which
  * follows it, or back with "nothing to take back".
  *
@@ -31,6 +31,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class StartImportUndoController extends AbstractController
 {
+    /** The rows one "Undo the ticked" takes: what a few pages of the list can tick (a page shows fifty) */
+    public const int MAX_ROWS = 200;
+
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
@@ -57,6 +60,10 @@ final class StartImportUndoController extends AbstractController
         $form = $request->request;
         $scope = DataImportUndoScope::tryFrom($form->getString('scope'));
         $rowId = strtolower($form->getString('row'));
+        // "Undo the ticked" (guided-flow.md §7): several rows in ONE Undo - the same scope as one row, with their ids
+        $rowIds = array_values(array_unique(array_map(strtolower(...), array_filter($form->all('rows'), static fn (mixed $id): bool => is_string($id) && Uuid::isValid($id)))));
+        $rowIds = $rowIds === [] && Uuid::isValid($rowId) ? [$rowId] : array_slice($rowIds, 0, self::MAX_ROWS);
+        $rowId = count($rowIds) === 1 ? $rowIds[0] : '';
         $batchId = strtolower($form->getString('batch'));
         $requestId = $form->getString('request_id');
         $back = $this->redirectToRoute('data_import_added', ['importId' => $importId]);
@@ -64,7 +71,7 @@ final class StartImportUndoController extends AbstractController
         if (
             $scope === null
             || Uuid::isValid($requestId) === false
-            || ($scope === DataImportUndoScope::Rows && Uuid::isValid($rowId) === false)
+            || ($scope === DataImportUndoScope::Rows && $rowIds === [])
             || ($scope === DataImportUndoScope::Batch && Uuid::isValid($batchId) === false)
         ) {
             $this->addFlash('info', $this->translator->trans('data_import.undo.flash.nothing'));
@@ -78,8 +85,9 @@ final class StartImportUndoController extends AbstractController
             $player->playerId,
             $scope,
             batchId: $scope === DataImportUndoScope::Batch ? $batchId : null,
-            rowIds: $scope === DataImportUndoScope::Rows ? [$rowId] : null,
-            includeEdited: $scope === DataImportUndoScope::Rows && $form->getString('include_edited') === '1',
+            rowIds: $scope === DataImportUndoScope::Rows ? $rowIds : null,
+            // "Remove it too" is said about one named row only - never about a tick of several
+            includeEdited: $scope === DataImportUndoScope::Rows && count($rowIds) === 1 && $form->getString('include_edited') === '1',
         ))->last(HandledStamp::class)?->getResult();
         assert($outcome instanceof AddImportRowsOutcome);
 
@@ -93,7 +101,7 @@ final class StartImportUndoController extends AbstractController
             'importId' => $importId,
             'undoId' => $outcome->id,
             // Which row it was - an id - so the Undo's page can offer "choose its puzzle again"
-            'row' => $scope === DataImportUndoScope::Rows ? $rowId : null,
+            'row' => $scope === DataImportUndoScope::Rows && $rowId !== '' ? $rowId : null,
         ]));
     }
 }

@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Results\DataImportOverview;
 use SpeedPuzzling\Web\Results\DataImportProgress;
 use SpeedPuzzling\Web\Results\DataImportSheetOverview;
+use SpeedPuzzling\Web\Services\DataImport\ImportSheetReadings;
+use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportReadFailure;
@@ -19,6 +21,7 @@ use SpeedPuzzling\Web\Value\DataImportSheetKind;
 use SpeedPuzzling\Web\Value\DataImportSource;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use SpeedPuzzling\Web\Value\GoogleSheetFetchFailure;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 
 /**
  * The signed-in player's own imports (docs/features/data-import/upload.md) - for their own pages only: the caller
@@ -312,7 +315,22 @@ SELECT
     jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions,
     data_import_sheet.mapping -> 'remembered' ->> 'how' AS remembered_how,
     data_import_sheet.mapping -> 'remembered' ->> 'id' AS remembered_id,
-    data_import_sheet.mapping -> 'remembered' ->> 'name' AS remembered_name
+    data_import_sheet.mapping -> 'remembered' ->> 'name' AS remembered_name,
+    -- What the summary of step 2 says in one sentence a sheet (guided-flow.md §5.4): read from the stored mapping
+    data_import_sheet.mapping ->> 'rowMeaning' AS row_meaning,
+    data_import_sheet.mapping ->> 'kindCertainty' AS kind_certainty,
+    data_import_sheet.mapping ->> 'layout' AS known_export,
+    data_import_sheet.options,
+    (
+        SELECT jsonb_agg(mapped.col ->> 'field' ORDER BY mapped.position)
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(data_import_sheet.mapping -> 'columns') = 'array' THEN data_import_sheet.mapping -> 'columns' ELSE '[]'::jsonb END) WITH ORDINALITY AS mapped(col, position)
+        WHERE mapped.col ->> 'field' IS NOT NULL
+    ) AS fields,
+    (
+        SELECT COUNT(*)
+        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(data_import_sheet.mapping -> 'columns') = 'array' THEN data_import_sheet.mapping -> 'columns' ELSE '[]'::jsonb END) AS mapped(col)
+        WHERE mapped.col ->> 'certainty' <> 'certain' AND mapped.col ->> 'role' IS NULL
+    ) AS columns_to_check
 FROM data_import_sheet
 INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
 WHERE data_import_sheet.import_id = :importId
@@ -321,7 +339,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int, remembered_how: null|string, remembered_id: null|string, remembered_name: null|string}> $rows */
+        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int, remembered_how: null|string, remembered_id: null|string, remembered_name: null|string, row_meaning: null|string, kind_certainty: null|string, known_export: null|string, options: null|string, fields: null|string, columns_to_check: int}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -348,6 +366,33 @@ SQL;
             rowsWaiting: $row['rows_waiting'],
             questions: $row['questions'],
             rememberedLayout: $row['remembered_how'] === null ? null : new RememberedLayout($row['remembered_how'], $row['remembered_id'] ?? '', $row['remembered_name'] ?? ''),
+            rowMeaning: $row['row_meaning'],
+            solvingType: self::solvingTypeOf(self::decoded($row['options'])),
+            fieldsRecognised: array_values(array_unique(array_filter(self::decoded($row['fields']) ?? [], is_string(...)))),
+            columnsToCheck: $row['columns_to_check'],
+            kindSure: $row['kind_certainty'] === null || $row['kind_certainty'] === ColumnCertainty::Certain->value,
+            knownExport: $row['known_export'],
+            readings: ImportSheetReadings::of(self::decoded($row['options'])),
         ), $rows);
+    }
+
+    /**
+     * @param null|array<mixed> $options `data_import_sheet.options`
+     */
+    private static function solvingTypeOf(null|array $options): null|string
+    {
+        $type = $options['solvingType'] ?? null;
+
+        return is_string($type) && PuzzlingType::tryFrom($type) !== null ? $type : null;
+    }
+
+    /**
+     * @return null|array<mixed>
+     */
+    private static function decoded(null|string $json): null|array
+    {
+        $decoded = $json === null ? null : json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }

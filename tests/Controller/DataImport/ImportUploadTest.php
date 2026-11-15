@@ -418,7 +418,8 @@ final class ImportUploadTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/import');
         $card = $crawler->filter('[data-testid="data-import"]');
         self::assertCount(1, $card);
-        self::assertSame('Finishing the upload', $card->filter('[data-testid="import-status"]')->text());
+        self::assertSame('The upload did not finish.', trim($card->filter('[data-testid="data-import-status"]')->text()));
+        self::assertSame('Finish the upload', trim($card->filter('[data-testid="finish-upload"]')->text()));
         self::assertSame('/en/import/' . $importId . '/finish', $card->filter('form')->attr('action'));
 
         // Nothing arrived yet: said on the import's page, which keeps the button

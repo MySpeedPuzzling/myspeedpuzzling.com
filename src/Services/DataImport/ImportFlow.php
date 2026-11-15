@@ -109,10 +109,12 @@ readonly final class ImportFlow
         $questions = 0;
         $look = 0;
         $failed = 0;
+        $unsure = 0;
         $working = false;
 
         foreach ($sheets as $sheet) {
             $state = $sheet->state();
+            $unsure += $sheet->isUnsure() && $sheet->asksThePlayer() === false ? 1 : 0;
             $working = $working || $state === 'recognising' || $state === 'parsing';
             $failed += $sheet->failed ? 1 : 0;
             $questions += $sheet->asksThePlayer() ? $sheet->questions : 0;
@@ -131,6 +133,12 @@ readonly final class ImportFlow
 
         if ($failed > 0) {
             $checkLines[] = new ImportFlowText('data_import.flow.check.failed', $failed);
+        }
+
+        if ($unsure > 0) {
+            // "Please check" (§2): the step is not passed by itself - but it is never the one primary action either:
+            // nothing records that the player has looked, so it would be asked for on every visit
+            $checkLines[] = new ImportFlowText('data_import.flow.check.unsure', $unsure);
         }
 
         $checkState = match (true) {

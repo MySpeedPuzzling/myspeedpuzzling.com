@@ -672,13 +672,121 @@ SQL,
     }
 
     /**
-     * A page of the rows the import added and that an Undo can take back - of one "Add", or of all of them.
+     * A page of the rows the import added and that an Undo can take back - of one "Add", or of all of them - the
+     * newest first. **"What this import added"** (docs/features/data-import/guided-flow.md §7) narrows it: by what a
+     * row made, by its sheet, by a part of the puzzle's name. Paged in SQL; one statement.
+     *
+     * @param null|string $makes `results`, `collection`, `wish` - only the rows that made one
+     * @param string $search the player's own text: a part of the puzzle's name - the catalogue's or the file's
      *
      * @return list<ImportAddRow>
      */
-    public function added(string $importId, string $playerId, null|string $batchId, int $limit, int $offset): array
+    public function added(string $importId, string $playerId, null|string $batchId, int $limit, int $offset, null|string $makes = null, null|string $sheetId = null, string $search = ''): array
     {
-        return $this->listed("r.state = 'added'", $importId, $playerId, $batchId, 'r.added_at DESC, sheet.position, r.row_number, r.id', $limit, $offset);
+        if ($sheetId !== null && Uuid::isValid($sheetId) === false) {
+            return [];
+        }
+
+        [$condition, $parameters] = $this->addedFilter($makes, $sheetId, $search);
+
+        return $this->listed("r.state = 'added'" . $condition, $importId, $playerId, $batchId, 'r.added_at DESC, sheet.position, r.row_number, r.id', $limit, $offset, $parameters);
+    }
+
+    /**
+     * What the filters of "What this import added" offer, for the rows the sheet and the search leave: how many
+     * rows there are of each kind (the tabs) and - whatever sheet is chosen - how many each sheet has. One
+     * statement, whatever the number of rows.
+     *
+     * @return array{tabs: array{all: int, results: int, collection: int, wish: int}, sheets: list<array{id: string, title: string, rows: int}>}
+     */
+    public function addedOverview(string $importId, string $playerId, null|string $batchId, null|string $sheetId, string $search): array
+    {
+        $none = ['tabs' => ['all' => 0, 'results' => 0, 'collection' => 0, 'wish' => 0], 'sheets' => []];
+
+        if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false) || ($sheetId !== null && Uuid::isValid($sheetId) === false)) {
+            return $none;
+        }
+
+        [$searched, $parameters] = $this->addedFilter(null, null, $search);
+
+        /** @var false|array{everything: int, results: int, collection: int, wish: int, sheets: null|string} $row */
+        $row = $this->database->executeQuery(<<<SQL
+WITH found AS (
+    SELECT r.sheet_id, r.result_made, r.collection_item_id IS NOT NULL AS owned, r.wish_list_item_id IS NOT NULL AS wished
+    FROM data_import_row r
+    INNER JOIN data_import ON data_import.id = r.import_id
+    LEFT JOIN data_import_puzzle import_puzzle ON import_puzzle.id = r.import_puzzle_id
+    LEFT JOIN puzzle ON puzzle.id = import_puzzle.puzzle_id AND import_puzzle.choice = 'catalogue'
+    WHERE r.import_id = :importId
+        AND data_import.player_id = :playerId
+        AND data_import.status <> 'discarded'
+        AND r.state = 'added'
+        AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+        {$searched}
+)
+SELECT
+    COUNT(*) FILTER (WHERE CAST(:chosenSheet AS UUID) IS NULL OR found.sheet_id = CAST(:chosenSheet AS UUID)) AS everything,
+    COUNT(*) FILTER (WHERE found.result_made AND (CAST(:chosenSheet AS UUID) IS NULL OR found.sheet_id = CAST(:chosenSheet AS UUID))) AS results,
+    COUNT(*) FILTER (WHERE found.owned AND (CAST(:chosenSheet AS UUID) IS NULL OR found.sheet_id = CAST(:chosenSheet AS UUID))) AS collection,
+    COUNT(*) FILTER (WHERE found.wished AND (CAST(:chosenSheet AS UUID) IS NULL OR found.sheet_id = CAST(:chosenSheet AS UUID))) AS wish,
+    (
+        SELECT jsonb_agg(jsonb_build_object('id', sheet.id, 'title', sheet.title, 'rows', per_sheet.rows) ORDER BY sheet.position)
+        FROM (SELECT found.sheet_id, COUNT(*) AS rows FROM found GROUP BY found.sheet_id) per_sheet
+        INNER JOIN data_import_sheet sheet ON sheet.id = per_sheet.sheet_id
+    ) AS sheets
+FROM found
+SQL, [...$parameters, 'importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId, 'chosenSheet' => $sheetId])->fetchAssociative();
+
+        if ($row === false) {
+            return $none;
+        }
+
+        $sheets = [];
+
+        foreach (self::decoded($row['sheets']) as $sheet) {
+            if (is_array($sheet) && is_string($sheet['id'] ?? null) && is_string($sheet['title'] ?? null) && is_int($sheet['rows'] ?? null)) {
+                $sheets[] = ['id' => $sheet['id'], 'title' => $sheet['title'], 'rows' => $sheet['rows']];
+            }
+        }
+
+        return [
+            'tabs' => ['all' => $row['everything'], 'results' => $row['results'], 'collection' => $row['collection'], 'wish' => $row['wish']],
+            'sheets' => $sheets,
+        ];
+    }
+
+    /**
+     * The filters of "What this import added" as a condition on the row `r` (and the catalogue `puzzle` it was
+     * matched with) and what it names.
+     *
+     * @return array{string, array<string, mixed>}
+     */
+    private function addedFilter(null|string $makes, null|string $sheetId, string $search): array
+    {
+        $condition = match ($makes) {
+            'results' => ' AND r.result_made',
+            'collection' => ' AND r.collection_item_id IS NOT NULL',
+            'wish' => ' AND r.wish_list_item_id IS NOT NULL',
+            default => '',
+        };
+        $parameters = [];
+
+        if ($sheetId !== null) {
+            $condition .= ' AND r.sheet_id = :sheetId';
+            $parameters['sheetId'] = strtolower($sheetId);
+        }
+
+        $search = trim(mb_substr($search, 0, 100));
+
+        if ($search !== '') {
+            // The file's own name by the text as typed; the catalogue's names through the one puzzle text search
+            $textSearch = PuzzleTextSearch::fromUserInput($search);
+            $catalogue = $textSearch->isEmpty() ? 'FALSE' : '(puzzle.id IS NOT NULL AND ' . $textSearch->condition('puzzle') . ')';
+            $condition .= " AND (LOWER(r.parsed ->> 'name') LIKE :needle OR {$catalogue})";
+            $parameters = [...$parameters, ...$textSearch->parameters($this->clock->now()), 'needle' => '%' . addcslashes(mb_strtolower($search), '%_\\') . '%'];
+        }
+
+        return [$condition, $parameters];
     }
 
     /**
@@ -716,14 +824,33 @@ SQL,
      * How many rows the import added / could not add - of one "Add" or of all - and, of the first, what they made:
      * what an Undo of that scope would take back. One statement.
      *
+     * @param null|list<string> $rowIds only these rows of the import ("Undo the ticked")
+     *
      * @return array{added: int, results: int, collectionItems: int, wishListItems: int, wishListItemsToRestore: int, notAdded: int}
      */
-    public function counts(string $importId, string $playerId, null|string $batchId = null, null|string $rowId = null): array
+    public function counts(string $importId, string $playerId, null|string $batchId = null, null|string $rowId = null, null|array $rowIds = null): array
     {
         $none = ['added' => 0, 'results' => 0, 'collectionItems' => 0, 'wishListItems' => 0, 'wishListItemsToRestore' => 0, 'notAdded' => 0];
 
         if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false) || ($rowId !== null && Uuid::isValid($rowId) === false)) {
             return $none;
+        }
+
+        // Several rows ("Undo the ticked"): the ids that are ids - with none of them, nothing is counted
+        $several = '';
+        $parameters = [];
+        $types = [];
+
+        if ($rowIds !== null) {
+            $rowIds = array_values(array_unique(array_map(strtolower(...), array_filter($rowIds, Uuid::isValid(...)))));
+
+            if ($rowIds === []) {
+                return $none;
+            }
+
+            $several = 'AND r.id IN (:rowIds)';
+            $parameters = ['rowIds' => $rowIds];
+            $types = ['rowIds' => ArrayParameterType::STRING];
         }
 
         $notAdded = self::NOT_ADDED;
@@ -744,7 +871,8 @@ WHERE r.import_id = :importId
     AND data_import.status <> 'discarded'
     AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
     AND (CAST(:rowId AS UUID) IS NULL OR r.id = CAST(:rowId AS UUID))
-SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId, 'rowId' => $rowId])->fetchAssociative();
+    {$several}
+SQL, [...$parameters, 'importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId, 'rowId' => $rowId], $types)->fetchAssociative();
 
         if ($row === false) {
             return $none;
@@ -1276,9 +1404,13 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
     }
 
     /**
-     * What each of the player's imports added - for Imports home. One statement for all of them.
+     * Where each of the player's imports stands - for Imports home (docs/features/data-import/guided-flow.md §5.1):
+     * what it added, whether it is adding right now, and what is left - rows ready to add (the engine's own
+     * definition, DataImportRowRepository::sqlReadyRows(), over the imports that can still add), rows that wait for
+     * an answer after an "Add", questions of its sheets, rows we could not read, puzzles still to match. **One
+     * statement for all of them**, whatever their number and size. Numbers only; nobody's identity is selected.
      *
-     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, lastAddedAt: null|DateTimeImmutable, adding: bool}> by import id
+     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
      */
     public function addedByImports(string $playerId): array
     {
@@ -1286,21 +1418,96 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
             return [];
         }
 
-        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, last_added_at: null|string, adding: bool}> $rows */
+        $ready = DataImportRowRepository::sqlReadyRows(imports: <<<SQL
+r.import_id IN (
+    SELECT open_import.id
+    FROM data_import open_import
+    WHERE open_import.player_id = :playerId
+        AND open_import.status IN ('setting_up', 'reviewing')
+        AND open_import.cells_wiped_at IS NULL
+)
+SQL);
+        $notAdded = self::NOT_ADDED;
+
+        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, look: int|string, to_match: int, working: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
+WITH {$ready},
+ready_by AS (
+    SELECT counted.import_id, COUNT(*) AS rows
+    FROM ready
+    INNER JOIN data_import_row counted ON counted.id = ready.id
+    GROUP BY counted.import_id
+),
+taken_by AS (
+    SELECT
+        r.import_id,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made) AS results,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items,
+        MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at,
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made AND r.added_at >= :startOfDay) AS results_today,
+        COUNT(*) FILTER (WHERE {$notAdded}) AS waiting
+    FROM data_import_row r
+    INNER JOIN data_import ON data_import.id = r.import_id
+    WHERE data_import.player_id = :playerId
+        AND data_import.status <> 'discarded'
+        AND r.batch_id IS NOT NULL
+    GROUP BY r.import_id
+)
 SELECT
     data_import.id AS import_id,
-    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.result_made) AS results,
-    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items,
-    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items,
-    MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at,
-    EXISTS (SELECT 1 FROM data_import_batch batch WHERE batch.import_id = data_import.id AND batch.state = 'running') AS adding
+    COALESCE(taken_by.results, 0) AS results,
+    COALESCE(taken_by.collection_items, 0) AS collection_items,
+    COALESCE(taken_by.wish_list_items, 0) AS wish_list_items,
+    taken_by.last_added_at,
+    COALESCE(taken_by.results_today, 0) AS results_today,
+    COALESCE(taken_by.waiting, 0) AS waiting,
+    taken_by.import_id IS NOT NULL AS took_rows,
+    (SELECT batch.id FROM data_import_batch batch WHERE batch.import_id = data_import.id AND batch.state = 'running' ORDER BY batch.id DESC LIMIT 1) AS running_batch_id,
+    COALESCE(ready_by.rows, 0) AS ready,
+    -- The questions of its sheets and the rows we could not read, as "Where you are" counts them (ImportFlow)
+    (
+        SELECT COALESCE(SUM(jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb))), 0)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND sheet.mapping_version > 0
+            AND sheet.set_up_failure IS NULL
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+    ) AS questions,
+    (
+        SELECT COALESCE(SUM(sheet.rows_need_look), 0)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND sheet.mapping_version > 0
+            AND sheet.parsed_version = sheet.mapping_version
+            AND sheet.set_up_failure IS NULL
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+    ) AS look,
+    (SELECT COUNT(*) FROM data_import_puzzle waiting_puzzle WHERE waiting_puzzle.import_id = data_import.id AND waiting_puzzle.choice = 'undecided') AS to_match,
+    (
+        EXISTS (
+            SELECT 1 FROM data_import_sheet sheet
+            WHERE sheet.import_id = data_import.id
+                AND sheet.set_up_failure IS NULL
+                AND (sheet.mapping_version = 0 OR sheet.parsed_version IS DISTINCT FROM sheet.mapping_version)
+        )
+        OR (
+            data_import.paired_at IS NULL
+            AND data_import.pairing_requeues < :maxRequeues
+            AND EXISTS (SELECT 1 FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.parsed_version IS NOT NULL)
+        )
+    ) AS working
 FROM data_import
-INNER JOIN data_import_row r ON r.import_id = data_import.id AND r.batch_id IS NOT NULL
+LEFT JOIN taken_by ON taken_by.import_id = data_import.id
+LEFT JOIN ready_by ON ready_by.import_id = data_import.id
 WHERE data_import.player_id = :playerId
     AND data_import.status <> 'discarded'
-GROUP BY data_import.id
-SQL, ['playerId' => $playerId])->fetchAllAssociative();
+SQL, [
+            'playerId' => $playerId,
+            'explicit' => 0,
+            'maxRequeues' => DataImportLimits::MAX_SET_UP_ATTEMPTS,
+            'startOfDay' => $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0)->format('Y-m-d H:i:s'),
+        ])->fetchAllAssociative();
 
         $byImport = [];
 
@@ -1310,7 +1517,16 @@ SQL, ['playerId' => $playerId])->fetchAllAssociative();
                 'collectionItems' => $row['collection_items'],
                 'wishListItems' => $row['wish_list_items'],
                 'lastAddedAt' => $row['last_added_at'] === null ? null : new DateTimeImmutable($row['last_added_at']),
-                'adding' => $row['adding'],
+                'adding' => $row['running_batch_id'] !== null,
+                'runningBatchId' => $row['running_batch_id'],
+                'resultsToday' => $row['results_today'],
+                'ready' => $row['ready'],
+                'waiting' => $row['waiting'],
+                'questions' => (int) $row['questions'],
+                'look' => (int) $row['look'],
+                'toMatch' => $row['to_match'],
+                'working' => $row['working'],
+                'tookRows' => $row['took_rows'],
             ];
         }
 
@@ -1345,15 +1561,17 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowId' => $rowId])->fet
     }
 
     /**
+     * @param array<string, mixed> $more what $condition names besides the import, the player and the batch
+     *
      * @return list<ImportAddRow>
      */
-    private function listed(string $condition, string $importId, string $playerId, null|string $batchId, string $order, int $limit, int $offset): array
+    private function listed(string $condition, string $importId, string $playerId, null|string $batchId, string $order, int $limit, int $offset, array $more = []): array
     {
         if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false)) {
             return [];
         }
 
-        $parameters = ['importId' => $importId, 'playerId' => $playerId];
+        $parameters = [...$more, 'importId' => $importId, 'playerId' => $playerId];
 
         if ($batchId !== null) {
             $condition .= ' AND r.batch_id = :batchId';

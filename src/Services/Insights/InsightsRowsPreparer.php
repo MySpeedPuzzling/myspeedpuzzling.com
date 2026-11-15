@@ -59,8 +59,9 @@ readonly final class InsightsRowsPreparer
 
             $timeOfDay = null;
 
-            // "When you logged": only with your zone, and only where the logging day is the solve day
-            if ($timezone !== null && ($result->finishedAt === null || $result->finishedAt->format('Y-m-d') === $logged->format('Y-m-d'))) {
+            // "When you logged": only with your zone, and only where the logging day is the solve day - and never for a
+            // result from a spreadsheet import, which was "logged" at a made-up noon
+            if ($timezone !== null && $result->fromSpreadsheetImport === false && ($result->finishedAt === null || $result->finishedAt->format('Y-m-d') === $logged->format('Y-m-d'))) {
                 $timeOfDay = InsightsTimeOfDay::ofHour((int) $logged->format('G'));
             }
 

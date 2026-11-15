@@ -265,6 +265,35 @@
                     {{- (borrow_type == 'BorrowRequested' ? 'borrow_request.notification.answer' : 'borrow_request.notification.open')|trans -}}
                 </a>
             </td>
+        {% elseif notification.isImportNotification %}
+            {# "Your import is done" (docs/features/data-import/adding.md): one per finished "Add" of the reader's own
+               spreadsheet import - numbers only #}
+            {% set import_taken_back = notification.notificationType.value == 'ImportRowsTakenBack' %}
+            <td class="text-center" style="width: 60px;">
+                <i class="{{ import_taken_back ? 'ci-reply text-muted' : 'ci-check-circle text-success' }}" style="font-size: 2rem;"></i>
+            </td>
+
+            <td class="align-middle fs-sm text-muted">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {% if import_taken_back %}
+                    {# An admin's Undo: neutral, with the reason they gave #}
+                    {{ 'data_import.notification.taken_back'|trans({'%count%': notification.importResultsTakenBack, '%file%': notification.importFileName}) }}
+                    {% if notification.importTakenBackReason is not null %}
+                        {{ 'data_import.notification.taken_back_reason'|trans({'%reason%': notification.importTakenBackReason}) }}
+                    {% endif %}
+                {% else %}
+                    {{ 'data_import.notification.done'|trans({'%file%': notification.importFileName}) }}
+                    {{ 'data_import.notification.added'|trans({'%count%': notification.importRowsAdded}) }} ·
+                    {{ 'data_import.notification.already_yours'|trans({'%count%': notification.importRowsAlreadyYours}) }} ·
+                    {{ 'data_import.notification.not_added'|trans({'%count%': notification.importRowsNotAdded}) }}
+                {% endif %}
+            </td>
+
+            <td class="" style="width: 80px;">
+                <a href="{{ path('data_import_detail', {importId: notification.importId}) }}" class="btn btn-sm btn-outline-primary text-nowrap" data-testid="import-notification-link">
+                    {{ 'data_import.notification.open'|trans }}
+                </a>
+            </td>
         {% elseif notification.isListingRequestNotification %}
             {# "Could I have these?" (docs/features/marketplace/12-listing-requests.md): asked of the reader (the seller),
                answered, expired or gone for the reader (the buyer) - the player shown is who asked / was asked #}

@@ -187,6 +187,8 @@ SQL;
 
         // `tracked_at` (auto-set at insert) is the honest "when did the user log this?" signal;
         // the hour portion of `finished_at` is unreliable because the UI only lets users pick a date.
+        // A result from a spreadsheet import has no hour: its `tracked_at` is noon of the solve day by construction
+        // (docs/features/data-import/adding.md "Readers of the hour") - left out, or every import would be a noon peak.
         $query = <<<SQL
 SELECT
     EXTRACT(HOUR FROM tracked_at)::int AS hour_of_day,
@@ -196,6 +198,7 @@ WHERE
     tracked_at >= :dateFrom
     AND tracked_at <= :dateTo
     AND suspicious = false
+    AND created_via IS DISTINCT FROM 'spreadsheet_import'
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

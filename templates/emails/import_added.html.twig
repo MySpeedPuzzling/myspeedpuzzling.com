@@ -1,0 +1,29 @@
+{% extends 'emails/_card_layout.html.twig' %}
+{% trans_default_domain 'emails' %}
+{# "Your import is done" (SendImportAddedEmailHandler, docs/features/data-import/adding.md "Telling the player"):
+   one per finished "Add" - the numbers and a link, nothing of the spreadsheet's content. #}
+{% set preheader = 'import_added.preheader'|trans %}
+{% set header_link = importUrl %}
+{% set header_link_label = 'import_added.open'|trans %}
+
+{% block cards %}
+    {{ card_open }}
+        <h1 style="-webkit-hyphens: none; hyphens: none; font-size: 24px; line-height: 1.25; font-weight: bold; color: #373f50; margin: 0 0 12px 0; Margin: 0 0 12px 0;">{{ 'import_added.title'|trans }}</h1>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'import_added.greeting'|trans({'%name%': playerName}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'import_added.intro'|trans({'%file%': fileName}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;"><strong>{{ 'import_added.added'|trans({'%count%': added}) }}</strong></p>
+        {% if results > 0 or collectionItems > 0 or wishListItems > 0 %}
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; color: #6b7488; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;">
+                {{ 'import_added.results'|trans({'%count%': results}) }} · {{ 'import_added.collection_items'|trans({'%count%': collectionItems}) }} · {{ 'import_added.wish_list_items'|trans({'%count%': wishListItems}) }}
+            </p>
+        {% endif %}
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;">{{ 'import_added.already_yours'|trans({'%count%': alreadyYours}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 18px 0; Margin: 0 0 18px 0; line-height: 1.5;">{{ 'import_added.not_added'|trans({'%count%': notAdded}) }}</p>
+        <center style="min-width: 0;">
+            <button href="{{ importUrl }}">{{ 'import_added.open'|trans }}</button>
+        </center>
+        <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 14px 0 0 0; Margin: 14px 0 0 0;">{{ 'import_added.undo_hint'|trans }}</p>
+    {{ card_close }}
+{% endblock %}
+
+{% block footer_note %}{{ 'import_added.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}{% endblock %}

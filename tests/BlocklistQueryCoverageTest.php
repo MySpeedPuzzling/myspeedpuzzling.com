@@ -34,6 +34,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetAdminReferralDetail' => self::ADMIN,
         'GetAdminReferralsOverview' => self::ADMIN,
         'GetAdminSeries' => self::ADMIN,
+        'GetImportBatches' => self::ADMIN,
         'GetAllVouchers' => self::ADMIN,
         'GetApiUsageCallers' => self::ADMIN,
         'GetBorrowedPuzzles' => self::BILATERAL,

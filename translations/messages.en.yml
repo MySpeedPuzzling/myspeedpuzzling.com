@@ -12547,3 +12547,21 @@ data_import:
         google_link: "This is not the link of a Google sheet. Open the sheet, choose Share → Copy link and paste it here - it starts with docs.google.com/spreadsheets."
         google_published: "This is a “published to the web” link. Please paste the link from Share → Copy link instead."
         google_rate_limited: "Too many Google sheets in the last hour. Please try again later."
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "Import e-mails"
+        emails_help: "An e-mail when rows of your spreadsheet import were added to your profile. You always see it in your notifications."
+    emails_unsubscribe:
+        headline: "Import e-mails"
+        text: "Don't want an e-mail when your spreadsheet import is done any more? You still see it in your notifications, and your other e-mails stay as they are."
+        confirm_button: "Stop these e-mails"
+        done: "Done - you won't get import e-mails any more. You still see it in your notifications."
+        settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
+    notification:
+        done: "Your import of %file% is done."
+        added: "{0}Nothing added|{1}1 row added|]1,Inf[%count% rows added"
+        already_yours: "{0}none already yours|{1}1 already yours|]1,Inf[%count% already yours"
+        not_added: "{0}none left out|{1}1 could not be added|]1,Inf[%count% could not be added"
+        open: "Open"
+        taken_back: "{0}We took back what your import of %file% had added.|{1}We took back 1 result your import of %file% had added.|]1,Inf[We took back %count% results your import of %file% had added."
+        taken_back_reason: "Reason: %reason%"

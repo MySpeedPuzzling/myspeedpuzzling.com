@@ -12300,3 +12300,21 @@ data_import:
         google_link: "Das ist kein Link zu einer Google-Tabelle. Öffne die Tabelle, wähle Freigeben → Link kopieren und füge ihn hier ein - er beginnt mit docs.google.com/spreadsheets."
         google_published: "Das ist ein Link „Im Web veröffentlicht“. Bitte füge stattdessen den Link aus Freigeben → Link kopieren ein."
         google_rate_limited: "Zu viele Google-Tabellen in der letzten Stunde. Bitte versuche es später erneut."
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "Import-E-Mails"
+        emails_help: "Eine E-Mail, wenn Zeilen aus deinem Tabellen-Import zu deinem Profil hinzugefügt wurden. In deinen Benachrichtigungen siehst du es immer."
+    emails_unsubscribe:
+        headline: "Import-E-Mails"
+        text: "Du möchtest keine E-Mail mehr, wenn dein Tabellen-Import fertig ist? In deinen Benachrichtigungen siehst du es weiterhin, und deine anderen E-Mails bleiben, wie sie sind."
+        confirm_button: "Diese E-Mails beenden"
+        done: "Erledigt - du bekommst keine Import-E-Mails mehr. In deinen Benachrichtigungen siehst du es weiterhin."
+        settings_hint: "Du kannst sie jederzeit in deinen Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."
+    notification:
+        done: "Dein Import von %file% ist fertig."
+        added: "{0}Nichts hinzugefügt|{1}1 Zeile hinzugefügt|]1,Inf[%count% Zeilen hinzugefügt"
+        already_yours: "{0}keine gehörte dir schon|{1}1 gehörte dir schon|]1,Inf[%count% gehörten dir schon"
+        not_added: "{0}keine ausgelassen|{1}1 konnte nicht hinzugefügt werden|]1,Inf[%count% konnten nicht hinzugefügt werden"
+        open: "Öffnen"
+        taken_back: "{0}Wir haben zurückgenommen, was dein Import von %file% hinzugefügt hatte.|{1}Wir haben 1 Ergebnis zurückgenommen, das dein Import von %file% hinzugefügt hatte.|]1,Inf[Wir haben %count% Ergebnisse zurückgenommen, die dein Import von %file% hinzugefügt hatte."
+        taken_back_reason: "Grund: %reason%"

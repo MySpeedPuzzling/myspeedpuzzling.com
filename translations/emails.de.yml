@@ -561,3 +561,20 @@ listing_request:
     answer: "Antworten"
     no_addresses: "Wir geben niemals E-Mail-Adressen weiter: Du antwortest direkt in MySpeedPuzzling."
     opt_out: "Du bekommst diese E-Mail, weil du Puzzles auf deiner Verkaufs-/Tauschliste hast. <a href=\"%settingsUrl%\">E-Mail-Einstellungen</a> · <a href=\"%unsubscribeUrl%\">Diese E-Mails abbestellen</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}Dein Import ist fertig|{1}Dein Import ist fertig: 1 Zeile hinzugefügt|]1,Inf[Dein Import ist fertig: %count% Zeilen hinzugefügt"
+    preheader: "Sieh dir an, was hinzugefügt wurde - und nimm es zurück, wenn etwas nicht stimmt."
+    title: "Dein Import ist fertig"
+    greeting: "Hallo %name%,"
+    intro: "Wir sind die Zeilen aus %file% durchgegangen, die du hinzufügen wolltest."
+    added: "{0}Nichts wurde hinzugefügt.|{1}1 Zeile wurde zu deinem Profil hinzugefügt.|]1,Inf[%count% Zeilen wurden zu deinem Profil hinzugefügt."
+    results: "{0}keine Ergebnisse|{1}1 Ergebnis|]1,Inf[%count% Ergebnisse"
+    collection_items: "{0}keine Puzzles in der Sammlung|{1}1 Puzzle in der Sammlung|]1,Inf[%count% Puzzles in der Sammlung"
+    wish_list_items: "{0}keine Puzzles auf der Wunschliste|{1}1 Puzzle auf der Wunschliste|]1,Inf[%count% Puzzles auf der Wunschliste"
+    already_yours: "{0}Keine davon gehörte dir schon.|{1}1 gehörte dir schon - nichts wurde doppelt hinzugefügt.|]1,Inf[%count% gehörten dir schon - nichts wurde doppelt hinzugefügt."
+    not_added: "{0}Jede Zeile konnte hinzugefügt werden.|{1}1 Zeile konnte nicht hinzugefügt werden und wartet auf dich.|]1,Inf[%count% Zeilen konnten nicht hinzugefügt werden und warten auf dich."
+    open: "Import öffnen"
+    undo_hint: "Etwas stimmt nicht? Auf der Seite des Imports kannst du das Hinzugefügte zurücknehmen."
+    opt_out: "Du bekommst diese E-Mail, weil du Zeilen aus einem Tabellen-Import hinzugefügt hast. <a href=\"%settingsUrl%\">E-Mail-Einstellungen</a> · <a href=\"%unsubscribeUrl%\">Diese E-Mails beenden</a>"

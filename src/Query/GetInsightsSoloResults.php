@@ -58,6 +58,7 @@ SELECT
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
     pst.tracked_at,
     pst.finished_at,
+    COALESCE(pst.created_via = 'spreadsheet_import', FALSE) AS from_spreadsheet_import,
     pst.first_attempt,
     pst.unboxed,
     ROW_NUMBER() OVER (

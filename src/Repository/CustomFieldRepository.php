@@ -54,4 +54,15 @@ readonly final class CustomFieldRepository
             ['position' => 'ASC', 'createdAt' => 'ASC'],
         );
     }
+
+    /**
+     * @return list<CustomField>
+     */
+    public function ofPlayerId(string $playerId): array
+    {
+        return $this->entityManager->getRepository(CustomField::class)->findBy(
+            ['player' => $playerId],
+            ['position' => 'ASC', 'createdAt' => 'ASC'],
+        );
+    }
 }

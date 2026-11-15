@@ -164,7 +164,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/OccurrenceRounds.php' => self::COUNTS,
         'Query/SearchComparisonTeams.php' => self::OWN,
         'Query/SearchPuzzle.php' => self::OWN,
-        'Repository/DataImportRowRepository.php' => 'The data import: whether the result an import\'s row made still exists, by its id - the import\'s writer always sets a tracker.',
+        'Repository/DataImportRowRepository.php' => 'The data import: whether the result an import\'s row made - or was settled as "already yours" with - still exists, by its id only: nothing of the result is read, with or without a tracker.',
         'Repository/FinishedPhotoAnalysisRepository.php' => self::PHOTOS,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,
         'Repository/SuspiciousTimeCheckRepository.php' => self::WRITE,

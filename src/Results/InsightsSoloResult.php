@@ -63,6 +63,8 @@ readonly final class InsightsSoloResult
         public array $imageTagKeys,
         public null|int $predictedRange80LowSeconds = null,
         public null|int $predictedRange80HighSeconds = null,
+        /** Its `tracked_at` is made up (noon of the solve day): the result has no hour it was logged at */
+        public bool $fromSpreadsheetImport = false,
     ) {
     }
 
@@ -137,6 +139,7 @@ readonly final class InsightsSoloResult
      *     predicted_attempt_number: null|int|string,
      *     prediction_model_version: null|int|string,
      *     image_tag_keys: null|string,
+     *     from_spreadsheet_import?: bool|int|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -182,6 +185,7 @@ readonly final class InsightsSoloResult
             imageTagKeys: is_array($tagKeys) ? array_values(array_filter($tagKeys, is_string(...))) : [],
             predictedRange80LowSeconds: self::intOrNull($row['predicted_range80_low_seconds'] ?? null),
             predictedRange80HighSeconds: self::intOrNull($row['predicted_range80_high_seconds'] ?? null),
+            fromSpreadsheetImport: self::bool($row['from_spreadsheet_import'] ?? false),
         );
     }
 

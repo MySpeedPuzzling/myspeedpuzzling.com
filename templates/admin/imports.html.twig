@@ -1,0 +1,138 @@
+{% extends 'base.html.twig' %}
+{# /admin/imports (docs/features/data-import/adding.md "The audit page") - admins only, English only. States, numbers,
+   ids and file names: never a cell of anybody's spreadsheet. #}
+
+{% block title %}Spreadsheet imports{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">Spreadsheet imports</h1>
+    <p class="text-muted mb-4">What players add from their spreadsheets, as it happens. Every "Add" is a batch; a batch can be taken back.</p>
+
+    <div class="card card-body shadow-sm mb-4 {{ switch.adding_paused ? 'border-danger' : '' }}" data-testid="import-adding-switch">
+        <h2 class="h5">
+            Adding is
+            {% if switch.adding_paused %}
+                <span class="badge bg-danger" data-testid="import-adding-paused">paused</span>
+            {% else %}
+                <span class="badge bg-success" data-testid="import-adding-on">on</span>
+            {% endif %}
+        </h2>
+        {% if switch.changed_at is not null %}
+            <p class="fs-sm text-muted mb-2">
+                Last changed {{ switch.changed_at|date('d.m.Y H:i') }} UTC{% if switch.changed_by_name is not null %} by {{ switch.changed_by_name }}{% endif %}{% if switch.reason is not null %} - "{{ switch.reason }}"{% endif %}
+            </p>
+        {% endif %}
+        <p class="fs-sm mb-3">
+            Pausing stops every "Add": nothing new starts, running batches wait after the row they are at.
+            Reading, mapping, pairing and Undo stay open. It is the safety switch, not a rollout flag.
+        </p>
+
+        <form method="post" action="{{ path('admin_imports_adding') }}" class="row g-2 align-items-end">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\DataImport\\ChangeImportAddingPausedController::CSRF_TOKEN_ID')) }}">
+            <input type="hidden" name="paused" value="{{ switch.adding_paused ? '0' : '1' }}">
+            <div class="col-md-7">
+                <label class="form-label fs-sm" for="import-adding-reason">Reason{% if not switch.adding_paused %} (required){% endif %}</label>
+                <input type="text" class="form-control" id="import-adding-reason" name="reason" maxlength="500" {{ switch.adding_paused ? '' : 'required' }}>
+            </div>
+            <div class="col-md-5">
+                {% if switch.adding_paused %}
+                    <button type="submit" class="btn btn-success">Switch adding on again</button>
+                {% else %}
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Pause adding for every player?')">Pause adding</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <h2 class="h5">Latest batches ("Add")</h2>
+    {% if batches is empty %}
+        <p class="text-muted">Nothing was added yet.</p>
+    {% else %}
+        <div class="table-responsive mb-4">
+            <table class="table table-sm align-middle" data-testid="import-batches">
+                <thead>
+                    <tr>
+                        <th>Started (UTC)</th>
+                        <th>Player</th>
+                        <th>File</th>
+                        <th>State</th>
+                        <th class="text-end">Rows</th>
+                        <th class="text-end">Added</th>
+                        <th class="text-end">Already theirs</th>
+                        <th class="text-end">Refused</th>
+                        <th class="text-end">Failed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches %}
+                        <tr>
+                            <td class="text-nowrap">{{ batch.started_at|date('d.m.Y H:i') }}</td>
+                            <td><a href="{{ path('player_profile', {playerId: batch.player_id}) }}">{{ batch.player_name }}</a></td>
+                            <td>{{ batch.file_name }} <small class="text-muted">{{ batch.file_kind }}</small></td>
+                            <td>
+                                {% if batch.undone_at is not null %}
+                                    <span class="badge bg-secondary">undone</span>
+                                {% elseif batch.state == 'running' %}
+                                    <span class="badge bg-warning text-dark">running · {{ batch.rows_queued }} left</span>
+                                {% else %}
+                                    <span class="badge bg-success">finished</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ batch.rows_requested }}</td>
+                            <td class="text-end">{{ batch.rows_added }} <small class="text-muted">({{ batch.results_added }} results)</small></td>
+                            <td class="text-end">{{ batch.rows_already_yours }}</td>
+                            <td class="text-end">{{ batch.rows_refused }}</td>
+                            <td class="text-end {{ batch.rows_failed > 0 ? 'text-danger fw-bold' : '' }}">{{ batch.rows_failed }}</td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ path('admin_import_batch', {batchId: batch.id}) }}">Open</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <h2 class="h5">Latest undos</h2>
+    {% if undos is empty %}
+        <p class="text-muted">Nothing was taken back yet.</p>
+    {% else %}
+        {{ include('admin/_import_undos.html.twig', {undos: undos}) }}
+    {% endif %}
+
+    <h2 class="h5">Latest imports</h2>
+    {% if imports is empty %}
+        <p class="text-muted">No imports yet.</p>
+    {% else %}
+        <div class="table-responsive mb-4">
+            <table class="table table-sm align-middle" data-testid="imports">
+                <thead>
+                    <tr>
+                        <th>Last activity (UTC)</th>
+                        <th>Player</th>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th class="text-end">Rows read</th>
+                        <th class="text-end">Added</th>
+                        <th class="text-end">Queued</th>
+                        <th class="text-end">Failed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for import in imports %}
+                        <tr>
+                            <td class="text-nowrap">{{ import.last_activity_at|date('d.m.Y H:i') }}</td>
+                            <td><a href="{{ path('player_profile', {playerId: import.player_id}) }}">{{ import.player_name }}</a></td>
+                            <td>{{ import.file_name }} <small class="text-muted">{{ import.file_kind ?? import.source }}</small></td>
+                            <td>{{ import.status }}</td>
+                            <td class="text-end">{{ import.rows_read }}</td>
+                            <td class="text-end">{{ import.rows_added }}</td>
+                            <td class="text-end">{{ import.rows_queued }}</td>
+                            <td class="text-end {{ import.rows_failed > 0 ? 'text-danger fw-bold' : '' }}">{{ import.rows_failed }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

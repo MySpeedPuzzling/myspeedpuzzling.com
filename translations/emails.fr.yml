@@ -561,3 +561,20 @@ listing_request:
     answer: "Répondre"
     no_addresses: "Nous ne partageons jamais les adresses e-mail : tu réponds directement dans MySpeedPuzzling."
     opt_out: "Tu reçois cet e-mail parce que tu as des puzzles sur ta liste vente/échange. <a href=\"%settingsUrl%\">Paramètres e-mail</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir ces e-mails</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}Votre import est terminé|{1}Votre import est terminé : 1 ligne ajoutée|]1,Inf[Votre import est terminé : %count% lignes ajoutées"
+    preheader: "Voyez ce qui a été ajouté à votre profil - et annulez-le si besoin."
+    title: "Votre import est terminé"
+    greeting: "Bonjour %name%,"
+    intro: "Nous avons parcouru les lignes de %file% que vous avez demandé d'ajouter."
+    added: "{0}Rien n'a été ajouté.|{1}1 ligne a été ajoutée à votre profil.|]1,Inf[%count% lignes ont été ajoutées à votre profil."
+    results: "{0}aucun résultat|{1}1 résultat|]1,Inf[%count% résultats"
+    collection_items: "{0}aucun puzzle de collection|{1}1 puzzle de collection|]1,Inf[%count% puzzles de collection"
+    wish_list_items: "{0}aucun puzzle de la liste de souhaits|{1}1 puzzle de la liste de souhaits|]1,Inf[%count% puzzles de la liste de souhaits"
+    already_yours: "{0}Aucune n'était déjà à vous.|{1}1 était déjà à vous - rien n'a été ajouté deux fois.|]1,Inf[%count% étaient déjà à vous - rien n'a été ajouté deux fois."
+    not_added: "{0}Toutes les lignes ont pu être ajoutées.|{1}1 ligne n'a pas pu être ajoutée et vous attend.|]1,Inf[%count% lignes n'ont pas pu être ajoutées et vous attendent."
+    open: "Ouvrir l'import"
+    undo_hint: "Quelque chose ne va pas ? Sur la page de l'import, vous pouvez annuler ce qui a été ajouté."
+    opt_out: "Vous recevez cet e-mail parce que vous avez ajouté des lignes d'un import de feuille de calcul. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Arrêter ces e-mails</a>"

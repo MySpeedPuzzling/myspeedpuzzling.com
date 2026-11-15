@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportAdding;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 use Symfony\Contracts\Service\ResetInterface;
@@ -36,6 +37,7 @@ final class ImportProgress implements ResetInterface
     public function __construct(
         private readonly HubInterface $hub,
         private readonly GetDataImports $getDataImports,
+        private readonly GetImportAdding $getImportAdding,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -76,6 +78,49 @@ final class ImportProgress implements ResetInterface
             $this->hub->publish(new Update(
                 self::topicOf($progress->playerId),
                 json_encode($progress->toArray(), JSON_THROW_ON_ERROR),
+                private: true,
+            ));
+        } catch (\Throwable $e) {
+            if (isset($this->reported[$importId])) {
+                return;
+            }
+
+            $this->reported[$importId] = true;
+            $this->logger->warning('An import\'s progress could not be published - its page falls back to asking', [
+                'import_id' => $importId,
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * How far the import's latest "Add" is (docs/features/data-import/adding.md "Progress") - to the same private topic,
+     * as its own kind of message (`import_adding`), after the rows' transaction was committed. The same rules: it only
+     * brings sooner what the database says, and a hub that does not answer never fails a row.
+     *
+     * @param bool $always false: left out when published less than a second ago
+     */
+    public function publishAdding(string $importId, bool $always = true): void
+    {
+        $now = (int) hrtime(true);
+        $key = 'adding:' . $importId;
+
+        if ($always === false && $now - ($this->publishedAt[$key] ?? 0) < self::AT_MOST_EVERY_NANOSECONDS) {
+            return;
+        }
+
+        $this->publishedAt[$key] = $now;
+
+        try {
+            $adding = $this->getImportAdding->ofImport($importId);
+
+            if ($adding === null) {
+                return;
+            }
+
+            $this->hub->publish(new Update(
+                self::topicOf($adding['playerId']),
+                json_encode($adding['payload'], JSON_THROW_ON_ERROR),
                 private: true,
             ));
         } catch (\Throwable $e) {

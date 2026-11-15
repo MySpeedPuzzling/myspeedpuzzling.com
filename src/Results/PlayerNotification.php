@@ -111,6 +111,15 @@ readonly final class PlayerNotification
         public null|string $listingRequestId = null,
         public int $listingItemsTotal = 0,
         public int $listingItemsYes = 0,
+        // ImportRowsAdded: the reader's spreadsheet import and what the finished "Add" came to
+        public null|string $importId = null,
+        public null|string $importFileName = null,
+        public int $importRowsAdded = 0,
+        public int $importRowsAlreadyYours = 0,
+        public int $importRowsNotAdded = 0,
+        // ImportRowsTakenBack: how many results the admin's Undo deleted, and why
+        public int $importResultsTakenBack = 0,
+        public null|string $importTakenBackReason = null,
     ) {
     }
 
@@ -247,6 +256,13 @@ readonly final class PlayerNotification
             listingRequestId: is_string($row['listing_request_id'] ?? null) ? $row['listing_request_id'] : null,
             listingItemsTotal: is_int($row['listing_items_total'] ?? null) ? $row['listing_items_total'] : 0,
             listingItemsYes: is_int($row['listing_items_yes'] ?? null) ? $row['listing_items_yes'] : 0,
+            importId: is_string($row['import_id'] ?? null) ? $row['import_id'] : null,
+            importFileName: is_string($row['import_file_name'] ?? null) ? $row['import_file_name'] : null,
+            importRowsAdded: is_int($row['import_rows_added'] ?? null) ? $row['import_rows_added'] : 0,
+            importRowsAlreadyYours: is_int($row['import_rows_already_yours'] ?? null) ? $row['import_rows_already_yours'] : 0,
+            importRowsNotAdded: is_int($row['import_rows_not_added'] ?? null) ? $row['import_rows_not_added'] : 0,
+            importResultsTakenBack: is_int($row['import_results_taken_back'] ?? null) ? $row['import_results_taken_back'] : 0,
+            importTakenBackReason: is_string($row['import_taken_back_reason'] ?? null) ? $row['import_taken_back_reason'] : null,
         );
     }
 
@@ -331,6 +347,11 @@ readonly final class PlayerNotification
     public function isConversationRequestNotification(): bool
     {
         return $this->conversationId !== null;
+    }
+
+    public function isImportNotification(): bool
+    {
+        return $this->importId !== null && in_array($this->notificationType, [NotificationType::ImportRowsAdded, NotificationType::ImportRowsTakenBack], true);
     }
 
     public function isListingRequestNotification(): bool

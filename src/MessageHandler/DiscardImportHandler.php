@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
+use SpeedPuzzling\Web\Exceptions\ImportCanNotBeDiscarded;
 use SpeedPuzzling\Web\Message\DiscardImport;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
@@ -17,8 +18,9 @@ use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Nothing an import can add exists yet, so a discarded import has nothing worth keeping: its rows and sheets go now,
- * its file too, and the daily prune removes what is left of it (PruneDataImportsHandler).
+ * A discarded import that never added anything has nothing worth keeping: its rows and sheets go now, its file too,
+ * and the daily prune removes what is left of it (PruneDataImportsHandler). An import rows were ever queued of is
+ * refused (ImportCanNotBeDiscarded) - docs/features/data-import/adding.md "What is never deleted".
  *
  * The row keeps the file's key until then: a presigned upload URL stays valid for up to half an hour after it was
  * signed - a browser still sending (or anybody holding the URL) can create the object again after this delete. The
@@ -41,6 +43,7 @@ readonly final class DiscardImportHandler
 
     /**
      * @throws DataImportNotFound
+     * @throws ImportCanNotBeDiscarded
      */
     public function __invoke(DiscardImport $message): void
     {
@@ -52,6 +55,12 @@ readonly final class DiscardImportHandler
 
         if ($import->status === DataImportStatus::Discarded) {
             return;
+        }
+
+        // An import that ever queued a row is never deleted whole: its rows' keys and links are what "never twice" and
+        // Undo rest on (README "Never twice": only a discarded import that never added anything is deleted whole)
+        if ($this->dataImportRowRepository->hasRowsOfABatch($import)) {
+            throw new ImportCanNotBeDiscarded();
         }
 
         $now = $this->clock->now();

@@ -561,3 +561,20 @@ listing_request:
     answer: "回答する"
     no_addresses: "メールアドレスを共有することはありません。回答はMySpeedPuzzlingの中で行います。"
     opt_out: "販売/交換リストにパズルがあるため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">これらのメールを停止</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}インポートが完了しました|[1,Inf[インポートが完了しました: %count% 行を追加"
+    preheader: "プロフィールに追加された内容を確認できます。問題があれば取り消せます。"
+    title: "インポートが完了しました"
+    greeting: "%name% さん、こんにちは。"
+    intro: "%file% から追加を依頼された行を処理しました。"
+    added: "{0}追加された行はありません。|[1,Inf[%count% 行がプロフィールに追加されました。"
+    results: "{0}結果なし|[1,Inf[結果 %count% 件"
+    collection_items: "{0}コレクションのパズルなし|[1,Inf[コレクションのパズル %count% 件"
+    wish_list_items: "{0}ほしいものリストのパズルなし|[1,Inf[ほしいものリストのパズル %count% 件"
+    already_yours: "{0}すでに登録済みの行はありませんでした。|[1,Inf[%count% 行はすでに登録済みでした。二重に追加されたものはありません。"
+    not_added: "{0}すべての行を追加できました。|[1,Inf[%count% 行は追加できず、確認をお待ちしています。"
+    open: "インポートを開く"
+    undo_hint: "内容に問題がありますか？ インポートのページで、追加した内容を取り消せます。"
+    opt_out: "このメールは、スプレッドシートのインポートの行を追加したためお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">このメールを停止する</a>"

@@ -77,7 +77,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetUserSolvedPuzzles.php' => self::OWN,
         'Query/IsPuzzleInUse.php' => self::WRITE,
         'Query/SearchPuzzle.php' => self::OWN,
-        'Repository/DataImportRowRepository.php' => 'The data import: whether the result an earlier import\'s row made still exists - whatever its state; no figure.',
+        'Repository/DataImportRowRepository.php' => 'The data import: whether the result a row of an import made - or was settled as "already yours" with - still exists, whatever its state; no figure.',
         'Repository/FinishedPhotoAnalysisRepository.php' => self::WRITE,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => 'Whether an event can go back to draft - a suspicious time linked to it is still a linked time (docs/features/organizations/README.md "Drafts").',

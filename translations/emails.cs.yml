@@ -561,3 +561,20 @@ listing_request:
     answer: "Odpovědět"
     no_addresses: "E-mailové adresy nikomu nesdílíme: odpovídáš přímo v MySpeedPuzzling."
     opt_out: "Tento e-mail dostáváš, protože máš puzzle na seznamu na prodej/výměnu. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Přestat posílat tyto e-maily</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}Váš import je hotový|{1}Váš import je hotový: přidán 1 řádek|[2,4]Váš import je hotový: přidány %count% řádky|[5,Inf[Váš import je hotový: přidáno %count% řádků"
+    preheader: "Podívejte se, co se přidalo do vašeho profilu - a vraťte to, pokud něco nesedí."
+    title: "Váš import je hotový"
+    greeting: "Dobrý den, %name%,"
+    intro: "Prošli jsme řádky ze souboru %file%, o jejichž přidání jste požádali."
+    added: "{0}Nic se nepřidalo.|{1}Do vašeho profilu byl přidán 1 řádek.|[2,4]Do vašeho profilu byly přidány %count% řádky.|[5,Inf[Do vašeho profilu bylo přidáno %count% řádků."
+    results: "{0}žádný výsledek|{1}1 výsledek|[2,4]%count% výsledky|[5,Inf[%count% výsledků"
+    collection_items: "{0}žádné puzzle ve sbírce|{1}1 puzzle ve sbírce|[2,Inf[%count% puzzle ve sbírce"
+    wish_list_items: "{0}žádné puzzle v seznamu přání|{1}1 puzzle v seznamu přání|[2,Inf[%count% puzzle v seznamu přání"
+    already_yours: "{0}Žádný z nich už nebyl váš.|{1}1 už byl váš - nic se nepřidalo dvakrát.|[2,4]%count% už byly vaše - nic se nepřidalo dvakrát.|[5,Inf[%count% už bylo vašich - nic se nepřidalo dvakrát."
+    not_added: "{0}Všechny řádky se podařilo přidat.|{1}1 řádek se nepodařilo přidat a čeká na vás.|[2,4]%count% řádky se nepodařilo přidat a čekají na vás.|[5,Inf[%count% řádků se nepodařilo přidat a čeká na vás."
+    open: "Otevřít import"
+    undo_hint: "Něco nesedí? Na stránce importu můžete přidané řádky vzít zpět."
+    opt_out: "Tento e-mail dostáváte, protože jste přidali řádky z importu tabulky. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Zastavit tyto e-maily</a>"

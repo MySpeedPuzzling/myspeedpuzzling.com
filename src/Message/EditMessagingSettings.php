@@ -27,6 +27,8 @@ readonly final class EditMessagingSettings
         public null|bool $borrowRequestEmails = null,
         /** Null = not on the form, keep the stored preference (docs/features/marketplace/12-listing-requests.md) */
         public null|bool $listingRequestEmails = null,
+        /** Null = not on the form, keep the stored preference (docs/features/data-import/adding.md) */
+        public null|bool $importEmails = null,
     ) {
     }
 }

@@ -12301,3 +12301,21 @@ data_import:
         google_link: "Esto no es el enlace de una hoja de cálculo de Google. Abre la hoja, elige Compartir → Copiar enlace y pégalo aquí: empieza por docs.google.com/spreadsheets."
         google_published: "Este es un enlace de «publicado en la Web». Pega en su lugar el enlace de Compartir → Copiar enlace."
         google_rate_limited: "Demasiadas hojas de Google en la última hora. Inténtalo más tarde, por favor."
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "Correos de importación"
+        emails_help: "Un correo cuando las filas de tu importación de hoja de cálculo se añaden a tu perfil. Siempre lo ves en tus notificaciones."
+    emails_unsubscribe:
+        headline: "Correos de importación"
+        text: "¿Ya no quieres un correo cuando termine la importación de tu hoja de cálculo? Lo seguirás viendo en tus notificaciones y tus otros correos quedan como están."
+        confirm_button: "Dejar de recibir estos correos"
+        done: "Hecho: ya no recibirás correos de importación. Lo seguirás viendo en tus notificaciones."
+        settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."
+    notification:
+        done: "Tu importación de %file% ha terminado."
+        added: "{0}No se añadió nada|{1}1 fila añadida|]1,Inf[%count% filas añadidas"
+        already_yours: "{0}ninguna era ya tuya|{1}1 ya era tuya|]1,Inf[%count% ya eran tuyas"
+        not_added: "{0}ninguna se quedó fuera|{1}1 no se pudo añadir|]1,Inf[%count% no se pudieron añadir"
+        open: "Abrir"
+        taken_back: "{0}Hemos deshecho lo que añadió tu importación de %file%.|{1}Hemos deshecho 1 resultado que añadió tu importación de %file%.|]1,Inf[Hemos deshecho %count% resultados que añadió tu importación de %file%."
+        taken_back_reason: "Motivo: %reason%"

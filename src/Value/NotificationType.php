@@ -77,4 +77,12 @@ enum NotificationType: string
     // organizer's team or an admin (actor = who, never shown). Target = the result
     case EventResultClaimed = 'EventResultClaimed';
     case EventResultClaimRemoved = 'EventResultClaimRemoved';
+
+    // An "Add" of the player's spreadsheet import is done (docs/features/data-import/adding.md "Telling the player"):
+    // one per batch, never per row. Target = the batch (its counts and its import)
+    case ImportRowsAdded = 'ImportRowsAdded';
+
+    // An admin took back what an import of the player had added (the emergency Undo): told once, with the reason.
+    // Target = the Undo (its counts, its reason and its import)
+    case ImportRowsTakenBack = 'ImportRowsTakenBack';
 }

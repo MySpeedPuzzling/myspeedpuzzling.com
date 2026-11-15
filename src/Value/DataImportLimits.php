@@ -84,4 +84,13 @@ final class DataImportLimits
     public const int SIGNATURE_GRACE_HOURS = 1;
     /** An upload on its way is shown on Imports home once it is this old - then it is stuck, not running */
     public const int UPLOADING_SHOWN_AFTER_SECONDS = 60;
+
+    /** Results one player's imports add per day, UTC (README Q4) - the rest is offered tomorrow */
+    public const int MAX_RESULTS_ADDED_PER_DAY = 2000;
+    /** Rows of an "Add" or an Undo the worker goes through before it gives the queue to the next job */
+    public const int ROWS_PER_TURN = 50;
+    /** ... or after so many seconds (README "no message works longer than about ten seconds") */
+    public const float SECONDS_PER_TURN = 8.0;
+    /** A running "Add" or Undo nobody worked on for so long is continued by the sweeper */
+    public const int BATCH_STANDING_AFTER_SECONDS = 300;
 }

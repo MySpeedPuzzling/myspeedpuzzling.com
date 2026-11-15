@@ -12296,3 +12296,21 @@ data_import:
         google_link: "Ce n'est pas le lien d'une feuille Google. Ouvrez la feuille, choisissez Partager → Copier le lien et collez-le ici - il commence par docs.google.com/spreadsheets."
         google_published: "C'est un lien « publié sur le Web ». Collez plutôt le lien obtenu par Partager → Copier le lien."
         google_rate_limited: "Trop de feuilles Google au cours de la dernière heure. Veuillez réessayer plus tard."
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "E-mails d'import"
+        emails_help: "Un e-mail quand des lignes de votre import de feuille de calcul sont ajoutées à votre profil. Vous le voyez toujours dans vos notifications."
+    emails_unsubscribe:
+        headline: "E-mails d'import"
+        text: "Vous ne voulez plus d'e-mail quand l'import de votre feuille de calcul est terminé ? Vous le verrez toujours dans vos notifications, et vos autres e-mails restent tels quels."
+        confirm_button: "Arrêter ces e-mails"
+        done: "C'est fait - vous ne recevrez plus d'e-mails d'import. Vous le verrez toujours dans vos notifications."
+        settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, sous « Messagerie et notifications »."
+    notification:
+        done: "Votre import de %file% est terminé."
+        added: "{0}Rien n'a été ajouté|{1}1 ligne ajoutée|]1,Inf[%count% lignes ajoutées"
+        already_yours: "{0}aucune déjà à vous|{1}1 déjà à vous|]1,Inf[%count% déjà à vous"
+        not_added: "{0}aucune laissée de côté|{1}1 n'a pas pu être ajoutée|]1,Inf[%count% n'ont pas pu être ajoutées"
+        open: "Ouvrir"
+        taken_back: "{0}Nous avons annulé ce que votre import de %file% avait ajouté.|{1}Nous avons annulé 1 résultat que votre import de %file% avait ajouté.|]1,Inf[Nous avons annulé %count% résultats que votre import de %file% avait ajoutés."
+        taken_back_reason: "Raison : %reason%"

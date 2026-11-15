@@ -25,13 +25,21 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
  * Services\DataImport\ImportRowCells (docs/features/data-import/reading.md "What a row keeps").
  *
  * `importPuzzleId` names the row's distinct puzzle (`data_import_puzzle`, written set-based by the pairing -
- * DataImportPuzzleRepository::linkRows()); `batchId` points at a table of a later stage (`data_change_batch`). Plain ids.
+ * DataImportPuzzleRepository::linkRows()); `batchId` names the "Add" that last took the row (`data_import_batch`),
+ * `undoId` the Undo that is taking it back right now (`data_import_undo`). Plain ids.
+ *
+ * **Everything the row made is on the row** (docs/features/data-import/adding.md "What a row remembers"), so Undo is
+ * exact and bounded: the result (`solvingTimeId`), the collection item and the wish list item it created - never
+ * one that existed before - and in `made` what it wrote of the result, the wish list items it removed and the
+ * custom fields it filled.
  */
 #[Entity]
 #[Index(columns: ['sheet_id', 'row_number'])]
 #[Index(columns: ['import_id', 'state'])]
 #[Index(columns: ['import_id', 'source_key'])]
 #[Index(columns: ['import_puzzle_id'])]
+#[Index(columns: ['batch_id', 'state'])]
+#[Index(columns: ['undo_id'])]
 // The database's last word on "a result is one row's": two rows can never name the same result (NULLs are distinct)
 #[UniqueConstraint(columns: ['solving_time_id'])]
 class DataImportRow
@@ -127,6 +135,42 @@ class DataImportRow
     #[Column(type: UuidType::NAME, nullable: true)]
     public null|UuidInterface $alreadyYoursSolvingTimeId = null;
 
+    /** The collection item this row created - never one that was there before. A plain id: the item may go */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $collectionItemId = null;
+
+    /** The wish list item this row created - never one that was there before. A plain id: the item may go */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $wishListItemId = null;
+
+    /**
+     * What the row's last "Add" wrote, for Undo and for the audit (ImportRowAdder builds it):
+     * `result` {puzzleId, seconds, day, teamId} - what an Undo compares the result with ("changed since?"),
+     * `collection` {collectionId}, `removedWishListItems` [{id, puzzleId, addedAt, removeOnCollectionAdd, why}],
+     * `customFields` {result: [field ids], collectionItem: [field ids], leftOut: n}, `keptByUndo` the Undo that left
+     * a changed result alone. Ids and numbers only - never a cell's content.
+     *
+     * @var null|array<string, mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $made = null;
+
+    /**
+     * Whether the row's last "Add" made its result (`solvingTimeId`). The link alone does not say so: it stays when
+     * the result is undone, and a later "Add" may find the result on the profile instead of making one.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $resultMade = false;
+
+    /** The Undo that took the row and has not come to it yet - written set-based when the Undo is asked for */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $undoId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -158,6 +202,108 @@ class DataImportRow
     public function resultCreated(UuidInterface $solvingTimeId): void
     {
         $this->solvingTimeId = $solvingTimeId;
+    }
+
+    public function isQueuedIn(string $batchId): bool
+    {
+        return $this->state === DataImportRowState::Queued && $this->batchId?->toString() === strtolower($batchId);
+    }
+
+    /**
+     * The row made something: a result (linked by the writer - resultCreated()), a collection item, a wish list item.
+     * $resultAlreadyYours…: its result was the player's already (only its puzzle was added) - how, and which result.
+     *
+     * @param array<string, mixed> $made
+     */
+    public function added(
+        DateTimeImmutable $now,
+        null|UuidInterface $collectionItemId,
+        null|UuidInterface $wishListItemId,
+        array $made,
+        null|string $resultAlreadyYoursHow = null,
+        null|UuidInterface $resultAlreadyYoursId = null,
+    ): void {
+        $this->state = DataImportRowState::Added;
+        $this->addedAt = $now;
+        $this->failure = null;
+        $this->collectionItemId = $collectionItemId;
+        $this->wishListItemId = $wishListItemId;
+        $this->made = $made;
+        $this->resultMade = isset($made['result']);
+        // A row that is a result and an owned puzzle may add the puzzle while its result is the player's already: the
+        // result it stands for stays named, so no other row pairs off with it. Else nothing is hinted any more
+        $this->alreadyYoursHow = $resultAlreadyYoursHow;
+        $this->alreadyYoursSolvingTimeId = $resultAlreadyYoursId;
+    }
+
+    /**
+     * Nothing to add: all the row says is the player's already. $how: `profile` (a result on the profile),
+     * `earlier_import` (the same data in another import), `this_row` (the row's own result is still there),
+     * `equal_row` (the same result as another row of the file), `owned` (in the collection / on the wish list).
+     */
+    public function alreadyYours(string $how, null|UuidInterface $solvingTimeId): void
+    {
+        $this->state = DataImportRowState::AlreadyYours;
+        $this->failure = null;
+        $this->alreadyYoursHow = $how;
+        $this->alreadyYoursSolvingTimeId = $solvingTimeId;
+    }
+
+    /**
+     * A rule said no (ImportRowRefusal / ImportedResultRefusal): the row waits again with the reason - it can be
+     * fixed, answered and asked for again; "add everything that is ready" leaves it alone until then.
+     */
+    public function refused(string $code): void
+    {
+        $this->state = DataImportRowState::Waiting;
+        $this->failure = $code;
+    }
+
+    /**
+     * The row threw - ours. Never tried again by itself.
+     */
+    public function failed(string $code): void
+    {
+        $this->state = DataImportRowState::Failed;
+        $this->failure = $code;
+    }
+
+    /**
+     * Undo took back what the row made: it waits again and can be added again. The link to its result stays - the
+     * result is gone, and the writer replaces a link whose result is gone.
+     */
+    public function undone(): void
+    {
+        $this->state = DataImportRowState::Waiting;
+        $this->failure = null;
+        $this->addedAt = null;
+        $this->collectionItemId = null;
+        $this->wishListItemId = null;
+        $this->made = null;
+        $this->resultMade = false;
+        $this->undoId = null;
+        $this->alreadyYoursHow = null;
+        $this->alreadyYoursSolvingTimeId = null;
+    }
+
+    /**
+     * An Undo came to the row and left it as it is: its result was changed since the import.
+     */
+    public function keptByUndo(UuidInterface $undoId): void
+    {
+        $this->made = [...($this->made ?? []), 'keptByUndo' => $undoId->toString()];
+        $this->undoId = null;
+    }
+
+    /**
+     * The custom fields the row filled on what it made (ids only), and how many values could not be stored.
+     *
+     * @param list<string> $onResult
+     * @param list<string> $onCollectionItem
+     */
+    public function customFieldsFilled(array $onResult, array $onCollectionItem, int $leftOut): void
+    {
+        $this->made = [...($this->made ?? []), 'customFields' => ['result' => $onResult, 'collectionItem' => $onCollectionItem, 'leftOut' => $leftOut]];
     }
 
     /**

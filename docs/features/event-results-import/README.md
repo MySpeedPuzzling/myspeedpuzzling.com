@@ -25,6 +25,7 @@ organizer's events they **are the official results** - she publishes her results
 | D7 | First try is always false on import; the claim modal has a toggle to mark it |
 | D8 | Every tab = a one-time event under the organizer's organization (series per venue maybe later - a small change in the import) |
 | D9 | Unfinished results (time ran out) count their **pieces placed and time spent** in global and personal statistics, but are never a completed puzzle, never ranked by time, never in medians - see "Unfinished results" |
+| D10 | A smaller team / single person at a team event is ranked in the event; the result is of its own type (Jan, 2026-11-16) - see "A pair at a teams event". Built for a pair at a Teams event; a single person waits (a solo result without its player, see there) |
 
 ## The sheet
 
@@ -54,7 +55,7 @@ its own team; every further row is one team.
 | Name | every | yes | the team's name |
 | Time | every | one of Time / Pieces placed | `h:mm:ss` or `m:ss` |
 | Pieces placed | every | | the team did not finish: pieces placed when the time ran out (Time empty) - a whole number, fewer than the puzzle has; needs the tab's `Time limit` |
-| Team Size | every | yes | people in this team (1-10) - a 3-person team at a 4-person event is normal |
+| Team Size | every | yes | people in this team (1-20) - a 3-person team at a 4-person event is normal, so is a pair at a Teams event (D10); a Pairs event takes 2 only, a single person (1) is not imported yet |
 | Contest Name | 2 | yes | the event's name |
 | Location | 2 | yes | venue |
 | City and State | 2 | yes | `Saint Paul, MN` - the country is the organization's |
@@ -81,7 +82,7 @@ Tolerated without a warning: row order (the ranking is computed from the times),
 |---|---|---|
 | `imported` | every check passed, the event and its results match the tab | - |
 | `waiting_for_puzzle` | no link, or the link's puzzle does not exist (deleted puzzles follow `puzzle_redirect`) | yes |
-| `problem` | a missing header or required event field, an unreadable time/date, a pairs row with size ≠ 2, a team name twice in the tab, a row with neither Time nor Pieces placed, unfinished teams without a `Time limit` (`unfinished_without_time_limit`), unreadable pieces placed (`unreadable_pieces_placed`), pieces placed not fewer than the puzzle has (`pieces_placed_out_of_range`, found while applying) - each listed | yes |
+| `problem` | a missing header or required event field, an unreadable time/date, a pairs row with size ≠ 2 or a single person at a teams event (`team_size_does_not_fit_category`, that row only), a team name twice in the tab, a row with neither Time nor Pieces placed, unfinished teams without a `Time limit` (`unfinished_without_time_limit`), unreadable pieces placed (`unreadable_pieces_placed`), pieces placed not fewer than the puzzle has (`pieces_placed_out_of_range`, found while applying) - each listed | yes |
 | `detached` | the event made from this tab was deleted on MySpeedPuzzling - it is never re-created | yes |
 
 A tab with a `problem` is not imported at all, so a half-fixed tab never shows half its results. The exceptions: a
@@ -198,6 +199,33 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
 | Global fastest pairs/teams, Hub recent activity | **not shown** (D4) | shown |
 | Profiles, Players page, ratings, insights, XP | nobody's | the claimer's, like any team time |
 
+## A pair at a teams event (D10)
+
+At a team event a pair sometimes competes too; the sheet gives it Team Size 2. Since 2026-11-16 such a row is imported
+(before, `team_size_does_not_fit_category` left it out):
+
+- **The result is of its own type**: two people = a pair's result (`puzzling_type = duo`), with its own anonymous
+  `puzzling_team` - the puzzle page shows it on the Pairs tab ("Just Us Two · <event> · 2 puzzlers"), statistics and
+  leaderboards count it as a pair's. A team that turns into a pair in the sheet (or back) is the same result with other
+  anonymous people (`replaceAnonymousGroup()`), as for any size change.
+- **It stays in the event's round**: the import links every result of the tab to the tab's one round, whatever its
+  category, so the round page ranks the pair with the teams by time ("N results" counts it, claims are one spot per
+  round as before). **An imported result's round is the import's, never derived again**:
+  `PuzzleSolvingTime::keepsItsRound()` (imported + has a round) and its SQL twin
+  `SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED` - `SolvingTimeRoundResolver::resolve()` returns the round it has
+  (every add/edit/duplicate/undo path), `RoundResultsReconciler` neither re-links nor unlinks it (the
+  `CompetitionRoundsChanged` reconcile, the cron, puzzle merges). A round move takes it along (it is linked);
+  claiming and releasing never touch the round. Ordinary results follow the category rule exactly as before.
+- **The round's team size** (`competition_round.team_size`) is the most common size of the tab's teams of 3 and more -
+  a pair says nothing about the event's teams; a Teams tab of pairs only has none.
+- **Not built: a single person** (Team Size 1). One person is a solo result (`puzzling_type = solo`), and a solo result
+  without its player - or, once claimed, a solo result with a one-person group snapshot - is a shape no solo reader
+  handles (the solo tab and boards join the tracker, ~20 readers tell solo from group by `team IS NULL`, the trackerless
+  audit assumed pairs/teams only). It stays `team_size_does_not_fit_category` until the solo slots of "Not in scope" are
+  built. A Pairs event still takes pairs only.
+- Content hashes: a tab that had a pair row skipped now parses differently (the row is in, the problem gone), so it shows
+  as Changed once and imports the pair; every other tab hashes as before.
+
 ## Unfinished results (D9)
 
 Builds on [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) (2026-09-18), which stays
@@ -238,6 +266,7 @@ result needs a round with a limit - the import's tab, the form's resolved round)
 
 ## Not in scope
 
-- Individual (solo) events - the same slots with N = 1, once an organizer has them.
+- Individual (solo) events - the same slots with N = 1, once an organizer has them (and with them a single person at a
+  team event, D10).
 - Series per venue (D8).
 - Writing back to the sheet; the organizer editing results on MySpeedPuzzling (the sheet is the source).

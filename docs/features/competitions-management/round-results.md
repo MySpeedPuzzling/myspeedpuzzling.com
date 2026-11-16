@@ -84,6 +84,11 @@ Round and competition deletes already null the column.
 
 **No manual round picker is needed** — with the invariant, the round is fully determined.
 
+**The one exception: an imported event result keeps its round** (2026-11-16, [../event-results-import/README.md](../event-results-import/README.md)
+D10). The organizer's results sheet imports a pair at a teams event as a pair's result in the event's teams round; the
+import sets the round and neither the resolver nor the reconciler derives it again (`PuzzleSolvingTime::keepsItsRound()`
+/ `SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED`). Every other time follows the rule above.
+
 ### Series picks (high-frequency series)
 
 A time linked to a **series** instead of an edition ([../events-page/high-frequency-series.md](../events-page/high-frequency-series.md))

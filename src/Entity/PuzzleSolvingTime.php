@@ -295,6 +295,17 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
+     * An imported event result is ranked in the round the import gave it, whatever its people count - a pair at a teams
+     * event is the pair's result in the event's teams round (docs/features/event-results-import/README.md D10). So
+     * its round is never derived again (SolvingTimeRoundResolver, RoundResultsReconciler - SQL twin
+     * SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED); only one without a round is derived like any time.
+     */
+    public function keepsItsRound(): bool
+    {
+        return $this->isImportedFromEvent() && $this->competitionRound !== null;
+    }
+
+    /**
      * The file a result came from knows its month or its year only (docs/features/data-import/date-precision.md).
      * `finishedAt` must be the first day of that period. A day is the default and is never stored.
      */

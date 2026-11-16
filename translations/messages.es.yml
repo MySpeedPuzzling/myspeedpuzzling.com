@@ -11814,6 +11814,7 @@ data_import:
             kept_until: "Se guarda hasta el %date%"
         headline:
             read: "{1}Hemos leído 1 fila de tu archivo.|[0,Inf[Hemos leído %number% filas de tu archivo."
+            reading: "Estamos leyendo tu archivo…"
             finished: "Esta importación está terminada."
             gone: "Las filas de este archivo ya no se guardan."
         file:
@@ -11829,6 +11830,13 @@ data_import:
             working: "Estamos averiguando qué contienen tus hojas…"
             done: "Leído como cabría esperar."
             unsure: "{1}No estamos seguros de 1 hoja: échale un vistazo.|[0,Inf[No estamos seguros de %number% hojas: échales un vistazo."
+            to_check: "{1}1 hoja por comprobar: hemos supuesto sus columnas|[0,Inf[%number% hojas por comprobar: hemos supuesto sus columnas"
+            reading: "Leyendo tus filas…"
+            unsure_columns: "{1}No estamos seguros de qué es 1 columna de tu archivo: échale un vistazo.|[0,Inf[No estamos seguros de qué son %number% columnas de tu archivo: échales un vistazo."
+            check_first:
+                no_header: "{1}Tu archivo no tiene fila de encabezados, así que hemos supuesto qué es cada columna: compruébalo, por favor.|[0,Inf[%number% hojas no tienen fila de encabezados, así que hemos supuesto qué es cada columna: compruébalo, por favor."
+                no_header_sheet: "{1}Una hoja de tu archivo no tiene fila de encabezados, así que hemos supuesto qué es cada columna: compruébalo, por favor.|[0,Inf[%number% hojas de tu archivo no tienen fila de encabezados, así que hemos supuesto qué es cada columna: compruébalo, por favor."
+                unsure: "{1}No estamos seguros de haber leído bien 1 hoja: compruébala antes de que emparejemos tus puzzles.|[0,Inf[No estamos seguros de haber leído bien %number% hojas: compruébalas antes de que emparejemos tus puzzles."
         people:
             default: "Los nombres de tu archivo se añaden como invitados, salvo que digas quiénes son."
             nobody: "No se nombra a nadie más."
@@ -11841,6 +11849,8 @@ data_import:
             searching: "{1}Aún buscamos 1 de ellos…|[0,Inf[Aún buscamos %number% de ellos…"
             working: "Emparejando tus puzzles…"
             none: "No hay puzzles que emparejar."
+            held: "{1}1 hoja espera a que compruebes sus columnas: emparejamos sus puzzles justo después.|[0,Inf[%number% hojas esperan a que compruebes sus columnas: emparejamos sus puzzles justo después."
+            waiting_rows: "Esperando a que se lean tus filas."
         add:
             running: "Se está añadiendo a tu perfil ahora mismo."
             ready: "%number% listos para añadir ahora."
@@ -11849,6 +11859,7 @@ data_import:
             added_on: "Añadido: %number%, el %date%."
             nothing: "Todavía no hay nada listo."
             nothing_step: "Todavía no hay nada listo - primero el paso %step%."
+            nothing_reading: "Aún no hay nada listo: tus filas todavía se están leyendo."
         primary:
             see_added: "Ver lo que se añadió"
             check_and_add: "Revisar y añadir"
@@ -11856,6 +11867,7 @@ data_import:
             questions: "{1}Responder 1 pregunta|[0,Inf[Responder %number% preguntas"
             rows: "{1}Ver 1 fila|[0,Inf[Ver %number% filas"
             how_read: "Ver cómo hemos leído tu archivo"
+            check_first: "Comprobar cómo hemos leído tu archivo"
             people: "Decir quiénes son"
             puzzles: "Emparejar tus puzzles"
             answer: "{1}Responder para 1 fila en espera|[0,Inf[Responder para %number% filas en espera"
@@ -12000,6 +12012,11 @@ data_import:
         holds_puzzles: "Sí contiene puzzles"
         continue_one: "Continuar: miraré «%sheet%» más tarde"
         continue_many: "Continuar: las miraré más tarde"
+        check_first:
+            no_header: "Sin fila de encabezados: hemos supuesto qué es cada columna."
+            unsure: "No estamos seguros de haber leído bien esta hoja."
+        guessed: "Nuestra suposición: %names%"
+        check_later: "Continuar: lo comprobaré más tarde"
         as:
             solo: "{1}1 resultado en solitario|[0,Inf[%number% resultados en solitario"
             pair: "{1}1 resultado en pareja|[0,Inf[%number% resultados en pareja"
@@ -12519,6 +12536,7 @@ data_import:
         take_in: "Volver a incluir esta fila"
         left_out_note: "Esta fila no se importa."
         not_answerable: "Esta fila no se puede cambiar ahora mismo: su hoja se está leyendo de nuevo. Inténtalo en un momento."
+        columns_open: "Hemos supuesto las columnas de la hoja de esta fila. La fila no tiene nada malo: espera a que compruebes cómo hemos leído la hoja."
         back: "Volver a «Filas que no hemos podido leer»"
         back_to:
             overview: "Volver a tu importación"
@@ -12602,6 +12620,19 @@ data_import:
             no_samples: "No hay valores en las primeras filas."
             this_is: "Esto es"
             offered: "Parece «%field%», pero otra columna ya lo es."
+            brand_hint: "Ninguna columna de esta hoja es la marca. Con ella encontramos tus puzzles con mucha más seguridad: si una columna contiene la marca, elige «Marca» para ella abajo."
+            guess: "Nuestra suposición"
+            guess_brand: "Parecen marcas de puzzles que conocemos."
+            check_first:
+                no_header_title: "Esta hoja no tiene fila de encabezados."
+                position: "Hoja %number% de %total% por comprobar"
+                no_time: "No hemos encontrado una columna con tus tiempos. Elígela abajo; si no, tus puzzles se añaden sin tiempo."
+                no_header_text: "Hemos supuesto las columnas por lo que contienen: dinos qué es cada columna."
+                unsure_title: "Comprueba cómo hemos leído esta hoja, por favor."
+                unsure_text: "No estamos seguros de qué es esta hoja o de qué son algunas de sus columnas. Mira abajo lo que hemos elegido."
+                held: "Hasta que la hayas mirado, no emparejamos ningún puzzle de esta hoja ni añadimos nada de ella."
+                confirm: "Sí, está bien"
+                or_change: "O cambia abajo lo que esté mal y guarda."
             computed_hint: "MySpeedPuzzling lo calcula por sí mismo, por eso no se importa."
             lookup: "La marca y las piezas vienen de la hoja «%sheet%», por el nombre del puzzle."
             table: "Leemos la tabla en %range%."
@@ -12640,7 +12671,7 @@ data_import:
                 minutes_seconds: "Minutos y segundos"
                 hours_minutes: "Horas y minutos"
                 hours_minutes_dot_seconds: "Horas, minutos y segundos"
-                as_stored: "Horas y minutos, como lo guarda la celda"
+                as_stored: "Tal como está escrito: horas:minutos:segundos"
                 stored_hours_as_minutes: "Minutos y segundos"
                 minutes: "Minutos"
                 seconds: "Segundos"
@@ -12722,6 +12753,7 @@ data_import:
         problem:
             other: "No pudimos leer esto con seguridad."
             waiting: "Esta fila espera tu respuesta a la pregunta de la hoja."
+            columns_open: "Espera a que compruebes las columnas de su hoja."
             date_typed_open: "Todavía no sabemos si en esta fecha se intercambiaron el día y el mes."
             no_name: "Esta fila no tiene nombre de puzzle."
             lookup_ambiguous: "La lista de puzzles tiene este nombre más de una vez, con otra marca u otro número de piezas: no sabemos cuál es."
@@ -12812,6 +12844,7 @@ data_import:
         recognising: "Averiguando qué contiene…"
         failed: "No pudimos procesar esta hoja: el fallo es nuestro"
         waiting_for_answer: "Espera tu respuesta"
+        waiting_for_check: "Espera a que compruebes sus columnas"
         parsing: "Recorriendo sus filas…"
         understood: "Filas leídas: %understood% · sin poder leer: %look%"
     google:
@@ -12962,6 +12995,7 @@ data_import:
         reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
         line:
             results: "{1}1 resultado|[0,Inf[%number% resultados"
+            no_time: "{1}1 resultado no tiene tiempo: se añade sin él.|[0,Inf[%number% resultados no tienen tiempo: se añaden sin él."
             owned: "{1}1 puzzle para tu colección|[0,Inf[%number% puzzles para tu colección"
             wish_list: "{1}1 puzzle para tu lista de deseos|[0,Inf[%number% puzzles para tu lista de deseos"
             unlisted: "{1}1 fila guardada solo para ti|[0,Inf[%number% filas guardadas solo para ti"

@@ -50,12 +50,19 @@ final class ImportPuzzlesController extends AbstractController
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
         }
 
+        $progress = $this->getDataImports->progressOfPlayer($importId, $player->playerId);
+
         return $this->render('data_import/puzzles.html.twig', [
             'import' => $import,
             'overview' => $overview,
             // What is ready to be added (docs/features/data-import/adding-screens.md "Ready to add") - one statement
             'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
-            'live' => self::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
+            'live' => self::live($progress),
+            // The sheets whose columns the player has not checked yet: nothing of them is matched (ImportCheckFirst) -
+            // the page says so and leads to the check, instead of "0 of 0 puzzles". Read with the progress: no
+            // statement of its own
+            'held' => $progress->sheetsHeld,
+            'held_sheet_id' => $progress->firstHeldSheetId,
         ]);
     }
 

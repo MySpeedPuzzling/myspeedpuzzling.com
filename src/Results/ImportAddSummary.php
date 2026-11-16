@@ -68,6 +68,10 @@ readonly final class ImportAddSummary
         public array $knownIds = [],
         /** "Forget the spreadsheet's content": the rows' cells are gone - nothing more can be added from the import */
         public bool $wiped = false,
+        /** Of $sheetsNotSetUp: sheets that have their columns and are only being read (again) */
+        public int $sheetsBeingRead = 0,
+        /** Results of the file's read sheets that have no time (a sheet without a time column) - said before an Add */
+        public int $resultsWithoutTime = 0,
     ) {
     }
 

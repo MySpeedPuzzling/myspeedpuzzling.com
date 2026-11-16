@@ -149,12 +149,15 @@ final class NumberFormatClassifier
             }
         }
 
+        // "ss.00", "ss,0": the player sees - and typed - a fraction of a second
+        $fraction = preg_match('/s[.,]0+/', $bare) === 1;
+
         if ($elapsed) {
-            return new NumberFormat(NumberFormatKind::Duration);
+            return new NumberFormat(NumberFormatKind::Duration, secondFractionShown: $fraction);
         }
 
         if ($year === false && $month === false && $day === false) {
-            return new NumberFormat(NumberFormatKind::Time);
+            return new NumberFormat(NumberFormatKind::Time, secondFractionShown: $fraction);
         }
 
         return new NumberFormat(

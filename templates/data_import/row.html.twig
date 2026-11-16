@@ -23,6 +23,12 @@
 {% set origin = origin|default(null) %}
 {% set back_url = origin is not null ? origin.url : path('data_import_to_fix', {importId: import.importId}) %}
 {% set back_label = origin is not null and origin.screen != 'to_fix' ? ('data_import.row.back_to.' ~ origin.screen)|trans : 'data_import.row.back'|trans %}
+{# A row of a sheet whose columns wait for the player's look reads fine: the way back is its sheet, not "Rows we could not read" #}
+{% set held_row = detail.row.problems|filter(problem => problem.code == 'columns_open') is not empty %}
+{% if origin is null and held_row %}
+    {% set back_url = path('data_import_sheet', {importId: import.importId, sheetId: detail.sheetId}) %}
+    {% set back_label = 'data_import.row.back_to.sheet'|trans %}
+{% endif %}
 
 {% block title %}{{ 'data_import.row.title'|trans({'%number%': detail.row.rowNumber}) }} - {{ sheet_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -40,7 +46,15 @@
         {{ include('data_import/_parsed_row.html.twig', {row: detail.row}, with_context = false) }}
     {% endif %}
 
-    {% if not detail.canBeAnswered %}
+    {% if held_row %}
+        {# A row of a sheet whose columns were guessed: nothing to fix here - the sheet is checked first #}
+        <div class="alert alert-warning fs-sm" data-testid="import-row-columns-open">
+            <p class="mb-2">{{ 'data_import.row.columns_open'|trans }}</p>
+            <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: detail.sheetId}) }}" class="btn btn-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-row-check-columns">
+                <i class="bi bi-eye me-1" aria-hidden="true"></i>{{ 'data_import.flow.primary.check_first'|trans }}
+            </a>
+        </div>
+    {% elseif not detail.canBeAnswered %}
         <p class="alert alert-warning fs-sm" data-testid="import-row-not-answerable">{{ 'data_import.row.not_answerable'|trans }}</p>
     {% else %}
         {% if form_error is not null %}
@@ -127,7 +141,7 @@
     {% endif %}
 
     {# The row's one primary is its Save - or "Put back" for a row that is not imported; else the way on #}
-    {% set has_own_primary = detail.canBeAnswered and (detail.state == 'left_out' ? detail.row.parsed.leftOut|default('') == 'by_player' : fields is not empty) %}
+    {% set has_own_primary = not held_row and detail.canBeAnswered and (detail.state == 'left_out' ? detail.row.parsed.leftOut|default('') == 'by_player' : fields is not empty) %}
     {{ include('data_import/_flow_footer.html.twig', {
         import: import,
         primary: has_own_primary ? null : {label: back_label, url: back_url, testid: 'import-flow-back-primary'},

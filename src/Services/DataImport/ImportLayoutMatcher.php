@@ -438,7 +438,8 @@ final readonly class ImportLayoutMatcher
                 // The year is the sheet's own; whether a spreadsheet turned typed dates around is the file's
                 // ... and "are these pair results?" is asked of each sheet by its own title - a layout's word for
                 // every row travels as the sheet's `solvingType`, by the rule above, and then nothing is asked
-                ImportQuestionType::Year, ImportQuestionType::TypedDates, ImportQuestionType::SheetSolvingType => null,
+                // ... and "did we read your columns right?" is never asked of a sheet a layout was laid over
+                ImportQuestionType::Year, ImportQuestionType::TypedDates, ImportQuestionType::SheetSolvingType, ImportQuestionType::CheckColumns => null,
             };
 
             if ($answer === null || in_array($answer, $question->choices, true) === false) {

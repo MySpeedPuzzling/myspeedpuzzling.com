@@ -19,6 +19,10 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  * 1 File · 2 Check · 3 People · 4 Puzzles · 5 Add - each with its state and one status sentence, the ONE primary
  * action of "Where you are", and the quiet "add what is ready now" line.
  *
+ * The order of the primary action: finished → a batch is running → questions → **check how we read your file** (a
+ * sheet whose reading is a guess, ImportCheckFirst) → rows that need a look → a sheet that failed → people → puzzles
+ * → rows not added → ready to add.
+ *
  * Pure: it reads nothing and stores nothing. Everything it says comes from what the import's page has loaded
  * already (the import, its sheets, the pairing summary, the add summary) - so "which step is the player at" is
  * never a stored state, it is worked out on every view. A step with nothing to ask is passed by itself; the
@@ -92,6 +96,12 @@ readonly final class ImportFlow
 
         $open = $stage === self::STAGE_STEPS;
         $rows = $import->rowsRead > 0 ? $import->rowsRead : array_sum(array_map(static fn (DataImportSheetOverview $sheet): int => $sheet->rows, $sheets));
+        // "We read N rows" goes with "20 of 40 matched": of a sheet that is imported and read, the rows that are no
+        // puzzle - its header row, a title, a totals line - are not counted
+        $rows = max(0, $rows - array_sum(array_map(
+            static fn (DataImportSheetOverview $sheet): int => $sheet->parsed && $sheet->failed === false && $sheet->isLeftOut() === false ? $sheet->rowsLeftOut : 0,
+            $sheets,
+        )));
 
         // ---- 1 File ----
         $steps = [self::FILE => new ImportFlowStep(
@@ -110,12 +120,28 @@ readonly final class ImportFlow
         $look = 0;
         $failed = 0;
         $unsure = 0;
+        $unsureColumns = 0;
+        $unsureKinds = 0;
         $working = false;
+        $recognising = false;
+        /** @var list<DataImportSheetOverview> $held the sheets whose reading is a guess the player must check first */
+        $held = [];
 
         foreach ($sheets as $sheet) {
             $state = $sheet->state();
-            $unsure += $sheet->isUnsure() && $sheet->asksThePlayer() === false ? 1 : 0;
+
+            if ($sheet->isHeldForACheck()) {
+                $held[] = $sheet;
+            }
+
+            if ($sheet->isUnsure() && $sheet->asksThePlayer() === false && $sheet->isHeldForACheck() === false) {
+                $unsure++;
+                $unsureKinds += $sheet->kindSure ? 0 : 1;
+                $unsureColumns += $sheet->isLeftOut() ? 0 : $sheet->columnsToCheck;
+            }
+
             $working = $working || $state === 'recognising' || $state === 'parsing';
+            $recognising = $recognising || $state === 'recognising';
             $failed += $sheet->failed ? 1 : 0;
             $questions += $sheet->asksThePlayer() ? $sheet->questions : 0;
             $look += $state === 'parsed' || $state === 'waiting' ? $sheet->rowsNeedLook : 0;
@@ -127,6 +153,22 @@ readonly final class ImportFlow
             $checkLines[] = new ImportFlowText('data_import.flow.check.questions', $questions);
         }
 
+        // A sheet whose columns (or kind) are a guess where a wrong guess spoils everything after it - no header row,
+        // an unsure name / time / brand column, an unsure kind (ImportCheckFirst): said in plain words why, and - below
+        // - the ONE primary action before the rows, the people and the puzzles. Its rows are held until the player
+        // has looked: "Yes, this is right" or any change of the columns clears it, so it is never asked twice
+        $checkFirst = $held[0] ?? null;
+
+        if ($checkFirst !== null) {
+            $withoutHeader = count(array_filter($held, static fn (DataImportSheetOverview $sheet): bool => $sheet->checkFirst === ImportCheckFirst::BECAUSE_NO_HEADER));
+            $checkLines[] = match (true) {
+                // "Your file has no header row" is the file's only sheet; in a file of several it is "one sheet of…"
+                $withoutHeader > 0 && count($sheets) > 1 => new ImportFlowText('data_import.flow.check.check_first.no_header_sheet', $withoutHeader),
+                $withoutHeader > 0 => new ImportFlowText('data_import.flow.check.check_first.no_header', $withoutHeader),
+                default => new ImportFlowText('data_import.flow.check.check_first.unsure', count($held)),
+            };
+        }
+
         if ($look > 0) {
             $checkLines[] = new ImportFlowText('data_import.flow.check.rows', $look);
         }
@@ -136,9 +178,14 @@ readonly final class ImportFlow
         }
 
         if ($unsure > 0) {
-            // "Please check" (§2): the step is not passed by itself - but it is never the one primary action either:
-            // nothing records that the player has looked, so it would be asked for on every visit
-            $checkLines[] = new ImportFlowText('data_import.flow.check.unsure', $unsure);
+            // "Please check" (§2) for what is left: a column that decides nothing by itself (a date, a field of the
+            // player's own) is a guess. The step is not passed by itself - but this is never the one primary action:
+            // nothing records that the player has looked, so it would be asked for on every visit. (A sheet whose
+            // guess decides what gets added is the "check first" above - that one IS the primary, and is recorded)
+            // Said as exactly as the numbers allow: where every such sheet's kind is sure, it is columns we doubt
+            $checkLines[] = $unsureKinds === 0 && $unsureColumns > 0
+                ? new ImportFlowText('data_import.flow.check.unsure_columns', $unsureColumns)
+                : new ImportFlowText('data_import.flow.check.unsure', $unsure);
         }
 
         $checkState = match (true) {
@@ -148,7 +195,8 @@ readonly final class ImportFlow
         };
 
         if ($working) {
-            $checkLines[] = new ImportFlowText('data_import.flow.check.working');
+            // "Working out what your sheets hold" only while that is what happens; rows read (again) are said as that
+            $checkLines[] = new ImportFlowText($recognising ? 'data_import.flow.check.working' : 'data_import.flow.check.reading');
         }
 
         $steps[self::CHECK] = new ImportFlowStep(
@@ -156,9 +204,14 @@ readonly final class ImportFlow
             'check',
             $checkState,
             $checkLines === [] ? [new ImportFlowText('data_import.flow.check.done')] : $checkLines,
-            $open ? ($questions === 0 && $failed === 0 && $look > 0 ? 'data_import_to_fix' : 'data_import_columns') : null,
-            $id,
-            $questions + $look,
+            match (true) {
+                $open === false => null,
+                $questions === 0 && $checkFirst !== null => 'data_import_sheet',
+                $questions === 0 && $failed === 0 && $look > 0 => 'data_import_to_fix',
+                default => 'data_import_columns',
+            },
+            $open && $questions === 0 && $checkFirst !== null ? $id + ['sheetId' => $checkFirst->sheetId] : $id,
+            $questions + $look + count($held),
         );
 
         // ---- 3 People ----
@@ -177,7 +230,9 @@ readonly final class ImportFlow
         };
 
         // ---- 4 Puzzles ----
-        $looking = $pairing->paired === false || $pairing->searching > 0;
+        // While nothing is there to match because every puzzle of the file waits for the columns check, the step
+        // waits for the player - it is not "matching": no spinner above "… wait for you to check their columns"
+        $looking = ($pairing->paired === false || $pairing->searching > 0) && ($held === [] || $pairing->puzzles > 0);
         $puzzleLines = [];
 
         if ($pairing->puzzles > 0) {
@@ -196,15 +251,28 @@ readonly final class ImportFlow
                 : new ImportFlowText('data_import.flow.puzzles.working');
         }
 
+        if ($held !== []) {
+            // Nothing is matched from a sheet whose columns were not checked: said, instead of a spinner
+            $puzzleLines[] = new ImportFlowText('data_import.flow.puzzles.held', count($held));
+        }
+
         $steps[self::PUZZLES] = new ImportFlowStep(
             self::PUZZLES,
             'puzzles',
             match (true) {
                 $add->undecided > 0 => ImportFlowStep::OPEN,
                 $looking => ImportFlowStep::WORKING,
+                // The puzzles of a held sheet are still to come: the step is neither passed nor worked on. Nor is it
+                // passed while rows are still read: nothing was matched yet - no tick before the matching ran
+                $held !== [] || $working => ImportFlowStep::AHEAD,
                 default => ImportFlowStep::DONE,
             },
-            $puzzleLines === [] ? [new ImportFlowText('data_import.flow.puzzles.none')] : $puzzleLines,
+            match (true) {
+                $puzzleLines !== [] && $working && $looking === false && $pairing->puzzles === 0 => [new ImportFlowText('data_import.flow.puzzles.waiting_rows'), ...$puzzleLines],
+                $puzzleLines !== [] => $puzzleLines,
+                $working => [new ImportFlowText('data_import.flow.puzzles.waiting_rows')],
+                default => [new ImportFlowText('data_import.flow.puzzles.none')],
+            },
             $open ? 'data_import_puzzles' : null,
             $id,
             $add->undecided,
@@ -252,9 +320,12 @@ readonly final class ImportFlow
                 $add->hasAdded() => ImportFlowStep::DONE,
                 default => ImportFlowStep::AHEAD,
             },
-            $addLines !== [] ? $addLines : [$firstOpen === null
-                ? new ImportFlowText('data_import.flow.add.nothing')
-                : new ImportFlowText('data_import.flow.add.nothing_step', null, ['step' => $firstOpen])],
+            $addLines !== [] ? $addLines : [match (true) {
+                $firstOpen === null => new ImportFlowText('data_import.flow.add.nothing'),
+                // Step 2 only works by itself: there is nothing for the player to do first
+                $firstOpen === self::CHECK && $steps[self::CHECK]->state === ImportFlowStep::WORKING => new ImportFlowText('data_import.flow.add.nothing_reading'),
+                default => new ImportFlowText('data_import.flow.add.nothing_step', null, ['step' => $firstOpen]),
+            }],
             $open ? 'data_import_add' : null,
             $id,
             $ready,
@@ -268,6 +339,9 @@ readonly final class ImportFlow
             $open === false => $add->hasAdded() ? $seeAdded : null,
             $add->runningBatchId !== null => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.follow'), 'data_import_batch', $id + ['batchId' => $add->runningBatchId], self::ADD),
             $questions > 0 => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.questions', $questions), 'data_import_columns', $id, self::CHECK),
+            // Right after the questions of the sheets we are sure about, and before rows, people and puzzles: all of
+            // those are built on the columns, so a guess is looked at first - on that sheet's own columns screen
+            $checkFirst !== null => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.check_first'), 'data_import_sheet', $id + ['sheetId' => $checkFirst->sheetId], self::CHECK),
             $look > 0 => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.rows', $look), 'data_import_to_fix', $id, self::CHECK),
             $failed > 0 => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.how_read'), 'data_import_columns', $id, self::CHECK),
             $steps[self::PEOPLE]->isOpen() => new ImportFlowAction(new ImportFlowText('data_import.flow.primary.people'), 'data_import_people', $id, self::PEOPLE),
@@ -286,8 +360,9 @@ readonly final class ImportFlow
         return new self(
             $stage,
             $steps,
+            // "We read N rows" only once they are read: above "Reading your rows… 0 of 40" the heading waits
             $open
-                ? new ImportFlowText('data_import.flow.headline.read', $rows)
+                ? ($working ? new ImportFlowText('data_import.flow.headline.reading') : new ImportFlowText('data_import.flow.headline.read', $rows))
                 : new ImportFlowText($add->wiped && $import->status !== DataImportStatus::Done ? 'data_import.flow.headline.gone' : 'data_import.flow.headline.finished'),
             $primary,
             $secondary,

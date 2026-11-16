@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\DataImport;
 
+use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportSheetScreen;
 use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Results\ImportSheetDetail;
@@ -21,6 +22,7 @@ final readonly class ImportSheetPage
     public function __construct(
         private GetImportSheetScreen $getImportSheetScreen,
         private ImportSheetScreen $screen,
+        private GetDataImports $getDataImports,
     ) {
     }
 
@@ -37,8 +39,26 @@ final readonly class ImportSheetPage
             ? []
             : $this->getImportSheetScreen->firstCells($importId, $sheet->sheetId, $playerId, $table->firstRow, ImportSheetScreen::SAMPLE_ROWS);
 
+        $view = $this->screen->view($sheet, $firstCells, $submitted, $errors);
+        // "Sheet 1 of 2 to check": only read while this sheet asks for the check (one statement, the import's sheets)
+        $position = null;
+        $held = [];
+
+        if (($view['check_first'] ?? null) !== null) {
+            $held = array_values(array_filter(
+                $this->getDataImports->sheetsOfPlayer($importId, $playerId),
+                static fn (DataImportSheetOverview $other): bool => $other->isHeldForACheck(),
+            ));
+
+            foreach ($held as $index => $other) {
+                $position = $other->sheetId === $sheet->sheetId ? $index + 1 : $position;
+            }
+        }
+
         return [
-            ...$this->screen->view($sheet, $firstCells, $submitted, $errors),
+            ...$view,
+            'check_position' => count($held) > 1 ? $position : null,
+            'check_total' => count($held),
             'import_id' => $importId,
             'sheet' => $sheet,
             'state' => self::state($sheet),

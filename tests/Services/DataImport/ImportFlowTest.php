@@ -26,6 +26,7 @@ final class ImportFlowTest extends TestCase
 {
     private const string IMPORT = '019a0000-0000-7000-8000-000000000001';
     private const string BATCH = '019a0000-0000-7000-8000-0000000000b1';
+    private const string SHEET = '019a0000-0000-7000-8000-0000000000c1';
 
     /**
      * @param array{status?: DataImportStatus, sheets?: list<DataImportSheetOverview>, pairing?: ImportPairingSummary, add?: array<string, mixed>, people?: null|array{people: int, players: int, unanswered: int}} $given
@@ -100,7 +101,8 @@ final class ImportFlowTest extends TestCase
             ['sheets' => [self::sheet(mapped: false)], 'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, false)],
             ImportFlow::STAGE_STEPS,
             [1 => $done, 2 => $working, 3 => $ahead, 4 => $working, 5 => $ahead],
-            [2 => ['data_import.flow.check.working'], 4 => ['data_import.flow.puzzles.working'], 5 => ['data_import.flow.add.nothing_step']],
+            // Step 2 works by itself: step 5 does not send the player there
+            [2 => ['data_import.flow.check.working'], 4 => ['data_import.flow.puzzles.working'], 5 => ['data_import.flow.add.nothing_reading']],
             null, null, 2, null,
         ];
 
@@ -127,6 +129,119 @@ final class ImportFlowTest extends TestCase
             [1 => $done, 2 => $open, 3 => $ahead, 4 => $done, 5 => $open],
             [2 => ['data_import.flow.check.questions', 'data_import.flow.check.rows']],
             'data_import.flow.primary.questions', 'data_import_columns', 2, 300,
+        ];
+
+        // ---- A sheet whose reading is a guess is checked first (ImportCheckFirst) ----
+        yield 'a sheet without a header row: "check how we read your file" before rows, people and puzzles' => [
+            [
+                'sheets' => [self::sheet(rowsUnderstood: 0, rowsWaiting: 72, columnsToCheck: 5, checkFirst: 'no_header', sheetId: self::SHEET)],
+                'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, true),
+                'people' => ['people' => 3, 'players' => 0, 'unanswered' => 3],
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $open, 4 => $ahead, 5 => $ahead],
+            [
+                2 => ['data_import.flow.check.check_first.no_header'],
+                // Said, instead of a spinner: nothing is matched from it until the player has looked
+                4 => ['data_import.flow.puzzles.held'],
+                5 => ['data_import.flow.add.nothing_step'],
+            ],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, null,
+        ];
+
+        yield 'a sheet with headers whose deciding column was guessed from its values (or whose kind is unknown): the same button, another sentence' => [
+            ['sheets' => [self::sheet(rowsUnderstood: 0, rowsWaiting: 40, kindSure: false, checkFirst: 'unsure', sheetId: self::SHEET)], 'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, true)],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [2 => ['data_import.flow.check.check_first.unsure'], 4 => ['data_import.flow.puzzles.held']],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, null,
+        ];
+
+        yield 'a guessed sheet beside a sure one: the sure one is matched and can be added now, the check comes before its rows and puzzles' => [
+            [
+                'sheets' => [self::sheet(rowsNeedLook: 45), self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET)],
+                'pairing' => new ImportPairingSummary(200, 180, 0, 0, 20, 0, 0, true),
+                'add' => ['rowsReady' => 180, 'rowsTaken' => 180, 'results' => 180, 'needLook' => 45, 'undecided' => 20],
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $open, 5 => $open],
+            [
+                2 => ['data_import.flow.check.check_first.no_header_sheet', 'data_import.flow.check.rows'],
+                4 => ['data_import.flow.puzzles.matched', 'data_import.flow.puzzles.rows_wait', 'data_import.flow.puzzles.held'],
+            ],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, 180,
+        ];
+
+        yield 'questions of a sheet we are sure about still come before the check' => [
+            ['sheets' => [self::sheet(questions: 1, rowsWaiting: 10), self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET)]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [2 => ['data_import.flow.check.questions', 'data_import.flow.check.check_first.no_header_sheet']],
+            'data_import.flow.primary.questions', 'data_import_columns', 2, null,
+        ];
+
+        yield 'a found header row with probable columns or a probable kind is not held: the old line, the puzzles at once' => [
+            ['sheets' => [self::sheet(columnsToCheck: 2, kindSure: false)], 'add' => ['undecided' => 12], 'pairing' => new ImportPairingSummary(60, 48, 0, 12, 0, 0, 0, true)],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $open, 5 => $ahead],
+            [2 => ['data_import.flow.check.unsure'], 4 => ['data_import.flow.puzzles.matched', 'data_import.flow.puzzles.rows_wait']],
+            'data_import.flow.primary.puzzles', 'data_import_puzzles', 4, null,
+        ];
+
+        yield 'rows are read again after a save: step 2 says so, step 4 waits for them - no tick before the matching ran' => [
+            ['sheets' => [new DataImportSheetOverview(position: 0, title: 'Log', hidden: false, rows: 72, columns: 8, kind: DataImportSheetKind::Results, mapped: true, parsed: false)], 'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, true)],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $working, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [2 => ['data_import.flow.check.reading'], 4 => ['data_import.flow.puzzles.waiting_rows']],
+            null, null, 2, null,
+        ];
+
+        yield 'every puzzle waits for the check and the matching has not come to rest: the step waits for the player - no spinner' => [
+            [
+                'sheets' => [self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET), self::sheet(rowsUnderstood: 0, rowsWaiting: 20, checkFirst: 'no_header', sheetId: self::SHEET)],
+                'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, false),
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [4 => ['data_import.flow.puzzles.held'], 5 => ['data_import.flow.add.nothing_step']],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, null,
+        ];
+
+        yield 'several sheets, one without a header row: "one sheet of your file"' => [
+            ['sheets' => [self::sheet(), self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET)]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [2 => ['data_import.flow.check.check_first.no_header_sheet']],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, null,
+        ];
+
+        yield 'a sheet whose kind is not sure: "not sure about 1 sheet"' => [
+            ['sheets' => [self::sheet(kindSure: false, columnsToCheck: 1)]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $done, 5 => $ahead],
+            [2 => ['data_import.flow.check.unsure']],
+            null, null, 2, null,
+        ];
+
+        yield 'the player confirmed the columns: the sheet is like any other - its rows, then its puzzles' => [
+            ['sheets' => [self::sheet(columnsToCheck: 5)], 'add' => ['undecided' => 12], 'pairing' => new ImportPairingSummary(60, 48, 0, 12, 0, 0, 0, true)],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $open, 5 => $ahead],
+            [2 => ['data_import.flow.check.unsure_columns'], 4 => ['data_import.flow.puzzles.matched', 'data_import.flow.puzzles.rows_wait']],
+            'data_import.flow.primary.puzzles', 'data_import_puzzles', 4, null,
+        ];
+
+        yield 'a guessed sheet that is not imported or failed asks for no check' => [
+            [
+                'sheets' => [
+                    self::sheet(kind: DataImportSheetKind::NotPuzzles, checkFirst: 'no_header', sheetId: self::SHEET),
+                    self::sheet(failed: true, checkFirst: 'no_header', sheetId: self::SHEET),
+                ],
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $done, 5 => $ahead],
+            [2 => ['data_import.flow.check.failed']],
+            'data_import.flow.primary.how_read', 'data_import_columns', 2, null,
         ];
 
         yield 'only rows that could not be read: the primary leads to them' => [
@@ -291,6 +406,24 @@ final class ImportFlowTest extends TestCase
         ];
     }
 
+    public function testTheCheckLeadsToTheColumnsScreenOfTheSheetThatNeedsIt(): void
+    {
+        $flow = self::flow([
+            'sheets' => [self::sheet(), self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET)],
+            'add' => ['rowsReady' => 300, 'rowsTaken' => 300, 'results' => 300],
+        ]);
+
+        self::assertNotNull($flow->primary);
+        self::assertSame(['importId' => self::IMPORT, 'sheetId' => self::SHEET], $flow->primary->parameters);
+        self::assertSame(ImportFlow::CHECK, $flow->primary->step);
+        // The step's own line leads there too, and counts the sheet as one thing waiting
+        self::assertSame('data_import_sheet', $flow->steps[ImportFlow::CHECK]->route);
+        self::assertSame(['importId' => self::IMPORT, 'sheetId' => self::SHEET], $flow->steps[ImportFlow::CHECK]->parameters);
+        self::assertSame(1, $flow->steps[ImportFlow::CHECK]->waiting);
+        // What is ready - the sheet we are sure about - can still be added now; nothing of the held sheet is in it
+        self::assertSame(300, $flow->secondary?->label->count);
+    }
+
     public function testAFinishedImportOpensNoStepAndAnOpenOneOpensThemAll(): void
     {
         $finished = self::flow(['status' => DataImportStatus::Done, 'add' => ['canAdd' => false]]);
@@ -306,6 +439,12 @@ final class ImportFlowTest extends TestCase
         self::assertSame('data_import.flow.headline.gone', self::flow(['add' => ['wiped' => true, 'canAdd' => false]])->headline->key);
         self::assertSame('data_import.flow.headline.read', $open->headline->key);
         self::assertSame(792, $open->headline->count, 'the rows the file was read with');
+        // While rows are read the heading waits: "We read N rows" is not said above "Reading your rows… 0 of 40"
+        $reading = self::flow(['sheets' => [new DataImportSheetOverview(position: 0, title: 'Log', hidden: false, rows: 41, columns: 5, kind: DataImportSheetKind::Results, mapped: true, parsed: false)]]);
+        self::assertSame('data_import.flow.headline.reading', $reading->headline->key);
+        // ... without the rows of an imported sheet that are no puzzle (its header row, a totals line)
+        $withHeaders = self::flow(['sheets' => [new DataImportSheetOverview(position: 0, title: 'Log', hidden: false, rows: 41, columns: 5, kind: DataImportSheetKind::Results, mapped: true, parsed: true, rowsUnderstood: 40, rowsLeftOut: 1)]]);
+        self::assertSame(791, $withHeaders->headline->count);
     }
 
     public function testFinishDiscardAndUndoAreOfferedAsTheImportStands(): void
@@ -400,6 +539,8 @@ final class ImportFlowTest extends TestCase
         int $rowsWaiting = 0,
         int $columnsToCheck = 0,
         bool $kindSure = true,
+        null|string $checkFirst = null,
+        string $sheetId = '',
     ): DataImportSheetOverview {
         return new DataImportSheetOverview(
             position: 0,
@@ -409,7 +550,7 @@ final class ImportFlowTest extends TestCase
             columns: 6,
             kind: $kind,
             mapped: $mapped,
-            waitsForAnAnswer: $questions > 0,
+            waitsForAnAnswer: $questions > 0 || $checkFirst !== null,
             parsed: $mapped && $failed === false,
             rowsUnderstood: $rowsUnderstood,
             rowsNeedLook: $rowsNeedLook,
@@ -418,6 +559,8 @@ final class ImportFlowTest extends TestCase
             questions: $questions,
             columnsToCheck: $columnsToCheck,
             kindSure: $kindSure,
+            sheetId: $sheetId,
+            checkFirst: $checkFirst,
         );
     }
 

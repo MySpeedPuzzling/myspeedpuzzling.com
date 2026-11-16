@@ -11816,6 +11816,7 @@ data_import:
             kept_until: "Uchováme do %date%"
         headline:
             read: "{1}Přečetli jsme 1 řádek vašeho souboru.|[2,4]Přečetli jsme %number% řádky vašeho souboru.|[0,Inf[Přečetli jsme %number% řádků vašeho souboru."
+            reading: "Čteme váš soubor…"
             finished: "Tento import je dokončený."
             gone: "Řádky tohoto souboru už neuchováváme."
         file:
@@ -11831,6 +11832,13 @@ data_import:
             working: "Zjišťujeme, co vaše listy obsahují…"
             done: "Přečteno tak, jak byste čekali."
             unsure: "{1}U 1 listu si nejsme jistí - podívejte se.|[2,4]U %number% listů si nejsme jistí - podívejte se.|[0,Inf[U %number% listů si nejsme jistí - podívejte se."
+            to_check: "{1}1 list ke kontrole - jeho sloupce jsme odhadli|[2,4]%number% listy ke kontrole - jejich sloupce jsme odhadli|[0,Inf[%number% listů ke kontrole - jejich sloupce jsme odhadli"
+            reading: "Čteme vaše řádky…"
+            unsure_columns: "{1}U 1 sloupce vašeho souboru si nejsme jistí, co je - podívejte se.|[2,4]U %number% sloupců vašeho souboru si nejsme jistí, co jsou - podívejte se.|[0,Inf[U %number% sloupců vašeho souboru si nejsme jistí, co jsou - podívejte se."
+            check_first:
+                no_header: "{1}Váš soubor nemá řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím.|[2,4]%number% listy nemají řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím.|[0,Inf[%number% listů nemá řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím."
+                no_header_sheet: "{1}Jeden list vašeho souboru nemá řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím.|[2,4]%number% listy vašeho souboru nemají řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím.|[0,Inf[%number% listů vašeho souboru nemá řádek se záhlavím, takže jsme odhadli, co je který sloupec - zkontrolujte to prosím."
+                unsure: "{1}U 1 listu si nejsme jistí, že jsme ho přečetli správně - zkontrolujte ho prosím, než přiřadíme puzzle.|[2,4]U %number% listů si nejsme jistí, že jsme je přečetli správně - zkontrolujte je prosím, než přiřadíme puzzle.|[0,Inf[U %number% listů si nejsme jistí, že jsme je přečetli správně - zkontrolujte je prosím, než přiřadíme puzzle."
         people:
             default: "Jména z vašeho souboru přidáme jako hosty, pokud neřeknete, kdo to je."
             nobody: "Nikdo další není uveden."
@@ -11843,6 +11851,8 @@ data_import:
             searching: "{1}1 ještě hledáme…|[2,4]%number% ještě hledáme…|[0,Inf[%number% ještě hledáme…"
             working: "Přiřazujeme vaše puzzle…"
             none: "Žádná puzzle k přiřazení."
+            held: "{1}1 list čeká, až zkontrolujete jeho sloupce - puzzle z něj přiřadíme hned potom.|[2,4]%number% listy čekají, až zkontrolujete jejich sloupce - puzzle z nich přiřadíme hned potom.|[0,Inf[%number% listů čeká, až zkontrolujete jejich sloupce - puzzle z nich přiřadíme hned potom."
+            waiting_rows: "Čekáme, až se přečtou vaše řádky."
         add:
             running: "Právě se přidává na váš profil."
             ready: "Připraveno k přidání: %number%."
@@ -11851,6 +11861,7 @@ data_import:
             added_on: "Přidáno: %number% (%date%)."
             nothing: "Zatím není nic připraveno."
             nothing_step: "Zatím není nic připraveno - nejdřív krok %step%."
+            nothing_reading: "Zatím není nic připraveno - vaše řádky se ještě čtou."
         primary:
             see_added: "Zobrazit, co se přidalo"
             check_and_add: "Zkontrolovat a přidat"
@@ -11858,6 +11869,7 @@ data_import:
             questions: "{1}Odpovědět na 1 otázku|[2,4]Odpovědět na %number% otázky|[0,Inf[Odpovědět na %number% otázek"
             rows: "{1}Podívat se na 1 řádek|[2,4]Podívat se na %number% řádky|[0,Inf[Podívat se na %number% řádků"
             how_read: "Zobrazit, jak jsme soubor přečetli"
+            check_first: "Zkontrolovat, jak jsme soubor přečetli"
             people: "Říct, kdo to je"
             puzzles: "Přiřadit puzzle"
             answer: "{1}Odpovědět u 1 čekajícího řádku|[2,4]Odpovědět u %number% čekajících řádků|[0,Inf[Odpovědět u %number% čekajících řádků"
@@ -12002,6 +12014,11 @@ data_import:
         holds_puzzles: "Jsou v něm puzzle"
         continue_one: "Pokračovat - na „%sheet%“ se podívám později"
         continue_many: "Pokračovat - podívám se na ně později"
+        check_first:
+            no_header: "Bez řádku se záhlavím - odhadli jsme, co je který sloupec."
+            unsure: "Nejsme si jistí, že jsme tento list přečetli správně."
+        guessed: "Náš odhad: %names%"
+        check_later: "Pokračovat - zkontroluji to později"
         as:
             solo: "{1}1 sólo výsledek|[2,4]%number% sólo výsledky|[0,Inf[%number% sólo výsledků"
             pair: "{1}1 výsledek ve dvojici|[2,4]%number% výsledky ve dvojici|[0,Inf[%number% výsledků ve dvojici"
@@ -12521,6 +12538,7 @@ data_import:
         take_in: "Vrátit tento řádek do importu"
         left_out_note: "Tento řádek se neimportuje."
         not_answerable: "Tento řádek teď nelze změnit - jeho list se znovu čte. Zkuste to prosím za chvíli."
+        columns_open: "Sloupce listu, ze kterého je tento řádek, jsme odhadli. S řádkem není nic špatně - čeká, až zkontrolujete, jak jsme list přečetli."
         back: "Zpět na „Řádky, které se nám nepodařilo přečíst“"
         back_to:
             overview: "Zpět na váš import"
@@ -12604,6 +12622,19 @@ data_import:
             no_samples: "V prvních řádcích nejsou žádné hodnoty."
             this_is: "Tohle je"
             offered: "Vypadá to jako „%field%“, ale to už je jiný sloupec."
+            brand_hint: "Žádný sloupec tohoto listu není značka. S ní najdeme vaše puzzle mnohem spolehlivěji - pokud některý sloupec značku obsahuje, vyberte u něj níže „Značka“."
+            guess: "Náš odhad"
+            guess_brand: "Vypadá to jako značky puzzle, které známe."
+            check_first:
+                no_header_title: "Tento list nemá řádek se záhlavím."
+                position: "List %number% z %total% ke kontrole"
+                no_time: "Nenašli jsme sloupec s vašimi časy. Vyberte ho níže - jinak se vaše puzzle přidají bez času."
+                no_header_text: "Sloupce jsme odhadli podle toho, co v nich je - řekněte nám, co je který sloupec."
+                unsure_title: "Zkontrolujte prosím, jak jsme tento list přečetli."
+                unsure_text: "Nejsme si jistí, co tento list je nebo co jsou některé jeho sloupce. Podívejte se níže, co jsme vybrali."
+                held: "Dokud se nepodíváte, nepřiřadíme žádné puzzle z tohoto listu a nic z něj nepřidáme."
+                confirm: "Ano, je to správně"
+                or_change: "Nebo níže změňte, co je špatně, a uložte."
             computed_hint: "Tohle si MySpeedPuzzling spočítá sám, proto se to neimportuje."
             lookup: "Značka a počet dílků se berou z listu „%sheet%“ podle názvu puzzle."
             table: "Čteme tabulku v %range%."
@@ -12642,7 +12673,7 @@ data_import:
                 minutes_seconds: "Minuty a sekundy"
                 hours_minutes: "Hodiny a minuty"
                 hours_minutes_dot_seconds: "Hodiny, minuty a sekundy"
-                as_stored: "Hodiny a minuty, jak je má buňka uložené"
+                as_stored: "Jak je zapsáno: hodiny:minuty:sekundy"
                 stored_hours_as_minutes: "Minuty a sekundy"
                 minutes: "Minuty"
                 seconds: "Sekundy"
@@ -12724,6 +12755,7 @@ data_import:
         problem:
             other: "Tohle jsme nedokázali přečíst s jistotou."
             waiting: "Tento řádek čeká na vaši odpověď na otázku u listu."
+            columns_open: "Čeká, až zkontrolujete sloupce jeho listu."
             date_typed_open: "Zatím nevíme, jestli jsou u tohoto data prohozené den a měsíc."
             no_name: "Tento řádek nemá název puzzle."
             lookup_ambiguous: "V seznamu puzzle je tento název vícekrát, s jinou značkou nebo počtem dílků - nevíme, které je myšleno."
@@ -12814,6 +12846,7 @@ data_import:
         recognising: "Zjišťujeme, co obsahuje…"
         failed: "Tento list se nám nepodařilo zpracovat - chyba je na naší straně"
         waiting_for_answer: "Čeká na vaši odpověď"
+        waiting_for_check: "Čeká, až zkontrolujete jeho sloupce"
         parsing: "Procházíme jeho řádky…"
         understood: "Přečtené řádky: %understood% · nepodařilo se přečíst: %look%"
     google:
@@ -12964,6 +12997,7 @@ data_import:
         reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         line:
             results: "{1}1 výsledek|[2,4]%number% výsledky|[0,Inf[%number% výsledků"
+            no_time: "{1}1 výsledek nemá čas - přidá se bez něj.|[2,4]%number% výsledky nemají čas - přidají se bez něj.|[0,Inf[%number% výsledků nemá čas - přidají se bez něj."
             owned: "{1}1 puzzle do vaší sbírky|[0,Inf[%number% puzzle do vaší sbírky"
             wish_list: "{1}1 puzzle na váš seznam přání|[0,Inf[%number% puzzle na váš seznam přání"
             unlisted: "{1}1 řádek ponechaný jen pro vás|[2,4]%number% řádky ponechané jen pro vás|[0,Inf[%number% řádků ponechaných jen pro vás"

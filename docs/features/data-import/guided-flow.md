@@ -268,8 +268,9 @@ three red buttons. It is the landing page of every notification and of "Continue
 | 4 | "All 786 puzzles matched." | "510 of 786 matched. 276 wait for you." |
 | 5 | "Added 471 on 15 November." | "471 ready to add now." / "Nothing is ready yet - step 4 first." |
 
-- **Primary button** = the first open step, in order: **Answer 2 questions** · **Look at 45 rows** · **Say who they
-  are** · **Match your puzzles** · **Check and add**. When an Add runs: **See how far it is**. When rows came back
+- **Primary button** = the first open step, in order: **Answer 2 questions** · **Check how we read your file** (a
+  sheet whose reading is a guess - "As built - a guessed sheet is checked first" at the end) · **Look at 45 rows** ·
+  **Say who they are** · **Match your puzzles** · **Check and add**. When an Add runs: **See how far it is**. When rows came back
   with questions after an Add: **Answer 2 questions** (to §5.10).
 - **Secondary line** (rule 4), only when a step before 5 is open and something is ready.
 - **Folded / at the bottom:** "I'm done with this import" or "Discard this import" as a plain link with its one
@@ -1495,7 +1496,7 @@ it was.
 
 | Where | As built | Why |
 |---|---|---|
-| §2 "no column under Please check these" keeps step 2 open | Step 2 is open then (its dot, its line on "Where you are") - but it is **never the one primary action**: the primary stays the question / the rows / the next step. | Nothing records that the player has looked (§2 rule 3), and a plain Save of an unchanged sheet changes nothing - as the primary it would be asked for on every visit, for ever. |
+| §2 "no column under Please check these" keeps step 2 open | Step 2 is open then (its dot, its line on "Where you are") - but it is **never the one primary action**: the primary stays the question / the rows / the next step. *(Since "a guessed sheet is checked first", below: a guess that decides what gets added - no header row, an unsure kind, name, time or brand - IS the primary, and the player's look is recorded. What is left here is a guess that decides nothing by itself, such as a date column.)* | Nothing records that the player has looked (§2 rule 3), and a plain Save of an unchanged sheet changes nothing - as the primary it would be asked for on every visit, for ever. |
 | §5.4 "Question 1 of 2 … then the summary", addresses | One address: `…/columns` shows the first question that waits, `?q=N` the N-th, `?summary=1` (or a `q` past the last) the summary. | "Same routes"; the place is a number, never anything of the file. |
 | §5.4 "Later skips the question" | "Later" moves on in the row of questions; the question still waits, and opening the step again starts with it. | Nothing is stored about a skipped question. |
 | §5.4 a refused answer (a year that is none) | Shown on the sheet's own page with a 422, as before. | The answer is the sheet's own form; one place renders its refusal. |
@@ -1580,4 +1581,127 @@ people.md "Answers in place".
 | "Undo the last one" for one answer for several | Not offered after "Yes, these N are right" or an answer for a pile: the screen says what was done, and each puzzle is taken back on its card ("Matched - see them", "Kept just for you - change"). | Taking twenty back in one message works, but is no undo: a match taken back is remembered as "not this puzzle" and may then only be confirmed on its own - the twenty would return as cards to look at closer. A pile's answer can run on the worker. |
 | Where the round rests or ends | A redirect (a page load), as before. | It is another screen with another address; only "the next puzzle" is the same screen. |
 | "What will be added" | Stays the list's `<turbo-frame>` (a redirect inside the frame), not streams. | It already did not scroll; the whole sheet's form joined the frame. Its buttons have Turbo's own waiting state only. |
+
+## As built - a guessed sheet is checked first (the first tester's report)
+
+**The report.** The first real player's sheet had no header row. Pieces, name and time were guessed from the values;
+brand and date were not recognised. The first big button she saw was "Match your puzzles" (step 4) - a pile of
+matches built on half-read columns - and she found the columns screen (step 2) only later: "That should be where
+you land first! Brand was not categorised, so every puzzle asked for a match."
+
+**The rule** (`Services/DataImport/ImportCheckFirst`, [columns.md](columns.md) "Check first"): a sheet that is
+imported needs the player's eye before anything else when it has **no header row**, or one of **the columns that
+decide what gets added** - the puzzle's name, the time of a results sheet, the brand - was guessed **from its values
+only**, or **its kind could not be told at all**. Never a known export, never a sheet a remembered layout was laid
+over. A sheet with a found header row whose columns come from header words - even `probable` ones, even with a kind
+that is only probable (every list of owned puzzles) - is **not** stopped: it keeps "We are not sure about 1 sheet -
+have a look" and is matched at once.
+
+**What the player sees**
+
+- **"Where you are"**: the one primary button is **"Check how we read your file"**, leading straight to **that
+  sheet's own columns screen** (`data_import_sheet`). Step 2's sentence says why in plain words: "Your file has no
+  header row, so we guessed what each column is - please check." (a header row, but a deciding column guessed from
+  its values or an unknown kind: "We are not sure we read 1 sheet right - please check before we match your
+  puzzles."). Step 4 says "1 sheet waits for you to check its columns - we
+  match its puzzles right after." - never a spinner.
+- **Where it sits in the order** (`ImportFlow::of()`): finished → a batch is running → **questions** (of the sheets
+  we are sure about) → **check how we read your file** → rows that need a look → a sheet that failed → people →
+  puzzles → rows not added → ready to add. After the questions, because a question of a sure sheet is one tap and
+  its screen exists; before rows, people and puzzles, because all three are built on the columns. A held sheet's own
+  questions (a date order, a time shape) are not counted as questions: they wait with the check, on the sheet's page.
+- **Step 2's summary** (`columns.html.twig`): the sheet stands first with "!", "No header row - we guessed what each
+  column is." / "Waits for you to check its columns", what we guessed ("Our guess: Solved on, Brand, …"), and the
+  screen's one primary is the same "Check how we read your file". "Continue - I'll check it later" stays a link.
+- **The sheet's page** (`sheet.html.twig`): a notice at the top - "Your file has no header row. We guessed the
+  columns from what is in them - tell us what each column is." and "Until you have looked, we match no puzzles of
+  this sheet and add nothing from it." - with the one-tap **"Yes, this is right"**. Every guessed column carries an
+  "Our guess" badge (a brand guessed from its values: "These look like puzzle brands we know."), and - as before -
+  up to three values of the column ("For example: …"). A sheet that names puzzles and has no brand column says:
+  "No column of this sheet is the brand. We find your puzzles much more surely with it - if a column holds the
+  brand, choose “Brand” for it below."
+- **Sheets we are sure about keep everything as it was**: they are read, matched and can be added at once - "Or add
+  what is ready now (N)" counts them and never a row of a held sheet.
+
+**How it is held** - no new table, no new column, no migration. The sheet's proposal carries one more question,
+`check_columns` ("did we read your columns right?"). While it is asked, the sheet is parsed like any other (so its
+page shows the first rows as we understood them), but **every row of it waits**, stored without a puzzle key, a
+source key and people (`PendingQuestionRows`, `ParsedImportRow::heldForColumnCheck()`). So `BuildImportPuzzles`
+finds no puzzle in it, nobody of it is asked about on step 3, and "ready to add" can not hold a row of it - by
+construction, not by a filter somebody could forget. Being a question, everything that already knows "a sheet waits
+for the player" treats it right: the sheet is *parsed* (`myspeedpuzzling:read-waiting-imports` and the stuck-import
+guards see nothing to queue), its state is `waiting`, the import keeps its place.
+
+**What clears it**: the player's word on the columns - "Yes, this is right" (the answer `check_columns = yes`; the
+sheet's form carries it hidden, so any Save from that page counts) or a changed column, kind or row meaning
+(`ConfirmImportMapping` with a mapping). The sheet gets its next version, is read again - now with keys - and its
+puzzles are built and matched as for any confirmed sheet. Any Save on the sheet's own page releases it, whatever
+was changed there (a sheet-wide setting too): the form carries the answer. Only a message that carries neither the
+answer nor a mapping - an answer given on a one-question screen - leaves it asked (`ConfirmImportMappingHandler`).
+Answered, **the sheet reads as sure**: its guessed columns and its kind are certain, by the player - no "We are not
+sure about 1 sheet" line, no "!" on step 2, no "Our guess" badge; it is never asked twice. The player goes on to
+the next sheet that asks for the check, else to "Where you are". "Start over for this sheet" asks again (a fresh
+guess is not a confirmation). A row of a held sheet opened on its own page says it waits for the columns check,
+with the button to its sheet.
+
+**Also built**: the brand is guessed from the values with the catalogue's help, and a date typed as text is
+recognised on a sheet without a header row ([columns.md](columns.md) "The brand by its values", "Certainty").
+
+**Tests**: `ImportFlowTest` (each state of a sheet → the primary action, the sentences, the order),
+`ImportCheckFirstTest` (the rule; a header-less sheet shaped like the tester's; the brand's floor; a held row),
+`ImportCheckFirstScreensTest` (the real handlers: held, not matched, not ready, not "stuck", the three screens,
+"Yes, this is right" and a Save from the sheet's page release it and make it sure, a message without the answer
+does not; the next held sheet; start over asks again; the row's page).
+
+**Not verified in a browser**: the notice and the badges at 390 px, the tap on "Yes, this is right" under Turbo
+(a plain form POST answered by a redirect - no script of its own).
+
+**Imports home** (`ImportHomeCard`, `GetImportAddScreen::addedByImports()`): the card says "1 sheet to check - we
+guessed its columns" - never "1 question about your file" for a sheet that only asks for the check; "Continue"
+leads to "Where you are", which has the button.
+
+**The header follows the live re-read** on "Where you are": the step dots and "Step N of 5 · …" sit in a frame of
+their own (`import-flow-header-live`, `data-import-live`, only while the import is set up), loaded again together
+with the list of steps - after a Save that sends the player there, the header moves on with the reading instead of
+keeping the old step until a reload. Not looked at in a browser.
+
+**After the walk in a real browser (2026-11-16)** - what changed on the flow's own screens:
+
+- **Puzzles (step 4) of an import whose puzzles wait for the check**: "1 sheet waits for you to check its columns
+  - we match its puzzles right after." and the button "Check how we read your file" - never "We matched 0 of your 0
+  puzzles." with a "Continue" (`ImportPuzzlesController` passes the held sheets; one statement more).
+- **While rows are read (again)**: step 2 says "Reading your rows…" ("We are working out what your sheets hold…"
+  only while a sheet has no proposal yet), and step 4 is neither passed nor ticked - "Waiting for your rows to be
+  read." instead of a green "No puzzles to match." before the matching ran.
+- **"Saved - your rows are being read again."** goes when the live line reports the reading done
+  (`data_import_setup_controller.js` removes the flash it was given the text of).
+- **Several sheets**: "Where you are" says "One sheet of your file has no header row…", the sheet's notice "This
+  sheet has no header row." and "Sheet 1 of 2 to check".
+- **"We are not sure…"** names what the numbers can tell: "We are not sure what 2 columns of your file are - have a
+  look." where every such sheet's kind is sure; "…about 1 sheet" otherwise. A column's own name is not in it: a
+  sentence of the flow never carries anything of the file (`ImportFlowText`).
+- **"We read N rows"** does not count the rows of an imported, read sheet that are no puzzle (its header row, a
+  totals line): the number goes with "20 of 40 matched".
+- **"Or add what is ready now"** on step 2's summary only when something is ready.
+- **Times are read as**: "As written: hours:minutes:seconds" (was "Hours and minutes, as the cell stores it").
+- **The row's page of a held row** leads back to its sheet; the footer's back link stands on a line of its own.
+
+**After the second walk (2026-11-16)**:
+
+- **Puzzles while rows are read (again)**: only the reading line - "We matched 0 of your 0 puzzles." is hidden until
+  there is something to say.
+- **"Saved - your rows are being read again."** is also taken away when the reading was over before the page first
+  looked (a fast worker), not only when it ends while the page is open.
+- **A step that waits for the check shows no spinner**: while every puzzle of the file waits for the columns check
+  and none is there to match, step 4 is "ahead" with its one waiting sentence - never "Matching your puzzles…"
+  (`ImportFlow`: not "looking" then).
+- **"Check and add" follows a re-read by itself**: while a sheet is read (again) the page carries the live line and
+  is loaded again when the reading ends (`reload_page` of `_setup_live.html.twig` - the page has no live frame of
+  its own). A sheet that is only being read is not counted under "Sheets whose columns are not set up yet"
+  (`ImportAddSummary::$sheetsBeingRead`). Results that have no time are named before the Add: "6 results have no
+  time - they are added without one." (`$resultsWithoutTime`; a sheet confirmed without a time column).
+- **Wording**: step 5 says "Nothing is ready yet - your rows are still being read." while step 2 only works by
+  itself; the heading is "We are reading your file…" until the rows are read; "Or add what is ready now" is not on
+  step 2's summary any more (the screen has no count of what is ready, and a statement more would break its
+  budget) - "Where you are", which counts it, has it. The one-question screen keeps its quiet line.
 

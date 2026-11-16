@@ -148,6 +148,10 @@ More on a cell:
 
 - A time-only format on a number of a day or more (a sum shown as `h:mm:ss`) is a `time_of_day` of the part after the
   day - what the player saw. A real duration over a day needs `[h]`.
+- **A fraction of a second the format shows is dropped:** a duration or a time of day whose format shows it
+  (`[h]:mm:ss.00`, `mm:ss.0` - `NumberFormat::$secondFractionShown`) is its whole seconds, the fraction left out, as
+  the add-result form takes a typed time (`0:30:20.23` = 30 min 20 s; rounded to the millisecond first, since a
+  double is never exactly its second). Every other cell is what the player sees:
 - **Rounding:** a cell that shows a time is rounded to the second first and split into day and time after
   (`23:59:59.7` is midnight of the next day, as a spreadsheet shows it). A cell that shows **only its day is that
   day** - however close to midnight its number is.

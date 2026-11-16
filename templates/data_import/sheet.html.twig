@@ -6,6 +6,10 @@
     we are sure about as one line each, the others as cards with sample values and a picker), one Save, and the first
     rows as they were understood. Phone first: one column, every target 44 px, no sideways scrolling.
 
+    A sheet whose reading is a guess (`check_first`: no header row, or an unsure kind / name / time / brand column)
+    says so at the top, with the one-tap "Yes, this is right": until the player has looked, its rows are held -
+    nothing is matched or added from them. Any save of this form is the player's word and clears it.
+
     One form, one message (ConfirmImportMapping). The form posts to its own route - never to the page's address.
 #}
 
@@ -30,7 +34,7 @@
 
     <turbo-frame id="import-sheet-live" data-import-live target="_top">
         <div class="card card-body shadow-sm mb-3" data-testid="import-sheet-standing">
-            {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
+            {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting, check_first: check_first|default(null)}) }}
             {% if state == 'failed' %}
                 <p class="fs-sm text-muted mb-0 mt-2" data-testid="import-sheet-failed-hint">{{ (mapping is null ? 'data_import.columns.sheet.failed_unmapped' : 'data_import.columns.sheet.failed_hint')|trans }}</p>
             {% elseif state == 'left_out' %}
@@ -74,6 +78,32 @@
         {% if errors is not empty %}
             <div class="alert alert-warning fs-sm" role="alert" data-testid="import-sheet-error">
                 <i class="bi bi-exclamation-circle me-1"></i>{{ (errors.form is defined ? 'data_import.columns.error.refused' : 'data_import.columns.error.check_below')|trans }}
+            </div>
+        {% endif %}
+
+        {# ---- Our reading is a guess: look first (ImportCheckFirst) ---- #}
+        {% if check_first is not null %}
+            {# Whatever is saved from this page is the player's word on the columns #}
+            <input type="hidden" name="answers[check_columns]" value="yes">
+            <div class="alert alert-warning mb-3" role="group" aria-labelledby="check-first-title" data-testid="import-sheet-check-first" data-reason="{{ check_first }}">
+                <div class="d-flex gap-2">
+                    <i class="bi bi-eye flex-shrink-0" aria-hidden="true"></i>
+                    <div>
+                        {% if check_position|default(null) is not null %}
+                            <p class="fs-xs fw-medium text-uppercase mb-1" data-testid="import-sheet-check-position">{{ 'data_import.columns.sheet.check_first.position'|trans({'%number%': check_position|format_number, '%total%': check_total|format_number}) }}</p>
+                        {% endif %}
+                        <p class="fw-medium mb-1" id="check-first-title">{{ ('data_import.columns.sheet.check_first.' ~ check_first ~ '_title')|trans }}</p>
+                        <p class="fs-sm mb-1">{{ ('data_import.columns.sheet.check_first.' ~ check_first ~ '_text')|trans }}</p>
+                        <p class="fs-sm mb-0">{{ 'data_import.columns.sheet.check_first.held'|trans }}</p>
+                        {% if time_hint %}
+                            <p class="fs-sm fw-medium mb-0 mt-2" data-testid="import-sheet-no-time"><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.columns.sheet.check_first.no_time'|trans }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3 text-wrap" style="min-height: 48px;" data-testid="import-sheet-check-yes">
+                    <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'data_import.columns.sheet.check_first.confirm'|trans }}
+                </button>
+                <p class="fs-xs mb-0 mt-2">{{ 'data_import.columns.sheet.check_first.or_change'|trans }}</p>
             </div>
         {% endif %}
 
@@ -193,6 +223,14 @@
             {% endif %}
 
 
+            {% if brand_hint and sheet.lookupSheetTitle is null %}
+                {# Names alone match badly: said where no column is the brand #}
+                <div class="alert alert-info fs-sm d-flex gap-2 mb-3" data-testid="import-sheet-brand-hint">
+                    <i class="bi bi-lightbulb flex-shrink-0" aria-hidden="true"></i>
+                    <span>{{ 'data_import.columns.sheet.brand_hint'|trans }}</span>
+                </div>
+            {% endif %}
+
             {% if open_columns is not empty %}
                 <h3 class="h6 text-muted mb-2">{{ 'data_import.columns.sheet.open_title'|trans }}</h3>
             {% endif %}
@@ -265,7 +303,16 @@
 {% block column_card %}
     {% set header = column.header != '' ? column.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': column.letter}) %}
     <div class="card card-body shadow-sm mb-3{{ column.error ? ' border-danger' : '' }}" data-testid="import-column-card" data-column="{{ column.column }}" data-certainty="{{ column.certainty }}">
-        <div class="fw-medium text-break mb-1">{{ header }}</div>
+        <div class="d-flex flex-wrap align-items-center column-gap-2 mb-1">
+            <span class="fw-medium text-break">{{ header }}</span>
+            {% if column.certainty == 'probable' and column.value != '' and column.reason != 'remembered' %}
+                {# What we made of it is a guess - said, so that nobody takes it for something read off the file #}
+                <span class="badge bg-faded-warning text-warning" data-testid="import-column-guess"><i class="bi bi-magic me-1" aria-hidden="true"></i>{{ 'data_import.columns.sheet.guess'|trans }}</span>
+            {% endif %}
+        </div>
+        {% if column.reason == 'brand_values' and column.certainty == 'probable' %}
+            <p class="fs-sm text-muted mb-2" data-testid="import-column-brand-guess">{{ 'data_import.columns.sheet.guess_brand'|trans }}</p>
+        {% endif %}
         {% if column.reason == 'remembered' and column.certainty == 'probable' %}
             <p class="fs-sm text-warning mb-2" data-testid="import-column-check"><i class="bi bi-exclamation-circle me-1"></i>{{ 'data_import.layouts.column_check'|trans({'%field%': column.label|trans}) }}</p>
         {% endif %}

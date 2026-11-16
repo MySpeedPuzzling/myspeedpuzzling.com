@@ -52,7 +52,7 @@ sheet's page, back to the list) and the sheet is read again.
 |---|---|---|
 | `recognising` | no mapping yet (`mapping_version = 0`) | "Working out what it holds…"; a visit to the sheet's page goes back to the list, which gets the card by itself |
 | `parsing` | mapped, rows not read for the current mapping | "Reading through its rows…" |
-| `waiting` | read, and its questions decide **at least half of its rows** | "Waiting for your answer"; the card's button says "Answer the question" |
+| `waiting` | read, and its questions decide **at least half of its rows** | "Waiting for your answer"; the card's button says "Answer the question". **A sheet whose reading is a guess** (`checkFirst`, [columns.md](columns.md) "Check first") is `waiting` with all its rows and says "Waits for you to check its columns" instead - never a spinner |
 | `parsed` | rows read | "Rows understood: N · Need a look: M · Waiting for your answer: W · Left out: K"; with a question left, the card's button is "Questions to answer: 2 (rows: 12)" |
 | `left_out` | not puzzles / somebody else's (and its rows are left out) | "Left out"; its page offers only what it is, so it can be taken back |
 | `failed` | `set_up_failure` (`parse_failed`, `proposal_failed`, `mapping_invalid`) | "We could not work this sheet out - a fault on our side"; with a mapping: "Save the sheet once more below and we will try again" (a confirmed mapping starts the set-up over), without one: nothing of it is imported for now |
@@ -77,6 +77,14 @@ A time question no longer offers a reading that makes one of its example rows lo
 Its own page (a card that unfolds would be a page inside a page on a phone), top to bottom:
 
 1. **How it stands** - the state line and, when rows need a look, the button to them.
+   - **"Our reading is a guess - look first"** (only while the sheet asks for the check, `check_first`): a notice
+     above everything else. Without a header row: "This sheet has no header row. We guessed the columns from what
+     is in them - tell us what each column is." (with "Sheet 1 of 2 to check" above it when several sheets of the
+     file ask; and, on a results sheet without a time column, "We did not find a column with your times. Pick it
+     below - otherwise your puzzles are added without a time."); with one: "Please check how we read this sheet." Both say "Until
+     you have looked, we match no puzzles of this sheet and add nothing from it." and carry the one-tap
+     **"Yes, this is right"**. The form holds `answers[check_columns] = yes` hidden, so "Save and read the rows
+     again" - with or without a change - is the player's word too. It is not listed among the questions.
 2. **Its questions** (only when it has some): one card each - a plain sentence naming the column, the sheet's own
    examples (`ImportQuestion::$examples`), and one big button per answer. Each button says **how that answer reads
    the examples**: `45:10 → 0:45:10` against `45:10 → 45:10:00`, `3/4/2023 → 3 April 2023` against `4 March 2023`
@@ -93,6 +101,11 @@ Its own page (a card that unfolds would be a page inside a page on a phone), top
    up in, the table that is read. Then
    - **"Please check these"** - the columns we are not sure about (`probable`, `unknown`) as cards: the header (or
      "Column C"), three sample values, a picker; a column left unknown because another has the field says so;
+     A column that is a guess (`probable`) carries the badge **"Our guess"**; the brand guessed from its values
+     says "These look like puzzle brands we know."
+   - **No brand column** (the sheet names puzzles, no column is the brand or a barcode, and it looks nothing up in
+     another sheet): "No column of this sheet is the brand. We find your puzzles much more surely with it - if a
+     column holds the brand, choose “Brand” for it below." There is no "one brand for the whole sheet" setting.
    - **"Recognised"** - the columns we are sure about (`certain`), one line each: "Time → Solving time - Change".
      The line unfolds to the same samples and picker: **any column can be changed**. A known export's own columns
      (the source's row id, our puzzle id, the picture link) are lines without a picker.

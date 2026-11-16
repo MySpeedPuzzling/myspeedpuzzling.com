@@ -27,9 +27,11 @@
                 </a>
             </li>
         {% endif %}
-        {% if add.sheetsNotSetUp > 0 %}
-            <li class="d-flex justify-content-between align-items-center gap-2 py-1" data-testid="not-ready-sheets" data-sheets="{{ add.sheetsNotSetUp }}">
-                <span><i class="bi bi-columns-gap me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.sheets'|trans({'%number%': add.sheetsNotSetUp|format_number}) }}</span>
+        {# A sheet whose columns were just saved is being read again - that is not "not set up" #}
+        {% set sheets_not_set_up = add.sheetsNotSetUp - add.sheetsBeingRead %}
+        {% if sheets_not_set_up > 0 %}
+            <li class="d-flex justify-content-between align-items-center gap-2 py-1" data-testid="not-ready-sheets" data-sheets="{{ sheets_not_set_up }}">
+                <span><i class="bi bi-columns-gap me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.sheets'|trans({'%number%': sheets_not_set_up|format_number}) }}</span>
                 <a href="{{ path('data_import_columns', {importId: import_id}) }}" class="d-inline-flex align-items-center flex-shrink-0 text-nowrap fw-medium" style="min-height: 44px;">
                     {{ 'data_import.add_review.verb.check'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
                 </a>

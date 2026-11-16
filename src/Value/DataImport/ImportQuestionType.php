@@ -25,4 +25,11 @@ enum ImportQuestionType: string
      * results? Never taken silently either way (docs/features/data-import/people.md "A sheet called Pairs")
      */
     case SheetSolvingType = 'sheet_solving_type';
+    /**
+     * "Did we read your columns right?" - a sheet whose columns (or kind) were guessed needs the player's eye before
+     * anything is built on it (Services\DataImport\ImportCheckFirst, docs/features/data-import/columns.md "Check
+     * first"). While it is asked **every** row of the sheet waits, without a puzzle or a key: nothing is matched and
+     * nothing can be added. Any word of the player on the sheet's columns answers it
+     */
+    case CheckColumns = 'check_columns';
 }

@@ -11803,6 +11803,7 @@ data_import:
             kept_until: "%date% まで保管"
         headline:
             read: "ファイルの %number% 行を読み取りました。"
+            reading: "ファイルを読み取っています…"
             finished: "このインポートは完了しています。"
             gone: "このファイルの行はもう保管されていません。"
         file:
@@ -11818,6 +11819,13 @@ data_import:
             working: "シートの内容を確認しています…"
             done: "想定どおりに読み取れました。"
             unsure: "%number% 枚のシートは読み方に自信がありません - 確認してください。"
+            to_check: "確認が必要なシート: %number% 枚 - 列を推測しました"
+            reading: "行を読み取っています…"
+            unsure_columns: "ファイルの %number% 列は何の列か自信がありません - 確認してください。"
+            check_first:
+                no_header: "{1}ファイルに見出し行がないため、各列が何かを推測しました - 確認してください。|[0,Inf[%number% 枚のシートに見出し行がないため、各列が何かを推測しました - 確認してください。"
+                no_header_sheet: "ファイルの %number% 枚のシートに見出し行がないため、各列が何かを推測しました - 確認してください。"
+                unsure: "%number% 枚のシートは正しく読み取れたか自信がありません - パズルを照合する前に確認してください。"
         people:
             default: "ファイル内の名前は、誰なのかを指定しない限りゲストとして追加されます。"
             nobody: "ほかの人の名前はありません。"
@@ -11830,6 +11838,8 @@ data_import:
             searching: "そのうち %number% 件をまだ探しています…"
             working: "パズルを照合しています…"
             none: "照合するパズルはありません。"
+            held: "%number% 枚のシートが列の確認を待っています - 確認後すぐにパズルを照合します。"
+            waiting_rows: "行の読み取りを待っています。"
         add:
             running: "ただいまプロフィールに追加しています。"
             ready: "%number% 件を今すぐ追加できます。"
@@ -11838,6 +11848,7 @@ data_import:
             added_on: "%date% に %number% 件を追加しました。"
             nothing: "まだ追加できるものはありません。"
             nothing_step: "まだ追加できるものはありません。先にステップ %step% を進めてください。"
+            nothing_reading: "まだ準備ができていません - 行を読み取っている途中です。"
         primary:
             see_added: "追加された内容を見る"
             check_and_add: "確認して追加"
@@ -11845,6 +11856,7 @@ data_import:
             questions: "%number% 件の質問に答える"
             rows: "%number% 行を確認する"
             how_read: "ファイルの読み取り方を見る"
+            check_first: "ファイルの読み取り方を確認する"
             people: "誰なのかを指定する"
             puzzles: "パズルを照合する"
             answer: "待機中の %number% 行について答える"
@@ -11989,6 +12001,11 @@ data_import:
         holds_puzzles: "パズルが入っています"
         continue_one: "続ける - 「%sheet%」はあとで見ます"
         continue_many: "続ける - あとで見ます"
+        check_first:
+            no_header: "見出し行がありません - 各列が何かを推測しました。"
+            unsure: "このシートを正しく読み取れたか自信がありません。"
+        guessed: "推測: %names%"
+        check_later: "続ける - あとで確認します"
         as:
             solo: "ソロの結果 %number% 件"
             pair: "ペアの結果 %number% 件"
@@ -12508,6 +12525,7 @@ data_import:
         take_in: "この行をインポートに戻す"
         left_out_note: "この行はインポートされません。"
         not_answerable: "この行は現在変更できません。シートを再度読み取っています。しばらくしてからお試しください。"
+        columns_open: "この行のシートは列を推測して読み取りました。行に問題はありません - シートの読み取り方を確認いただくまで待っています。"
         back: "「読み取れなかった行」に戻る"
         back_to:
             overview: "インポートに戻る"
@@ -12591,6 +12609,19 @@ data_import:
             no_samples: "最初の数行に値がありません。"
             this_is: "この列は"
             offered: "「%field%」のようですが、すでに別の列がその項目になっています。"
+            brand_hint: "このシートにはメーカーの列がありません。メーカーがあるとパズルをずっと確実に見つけられます - メーカーが入っている列があれば、下でその列に「メーカー」を選んでください。"
+            guess: "推測"
+            guess_brand: "知っているパズルメーカーの名前のようです。"
+            check_first:
+                no_header_title: "このシートには見出し行がありません。"
+                position: "確認するシート %number% / %total%"
+                no_time: "タイムの列が見つかりませんでした。下で選んでください - 選ばない場合、パズルはタイムなしで追加されます。"
+                no_header_text: "列の内容から推測しました - 各列が何かを教えてください。"
+                unsure_title: "このシートの読み取り方を確認してください。"
+                unsure_text: "このシートが何か、または一部の列が何かに自信がありません。下で選ばれた内容をご確認ください。"
+                held: "確認いただくまで、このシートのパズルは照合せず、何も追加しません。"
+                confirm: "はい、これで合っています"
+                or_change: "または、下で間違っているところを直して保存してください。"
             computed_hint: "MySpeedPuzzling が自動で計算するため、インポートされません。"
             lookup: "メーカーとピース数は、パズル名をもとにシート「%sheet%」から取得します。"
             table: "%range% の表を読み取っています。"
@@ -12629,7 +12660,7 @@ data_import:
                 minutes_seconds: "分と秒"
                 hours_minutes: "時間と分"
                 hours_minutes_dot_seconds: "時間・分・秒"
-                as_stored: "セルに保存されているとおりの時間と分"
+                as_stored: "書かれているとおり: 時間:分:秒"
                 stored_hours_as_minutes: "分と秒"
                 minutes: "分"
                 seconds: "秒"
@@ -12711,6 +12742,7 @@ data_import:
         problem:
             other: "確実に読み取れませんでした。"
             waiting: "この行は、シートの質問へのあなたの回答を待っています。"
+            columns_open: "シートの列の確認を待っています。"
             date_typed_open: "この日付の日と月が入れ替わっているかどうか、まだわかりません。"
             no_name: "この行にはパズル名がありません。"
             lookup_ambiguous: "パズル一覧に同じ名前が複数あり、メーカーまたはピース数が異なるため、どれを指すのかわかりません。"
@@ -12801,6 +12833,7 @@ data_import:
         recognising: "内容を確認しています…"
         failed: "このシートを処理できませんでした（こちら側の不具合です）"
         waiting_for_answer: "あなたの回答待ち"
+        waiting_for_check: "列の確認待ち"
         parsing: "行を読み取っています…"
         understood: "読み取れた行: %understood% 件 · 読み取れなかった行: %look% 件"
     google:
@@ -12951,6 +12984,7 @@ data_import:
         reading_again: "シートを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
         line:
             results: "記録 %number% 件"
+            no_time: "タイムのない結果: %number% 件 - タイムなしで追加されます。"
             owned: "コレクションに入るパズル %number% 件"
             wish_list: "ほしい物リストに入るパズル %number% 件"
             unlisted: "自分専用に保持される行 %number% 件"

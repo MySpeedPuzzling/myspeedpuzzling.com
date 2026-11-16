@@ -18,6 +18,10 @@ use SpeedPuzzling\Web\Value\DataImport\ParsedImportRow;
  * Which rows a question decides is what the parser left open for want of the answer: a time of a shape nobody
  * settled, a short date, a date whose order or year is open. "Were the typed dates turned around?" leaves nothing
  * open in the parser (it reads them as they are) - there every row with a typed date waits.
+ *
+ * The one question that holds back **every** row is "did we read your columns right?" (ImportCheckFirst): a sheet
+ * whose columns were guessed. Its rows are stored as read, but without a puzzle, a key or people - so no puzzle is
+ * matched from them, nobody is asked about and none of them is "ready to add" until the player has looked.
  */
 final class PendingQuestionRows
 {
@@ -26,6 +30,9 @@ final class PendingQuestionRows
 
     /** A result of a sheet that asks "are these pair results?" - it says nothing itself, and is not solo by default */
     public const string TYPE_OPEN = 'type_open';
+
+    /** A row of a sheet whose columns the player has not checked yet (ImportCheckFirst) - every row of it waits */
+    public const string COLUMNS_OPEN = 'columns_open';
 
     private const array DECIDED_BY = [
         'time_two_readings' => ImportQuestionType::DurationShape,
@@ -48,6 +55,11 @@ final class PendingQuestionRows
 
         foreach ($mapping->questions as $question) {
             $asked[$question->type->value] = $question->column;
+        }
+
+        // "Did we read your columns right?": the whole sheet waits, and nothing is built on its rows
+        if (isset($asked[ImportQuestionType::CheckColumns->value])) {
+            return $row->heldForColumnCheck(self::COLUMNS_OPEN);
         }
 
         $problems = [];

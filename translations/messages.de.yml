@@ -11813,6 +11813,7 @@ data_import:
             kept_until: "Aufbewahrt bis %date%"
         headline:
             read: "{1}Wir haben 1 Zeile deiner Datei gelesen.|[0,Inf[Wir haben %number% Zeilen deiner Datei gelesen."
+            reading: "Wir lesen deine Datei…"
             finished: "Dieser Import ist abgeschlossen."
             gone: "Die Zeilen dieser Datei werden nicht mehr aufbewahrt."
         file:
@@ -11828,6 +11829,13 @@ data_import:
             working: "Wir finden heraus, was deine Blätter enthalten…"
             done: "So gelesen, wie du es erwarten würdest."
             unsure: "{1}Bei 1 Blatt sind wir nicht sicher - sieh es dir an.|[0,Inf[Bei %number% Blättern sind wir nicht sicher - sieh sie dir an."
+            to_check: "{1}1 Blatt zu prüfen - wir haben seine Spalten geraten|[0,Inf[%number% Blätter zu prüfen - wir haben ihre Spalten geraten"
+            reading: "Wir lesen deine Zeilen…"
+            unsure_columns: "{1}Bei 1 Spalte deiner Datei sind wir nicht sicher, was sie ist - sieh sie dir an.|[0,Inf[Bei %number% Spalten deiner Datei sind wir nicht sicher, was sie sind - sieh sie dir an."
+            check_first:
+                no_header: "{1}Deine Datei hat keine Kopfzeile, deshalb haben wir geraten, was jede Spalte ist - bitte prüfe das.|[0,Inf[%number% Blätter haben keine Kopfzeile, deshalb haben wir geraten, was jede Spalte ist - bitte prüfe das."
+                no_header_sheet: "{1}Ein Blatt deiner Datei hat keine Kopfzeile, deshalb haben wir geraten, was jede Spalte ist - bitte prüfe das.|[0,Inf[%number% Blätter deiner Datei haben keine Kopfzeile, deshalb haben wir geraten, was jede Spalte ist - bitte prüfe das."
+                unsure: "{1}Bei 1 Blatt sind wir nicht sicher, ob wir es richtig gelesen haben - bitte prüfe es, bevor wir deine Puzzles zuordnen.|[0,Inf[Bei %number% Blättern sind wir nicht sicher, ob wir sie richtig gelesen haben - bitte prüfe sie, bevor wir deine Puzzles zuordnen."
         people:
             default: "Namen aus deiner Datei werden als Gäste hinzugefügt, solange du nicht sagst, wer sie sind."
             nobody: "Niemand sonst wird genannt."
@@ -11840,6 +11848,8 @@ data_import:
             searching: "{1}Nach 1 davon suchen wir noch…|[0,Inf[Nach %number% davon suchen wir noch…"
             working: "Wir ordnen deine Puzzles zu…"
             none: "Keine Puzzles zuzuordnen."
+            held: "{1}1 Blatt wartet darauf, dass du seine Spalten prüfst - gleich danach ordnen wir seine Puzzles zu.|[0,Inf[%number% Blätter warten darauf, dass du ihre Spalten prüfst - gleich danach ordnen wir ihre Puzzles zu."
+            waiting_rows: "Wir warten, bis deine Zeilen gelesen sind."
         add:
             running: "Wird gerade zu deinem Profil hinzugefügt."
             ready: "%number% bereit zum Hinzufügen."
@@ -11848,6 +11858,7 @@ data_import:
             added_on: "%number% hinzugefügt am %date%."
             nothing: "Noch ist nichts bereit."
             nothing_step: "Noch ist nichts bereit - zuerst Schritt %step%."
+            nothing_reading: "Noch ist nichts bereit - deine Zeilen werden noch gelesen."
         primary:
             see_added: "Ansehen, was hinzugefügt wurde"
             check_and_add: "Prüfen und hinzufügen"
@@ -11855,6 +11866,7 @@ data_import:
             questions: "{1}1 Frage beantworten|[0,Inf[%number% Fragen beantworten"
             rows: "{1}1 Zeile ansehen|[0,Inf[%number% Zeilen ansehen"
             how_read: "Ansehen, wie wir deine Datei gelesen haben"
+            check_first: "Prüfen, wie wir deine Datei gelesen haben"
             people: "Sagen, wer sie sind"
             puzzles: "Deine Puzzles zuordnen"
             answer: "{1}Für 1 wartende Zeile antworten|[0,Inf[Für %number% wartende Zeilen antworten"
@@ -11999,6 +12011,11 @@ data_import:
         holds_puzzles: "Es enthält doch Puzzles"
         continue_one: "Weiter - „%sheet%“ sehe ich mir später an"
         continue_many: "Weiter - ich sehe sie mir später an"
+        check_first:
+            no_header: "Keine Kopfzeile - wir haben geraten, was jede Spalte ist."
+            unsure: "Wir sind nicht sicher, ob wir dieses Blatt richtig gelesen haben."
+        guessed: "Unsere Vermutung: %names%"
+        check_later: "Weiter - ich prüfe das später"
         as:
             solo: "{1}1 Solo-Ergebnis|[0,Inf[%number% Solo-Ergebnisse"
             pair: "{1}1 Paar-Ergebnis|[0,Inf[%number% Paar-Ergebnisse"
@@ -12518,6 +12535,7 @@ data_import:
         take_in: "Diese Zeile wieder aufnehmen"
         left_out_note: "Diese Zeile wird nicht importiert."
         not_answerable: "Diese Zeile kann gerade nicht geändert werden - ihr Blatt wird neu gelesen. Bitte versuche es gleich noch einmal."
+        columns_open: "Die Spalten des Blatts dieser Zeile haben wir geraten. Mit der Zeile ist alles in Ordnung - sie wartet, bis du geprüft hast, wie wir das Blatt gelesen haben."
         back: "Zurück zu „Zeilen, die wir nicht lesen konnten“"
         back_to:
             overview: "Zurück zu deinem Import"
@@ -12601,6 +12619,19 @@ data_import:
             no_samples: "Keine Werte in den ersten Zeilen."
             this_is: "Das ist"
             offered: "Es sieht aus wie „%field%“, aber das ist schon eine andere Spalte."
+            brand_hint: "Keine Spalte dieses Blatts ist die Marke. Mit ihr finden wir deine Puzzles viel sicherer - wenn eine Spalte die Marke enthält, wähle unten „Marke“ für sie."
+            guess: "Unsere Vermutung"
+            guess_brand: "Das sieht nach Puzzle-Marken aus, die wir kennen."
+            check_first:
+                no_header_title: "Dieses Blatt hat keine Kopfzeile."
+                position: "Blatt %number% von %total% zu prüfen"
+                no_time: "Wir haben keine Spalte mit deinen Zeiten gefunden. Wähle sie unten aus - sonst werden deine Puzzles ohne Zeit hinzugefügt."
+                no_header_text: "Wir haben die Spalten nach ihrem Inhalt geraten - sag uns, was jede Spalte ist."
+                unsure_title: "Bitte prüfe, wie wir dieses Blatt gelesen haben."
+                unsure_text: "Wir sind nicht sicher, was dieses Blatt ist oder was einige seiner Spalten sind. Sieh dir unten an, was wir gewählt haben."
+                held: "Bis du es dir angesehen hast, ordnen wir keine Puzzles dieses Blatts zu und fügen nichts daraus hinzu."
+                confirm: "Ja, das stimmt"
+                or_change: "Oder ändere unten, was nicht stimmt, und speichere."
             computed_hint: "Das berechnet MySpeedPuzzling selbst, deshalb wird es nicht importiert."
             lookup: "Marke und Teilezahl kommen aus dem Blatt „%sheet%“, über den Namen des Puzzles."
             table: "Wir lesen die Tabelle in %range%."
@@ -12639,7 +12670,7 @@ data_import:
                 minutes_seconds: "Minuten und Sekunden"
                 hours_minutes: "Stunden und Minuten"
                 hours_minutes_dot_seconds: "Stunden, Minuten und Sekunden"
-                as_stored: "Stunden und Minuten, wie die Zelle es speichert"
+                as_stored: "Wie geschrieben: Stunden:Minuten:Sekunden"
                 stored_hours_as_minutes: "Minuten und Sekunden"
                 minutes: "Minuten"
                 seconds: "Sekunden"
@@ -12721,6 +12752,7 @@ data_import:
         problem:
             other: "Das konnten wir nicht sicher lesen."
             waiting: "Diese Zeile wartet auf deine Antwort auf die Frage zum Blatt."
+            columns_open: "Wartet, bis du die Spalten ihres Blatts geprüft hast."
             date_typed_open: "Wir wissen noch nicht, ob bei diesem Datum Tag und Monat vertauscht wurden."
             no_name: "Diese Zeile hat keinen Puzzlenamen."
             lookup_ambiguous: "Die Puzzleliste enthält diesen Namen mehrmals, mit anderer Marke oder Teilezahl - wir wissen nicht, welches gemeint ist."
@@ -12811,6 +12843,7 @@ data_import:
         recognising: "Wir finden heraus, was es enthält…"
         failed: "Dieses Blatt konnten wir nicht auswerten - der Fehler liegt bei uns"
         waiting_for_answer: "Wartet auf deine Antwort"
+        waiting_for_check: "Wartet darauf, dass du seine Spalten prüfst"
         parsing: "Die Zeilen werden durchgegangen…"
         understood: "Gelesene Zeilen: %understood% · nicht lesbar: %look%"
     google:
@@ -12961,6 +12994,7 @@ data_import:
         reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
         line:
             results: "{1}1 Ergebnis|[0,Inf[%number% Ergebnisse"
+            no_time: "{1}1 Ergebnis hat keine Zeit - es wird ohne Zeit hinzugefügt.|[0,Inf[%number% Ergebnisse haben keine Zeit - sie werden ohne Zeit hinzugefügt."
             owned: "{1}1 Puzzle für deine Sammlung|[0,Inf[%number% Puzzles für deine Sammlung"
             wish_list: "{1}1 Puzzle für deine Wunschliste|[0,Inf[%number% Puzzles für deine Wunschliste"
             unlisted: "{1}1 Zeile, die nur für dich behalten wird|[0,Inf[%number% Zeilen, die nur für dich behalten werden"

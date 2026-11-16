@@ -29,7 +29,15 @@
         {% set waiting = overview.open %}
         {% set explains = {probably: 'looks_like_a_match', choose: 'pick_the_right_one', 'not-found': 'not_in_database', found: 'wrong_puzzle'} %}
 
-        <p class="fw-medium mb-1" data-testid="import-puzzles-count" data-puzzles="{{ overview.puzzles }}" data-matched="{{ overview.matched }}">
+        {% set held = held_sheet_id|default(null) is null ? 0 : held|default(0) %}
+        {% if held > 0 %}
+            {# Sheets whose columns were guessed: none of their puzzles is matched before the player has looked #}
+            <div class="alert alert-warning fs-sm d-flex gap-2" data-testid="import-puzzles-held" data-sheets="{{ held }}">
+                <i class="bi bi-eye flex-shrink-0" aria-hidden="true"></i>
+                <span>{{ 'data_import.flow.puzzles.held'|trans({'%count%': held, '%number%': held|format_number}) }}</span>
+            </div>
+        {% endif %}
+        <p class="fw-medium mb-1" data-testid="import-puzzles-count" data-puzzles="{{ overview.puzzles }}" data-matched="{{ overview.matched }}"{% if overview.puzzles == 0 and (held > 0 or live.working) %} hidden{% endif %}>
             {%- if overview.puzzles > 0 and overview.matched == overview.puzzles -%}
                 {{ 'data_import.flow.puzzles.all_matched'|trans({'%count%': overview.puzzles, '%number%': overview.puzzles|format_number}) }}
             {%- else -%}
@@ -95,7 +103,14 @@
         {% if add.paused %}
             <p class="fs-sm text-muted" data-testid="import-ready-paused"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{ 'data_import.add.paused'|trans }}</p>
         {% endif %}
-        {% if next is not null %}
+        {% if held > 0 and next is null %}
+            {# Nothing else waits here: the one button is the check the puzzles wait for #}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, ready: ready, primary: {
+                label: 'data_import.flow.primary.check_first'|trans,
+                url: path('data_import_sheet', {importId: import.importId, sheetId: held_sheet_id}),
+                icon: 'bi-eye', testid: 'import-puzzles-check-first',
+            }}, with_context = false) }}
+        {% elseif next is not null %}
             {{ include('data_import/_flow_footer.html.twig', {import: import, ready: ready, primary: {
                 label: ('data_import.puzzles.next.' ~ next|replace({'-': '_'}))|trans,
                 url: path('data_import_puzzle_group', {importId: import.importId, group: next}),

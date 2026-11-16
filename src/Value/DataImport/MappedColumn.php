@@ -26,10 +26,12 @@ final readonly class MappedColumn
     /** The player set it up so for an earlier sheet with this header (docs/features/data-import/layouts.md) */
     public const string BY_REMEMBERED = 'remembered';
     public const string BY_NOTHING = 'nothing';
+    /** Most of its values are names of brands in the catalogue (ColumnRecogniser::withBrandByValues()) */
+    public const string BY_BRAND_VALUES = 'brand_values';
 
     public const array REASONS = [
         self::BY_HEADER, self::BY_VALUES, self::BY_HEADER_AND_VALUES, self::BY_FORMULA, self::BY_KNOWN_EXPORT,
-        self::BY_DUPLICATE, self::BY_PLAYER, self::BY_REMEMBERED, self::BY_NOTHING,
+        self::BY_DUPLICATE, self::BY_PLAYER, self::BY_REMEMBERED, self::BY_NOTHING, self::BY_BRAND_VALUES,
     ];
 
     public function __construct(

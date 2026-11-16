@@ -53,7 +53,10 @@ starts a table of its own - it repeats a header of the table left of it, or both
 Otherwise it is a spacer inside one table. A block without any header beside a table is somebody's notes.
 
 A table found by rows runs to the sheet's end: totals and notes under the data are left out **row by row**
-(`PuzzleRowFilter`), not by a guess where the table ends. A table wider than 60 columns is cut on its right
+(`PuzzleRowFilter`), not by a guess where the table ends. A header that is not on line 1 - several rows of summary
+and legend cells above it, header cells wrapped onto several lines - is found by the same rules
+(`DataRegionFinderTest::testAHeaderOnRowSevenUnderSummaryAndLegendCellsIsFoundAlsoWhenItsCellsWrapOntoSeveralLines`;
+checked on a private workbook whose result sheets have their headers on rows 1 to 8: every one found). A table wider than 60 columns is cut on its right
 (`cut`). The largest table (rows × columns) comes first.
 
 **One table per sheet is the sheet's data** (`mapping.region`, the largest at first); the others are listed in
@@ -71,11 +74,47 @@ each value reader takes.
 | `certainty` | When | The next slice shows it as |
 |---|---|---|
 | `certain` | a known export's column · a header that can only mean one field (`FieldGuess::$sure`) whose values go with it (≥ 60 %) or that has no values · a header two fields share, decided clearly by the values (≥ 80 % against ≤ 50 %) · "computed" by its header, or by a formula's word in the header over formulas | one line: "Recognised: …" |
-| `probable` | a header that means several things (`Year`, `Size`, `Name`) whose values go with it · a header that only holds a field's word, with fitting values (≥ 70 %) · no known header, but values that say it plainly: barcodes, duration cells, date cells (≥ 80 %); on a sheet without a header row also piece counts and the name | a card, ticked |
+| `probable` | a header that means several things (`Year`, `Size`, `Name`) whose values go with it · a header that only holds a field's word, with fitting values (≥ 70 %) · no known header, but values that say it plainly: barcodes, duration cells, **times typed as text** (`1:30:41`, `45:10`, `1h 30m` - ≥ 80 %, below), date cells (≥ 80 %); on a sheet without a header row also piece counts, **whole days typed as text** (`12.3.2024`, `2024-03-12` - ≥ 80 %) and the name · **the brand by its values** (below) | a card, ticked, with an "Our guess" badge |
 | `unknown` | nothing to go by · the values speak against the header · **the weaker of two columns that wanted the same single-valued field** (`reason: duplicate`) - what it would have been stays in `offered` | a card, "This is: …" |
 
 `reason` says why: `header`, `values`, `header_and_values`, `formula`, `known_export`, `duplicate`, `player`,
-`nothing`.
+`remembered`, `brand_values`, `nothing`.
+
+**A date typed as text on a sheet without a header row** was a gap, not a rule: only typed date cells counted as
+"values that say it plainly", so a log whose dates are text came out without its date. Now a column of text cells of
+which ≥ 80 % read as a whole day (not a bare number, not a time, not a short date like `Jan 23`) is "solved on",
+`probable`. Only without a header row: under a header nobody knows, a column of dates may be anything (bought on,
+released on) and stays the player's to say.
+
+**A time typed as text** was the same kind of gap - and the costly one: every cell of a CSV is text, so the
+`h:mm:ss` column of a header-less CSV came out "Don't import" and its results would have been added without their
+times. A column of text cells of which ≥ 80 % the import's own `DurationReader` reads **whole** (certain, read from
+text, or a shape with two readings - nothing left over) is the time, `probable`, `reason: values` - with or without
+a header row, since nothing else looks like `1:30:41`. Never a bare number (`237`, `2019`, `1000`: a year, pieces
+or minutes without a unit say nothing by themselves), never something the date reader takes for a day, never a time
+with words around it (a notes column). Which shape means what (`45:10` minutes or hours?) is still the time
+question's to ask. A time column guessed this way is a deciding column of a results sheet: the sheet is checked
+first.
+
+### The brand by its values - `ColumnRecogniser::withBrandByValues()`
+
+The brand is the one field the values say only with the catalogue's help. After the columns are recognised, **when
+no column is the brand**, the columns nothing was made of (no field, no role, and no header that says something
+else) are looked at: the one in which **≥ 60 % of the distinct text values and ≥ 60 % of the cells are names of
+brands in the catalogue, in at least 5 cells**, becomes the brand - `probable`, `reason: brand_values`. Of several,
+the one with the largest share of cells.
+
+- The brands are `ImportBrandResolver::resolveApproved()`'s: **approved brands only** (a brand somebody typed in
+  and nobody approved must not make a column the brand), the name as the catalogue compares a typed brand, then
+  letters and digits only - **exact matches, nothing similar**. All candidate columns of a sheet are resolved in one
+  call, and that method keeps its read of the brands for the request or the queued message (`ResetInterface`; the matching's `resolve()` reads afresh):
+  **one read per `ProposeImportMappings`, however many sheets** - none when no column could reach the floor. Up to
+  200 values a column.
+- **It never beats a header**: a sheet with a brand column (whatever its certainty) is left alone, and a column
+  that has a field is never a candidate.
+- `ImportSheetAnalyser` does it (`analyse($sample, $brandsOf = null)`; without a resolver - the pure tests - the
+  brand is never guessed from values), before the sheet's kind is guessed - so a list of names and brands is "owned".
+- A brand column guessed this way is one of the columns that ask for the check below - also under a header row.
 
 - **Computed** (pieces per minute, rank, percentages, differences): preset to "Don't import" - the field is
   `computed`. Formulas alone make nothing computed: a whole sheet may be formulas (a Google Sheets IMPORTRANGE
@@ -84,6 +123,67 @@ each value reader takes.
   more" flags and computed values; everything else is one per table.
 - A column without a header that holds values is kept with `header: ""` ("Column N"); a column without a header and
   without a value is not in the mapping.
+
+## Check first - `ImportCheckFirst`
+
+A proposal can be a guess where a wrong guess spoils everything built on it. **A sheet that is imported needs the
+player's eye before anything else** when
+
+- it has **no header row** (`source: no_header`: every column is a guess from its values) - reason `no_header`, or
+- one of **the columns that decide what gets added** - the puzzle's name, the time (a results sheet), the brand -
+  was guessed **from its values only** (`reason: values` / `brand_values`: no header stands behind it) - reason
+  `unsure`, or
+- **its kind could not be told at all** (`kindCertainty: unknown` - a list of names and nothing else) - reason
+  `unsure`.
+
+**Not held** - deliberately, the first version stopped far too many files: a sheet whose header row was found and
+whose columns come from header words, even `probable` ones (`Name`, `Year`), and a sheet whose kind is only
+`probable` (every list of owned puzzles is). Those keep what they always had: the line "We are not sure about 1
+sheet - have a look", "!" on step 2's summary, and their puzzles matched at once.
+
+Never a known export (`mapping.layout`). A sheet a remembered layout was laid over (`mapping.remembered`) is held
+only when a deciding column still has a values-only reason - there somebody said what the other columns are. A column that decides nothing by itself (pieces, a date, a field of the
+player's own) may be guessed from its values - it is listed under "Please check these" as before.
+
+On the three private sample workbooks (31 sheets, 23 of them imported) 2 sheets stop - both without a header row;
+none with a found header row.
+
+Such a sheet's **first proposal carries the question `check_columns`** (`ProposeImportMappingsHandler`; choices:
+`yes`). It is not one of the questions with choices: the overview counts 0 questions for the sheet and reports
+`checkFirst` (`no_header` / `unsure`) instead, and the sheet's page shows it as its notice.
+
+**While it is asked the sheet is parsed, and every row of it is held** (`PendingQuestionRows::mark()` →
+`ParsedImportRow::heldForColumnCheck()`): the row keeps what was read (the page's preview shows it) and waits with
+the problem `columns_open`, but it is stored **without `puzzle_key`, `source_key` and `people`**. So nothing of it
+is a puzzle of the import (no matching on wrong columns), nobody it names is asked about, and it is never "ready to
+add" - while the other sheets of the file are matched and added as ever. The sheet counts its rows in
+`rows_waiting`; its state is `waiting`, said as "Waits for you to check its columns". It is *parsed*: the safety
+net below has nothing to queue for it, and it is never "stuck".
+
+**The player's word on the columns answers it** - `ConfirmImportMapping` with the answer `check_columns = yes`
+("Yes, this is right"; the sheet's form carries it, so any Save from that page counts) or with a changed mapping.
+The next version has no such question, the rows are read again with their keys, and `BuildImportPuzzles` follows
+as after any parse. **Any Save on the sheet's own page releases it** - whatever was changed there, a sheet-wide
+setting included: the player stood on the columns and saved, and the form says so (`answers[check_columns]`). Only a
+`ConfirmImportMapping` that carries neither that answer nor a mapping keeps it asked: an answer given on step 2's
+one-question screen, a message of another screen (`ConfirmImportMappingHandler`).
+
+**A results sheet that asks for the check and has no time column says so in its notice** ("We did not find a
+column with your times. Pick it below - otherwise your puzzles are added without a time.", `time_hint`): "Yes, this
+is right" is never a silent import of results without times.
+
+**Answered, the sheet reads as sure** (`ImportCheckFirst::confirmed()`): every column that was a guess - a field or
+"not imported" - becomes `certain`, `reason: player`, and so does the kind. No "We are not sure about 1 sheet" line,
+no "!" on step 2, no "Our guess" badge afterwards; it is never asked twice. The player is taken on to **the next
+sheet of the file that asks for the check**, else to "Where you are" (`ConfirmImportSheetController`).
+
+**"Start over for this sheet"** (`StartImportSheetOverHandler`) is not a confirmation: the fresh proposal asks for
+the check like a first one when it meets the rule. **A remembered layout** switches off the first and the third
+reason, not the second: a deciding column the layout does not know (a column without a header guessed as the brand)
+still holds the sheet. A sheet that follows a layout confirmed on another sheet of the same file
+(`ShareImportLayout`) is settled without the question. Where it sits in the flow: [guided-flow.md](guided-flow.md) "As built - a guessed sheet is checked first".
+
+Imports proposed before this shipped have no such question and go on as they were.
 
 ## What a sheet is - `SheetKindGuesser`, `SheetLookupFactory`
 
@@ -191,6 +291,7 @@ row is not offered, and a single reading left is taken unasked.
 | `date_order` | several orders make every date real and read some differently · rows that can only be day first stand beside rows that can only be month first (always asked, a row of each shown; the rows that do not follow the answer get `date_other_order`) · day first against month first rests on fewer than 3 rows that can only be read that way **and** on less than 30 % of the column's dates (one `25/3` among hundreds of dates that read both ways may be the typo) | `dmy` · `mdy` · `ymd` (those left) |
 | `typed_dates` | typed dates beside day-first text dates, all with a day ≤ 12: turned around by the spreadsheet? | `yes` · `no` |
 | `year` | dates without a year (`20-Sep`, a cell showing `m/d`) and the sheet's name says no year - or another than the cells store | a year 1950-2100 · `stored` ("the year each cell stores", offered when every such date is a cell) |
+| `check_columns` | the sheet's reading is a guess - "Check first" above. The one question that holds **every** row of its sheet, and that is shown as a notice, not with choices | `yes` ("Yes, this is right") - or any change of the sheet's columns |
 
 Not asked here, later stages': the header row when we guessed it wrong and which table (the screen changes the
 mapping), which collection, undated results (README Q3), "one result or two?", unusual times.

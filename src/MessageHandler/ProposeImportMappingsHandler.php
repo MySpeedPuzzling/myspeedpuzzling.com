@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\RecordImportMappings;
 use SpeedPuzzling\Web\Query\GetImportLayouts;
 use SpeedPuzzling\Web\Query\GetImportSheetRows;
+use SpeedPuzzling\Web\Services\DataImport\ImportCheckFirst;
 use SpeedPuzzling\Web\Services\DataImport\ImportLayoutMatcher;
 use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
 use SpeedPuzzling\Web\Services\DataImport\ImportSheetAnalyser;
@@ -107,7 +108,9 @@ readonly final class ProposeImportMappingsHandler
                 );
                 $proposal = $proposal->with($proposal->mapping, $options, $questions);
                 $recorded[$sheetId] = [
-                    'mapping' => $proposal->mapping->toArray(),
+                    // A sheet whose reading is a guess asks "did we read your columns right?" before anything is built
+                    // on it: its rows are read, but held until the player has looked (ImportCheckFirst)
+                    'mapping' => ImportCheckFirst::asked($proposal->mapping)->toArray(),
                     'options' => $proposal->options->toArray(),
                     'valueAnswers' => $proposal->valueAnswers,
                     'headerSignature' => $proposal->headerSignature,

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\ImportSheetDetail;
 use SpeedPuzzling\Web\Services\DataImport\ImportSheetPage;
 use SpeedPuzzling\Web\Services\DataImport\ImportSheetScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportQuestionType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
@@ -128,6 +129,18 @@ final class ConfirmImportSheetController extends AbstractController
         }
 
         $this->addFlash('success', $this->translator->trans('data_import.columns.flash.saved'));
+
+        // The sheet asked "did we read your columns right?" and the player said so (ImportCheckFirst): on to the next
+        // sheet of the file that asks the same - else to "Where you are", which has the next step's button
+        if (isset($submission['answers'][ImportQuestionType::CheckColumns->value])) {
+            foreach ($this->getDataImports->sheetsOfPlayer($importId, $player->playerId) as $other) {
+                if ($other->isHeldForACheck() && $other->sheetId !== strtolower($sheetId)) {
+                    return $this->redirectToRoute('data_import_sheet', ['importId' => $importId, 'sheetId' => $other->sheetId]);
+                }
+            }
+
+            return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
+        }
 
         return $saved;
     }

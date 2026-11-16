@@ -46,6 +46,9 @@ readonly final class DataImportProgress
          * @var array{running: bool, puzzles: int, found: int, probably: int, choose: int, notFound: int, searching: int, revision: string}
          */
         public array $pairing = ['running' => false, 'puzzles' => 0, 'found' => 0, 'probably' => 0, 'choose' => 0, 'notFound' => 0, 'searching' => 0, 'revision' => ''],
+        /** Sheets whose columns the player has not checked yet (ImportCheckFirst) - never published, for the page only */
+        public int $sheetsHeld = 0,
+        public null|string $firstHeldSheetId = null,
     ) {
     }
 

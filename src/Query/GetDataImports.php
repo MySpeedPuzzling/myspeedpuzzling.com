@@ -203,6 +203,10 @@ SELECT
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0) AS sheets_mapped,
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND sheet.parsed_version = sheet.mapping_version) AS sheets_parsed,
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) > 0) AS sheets_waiting,
+    -- Sheets whose columns the player has not checked yet (ImportCheckFirst): nothing of them is matched - how many,
+    -- and the first of them (the page's button leads there)
+    (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND sheet.set_up_failure IS NULL AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else') AND COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb) AS sheets_held,
+    (SELECT sheet.id FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.mapping_version > 0 AND sheet.set_up_failure IS NULL AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else') AND COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb ORDER BY sheet.position LIMIT 1) AS first_held_sheet_id,
     -- What still happens by itself while the import is set up (docs/features/data-import/columns-screen.md "The live
     -- line"): sheets without a mapping yet, and sheets whose rows are read for their current mapping
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND (sheet.mapping_version = 0 OR (sheet.parsed_version IS DISTINCT FROM sheet.mapping_version))) AS sheets_working,
@@ -235,7 +239,7 @@ LEFT JOIN data_import same_file
 WHERE data_import.id = :importId
 SQL;
 
-        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int, sheets_working: int, rows_to_parse: int|string, rows_parsed: int, revision: string, pairing_run: int, paired: bool, pairing_running: bool, puzzles: int, puzzles_found: int, puzzles_probably: int, puzzles_choose: int, puzzles_not_found: int, puzzles_searching: int} $row */
+        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int, sheets_held: int, first_held_sheet_id: null|string, sheets_working: int, rows_to_parse: int|string, rows_parsed: int, revision: string, pairing_run: int, paired: bool, pairing_running: bool, puzzles: int, puzzles_found: int, puzzles_probably: int, puzzles_choose: int, puzzles_not_found: int, puzzles_searching: int} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'discarded' => DataImportStatus::Discarded->value,
@@ -266,6 +270,8 @@ SQL;
             sheetsMapped: $row['sheets_mapped'],
             sheetsParsed: $row['sheets_parsed'],
             sheetsWaiting: $row['sheets_waiting'],
+            sheetsHeld: $row['sheets_held'],
+            firstHeldSheetId: $row['first_held_sheet_id'],
             sheetsWorking: $row['status'] === DataImportStatus::SettingUp->value ? $row['sheets_working'] : 0,
             rowsToParse: (int) $row['rows_to_parse'],
             rowsParsed: $row['rows_parsed'],
@@ -312,7 +318,17 @@ SELECT
     data_import_sheet.rows_waiting,
     data_import_sheet.set_up_failure IS NOT NULL AS failed,
     data_import_sheet.set_up_failure,
-    jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions,
+    -- The questions with choices. "Did we read your columns right?" (ImportCheckFirst) is not one of them: while it is
+    -- asked the sheet's other questions wait with it, on the sheet's own page
+    CASE
+        WHEN COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb THEN 0
+        ELSE jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb))
+    END AS questions,
+    -- Why the sheet must be looked at before anything is built on it - null: it need not
+    CASE
+        WHEN COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb
+            THEN CASE WHEN data_import_sheet.mapping -> 'regions' -> COALESCE((data_import_sheet.mapping ->> 'region')::int, 0) ->> 'source' = 'no_header' THEN 'no_header' ELSE 'unsure' END
+    END AS check_first,
     data_import_sheet.mapping -> 'remembered' ->> 'how' AS remembered_how,
     data_import_sheet.mapping -> 'remembered' ->> 'id' AS remembered_id,
     data_import_sheet.mapping -> 'remembered' ->> 'name' AS remembered_name,
@@ -339,7 +355,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int, remembered_how: null|string, remembered_id: null|string, remembered_name: null|string, row_meaning: null|string, kind_certainty: null|string, known_export: null|string, options: null|string, fields: null|string, columns_to_check: int}> $rows */
+        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int, check_first: null|string, remembered_how: null|string, remembered_id: null|string, remembered_name: null|string, row_meaning: null|string, kind_certainty: null|string, known_export: null|string, options: null|string, fields: null|string, columns_to_check: int}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -354,7 +370,7 @@ SQL;
             columns: $row['columns_total'],
             kind: $row['kind'] === null ? null : DataImportSheetKind::tryFrom($row['kind']),
             mapped: $row['mapping_version'] > 0,
-            waitsForAnAnswer: $row['questions'] > 0,
+            waitsForAnAnswer: $row['questions'] > 0 || $row['check_first'] !== null,
             parsed: $row['mapping_version'] > 0 && $row['parsed_version'] === $row['mapping_version'],
             rowsUnderstood: $row['rows_understood'],
             rowsNeedLook: $row['rows_need_look'],
@@ -373,6 +389,7 @@ SQL;
             kindSure: $row['kind_certainty'] === null || $row['kind_certainty'] === ColumnCertainty::Certain->value,
             knownExport: $row['known_export'],
             readings: ImportSheetReadings::of(self::decoded($row['options'])),
+            checkFirst: $row['check_first'],
         ), $rows);
     }
 

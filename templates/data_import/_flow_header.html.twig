@@ -11,6 +11,8 @@
                     is passed and what waits, and the menu offers Finish / Discard / Undo. Without it the dots show
                     the file as read and the screen's own step; nothing is claimed about the others.
 
+      live_header   (optional) true on "Where you are" while the import is set up: the header is a live frame
+
     No script: the menu is a <details>. Every target 44 px.
 #}
 {% set flow = import_flow|default(null) %}
@@ -26,6 +28,9 @@
 {# "Row 14 is saved", fixed in view on the screen a save in the row's editor leads to #}
 {{ include('data_import/_saved_notice.html.twig') }}
 
+{# On "Where you are" the header follows the page's live re-read (`live_header`): the dots and "Step N of 5" are in a
+   frame of their own, loaded again with the list of steps (data_import_setup_controller.js) #}
+{% if live_header|default(false) %}<turbo-frame id="import-flow-header-live" data-import-live target="_top">{% endif %}
 <nav class="mx-auto mb-3" style="max-width: 720px;" aria-label="{{ 'data_import.flow.steps_label'|trans }}" data-testid="import-flow-header" data-step="{{ current }}">
     <div class="d-flex align-items-center gap-1">
         <a href="{{ path('data_imports') }}" class="d-inline-flex align-items-center flex-shrink-0 text-nowrap text-decoration-none fs-sm" style="min-height: 44px;" data-testid="import-flow-back">
@@ -125,3 +130,4 @@
         {%- endif -%}
     </p>
 </nav>
+{% if live_header|default(false) %}</turbo-frame>{% endif %}

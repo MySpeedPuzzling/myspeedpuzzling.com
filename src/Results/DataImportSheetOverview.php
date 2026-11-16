@@ -71,7 +71,22 @@ readonly final class DataImportSheetOverview
          * @var list<array{type: string, value: string}>
          */
         public array $readings = [],
+        /**
+         * The sheet's reading is a guess the player is asked to check before anything is built on it
+         * (Services\DataImport\ImportCheckFirst): why - `no_header` or `unsure`. null: it need not be checked first.
+         * While it is set the sheet's rows are held: none is matched with a puzzle and none can be added.
+         */
+        public null|string $checkFirst = null,
     ) {
+    }
+
+    /**
+     * Its rows are held until the player has looked at how it was read (ImportCheckFirst) - on a sheet that is
+     * imported and did not fail.
+     */
+    public function isHeldForACheck(): bool
+    {
+        return $this->checkFirst !== null && $this->mapped && $this->failed === false && $this->isLeftOut() === false;
     }
 
     /**
@@ -123,7 +138,7 @@ readonly final class DataImportSheetOverview
             return false;
         }
 
-        return $this->kindSure === false || ($this->isLeftOut() === false && $this->columnsToCheck > 0);
+        return $this->kindSure === false || $this->isHeldForACheck() || ($this->isLeftOut() === false && $this->columnsToCheck > 0);
     }
 
     /**
@@ -132,7 +147,7 @@ readonly final class DataImportSheetOverview
      */
     public function state(): string
     {
-        return self::stateOf($this->failed, $this->mapped, $this->isLeftOut(), $this->parsed, $this->questions > 0, $this->rowsUnderstood, $this->rowsNeedLook, $this->rowsWaiting);
+        return self::stateOf($this->failed, $this->mapped, $this->isLeftOut(), $this->parsed, $this->questions > 0 || $this->checkFirst !== null, $this->rowsUnderstood, $this->rowsNeedLook, $this->rowsWaiting);
     }
 
     /**

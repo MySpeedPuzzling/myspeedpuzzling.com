@@ -241,7 +241,7 @@ SQL;
 ) AS known_ids
 SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 counts AS (
@@ -295,6 +295,26 @@ SELECT
         FROM data_import_sheet sheet
         WHERE sheet.import_id = import.id AND sheet.included AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
     ) AS sheets_not_set_up,
+    (
+        SELECT COUNT(*)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = import.id AND sheet.included AND sheet.mapping_version > 0 AND sheet.set_up_failure IS NULL
+            AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
+    ) AS sheets_being_read,
+    -- Results of the read sheets that hold no time and nothing unclear: what an Add would add without a time
+    (
+        SELECT COUNT(*)
+        FROM data_import_row untimed
+        INNER JOIN data_import_sheet sheet ON sheet.id = untimed.sheet_id
+        WHERE untimed.import_id = import.id
+            AND sheet.included AND sheet.parsed_version = sheet.mapping_version
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            AND untimed.kind IN ('result', 'both')
+            AND untimed.state = 'waiting'
+            AND untimed.problems IS NULL
+            AND untimed.source_key IS NOT NULL
+            AND untimed.parsed ->> 'seconds' IS NULL
+    ) AS results_without_time,
     (
         SELECT batch.id FROM data_import_batch batch
         WHERE batch.import_id = import.id AND batch.state = 'running'
@@ -379,6 +399,8 @@ SQL, [
             sampleIds: array_values(array_filter(self::decoded($row['sample_ids']), is_string(...))),
             knownIds: array_values(array_filter(self::decoded($row['known_ids']), is_string(...))),
             wiped: $row['wiped'],
+            sheetsBeingRead: $row['sheets_being_read'],
+            resultsWithoutTime: $row['results_without_time'],
         );
     }
 
@@ -1450,7 +1472,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
      * an answer after an "Add", questions of its sheets, rows we could not read, puzzles still to match. **One
      * statement for all of them**, whatever their number and size. Numbers only; nobody's identity is selected.
      *
-     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
+     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
      */
     public function addedByImports(string $playerId): array
     {
@@ -1469,7 +1491,7 @@ r.import_id IN (
 SQL);
         $notAdded = self::NOT_ADDED;
 
-        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, look: int|string, to_match: int, working: bool}> $rows */
+        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, to_check: int|string, look: int|string, to_match: int, working: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 WITH {$ready},
 ready_by AS (
@@ -1516,7 +1538,18 @@ SELECT
             AND sheet.mapping_version > 0
             AND sheet.set_up_failure IS NULL
             AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            -- A sheet whose reading is a guess asks for a look, not for answers: counted below (ImportCheckFirst)
+            AND NOT (COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb)
     ) AS questions,
+    (
+        SELECT COUNT(*)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND sheet.mapping_version > 0
+            AND sheet.set_up_failure IS NULL
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            AND COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb
+    ) AS to_check,
     (
         SELECT COALESCE(SUM(sheet.rows_need_look), 0)
         FROM data_import_sheet sheet
@@ -1567,6 +1600,7 @@ SQL, [
                 'ready' => $row['ready'],
                 'waiting' => $row['waiting'],
                 'questions' => (int) $row['questions'],
+                'toCheck' => (int) $row['to_check'],
                 'look' => (int) $row['look'],
                 'toMatch' => $row['to_match'],
                 'working' => $row['working'],

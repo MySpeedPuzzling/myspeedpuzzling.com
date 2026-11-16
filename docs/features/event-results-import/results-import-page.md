@@ -13,7 +13,7 @@ Builds on [README.md](README.md) (the import, claims, unfinished results D9) and
 | P1 | A **results source** (a sheet + its format) belongs to an organization; an organization may have several, each with its own format. Sources are set up **by admins only** - internal API / by hand, no UI now |
 | P2 | The organization's team (and admins) import **without Jan's approval** - the preview + confirm is the approval |
 | P3 | **No undo** - the preview is where they confirm what is correct; corrections go through the sheet |
-| P4 | A team that disappears from the sheet: **deleted when nobody claimed it** (proposed; Jan asks Sarah in his mail). A claimed one is kept and shown as "no longer in the sheet - kept, claimed" |
+| P4 | A team that disappears from the sheet: **deleted when nobody claimed it** (confirmed by the organizer, 2026-11-16). A claimed one is kept and shown as "no longer in the sheet - kept, claimed" |
 | P5 | The page is called **"Results import"** for every organization |
 | P6 | Everything ships to production (it touches nobody else); Sarah tests on sandbox first with a copy of her account and organization |
 

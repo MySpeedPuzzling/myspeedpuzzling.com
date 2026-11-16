@@ -69,6 +69,7 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [ ] Claims checked against blocks between the claimers of one result
 - [ ] Automatic weekly sync once Sarah's results are in and runs are steady (promised to her, F204, ~4 Dec)
 - [ ] Later: venue series (D8), solo events, per-team claim codes, start time on organizer pages
+- [ ] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - today a result is one puzzle; needs a "several puzzles, one time" result (ties in with multipacks, `docs/features/wasgij-and-multipacks.md`). Until then: no combined catalogue entry
 
 ## Results import page (`docs/features/event-results-import/results-import-page.md`, 2026-11-16)
 

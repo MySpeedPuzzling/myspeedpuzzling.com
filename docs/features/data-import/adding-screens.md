@@ -425,7 +425,12 @@ the kind the sheet had; its rows are read again). The answer's redirect **names 
 sheet is left out - so the page's own re-check (it asks for the same address again while the file is "being read
 again") keeps them; as a one-time notice they were gone with the first re-check, 1.6 s after they appeared. The
 "being read again" notice stands in the bar too: above the list it moved the list under the finger when it came and
-went. A sheet of another import in `left` is a 404; a sheet that is not left out is not offered; "Put back" is
+went. A folded question opened in the list ("Don't import any" → "Yes, don't import this file") is brought above the fixed
+bar and its button focused (`toggle`, `data_import_times_frame_controller.js`). The list also **says its own address** (`data-import-frame-address` on the bar: filters, page, `left` / `was`) and
+the script puts it in the address bar after every swap of the frame - the frame was fetched with `left`, the page's
+address was not, so a reload dropped the offer. And the offer does not hang on the address: the sheet this visit
+left out (and what it was) is kept in the session per import, so the list opened plainly still offers it while that
+sheet is left out. A sheet of another import in `left` is a 404; a sheet that is not left out is not offered; "Put back" is
 offered only with a `was` that is a kind this screen can put a sheet back as (results, owned, wish list) - without
 one the bar says what was done, and the way back is step 2. A second tap on "Yes, don't import" that arrives after
 the first answers "changed meanwhile" with the same address (what the sheet was is kept in the session for it).

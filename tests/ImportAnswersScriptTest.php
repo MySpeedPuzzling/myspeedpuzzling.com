@@ -175,6 +175,9 @@ final class ImportAnswersScriptTest extends TestCase
 
         // The frame keeps room for its bar, which is fixed to the bottom of the window (120 px + 16)
         self::assertSame('136px', $back['room']);
+        // The address bar says what the frame shows: the sheet that was left out is in it after the swap (a reload
+        // shows the offer again), and gone from it when the frame says the plain list
+        self::assertSame(['/en/import/1/add/list?left=sheet-1&was=results', '/en/import/1/add/list'], [$back['addressLeft'], $back['addressPlain']]);
         // Right after "Put back" the row is there, "coming back", and focus is on it - not on the page
         self::assertSame(['focused' => 'row-a div Put back. It is in the list again…', 'there' => true], self::at($back, 'coming'));
         // The frame is asked for again, and again while the row is still coming back ...
@@ -182,6 +185,38 @@ final class ImportAnswersScriptTest extends TestCase
         // ... and not any more once the row is ready: focus is on its tick box
         self::assertSame(2, $back['reloads']);
         self::assertSame("row-a button Don't import", $back['ready']);
+    }
+
+    public function testAnotherCardDoesNotTakeTheSecondTapOfADoubleTapAfterTheListMoved(): void
+    {
+        ['guarded' => $guarded] = $this->scenarios(['guarded']);
+
+        // The card left, the next one's button came under the pointer: a second tap there, at once, sends nothing
+        self::assertSame(1, $guarded['doubleTap']);
+        // ... and does not follow that card's link either
+        self::assertSame(0, $guarded['followed']);
+        // Enter pressed again at once lands on the button the script just moved focus to: not taken - a moment
+        // later it is the player's own answer
+        self::assertSame([1, 2], [$guarded['keyAtOnce'], $guarded['keyboard']]);
+        // A card that stays and gets "Untick" where "Yes, this is it" stood: the second tap of a slow double tap
+        // does not take the answer back - a deliberate tap later does
+        self::assertSame(1, $guarded['sameCard']);
+        self::assertSame(['catalogue', 'undecided'], $guarded['sameCardLater']);
+        // A tap somewhere else on the screen, at once: sent - and so is a tap at the same place a moment later
+        self::assertSame([2, 2], [$guarded['elsewhere'], $guarded['later']]);
+    }
+
+    public function testACardThatIsLookedForAgainIsAskedAboutUntilItHasItsPile(): void
+    {
+        ['looking' => $looking] = $this->scenarios(['looking']);
+
+        // Asked for by a GET that wants the card as a stream - nothing is sent, nothing is decided
+        self::assertSame([['url' => '/en/import/1/puzzle/p1/card?group=remembered&page=1', 'method' => 'GET', 'accept' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml', 'body' => null]], $looking['asked']);
+        // Still looked for: asked again - in its pile: the card has its button, nothing is asked any more, and the
+        // line that stays in view still says what the answer did
+        self::assertSame(['calls' => 2, 'pick' => 1, 'looking' => 0, 'said' => 'Undone.'], self::at($looking, 'found'));
+        // Never: twelve times, then nothing turns and the card says it takes longer
+        self::assertSame(['calls' => 12, 'spinners' => 0, 'longer' => false, 'atOnce' => true], self::at($looking, 'never'));
     }
 
     public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void

@@ -358,6 +358,8 @@ final class DecideImportPuzzlesController extends AbstractController
             'group' => $where['group'],
             'page' => $where['page'],
             'counts' => $counts,
+            // (a list: what its "Nothing waits for you here." says now)
+            'step_done' => $overview->puzzles > 0 && $overview->open() === 0 && $overview->searching === 0,
             // Every answer is said in the line that stays in view - ONE place to look; one answer for several has
             // no "Undo the last one" there (each puzzle is taken back on its card)
             'said' => [

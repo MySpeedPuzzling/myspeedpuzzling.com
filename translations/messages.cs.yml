@@ -12378,6 +12378,7 @@ data_import:
             in_file: "Ve vašem souboru"
             rows: "Řádky: %number%"
             no_candidate: "V databázi nic neodpovídá."
+            looking_again: "Hledáme ho znovu…"
             candidates: "Možná puzzle: %number%"
             not_this_one: "Špatné puzzle"
             untick: "Zrušit potvrzení"

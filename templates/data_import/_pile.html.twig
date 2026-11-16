@@ -29,9 +29,12 @@
             {% endif %}
         </div>
     {% endfor %}
+    {# One element whatever it says: an answer given on a list (a card taken back) puts what is true now in it #}
+    <div id="import-step-done-slot">
     {% if step_done %}
         <p class="alert alert-success fs-sm" data-testid="import-step-done"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.next.nothing'|trans }}</p>
     {% endif %}
+    </div>
 
     {% if is_running %}
         {# An answer for the whole pile runs on the worker: the part below is loaded again every few seconds #}

@@ -1,0 +1,7 @@
+{#
+    One card of a list of an import's puzzles as it stands now (ImportPuzzleCardController): put in its place - and
+    nothing else is touched (the line that stays in view keeps what the last answer said).
+#}
+<turbo-stream action="replace" target="puzzle-{{ card.importPuzzleId }}">
+    <template>{{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import_id, group: group, page: page, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}, with_context = false) }}</template>
+</turbo-stream>

@@ -12375,6 +12375,7 @@ data_import:
             in_file: "In deiner Datei"
             rows: "Zeilen: %number%"
             no_candidate: "Nichts in der Datenbank passt."
+            looking_again: "Wir suchen noch einmal danach…"
             candidates: "Mögliche Puzzles: %number%"
             not_this_one: "Falsches Puzzle"
             untick: "Bestätigung aufheben"

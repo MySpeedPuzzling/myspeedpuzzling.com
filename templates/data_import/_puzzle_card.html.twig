@@ -17,7 +17,12 @@
 {% set in_pile = in_pile|default(false) %}
 {% set shown = card.shown %}
 {% set chooser = path('data_import_puzzle_choose', {importId: import_id, importPuzzleId: card.importPuzzleId}) %}
+{# Undecided and not looked at yet (an answer of "Matched like last time" was just taken back - the look-up runs):
+   nothing is known about it, so nothing is claimed and nothing is offered. The script asks for this card again
+   until the look-up has put it in a pile (data_import_answers_controller.js, ImportPuzzleCardController) #}
+{% set looking = not card.isDecided and card.tier is null %}
 <div class="card shadow-sm mb-2{{ card.isDecided ? '' : ' border-warning' }}" id="puzzle-{{ card.importPuzzleId }}" style="scroll-margin-top: 90px;"
+     {% if looking %}data-import-card-looking="{{ path('data_import_puzzle_card', {importId: import_id, importPuzzleId: card.importPuzzleId, group: group, page: page}) }}"{% endif %}
      data-testid="import-puzzle-card" data-import-answers-scope data-choice="{{ card.choice }}" data-tier="{{ card.tier ?? 'none_yet' }}" data-version="{{ card.decisionVersion }}">
     <div class="card-body py-2 px-3">
         <div class="d-flex justify-content-between align-items-start gap-2">
@@ -38,6 +43,13 @@
                 {% if not card.isDecided and card.candidates|length > 1 %}
                     <div class="fs-sm text-muted mt-1" data-testid="import-puzzle-candidates">{{ 'data_import.puzzles.card.candidates'|trans({'%number%': card.candidates|length}) }}</div>
                 {% endif %}
+            {% elseif looking %}
+                <div class="fs-sm fw-medium d-flex align-items-center gap-2" role="status" data-testid="import-puzzle-looking">
+                    <span class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-import-waiting-spinner></span>
+                    <span data-import-usually-at-once>{{ 'data_import.puzzles.card.looking_again'|trans }}</span>
+                    {# Shown by the script when it stops asking: nothing turns for ever #}
+                    <span hidden data-import-taking-longer>{{ 'data_import.add_list.taking_longer'|trans }} <a href="{{ path('data_import_puzzles', {importId: import_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.add_list.refresh'|trans }}</a></span>
+                </div>
             {% else %}
                 <div class="fs-sm text-muted" data-testid="import-puzzle-no-candidate">{{ 'data_import.puzzles.card.no_candidate'|trans }}</div>
             {% endif %}
@@ -82,7 +94,7 @@
                 <a href="{{ chooser }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
                     {{ 'data_import.puzzles.card.something_else'|trans }}
                 </a>
-            {% else %}
+            {% elseif not looking %}
                 <a href="{{ chooser }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-puzzle-choose">
                     <i class="bi bi-hand-index-thumb me-1" aria-hidden="true"></i>{{ (shown is not null and shown.piecesDiffer ? 'data_import.puzzles.card.look' : 'data_import.puzzles.card.choose')|trans }}
                 </a>

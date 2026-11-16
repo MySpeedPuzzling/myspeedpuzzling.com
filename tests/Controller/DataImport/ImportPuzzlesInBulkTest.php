@@ -1146,7 +1146,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertCount(0, $list->filter('#puzzle-' . $harbour['id'] . ' input[name="in_pile"]'));
         $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $harbour['id'], 'version' => (string) $harbour['decision_version'], 'group' => 'found', 'page' => '1'], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
-        self::assertSame(['puzzle-' . $harbour['id'], 'import-puzzle-group-counts', 'import-answer-said'], array_keys($streams));
+        self::assertSame(['puzzle-' . $harbour['id'], 'import-puzzle-group-counts', 'import-step-done-slot', 'import-answer-said'], array_keys($streams));
         self::assertSame(['replace', null], [$streams['puzzle-' . $harbour['id']]['action'], $streams['puzzle-' . $harbour['id']]['method']]);
         $card = $streams['puzzle-' . $harbour['id']]['part']->filter('#puzzle-' . $harbour['id']);
         self::assertSame('undecided', $card->attr('data-choice'));
@@ -1167,6 +1167,8 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $meadow['id'], 'version' => '0', 'catalogue' => $meadow['candidates'][0]['puzzleId'], 'group' => 'probably', 'page' => '1'], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
         self::assertSame('0', $streams['import-puzzle-group-counts']['part']->filter('#import-puzzle-group-counts')->attr('data-open'));
+        // ... and so does the list's own line above the cards, in the same answer
+        self::assertCount(1, $streams['import-step-done-slot']['part']->filter('[data-testid="import-step-done"]'));
         $said = $streams['import-answer-said']['part'];
         self::assertSame('Nothing waits for you here.', self::spaced($said->filter('[data-testid="import-answer-step-done"]')->text()));
         self::assertSame($base . '?after=puzzles', $said->filter('[data-testid="import-answer-next-step"]')->attr('href'));
@@ -1297,7 +1299,17 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         // "Untick" on the list of "Matched like last time", in place: the card says the puzzle waits again ...
         $this->browser->request('POST', $base . '/puzzles/decide', ['_token' => $token, 'action' => 'undecided', 'puzzle' => $remembered['id'], 'version' => (string) $remembered['decision_version'], 'group' => 'remembered', 'page' => '1'], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
-        self::assertSame('undecided', $streams['puzzle-' . $remembered['id']]['part']->filter('#puzzle-' . $remembered['id'])->attr('data-choice'));
+        $card = $streams['puzzle-' . $remembered['id']]['part']->filter('#puzzle-' . $remembered['id']);
+        self::assertSame('undecided', $card->attr('data-choice'));
+        // The list said "Nothing waits for you here." above its cards: one waits now - the same answer takes the line away
+        self::assertCount(1, $list->filter('#import-step-done-slot [data-testid="import-step-done"]'));
+        self::assertSame(['update', ''], [$streams['import-step-done-slot']['action'], trim($streams['import-step-done-slot']['html'])]);
+        // Nothing is known about it yet - the look-up has not run: the card says so, claims nothing ("Nothing in the
+        // database fits" would be a guess) and offers nothing; the page asks for this card again by its address
+        self::assertSame('We are looking for it again…', self::spaced($card->filter('[data-testid="import-puzzle-looking"] [data-import-usually-at-once]')->text()));
+        self::assertCount(0, $card->filter('[data-testid="import-puzzle-no-candidate"], [data-testid="import-puzzle-choose"], button'));
+        $cardUrl = (string) $card->attr('data-import-card-looking');
+        self::assertSame($base . '/puzzle/' . $remembered['id'] . '/card?group=remembered&page=1', $cardUrl);
         self::assertSame('Undone. The puzzle waits for you again.', self::spaced($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-text"]')->text()));
         // ... and it does: nobody's decision any more, the pairing due - its run is queued, the overview follows it
         $now = $this->importPuzzle($importId, 'Zq9v Looks Like Meadow');
@@ -1306,6 +1318,11 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $queue = self::getContainer()->get('messenger.transport.imports');
         self::assertInstanceOf(InMemoryTransport::class, $queue);
         self::assertContains(BuildImportPuzzles::class, array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, $queue->getSent()));
+        // Asked for again while the look-up has not run: still looked for
+        $this->browser->request('GET', $cardUrl, server: self::AS_TURBO);
+        $again = self::streams($this->browser);
+        self::assertSame(['puzzle-' . $remembered['id']], array_keys($again), 'the card only - the line that stays in view is not touched');
+        self::assertCount(1, $again['puzzle-' . $remembered['id']]['part']->filter('[data-import-card-looking] [data-testid="import-puzzle-looking"]'));
 
         // The run: the puzzle is in a pile that waits for the player - never "still looked for" without an end
         $this->pair($import);
@@ -1313,6 +1330,18 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $after = $this->importPuzzle($importId, 'Zq9v Looks Like Meadow');
         self::assertContains($after['tier'], ['probably', 'choose']);
         self::assertSame(['undecided', null], [$after['choice'], $after['decided_how']]);
+        // The same address now: the card as its pile shows it - its puzzle and its way on, nothing "looked for"
+        $this->browser->request('GET', $cardUrl, server: self::AS_TURBO);
+        $settled = self::streams($this->browser)['puzzle-' . $remembered['id']]['part']->filter('#puzzle-' . $remembered['id']);
+        self::assertNull($settled->attr('data-import-card-looking'));
+        self::assertCount(0, $settled->filter('[data-testid="import-puzzle-looking"]'));
+        self::assertSame($after['tier'], $settled->attr('data-tier'));
+        self::assertGreaterThanOrEqual(1, $settled->filter('[data-testid="import-puzzle-choose"]')->count());
+        // Somebody else's import: not found
+        TestingLogin::asPlayer($this->browser, $this->seedPairingPlayer('inplace-remembered-other')->id->toString());
+        $this->browser->request('GET', $cardUrl, server: self::AS_TURBO);
+        self::assertResponseStatusCodeSame(404);
+        TestingLogin::asPlayer($this->browser, $playerId);
         $overview = $this->browser->request('GET', $base . '/puzzles');
         self::assertCount(0, $overview->filter('[data-testid="import-puzzles-searching"]'));
         self::assertSame('1', $overview->filter('[data-testid="import-puzzle-group"][data-group="' . ($after['tier'] === 'probably' ? 'probably' : 'choose') . '"]')->attr('data-open'));

@@ -112,7 +112,7 @@ const world = {
 globalThis.world = world;
 
 globalThis.fetch = (url, init) => new Promise((resolve, reject) => {
-    world.calls.push({ url: String(url), method: init.method, accept: init.headers.Accept, body: Object.fromEntries(new URLSearchParams(init.body.toString())) });
+    world.calls.push({ url: String(url), method: init.method ?? 'GET', accept: init.headers.Accept, body: init.body ? Object.fromEntries(new URLSearchParams(init.body.toString())) : null });
     world.pending.push({ resolve, reject });
 });
 
@@ -430,11 +430,21 @@ const scenarios = {
         await settle();
         const frame = document.getElementById('import-add-list');
         frame.reload = () => { reloads.push(frame.innerHTML.includes('data-import-coming-back') ? 'coming' : 'ready'); };
+        window.history.replaceState(null, '', '/en/import/1/add/list');
         const render = (html) => {
             frame.innerHTML = html;
             frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
         };
         const room = frame.style.paddingBottom;
+        // A swap whose content says the list's address (a sheet was left out): the address bar follows - and goes
+        // back to the plain list when the content says so
+        frame.innerHTML = '<div data-import-fixed-bar data-height="120" data-import-frame-address="/en/import/1/add/list?left=sheet-1&amp;was=results"></div>';
+        frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
+        const addressLeft = window.location.pathname + window.location.search;
+        frame.innerHTML = '<div data-import-fixed-bar data-height="120" data-import-frame-address="/en/import/1/add/list"></div>';
+        frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
+        const addressPlain = window.location.pathname + window.location.search;
+        frame.innerHTML = frameWith('<form data-turbo-frame="import-add-list"><button data-back>Put back</button></form>');
 
         document.querySelector('[data-back]').focus();
         document.querySelector('#row-a form').dispatchEvent(new window.CustomEvent('turbo:submit-start', { bubbles: true }));
@@ -451,7 +461,7 @@ const scenarios = {
         const ready = focused();
         await settle(120);
 
-        return { room, coming, asked, askedTwice, reloads: reloads.length, ready };
+        return { room, addressLeft, addressPlain, coming, asked, askedTwice, reloads: reloads.length, ready };
     },
     // A sheet (or the whole file) that is put back is "being read again": the frame is asked for again like for a
     // row - twelve times at most; then nothing turns any more and the page says it takes longer
@@ -490,6 +500,101 @@ const scenarios = {
             longer: frame.querySelector('[data-import-taking-longer]').hasAttribute('hidden'),
             atOnce: frame.querySelector('[data-import-usually-at-once]').hasAttribute('hidden'),
         };
+    },
+    // A card is answered and leaves; the next card's button comes to rest under the pointer that did not move. The
+    // second tap of a double tap - a pointer, at the same place, at once - is not taken by that other card; a
+    // keyboard is, a tap elsewhere is, and so is the same tap a moment later
+    async guarded() {
+        const pointer = (selector, x, y) => document.querySelector(selector).dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: x, clientY: y }));
+        const answerOne = async () => {
+            await mount();
+            pointer('#one [data-yes]', 100, 400);
+            await settle();
+            world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${said('1 matched.')}`));
+            await settle();
+        };
+
+        await answerOne();
+        pointer('#two [data-yes]', 104, 396);
+        await settle();
+        const doubleTap = world.calls.length;
+        // A link of the other card (the way to its chooser) is not followed either
+        let followed = 0;
+        document.querySelector('#two a').addEventListener('click', (event) => { followed += 1; event.preventDefault(); });
+        pointer('#two a', 100, 400);
+        // A key pressed again at once on the button focus was just moved to: not taken either
+        tap('#two [data-yes]');
+        await settle(100);
+        const keyAtOnce = world.calls.length;
+        // ... a moment later it is the player's own answer
+        await settle(450);
+        tap('#two [data-yes]');
+        await settle();
+        const keyboard = world.calls.length;
+
+        // The card stays where it is (a list) and gets "Untick" where "Yes, this is it" stood: the second tap of
+        // a slow double tap - after the answer was rendered - must not take the answer back
+        await mount();
+        pointer('#two [data-yes]', 100, 400);
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="two"><template><div class="card" id="two" data-import-answers-scope><form action="/en/import/1/puzzles/decide" method="post" data-import-answer><button type="submit" name="action" value="undecided" data-untick>Untick</button></form></div></template></turbo-stream>${said('1 matched.')}`));
+        await settle(100);
+        pointer('[data-untick]', 102, 401);
+        await settle();
+        const sameCard = world.calls.length;
+        await settle(600);
+        pointer('[data-untick]', 102, 401);
+        await settle();
+        const sameCardLater = world.calls.map((call) => call.body.action);
+
+        await answerOne();
+        pointer('#two [data-yes]', 300, 600);
+        await settle();
+        const elsewhere = world.calls.length;
+
+        await answerOne();
+        await settle(700);
+        pointer('#two [data-yes]', 100, 400);
+        await settle();
+
+        return { doubleTap, followed, keyAtOnce, keyboard, sameCard, sameCardLater, elsewhere, later: world.calls.length };
+    },
+    // A card that says "We are looking for it again…" is asked for again until it says its pile - then it has its
+    // buttons and is not asked about any more; one that never does stops turning after the last time
+    async looking() {
+        const lookingCard = (id) => `<div class="card" id="${id}" data-import-answers-scope data-import-card-looking="/en/import/1/puzzle/${id}/card?group=remembered&amp;page=1"><span data-import-waiting-spinner></span><span data-import-usually-at-once>We are looking for it again…</span><span hidden data-import-taking-longer>This is taking longer. <a href="/puzzles">Refresh</a></span></div>`;
+        const page = (cards) => {
+            world.calls = [];
+            world.pending = [];
+            document.body.innerHTML = `<div data-controller="data-import-answers" data-data-import-answers-look-again-ms-value="10" data-data-import-answers-failed-value="NOT SAVED"><div id="import-pile">${cards}</div><div id="import-answer-said"><div>Undone.</div></div></div>`;
+        };
+
+        page(lookingCard('p1'));
+        await settle(100);
+        const asked = structuredClone(world.calls);
+        // Still looked for - then in its pile
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="p1"><template>${lookingCard('p1')}</template></turbo-stream>`));
+        await settle(100);
+        world.pending.shift().resolve(streams('<turbo-stream action="replace" target="p1"><template><div class="card" id="p1" data-import-answers-scope><a href="/chooser/p1">Pick</a></div></template></turbo-stream>'));
+        await settle(200);
+        const found = { calls: world.calls.length, pick: document.querySelectorAll('#p1 a[href="/chooser/p1"]').length, looking: document.querySelectorAll('[data-import-card-looking]').length, said: document.getElementById('import-answer-said').textContent.trim() };
+
+        // Never found: every answer says "still looking"
+        page(lookingCard('p2'));
+        const answer = async () => {
+            for (let turn = 0; turn < 40; turn++) {
+                await settle(40);
+                const waits = world.pending.shift();
+
+                if (waits) {
+                    waits.resolve(streams(`<turbo-stream action="replace" target="p2"><template>${lookingCard('p2')}</template></turbo-stream>`));
+                }
+            }
+        };
+        await answer();
+        const card = document.getElementById('p2');
+
+        return { asked, found, never: { calls: world.calls.length, spinners: card.querySelectorAll('[data-import-waiting-spinner]').length, longer: card.querySelector('[data-import-taking-longer]').hasAttribute('hidden'), atOnce: card.querySelector('[data-import-usually-at-once]').hasAttribute('hidden') } };
     },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {

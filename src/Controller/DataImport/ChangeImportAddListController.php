@@ -50,7 +50,9 @@ final class ChangeImportAddListController extends AbstractController
     /** Said inside the list's own frame (add_list.html.twig) - so it is there after a frame swap too */
     public const string FLASH = 'import_add_list';
     /** Session key (+ the sheet's id): the kind a sheet had when "Don't import this sheet" was taken */
-    private const string SESSION_WAS = 'import_add_list_sheet_was.';
+    public const string SESSION_WAS = 'import_add_list_sheet_was.';
+    /** Session key (+ the import's id): the sheet this visit left out on the list - offered for "Put back" when the list is opened without it in its address */
+    public const string SESSION_LEFT = 'import_add_list_sheet_left.';
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -147,6 +149,7 @@ final class ChangeImportAddListController extends AbstractController
             // is kept for this visit too: a second tap that arrives after the first knows it only from there
             if ($flash !== '' && Uuid::isValid($form->getString('sheet'))) {
                 $request->getSession()->set(self::SESSION_WAS . strtolower($form->getString('sheet')), $flash);
+                $request->getSession()->set(self::SESSION_LEFT . $importId, strtolower($form->getString('sheet')));
             }
 
             return $this->toTheListOfTheLeftOutSheet($request, $importId, $filters, $form->getString('sheet')) ?? $back;

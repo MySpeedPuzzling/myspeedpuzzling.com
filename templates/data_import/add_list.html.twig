@@ -228,7 +228,7 @@
         {# The bar: what an "Add" would add now - it moves with every "Don't import" - and the way back to the button #}
         {# Fixed at the bottom of the window (a sticky bar left with the list at the page's end); the frame keeps
            room for it - the script sets the bar's real height #}
-        <div class="bg-body border-top py-2 px-3" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;" data-testid="import-add-list-bar" data-import-fixed-bar>
+        <div class="bg-body border-top py-2 px-3" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;" data-testid="import-add-list-bar" data-import-fixed-bar data-import-frame-address="{{ list_address }}">
           <div class="mx-auto" style="max-width: 720px;">
             {# What the last "Don't import" / "Put back" did: said here, in the bar that stays in view inside the
                frame - a notice at the top of the list moved every row under the finger #}

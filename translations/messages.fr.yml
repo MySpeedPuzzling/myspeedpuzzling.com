@@ -12371,6 +12371,7 @@ data_import:
             in_file: "Dans votre fichier"
             rows: "Lignes : %number%"
             no_candidate: "Rien ne correspond dans la base de données."
+            looking_again: "Nous le recherchons à nouveau…"
             candidates: "Puzzles possibles : %number%"
             not_this_one: "Mauvais puzzle"
             untick: "Retirer la confirmation"

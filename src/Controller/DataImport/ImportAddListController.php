@@ -66,6 +66,15 @@ final class ImportAddListController extends AbstractController
         $left = strtolower($request->query->getString('left'));
         $was = DataImportSheetKind::tryFrom($request->query->getString('was'));
 
+        if ($left === '' && $request->hasPreviousSession()) {
+            // Opened without it (a reload of an address that did not hold it, the list opened again): the sheet this
+            // visit left out here, and what it was - the offer must not hang on the address alone
+            $remembered = $request->getSession()->get(ChangeImportAddListController::SESSION_LEFT . $importId);
+            $left = is_string($remembered) ? $remembered : '';
+            $rememberedKind = $left === '' ? null : $request->getSession()->get(ChangeImportAddListController::SESSION_WAS . $left);
+            $was = is_string($rememberedKind) ? DataImportSheetKind::tryFrom($rememberedKind) : null;
+        }
+
         if (Uuid::isValid($left)) {
             // Another import's sheet, or none: a 404
             $sheet = $this->getImportSheetScreen->sheet($importId, $left, $player->playerId);
@@ -128,6 +137,15 @@ final class ImportAddListController extends AbstractController
 
         return $this->render('data_import/add_list.html.twig', [
             'left_out_sheet' => $leftOutSheet,
+            // The list's own address as it stands (the filters, the page, the sheet that is left out): the script puts
+            // it in the address bar after a swap of the frame, so a reload shows this list
+            'list_address' => $this->generateUrl('data_import_add_list', array_filter([
+                'importId' => $importId,
+                ...$filters,
+                'page' => $page > 1 ? $page : null,
+                'left' => $leftOutSheet['sheet'] ?? null,
+                'was' => $leftOutSheet['kind'] ?? null,
+            ], static fn (mixed $value): bool => $value !== null)),
             'coming_back' => $comingBack,
             'back' => $comingBack !== null ? $back : null,
             'import' => $import,

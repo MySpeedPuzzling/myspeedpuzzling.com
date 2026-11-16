@@ -1,5 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import * as Turbo from '@hotwired/turbo';
 
 /**
  * Around the lazy "unusual times" frame of the review before adding (docs/features/data-import/adding-screens.md
@@ -55,6 +56,7 @@ export default class extends Controller {
             }
 
             this.room(frame);
+            this.address(frame);
 
             // Something of the list is on its way back - a row that is "coming back" stands in its place without its
             // buttons, a sheet (or the whole file) is "being read again": the frame is asked for again until it is
@@ -123,6 +125,35 @@ export default class extends Controller {
         this.element.addEventListener('turbo:frame-missing', this.onFrameMissing);
         this.element.addEventListener('turbo:submit-start', this.onSubmitStart);
         this.element.addEventListener('turbo:frame-render', this.onFrameRender);
+    }
+
+    /**
+     * A frame that says the address of what it shows ("What will be added": the filters, the page, the sheet that
+     * was left out): after a swap the address bar says the same - a reload, or the address opened again, shows this
+     * list (with "Put back" for the sheet), not the one before the answer.
+     */
+    address(frame) {
+        // Said by an element inside the frame: a swap brings the frame's content, not its own attributes
+        const holder = frame.querySelector('[data-import-frame-address]');
+        const said = holder === null ? null : holder.getAttribute('data-import-frame-address');
+
+        if (!said) {
+            return;
+        }
+
+        const url = new URL(said, window.location.href);
+
+        if (url.pathname + url.search === window.location.pathname + window.location.search) {
+            return;
+        }
+
+        const history = Turbo.navigator ? Turbo.navigator.history : null;
+
+        if (history && typeof history.replace === 'function') {
+            history.replace(url);
+        } else {
+            window.history.replaceState(window.history.state, '', url.href);
+        }
     }
 
     room(frame) {

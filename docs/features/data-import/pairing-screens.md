@@ -222,6 +222,18 @@ card after "Wrong puzzle").
 **A round says its real size:** "Do the next 3" and "This round: 1 of 3" when fewer than twenty wait
 (`ImportPuzzleChooserController::portion()` - one statement, inside a round only).
 
+**The second tap of a double tap is not another card's.** When a card is answered and leaves, the next card's
+button comes to rest under a pointer that did not move. For 600 ms after an in-place answer changed the list, a tap
+by a pointer within 30 px of the tap that answered is not taken by a button or link of *another* card (`click()` of
+the script, in the capture phase); a keyboard, a tap elsewhere and the same tap a moment later are untouched.
+
+**A card that is looked for again.** Right after an answer of "Matched like last time" is taken back the puzzle is
+undecided and not looked at yet (pairing.md "A remembered decision taken back"): its card says "We are looking for
+it again…" and offers nothing - "Nothing in the database fits · Pick" would be a guess. The script asks for that one
+card again (`ImportPuzzleCardController`, `…/puzzle/{id}/card` - a GET answered with one stream for the card) every
+1.5 s, twelve times at most, until the card says its pile and has its buttons; after the last time nothing turns and
+the card says it takes longer, with "Refresh".
+
 **No "Undo" for one answer for several.** The handler would take twenty decisions back in one message, but it is
 not an undo: a match taken back is remembered as "not this puzzle", and such a puzzle may no longer be confirmed
 with others (`ImportPuzzleBulkConfirm`) - the twenty would come back as cards to look at closer, not as the grid

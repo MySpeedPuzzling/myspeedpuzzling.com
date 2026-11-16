@@ -12622,6 +12622,7 @@ data_import:
             in_file: "In your file"
             rows: "Rows: %number%"
             no_candidate: "Nothing in the database fits."
+            looking_again: "We are looking for it again…"
             candidates: "Possible puzzles: %number%"
             not_this_one: "Wrong puzzle"
             untick: "Untick"

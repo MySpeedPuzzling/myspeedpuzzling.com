@@ -635,8 +635,15 @@ final class ImportAddListTest extends WebTestCase
             self::assertCount(0, $bar->filter('[data-testid="import-add-list-sheet-put-back"]'), $was);
         }
 
-        // Without the sheet in its address the list offers nothing - and a sheet that is not left out is not offered
-        self::assertCount(0, $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        // The list says its own address - with the sheet - for the address bar (the frame was swapped, the page's
+        // address was not): a reload then shows the offer
+        self::assertSame($path . '?left=' . $sheetId . '&was=results', $this->browser->request('GET', $answered)->filter('[data-testid="import-add-list-bar"]')->attr('data-import-frame-address'));
+        // ... and the offer does not hang on the address: the list opened plainly in the same visit still offers
+        // the sheet this visit left out, as what it was
+        $plain = $this->browser->request('GET', $path);
+        self::assertSame($first, $offer($plain));
+        self::assertSame($path . '?left=' . $sheetId . '&was=results', $plain->filter('[data-testid="import-add-list-bar"]')->attr('data-import-frame-address'));
+        // A sheet that is not left out is not offered
         $otherSheetId = (string) $crawler->filter('[data-testid="import-add-list-sheet-heading"]')->eq(0)->attr('data-sheet-id');
         self::assertCount(0, $this->browser->request('GET', $path . '?left=' . $otherSheetId . '&was=results')->filter('[data-testid="import-add-list-sheet-put-back"]'));
         // Somebody else's sheet in the address: not found
@@ -661,8 +668,12 @@ final class ImportAddListTest extends WebTestCase
         $bar = $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-bar"]');
         self::assertStringContainsString('Put back. Its rows are read again', $bar->filter('[data-testid="import-add-list-flash"]')->text());
         self::assertCount(0, $bar->filter('[data-testid="import-add-list-sheet-put-back"]'));
-        // ... and the address of the first answer offers nothing any more: the sheet is not left out
+        // ... and the address of the first answer offers nothing any more: the sheet is not left out - nor does
+        // the list opened plainly, and it says its plain address
         self::assertCount(0, $this->browser->request('GET', $answered)->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        $plain = $this->browser->request('GET', $path);
+        self::assertCount(0, $plain->filter('[data-testid="import-add-list-sheet-left-out"]'));
+        self::assertSame($path, $plain->filter('[data-testid="import-add-list-bar"]')->attr('data-import-frame-address'));
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => 'results']);
         self::assertSame('results', $kind());
     }

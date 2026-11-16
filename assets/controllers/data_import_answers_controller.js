@@ -29,8 +29,18 @@ const GIVE_UP_AFTER_MS = 20000;
 // The site's fixed header: what is brought into view is not put under it
 const HEADER_PX = 90;
 
+// After an answer changed a list, a tap that lands where the last one did is not taken by another card for this
+// long: the list moved under a pointer that did not
+const GUARD_MS = 600;
+const GUARD_PX = 30;
+// A card that says "We are looking for it again…" is asked for again this often, this many times at most
+const LOOK_AGAIN_MS = 1500;
+const LOOK_AGAIN_TIMES = 12;
+
 export default class extends Controller {
     static values = {
+        // (a test asks faster)
+        lookAgainMs: { type: Number, default: LOOK_AGAIN_MS },
         // "That did not save…" - the page's language
         failed: String,
         // "Saving…" - for a screen reader, on the tapped button
@@ -45,12 +55,98 @@ export default class extends Controller {
         // The card focus was put on last - where it returns when the line at the bottom is closed
         this.last = null;
 
+        // Where the last tap was, and - for a moment after an answer changed the list - where no other card takes one
+        this.tap = null;
+        this.guard = null;
+        this.looked = 0;
+
         this.onSubmit = (event) => this.submit(event);
+        this.onClick = (event) => this.click(event);
         this.element.addEventListener('submit', this.onSubmit);
+        this.element.addEventListener('click', this.onClick, true);
+        this.lookAgain();
+    }
+
+    /**
+     * Every tap, before anything else sees it. When a card is answered and leaves, the cards below move up - and
+     * another card's "Yes, this is it" comes to rest under a pointer that never moved: the second tap of a double
+     * tap would answer a puzzle the player did not look at. So for a moment after such an answer a tap by a pointer
+     * at the place of the last one is not taken by a button or link of ANOTHER card. A keyboard, a tap elsewhere,
+     * and the same tap a moment later are not touched.
+     */
+    click(event) {
+        const byPointer = event.detail > 0;
+        const at = { x: event.clientX, y: event.clientY };
+
+        if (byPointer && this.guard !== null && Date.now() < this.guard.until && event.target instanceof Element) {
+            const card = event.target.closest('[data-import-answers-scope]');
+            const control = event.target.closest('button, a[href], input[type="submit"]');
+
+            if (control !== null && card !== null && card.id !== this.guard.key && Math.hypot(at.x - this.guard.x, at.y - this.guard.y) <= GUARD_PX) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                return;
+            }
+        }
+
+        this.tap = byPointer ? { ...at, at: Date.now() } : null;
+    }
+
+    /**
+     * Cards that say "We are looking for it again…" (an answer of "Matched like last time" was taken back, the
+     * look-up runs in the background): each is asked for again until it says which pile it is in - then it has its
+     * buttons. Not for ever: after the last time nothing turns any more and the card says it takes longer.
+     */
+    lookAgain() {
+        window.clearTimeout(this.lookTimer);
+
+        const cards = [...this.element.querySelectorAll('[data-import-card-looking]')];
+
+        if (cards.length === 0) {
+            this.looked = 0;
+
+            return;
+        }
+
+        if (this.looked >= LOOK_AGAIN_TIMES) {
+            cards.forEach((card) => {
+                card.querySelectorAll('[data-import-waiting-spinner]').forEach((spinner) => spinner.remove());
+                card.querySelectorAll('[data-import-usually-at-once]').forEach((line) => line.setAttribute('hidden', ''));
+                card.querySelectorAll('[data-import-taking-longer]').forEach((line) => line.removeAttribute('hidden'));
+            });
+
+            return;
+        }
+
+        this.lookTimer = window.setTimeout(async () => {
+            this.looked += 1;
+
+            for (const card of cards) {
+                if (!card.isConnected) {
+                    continue;
+                }
+
+                try {
+                    const response = await fetch(card.getAttribute('data-import-card-looking'), { credentials: 'same-origin', headers: { Accept: `${STREAM}, text/html, application/xhtml+xml` } });
+
+                    if (response.ok && (response.headers.get('Content-Type') || '').startsWith(STREAM)) {
+                        Turbo.renderStreamMessage(await response.text());
+                    }
+                } catch (error) {
+                    // Asked again in its turn
+                }
+            }
+
+            await this.rendered();
+            this.lookAgain();
+        }, this.lookAgainMsValue);
     }
 
     disconnect() {
         this.element.removeEventListener('submit', this.onSubmit);
+        this.element.removeEventListener('click', this.onClick, true);
+        window.clearTimeout(this.lookTimer);
         document.documentElement.style.scrollPaddingBottom = '';
         document.documentElement.style.removeProperty('--import-said-height');
         document.body.style.paddingBottom = '';
@@ -90,6 +186,8 @@ export default class extends Controller {
             .map((element) => element.id);
         // The card an answer of the line brings back ("Undo the last one"): where focus goes then
         const returns = form.getAttribute('data-import-answers-returns');
+        // The tap that sent it (not a key): where the list must not take another one for a moment
+        const tapped = this.tap !== null && Date.now() - this.tap.at < 1000 ? this.tap : null;
         // The button that was tapped, by its name on the page: on a card that stays where it is focus returns to it
         this.used = submitter === null ? null : submitter.getAttribute('data-testid');
         const held = this.hold(scope || form, submitter);
@@ -112,6 +210,10 @@ export default class extends Controller {
                     // What the streams left where it was works again; what they replaced is gone anyway
                     held.letGo();
                     this.release(key);
+                    this.guard = key !== null && tapped !== null ? { x: tapped.x, y: tapped.y, key, until: Date.now() + GUARD_MS } : null;
+                    // A new answer: a card that is looked for again is asked about from the beginning
+                    this.looked = 0;
+                    this.lookAgain();
 
                     try {
                         this.afterStreams(key, key === null && returns ? [returns] : around);

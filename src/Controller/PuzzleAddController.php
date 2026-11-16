@@ -346,6 +346,12 @@ final class PuzzleAddController extends AbstractController
         $data->puzzlePhotoBrowserMetadata = $browserPhotoMetadata['puzzlePhoto'] ?? null;
         $data->finishedPuzzlesPhotoBrowserMetadata = $browserPhotoMetadata['finishedPuzzlesPhoto'] ?? null;
 
+        // The kill switch UNFINISHED_RESULTS_FORM off: the add form never asks "I didn't finish within the time limit" -
+        // a switch posted by a page rendered before means nothing (docs/features/feature_flags.md)
+        if ($this->unfinishedResultForm->isEnabled() === false) {
+            $data->unfinished = false;
+        }
+
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422. As a skipped `if` it answered 200 with a
         // valid form, which Turbo Drive discards: the visitor clicked save and nothing happened at all.

@@ -35,6 +35,11 @@ readonly final class UnfinishedResultForm
     ) {
     }
 
+    public function isEnabled(): bool
+    {
+        return $this->hint->isEnabled();
+    }
+
     /**
      * Null = the form shows nothing of it: the kill switch is off and the result is no unfinished one.
      *

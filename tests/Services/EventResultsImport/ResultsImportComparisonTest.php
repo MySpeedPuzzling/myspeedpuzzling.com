@@ -202,6 +202,40 @@ final class ResultsImportComparisonTest extends KernelTestCase
         self::assertFalse(($stored->results['lonely team'] ?? null)?->claimed);
     }
 
+    public function testAClaimedTeamKeepsItsSizeAndTheImportSaysSo(): void
+    {
+        $container = self::getContainer();
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_03;
+        $before = self::sheetCsv([
+            "Sized Team,0:40:00,4,,Size Night,Hall,\"Springfield, MN\",10/16/26,7:00 PM,90,Teams,$link",
+            'Other Team,0:44:00,4,,,,,,,,,',
+        ]);
+        self::applyTab($container, $this->source, '601', 'Size', $before);
+
+        $timeId = $container->get(Connection::class)->fetchOne("SELECT pst.id FROM puzzle_solving_time pst JOIN puzzling_team pt ON pt.id = pst.puzzling_team_id WHERE pt.name = 'Sized Team'");
+        self::assertIsString($timeId);
+        $container->get(MessageBusInterface::class)->dispatch(new ClaimEventResultSlot($timeId, PlayerFixture::PLAYER_REGULAR));
+        $container->get(EntityManagerInterface::class)->clear();
+
+        $after = self::sheetCsv([
+            "Sized Team,0:40:00,3,,Size Night,Hall,\"Springfield, MN\",10/16/26,7:00 PM,90,Teams,$link",
+            'Other Team,0:44:00,3,,,,,,,,,',
+        ]);
+        $overview = $container->get(ResultsImportComparison::class)->compare($this->source, $this->check(new SheetSnapshot([new SheetSnapshotTab('601', 'Size', $after)])));
+        $event = $overview->event('601');
+        self::assertNotNull($event);
+        self::assertSame(ResultsImportStatus::Changed, $event->status);
+
+        $changes = [];
+
+        foreach ($event->teamChanges as $change) {
+            $changes[$change->teamName] = [$change->kind, $change->sizeChanged(), $change->sizeKept()];
+        }
+
+        // The claimed team keeps its 4 people; the unclaimed one becomes 3
+        self::assertSame(['Sized Team' => ['changed', true, true], 'Other Team' => ['changed', true, false]], $changes);
+    }
+
     public function testAStoredCheckParsesToTheSameEventsAsTheSheetItWasReadFrom(): void
     {
         $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;

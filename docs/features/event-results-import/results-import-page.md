@@ -131,8 +131,14 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   added, removed ("No longer in the sheet - removed (nobody claimed it)"), kept ("No longer in the sheet - kept,
   claimed", P4), time / pieces / size changed (a claimed team's size stays) - also for an Unchanged event that keeps a
   claimed team; the teams ranked by `ResultsImportComparison::rankedRows()` = `GetRoundResults::order()` for the
-  organizer's results (pinned against it). "Claimed" = tracker or a registered member in the group snapshot =
+  organizer's results (pinned against it) - with a claimed team the sheet dropped ranked too, marked "No longer in the
+  sheet - kept, claimed" (it stays on the round page, P4; `rankedRows($event, $teamChanges)`). "Claimed" = tracker or a registered member in the group snapshot =
   `isClaimedByAnybody()` (pinned, also after the first claimer left). Claimers are never named - the only name on the
   page is the team member (or admin) who pressed "Check sheet".
 - **Guide**: the format's `guideTemplate()` in a `<details>` help box. Kill switch `RESULTS_IMPORT_PAGE`
   (`docs/features/feature_flags.md`).
+- **Not in the canaries on purpose**: the page is for the organization's team and admins only and names no player of a
+  result (no claimer; the only name is the teammate who pressed "Check sheet"), so `DraftCanaryTest`, `BlocklistCanaryTest`
+  and `PrivateProfileCanaryTest` do not list it; its queries are classified in the coverage tests.
+- **Every locale** renders the list and the previews (`ResultsImportPageTest`); claim words follow `event_result_claim.*`
+  (fr "réclamé", ja "申告").

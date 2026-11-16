@@ -33,6 +33,8 @@ readonly final class CheckResultsSourceHandler
     public function __invoke(CheckResultsSource $message): void
     {
         $spreadsheetId = $this->sourceRepository->get($message->sourceId)->spreadsheetId;
+        // The read's start: an import from this check refuses what was applied after it - erring on the refusing side
+        $readStartedAt = $this->clock->now();
         $snapshot = null;
         $error = null;
 
@@ -52,7 +54,7 @@ readonly final class CheckResultsSourceHandler
             checkId: $message->checkId,
             sourceId: $message->sourceId,
             checkedByPlayerId: $message->checkedByPlayerId,
-            checkedAt: $this->clock->now(),
+            checkedAt: $readStartedAt,
             snapshot: $snapshot,
             readError: $error,
         ));

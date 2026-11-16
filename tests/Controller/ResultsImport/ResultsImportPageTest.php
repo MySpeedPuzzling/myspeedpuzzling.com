@@ -273,6 +273,73 @@ final class ResultsImportPageTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testEveryLocaleRendersTheListAndThePreview(): void
+    {
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $this->fakeSheetTabs = [
+            '801' => ['title' => 'Locale', 'csv' => self::sheetCsv([
+                "Locale Pair,0:31:00,2,,Locale Night,Hall,\"Springfield, MN\",10/9/26,7:00 PM,60,Pairs,$link",
+                'Fast Pair,0:29:00,2,,,,,,,,,',
+                'Late Pair,,2,320,,,,,,,,',
+                'Twice,0:40:00,2,,,,,,,,,',
+                'Twice,0:41:00,2,,,,,,,,,',
+            ])],
+            '802' => ['title' => 'Broken', 'csv' => self::sheetCsv(['Team,0:45:00,4,,Broken Night,Hall,"Springfield, MN",31/31/26,,,Teams,'])],
+        ];
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $this->browser->request('GET', $this->pageUrl());
+        $token = $crawler->filter('[data-results-import-check] input[name="_token"]')->attr('value');
+        $this->browser->request('POST', $this->pageUrl() . '/check', ['_token' => $token]);
+
+        foreach (['cs', 'de', 'es', 'fr', 'ja', 'en'] as $locale) {
+            $url = '/' . $locale . '/organizations/' . self::SLUG . '/results-import/' . $this->source->id->toString();
+            $this->browser->request('GET', $url);
+            self::assertResponseIsSuccessful($locale);
+            $this->browser->request('GET', $url . '/events/801');
+            self::assertResponseIsSuccessful($locale);
+            $this->browser->request('GET', $url . '/events/802');
+            self::assertResponseIsSuccessful($locale);
+        }
+    }
+
+    public function testSeveralSourcesAreListed(): void
+    {
+        $second = $this->createResultsSource(self::getContainer(), 'test-spreadsheet-results-import-second');
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->browser->request('GET', '/en/organizations/' . self::SLUG . '/results-import');
+
+        self::assertResponseIsSuccessful();
+        $links = $crawler->filter('[data-results-import-sources] a.btn')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
+        self::assertSame([$this->pageUrl(), '/en/organizations/' . self::SLUG . '/results-import/' . $second->id->toString()], $links);
+        self::assertSelectorTextContains('[data-results-import-sources]', 'Sarah Does Puzzles');
+    }
+
+    public function testAnEventDeletedOnMySpeedPuzzlingIsNeverMadeAgain(): void
+    {
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $csv = self::sheetCsv(["Gone Night Team,0:45:00,4,,Gone Night,Hall,\"Springfield, MN\",10/11/26,,,Teams,$link"]);
+        self::applyTab(self::getContainer(), $this->source, '701', 'Gone', $csv);
+        // The event was deleted: its tab keeps no event (ON DELETE SET NULL)
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE event_results_sheet_tab SET competition_id = NULL WHERE gid = '701'");
+        $this->fakeSheetTabs = ['701' => ['title' => 'Gone', 'csv' => $csv]];
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $this->browser->request('GET', $this->pageUrl());
+        $token = $crawler->filter('[data-results-import-check] input[name="_token"]')->attr('value');
+        $this->browser->request('POST', $this->pageUrl() . '/check', ['_token' => $token]);
+        $list = $this->browser->followRedirect();
+
+        self::assertSame('event_deleted', $list->filter('[data-results-import-event="701"] [data-results-import-status]')->attr('data-results-import-status'));
+        self::assertStringContainsString('it is not created again', $list->filter('[data-results-import-event="701"]')->text());
+
+        $this->browser->request('GET', $this->pageUrl() . '/events/701');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-results-import-stored-links]');
+        self::assertSelectorNotExists('[data-results-import-differences]');
+    }
+
     public function testASheetGoogleDoesNotShareIsSaidOnThePage(): void
     {
         $this->fakeSheetShared = false;

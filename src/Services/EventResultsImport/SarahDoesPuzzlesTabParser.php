@@ -158,6 +158,18 @@ final class SarahDoesPuzzlesTabParser
 
         usort($rows, static fn (ParsedEventRow $a, ParsedEventRow $b): int => $a->line <=> $b->line);
 
+        // An unfinished team spent the round's limit and did not finish within it - without a limit neither is known,
+        // so the whole tab waits for it (an unreadable limit is a problem of its own already)
+        if ($timeLimit === null && self::problemOf($problems, EventTabProblemCode::UnreadableTimeLimit) === false) {
+            foreach ($rows as $row) {
+                if ($row->isUnfinished()) {
+                    $problems[] = new EventTabProblem(EventTabProblemCode::UnfinishedWithoutTimeLimit, $row->teamName, $row->line);
+
+                    break;
+                }
+            }
+        }
+
         // A tab whose every row went wrong must never read as "every team is gone" - the import would remove them
         if ($rows === []) {
             $problems[] = new EventTabProblem(EventTabProblemCode::NoTeams);
@@ -223,10 +235,18 @@ final class SarahDoesPuzzlesTabParser
             return null;
         }
 
+        // The team did not finish within the round's limit: pieces placed when the time ran out. Whether they are
+        // fewer than the puzzle has is for the import to find out (it knows the puzzle); the tab needs a Time limit
         if ($time === '') {
-            $problems[] = new EventTabProblem(EventTabProblemCode::UnfinishedNotSupportedYet, $name, $line);
+            $pieces = preg_match('/^\d{1,5}$/', $piecesPlaced) === 1 ? (int) $piecesPlaced : 0;
 
-            return null;
+            if ($pieces < 1) {
+                $problems[] = new EventTabProblem(EventTabProblemCode::UnreadablePiecesPlaced, $name . ': ' . $piecesPlaced, $line);
+
+                return null;
+            }
+
+            return new ParsedEventRow($line, $name, SearchText::fold($name), $teamSize, null, $pieces);
         }
 
         $seconds = self::seconds($time);
@@ -316,11 +336,28 @@ final class SarahDoesPuzzlesTabParser
             $timeLimitMinutes,
             $category?->value,
             $puzzleId,
-            array_map(static fn (ParsedEventRow $row): array => [$row->line, $row->teamName, $row->teamSize, $row->seconds], $rows),
+            // Pieces placed only when there are some: the hash of every tab without unfinished teams stays as it was
+            array_map(static fn (ParsedEventRow $row): array => $row->isUnfinished()
+                ? [$row->line, $row->teamName, $row->teamSize, $row->seconds, $row->piecesPlaced]
+                : [$row->line, $row->teamName, $row->teamSize, $row->seconds], $rows),
             array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
         ]));
 
         return new ParsedEventTab($eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
+    }
+
+    /**
+     * @param list<EventTabProblem> $problems
+     */
+    private static function problemOf(array $problems, EventTabProblemCode $code): bool
+    {
+        foreach ($problems as $problem) {
+            if ($problem->code === $code) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

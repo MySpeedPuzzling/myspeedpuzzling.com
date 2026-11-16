@@ -227,13 +227,76 @@ final class SarahDoesPuzzlesTabParserTest extends TestCase
         self::assertSame('Other Team', $tab->rows[0]->teamName);
     }
 
-    public function testAnUnfinishedTeamIsNotImportedYet(): void
+    public function testAnUnfinishedTeamHasItsPiecesPlaced(): void
     {
-        // Pieces placed are recorded once unfinished results are built (README "Unfinished results")
-        $tab = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4,412,,,,,,,,,,,');
+        // README "Unfinished results (D9)": pieces placed when the time ran out, Time empty - the tab has a Time limit
+        $tab = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4, 412 ,,,,,,,,,,,');
 
-        self::assertSame([EventTabProblemCode::UnfinishedNotSupportedYet], $this->codes($tab));
-        self::assertCount(1, $tab->rows);
+        self::assertSame([], $tab->problems);
+        self::assertTrue($tab->isImportable());
+        self::assertCount(2, $tab->rows);
+        self::assertSame(3540, $tab->rows[0]->seconds);
+        self::assertNull($tab->rows[0]->piecesPlaced);
+        self::assertSame('Out of Time', $tab->rows[1]->teamName);
+        self::assertNull($tab->rows[1]->seconds);
+        self::assertSame(412, $tab->rows[1]->piecesPlaced);
+        self::assertTrue($tab->rows[1]->isUnfinished());
+    }
+
+    public function testUnfinishedTeamsWithoutATimeLimitKeepTheWholeTabOut(): void
+    {
+        $tab = $this->parse(
+            self::HEADER,
+            'Fine Team,0:59:00,4,,Maple Street Puzzle Night,Maple Street Taproom,"Springfield, MN",,,10/5/26,7:00 PM,,Teams,' . self::PUZZLE_URL . ',',
+            'Out of Time,,4,412,,,,,,,,,,,',
+        );
+
+        self::assertSame([EventTabProblemCode::UnfinishedWithoutTimeLimit], $this->codes($tab));
+        self::assertSame('Out of Time', $tab->problems[0]->detail);
+        self::assertSame(3, $tab->problems[0]->line);
+        self::assertTrue($tab->hasTabProblem());
+        self::assertFalse($tab->isImportable());
+    }
+
+    public function testATabWithoutATimeLimitAndWithoutUnfinishedTeamsIsFine(): void
+    {
+        $tab = $this->parse(
+            self::HEADER,
+            'Fine Team,0:59:00,4,,Maple Street Puzzle Night,Maple Street Taproom,"Springfield, MN",,,10/5/26,7:00 PM,,Teams,' . self::PUZZLE_URL . ',',
+        );
+
+        self::assertSame([], $tab->problems);
+        self::assertNull($tab->timeLimitMinutes);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unreadablePieces(): iterable
+    {
+        yield 'zero' => ['0'];
+        yield 'a fraction' => ['412.5'];
+        yield 'words' => ['about 400'];
+        yield 'negative' => ['-3'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unreadablePieces')]
+    public function testUnreadablePiecesPlacedKeepTheWholeTabOut(string $pieces): void
+    {
+        $tab = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4,"' . $pieces . '",,,,,,,,,,,');
+
+        self::assertSame([EventTabProblemCode::UnreadablePiecesPlaced], $this->codes($tab));
+        self::assertTrue($tab->hasTabProblem());
+    }
+
+    public function testChangedPiecesPlacedChangeTheTab(): void
+    {
+        $first = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4,412,,,,,,,,,,,');
+        $again = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4,412,,,,,,,,,,,');
+        $changed = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), 'Out of Time,,4,450,,,,,,,,,,,');
+
+        self::assertSame($first->contentHash, $again->contentHash);
+        self::assertNotSame($first->contentHash, $changed->contentHash);
     }
 
     public function testATimeAndPiecesPlacedTogetherAreAProblem(): void

@@ -19,10 +19,16 @@ enum EventTabProblemCode: string
     case UnknownCompetitionType = 'unknown_competition_type';
     case UnreadablePuzzleLink = 'unreadable_puzzle_link';
     case NoTeams = 'no_teams';
+    // Unfinished teams (pieces placed) need the round's time limit - their time spent, and what they did not finish
+    // within (docs/features/event-results-import/README.md "Unfinished results (D9)")
+    case UnfinishedWithoutTimeLimit = 'unfinished_without_time_limit';
+    case UnreadablePiecesPlaced = 'unreadable_pieces_placed';
     // Found while applying, not while reading
     case PuzzleNotFound = 'puzzle_not_found';
     case PuzzleChangedAfterImport = 'puzzle_changed_after_import';
     case CompetitionTypeChangedAfterImport = 'competition_type_changed_after_import';
+    // Pieces placed must be fewer than the puzzle has - all of them is a finished team with a time
+    case PiecesPlacedOutOfRange = 'pieces_placed_out_of_range';
 
     case RowWithoutTeamName = 'row_without_team_name';
     case TeamNameTooLong = 'team_name_too_long';
@@ -32,7 +38,6 @@ enum EventTabProblemCode: string
     case UnreadableTime = 'unreadable_time';
     case RowWithoutResult = 'row_without_result';
     case TimeAndPiecesPlaced = 'time_and_pieces_placed';
-    case UnfinishedNotSupportedYet = 'unfinished_not_supported_yet';
     // A team somebody claimed: the sheet no longer has it, or gives it another size - a person decides, never the import
     case ClaimedTeamRemovedFromSheet = 'claimed_team_removed_from_sheet';
     case ClaimedTeamChangedSize = 'claimed_team_changed_size';
@@ -48,6 +53,9 @@ enum EventTabProblemCode: string
             self::UnknownCompetitionType,
             self::UnreadablePuzzleLink,
             self::NoTeams,
+            self::UnfinishedWithoutTimeLimit,
+            self::UnreadablePiecesPlaced,
+            self::PiecesPlacedOutOfRange,
             self::PuzzleNotFound,
             self::PuzzleChangedAfterImport,
             self::CompetitionTypeChangedAfterImport => true,
@@ -59,7 +67,6 @@ enum EventTabProblemCode: string
             self::UnreadableTime,
             self::RowWithoutResult,
             self::TimeAndPiecesPlaced,
-            self::UnfinishedNotSupportedYet,
             self::ClaimedTeamRemovedFromSheet,
             self::ClaimedTeamChangedSize => false,
         };

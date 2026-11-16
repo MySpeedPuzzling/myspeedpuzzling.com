@@ -1,14 +1,15 @@
 # Event results import (an organizer's results spreadsheet)
 
-**Status:** 2026-11-12 - trackerless times, the import and claiming built (PR #342, draft); unfinished results next. Progress in [implementation-plan.md](implementation-plan.md) "Status".
+**Status:** live since 2026-11-13 (PR #342), run on demand (no cron); unfinished results being built (2026-11-16). Progress in [implementation-plan.md](implementation-plan.md) "Status".
 
 An organizer who runs many casual events keeps the results in a Google Sheet: one tab per event, one row per team -
 the team's name, its time and how many people it had. Nobody's MySpeedPuzzling account is known. MySpeedPuzzling reads
 the sheet on a schedule and turns every tab into a one-time event of the organizer's organization, with one round and
 **one solving time per team**. The time belongs to nobody until the puzzlers claim their spots.
 
-These are hobby events, not official results: the imported rows are ordinary solving times (`puzzle_solving_time`),
-never `CompetitionTeam` official results, and nothing calls them "official".
+The imported rows are ordinary solving times (`puzzle_solving_time`), never `CompetitionTeam` entries. For the
+organizer's events they **are the official results** - she publishes her results only on MySpeedPuzzling (Jan,
+2026-11-13) - so the round page ranks them with gap lines under an "Official results" label.
 
 ## Decisions (Jan, 2026-10-30 - 2026-11-12)
 

@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
+
+- [ ] **Question for Jan:** the claim log (`result_claim_log.player_name`) keeps a deleted account's name - blank it on account deletion?
+- [ ] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)
+- [ ] Admin screen to lift a claim block (`Player::unblockEventClaims()` has no UI)
+- [ ] Profiles show "+N" for unclaimed teammates, like the puzzle page
+- [ ] Claims checked against blocks between the claimers of one result
+- [ ] Automatic weekly sync once Sarah's results are in and runs are steady (promised to her, F204, ~4 Dec)
+- [ ] Later: venue series (D8), solo events, per-team claim codes, start time on organizer pages
+
 ## Dependency upgrade leftovers (composer upgrade, 2026-11-16)
 
 Majors and deprecations the upgrade left on purpose - each is its own change:

@@ -1,11 +1,49 @@
 # Unfinished Competition Results — Implementation Plan (phase 1b, refined)
 
-**Update 2026-11-12 (Jan):** an unfinished result now counts its **pieces placed and time spent** (new
-`seconds_spent`) in global and personal statistics - still never a completed puzzle, never ranked, never in a median.
-This replaces the "not counted" part of tier 2 below; see [event-results-import](../event-results-import/README.md)
-"Unfinished results" (D9). Everything else here stays the plan of record.
+## Refined 2026-11-16 - overrides the sections below where they differ
 
-**Status:** plan, 2026-09-18. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
+Jan's decisions of 2026-11-12 (D9 in [event-results-import](../event-results-import/README.md)) and 2026-11-16, plus
+what changed in the code since September. **Where this section and the older text below disagree, this section wins.**
+
+**Principle (Jan):** the form asks only what the system cannot work out itself - "do not bother the user where it does
+not make sense, the system should be smart".
+
+1. **The question appears only when a round with a time limit resolves** for the chosen competition + puzzle +
+   solo/pair/team (the hint endpoint, `SolvingTimeRoundResolver`). No round, or a round without a limit
+   (`minutes_limit` is nullable since the import) → no question at all. This replaces "works fully without a round"
+   and open decision 6.
+2. **Not asked when the typed time is within the limit** (≤ limit): the player obviously finished. The question shows
+   while the time is empty or over the limit. Turning it on relabels the time field "Total time, if you finished it
+   afterwards (optional)". This replaces the within-limit inline error and its "Clear time" button; the server and the
+   API still refuse an unfinished result whose total is within the limit.
+3. A switch "I didn't finish within the time limit" (off by default) instead of the Yes/No segmented question - with
+   rule 1 and 2 it only shows when it is relevant, so a default answer no longer needs to be visible.
+4. **Time spent (`seconds_spent`, new column, generated migration)** - the round's limit × 60 for the form and the
+   import (a round with a limit is always known there), `finished_later_seconds` when they finished afterwards. The
+   "How long did you puzzle?" question disappears.
+5. **Tier 2 splits (D9):** counts (completed, "Completed N×", solved flags, most solved, unsolved lists, wishlist
+   removal) exclude an unfinished result (`CountsAsSolve`); **pieces puzzled** sums `pieces_placed` for it and **time
+   spent puzzling** sums `seconds_spent` (global, monthly, personal). The differential test therefore asserts
+   "everything identical except those two sums, which rise by exactly the inserted pieces and seconds".
+6. **Puzzle page:** unfinished rows after every ranked row, most pieces first, no rank - a new surface, so it joins the
+   blocklist, private-profile and trackerless canaries (an unclaimed imported unfinished team keeps its "This was my
+   team" button).
+7. **Import:** a tab's "Pieces placed" rows are imported when the tab has a `Time limit`; a tab with such rows and no
+   limit is skipped with a warning (D2/D3). Replaces `unfinished_not_supported_yet`.
+8. **"Add to my profile" from an official unfinished result** (online and managed competitions already store them -
+   101 on production) opens the form with the switch on and the pieces filled.
+9. **XP and achievements:** an unfinished result is not a solve - no XP, no achievement progress.
+10. **The write path stays beside the form's** (the add form must never break - Jan, 2026-11-14): the finished path of add and edit keeps
+    its behaviour byte for byte, its tests untouched; the unfinished path is its own message + handler.
+11. Open decisions 3 (stopwatch offers it - only past a known limit, by rules 1-2), 4 (an active day) and 5
+    (favourites notified) are taken as recommended. Decision 1 is superseded by rule 5. **Decision 2 (DB CHECK
+    constraints, a hand-written migration) waits for Jan's OK**; until then the entity invariant guards it.
+12. The audit's file:line list below predates trackerless rows, data import, My data, XP, the Players page precompute
+    and rating history: readers are re-inventoried from `TrackerlessTimeQueryCoverageTest`'s list, not from this file.
+
+Delivery: the five steps below, one PR each; step 4 (the form) is walked in a real browser before merge.
+
+**Status:** plan, 2026-09-18, refined 2026-11-16. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal
 

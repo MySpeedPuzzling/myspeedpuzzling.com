@@ -3,7 +3,11 @@
 Design of record: [README.md](README.md). Five phases, each deployable on its own. Phases 1 and 2 change nothing
 visible: no unfinished and no trackerless row exists before phase 3.
 
-## Status (2026-11-12, PR #342, draft)
+## Status (2026-11-16)
+
+- **Live since 2026-11-13** (PR #342), run on demand only. Unfinished results are being built as their own stream:
+  [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) "Refined 2026-11-16".
+- History below as of 2026-11-12.
 
 - **Order changed:** trackerless times (phase 2) and the import (phase 3) first; unfinished results (phases 1 + 5) become
   one stream after claiming - the organizer's sheets have no unfinished teams today, and the counting split only makes

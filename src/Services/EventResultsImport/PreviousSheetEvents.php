@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Value\SearchText;
  * The safety net after the organizer changed the source's spreadsheet (docs/features/event-results-import/
  * results-import-page.md "As built: PR 4"): the new sheet's events may have other stable keys (a tab of another sheet
  * has another gid - a duplicated spreadsheet usually keeps them, then nothing here matters). An event with no imported
- * item under its own key is the event imported before when exactly one imported event of the source, stored under a
+ * (or detached) item under its own key is the event imported before when exactly one imported event of the source, stored under a
  * key the sheet no longer has, has its date and name (trimmed, case and accents folded - SearchText::fold()).
  * Two imported events with its date and name, or two events of the sheet matching one imported event, are a problem -
  * never a guess. Format-agnostic: only the neutral model is read. Pure - the page, the import and the sync ask it with
@@ -57,7 +57,10 @@ readonly final class PreviousSheetEvents
         $claimedBy = [];
 
         foreach ($events as $event) {
-            if ($event->eventName === null || $event->localStartsAt === null || ($stored[$event->key] ?? null)?->isImported() === true) {
+            $own = $stored[$event->key] ?? null;
+
+            // Imported under its own key, or its event was deleted on MySpeedPuzzling ("Event deleted" stays)
+            if ($event->eventName === null || $event->localStartsAt === null || $own?->isImported() === true || $own?->isDetached === true) {
                 continue;
             }
 

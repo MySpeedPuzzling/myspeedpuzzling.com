@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\ResultsImportScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * "Change sheet" on the results import page (docs/features/event-results-import/results-import-page.md "As built:
@@ -107,6 +108,18 @@ final class ResultsSourceSheetChangeTest extends WebTestCase
         $this->browser->request('GET', $this->pageUrl() . '/events/901');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-results-import-previous-sheet]');
+
+        // Ticked, confirmed (the note again) and imported: the same event, its item under the new key
+        $confirm = $this->browser->submit($page->filter('[data-results-import-form]')->form());
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $confirm->filter('[data-results-import-confirm-event="901"] [data-results-import-previous-sheet]'));
+        $this->browser->submit($confirm->filter('[data-results-import-confirm-form]')->form());
+        $result = $this->browser->followRedirect();
+        self::assertSame(['imported'], $result->filter('[data-results-import-result-event]')->each(static fn (Crawler $row): string => (string) $row->attr('data-outcome')));
+
+        self::assertEquals(1, $this->connection()->fetchOne("SELECT COUNT(*) FROM competition WHERE name = 'Maple Night'"));
+        self::assertEquals(4140, $this->connection()->fetchOne("SELECT pst.seconds_to_solve FROM puzzle_solving_time pst JOIN competition c ON c.id = pst.competition_id WHERE c.name = 'Maple Night'"));
+        self::assertSame(['901'], $this->connection()->fetchFirstColumn('SELECT gid FROM event_results_sheet_tab WHERE sheet_id = :id', ['id' => $this->source->id->toString()]));
     }
 
     public function testEveryRefusalChangesNothing(): void

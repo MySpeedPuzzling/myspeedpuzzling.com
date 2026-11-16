@@ -206,10 +206,18 @@ duplicates an event.
   sheet - an import is made only from the latest check) and the read stored as the new check, so the page shows the new
   sheet's events at once. Answered as `ResultsSourceSheetChange` (the handler's result); always a redirect + flash -
   success to the page, a refusal back to `#your-sheet`. A refusal writes nothing, not even a check.
-- **Who and when, no schema change**: the check written by the change keeps `checked_by` / `checked_at` ("Last checked
-  … by …" on the page until the next check); the change itself is logged at `info` with the previous and the new id
-  (`Results source …: spreadsheet changed by …`). No line in the import history - that would need a column or a log
-  row type of its own; ask if wanted.
+- **Who and when - not stored durably (no schema change)**: the change is logged at `info` with the player, the
+  previous and the new id (`Results source …: spreadsheet changed by …` - `info` reaches Loki only next to a warning of
+  the same request, fingers_crossed); the check written by the change shows "Last checked … by …" until the next check,
+  and checks are pruned (newest 10, all on the next change). A durable record (a column, or a row type in
+  `results_import_log` shown in the history) is in `docs/TODO.md` for Jan to decide.
+- **Open question for Jan - a key the new sheet reuses**: a brand-new spreadsheet's first tab is usually gid 0. If the
+  new sheet has a tab under a key already stored for **another** imported event, the page compares the tab with that
+  event (by key, as always) and shows it as Changed (its differences say so); importing it would rename that event and
+  remove its unclaimed teams, and the original event would come back as New. Only the preview guards it today - a
+  guard (refuse a keyed match whose date and name both differ after a sheet change) is easy to add if wanted.
+- **A "Check sheet" running while the sheet is changed** (not under the import lock) can store a check of the previous
+  sheet after the change; the next check fixes it.
 - **No duplicates after a change** - `PreviousSheetEvents::match()` (pure, format-agnostic, reads only the neutral
   model): the new sheet's tabs may have other gids (a *duplicated* Google spreadsheet usually keeps them - then nothing
   here is needed). An event with **no imported item under its own key** is the event imported before when exactly one

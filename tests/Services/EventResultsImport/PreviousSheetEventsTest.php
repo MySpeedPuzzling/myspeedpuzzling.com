@@ -76,6 +76,14 @@ final class PreviousSheetEventsTest extends TestCase
         self::assertTrue($matches['901']->replacesUnimportedItem);
     }
 
+    public function testAnItemWhoseEventWasDeletedStaysUnderItsKey(): void
+    {
+        self::assertSame([], PreviousSheetEvents::match(
+            [self::event('901', 'Maple Night', '2026-10-05 19:00')],
+            ['101' => self::stored('101', 'Maple Night', '2026-10-05'), '901' => self::stored('901', null, null, imported: false, detached: true)],
+        ));
+    }
+
     public function testTwoImportedEventsWithItsDateAndNameAreAProblem(): void
     {
         $matches = PreviousSheetEvents::match(
@@ -127,13 +135,17 @@ final class PreviousSheetEventsTest extends TestCase
         );
     }
 
-    private static function stored(string $key, null|string $name, null|string $date, bool $imported = true): StoredResultsTab
+    private static function stored(string $key, null|string $name, null|string $date, bool $imported = true, bool $detached = false): StoredResultsTab
     {
         return new StoredResultsTab(
             key: $key,
-            status: $imported ? EventTabStatus::Imported : EventTabStatus::WaitingForPuzzle,
+            status: match (true) {
+                $imported => EventTabStatus::Imported,
+                $detached => EventTabStatus::Detached,
+                default => EventTabStatus::WaitingForPuzzle,
+            },
             contentHash: sha1('stored' . $key),
-            isDetached: false,
+            isDetached: $detached,
             appliedAt: new DateTimeImmutable('2026-11-01 10:00:00'),
             competitionId: $imported ? '0196f5a0-0000-7000-8000-0000000000' . substr('00' . $key, -2) : null,
             competitionName: $imported ? $name : null,

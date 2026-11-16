@@ -224,8 +224,11 @@ card after "Wrong puzzle").
 
 **The second tap of a double tap is not another card's.** When a card is answered and leaves, the next card's
 button comes to rest under a pointer that did not move. For 600 ms after an in-place answer changed the list, a tap
-by a pointer within 30 px of the tap that answered is not taken by a button or link of *another* card (`click()` of
-the script, in the capture phase); a keyboard, a tap elsewhere and the same tap a moment later are untouched.
+by a pointer within 30 px of the tap that answered is not taken by any button or link of an answer - another
+card's, or the answered card's own new one ("Untick" where "Yes, this is it" stood: a slow double tap took the
+answer back) - `click()` of the script, in the capture phase. A tap elsewhere and the same tap a moment later are
+untouched. A key (Enter, Space) is held back for 400 ms only on the element the script just moved focus to. On a
+list, the answer also updates the line above the cards ("Nothing waits for you here." - `#import-step-done-slot`).
 
 **A card that is looked for again.** Right after an answer of "Matched like last time" is taken back the puzzle is
 undecided and not looked at yet (pairing.md "A remembered decision taken back"): its card says "We are looking for

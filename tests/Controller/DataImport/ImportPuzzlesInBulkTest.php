@@ -1146,7 +1146,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertCount(0, $list->filter('#puzzle-' . $harbour['id'] . ' input[name="in_pile"]'));
         $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $harbour['id'], 'version' => (string) $harbour['decision_version'], 'group' => 'found', 'page' => '1'], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
-        self::assertSame(['puzzle-' . $harbour['id'], 'import-puzzle-group-counts', 'import-answer-said'], array_keys($streams));
+        self::assertSame(['puzzle-' . $harbour['id'], 'import-puzzle-group-counts', 'import-step-done-slot', 'import-answer-said'], array_keys($streams));
         self::assertSame(['replace', null], [$streams['puzzle-' . $harbour['id']]['action'], $streams['puzzle-' . $harbour['id']]['method']]);
         $card = $streams['puzzle-' . $harbour['id']]['part']->filter('#puzzle-' . $harbour['id']);
         self::assertSame('undecided', $card->attr('data-choice'));
@@ -1167,6 +1167,8 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $meadow['id'], 'version' => '0', 'catalogue' => $meadow['candidates'][0]['puzzleId'], 'group' => 'probably', 'page' => '1'], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
         self::assertSame('0', $streams['import-puzzle-group-counts']['part']->filter('#import-puzzle-group-counts')->attr('data-open'));
+        // ... and so does the list's own line above the cards, in the same answer
+        self::assertCount(1, $streams['import-step-done-slot']['part']->filter('[data-testid="import-step-done"]'));
         $said = $streams['import-answer-said']['part'];
         self::assertSame('Nothing waits for you here.', self::spaced($said->filter('[data-testid="import-answer-step-done"]')->text()));
         self::assertSame($base . '?after=puzzles', $said->filter('[data-testid="import-answer-next-step"]')->attr('href'));
@@ -1299,6 +1301,9 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $streams = self::streams($this->browser);
         $card = $streams['puzzle-' . $remembered['id']]['part']->filter('#puzzle-' . $remembered['id']);
         self::assertSame('undecided', $card->attr('data-choice'));
+        // The list said "Nothing waits for you here." above its cards: one waits now - the same answer takes the line away
+        self::assertCount(1, $list->filter('#import-step-done-slot [data-testid="import-step-done"]'));
+        self::assertSame(['update', ''], [$streams['import-step-done-slot']['action'], trim($streams['import-step-done-slot']['html'])]);
         // Nothing is known about it yet - the look-up has not run: the card says so, claims nothing ("Nothing in the
         // database fits" would be a guess) and offers nothing; the page asks for this card again by its address
         self::assertSame('We are looking for it again…', self::spaced($card->filter('[data-testid="import-puzzle-looking"] [data-import-usually-at-once]')->text()));

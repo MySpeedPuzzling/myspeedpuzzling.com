@@ -122,6 +122,33 @@ export default class extends Controller {
         // A bar fixed to the bottom of the window (the list's "N will be added"): the frame keeps its real height free
         this.element.querySelectorAll('turbo-frame').forEach((frame) => this.room(frame));
 
+        // A folded question opened inside the frame ("Don't import any" → "Yes, don't import this file"): it opens
+        // near the end of the screen, behind the bar that is fixed there - brought above the bar, its button focused
+        this.onToggle = (event) => {
+            const question = event.target;
+
+            if (!(question instanceof HTMLElement) || !question.matches('details[open]') || question.closest('turbo-frame') === null) {
+                return;
+            }
+
+            const bar = question.closest('turbo-frame').querySelector('[data-import-fixed-bar]');
+            const button = question.querySelector('button[type="submit"]');
+
+            if (bar === null || button === null) {
+                return;
+            }
+
+            const limit = window.innerHeight - Math.ceil(bar.getBoundingClientRect().height) - 8;
+            const bottom = question.getBoundingClientRect().bottom;
+
+            if (bottom > limit) {
+                window.scrollBy({ top: bottom - limit, behavior: 'auto' });
+            }
+
+            button.focus({ preventScroll: true });
+        };
+
+        this.element.addEventListener('toggle', this.onToggle, true);
         this.element.addEventListener('turbo:frame-missing', this.onFrameMissing);
         this.element.addEventListener('turbo:submit-start', this.onSubmitStart);
         this.element.addEventListener('turbo:frame-render', this.onFrameRender);
@@ -170,6 +197,7 @@ export default class extends Controller {
 
     disconnect() {
         window.clearTimeout(this.timer);
+        this.element.removeEventListener('toggle', this.onToggle, true);
         this.element.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.element.removeEventListener('turbo:submit-start', this.onSubmitStart);
         this.element.removeEventListener('turbo:frame-render', this.onFrameRender);

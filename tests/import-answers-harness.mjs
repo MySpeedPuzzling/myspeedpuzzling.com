@@ -522,10 +522,30 @@ const scenarios = {
         let followed = 0;
         document.querySelector('#two a').addEventListener('click', (event) => { followed += 1; event.preventDefault(); });
         pointer('#two a', 100, 400);
-        // A key on that button is the player's own answer
+        // A key pressed again at once on the button focus was just moved to: not taken either
+        tap('#two [data-yes]');
+        await settle(100);
+        const keyAtOnce = world.calls.length;
+        // ... a moment later it is the player's own answer
+        await settle(450);
         tap('#two [data-yes]');
         await settle();
         const keyboard = world.calls.length;
+
+        // The card stays where it is (a list) and gets "Untick" where "Yes, this is it" stood: the second tap of
+        // a slow double tap - after the answer was rendered - must not take the answer back
+        await mount();
+        pointer('#two [data-yes]', 100, 400);
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="two"><template><div class="card" id="two" data-import-answers-scope><form action="/en/import/1/puzzles/decide" method="post" data-import-answer><button type="submit" name="action" value="undecided" data-untick>Untick</button></form></div></template></turbo-stream>${said('1 matched.')}`));
+        await settle(100);
+        pointer('[data-untick]', 102, 401);
+        await settle();
+        const sameCard = world.calls.length;
+        await settle(600);
+        pointer('[data-untick]', 102, 401);
+        await settle();
+        const sameCardLater = world.calls.map((call) => call.body.action);
 
         await answerOne();
         pointer('#two [data-yes]', 300, 600);
@@ -537,7 +557,7 @@ const scenarios = {
         pointer('#two [data-yes]', 100, 400);
         await settle();
 
-        return { doubleTap, followed, keyboard, elsewhere, later: world.calls.length };
+        return { doubleTap, followed, keyAtOnce, keyboard, sameCard, sameCardLater, elsewhere, later: world.calls.length };
     },
     // A card that says "We are looking for it again…" is asked for again until it says its pile - then it has its
     // buttons and is not asked about any more; one that never does stops turning after the last time

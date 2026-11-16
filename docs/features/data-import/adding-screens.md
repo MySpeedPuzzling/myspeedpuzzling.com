@@ -425,7 +425,8 @@ the kind the sheet had; its rows are read again). The answer's redirect **names 
 sheet is left out - so the page's own re-check (it asks for the same address again while the file is "being read
 again") keeps them; as a one-time notice they were gone with the first re-check, 1.6 s after they appeared. The
 "being read again" notice stands in the bar too: above the list it moved the list under the finger when it came and
-went. The list also **says its own address** (`data-import-frame-address` on the bar: filters, page, `left` / `was`) and
+went. A folded question opened in the list ("Don't import any" → "Yes, don't import this file") is brought above the fixed
+bar and its button focused (`toggle`, `data_import_times_frame_controller.js`). The list also **says its own address** (`data-import-frame-address` on the bar: filters, page, `left` / `was`) and
 the script puts it in the address bar after every swap of the frame - the frame was fetched with `left`, the page's
 address was not, so a reload dropped the offer. And the offer does not hang on the address: the sheet this visit
 left out (and what it was) is kept in the session per import, so the list opened plainly still offers it while that

@@ -27,6 +27,10 @@
 <turbo-stream action="replace" target="import-puzzle-group-counts">
     <template>{{ include('data_import/_pile_counts.html.twig', {total: counts.total, open: counts.open}, with_context = false) }}</template>
 </turbo-stream>
+{# "Nothing waits for you here." above the list is true only while nothing waits: taken away by a card taken back #}
+<turbo-stream action="update" target="import-step-done-slot">
+    <template>{% if step_done|default(false) %}<p class="alert alert-success fs-sm" data-testid="import-step-done"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.next.nothing'|trans }}</p>{% endif %}</template>
+</turbo-stream>
 {% endif %}
 <turbo-stream action="update" target="import-answer-said">
     <template>{% if said is not null %}{{ include('data_import/_answer_said_message.html.twig', {said: said}, with_context = false) }}{% endif %}</template>

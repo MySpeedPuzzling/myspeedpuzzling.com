@@ -195,8 +195,13 @@ final class ImportAnswersScriptTest extends TestCase
         self::assertSame(1, $guarded['doubleTap']);
         // ... and does not follow that card's link either
         self::assertSame(0, $guarded['followed']);
-        // A key on the same button is the player's own answer: sent
-        self::assertSame(2, $guarded['keyboard']);
+        // Enter pressed again at once lands on the button the script just moved focus to: not taken - a moment
+        // later it is the player's own answer
+        self::assertSame([1, 2], [$guarded['keyAtOnce'], $guarded['keyboard']]);
+        // A card that stays and gets "Untick" where "Yes, this is it" stood: the second tap of a slow double tap
+        // does not take the answer back - a deliberate tap later does
+        self::assertSame(1, $guarded['sameCard']);
+        self::assertSame(['catalogue', 'undecided'], $guarded['sameCardLater']);
         // A tap somewhere else on the screen, at once: sent - and so is a tap at the same place a moment later
         self::assertSame([2, 2], [$guarded['elsewhere'], $guarded['later']]);
     }

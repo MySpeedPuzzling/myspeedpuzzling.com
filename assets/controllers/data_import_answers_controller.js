@@ -33,6 +33,8 @@ const HEADER_PX = 90;
 // long: the list moved under a pointer that did not
 const GUARD_MS = 600;
 const GUARD_PX = 30;
+// ... and a key is not taken by what the script just moved focus to for this long
+const FOCUS_GUARD_MS = 400;
 // A card that says "We are looking for it again…" is asked for again this often, this many times at most
 const LOOK_AGAIN_MS = 1500;
 const LOOK_AGAIN_TIMES = 12;
@@ -58,6 +60,7 @@ export default class extends Controller {
         // Where the last tap was, and - for a moment after an answer changed the list - where no other card takes one
         this.tap = null;
         this.guard = null;
+        this.focusMoved = null;
         this.looked = 0;
 
         this.onSubmit = (event) => this.submit(event);
@@ -71,23 +74,35 @@ export default class extends Controller {
      * Every tap, before anything else sees it. When a card is answered and leaves, the cards below move up - and
      * another card's "Yes, this is it" comes to rest under a pointer that never moved: the second tap of a double
      * tap would answer a puzzle the player did not look at. So for a moment after such an answer a tap by a pointer
-     * at the place of the last one is not taken by a button or link of ANOTHER card. A keyboard, a tap elsewhere,
-     * and the same tap a moment later are not touched.
+     * at the place of the last one is not taken by any button or link of an answer - another card's, or the answered
+     * card's own new one. A tap elsewhere and the same tap a moment later are not touched; a key is held back only on
+     * the element the script just moved focus to, for a shorter moment.
      */
     click(event) {
         const byPointer = event.detail > 0;
         const at = { x: event.clientX, y: event.clientY };
 
         if (byPointer && this.guard !== null && Date.now() < this.guard.until && event.target instanceof Element) {
-            const card = event.target.closest('[data-import-answers-scope]');
+            // Any control of an answer - another card's, and the answered card's own new one ("Untick" where "Yes,
+            // this is it" stood: the second tap would take the answer back)
             const control = event.target.closest('button, a[href], input[type="submit"]');
+            const ofAnAnswer = control !== null && control.closest('[data-import-answers-scope], form[data-import-answer]') !== null;
 
-            if (control !== null && card !== null && card.id !== this.guard.key && Math.hypot(at.x - this.guard.x, at.y - this.guard.y) <= GUARD_PX) {
+            if (ofAnAnswer && Math.hypot(at.x - this.guard.x, at.y - this.guard.y) <= GUARD_PX) {
                 event.preventDefault();
                 event.stopPropagation();
 
                 return;
             }
+        }
+
+        // A key (Enter, Space) pressed again right after the script moved focus: it would answer what focus was
+        // just put on - the next card, or the same card's new button - not what the player looked at
+        if (!byPointer && this.focusMoved !== null && Date.now() - this.focusMoved.at < FOCUS_GUARD_MS && event.target === this.focusMoved.element) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            return;
         }
 
         this.tap = byPointer ? { ...at, at: Date.now() } : null;
@@ -210,7 +225,7 @@ export default class extends Controller {
                     // What the streams left where it was works again; what they replaced is gone anyway
                     held.letGo();
                     this.release(key);
-                    this.guard = key !== null && tapped !== null ? { x: tapped.x, y: tapped.y, key, until: Date.now() + GUARD_MS } : null;
+                    this.guard = tapped !== null ? { x: tapped.x, y: tapped.y, until: Date.now() + GUARD_MS } : null;
                     // A new answer: a card that is looked for again is asked about from the beginning
                     this.looked = 0;
                     this.lookAgain();
@@ -220,6 +235,10 @@ export default class extends Controller {
                     } catch (error) {
                         // The answer is saved and shown: where focus went is not worth a "not saved"
                     }
+
+                    // Where the script put focus, and when: a key pressed again at once is not that element's
+                    const focused = document.activeElement;
+                    this.focusMoved = focused instanceof HTMLElement && focused !== document.body ? { element: focused, at: Date.now() } : null;
                 } else if (answer.kind === 'page') {
                     this.release(key);
                     Turbo.visit(answer.url, { action: 'replace', response: { statusCode: answer.status, responseHTML: answer.html, redirected: true } });

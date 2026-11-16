@@ -109,7 +109,7 @@
                                 <table role="presentation" style="border-collapse: separate;"><tr><td width="10" height="10" bgcolor="{{ split_colors[part.type] }}" style="width: 10px; height: 10px; font-size: 0; line-height: 10px; background: {{ split_colors[part.type] }}; border-radius: 3px;">&nbsp;</td></tr></table>
                             </td>
                             <td style="padding: 5px 0; vertical-align: middle; font-size: 15px; color: #4b566b;">
-                                <strong style="font-weight: bold; color: #373f50;">{{ ('activity_digest.split.' ~ part.type)|trans }}</strong>&nbsp; {{ 'activity_digest.split.numbers'|trans({'%count%': part.puzzles, '%pieces%': part.pieces|plain_number}) }}
+                                <strong style="font-weight: bold; color: #373f50;">{{ ('activity_digest.split.' ~ part.type)|trans }}</strong>&nbsp; {# A part with pieces but no puzzle holds unfinished competition results only - never "0 puzzles" (unfinished-results-plan.md) #}{{ part.puzzles == 0 ? 'unfinished_result.split_pieces'|trans({'%pieces%': part.pieces|plain_number}) : 'activity_digest.split.numbers'|trans({'%count%': part.puzzles, '%pieces%': part.pieces|plain_number}) }}
                             </td>
                         </tr>
                     {% endfor %}
@@ -312,6 +312,7 @@
                     {% if result.personalBest %}{% set marks = marks|merge(['activity_digest.mark.personal_best'|trans]) %}{% endif %}
                     {% if result.firstAttempt %}{% set marks = marks|merge(['activity_digest.mark.first_try'|trans]) %}{% endif %}
                     {% if highlight.attempts > 1 %}{% set marks = marks|merge(['activity_digest.mark.attempts'|trans({'%count%': highlight.attempts})]) %}{% endif %}
+                    {% if result.piecesPlaced is not null %}{% set marks = marks|merge(['unfinished_result.title'|trans]) %}{% endif %}
                     {% set row_border = loop.first ? '' : ' border-top: 1px solid #eef1f5;' %}
                     <tr>
                         <td width="52" style="width: 52px; padding: 12px 12px 12px 0; vertical-align: middle;{{ row_border }}">
@@ -326,7 +327,7 @@
                             <br><span style="font-size: 13px; line-height: 1.5; color: #6b7488;">{{ marks|join(' · ') }}</span>
                         </td>
                         <td align="right" style="padding: 12px 0; vertical-align: middle; text-align: right; white-space: nowrap;{{ row_border }}">
-                            {% if result.secondsToSolve is not null %}<strong style="font-size: 16px; font-weight: bold; color: #1f2430;">{{ result.secondsToSolve|puzzlingTime }}</strong>{% endif %}
+                            {% if result.secondsToSolve is not null %}<strong style="font-size: 16px; font-weight: bold; color: #1f2430;">{{ result.secondsToSolve|puzzlingTime }}</strong>{% elseif result.piecesPlaced is not null %}<strong style="font-size: 16px; font-weight: bold; color: #1f2430;">{{ 'unfinished_result.pieces'|trans({'%placed%': result.piecesPlaced|plain_number, '%total%': result.piecesCount|plain_number}) }}</strong>{% endif %}
                             {% if result.rank is not null and result.rankTotal is not null %}<br><span style="font-size: 13px; color: #6b7488;">{{ 'activity_digest.place'|trans({'%rank%': result.rank|plain_number, '%total%': result.rankTotal|plain_number}) }}</span>{% endif %}
                         </td>
                     </tr>

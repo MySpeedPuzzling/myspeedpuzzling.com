@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\TestDouble\XpLaunchReadinessStub;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\TransportSpy;
@@ -571,6 +572,48 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]);
         $this->database->executeStatement('DELETE FROM puzzling_team_member WHERE player_id = :id', ['id' => $playerId]);
         $this->insertSolve($playerId, $atUtc);
+    }
+
+    /**
+     * An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md) of a pair with
+     * a guest - in the e-mail it is "479 / 500 pcs" with "Didn't finish within the time limit", and the pairs line says
+     * its pieces, never "0 puzzles"
+     */
+    public function testAnUnfinishedResultIsNeverCalledAPuzzle(): void
+    {
+        $this->insertSolve(self::MEMBER, '2030-03-05 18:00:00');
+        $this->database->executeStatement(
+            "INSERT INTO puzzle_solving_time
+                (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, team, finished_at,
+                 comment, finished_puzzle_photo, first_attempt, unboxed, puzzlers_count, puzzling_type,
+                 suspicious, pieces_count_snapshot, pieces_placed, seconds_spent, competition_id)
+             VALUES
+                (:id, NULL, :playerId, :puzzleId, :at, false, :team, :at,
+                 NULL, NULL, false, false, 2, 'duo', false, 500, 479, 5400, :competitionId)",
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'playerId' => self::MEMBER,
+                'puzzleId' => PuzzleFixture::PUZZLE_500_05,
+                'at' => '2030-03-06 18:00:00',
+                'team' => json_encode(['team_id' => null, 'puzzlers' => [
+                    ['player_id' => self::MEMBER, 'player_name' => null, 'player_code' => null, 'player_country' => null, 'is_private' => false],
+                    ['player_id' => null, 'player_name' => 'Rita Guest', 'player_code' => null, 'player_country' => null, 'is_private' => false],
+                ]]),
+                'competitionId' => CompetitionFixture::COMPETITION_WJPC_2024,
+            ],
+        );
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        $email = $transport->sent[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        $this->render($email);
+        $html = html_entity_decode((string) $email->getHtmlBody());
+        self::assertStringContainsString('479 / 500 pcs', $html);
+        self::assertStringContainsString("Didn't finish within the time limit", $html);
+        self::assertStringContainsString('479 pieces', $html, 'The pairs line: its pieces');
+        self::assertStringNotContainsString('0 puzzles', $html);
     }
 
     private function insertSolve(string $playerId, string $atUtc, int $seconds = 3600): void

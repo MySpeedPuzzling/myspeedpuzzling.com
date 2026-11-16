@@ -13766,3 +13766,4 @@ unfinished_result:
     pieces_left: "Pieces left: %count%"
     see_round_results: "See round results"
     notification: "competed with puzzle"
+    split_pieces: "%pieces% pieces"

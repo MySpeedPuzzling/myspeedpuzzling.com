@@ -141,6 +141,24 @@ final class UnfinishedResultsListedTest extends WebTestCase
         self::assertStringContainsString('321 / 500 pcs', $content);
     }
 
+    /**
+     * "Your week" (an admin's page until the XP launch): a pair's unfinished result is the only pair result of the week -
+     * its line says the pieces, never "0 puzzles"; the result lists the pieces placed
+     */
+    public function testYourWeekNeverCallsItAPuzzleSolved(): void
+    {
+        $this->seedUnfinishedResult(PlayerFixture::PLAYER_ADMIN, self::PUZZLE, 479, puzzlers: [PlayerFixture::PLAYER_ADMIN, 'Rita Guest'], daysAgo: 1);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->browser->request('GET', '/en/my/activity');
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $this->browser->getResponse()->getContent();
+        self::assertStringContainsString('479 pieces', $content);
+        self::assertStringNotContainsString('0 puzzles', $content);
+        self::assertSame(1, substr_count($content, self::BADGE));
+    }
+
     public function testTheShareImageOfAnUnfinishedResultIsDrawnAndKeptApartFromATime(): void
     {
         $time = $this->seedUnfinishedResult(self::PLAYER, self::PUZZLE, 479);

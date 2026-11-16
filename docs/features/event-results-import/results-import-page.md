@@ -49,7 +49,7 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   be ticked). Soft warnings never block: puzzle not approved yet, rows out of time order, a team name twice, a time over
   the limit without pieces placed.
 - Reading Google takes seconds: outside any transaction (`HandledOutsideTransaction`, writes through a message of its
-  own). Kill switch flag hides the page; console command + internal API stay for admins.
+  own). Kill switch flag hides the page; the generic console command + internal API stay for admins.
 
 ## Changes to today's code (nothing breaks)
 
@@ -58,7 +58,7 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
 | `event_results_sheet` | the results source + `format` column (migration fills `sarah_does_puzzles`) |
 | `event_results_sheet_tab` keyed by gid | keyed by the format's stable key (Sarah's = gid, nothing re-imports) |
 | `SarahDoesPuzzlesTabParser` | `SarahDoesPuzzlesFormat implements ResultsFormat` |
-| `myspeedpuzzling:sync-sarah-does-puzzles-results` | `myspeedpuzzling:sync-results-source <id>` (old name = alias) |
+| `myspeedpuzzling:sync-sarah-does-puzzles-results` | removed (Jan: no dedicated console command any more) - a generic `myspeedpuzzling:sync-results-source <id> [--dry-run]` stays for admins/ops |
 | `/internal-api/event-results-sheets` | + `format` when registering |
 | `ApplyEventResultsTab`, `SyncEventResultsSheet` | same behaviour, input through the format |
 | — | `results_import_check` (snapshot) + `results_import_log` (who, when, which events, counts) |

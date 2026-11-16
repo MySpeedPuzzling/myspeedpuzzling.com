@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The preview of one event of a check (docs/features/event-results-import/results-import-page.md "Pages"): status and
+    why, the event as the import makes it, what changes against what is stored (team by team - a claimed team that left
+    the sheet is kept, P4), and its teams ranked as its results page will rank them.
+    Variables: organization, source (EventResultsSheet), overview (ResultsImportOverview), item (ResultsImportEvent),
+    ranked (list<PreviewResultRow>)
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set event = item.event %}
+{% set back_url = path('results_import', {slug: organization.slug, sourceId: source.id}) %}
+
+{% block title %}{{ event.eventName ?? event.title }} - {{ 'results_import.title'|trans }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: organization.name, url: path('organization_detail', {slug: organization.slug})},
+        {label: 'results_import.title'|trans, url: back_url},
+        {label: event.eventName ?? event.title},
+    ]}) }}
+
+    <div class="results-import pb-4" data-results-import-preview="{{ event.key }}">
+        <p class="mb-2"><a href="{{ back_url }}" class="small"><i class="bi bi-chevron-left" aria-hidden="true"></i> {{ 'results_import.preview.back'|trans }}</a></p>
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            {{ include('results_import/_status_badge.html.twig', {status: item.status}) }}
+            <span class="small text-muted text-break">{{ 'results_import.list.tab'|trans({'%tab%': event.title}) }}</span>
+        </div>
+        <h1 class="h3 mb-2 text-break">{{ event.eventName ?? event.title }}</h1>
+        <p class="small text-muted mb-3">{{ ('results_import.status_hint.' ~ item.status.value)|trans }}</p>
+
+        {% if item.blockers is not empty %}
+            <div class="alert alert-danger" role="alert" data-results-import-blockers>
+                <ul class="mb-0 ps-3">
+                    {% for note in item.blockers %}
+                        <li>{{ include('results_import/_note.html.twig', {note: note}) }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if item.warnings is not empty %}
+            <div class="alert alert-warning" role="status" data-results-import-warnings>
+                <p class="mb-1 fw-medium">{{ 'results_import.preview.warnings'|trans }}</p>
+                <ul class="mb-0 ps-3 small">
+                    {% for note in item.warnings %}
+                        <li>{{ include('results_import/_note.html.twig', {note: note}) }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-5">
+                {{ include('results_import/_event_card.html.twig') }}
+            </div>
+            <div class="col-lg-7">
+                {% if item.eventChanges is not empty or item.teamChanges is not empty %}
+                    {{ include('results_import/_differences.html.twig') }}
+                {% endif %}
+
+                {{ include('results_import/_ranked_preview.html.twig') }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{#
+    The events of a check, one row each: the tab's name, the event's name · day · pairs/teams · teams, its status (why
+    it waits or needs fixing in plain words), how many teams change and the warnings - a link to its preview.
+    Variables: organization, source_id, overview (ResultsImportOverview)
+#}
+<h2 class="h5 mb-2">{{ 'results_import.list.heading'|trans }}</h2>
+<p class="small mb-3 d-flex flex-wrap gap-2" data-results-import-counts>
+    {% for status, count in overview.statusCounts %}
+        <span class="text-nowrap">{{ ('results_import.status.' ~ status)|trans }}: <strong>{{ count }}</strong></span>
+    {% endfor %}
+</p>
+
+<ul class="list-group shadow-sm" data-results-import-events>
+    {% for item in overview.events %}
+        {% set event = item.event %}
+        <li class="list-group-item py-3" data-results-import-event="{{ event.key }}">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                <div class="min-w-0 flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        {{ include('results_import/_status_badge.html.twig', {status: item.status}) }}
+                        <span class="fw-medium text-break">{{ event.eventName ?? event.title }}</span>
+                    </div>
+                    <div class="small text-muted">
+                        {%- if event.eventName is not null and event.eventName != event.title %}<span class="text-break">{{ 'results_import.list.tab'|trans({'%tab%': event.title}) }}</span> · {% endif -%}
+                        {%- if event.localStartsAt %}<span class="text-nowrap">{{ event.localStartsAt|events_date('yMMMd') }}</span> · {% endif -%}
+                        {%- if event.category %}{{ ('competition.round.category.' ~ event.category.value)|trans }} · {% endif -%}
+                        <span class="text-nowrap">{{ 'results_import.list.teams'|trans({'%count%': item.teamCount}) }}</span>
+                        {%- if item.status.value == 'changed' and item.changedTeamCount > 0 %} · <span class="text-nowrap">{{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}</span>{% endif -%}
+                    </div>
+
+                    {% if item.blockers is not empty %}
+                        <ul class="small mb-0 mt-2 ps-3 text-danger-emphasis" data-results-import-blockers>
+                            {% for note in item.blockers %}
+                                <li>{{ include('results_import/_note.html.twig', {note: note}) }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% elseif item.status.value in ['waiting_for_puzzle', 'event_deleted'] %}
+                        <p class="small mb-0 mt-2">{{ ('results_import.status_hint.' ~ item.status.value)|trans }}</p>
+                    {% endif %}
+
+                    {% if item.warnings is not empty %}
+                        <p class="small mb-0 mt-1 text-warning-emphasis" data-results-import-warnings>
+                            <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ 'results_import.list.warnings'|trans({'%count%': item.warnings|length}) }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <a class="btn btn-sm btn-outline-primary flex-shrink-0" href="{{ path('results_import_event', {slug: organization.slug, sourceId: source_id, eventKey: event.key, check: overview.checkId}) }}" data-results-import-preview-link>
+                    {{ 'results_import.list.preview'|trans }}
+                </a>
+            </div>
+        </li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The results import page of one results source (docs/features/event-results-import/results-import-page.md): "Check
+    sheet", the latest check's events with their status against what is stored (each links to its preview), the tabs
+    Google did not give us, and how the sheet must look (the format's guide). For the organization's team and admins.
+    Variables: organization (OrganizationDetail), source_id, format (ResultsFormat), overview (null|ResultsImportOverview)
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'results_import.meta_title'|trans({'%organization%': organization.name}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: organization.name, url: path('organization_detail', {slug: organization.slug})},
+        {label: 'results_import.title'|trans},
+    ]}) }}
+
+    <div class="results-import pb-4" data-results-import>
+        <h1 class="h2 mb-2">{{ 'results_import.title'|trans }}</h1>
+        <p class="text-muted mb-3">{{ 'results_import.intro'|trans }}</p>
+
+        <div class="card card-body shadow-sm mb-4" data-results-import-check>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <form method="post" action="{{ path('results_import_check', {slug: organization.slug, sourceId: source_id}) }}" class="m-0">
+                    <input type="hidden" name="_token" value="{{ csrf_token('results_import_check_' ~ source_id) }}">
+                    <button type="submit" class="btn btn-primary" data-results-import-check-button>
+                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'results_import.check.button'|trans }}
+                    </button>
+                </form>
+                <div class="small">
+                    {% if overview %}
+                        <div data-results-import-checked-at>
+                            {%- if overview.checkedByName -%}
+                                {{ 'results_import.check.last_by'|trans({'%when%': overview.checkedAt|ago, '%name%': overview.checkedByName}) }}
+                            {%- else -%}
+                                {{ 'results_import.check.last'|trans({'%when%': overview.checkedAt|ago}) }}
+                            {%- endif -%}
+                        </div>
+                    {% endif %}
+                    <div class="text-muted">{{ 'results_import.check.hint'|trans }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if overview is null %}
+            <p class="text-muted" data-results-import-never-checked>{{ 'results_import.check.none'|trans }}</p>
+        {% elseif overview.readError is not null %}
+            <div class="alert alert-danger" role="alert" data-results-import-read-error>
+                <p class="mb-1 fw-medium">{{ 'results_import.check.failed'|trans }}</p>
+                <p class="mb-1 small">{{ 'results_import.check.failed_hint'|trans }}</p>
+                <p class="mb-0 small text-muted text-break">{{ overview.readError }}</p>
+            </div>
+        {% else %}
+            {% if overview.unreadableTabs is not empty %}
+                <div class="alert alert-warning" role="status" data-results-import-unreadable>
+                    <p class="mb-1">{{ 'results_import.check.unreadable_tabs'|trans }}</p>
+                    <ul class="mb-0 small">
+                        {% for tab in overview.unreadableTabs %}
+                            <li>{{ tab.title }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if overview.events is empty %}
+                <p class="text-muted">{{ 'results_import.check.no_events'|trans }}</p>
+            {% else %}
+                {{ include('results_import/_event_list.html.twig') }}
+            {% endif %}
+        {% endif %}
+
+        <details class="card card-body shadow-sm mt-4 results-import-guide" data-results-import-guide>
+            <summary class="fw-medium">{{ 'results_import.guide.title'|trans }}</summary>
+            <div class="mt-3">
+                {{ include(format.guideTemplate) }}
+            </div>
+        </details>
+    </div>
+{% endblock %}

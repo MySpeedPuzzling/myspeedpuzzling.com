@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Results import" of an organization with more than one results source: one row per source - its format and when it
+    was last checked. Variables: organization, sources (list<ResultsImportSource>), format_names (source id => name)
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'results_import.meta_title'|trans({'%organization%': organization.name}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: organization.name, url: path('organization_detail', {slug: organization.slug})},
+        {label: 'results_import.title'|trans},
+    ]}) }}
+
+    <div class="pb-4" data-results-import-sources>
+        <h1 class="h2 mb-3">{{ 'results_import.title'|trans }}</h1>
+        <p class="text-muted">{{ 'results_import.sources.intro'|trans }}</p>
+
+        <ul class="list-group shadow-sm">
+            {% for source in sources %}
+                <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
+                    <div>
+                        <div class="fw-medium">{{ 'results_import.sources.sheet'|trans({'%number%': loop.index, '%format%': format_names[source.id]}) }}</div>
+                        <div class="small text-muted">
+                            {{ source.lastCheckedAt ? 'results_import.sources.last_checked'|trans({'%when%': source.lastCheckedAt|ago}) : 'results_import.sources.never_checked'|trans }}
+                        </div>
+                    </div>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ path('results_import', {slug: organization.slug, sourceId: source.id}) }}">{{ 'results_import.sources.open'|trans }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

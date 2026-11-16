@@ -1,0 +1,50 @@
+{#
+    The event's teams as its round results page will show them (round_results/_player_times.html.twig with the
+    organizer's results): places (equal times share one), the gap lines, then the unfinished teams by pieces placed and
+    the times over the limit, each after a section line; a claimed team gone from the sheet stays there, marked. Variables: item (ResultsImportEvent), ranked (list<PreviewResultRow>)
+#}
+<section data-results-import-ranked>
+    <h2 class="h5 mb-2">{{ 'results_import.preview.results'|trans }}</h2>
+    {% if ranked is empty %}
+        <p class="text-muted small">{{ 'results_import.preview.no_teams'|trans }}</p>
+    {% else %}
+        <div class="table-responsive custom-table-wrapper mb-2">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <thead>
+                <tr>
+                    <th class="text-center" style="width: 3rem;">#</th>
+                    <th>{{ 'results_import.preview.team'|trans }}</th>
+                    <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% set previous_status = null %}
+                {% for row in ranked %}
+                    {% if previous_status is not null and row.status != previous_status %}
+                        <tr>
+                            <td colspan="3" class="small text-muted fw-medium">{{ ('round_results.section.' ~ row.status.value)|trans }}</td>
+                        </tr>
+                    {% endif %}
+                    {% set previous_status = row.status %}
+                    <tr data-results-import-row="{{ row.status.value }}">
+                        <td class="text-center tabular-nums" data-results-import-rank>{{ row.rank }}</td>
+                        <td class="player-name">
+                            <span class="lb-player lb-anonymous-team">
+                                <span class="lb-name lb-name-guest text-break">{{ row.teamName }}</span>
+                                <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': row.teamSize}) }}</span>
+                            </span>
+                            {% if row.keptClaimed %}<div class="small text-warning-emphasis" data-results-import-kept>{{ 'results_import.differences.kept_claimed'|trans }}</div>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {{ include('results_import/_result.html.twig', {seconds: row.seconds, pieces: row.piecesPlaced, pieces_count: item.puzzle ? item.puzzle.piecesCount : null}) }}
+                            {% if row.rank is not null and row.rank > 1 %}
+                                <br>{{ include('_time_gaps.html.twig', {to_leader: row.gapToLeader, to_faster: row.gapToFaster}) }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>

@@ -1,0 +1,6 @@
+{#
+    One ResultsImportNote in plain words: a problem that keeps an event out, a skipped row or a soft warning - the
+    sheet's row when the note has one. Variables: note (ResultsImportNote)
+#}
+{{- ('results_import.note.' ~ note.code)|trans({'%detail%': note.detail ?? '', '%line%': note.line ?? ''}) -}}
+{%- if note.line is not null %} <span class="text-muted text-nowrap">({{ 'results_import.note.row'|trans({'%line%': note.line}) }})</span>{% endif -%}

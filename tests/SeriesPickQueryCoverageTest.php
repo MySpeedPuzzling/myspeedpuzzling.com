@@ -34,6 +34,7 @@ final class SeriesPickQueryCoverageTest extends TestCase
         'Query/GetNotifications.php' => self::NOT_A_TIMES_EVENT,
         'Query/GetParticipantsSheetState.php' => self::ROUND_LEVEL,
         'Query/GetPublishedRoundResults.php' => self::ROUND_LEVEL,
+        'Query/GetResultsImportStoredTabs.php' => 'Reads the imported results of a results source by their tab (event_imported_result), never by an event - the import makes one-time events, never series picks (docs/features/event-results-import/results-import-page.md).',
         'Query/GetSuggestedPlayers.php' => self::PARTICIPANTS,
         'Query/OccurrenceRounds.php' => self::ROUND_LEVEL,
         'Query/SearchPuzzle.php' => self::NOT_A_TIMES_EVENT,

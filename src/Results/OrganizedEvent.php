@@ -69,6 +69,9 @@ readonly final class OrganizedEvent
         public bool $seriesIsDraft = false,
         // What keeps it from going back to draft (UnpublishBlockers) - "You organize" offers Unpublish only without any
         public array $unpublishBlockers = [],
+        // Organization: its results sources (docs/features/event-results-import/results-import-page.md) - "Results
+        // import" in its menu only when it has one
+        public int $resultsSourceCount = 0,
     ) {
     }
 

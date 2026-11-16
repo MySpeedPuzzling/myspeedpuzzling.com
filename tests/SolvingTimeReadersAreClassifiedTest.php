@@ -128,6 +128,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetRecentIdenticalSolvingTime.php' => 'neutral: the add handler\'s resend guard, by seconds - never matches a result without a time.',
         'Query/GetResultReviewEmailCandidates.php' => self::NEUTRAL,
         'Query/GetResultReviewEmails.php' => self::NEUTRAL,
+        'Query/GetResultsImportStoredTabs.php' => 'listing: the results import page compares every imported team\'s stored result - its time or its pieces placed, both selected - with the sheet; nothing is counted.',
         'Query/GetRoundResults.php' => 'history: the round page - lists unfinished results after the finished ones already (phase 1a).',
         'Query/GetSandboxSimulationData.php' => 'neutral: the sandbox simulator\'s own made-up history - it never logs an unfinished result.',
         'Query/GetSeatingSeedTimes.php' => self::PERFORMANCE,

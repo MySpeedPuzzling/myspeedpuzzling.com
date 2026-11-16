@@ -1,0 +1,15 @@
+{#
+    A team's result as the sheet gives it: its time, or its pieces placed (of the puzzle's, when known).
+    Variables: seconds (null|int), pieces (null|int), pieces_count (null|int)
+#}
+{%- if pieces is not null -%}
+    {%- if pieces_count -%}
+        <span class="tabular-nums">{{ 'round_results.pieces_placed'|trans({'%placed%': pieces, '%total%': pieces_count}) }}</span>
+    {%- else -%}
+        <span class="tabular-nums">{{ 'results_import.pieces_placed'|trans({'%placed%': pieces}) }}</span>
+    {%- endif -%}
+{%- elseif seconds is not null -%}
+    <span class="tabular-nums">{{ seconds|puzzlingTime }}</span>
+{%- else -%}
+    <span class="text-muted">-</span>
+{%- endif -%}

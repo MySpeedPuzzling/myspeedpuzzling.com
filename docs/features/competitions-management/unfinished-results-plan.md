@@ -36,8 +36,8 @@ not make sense, the system should be smart".
 10. **The write path stays beside the form's** (the add form must never break - Jan, 2026-11-14): the finished path of add and edit keeps
     its behaviour byte for byte, its tests untouched; the unfinished path is its own message + handler.
 11. Open decisions 3 (stopwatch offers it - only past a known limit, by rules 1-2), 4 (an active day) and 5
-    (favourites notified) are taken as recommended. Decision 1 is superseded by rule 5. **Decision 2 (DB CHECK
-    constraints, a hand-written migration) waits for Jan's OK**; until then the entity invariant guards it.
+    (favourites notified) are taken as recommended. Decision 1 is superseded by rule 5. **Decision 2: no DB CHECK
+    constraints** (Jan, 2026-11-16) - the entity invariant and the domain value object guard it.
 12. The audit's file:line list below predates trackerless rows, data import, My data, XP, the Players page precompute
     and rating history: readers are re-inventoried from `TrackerlessTimeQueryCoverageTest`'s list, not from this file.
 

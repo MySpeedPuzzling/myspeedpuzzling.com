@@ -77,7 +77,8 @@ readonly final class EventResultSlotRelease
             solvingTimeId: $time->id,
             slotKey: $slot,
             playerId: $player->id,
-            playerName: $player->name ?? $player->code,
+            // A deleted account leaves no name behind (ResultClaimLog::eraseNameOfDeletedAccount())
+            playerName: $action === ResultClaimAction::AccountDeleted ? '' : ($player->name ?? $player->code),
             action: $action,
             byPlayerId: $by?->id,
             reason: $reason,

@@ -50,6 +50,7 @@ use SpeedPuzzling\Web\Repository\SolvingTimeGraveyardRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\EventResultsImport\EventResultSlotRelease;
+use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -76,6 +77,7 @@ final class DeletePlayerHandler
         private readonly PlayerAccountEmail $playerAccountEmail,
         private readonly SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
         private readonly EventResultSlotRelease $eventResultSlotRelease,
+        private readonly ResultClaimLogRepository $resultClaimLogRepository,
     ) {
     }
 
@@ -119,6 +121,10 @@ final class DeletePlayerHandler
         $this->deleteCustomFields($playerId);
 
         $storedFiles = [...$storedFiles, ...$this->handlePuzzleSolvingTimes($player, $playerName)];
+        // The claim log of imported event results keeps ids, actions and times, never a deleted account's name
+        foreach ($this->resultClaimLogRepository->findOfPlayer($player->id) as $claimLog) {
+            $claimLog->eraseNameOfDeletedAccount();
+        }
         // Erasure: their times go without a grave, and the graves + tombstones of times deleted earlier go too
         // (docs/features/api/solving-time-sync.md)
         $this->solvingTimeGraveyardRepository->eraseOfPlayer($playerId);

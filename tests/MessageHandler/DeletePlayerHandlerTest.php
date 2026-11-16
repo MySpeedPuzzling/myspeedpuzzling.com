@@ -407,6 +407,13 @@ final class DeletePlayerHandlerTest extends KernelTestCase
             $connection->fetchAllAssociative("SELECT action, by_player_id FROM result_claim_log WHERE solving_time_id = :id AND action <> 'claimed'", ['id' => $palsId]),
         );
 
+        // The claim log keeps ids, actions and times of the deleted player, never the name (Jan, 2026-11-16)
+        self::assertSame(
+            [['action' => 'account_deleted', 'player_name' => ''], ['action' => 'claimed', 'player_name' => '']],
+            $connection->fetchAllAssociative('SELECT action, player_name FROM result_claim_log WHERE player_id = :id ORDER BY action', ['id' => PlayerFixture::PLAYER_PRIVATE]),
+        );
+        self::assertNotSame('', $connection->fetchOne("SELECT player_name FROM result_claim_log WHERE player_id = :id AND action = 'claimed'", ['id' => PlayerFixture::PLAYER_WITH_FAVORITES]));
+
         // The crew result was claimed by nobody else - it stays the event's, nobody's again
         $this->messageBus->dispatch(new ClaimEventResultSlot($crewId, PlayerFixture::PLAYER_WITH_STRIPE));
         $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_WITH_STRIPE));

@@ -38,4 +38,15 @@ readonly final class ResultClaimLogRepository
 
         return (int) $count;
     }
+
+    /**
+     * @return list<ResultClaimLog>
+     */
+    public function findOfPlayer(UuidInterface $playerId): array
+    {
+        /** @var list<ResultClaimLog> $logs */
+        $logs = $this->entityManager->getRepository(ResultClaimLog::class)->findBy(['playerId' => $playerId]);
+
+        return $logs;
+    }
 }

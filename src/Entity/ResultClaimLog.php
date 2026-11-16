@@ -58,4 +58,12 @@ class ResultClaimLog
         public DateTimeImmutable $at,
     ) {
     }
+
+    /**
+     * A deleted account's name is erased (Jan, 2026-11-16) - the id, the action and the time keep the log answerable.
+     */
+    public function eraseNameOfDeletedAccount(): void
+    {
+        $this->playerName = '';
+    }
 }

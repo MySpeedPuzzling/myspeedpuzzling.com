@@ -6,7 +6,6 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
 
-- [ ] **Question for Jan:** the claim log (`result_claim_log.player_name`) keeps a deleted account's name - blank it on account deletion?
 - [ ] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)
 - [ ] Admin screen to lift a claim block (`Player::unblockEventClaims()` has no UI)
 - [ ] Profiles show "+N" for unclaimed teammates, like the puzzle page

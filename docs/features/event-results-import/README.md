@@ -176,7 +176,7 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
 - **Audit:** `result_claim_log`, append-only, no foreign keys (copied ids and names, like
   `puzzle_moderation_decision`): `solving_time_id`, `slot_key`, `player_id`, `player_name`, `action` (claimed /
   released / removed / account_deleted), `by_player_id` (null = the system), `reason` (the remover's optional note,
-  ≤ 500), `at`.
+  ≤ 500), `at`. A deleted account's name is erased from its rows (`''`, Jan 2026-11-16) - id, action and time stay.
 - Later if needed: claim codes the organizer hands out per team.
 
 ### Display

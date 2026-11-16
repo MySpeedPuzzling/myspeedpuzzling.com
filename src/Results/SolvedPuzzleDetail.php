@@ -46,6 +46,16 @@ readonly final class SolvedPuzzleDetail
         public bool $importedFromEvent = false,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): pieces
+        // placed when the round's time ran out ($time is null - no relax solve), the time spent, the later total
+        public null|int $piecesPlaced = null,
+        public null|int $secondsSpent = null,
+        public null|int $finishedLaterSeconds = null,
+        // The competition round of the result, when its event is public - "See round results" on the recap
+        public null|string $roundName = null,
+        public null|string $roundSlug = null,
+        public null|string $roundCompetitionSlug = null,
+        public null|string $roundSeriesSlug = null,
     ) {
     }
 
@@ -76,6 +86,13 @@ readonly final class SolvedPuzzleDetail
      *     series_pick_id?: null|string,
      *     competition_is_edition?: null|bool,
      *     imported_from_event?: null|bool,
+     *     pieces_placed?: null|int,
+     *     seconds_spent?: null|int,
+     *     finished_later_seconds?: null|int,
+     *     round_name?: null|string,
+     *     round_slug?: null|string,
+     *     round_competition_slug?: null|string,
+     *     round_series_slug?: null|string,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -111,7 +128,19 @@ readonly final class SolvedPuzzleDetail
             competitionIsEdition: ($row['competition_is_edition'] ?? false) === true,
             importedFromEvent: ($row['imported_from_event'] ?? false) === true,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
+            piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
+            secondsSpent: isset($row['seconds_spent']) ? (int) $row['seconds_spent'] : null,
+            finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
+            roundName: $row['round_name'] ?? null,
+            roundSlug: $row['round_slug'] ?? null,
+            roundCompetitionSlug: $row['round_competition_slug'] ?? null,
+            roundSeriesSlug: $row['round_series_slug'] ?? null,
         );
+    }
+
+    public function isUnfinished(): bool
+    {
+        return $this->piecesPlaced !== null;
     }
 
     /**

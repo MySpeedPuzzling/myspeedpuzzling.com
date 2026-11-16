@@ -566,10 +566,13 @@
                         </span>
                     {% endfor %}
                 {% endif %}
-                <span class="ms-1">- {{ 'notifications.solved_puzzle'|trans({'%count%': notification.players is null ? 1 : notification.players|length }) }}</span>
+                {# An unfinished competition result is never called a solve (docs/features/competitions-management/unfinished-results-plan.md) #}
+                <span class="ms-1">- {{ (notification.piecesPlaced is not null ? 'unfinished_result.notification' : 'notifications.solved_puzzle')|trans({'%count%': notification.players is null ? 1 : notification.players|length }) }}</span>
                 <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
                 {% if notification.time is not null %}
                     {{ 'notifications.solved_puzzle_with_time'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
+                {% elseif notification.piecesPlaced is not null %}
+                    {{ include('_unfinished_result_badge.html.twig', {placed: notification.piecesPlaced, total: notification.piecesCount, finished_later: notification.finishedLaterSeconds}) }}
                 {% else %}
                     <i class="bi bi-cup-hot text-muted"></i> <span class="text-muted">{{ 'badge.relax'|trans }}</span>
                 {% endif %}

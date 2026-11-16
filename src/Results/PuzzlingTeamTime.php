@@ -27,6 +27,7 @@ readonly final class PuzzlingTeamTime
         public DatePrecision $datePrecision = DatePrecision::Day,
         // An unfinished competition result: pieces placed when the round's time ran out - not a solve (CountsAsSolve)
         public null|int $piecesPlaced = null,
+        public null|int $finishedLaterSeconds = null,
     ) {
     }
 }

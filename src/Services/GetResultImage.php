@@ -68,7 +68,13 @@ readonly final class GetResultImage
 
         $rankingText = '';
 
-        if ($solvingTime->players === null) {
+        if ($solvingTime->isUnfinished()) {
+            // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md) has no rank - its
+            // later total when they kept going
+            $rankingText = $solvingTime->finishedLaterSeconds !== null
+                ? sprintf('Finished in %s', $this->puzzlingTimeFormatter->formatTime($solvingTime->finishedLaterSeconds))
+                : '';
+        } elseif ($solvingTime->players === null) {
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingTime->puzzleId, $player->playerId);
 
             if ($ranking !== null && $ranking->totalPlayers > 2) {
@@ -98,7 +104,7 @@ readonly final class GetResultImage
         // $puzzleName = 'Foul Play & Cabernet - A Mystery Jigsaw Thriller with a Secret Puzzle Image';
         // $brandName = 'San Francisco Museum of Modern Art';
         $signature = sprintf('#%s on MySpeedPuzzling.com', $player->code);
-        $ppmText = sprintf('%s PPM', $ppm);
+        $ppmText = $solvingTime->isUnfinished() ? 'pieces placed in the time limit' : sprintf('%s PPM', $ppm);
         $offsetTop = 20;
 
         $puzzleNameLines = (int) ceil(strlen($puzzleName) / 25);
@@ -138,7 +144,7 @@ readonly final class GetResultImage
             });
             ResultImageText::draw($image, $brandName, $size / 2, 115 + $yOffset, $centered($light, $fontSizeSmall));
             ResultImageText::draw($image, $solvingTime->piecesCount . ' pieces', $size / 2, 170 + $yOffset, $centered($light, $fontSizeNormal));
-            ResultImageText::draw($image, $solvingTime->time !== null ? $this->puzzlingTimeFormatter->formatTime($solvingTime->time) : 'Relax', $size / 2, 260 + $yOffset, $centered($regular, $fontSizeBig));
+            ResultImageText::draw($image, $this->bigLine($solvingTime), $size / 2, 260 + $yOffset, $centered($regular, $fontSizeBig));
             ResultImageText::draw($image, $ppmText, $size / 2, 340 + $yOffset, $centered($regular, $fontSizeSmall));
             ResultImageText::draw($image, $isPrivateProfile ? '' : ($player->playerName ?? ''), $size / 2, 400 + $yOffset, $centered($regular, $fontSizeSmall));
             ResultImageText::draw($image, $rankingText, $size / 2, 450 + $yOffset, $centered($light, $fontSizeSmall));
@@ -169,6 +175,22 @@ readonly final class GetResultImage
             $withPlaceholder,
             drawnAt: $withPlaceholder ? null : $this->clock->now(),
         );
+    }
+
+    /**
+     * The big line of the card: the time, "479/500" for an unfinished result (never "Relax" - it is none), else "Relax"
+     */
+    private function bigLine(SolvedPuzzleDetail $solvingTime): string
+    {
+        if ($solvingTime->time !== null) {
+            return $this->puzzlingTimeFormatter->formatTime($solvingTime->time);
+        }
+
+        if ($solvingTime->piecesPlaced !== null) {
+            return sprintf('%d/%d', $solvingTime->piecesPlaced, $solvingTime->piecesCount);
+        }
+
+        return 'Relax';
     }
 
     /**

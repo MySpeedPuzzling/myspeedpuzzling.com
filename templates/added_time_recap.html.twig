@@ -48,6 +48,27 @@
             </section>
         {% endif %}
 
+        {# An unfinished result (docs/features/competitions-management/unfinished-results-plan.md "Read side - tier 3"):
+           what they placed before the time ran out, what was left, the later total, and the round's results #}
+        {% if solved_puzzle.isUnfinished %}
+            <section class="recap-card recap-layout-card text-center" data-testid="recap-unfinished">
+                <p class="text-muted small mb-1"><i class="bi bi-hourglass-bottom me-1" aria-hidden="true"></i>{{ 'unfinished_result.title'|trans }}</p>
+                <p class="h3 mb-1 tabular-nums">{{ 'unfinished_result.recap_pieces'|trans({'%placed%': solved_puzzle.piecesPlaced|plain_number, '%total%': solved_puzzle.piecesCount|plain_number}) }}</p>
+                <p class="text-muted mb-2">{{ 'unfinished_result.pieces_left'|trans({'%count%': (solved_puzzle.piecesCount - solved_puzzle.piecesPlaced)|plain_number}) }}</p>
+                {% if solved_puzzle.finishedLaterSeconds is not null %}
+                    <p class="mb-2">{{ 'unfinished_result.finished_later'|trans({'%time%': solved_puzzle.finishedLaterSeconds|puzzlingTime}) }}</p>
+                {% endif %}
+                {% if solved_puzzle.roundSlug is not null and solved_puzzle.roundCompetitionSlug is not null %}
+                    <p class="small text-muted mb-2">{{ solved_puzzle.roundName }}</p>
+                    <a class="btn btn-sm btn-outline-primary"
+                       href="{{ solved_puzzle.roundSeriesSlug is not null
+                           ? path('edition_round_results', {seriesSlug: solved_puzzle.roundSeriesSlug, editionSlug: solved_puzzle.roundCompetitionSlug, roundSlug: solved_puzzle.roundSlug})
+                           : path('event_round_results', {slug: solved_puzzle.roundCompetitionSlug, roundSlug: solved_puzzle.roundSlug}) }}"
+                    >{{ 'unfinished_result.see_round_results'|trans }}</a>
+                {% endif %}
+            </section>
+        {% endif %}
+
         <div class="recap-layout-share text-center">
             <div class="time-result-recap d-inline-block">
                 <div class="button-wrapper">

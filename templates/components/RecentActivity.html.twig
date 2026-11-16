@@ -95,6 +95,8 @@
                                     >
                                         {%- if item.isSpeedMode -%}
                                             {{ item.time|puzzlingTime }}
+                                        {%- elseif item.isUnfinished -%}
+                                            {{ include('_unfinished_result_badge.html.twig', {placed: item.piecesPlaced, total: item.piecesCount, finished_later: item.finishedLaterSeconds, stacked: true}) }}
                                         {%- else -%}
                                             <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
                                         {%- endif -%}

@@ -15,6 +15,9 @@ readonly final class ActivityCalendarDay
         public int $teamCount,
         public int $firstAttemptCount,
         public int $totalSeconds,
+        // Unfinished competition results of the day (docs/features/competitions-management/unfinished-results-plan.md):
+        // no solve, but the day is active - the cell marks them apart from the solves
+        public int $unfinishedCount = 0,
     ) {
     }
 

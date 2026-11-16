@@ -13761,3 +13761,8 @@ unfinished_result:
     section: "Didn't finish within the time limit"
     your_result: "Your result"
     no_rank: "No rank - didn't finish within the time limit"
+    day_count: "Didn't finish within the time limit – %count%"
+    recap_pieces: "%placed% / %total% pieces"
+    pieces_left: "Pieces left: %count%"
+    see_round_results: "See round results"
+    notification: "competed with puzzle"

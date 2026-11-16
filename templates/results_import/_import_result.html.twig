@@ -1,0 +1,33 @@
+{#
+    What an import just did: every event with its outcome, the teams it added / changed / removed, and links to the
+    event and its results. Variables: log (ResultsImportLog), event_links (competition id => {name, slug, round_slug})
+#}
+<section class="card card-body shadow-sm border-success mb-4" id="import-result" data-results-import-result>
+    <h2 class="h5 mb-1">{{ 'results_import.result.heading'|trans }}</h2>
+    <p class="small text-muted mb-3">{{ include('results_import/_log_byline.html.twig', {log: log}) }}</p>
+
+    <ul class="list-unstyled mb-0">
+        {% for event in log.events %}
+            {% set link = event.competition_id ? (event_links[event.competition_id|lower] ?? null) : null %}
+            <li class="py-2{{ not loop.first ? ' border-top' }}" data-results-import-result-event="{{ event.key }}" data-outcome="{{ event.outcome }}">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <span class="fw-medium text-break">{{ link ? link.name : event.title }}</span>
+                        <div class="small {{ event.outcome == 'imported' or event.outcome == 'unchanged' ? 'text-muted' : 'text-danger-emphasis' }}">
+                            {{ ('results_import.outcome.' ~ event.outcome)|trans }}
+                            {%- if event.outcome == 'imported' %} · {{ 'results_import.result.teams'|trans({'%added%': event.added, '%updated%': event.updated, '%removed%': event.removed}) }}{% endif -%}
+                        </div>
+                    </div>
+                    {% if link and link.slug %}
+                        <div class="small text-nowrap">
+                            {% if link.round_slug %}
+                                <a href="{{ path('event_round_results', {slug: link.slug, roundSlug: link.round_slug}) }}" class="me-2" data-results-import-results-link>{{ 'results_import.result.open_results'|trans }}</a>
+                            {% endif %}
+                            <a href="{{ path('event_detail', {slug: link.slug}) }}">{{ 'results_import.result.open_event'|trans }}</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+</section>

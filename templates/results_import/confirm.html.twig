@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Import 3 events, 37 teams?" - the confirmation of an import from the results import page (results-import-page.md
+    "As built: PR 3"): the events about to be imported, what each adds or changes, no undo (P3). The form carries the
+    import id minted here - sent twice, it imports nothing twice. Variables: organization, source_id, overview
+    (ResultsImportOverview), events (list<ResultsImportEvent>), team_count, import_id
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set back_url = path('results_import', {slug: organization.slug, sourceId: source_id}) %}
+{% set events_text = 'results_import.confirm.events'|trans({'%count%': events|length}) %}
+{% set teams_text = 'results_import.list.teams'|trans({'%count%': team_count}) %}
+
+{% block title %}{{ 'results_import.confirm.title'|trans }} - {{ organization.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: organization.name, url: path('organization_detail', {slug: organization.slug})},
+        {label: 'results_import.title'|trans, url: back_url},
+        {label: 'results_import.confirm.title'|trans},
+    ]}) }}
+
+    <div class="results-import pb-4" data-results-import-confirm>
+        <h1 class="h3 mb-3" data-results-import-confirm-heading>{{ 'results_import.confirm.heading'|trans({'%events%': events_text, '%teams%': teams_text}) }}</h1>
+
+        <ul class="list-group shadow-sm mb-3">
+            {% for item in events %}
+                <li class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2" data-results-import-confirm-event="{{ item.event.key }}">
+                    <div class="min-w-0">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            {{ include('results_import/_status_badge.html.twig', {status: item.status}) }}
+                            <span class="fw-medium text-break">{{ item.event.eventName ?? item.event.title }}</span>
+                        </div>
+                        <div class="small text-muted">
+                            {%- if item.event.localStartsAt %}{{ item.event.localStartsAt|events_date('yMMMd') }} · {% endif -%}
+                            {{ 'results_import.list.teams'|trans({'%count%': item.teamCount}) }}
+                            {%- if item.status.value == 'changed' %} · {{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}{% endif -%}
+                            {%- if item.warnings is not empty %} · <span class="text-warning-emphasis">{{ 'results_import.list.warnings'|trans({'%count%': item.warnings|length}) }}</span>{% endif -%}
+                        </div>
+                    </div>
+                    <a class="small" href="{{ path('results_import_event', {slug: organization.slug, sourceId: source_id, eventKey: item.event.key, check: overview.checkId}) }}">{{ 'results_import.list.preview'|trans }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <div class="alert alert-light border small" role="note" data-results-import-no-undo>
+            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'results_import.confirm.no_undo'|trans }}
+        </div>
+
+        <form method="post" action="{{ path('results_import_import', {slug: organization.slug, sourceId: source_id}) }}" class="d-flex flex-wrap gap-2" data-results-import-confirm-form>
+            <input type="hidden" name="_token" value="{{ csrf_token('results_import_import_' ~ source_id) }}">
+            <input type="hidden" name="import" value="{{ import_id }}">
+            <input type="hidden" name="check" value="{{ overview.checkId }}">
+            {% for item in events %}
+                <input type="hidden" name="events[]" value="{{ item.event.key }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-primary" data-results-import-confirm-button>{{ 'results_import.confirm.button'|trans({'%count%': events|length}) }}</button>
+            <a class="btn btn-outline-secondary" href="{{ back_url }}">{{ 'results_import.confirm.cancel'|trans }}</a>
+        </form>
+    </div>
+{% endblock %}

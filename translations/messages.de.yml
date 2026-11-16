@@ -13543,10 +13543,12 @@ results_import:
             example: "Beispiel"
     title: "Ergebnisimport"
     meta_title: "Ergebnisimport - %organization%"
-    intro: "Prüfe deine Ergebnistabelle und sieh jedes Event darin - was neu ist, was sich geändert hat und was korrigiert werden muss. Von dieser Seite wird nichts veröffentlicht."
+    intro: "Prüfe deine Ergebnistabelle und sieh jedes Event darin - was neu ist, was sich geändert hat und was korrigiert werden muss - und importiere dann die, die fertig sind. Nichts wird veröffentlicht, bevor du bestätigst."
     pieces_placed: "%placed% Teile"
     flash:
         try_again: "Das hat nicht geklappt - bitte versuche es noch einmal."
+        newer_check: "Deine Tabelle wurde inzwischen erneut geprüft - sieh dir die neueste Prüfung an und hake erneut an."
+        nothing_ticked: "Hake mindestens ein Event zum Importieren an."
     guide:
         title: "So muss deine Tabelle aussehen"
     sources:
@@ -13658,3 +13660,31 @@ results_import:
             date: "-"
             start_time: "Keine Startzeit"
             time_limit: "Kein Zeitlimit"
+    import:
+        button: "Angehakte Events importieren"
+        hint: "Neue und geänderte Events sind angehakt. Bevor etwas veröffentlicht wird, siehst du eine Zusammenfassung."
+        nothing_to_import: "Gerade gibt es nichts zu importieren - jedes Event ist schon importiert oder wartet auf etwas in deiner Tabelle."
+    confirm:
+        title: "Ergebnisse importieren"
+        heading: "%events%, %teams% importieren?"
+        events: "%count% Event|%count% Events"
+        no_undo: "Das lässt sich nicht rückgängig machen: Nach dem Import sind die Ergebnisse auf MySpeedPuzzling öffentlich. Um später etwas zu korrigieren, ändere deine Tabelle, prüfe sie erneut und importiere das Event noch einmal."
+        button: "%count% Event importieren|%count% Events importieren"
+        cancel: "Zurück"
+    outcome:
+        imported: "Importiert"
+        unchanged: "Nichts zu ändern - schon so importiert"
+        stale: "Nicht importiert - jemand hat inzwischen eine neuere Prüfung davon importiert. Prüfe deine Tabelle erneut."
+        not_imported: "Nicht importiert - es ist noch nicht fertig. Prüfe deine Tabelle erneut, um zu sehen, warum."
+        not_in_check: "Nicht importiert - es ist nicht mehr in dieser Prüfung."
+        failed: "Nicht importiert - etwas ist schiefgegangen, nichts davon wurde geändert. Bitte versuche es noch einmal."
+    result:
+        heading: "Import abgeschlossen"
+        teams: "Teams: %added% neu, %updated% geändert, %removed% entfernt"
+        open_results: "Ergebnisse"
+        open_event: "Event"
+    history:
+        heading: "Letzte Importe"
+        byline: "%when% von %name%"
+        byline_without_name: "%when%"
+        events: "%count% Event importiert|%count% Events importiert"

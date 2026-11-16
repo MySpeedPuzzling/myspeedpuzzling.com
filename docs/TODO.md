@@ -70,6 +70,15 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [ ] Automatic weekly sync once Sarah's results are in and runs are steady (promised to her, F204, ~4 Dec)
 - [ ] Later: venue series (D8), solo events, per-team claim codes, start time on organizer pages
 
+## Results import page (`docs/features/event-results-import/results-import-page.md`, 2026-11-16)
+
+- [ ] Sandbox for Sarah (delivery step 4): copy her account and organization, register her source there
+- [ ] "Check sheet" has no rate limit (only the organization's team can press it) - add one if anybody hammers Google
+- [ ] An admin's sync run after a check makes that check's events stale on the page ("check again") - fine while the
+  page is the only way; revisit if the weekly sync comes
+- [ ] Unclaimed teams' names are the only "who" on the preview; a claimer is never named - keep it so if claimers are
+  ever shown there (blocklist, private profiles)
+
 ## Dependency upgrade leftovers (composer upgrade, 2026-11-16)
 
 Majors and deprecations the upgrade left on purpose - each is its own change:

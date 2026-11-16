@@ -1,0 +1,21 @@
+{#
+    The latest imports of the source - who, when, how many events and teams. Variables: history (list<ResultsImportLog>)
+#}
+<section class="mt-4" data-results-import-history>
+    <h2 class="h5 mb-2">{{ 'results_import.history.heading'|trans }}</h2>
+    <ul class="list-group shadow-sm small">
+        {% for log in history %}
+            {% set imported = log.events|filter(event => event.outcome == 'imported') %}
+            <li class="list-group-item" data-results-import-history-entry="{{ log.id }}">
+                <div>{{ include('results_import/_log_byline.html.twig', {log: log}) }}</div>
+                <div class="text-muted">
+                    {{ 'results_import.history.events'|trans({'%count%': imported|length}) }}
+                    · {{ 'results_import.result.teams'|trans({'%added%': log.teamsAdded, '%updated%': log.teamsUpdated, '%removed%': log.teamsRemoved}) }}
+                </div>
+                {% if imported is not empty %}
+                    <div class="text-muted text-break">{{ imported|map(event => event.title)|join(', ') }}</div>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</section>

@@ -13544,10 +13544,12 @@ results_import:
             example: "Ejemplo"
     title: "Importar resultados"
     meta_title: "Importar resultados - %organization%"
-    intro: "Revisa tu hoja de resultados para ver cada evento que contiene: qué es nuevo, qué cambió y qué hay que corregir. Desde esta página no se publica nada."
+    intro: "Revisa tu hoja de resultados para ver cada evento que contiene (qué es nuevo, qué cambió y qué hay que corregir) y después importa los que estén listos. No se publica nada hasta que lo confirmes."
     pieces_placed: "%placed% piezas"
     flash:
         try_again: "No ha funcionado. Inténtalo de nuevo."
+        newer_check: "Tu hoja se ha vuelto a revisar mientras tanto: mira la última revisión y vuelve a marcar."
+        nothing_ticked: "Marca al menos un evento para importar."
     guide:
         title: "Cómo debe ser tu hoja"
     sources:
@@ -13659,3 +13661,31 @@ results_import:
             date: "-"
             start_time: "Sin hora de inicio"
             time_limit: "Sin tiempo límite"
+    import:
+        button: "Importar los eventos marcados"
+        hint: "Los eventos nuevos y cambiados están marcados. Verás un resumen antes de que se publique nada."
+        nothing_to_import: "Ahora no hay nada que importar: todos los eventos ya están importados o esperan algo de tu hoja."
+    confirm:
+        title: "Importar resultados"
+        heading: "¿Importar %events%, %teams%?"
+        events: "%count% evento|%count% eventos"
+        no_undo: "No se puede deshacer: una vez importados, los resultados son públicos en MySpeedPuzzling. Para corregir algo más adelante, corrige tu hoja, vuelve a revisarla e importa el evento de nuevo."
+        button: "Importar %count% evento|Importar %count% eventos"
+        cancel: "Volver"
+    outcome:
+        imported: "Importado"
+        unchanged: "Nada que cambiar: ya estaba importado así"
+        stale: "No importado: alguien importó mientras tanto una revisión más reciente. Vuelve a revisar tu hoja."
+        not_imported: "No importado: aún no está listo. Vuelve a revisar tu hoja para ver por qué."
+        not_in_check: "No importado: ya no está en esta revisión."
+        failed: "No importado: algo salió mal y no cambió nada. Inténtalo de nuevo."
+    result:
+        heading: "Importación terminada"
+        teams: "Equipos: %added% nuevos, %updated% cambiados, %removed% eliminados"
+        open_results: "Resultados"
+        open_event: "Evento"
+    history:
+        heading: "Últimas importaciones"
+        byline: "%when% por %name%"
+        byline_without_name: "%when%"
+        events: "%count% evento importado|%count% eventos importados"

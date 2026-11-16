@@ -13790,10 +13790,12 @@ results_import:
             example: "Example"
     title: "Results import"
     meta_title: "Results import - %organization%"
-    intro: "Check your results sheet to see every event in it - what is new, what changed and what needs fixing. Nothing is published from this page."
+    intro: "Check your results sheet to see every event in it - what is new, what changed and what needs fixing - then import the ones that are ready. Nothing is published before you confirm."
     pieces_placed: "%placed% pcs"
     flash:
         try_again: "That did not work - please try again."
+        newer_check: "Your sheet was checked again meanwhile - look at the latest check and tick again."
+        nothing_ticked: "Tick at least one event to import."
     guide:
         title: "How your sheet must look"
     sources:
@@ -13905,3 +13907,31 @@ results_import:
             date: "-"
             start_time: "No start time"
             time_limit: "No time limit"
+    import:
+        button: "Import ticked events"
+        hint: "New and changed events are ticked. You see a summary before anything is published."
+        nothing_to_import: "Nothing to import right now - every event is imported already, or waits for something in your sheet."
+    confirm:
+        title: "Import results"
+        heading: "Import %events%, %teams%?"
+        events: "%count% event|%count% events"
+        no_undo: "There is no undo: once imported, the results are public on MySpeedPuzzling. To correct something later, fix your sheet, check it again and import the event again."
+        button: "Import %count% event|Import %count% events"
+        cancel: "Back"
+    outcome:
+        imported: "Imported"
+        unchanged: "Nothing to change - imported like this already"
+        stale: "Not imported - somebody imported a newer check of it meanwhile. Check your sheet again."
+        not_imported: "Not imported - it is not ready yet. Check your sheet again to see why."
+        not_in_check: "Not imported - it is no longer in this check."
+        failed: "Not imported - something went wrong and nothing of it changed. Please try again."
+    result:
+        heading: "Import done"
+        teams: "Teams: %added% new, %updated% changed, %removed% removed"
+        open_results: "Results"
+        open_event: "Event"
+    history:
+        heading: "Latest imports"
+        byline: "%when% by %name%"
+        byline_without_name: "%when%"
+        events: "%count% event imported|%count% events imported"

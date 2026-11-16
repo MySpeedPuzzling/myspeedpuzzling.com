@@ -217,12 +217,32 @@ final class ImportAddListTest extends WebTestCase
         self::assertCount(1, $this->browser->request('GET', '/en/import/' . $importId . '/to-fix')->filter('[data-testid="import-to-fix-left-out-row"]'));
 
         // ---- "Put back" ----
+        $rowsBefore = self::rowIds($crawler);
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back', 'row' => $meadow]);
         self::assertResponseStatusCodeSame(303);
+        self::assertResponseRedirects($path . '?page=1&back=' . $meadow . '#row-' . $meadow);
         self::assertSame(['waiting', null], $this->database->fetchNumeric("SELECT state, answers ->> 'leftOut' FROM data_import_row WHERE id = :id", ['id' => $meadow]));
-        $this->matched($importId, $puzzles);
-        $crawler = $this->browser->request('GET', $path);
+        // Its puzzle is matched again in a moment (the worker): until then the row stands IN ITS PLACE as "coming
+        // back" - it never vanishes -, the count is what an Add would take now, and the page asks again by itself
+        $crawler = $this->browser->followRedirect();
         self::assertStringStartsWith('Put back.', self::spaced($crawler->filter('[data-testid="import-add-list-flash"]')->text()));
+        self::assertSame($rowsBefore, self::rowIds($crawler), 'the same rows, in the same order');
+        $coming = self::row($crawler, $meadow);
+        self::assertSame('coming-back', $coming->attr('data-state'));
+        self::assertNotNull($coming->attr('data-import-coming-back'));
+        self::assertStringStartsWith('Put back.', self::spaced($coming->filter('[data-testid="import-add-list-coming-back"]')->text()));
+        self::assertCount(0, $coming->filter('button'));
+        self::assertCount(4, $crawler->filter('[data-testid="import-add-list-row"][data-state="ready"]'));
+        // The same address again once its puzzle is matched: the row as it was, ticked, and the count with it
+        $this->matched($importId, $puzzles);
+        $again = $this->browser->request('GET', $path . '?page=1&back=' . $meadow);
+        self::assertSame($rowsBefore, self::rowIds($again));
+        self::assertSame('ready', self::row($again, $meadow)->attr('data-state'));
+        self::assertCount(0, $again->filter('[data-import-coming-back]'));
+        self::assertCount(5, $again->filter('[data-testid="import-add-list-row"][data-state="ready"]'));
+        // A row that is not put back is never shown as coming back by its id in an address
+        self::assertCount(0, $this->browser->request('GET', $path . '?back=' . $this->rowIdOn($importId, 'Older', 2))->filter('[data-import-coming-back]'));
+        $crawler = $this->browser->request('GET', $path);
         self::assertCount(5, $crawler->filter('[data-testid="import-add-list-row"][data-state="ready"]'));
         self::assertSame(['5', '5'], $this->reviewCounts($importId));
 
@@ -244,7 +264,7 @@ final class ImportAddListTest extends WebTestCase
         self::assertSame(['2', '2'], $this->reviewCounts($importId));
         $harbour = $this->rowIdOn($importId, 'Older', 2);
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back', 'row' => $harbour, 'q' => 'harbour']);
-        self::assertResponseRedirects($path . '?q=harbour&page=1#row-' . $harbour);
+        self::assertResponseRedirects($path . '?q=harbour&page=1&back=' . $harbour . '#row-' . $harbour);
         $this->matched($importId, $puzzles);
         self::assertSame(['3', '3'], $this->reviewCounts($importId));
 

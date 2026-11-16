@@ -125,6 +125,8 @@ const { default: AnswersController } = await import('../assets/controllers/data_
 
 const application = Application.start(window.document.documentElement);
 application.register('data-import-answers', AnswersController);
+const { default: TimesFrameController } = await import('../assets/controllers/data_import_times_frame_controller.js');
+application.register('data-import-times-frame', TimesFrameController);
 
 const settle = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -351,11 +353,11 @@ const scenarios = {
         await settle();
         world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${line()}`));
         await settle();
-        const under = { scrolledBy: [...world.scrolledBy], padding: document.documentElement.style.scrollPaddingBottom, room: document.querySelector('[data-controller]').style.paddingBottom, focused: focused() };
+        const under = { scrolledBy: [...world.scrolledBy], padding: document.documentElement.style.scrollPaddingBottom, room: document.body.style.paddingBottom, said: document.documentElement.style.getPropertyValue('--import-said-height'), focused: focused() };
         document.querySelector('[data-close]').focus();
         tap('[data-close]');
         await settle();
-        const closed = { focused: focused(), padding: document.documentElement.style.scrollPaddingBottom, room: document.querySelector('[data-controller]').style.paddingBottom };
+        const closed = { focused: focused(), padding: document.documentElement.style.scrollPaddingBottom, room: document.body.style.paddingBottom };
         // In view already (300-344): nothing moves
         await mount();
         document.getElementById('two').setAttribute('data-height', '44');
@@ -416,6 +418,74 @@ const scenarios = {
         }
 
         return moved;
+    },
+    // "What will be added" (the list's frame, data_import_times_frame_controller.js): "Put back" brings the frame
+    // with the row "coming back" in its place - the frame is asked for again by itself until the row is ready, and
+    // focus stays with the row all along
+    async comingBack() {
+        const reloads = [];
+        const frameWith = (row) => `<div id="row-a" data-row>${row}</div><div id="row-b"><form data-turbo-frame="import-add-list"><button data-other>Don't import</button></form></div><div data-import-fixed-bar data-height="120"><p role="status">Put back.</p></div>`;
+        document.body.innerHTML = `<div data-controller="data-import-times-frame" data-data-import-times-frame-ask-again-ms-value="30">
+            <turbo-frame id="import-add-list">${frameWith('<form data-turbo-frame="import-add-list"><button data-back>Put back</button></form>')}</turbo-frame></div>`;
+        await settle();
+        const frame = document.getElementById('import-add-list');
+        frame.reload = () => { reloads.push(frame.innerHTML.includes('data-import-coming-back') ? 'coming' : 'ready'); };
+        const render = (html) => {
+            frame.innerHTML = html;
+            frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
+        };
+        const room = frame.style.paddingBottom;
+
+        document.querySelector('[data-back]').focus();
+        document.querySelector('#row-a form').dispatchEvent(new window.CustomEvent('turbo:submit-start', { bubbles: true }));
+        // The server's frame right after "Put back": the row is not ready again yet
+        render(frameWith('<span data-import-coming-back-text>Put back. It is in the list again…</span>').replace('id="row-a" data-row', 'id="row-a" data-row data-import-coming-back'));
+        const coming = { focused: focused(), there: document.getElementById('row-a') !== null };
+        await settle();
+        const asked = reloads.length;
+        // Asked again: still coming back - then ready, with its tick box
+        render(frame.innerHTML);
+        await settle();
+        const askedTwice = reloads.length;
+        render(frameWith('<form data-turbo-frame="import-add-list"><button data-tick>Don\'t import</button></form>'));
+        const ready = focused();
+        await settle(120);
+
+        return { room, coming, asked, askedTwice, reloads: reloads.length, ready };
+    },
+    // A sheet (or the whole file) that is put back is "being read again": the frame is asked for again like for a
+    // row - twelve times at most; then nothing turns any more and the page says it takes longer
+    async readAgain() {
+        let reloads = 0;
+        const html = `<div role="status" data-import-reading-again data-top="59">Your file is being read again<span data-import-waiting-spinner></span></div>
+            <div id="row-x" data-import-coming-back><span data-import-waiting-spinner></span><span data-import-usually-at-once>usually at once</span><span hidden data-import-taking-longer>This is taking longer. <a href="/list">Refresh</a></span></div>`;
+        document.body.innerHTML = `<div data-controller="data-import-times-frame" data-data-import-times-frame-ask-again-ms-value="5">
+            <turbo-frame id="import-add-list"><form data-turbo-frame="import-add-list"><button data-back>Put back</button></form></turbo-frame></div>`;
+        await settle();
+        const frame = document.getElementById('import-add-list');
+        const render = (content) => {
+            frame.innerHTML = content;
+            frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
+        };
+        frame.reload = () => {
+            reloads += 1;
+            render(html.replace(' data-import-coming-back', reloads < 0 ? '' : ' data-import-coming-back'));
+        };
+        world.scrolledBy = [];
+        document.querySelector('[data-back]').focus();
+        document.querySelector('form').dispatchEvent(new window.CustomEvent('turbo:submit-start', { bubbles: true }));
+        render(html.replace('<div id="row-x" data-import-coming-back>', '<div id="row-x" hidden>'));
+        const first = { focused: focused(), scrolledBy: [...world.scrolledBy] };
+        await settle(400);
+
+        return {
+            first,
+            reloads,
+            focused: focused(),
+            spinners: frame.querySelectorAll('[data-import-waiting-spinner]').length,
+            longer: frame.querySelector('[data-import-taking-longer]').hasAttribute('hidden'),
+            atOnce: frame.querySelector('[data-import-usually-at-once]').hasAttribute('hidden'),
+        };
     },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {

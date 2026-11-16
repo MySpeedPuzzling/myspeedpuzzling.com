@@ -1050,7 +1050,11 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $streams = self::streams($this->browser);
         $pile = $streams['import-pile']['part'];
         self::assertSame(['replace', 'morph'], [$streams['import-pile']['action'], $streams['import-pile']['method']]);
-        self::assertSame('2 matched.', self::spaced($pile->filter('[data-testid="import-pile-notice"][data-type="success"]')->text()));
+        // Said where every answer is said - the line that stays in view; no "Undo the last one" for a set
+        self::assertCount(0, $pile->filter('[data-testid="import-pile-notice"]'));
+        self::assertSame('2 matched.', self::spaced($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-message"][data-type="success"] [data-testid="import-answer-said-text"]')->text()));
+        self::assertCount(0, $streams['import-answer-said']['part']->filter('[data-testid="import-answer-undo"]'));
+        self::assertCount(1, $streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-close"]'));
         self::assertNotNull($pile->filter('#import-pile')->attr('data-import-answers-show'));
         self::assertCount(0, $pile->filter('[data-testid="import-puzzle-tile"]'));
         // The address of the screen that took the place: loading the page again shows this screen
@@ -1118,18 +1122,21 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $streams = self::streams($this->browser);
         self::assertSame(['import-pile', 'import-answer-said'], array_keys($streams));
         $pile = $streams['import-pile']['part'];
-        self::assertStringContainsString('2 puzzles kept just for you.', $pile->filter('[data-testid="import-pile-notice"][data-type="success"]')->text());
-        self::assertSame('/en/unlisted-puzzles', $pile->filter('[data-testid="import-pile-notice"] [data-testid="import-kept-where"] a')->attr('href'));
+        // What it did is in the line that stays in view, like every answer: the sentence, where the kept ones will be, no Undo
+        self::assertCount(0, $pile->filter('[data-testid="import-pile-notice"]'));
+        $said = $streams['import-answer-said']['part'];
+        self::assertSame('2 puzzles kept just for you. Where do I find it?', self::spaced($said->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertSame('/en/unlisted-puzzles', $said->filter('a[data-testid="import-kept-where"]')->attr('href'));
+        self::assertCount(0, $said->filter('[data-testid="import-answer-undo"]'));
         self::assertCount(1, $pile->filter('[data-testid="import-pile-nothing-left"]'));
         self::assertCount(0, $pile->filter('[data-testid="import-pile-answer"]'));
         self::assertSame('false', $pile->filter('#import-pile')->attr('data-step-done'));
         self::assertSame($base . '/puzzles', $pile->filter('[data-testid="import-flow-continue"]')->attr('href'));
-        self::assertSame('', trim($streams['import-answer-said']['html']));
         self::assertSame(3, $this->decidedByThePlayer($importId));
 
         // Sent again: nothing waits in the pile - nothing changes, and the screen says so
         $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'all_in_pile', 'pile' => 'not-found', 'choice' => 'left_out', 'revision' => $revision], server: self::AS_TURBO);
-        self::assertStringContainsString('Nothing was changed.', self::streams($this->browser)['import-pile']['part']->filter('[data-testid="import-pile-notice"][data-type="info"]')->text());
+        self::assertStringContainsString('Nothing was changed.', self::streams($this->browser)['import-answer-said']['part']->filter('[data-testid="import-answer-said-message"][data-type="info"]')->text());
         self::assertSame('unlisted', $this->choices($importId)['Zq9s Nobody Knows Qxv 2'][0]);
 
         // A list: "Wrong puzzle" on a matched card - the card where it stands, and the list's count

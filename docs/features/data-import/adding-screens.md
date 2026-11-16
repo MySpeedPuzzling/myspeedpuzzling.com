@@ -297,7 +297,20 @@ frame, the list and its bar are swapped and the page stays where it is. An answe
 last sheet went and nothing can be added any more → "Where you are") becomes a full visit
 (`data_import_times_frame_controller.js`). What the tap did is said **in the list's sticky bar** (inside the frame),
 not above the list - a notice at the top moved every row under the finger. After the swap focus goes back to the same
-row's control (or, when the row is gone, to that notice) - `data_import_times_frame_controller.js`. A file without sheets has one sheet
+row's control (or, when the row is gone, to that notice) - `data_import_times_frame_controller.js`.
+
+**"Put back" never makes the row vanish.** A row that is put back is read again at once, but it is ready (an "Add"
+takes it) only when its puzzle is matched again - `BuildImportPuzzles` on the worker, a moment later. The redirect
+names the row (`?back=<row id>`); while that row waits, `ImportAddListController` reads it by its id and the list
+shows it **in its place** as "coming back" (`data-import-coming-back`, no buttons), and the script asks for the
+frame again every 1.5 s (12 times at most) until the row is ready: then it has its tick box again and "N will be
+added" counts it - without a reload. A sheet (or the whole file) that is put back is "being read again"
+(`data-import-reading-again`) and is asked for the same way. After the twelfth time nothing turns any more: the
+row says "This is taking longer." with "Refresh". Focus stays on the row (or the notice, brought below the header)
+all along. Only a waiting row of the import is ever shown by `back`.
+
+The list's bar ("N will be added", the notice) is **fixed to the bottom of the window**; the frame keeps the bar's
+real height free under the list (the script measures it; 10 rem without a script). A file without sheets has one sheet
 without a name: "The rows of the whole file are not imported." / "Yes, don't import this file". Right after a
 sheet was set to "not imported" the bar offers **Put back** (`put_back_sheet`: the same one-tap change, back to the
 kind the sheet had - carried in a flash of its own, `FLASH_SHEET`; the sheet's rows are read again).

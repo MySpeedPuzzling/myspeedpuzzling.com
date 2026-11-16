@@ -13074,6 +13074,7 @@ data_import:
         no_hit: "Žádný řádek s takovým puzzle."
         reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         reading_again_file: "Váš soubor se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        taking_longer: "Trvá to déle."
         refresh: "Obnovit"
         flash:
             left_out: "Neimportuje se. Tlačítkem „Vrátit“ řádek zase přidáte."

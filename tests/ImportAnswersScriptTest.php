@@ -133,7 +133,8 @@ final class ImportAnswersScriptTest extends TestCase
 
         // The next card's button stood at 650-694 of 700 px, the line is 90 px: the page keeps room for the line
         // and scrolls by what brings the button above it (694 - (700 - 90 - 8)), no more
-        self::assertSame(['scrolledBy' => [92], 'padding' => '98px', 'room' => '90px', 'focused' => 'two button Yes, this is it'], self::at($room, 'under'));
+        // (the line is fixed to the window: the page itself is that much longer, and a sticky bar stands on the line)
+        self::assertSame(['scrolledBy' => [92], 'padding' => '98px', 'room' => '90px', 'said' => '90px', 'focused' => 'two button Yes, this is it'], self::at($room, 'under'));
         // "Close": the room is given back and focus returns to that button - not to the page
         self::assertSame(['focused' => 'two button Yes, this is it', 'padding' => '', 'room' => ''], self::at($room, 'closed'));
         // A button that is in view already: nothing moves
@@ -156,6 +157,29 @@ final class ImportAnswersScriptTest extends TestCase
         self::assertSame(['scrolledBy' => [290], 'focused' => $focused], self::at($fits, 'taller'));
         // It fits where it stands: nothing moves
         self::assertSame(['scrolledBy' => [], 'focused' => $focused], self::at($fits, 'fits'));
+    }
+
+    public function testARowThatIsPutBackStaysInItsPlaceAndThePageAsksAgainUntilItIsReady(): void
+    {
+        ['comingBack' => $back, 'readAgain' => $again] = $this->scenarios(['comingBack', 'readAgain']);
+
+        // A sheet (or the file) "being read again": its notice takes focus, brought below the site's header (it
+        // stood at 59 px; header 101 + 20), and the frame is asked for again - twelve times, not one more
+        self::assertSame(['focused' => 'import-add-list div Your file is being read again', 'scrolledBy' => [-62]], self::at($again, 'first'));
+        self::assertSame(12, $again['reloads']);
+        // Then nothing turns any more, and the row that is still coming back says so - focus on its "Refresh"
+        self::assertSame([0, false, true], [$again['spinners'], $again['longer'], $again['atOnce']]);
+        self::assertSame('row-x a Refresh', $again['focused']);
+
+        // The frame keeps room for its bar, which is fixed to the bottom of the window (120 px + 16)
+        self::assertSame('136px', $back['room']);
+        // Right after "Put back" the row is there, "coming back", and focus is on it - not on the page
+        self::assertSame(['focused' => 'row-a div Put back. It is in the list again…', 'there' => true], self::at($back, 'coming'));
+        // The frame is asked for again, and again while the row is still coming back ...
+        self::assertSame([1, 2], [$back['asked'], $back['askedTwice']]);
+        // ... and not any more once the row is ready: focus is on its tick box
+        self::assertSame(2, $back['reloads']);
+        self::assertSame("row-a button Don't import", $back['ready']);
     }
 
     public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void

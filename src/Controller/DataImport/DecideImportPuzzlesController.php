@@ -205,7 +205,7 @@ final class DecideImportPuzzlesController extends AbstractController
             $next = $this->redirectToRoute('data_import_puzzle_group', array_filter(['importId' => $importId, 'group' => 'probably', 'part' => GetImportPuzzleScreen::PART_SAME, 'after' => $last], static fn (mixed $value): bool => $value !== null));
 
             if ($inPlace) {
-                return $this->shown($request, ['part' => GetImportPuzzleScreen::PART_SAME, 'after' => $last] + $where, ['type' => 'success', 'text' => $text], $next, several: true, fresh: true);
+                return $this->shown($request, ['part' => GetImportPuzzleScreen::PART_SAME, 'after' => $last] + $where, ['type' => 'success', 'text' => $text], $next, fresh: true);
             }
 
             $this->addFlash('success', $text);
@@ -277,7 +277,7 @@ final class DecideImportPuzzlesController extends AbstractController
      * @param array{screen: string, importId: string, playerId: string, puzzle: string, group: string, page: int, part: null|string, after: null|string, inPile: bool, flow: null|string, done: int, last?: string} $where
      * @param array{type: string, text: string, kept?: bool, undo?: null|array{screen: string, importId: string, playerId: string, puzzle: string, group: string, page: int, part: null|string, after: null|string, inPile: bool, flow: null|string, done: int, last?: string}} $said
      */
-    private function shown(Request $request, array $where, array $said, Response $otherwise, bool $several = false, bool $fresh = false): Response
+    private function shown(Request $request, array $where, array $said, Response $otherwise, bool $fresh = false): Response
     {
         $importId = $where['importId'];
         $playerId = $where['playerId'];
@@ -303,7 +303,7 @@ final class DecideImportPuzzlesController extends AbstractController
             assert($overview instanceof ImportPuzzlesOverview);
             $pile['list_open'] = $where['inPile'];
             $pile['fresh'] = $fresh;
-            $pile['notices'] = $several ? [$said] : [];
+            $pile['notices'] = [];
         } elseif (Uuid::isValid($where['puzzle']) === false) {
             return $otherwise;
         } elseif ($where['screen'] === self::ON_CHOOSER) {
@@ -358,8 +358,9 @@ final class DecideImportPuzzlesController extends AbstractController
             'group' => $where['group'],
             'page' => $where['page'],
             'counts' => $counts,
-            // One answer for several is said on the screen itself; the line that stays in view is then cleared
-            'said' => $several ? null : [
+            // Every answer is said in the line that stays in view - ONE place to look; one answer for several has
+            // no "Undo the last one" there (each puzzle is taken back on its card)
+            'said' => [
                 'type' => $said['type'],
                 'text' => $said['text'],
                 'kept' => $said['kept'] ?? false,
@@ -488,11 +489,19 @@ final class DecideImportPuzzlesController extends AbstractController
 
                 return $this->render('data_import/_puzzles_answer.stream.html.twig', [
                     'import_id' => $importId,
-                    'pile' => ['notices' => $notices, 'fresh' => true] + $screen,
+                    'pile' => ['notices' => [], 'fresh' => true] + $screen,
                     'chooser' => null,
                     'card' => null,
                     'counts' => null,
-                    'said' => null,
+                    // What the answer did, in the line that stays in view like every other answer - text only
+                    'said' => [
+                        'type' => $notices[0]['type'],
+                        'text' => implode(' ', array_map(static fn (array $notice): string => $notice['text'], $notices)),
+                        'kept' => $notices[0]['kept'] ?? false,
+                        'undo' => null,
+                        'import_id' => $importId,
+                        'step_done' => false,
+                    ],
                 ]);
             }
         }

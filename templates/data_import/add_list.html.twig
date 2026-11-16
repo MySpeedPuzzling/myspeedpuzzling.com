@@ -15,6 +15,25 @@
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 {% set here = {importId: import.importId}|merge(filters) %}
+{% set coming_back = coming_back|default(null) %}
+
+{# A row that was just put back and is not ready again yet: in its place, saying so - the page asks again by itself
+   (data_import_times_frame_controller.js) until the row is ready; it never vanishes from under the finger #}
+{% macro coming(row) %}
+    <div class="card card-body shadow-sm p-2 border-primary" id="row-{{ row.rowId }}" data-testid="import-add-list-row" data-row-id="{{ row.rowId }}" data-state="coming-back" data-import-coming-back>
+        <div class="d-flex align-items-start gap-2">
+            <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="min-width: 44px; min-height: 44px;"><span class="spinner-border spinner-border-sm text-primary" aria-hidden="true" data-import-waiting-spinner></span></span>
+            <div class="flex-grow-1" style="min-width: 0;">
+                {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                <div class="fs-sm fw-medium mt-1" role="status" data-testid="import-add-list-coming-back">
+                    <span data-import-usually-at-once>{{ 'data_import.add_list.flash.put_back'|trans }}</span>
+                    {# Shown by the script when it stops asking: nothing turns for ever #}
+                    <span hidden data-import-taking-longer data-testid="import-add-list-taking-longer">{{ 'data_import.add_list.taking_longer'|trans }} <a href="{{ app.request.requestUri }}" class="d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a></span>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
 {% set change_url = path('data_import_add_list_change', {importId: import.importId}) %}
 {% set filtered = filters.q is defined or filters.makes is defined %}
 
@@ -30,11 +49,11 @@
     {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.dont_import'|trans, testid: 'import-explain-dont-import'}, with_context = false) }}
 
     {# The list and its bar are one frame: a "Don't import" swaps them and leaves the page where it is #}
-    <turbo-frame id="import-add-list" target="_top" data-testid="import-add-list" data-total="{{ total }}" data-will-add="{{ add.toAdd }}" data-rows-taken="{{ add.rowsTaken }}">
+    <turbo-frame id="import-add-list" target="_top" style="display: block; padding-bottom: 10rem;" data-testid="import-add-list" data-total="{{ total }}" data-will-add="{{ add.toAdd }}" data-rows-taken="{{ add.rowsTaken }}">
         {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
            it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
         {% if add.sheetsNotSetUp > 0 %}
-            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again">
+            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again" data-import-reading-again>
                 <span>{{ (import.fileName matches '/\\.(csv|tsv|txt)$/i' ? 'data_import.add_list.reading_again_file' : 'data_import.add_list.reading_again')|trans }}</span>
                 <a href="{{ path('data_import_add_list', here|merge({page: page})) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
             </div>
@@ -84,7 +103,9 @@
             {% endif %}
         </form>
 
-        {% if rows is empty %}
+        {% if rows is empty and coming_back is not null %}
+            <div class="d-flex flex-column gap-2">{{ _self.coming(coming_back) }}</div>
+        {% elseif rows is empty %}
             <p class="text-muted" data-testid="import-add-list-none">{{ (filters.q is defined ? 'data_import.add_list.no_hit' : 'data_import.add_list.empty')|trans }}</p>
         {% else %}
             {# A search that narrowed the list to the rows of one puzzle: one tap for all of them #}
@@ -100,9 +121,21 @@
             {% endif %}
 
             {% set current_sheet = null %}
+            {% set current_title = null %}
+            {% set coming_placed = coming_back is null %}
+            {% set coming_sheet = coming_back is null ? null : (coming_back.said.sheetTitle ?? '') %}
+            {% if not coming_placed and rows|filter(item => item.sheetTitle == coming_sheet)|length == 0 %}
+                {# None of its sheet's rows is on this page: above the list #}
+                <div class="d-flex flex-column gap-2 mt-3">{{ _self.coming(coming_back) }}</div>
+                {% set coming_placed = true %}
+            {% endif %}
             {% for item in rows %}
                 {% if item.sheetId != current_sheet %}
-                    {% if current_sheet is not null %}</div>{% endif %}
+                    {% if current_sheet is not null %}
+                        {% if not coming_placed and current_title == coming_sheet %}{{ _self.coming(coming_back) }}{% set coming_placed = true %}{% endif %}
+                        </div>
+                    {% endif %}
+                    {% set current_title = item.sheetTitle %}
                     {% set current_sheet = item.sheetId %}
                     {% set sheet_line = sheets|filter(sheet => sheet.sheetId == item.sheetId)|first %}
                     <div class="mt-3 mb-1" data-testid="import-add-list-sheet-heading" data-sheet-id="{{ item.sheetId }}">
@@ -126,6 +159,11 @@
                         {% endif %}
                     </div>
                     <div class="d-flex flex-column gap-2" data-testid="import-add-list-rows">
+                {% endif %}
+
+                {% if not coming_placed and item.sheetTitle == coming_sheet and item.rowNumber > coming_back.said.rowNumber %}
+                    {{ _self.coming(coming_back) }}
+                    {% set coming_placed = true %}
                 {% endif %}
 
                 {# A row is its own small form: the tick box is the button. Ticked = an "Add" takes it; a tap unticks it
@@ -179,13 +217,19 @@
                     </div>
                 </div>
             {% endfor %}
-            {% if current_sheet is not null %}</div>{% endif %}
+            {% if current_sheet is not null %}
+                {% if not coming_placed %}{{ _self.coming(coming_back) }}{% endif %}
+                </div>
+            {% endif %}
 
             {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_add_list', parameters: here, label: 'data_import.add_list.title'|trans}, with_context = false) }}
         {% endif %}
 
         {# The bar: what an "Add" would add now - it moves with every "Don't import" - and the way back to the button #}
-        <div class="bg-body border-top py-2 mt-3" style="position: sticky; bottom: 0; z-index: 20;" data-testid="import-add-list-bar">
+        {# Fixed at the bottom of the window (a sticky bar left with the list at the page's end); the frame keeps
+           room for it - the script sets the bar's real height #}
+        <div class="bg-body border-top py-2 px-3" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;" data-testid="import-add-list-bar" data-import-fixed-bar>
+          <div class="mx-auto" style="max-width: 720px;">
             {# What the last "Don't import" / "Put back" did: said here, in the bar that stays in view inside the
                frame - a notice at the top of the list moved every row under the finger #}
             {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
@@ -207,6 +251,7 @@
             <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-add-list-done">
                 {{ 'data_import.add_list.bar.done'|trans }}
             </a>
+          </div>
         </div>
     </turbo-frame>
 

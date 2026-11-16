@@ -81,7 +81,7 @@
             {% endfor %}
         </div>
 
-        <div class="position-sticky bottom-0 bg-body border-top pt-2 pb-1 mt-3" style="z-index: 5;" data-testid="import-grid-bar">
+        <div class="position-sticky bg-body border-top pt-2 pb-1 mt-3" style="bottom: var(--import-said-height, 0px); z-index: 5;" data-testid="import-grid-bar">
             <button type="submit" name="action" value="tick_all" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-data-import-ticks-target="button" data-testid="import-puzzle-tick-all-button">
                 <i class="bi bi-check-all me-1" aria-hidden="true"></i><span data-data-import-ticks-target="label">{{ 'data_import.puzzles.bulk.grid.confirm_plain'|trans }}</span>
             </button>

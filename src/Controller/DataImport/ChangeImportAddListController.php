@@ -99,6 +99,16 @@ final class ChangeImportAddListController extends AbstractController
             Response::HTTP_SEE_OTHER,
         );
 
+        if ($action === 'put_back' && Uuid::isValid($rowId)) {
+            // A row that is put back is ready again only when its puzzle is matched again (the worker, in a moment):
+            // the list is told which row that is, and shows it in its place meanwhile - it never vanishes
+            $back = $this->redirectToRoute(
+                'data_import_add_list',
+                ['importId' => $importId, ...$filters, 'page' => max(1, $form->getInt('page', 1)), 'back' => strtolower($rowId), '_fragment' => 'row-' . strtolower($rowId)],
+                Response::HTTP_SEE_OTHER,
+            );
+        }
+
         try {
             $flash = match ($action) {
                 'leave_out', 'put_back' => $this->row($importId, $playerId, $rowId, $action === 'leave_out'),

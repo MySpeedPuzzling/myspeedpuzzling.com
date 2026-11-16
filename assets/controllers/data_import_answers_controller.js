@@ -52,6 +52,8 @@ export default class extends Controller {
     disconnect() {
         this.element.removeEventListener('submit', this.onSubmit);
         document.documentElement.style.scrollPaddingBottom = '';
+        document.documentElement.style.removeProperty('--import-said-height');
+        document.body.style.paddingBottom = '';
     }
 
     submit(event) {
@@ -88,6 +90,8 @@ export default class extends Controller {
             .map((element) => element.id);
         // The card an answer of the line brings back ("Undo the last one"): where focus goes then
         const returns = form.getAttribute('data-import-answers-returns');
+        // The button that was tapped, by its name on the page: on a card that stays where it is focus returns to it
+        this.used = submitter === null ? null : submitter.getAttribute('data-testid');
         const held = this.hold(scope || form, submitter);
 
         if (key === null) {
@@ -289,7 +293,11 @@ export default class extends Controller {
 
         if (next !== null) {
             // Never focus on what is not in view: Enter would answer a card nobody sees
-            this.reveal(next.closest('[data-import-answers-scope]') || next, false);
+            // ... and never move anything when it is in view already (closing the line is not an answer)
+            if (!this.inView(next)) {
+                this.reveal(next.closest('[data-import-answers-scope]') || next, false);
+            }
+
             next.focus({ preventScroll: true });
         }
     }
@@ -419,12 +427,15 @@ export default class extends Controller {
                 return;
             }
 
-            const action = card.querySelector('button:not([disabled]), a[href]');
+            // A card that stayed where it is (a person, a card of a list): the button that was used, and nothing
+            // moves when it is in view - the player is looking at it. A card that moved up or came back: its first
+            // button, and the whole card - what the button answers must be seen, not only the button
+            const stayed = id === key;
+            const same = stayed && this.used ? card.querySelector(`[data-testid="${this.used}"]:not([disabled])`) : null;
+            const action = same || card.querySelector('button:not([disabled]), a[href]');
 
             if (action !== null) {
-                // Its first button or link - wholly in view, above the line that stays at the bottom
-                // The whole card - what the button answers must be seen, not only the button
-                this.reveal(card, false);
+                this.reveal(stayed ? action : card, false);
                 action.focus({ preventScroll: true });
                 this.last = id;
 
@@ -463,9 +474,19 @@ export default class extends Controller {
         const height = said === null || said.childElementCount === 0 ? 0 : Math.ceil(said.getBoundingClientRect().height);
 
         document.documentElement.style.scrollPaddingBottom = height > 0 ? `${height + 8}px` : '';
-        this.element.style.paddingBottom = height > 0 ? `${height}px` : '';
+        // The line is fixed to the window: the page itself is that much longer, so its end (the footer's links) is
+        // never under the line - and a bar that sticks to the bottom of the screen (the grid's) stands on it
+        document.body.style.paddingBottom = height > 0 ? `${height}px` : '';
+        document.documentElement.style.setProperty('--import-said-height', `${height}px`);
 
         return height;
+    }
+
+    inView(element) {
+        const header = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || HEADER_PX;
+        const box = element.getBoundingClientRect();
+
+        return box.top >= header && box.bottom <= window.innerHeight - this.room();
     }
 
     /**
@@ -529,7 +550,8 @@ export default class extends Controller {
             // In the line that stays in view - instead of what the answer before did, until the next answer - so it
             // is seen wherever the card is; and a card keeps its own line under its buttons
             if (said !== null) {
-                const inView = line('card shadow border-warning my-1 py-2 px-3 fs-sm fw-medium');
+                const inView = line('bg-body border-top border-warning py-2 px-3 fs-sm fw-medium text-center');
+                inView.style.pointerEvents = 'auto';
                 inView.setAttribute('role', 'alert');
                 said.replaceChildren(inView);
             }

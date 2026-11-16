@@ -123,10 +123,10 @@ The answer that is selected on a card is **the one that is stored** - never one 
 one is offered above the form with its own button; it used to pre-select its radio, which showed "That is me"
 selected on a guest). The card in place is the card a reload renders: the answer that stands is the selected one - also "It is the player
 with this code", with the code in its field, when the person is a player who is none of those offered - and a code
-that could not be taken stays in its field (`refused_code`) with its answer selected. **A typed code is never
-dropped:** typing in the field selects its answer (the script's `pick`), and the server reads a non-empty code that
-arrives beside "keep as a guest" (the answer selected by itself) as the code answer - taken, or refused with its
-notice.
+that could not be taken stays in its field (`refused_code`) with its answer selected. **The radio that is chosen wins:** typing in the code
+field selects the code answer (the script's `pick`); "keep as a guest" chosen with a code left in the field - one
+that was refused before - is a guest, and the field comes back empty. Only a code that arrives with no answer at
+all is read as the code answer.
 
 ### Suggestions
 

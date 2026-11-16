@@ -234,9 +234,9 @@ final class ImportPeopleScreenTest extends WebTestCase
             self::assertSame('guest', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $personId]));
         }
 
-        // A code typed while "keep as a guest" is still the selected answer is the code answer - refused here, with
-        // the typed code kept in its field and its answer selected; never silently saved as a guest
-        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#zz9zz9'], server: self::AS_TURBO);
+        // A code that arrives with no answer at all is the code answer (typing a code selects its radio on the page
+        // - the script) - refused here, with the typed code kept in its field and its answer selected
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'code' => '#zz9zz9'], server: self::AS_TURBO);
         $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
         self::assertCount(1, $card->filter('[data-testid="import-person-refused"]'));
         self::assertSame('#zz9zz9', $card->filter('[data-testid="import-person-code"]')->attr('value'));
@@ -245,7 +245,15 @@ final class ImportPeopleScreenTest extends WebTestCase
 
         // ... and taken with a code somebody has: the card in place is the card a reload shows - the code in its
         // field, its answer selected
-        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#' . $other->code], server: self::AS_TURBO);
+        // The radio that is chosen wins: "keep as a guest" with the refused code still in its field is a guest - it
+        // is not refused again -, and the field comes back empty
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#zz9zz9'], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
+        self::assertCount(0, $card->filter('[data-testid="import-person-refused"]'));
+        self::assertSame(['guest', ''], [$card->attr('data-choice'), (string) $card->filter('[data-testid="import-person-code"]')->attr('value')]);
+        self::assertSame(['guest'], $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'code', 'code' => '#' . $other->code], server: self::AS_TURBO);
         $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
         $state = static fn (Crawler $card): array => [$card->attr('data-choice'), $card->attr('data-player'), $card->filter('[data-testid="import-person-code"]')->attr('value'), $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value'))];
         self::assertSame(['player', $other->id->toString(), '#' . strtoupper($other->code), ['code']], $state($card));

@@ -50,15 +50,6 @@
 
     {# The list and its bar are one frame: a "Don't import" swaps them and leaves the page where it is #}
     <turbo-frame id="import-add-list" target="_top" style="display: block; padding-bottom: 10rem;" data-testid="import-add-list" data-total="{{ total }}" data-will-add="{{ add.toAdd }}" data-rows-taken="{{ add.rowsTaken }}">
-        {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
-           it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
-        {% if add.sheetsNotSetUp > 0 %}
-            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again" data-import-reading-again>
-                <span>{{ (import.fileName matches '/\\.(csv|tsv|txt)$/i' ? 'data_import.add_list.reading_again_file' : 'data_import.add_list.reading_again')|trans }}</span>
-                <a href="{{ path('data_import_add_list', here|merge({page: page})) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
-            </div>
-        {% endif %}
-
         {# What a row makes #}
         <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="{{ 'data_import.add_list.title'|trans }}" data-testid="import-add-list-tabs">
             {% set tabs = [
@@ -244,18 +235,39 @@
             {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
                 <p class="fs-sm mb-1" role="status" data-testid="import-add-list-flash"><i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i>{{ message }}</p>
             {% endfor %}
-            {# A sheet that was just set to "not imported": put back right here, as what it was #}
-            {% for left_out in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH_SHEET')) : [] %}
-                <form action="{{ change_url }}" method="post" class="mb-2" data-turbo-frame="import-add-list" data-testid="import-add-list-sheet-put-back">
-                    <input type="hidden" name="_token" value="{{ csrf }}">
-                    <input type="hidden" name="sheet" value="{{ left_out.sheet }}">
-                    <input type="hidden" name="kind" value="{{ left_out.kind }}">
-                    {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
-                    <button type="submit" name="action" value="put_back_sheet" class="btn btn-outline-primary btn-sm text-nowrap" style="min-height: 44px;">
-                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.add_list.row.put_back'|trans }}
-                    </button>
-                </form>
-            {% endfor %}
+            {# A sheet whose reading changed (one was just set to "not puzzles", or put back) is read again in the
+               background: until it is settled none of its rows is ready, so none is listed - said, so nothing seems
+               to have gone missing. In the bar: a notice above the list moved the list under the finger each time
+               it came and went. The page asks again by itself while it stands (data_import_times_frame_controller.js) #}
+            {% if add.sheetsNotSetUp > 0 %}
+                <p class="fs-sm mb-1 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again" data-import-reading-again>
+                    <span class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-import-waiting-spinner></span>
+                    <span>{{ (import.fileName matches '/\\.(csv|tsv|txt)$/i' ? 'data_import.add_list.reading_again_file' : 'data_import.add_list.reading_again')|trans }}</span>
+                    <a href="{{ app.request.requestUri }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
+                </p>
+            {% endif %}
+            {# A sheet that was just set to "not imported" - named by the address (`left`, `was`), so the offer is
+               there on every render of this list until the player uses it or goes elsewhere: what was done, and
+               "Put back" as what the sheet was #}
+            {% if left_out_sheet|default(null) is not null %}
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2" data-testid="import-add-list-sheet-left-out">
+                    <span class="fs-sm flex-grow-1" style="min-width: 0;" role="status">
+                        <i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i>
+                        {{- left_out_sheet.title == '' ? 'data_import.add_list.flash.left_out_file'|trans : 'data_import.add_list.flash.left_out_sheet'|trans({'%title%': left_out_sheet.title}) -}}
+                    </span>
+                    {% if left_out_sheet.kind is not null %}
+                    <form action="{{ change_url }}" method="post" class="flex-shrink-0" data-turbo-frame="import-add-list" data-testid="import-add-list-sheet-put-back">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="sheet" value="{{ left_out_sheet.sheet }}">
+                        <input type="hidden" name="kind" value="{{ left_out_sheet.kind }}">
+                        {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
+                        <button type="submit" name="action" value="put_back_sheet" class="btn btn-outline-primary btn-sm text-nowrap" style="min-height: 44px;">
+                            <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.add_list.row.put_back'|trans }}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            {% endif %}
             <p class="fw-semibold mb-2" data-testid="import-add-list-will-add">{{ 'data_import.add_list.bar.will_add'|trans({'%count%': add.toAdd, '%number%': add.toAdd|format_number}) }}</p>
             <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-add-list-done">
                 {{ 'data_import.add_list.bar.done'|trans }}

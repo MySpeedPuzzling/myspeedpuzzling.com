@@ -460,9 +460,10 @@ const scenarios = {
         const html = `<div role="status" data-import-reading-again data-top="59">Your file is being read again<span data-import-waiting-spinner></span></div>
             <div id="row-x" data-import-coming-back><span data-import-waiting-spinner></span><span data-import-usually-at-once>usually at once</span><span hidden data-import-taking-longer>This is taking longer. <a href="/list">Refresh</a></span></div>`;
         document.body.innerHTML = `<div data-controller="data-import-times-frame" data-data-import-times-frame-ask-again-ms-value="5">
-            <turbo-frame id="import-add-list"><form data-turbo-frame="import-add-list"><button data-back>Put back</button></form></turbo-frame></div>`;
+            <turbo-frame id="import-add-list" src="/en/import/1/add/list?page=1&amp;left=sheet-1&amp;was=results"><form data-turbo-frame="import-add-list"><button data-back>Put back</button></form></turbo-frame></div>`;
         await settle();
         const frame = document.getElementById('import-add-list');
+        const address = frame.getAttribute('src');
         const render = (content) => {
             frame.innerHTML = content;
             frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
@@ -479,6 +480,9 @@ const scenarios = {
         await settle(400);
 
         return {
+            // Asked again at the SAME address - the one that names the sheet that was left out, so every answer
+            // offers "Put back" again
+            sameAddress: frame.getAttribute('src') === address,
             first,
             reloads,
             focused: focused(),

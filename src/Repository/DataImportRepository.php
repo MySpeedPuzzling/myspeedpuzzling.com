@@ -202,12 +202,20 @@ SQL, [
      */
     public function idsPairingStandingSince(DateTimeImmutable $since, DateTimeImmutable $readAfter, int $limit): array
     {
+        $aRunWouldLookAt = DataImportPuzzleRepository::sqlARunWouldLookAt('unlooked', 'data_import');
         /** @var list<string> $ids */
         $ids = $this->entityManager->getConnection()->executeQuery(<<<SQL
 SELECT data_import.id
 FROM data_import
 WHERE data_import.status = :status
-    AND data_import.paired_at IS NULL
+    -- ... or it did, but a puzzle is undecided, never looked at, and a run would look at it: "still looking"
+    -- without a run. Bounded by what that run changes (DataImportPuzzleRepository::sqlARunWouldLookAt())
+    AND (data_import.paired_at IS NULL OR EXISTS (
+        SELECT 1
+        FROM data_import_puzzle unlooked
+        WHERE unlooked.import_id = data_import.id
+            AND {$aRunWouldLookAt}
+    ))
     AND data_import.cells_wiped_at IS NULL
     AND data_import.pairing_requeues < :maxRequeues
     -- The pairing's own sign of life - the player's decisions and answers move last_activity_at, not this

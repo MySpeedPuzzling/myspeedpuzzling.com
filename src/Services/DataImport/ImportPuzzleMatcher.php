@@ -99,7 +99,10 @@ readonly final class ImportPuzzleMatcher
             $said = ImportPuzzleTierRules::exact($puzzle['pieces'], $manufacturerId, $hits[$puzzle['id']] ?? []);
             // "Found" is decided for the player - unless they once took exactly this pairing back ("not this puzzle",
             // remembered per key): then it stays what the rules say, undecided, with its candidates
-            $found = $said['tier'] === ImportPuzzleTier::Found && $said['puzzleId'] !== $puzzle['notThisPuzzleId'] ? $said['puzzleId'] : null;
+            // ... and never for a puzzle whose answer the player took back in this import ("the puzzle waits for you
+            // again"): an exact hit is then "Looks like a match" - the player says yes -, never matched by the rules
+            $tier = $puzzle['takenBack'] && $said['tier'] === ImportPuzzleTier::Found ? ImportPuzzleTier::Probably : $said['tier'];
+            $found = $puzzle['takenBack'] === false && $said['tier'] === ImportPuzzleTier::Found && $said['puzzleId'] !== $puzzle['notThisPuzzleId'] ? $said['puzzleId'] : null;
             // The moment of an automatic decision stays while it names the same puzzle: a page that shows it is not
             // told "somebody decided meanwhile" by every run
             $sameAsBefore = $found !== null && $puzzle['choice'] === ImportPuzzleChoice::Catalogue->value && $puzzle['puzzleId'] === $found;
@@ -107,12 +110,13 @@ readonly final class ImportPuzzleMatcher
             $results[] = [
                 'id' => $puzzle['id'],
                 'manufacturerId' => $manufacturerId,
-                'tier' => $said['tier']?->value,
+                'tier' => $tier?->value,
                 'candidates' => $said['candidates'],
                 'keepSearch' => $said['tier'] === null && $puzzle['searched'],
                 'choice' => ($found === null ? ImportPuzzleChoice::Undecided : ImportPuzzleChoice::Catalogue)->value,
                 'puzzleId' => $found,
-                'decidedAt' => $found === null ? null : ($sameAsBefore ? $puzzle['decidedAt'] ?? $nowText : $nowText),
+                // (the moment an answer was taken back stays: it is what says so to every later run)
+                'decidedAt' => $found === null ? ($puzzle['takenBack'] ? $puzzle['decidedAt'] : null) : ($sameAsBefore ? $puzzle['decidedAt'] ?? $nowText : $nowText),
                 'decidedHow' => $found === null ? null : ImportPuzzleDecidedHow::Automatic->value,
             ];
         }

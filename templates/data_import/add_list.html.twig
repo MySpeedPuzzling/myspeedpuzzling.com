@@ -35,7 +35,7 @@
            it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
         {% if add.sheetsNotSetUp > 0 %}
             <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again">
-                <span>{{ 'data_import.add_list.reading_again'|trans }}</span>
+                <span>{{ (import.fileName matches '/\\.(csv|tsv|txt)$/i' ? 'data_import.add_list.reading_again_file' : 'data_import.add_list.reading_again')|trans }}</span>
                 <a href="{{ path('data_import_add_list', here|merge({page: page})) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
             </div>
         {% endif %}

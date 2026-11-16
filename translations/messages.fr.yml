@@ -13028,6 +13028,7 @@ data_import:
         empty: "Rien n'est encore prêt à être ajouté."
         no_hit: "Aucune ligne avec ce puzzle."
         reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
+        reading_again_file: "Votre fichier est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'il n'est pas lu."
         refresh: "Actualiser"
         flash:
             left_out: "Non importée. « Remettre » fait revenir la ligne."

@@ -13033,6 +13033,7 @@ data_import:
         empty: "Todavía no hay nada listo para añadir."
         no_hit: "Ninguna fila con ese puzzle."
         reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
+        reading_again_file: "Se está leyendo de nuevo tu archivo - un momento. Sus filas no cuentan aquí hasta que esté leído."
         refresh: "Actualizar"
         flash:
             left_out: "No se importa. Con «Volver a incluir» la fila vuelve."

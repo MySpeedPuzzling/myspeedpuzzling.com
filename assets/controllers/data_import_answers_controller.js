@@ -86,6 +86,8 @@ export default class extends Controller {
         const around = scope === null ? [] : [scope.nextElementSibling, scope.previousElementSibling]
             .filter((element) => element instanceof HTMLElement && element.id !== '')
             .map((element) => element.id);
+        // The card an answer of the line brings back ("Undo the last one"): where focus goes then
+        const returns = form.getAttribute('data-import-answers-returns');
         const held = this.hold(scope || form, submitter);
 
         if (key === null) {
@@ -108,7 +110,7 @@ export default class extends Controller {
                     this.release(key);
 
                     try {
-                        this.afterStreams(key, around);
+                        this.afterStreams(key, key === null && returns ? [returns] : around);
                     } catch (error) {
                         // The answer is saved and shown: where focus went is not worth a "not saved"
                     }
@@ -286,6 +288,8 @@ export default class extends Controller {
             || this.element.querySelector('[data-import-answers-scope] button:not([disabled]), form[data-import-answer] button:not([disabled])');
 
         if (next !== null) {
+            // Never focus on what is not in view: Enter would answer a card nobody sees
+            this.reveal(next, false);
             next.focus({ preventScroll: true });
         }
     }
@@ -395,7 +399,7 @@ export default class extends Controller {
         }
 
         // The card where it stands, else the one that moved up, else the one before
-        const ids = key === null ? [] : [key, ...around];
+        const ids = key === null ? around : [key, ...around];
 
         for (const id of ids) {
             const card = document.getElementById(id);
@@ -432,8 +436,11 @@ export default class extends Controller {
         const wayOn = this.element.querySelector('#import-answer-said a.btn-primary, #import-pile a.btn-primary, #import-pile button.btn-primary:not([disabled])');
 
         if (key !== null && wayOn !== null) {
-            wayOn.scrollIntoView({ block: 'center' });
+            // From the screen's beginning (below the header) when the way on is then in view - else the way on itself
+            this.reveal(this.element.querySelector('#import-pile') || wayOn, true);
+            this.reveal(wayOn, false);
             wayOn.focus({ preventScroll: true });
+            this.last = null;
 
             return;
         }
@@ -498,26 +505,41 @@ export default class extends Controller {
             return;
         }
 
-        const line = document.createElement('div');
-        line.setAttribute('role', 'alert');
-        line.setAttribute('data-import-answers-failed', '');
-        line.setAttribute('data-testid', 'import-answer-failed');
-        line.textContent = this.failedValue;
+        const line = (className) => {
+            const element = document.createElement('div');
+            element.className = className;
+            element.setAttribute('data-import-answers-failed', '');
+            element.setAttribute('data-testid', 'import-answer-failed');
+            element.textContent = this.failedValue;
 
-        // A card says it under its own buttons. A form of the whole screen (the grid, a pile, the chooser) can be
-        // taller than the phone: there it is said in the line that stays in view
-        const said = scope.hasAttribute('data-import-answers-scope') ? null : this.element.querySelector('#import-answer-said');
+            return element;
+        };
+        const said = this.element.querySelector('#import-answer-said');
 
-        if (said !== null && !said.contains(scope)) {
-            line.className = 'card shadow border-warning my-2 py-2 px-3 fs-sm fw-medium';
-            said.replaceChildren(line);
-            this.room();
+        if (said !== null && said.contains(scope)) {
+            // "Undo the last one" itself failed: said beside it - the button stays, to be tapped again
+            const inLine = line('alert alert-warning fs-sm py-2 mt-2 mb-0');
+            inLine.setAttribute('role', 'alert');
+            scope.append(inLine);
         } else {
-            line.className = 'alert alert-warning fs-sm py-2 mt-2 mb-0';
-            scope.append(line);
+            // In the line that stays in view - instead of what the answer before did, until the next answer - so it
+            // is seen wherever the card is; and a card keeps its own line under its buttons
+            if (said !== null) {
+                const inView = line('card shadow border-warning my-1 py-2 px-3 fs-sm fw-medium');
+                inView.setAttribute('role', 'alert');
+                said.replaceChildren(inView);
+            }
+
+            if (scope.hasAttribute('data-import-answers-scope')) {
+                scope.append(line('alert alert-warning fs-sm py-2 mt-2 mb-0'));
+            }
         }
 
+        this.room();
+
         if (submitter !== null && submitter.isConnected) {
+            // The tapped button, wholly above the line - and focus back on it
+            this.reveal(submitter, false);
             submitter.focus({ preventScroll: true });
         }
     }

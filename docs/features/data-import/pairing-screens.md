@@ -265,8 +265,12 @@ overview.
   twice (so its flash is not lost);
 - no connection, a timeout (20 s), an error page (403 of a token that ran out, 422, 500) → **nothing changes**: the
   card as it was, its buttons on again, one line under them ("That did not save. Check your connection and try
-  again.", `role="alert"`), focus back on the button. For a form of the whole screen (the grid, a pile, the chooser
-  - taller than a phone) the line is put in the line that stays in view instead;
+  again."), focus back on the button, which is brought above the line at the bottom. **The failure is always said
+  in the line that stays in view** (`role="alert"`, in place of what the answer before did, until the next answer) -
+  a card keeps its own line under its buttons as well;
+- "Undo the last one" names the card it brings back (`data-import-answers-returns`): that card is brought wholly
+  above the line and its first button focused, and it is the card focus returns to on "Close". Nothing is ever
+  focused without being brought into view first - Enter must not answer a card nobody sees;
 - the last card of a screen answered: the screen's ONE way on (`#import-pile .btn-primary`, or the next step's
   button in the line) is brought into view and focused - the page got shorter under the player;
 - "No" on the piece-count question takes the question away in place (`dismiss`), nothing is sent.

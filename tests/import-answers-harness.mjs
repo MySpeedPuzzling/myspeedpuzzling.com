@@ -225,17 +225,25 @@ const scenarios = {
     // No connection: the card as it was, its buttons work again, one line says so - and the next tap is sent
     async offline() {
         await mount();
+        // The line at the bottom is 90 px and still says what the answer before did; the card's button stands at
+        // 650-694 of 700 px - under it
+        const saidLine = document.getElementById('import-answer-said');
+        saidLine.setAttribute('data-height', '90');
+        saidLine.innerHTML = '<div>1 matched.</div>';
+        document.querySelector('#one [data-yes]').setAttribute('data-top', '650');
+        document.querySelector('#one [data-yes]').setAttribute('data-height', '44');
         tap('#one [data-yes]');
         await settle();
         world.pending.shift().reject(new TypeError('Failed to fetch'));
         await settle();
         const failed = look('one');
         const focusedAfter = focused();
+        const inView = { said: saidLine.textContent.trim(), role: saidLine.firstElementChild.getAttribute('role'), scrolledBy: [...world.scrolledBy] };
         tap('#one [data-yes]');
         await settle();
         const again = look('one');
 
-        return { failed, focused: focusedAfter, again, calls: world.calls.length, cards: document.querySelectorAll('.card[id]').length };
+        return { failed, inView, focused: focusedAfter, again, calls: world.calls.length, cards: document.querySelectorAll('.card[id]').length };
     },
     // An error page (500, a 403 of a token that ran out, a 422 page): never shown instead of the screen
     async refused() {
@@ -364,15 +372,39 @@ const scenarios = {
 
         return { under, closed, inView: world.scrolledBy.slice(0, before), refused: { scrolledBy: world.scrolledBy.slice(before), focused: focused() } };
     },
+    // "Undo the last one" in the line brings a card back: that card is brought wholly above the line and its first
+    // button focused - and "Close" then keeps focus on it, not on a card that was focused before
+    async undone() {
+        await mount();
+        const saidLine = document.getElementById('import-answer-said');
+        saidLine.setAttribute('data-height', '90');
+        tap('#one [data-yes]');
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream><turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>1 matched.</span><form action="/en/import/1/puzzles/decide" method="post" data-import-answer data-import-answers-returns="one"><input type="hidden" name="puzzle" value="one"><button type="submit" name="action" value="undecided" data-undo>Undo the last one</button></form></div></template></turbo-stream>`));
+        await settle();
+        const before = focused();
+        world.scrolledBy = [];
+        tap('[data-undo]');
+        await settle();
+        const sent = world.calls[1].body;
+        // The screen again, the card back in its place - its button at 650-694, under the 90 px line
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile">${card('one').replace('data-yes', 'data-yes data-top="650" data-height="44"')}${card('two')}</div></template></turbo-stream><turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>Undone.</span><button type="button" data-action="data-import-answers#dismiss" data-close>Close</button></div></template></turbo-stream>`));
+        await settle();
+        const after = { focused: focused(), scrolledBy: [...world.scrolledBy] };
+        tap('[data-close]');
+        await settle();
+
+        return { before, sent, after, closed: focused() };
+    },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {
         await mount();
         tap('#one [data-yes]');
         await settle();
-        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile"><p>Nothing left here.</p><a class="btn btn-primary" href="/next" id="continue">Continue</a></div></template></turbo-stream>${said('1 matched.', '<form data-import-answer><button>Undo the last one</button></form>')}`));
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile" data-top="73"><h1>Looks like a match</h1><p>Nothing left here.</p><a class="btn btn-primary" href="/next" id="continue">Continue</a></div></template></turbo-stream>${said('1 matched.', '<form data-import-answer><button>Undo the last one</button></form>')}`));
         await settle();
 
-        return { focused: focused(), scrolledTo: world.scrolledTo };
+        return { focused: focused(), scrolledBy: world.scrolledBy };
     },
     // An answer for the whole screen that could not be saved is said in the line that stays in view - and the
     // line's "Close", and "No" on a question asked in place, take their part away without sending anything

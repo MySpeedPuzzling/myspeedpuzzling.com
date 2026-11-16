@@ -13279,6 +13279,7 @@ data_import:
         empty: "Nothing is ready to add yet."
         no_hit: "No row with that puzzle."
         reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
+        reading_again_file: "Your file is being read again - a moment. Its rows are not counted here until it is read."
         refresh: "Refresh"
         flash:
             left_out: "Not imported. “Put back” brings the row back."

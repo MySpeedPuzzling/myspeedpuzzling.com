@@ -13032,6 +13032,7 @@ data_import:
         empty: "Noch ist nichts zum Hinzufügen bereit."
         no_hit: "Keine Zeile mit diesem Puzzle."
         reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
+        reading_again_file: "Deine Datei wird gerade neu gelesen - einen Moment. Ihre Zeilen zählen hier nicht mit, bis sie gelesen ist."
         refresh: "Aktualisieren"
         flash:
             left_out: "Nicht importiert. Mit „Zurücknehmen“ holst du die Zeile wieder herein."

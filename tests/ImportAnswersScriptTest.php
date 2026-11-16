@@ -57,12 +57,23 @@ final class ImportAnswersScriptTest extends TestCase
 
     public function testAnAnswerThatCouldNotBeSavedLeavesTheCardAsItWasWithOneLine(): void
     {
-        ['offline' => $offline, 'refused' => $refused] = $this->scenarios(['offline', 'refused']);
+        ['offline' => $offline, 'refused' => $refused, 'undone' => $undone] = $this->scenarios(['offline', 'refused', 'undone']);
 
         foreach (['no connection' => $offline, 'an error page' => $refused] as $what => $facts) {
-            self::assertSame(array_replace(self::AS_IT_WAS, ['failed' => ['alert: NOT SAVED']]), self::at($facts, 'failed'), $what);
+            self::assertSame(array_replace(self::AS_IT_WAS, ['failed' => ['null: NOT SAVED']]), self::at($facts, 'failed'), $what);
             self::assertSame(2, $facts['cards'], $what);
         }
+
+        // ... and it is said in the line that stays in view too - instead of "1 matched.", as an alert - and the
+        // card's button, which stood under that line, is brought above it (694 - (700 - 90 - 8))
+        self::assertSame(['said' => 'NOT SAVED', 'role' => 'alert', 'scrolledBy' => [92]], self::at($offline, 'inView'));
+
+        // "Undo the last one" brings the card back: it is brought above the line and its first button is focused
+        // (not "Close") - and "Close" keeps focus there, never on the card that was focused before the Undo
+        self::assertSame('two button Yes, this is it', $undone['before']);
+        self::assertSame(['puzzle' => 'one', 'action' => 'undecided'], $undone['sent']);
+        self::assertSame(['focused' => 'one button Yes, this is it', 'scrolledBy' => [92]], self::at($undone, 'after'));
+        self::assertSame('one button Yes, this is it', $undone['closed']);
 
         // Focus is back on the tapped button, and the next tap is sent - the line is gone while it is on its way
         self::assertSame('one button Yes, this is it', $offline['focused']);
@@ -104,7 +115,8 @@ final class ImportAnswersScriptTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\bform\.(action|method|id|name|target)\b/', $script, 'a control of that name shadows the property - use getAttribute()');
 
         // The last card answered: the way on is brought into view and focused - not "Undo the last one"
-        self::assertSame(['continue a Continue', ['continue']], [$ended['focused'], $ended['scrolledTo']]);
+        // (the screen's heading stood at 73 px, behind the header: brought below it - 73 - (90 + 20))
+        self::assertSame(['continue a Continue', [-37]], [$ended['focused'], $ended['scrolledBy']]);
 
         // An answer for the whole screen that failed: said in the line that stays in view, not at the form's end
         self::assertSame(['inSaid' => 1, 'inForm' => 0, 'text' => 'NOT SAVED', 'button' => false], $inView['failed']);

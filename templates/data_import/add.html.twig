@@ -48,8 +48,12 @@
         {# A sheet the player just changed is read again in the background: none of its rows is ready - or counted in
            the button - until it is settled (DataImportRowRepository::sqlReadyRows()) #}
         {% if add.sheetsNotSetUp > 0 %}
-            {# The page follows the reading by itself: loaded again when it ends (data_import_setup_controller.js) #}
-            {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: true, revision: '', reload_page: true}, with_context = false) }}
+            {# The page follows the reading by itself: loaded again when it ends (data_import_setup_controller.js) - only
+               while a sheet really is being read. A sheet whose set-up FAILED counts as not set up too, but the progress
+               endpoint says nothing is working, and the page would load itself again without end #}
+            {% if add.sheetsBeingRead > 0 %}
+                {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: true, revision: '', reload_page: true}, with_context = false) }}
+            {% endif %}
             <p class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-reading-again">
                 <span>{{ 'data_import.add_review.reading_again'|trans }}</span>
                 <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>

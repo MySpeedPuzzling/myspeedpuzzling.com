@@ -12107,6 +12107,7 @@ data_import:
             nothing_step: "Nothing is ready yet - step %step% first."
             nothing_reading: "Nothing is ready yet - your rows are still being read."
             already_yours: "{1}1 row is already on your profile - it is not added twice.|[0,Inf[%number% rows are already on your profile - they are not added twice."
+            not_imported: "{1}1 row you chose not to import.|[0,Inf[%number% rows you chose not to import."
         primary:
             see_added: "See what was added"
             check_and_add: "Check and add"
@@ -12138,6 +12139,8 @@ data_import:
         set_ups_summary: "What does “read like last time” mean?"
         finish: "Nothing more is added from this file, and it makes room for another one. What it added stays on your profile and can still be undone. You can go on with it later while the file is kept."
         finish_kept: "Nothing more is added from this file, and it makes room for another one. What it kept stays just for you and can still be undone. You can go on with it later while the file is kept."
+        finish_nothing: "Nothing is added from this file - what it holds is on your profile already. It stays in your list and makes room for another one. You can go on with it later while the file is kept."
+        keep: "These rows are kept just for you, with their puzzles, on the page Unlisted puzzles. Nothing goes to your profile, a leaderboard or your statistics until a puzzle is matched with one in our database."
         discard: "The file and everything read from it are deleted. Nothing on your profile changes - nothing was added yet."
         kept: "It stays in your list so the same rows are never added twice and you can undo them."
         file: "Only you see the file. We keep it for %days% days, then it is removed - what was added stays on your profile."
@@ -12336,6 +12339,9 @@ data_import:
         button_part: "Add %number% of %total% now - the rest tomorrow"
         nothing_to_add: "Nothing to add - everything in this file is already on your profile."
         nothing_to_add_hint: "You can finish with this import here. Nothing on your profile changes."
+        all_added: "Everything of this file is added."
+        rows_title: "The rows of this file"
+        already_on_title: "Already on your profile"
         nothing_right_now: "Nothing to add right now."
         nothing_why:
             repeats: "Rows that repeat another row of the file: %number%"
@@ -13248,7 +13254,7 @@ data_import:
     add_review:
         ready_title: "Ready to add"
         quoted: "“%text%”"
-        reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
+        reading_again: "Your rows are being read - a moment. They are not counted here until they are read."
         line:
             results: "{1}1 result|[0,Inf[%number% results"
             no_time: "{1}1 result has no time - it is added without one.|[0,Inf[%number% results have no time - they are added without one."
@@ -13291,6 +13297,8 @@ data_import:
             answer: "Answer"
         what_adding_does: "What adding does"
     add_list:
+        repeats_title: "Repeated rows (%number%) - counted once"
+        repeats_hint: "These rows repeat another row of your file. They are counted as one result - say so on “Check and add” if they are separate solves."
         title: "What will be added"
         intro: "Everything that pressing Add would add right now, in the order of your file. Untick a row to keep it out - it is saved at once."
         tab:
@@ -13326,7 +13334,7 @@ data_import:
             done: "Done - back to the check"
         empty: "Nothing is ready to add yet."
         no_hit: "No row with that puzzle."
-        reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
+        reading_again: "Your rows are being read - a moment. They are not counted here until they are read."
         reading_again_file: "Your file is being read again - a moment. Its rows are not counted here until it is read."
         taking_longer: "This is taking longer."
         refresh: "Refresh"

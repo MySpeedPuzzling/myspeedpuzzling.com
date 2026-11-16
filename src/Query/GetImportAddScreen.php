@@ -238,10 +238,18 @@ SQL;
         WHERE judged.taken AND judged.unlisted_row = FALSE AND (judged.has_result AND judged.equal_row) = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
         ORDER BY judged.position, judged.row_number, judged.id LIMIT :known
     ) first
-) AS known_ids
-SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids';
+) AS known_ids,
+(
+    SELECT jsonb_agg(first.id)
+    FROM (
+        SELECT judged.id FROM judged
+        WHERE judged.taken AND judged.has_result AND judged.equal_row AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE
+        ORDER BY judged.position, judged.row_number, judged.id LIMIT :known
+    ) first
+) AS repeat_ids
+SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids, NULL AS repeat_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, on_profile: int, not_imported: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, on_profile: int, repeats: int, rows_that_add: int, kept_now: int, not_imported: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string, repeat_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 counts AS (
@@ -261,6 +269,11 @@ counts AS (
         -- not a repeat of another row. ONE predicate (self::ON_PROFILE) for this count, the rows "What will be
         -- added" leaves out, and the rows the review shows under "On your profile already"
         COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row = FALSE AND (judged.has_result AND judged.equal_row) = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS on_profile,
+        -- **Repeats**: taken, the same result as another row of the file, and nothing new of their own - counted once,
+        -- so they add nothing either. With `on_profile` and `rows_that_add` they are exactly the rows an Add takes
+        COUNT(*) FILTER (WHERE judged.taken AND judged.has_result AND judged.equal_row AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS repeats,
+        -- **The rows that add something** - the rows "What will be added" lists, "See all N", its "All" tab
+        COUNT(*) FILTER (WHERE judged.taken AND (judged.new_result OR judged.new_owned OR judged.new_wish OR (judged.unlisted_row AND (judged.has_result AND judged.equal_row) = FALSE))) AS rows_that_add,
         -- Of the results this Add takes - the rows of `results`, and results kept just for the player - those that
         -- hold no time: never a row that is not ready
         COUNT(*) FILTER (WHERE judged.taken AND (judged.new_result OR (judged.unlisted_row AND judged.has_result)) AND timed.parsed ->> 'seconds' IS NULL) AS results_without_time
@@ -281,7 +294,9 @@ taken_before AS (
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made) AS results_added,
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items_added,
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items_added,
-        MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at
+        MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at,
+        -- Rows of THIS import that are kept just for the player right now (not undone)
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL AND r.made -> 'unlisted' IS NOT NULL) AS kept_now
     FROM data_import_row r
     WHERE r.import_id = :importId AND r.batch_id IS NOT NULL
 )
@@ -404,6 +419,10 @@ SQL, [
             sheetsBeingRead: $row['sheets_being_read'],
             resultsWithoutTime: $row['results_without_time'],
             onProfile: $row['on_profile'],
+            repeats: $row['repeats'],
+            rowsThatAdd: $row['rows_that_add'],
+            repeatIds: array_values(array_filter(self::decoded($row['repeat_ids']), is_string(...))),
+            keptNow: $row['kept_now'],
             notImported: $row['not_imported'],
         );
     }
@@ -448,9 +467,10 @@ SQL, [
             $conditions[] = $makesColumn;
         }
 
-        // A row an "Add" takes although everything it says is on the profile already adds nothing: it is not part
-        // of "What will be added" - it has a list of its own (ImportAddListRow::onProfileAlready() is the same rule)
-        $conditions[] = 'NOT (listed.not_imported = FALSE AND listed.unlisted_row = FALSE AND listed.equal_row = FALSE AND listed.new_result = FALSE AND listed.new_owned = FALSE AND listed.new_wish = FALSE)';
+        // Only rows that add something (and the rows not imported): a row that is on the profile already, and a row
+        // that repeats another row of the file, are taken by an "Add" and make nothing - they are not "what will be
+        // added", and stand in two folded lists of their own (the summary's `on_profile` and `repeats`)
+        $conditions[] = '(listed.not_imported OR listed.new_result OR listed.new_owned OR listed.new_wish OR (listed.unlisted_row AND listed.equal_row = FALSE))';
 
         if ($sheetId !== null) {
             $conditions[] = 'listed.sheet_id = :sheetId';

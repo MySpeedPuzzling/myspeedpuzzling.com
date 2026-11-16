@@ -11861,6 +11861,7 @@ data_import:
             nothing_step: "Todavía no hay nada listo - primero el paso %step%."
             nothing_reading: "Aún no hay nada listo: tus filas todavía se están leyendo."
             already_yours: "{1}1 fila ya está en tu perfil: no se añade dos veces.|[0,Inf[%number% filas ya están en tu perfil: no se añaden dos veces."
+            not_imported: "{1}1 fila que elegiste no importar.|[0,Inf[%number% filas que elegiste no importar."
         primary:
             see_added: "Ver lo que se añadió"
             check_and_add: "Revisar y añadir"
@@ -11892,6 +11893,8 @@ data_import:
         set_ups_summary: "¿Qué significa «leída como la última vez»?"
         finish: "No se añade nada más de este archivo, y deja sitio para otro. Lo que añadió se queda en tu perfil y todavía se puede deshacer. Puedes seguir con él más adelante mientras se guarde el archivo."
         finish_kept: "No se añade nada más de este archivo, y deja sitio para otro. Lo que guardó se queda solo para ti y todavía se puede deshacer. Puedes seguir con él más adelante mientras se guarde el archivo."
+        finish_nothing: "No se añade nada de este archivo: lo que contiene ya está en tu perfil. Se queda en tu lista y deja sitio para otro. Puedes seguir con él más adelante mientras se guarde el archivo."
+        keep: "Estas filas se guardan solo para ti, con sus puzzles, en la página Puzzles fuera del catálogo. Nada va a tu perfil, a una clasificación ni a tus estadísticas hasta que un puzzle se empareje con uno de nuestra base de datos."
         discard: "Se eliminan el archivo y todo lo que se leyó de él. En tu perfil no cambia nada - todavía no se había añadido nada."
         kept: "Se queda en tu lista para que las mismas filas nunca se añadan dos veces y puedas deshacerlas."
         file: "Solo tú ves el archivo. Lo guardamos %days% días y después se elimina - lo que se añadió se queda en tu perfil."
@@ -12090,6 +12093,9 @@ data_import:
         button_part: "Añadir ahora %number% de %total%: el resto mañana"
         nothing_to_add: "Nada que añadir: todo lo de este archivo ya está en tu perfil."
         nothing_to_add_hint: "Puedes terminar con esta importación aquí. En tu perfil no cambia nada."
+        all_added: "Todo lo de este archivo está añadido."
+        rows_title: "Las filas de este archivo"
+        already_on_title: "Ya en tu perfil"
         nothing_right_now: "Ahora mismo no hay nada que añadir."
         nothing_why:
             repeats: "Filas que repiten otra fila del archivo: %number%"
@@ -13002,7 +13008,7 @@ data_import:
     add_review:
         ready_title: "Listo para añadir"
         quoted: "«%text%»"
-        reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
+        reading_again: "Tus filas se están leyendo: un momento. No se cuentan aquí hasta que estén leídas."
         line:
             results: "{1}1 resultado|[0,Inf[%number% resultados"
             no_time: "{1}1 resultado no tiene tiempo: se añade sin él.|[0,Inf[%number% resultados no tienen tiempo: se añaden sin él."
@@ -13045,6 +13051,8 @@ data_import:
             answer: "Responder"
         what_adding_does: "Qué hace añadir"
     add_list:
+        repeats_title: "Filas repetidas (%number%): se cuentan una vez"
+        repeats_hint: "Estas filas repiten otra fila de tu archivo. Cuentan como un solo resultado: dilo en «Revisar y añadir» si son resoluciones distintas."
         title: "Qué se va a añadir"
         intro: "Todo lo que se añadiría ahora mismo al pulsar Añadir, en el orden de tu archivo. Desmarca una fila para dejarla fuera - se guarda al momento."
         tab:
@@ -13080,7 +13088,7 @@ data_import:
             done: "Hecho - volver a la revisión"
         empty: "Todavía no hay nada listo para añadir."
         no_hit: "Ninguna fila con ese puzzle."
-        reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
+        reading_again: "Tus filas se están leyendo: un momento. No se cuentan aquí hasta que estén leídas."
         reading_again_file: "Se está leyendo de nuevo tu archivo - un momento. Sus filas no cuentan aquí hasta que esté leído."
         taking_longer: "Está tardando más."
         refresh: "Actualizar"

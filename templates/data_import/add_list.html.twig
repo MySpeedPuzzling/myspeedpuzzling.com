@@ -62,7 +62,7 @@
         {# What a row makes #}
         <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="{{ 'data_import.add_list.title'|trans }}" data-testid="import-add-list-tabs">
             {% set tabs = [
-                {makes: null, label: 'data_import.add_list.tab.all'|trans, count: add.rowsTaken - add.onProfileAlready},
+                {makes: null, label: 'data_import.add_list.tab.all'|trans, count: add.rowsThatAdd},
                 {makes: 'results', label: 'data_import.add_list.tab.results'|trans, count: add.results},
                 {makes: 'collection', label: 'data_import.add_list.tab.collection'|trans, count: add.owned},
                 {makes: 'wish', label: 'data_import.add_list.tab.wish'|trans, count: add.wishList},
@@ -228,6 +228,10 @@
         {# Not part of what will be added: the rows that are on the profile already - no tick boxes, nothing to do #}
         {% if on_profile|default([]) is not empty and filters is empty and page == 1 %}
             {{ include('data_import/_on_profile_rows.html.twig', {rows: on_profile, total: add.onProfileAlready}, with_context = false) }}
+        {% endif %}
+        {# ... nor the rows that repeat another row of the file: counted once, so they add nothing of their own #}
+        {% if repeats|default([]) is not empty and filters is empty and page == 1 %}
+            {{ include('data_import/_on_profile_rows.html.twig', {rows: repeats, total: add.repeats, testid: 'import-repeats', title: 'data_import.add_list.repeats_title'|trans({'%number%': add.repeats|format_number}), hint: 'data_import.add_list.repeats_hint'|trans}, with_context = false) }}
         {% endif %}
 
         {# The bar: what an "Add" would add now - it moves with every "Don't import" - and the way back to the button #}

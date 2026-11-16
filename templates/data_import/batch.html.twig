@@ -142,7 +142,10 @@
             {% endif %}
         </ul>
 
-        <p class="fs-sm text-muted">{{ 'data_import.batch.follow_up'|trans }}</p>
+        {# Nothing went to the profile when the Add only kept rows just for the player: no statistics follow #}
+        {% if not only_kept %}
+            <p class="fs-sm text-muted" data-testid="import-batch-follow-up">{{ 'data_import.batch.follow_up'|trans }}</p>
+        {% endif %}
 
         {% if batch.skipped is not empty %}
             <details class="mb-2 fs-sm" data-testid="import-batch-skipped">

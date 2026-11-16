@@ -448,6 +448,22 @@ final class ImportFlowTest extends TestCase
         self::assertSame(300, $flow->secondary?->label->count);
     }
 
+    public function testAFileThatIsOnTheProfileAlreadyCanBeFinishedAndARowLeftOutIsSaid(): void
+    {
+        // Nothing was added from it and nothing will be: "I'm done with this import" is offered all the same
+        $onProfile = self::flow(['add' => ['rowsReady' => 20, 'rowsTaken' => 20, 'alreadyYours' => 20, 'onProfile' => 20]]);
+        self::assertTrue($onProfile->canFinish);
+        // An import that only waits for its first Add is not "done"
+        self::assertFalse(self::flow(['add' => ['rowsReady' => 20, 'rowsTaken' => 20, 'results' => 20]])->canFinish);
+
+        // "All five steps are done" never hides a row the player unticked
+        $leftOut = self::flow(['add' => ['rowsAdded' => 10, 'resultsAdded' => 10, 'latestBatchId' => self::BATCH, 'notImported' => 1]]);
+        self::assertSame(
+            ['data_import.flow.add.not_imported'],
+            array_values(array_filter(array_map(static fn (ImportFlowText $line): string => $line->key, $leftOut->steps[ImportFlow::ADD]->lines), static fn (string $key): bool => $key === 'data_import.flow.add.not_imported')),
+        );
+    }
+
     public function testAFinishedImportOpensNoStepAndAnOpenOneOpensThemAll(): void
     {
         $finished = self::flow(['status' => DataImportStatus::Done, 'add' => ['canAdd' => false]]);

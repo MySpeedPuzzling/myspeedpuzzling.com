@@ -22,8 +22,13 @@
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
 <div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page" data-import-flow-screen="add">
+    {# Nothing is left to add (everything is on the profile, or added): no talk of a button that is not there #}
+    {% set nothing_left = add.nothingLeftToAdd and not add.paused and add.runningBatchId is null %}
+    {% set all_added = add.rowsReady == 0 and add.hasAdded and not add.hasNotReady and add.runningBatchId is null %}
     <h1 class="h3 mb-2">{{ 'data_import.add.title'|trans }}</h1>
-    <p class="text-muted fs-sm">{{ 'data_import.add.intro'|trans }}</p>
+    {% if not nothing_left and not all_added %}
+        <p class="text-muted fs-sm">{{ 'data_import.add.intro'|trans }}</p>
+    {% endif %}
 
     {% if add.paused %}
         <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-add-paused">
@@ -55,7 +60,7 @@
     {# --- Ready to add: one number a line, zeros left out --- #}
     <div class="card card-body shadow-sm mb-3" data-testid="import-add-counts"
          data-rows="{{ add.rowsToTake }}" data-later="{{ add.later }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
-        <h2 class="h5 mb-2">{{ 'data_import.add_review.ready_title'|trans }}</h2>
+        <h2 class="h5 mb-2">{{ (nothing_left or all_added ? 'data_import.add.rows_title' : 'data_import.add_review.ready_title')|trans }}</h2>
         {# A sheet the player just changed is read again in the background: none of its rows is ready - or counted in
            the button - until it is settled (DataImportRowRepository::sqlReadyRows()) #}
         {% if add.sheetsNotSetUp > 0 %}
@@ -65,7 +70,13 @@
             </p>
         {% endif %}
         {% if add.rowsReady == 0 %}
-            <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
+            {% if all_added %}
+                {# Everything was added: said as that, with the way to it - not "nothing is ready yet" #}
+                <p class="fw-medium mb-1" data-testid="import-add-all-added"><i class="bi bi-check2-circle text-success me-1" aria-hidden="true"></i>{{ 'data_import.add.all_added'|trans }}</p>
+                <a href="{{ path('data_import_added', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" data-testid="import-add-see-added">{{ 'data_import.flow.primary.see_added'|trans }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i></a>
+            {% else %}
+                <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
+            {% endif %}
         {% else %}
             <ul class="list-unstyled mb-0" data-testid="import-add-lines">
                 {% if add.results > 0 %}
@@ -89,7 +100,7 @@
             </ul>
 
             {# The list is what will be added: the rows that are on the profile already are not in it #}
-            {% set rows_that_add = add.rowsTaken - add.onProfileAlready %}
+            {% set rows_that_add = add.rowsThatAdd %}
             {% if rows_that_add > 0 %}
                 <a href="{{ path('data_import_add_list', {importId: import.importId}) }}" class="d-inline-flex align-items-center fw-medium mt-1" style="min-height: 44px;" data-testid="import-add-see-all">
                     {{ 'data_import.add_review.see_all'|trans({'%count%': rows_that_add, '%number%': rows_that_add|format_number}) }}<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i>
@@ -118,7 +129,7 @@
     </div>
 
     {# --- How we read your file: every assumption a line, before the button --- #}
-    {% if sheets|length > 0 %}
+    {% if sheets|length > 0 and not nothing_left %}
         {% set names_guest = false %}
         {% set names_player = false %}
         {% set has_coarse = false %}
@@ -323,7 +334,8 @@
     {% endif %}
 
     {# --- Not added this time: calm, each with where it is settled --- #}
-    {% if add.hasNotReady %}
+    {# Not while its only line would be a sheet that is being read: the card would be empty #}
+    {% if add.hasNotReady and add.undecided + add.needLook + add.needsExactDay + add.notAdded + add.later + (add.sheetsNotSetUp - add.sheetsBeingRead) > 0 %}
         <div class="card card-body shadow-sm mb-3" data-testid="import-add-not-ready">
             <h2 class="h6 mb-1">{{ 'data_import.add.not_ready.title'|trans }}</h2>
             {{ include('data_import/_not_ready.html.twig', {add: add, import_id: import.importId, daily_limit: daily_limit}) }}
@@ -332,14 +344,21 @@
     {% endif %}
 
     {# --- What adding does: open before the import's first Add, folded afterwards --- #}
+    {% if not nothing_left and not all_added %}
     <details class="card card-body shadow-sm mb-3 py-0 fs-sm" data-testid="import-add-what"{% if not add.hasAdded %} open{% endif %}>
         <summary class="d-flex align-items-center gap-2 py-3 fw-semibold" style="min-height: 56px; cursor: pointer;">
             <i class="bi bi-info-circle text-muted" aria-hidden="true"></i>{{ 'data_import.add_review.what_adding_does'|trans }}
         </summary>
-        <p class="mb-2">{{ 'data_import.explain.add'|trans }}</p>
-        <p class="mb-2">{{ 'data_import.explain.no_photo'|trans }}</p>
+        {% if add.onlyKeeps %}
+            {# Nothing of this tap goes to the profile or a leaderboard: what keeping does #}
+            <p class="mb-2" data-testid="import-add-what-keeping">{{ 'data_import.explain.keep'|trans }}</p>
+        {% else %}
+            <p class="mb-2">{{ 'data_import.explain.add'|trans }}</p>
+            <p class="mb-2">{{ 'data_import.explain.no_photo'|trans }}</p>
+        {% endif %}
         <p class="mb-3">{{ 'data_import.add.does.undo'|trans }}</p>
     </details>
+    {% endif %}
 
     {# --- The button: a real POST, one id per press --- #}
     {% if add.nothingLeftToAdd and not add.paused and add.runningBatchId is null %}
@@ -352,23 +371,20 @@
                 <p class="fw-semibold mb-1" data-testid="import-add-nothing-reason" data-reason="mixed"><i class="bi bi-info-circle text-muted me-1" aria-hidden="true"></i>{{ 'data_import.add.nothing_right_now'|trans }}</p>
                 <ul class="fs-sm mb-2 ps-3" data-testid="import-add-nothing-why">
                     {% if add.onProfileAlready > 0 %}<li>{{ 'data_import.add.known.title'|trans({'%number%': add.onProfileAlready|format_number}) }}</li>{% endif %}
-                    {% if add.rowsTaken - add.onProfileAlready > 0 %}<li>{{ 'data_import.add.nothing_why.repeats'|trans({'%number%': (add.rowsTaken - add.onProfileAlready)|format_number}) }}</li>{% endif %}
+                    {% if add.repeats > 0 %}<li>{{ 'data_import.add.nothing_why.repeats'|trans({'%number%': add.repeats|format_number}) }}</li>{% endif %}
                     {% if add.notImported > 0 %}<li>{{ 'data_import.add.nothing_why.not_imported'|trans({'%number%': add.notImported|format_number}) }}</li>{% endif %}
                 </ul>
             {% endif %}
             <p class="fs-sm text-muted mb-2">{{ 'data_import.add.nothing_to_add_hint'|trans }}</p>
-            {% if add.latestBatchId is not null %}
-                {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf}) }}
-            {% else %}
-                <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post" class="mb-0">
-                    <input type="hidden" name="_token" value="{{ csrf }}">
-                    <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-add-finish-discard"
-                            data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
-                        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'data_import.detail.discard'|trans }}
-                    </button>
-                    <p class="fs-sm text-muted mb-0 mt-1">{{ 'data_import.explain.discard'|trans }}</p>
-                </form>
-            {% endif %}
+            {# Nothing is wrong with a file that is on the profile already: "I'm done with this import" is the way on -
+               it stays in the list, and makes room for another one #}
+            <form action="{{ path('data_import_done', {importId: import.importId}) }}" method="post" class="mb-0" data-testid="import-add-finish">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <button type="submit" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-testid="import-add-finish-button">
+                    <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'data_import.finish.button'|trans }}
+                </button>
+                <p class="fs-sm text-muted mb-0 mt-2">{{ (add.hasAdded ? (add.onlyKept ? 'data_import.explain.finish_kept' : 'data_import.explain.finish') : 'data_import.explain.finish_nothing')|trans }}</p>
+            </form>
         </div>
         {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add', continue_label: 'data_import.flow.where_you_are'|trans}, with_context = false) }}
     {% elseif add.toAdd > 0 and not add.paused and add.runningBatchId is null %}

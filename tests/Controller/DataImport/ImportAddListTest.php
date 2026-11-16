@@ -89,15 +89,22 @@ final class ImportAddListTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('noindex', (string) $this->browser->getResponse()->getContent());
         $list = $crawler->filter('[data-testid="import-add-list"]');
-        // 59 rows are taken by an "Add"; 58 are listed: the one that is on the profile already is not "added"
-        self::assertSame(['58', '59'], [$list->attr('data-total'), $list->attr('data-rows-taken')]);
+        // 59 rows are taken by an "Add"; 57 are listed: the one that is on the profile already and the one that
+        // repeats another row add nothing
+        self::assertSame(['57', '59'], [$list->attr('data-total'), $list->attr('data-rows-taken')]);
         self::assertCount(50, $crawler->filter('[data-testid="import-add-list-row"]'));
         self::assertSame($path . '?page=2', $crawler->filter('[data-testid="import-pages-next"]')->attr('href'));
         $second = $this->browser->request('GET', $path . '?page=2');
-        self::assertCount(8, $second->filter('[data-testid="import-add-list-row"]'));
+        self::assertCount(7, $second->filter('[data-testid="import-add-list-row"]'));
         $listed = [...self::rowIds($crawler), ...self::rowIds($second)];
         // The list and the folded "On your profile already" are together exactly what an "Add" takes
-        $adds = array_values(array_filter($expected, static fn (string $rowId): bool => $rowId !== $known));
+        $adds = array_values(array_filter($expected, static fn (string $rowId): bool => $rowId !== $known && $rowId !== $repeat));
+        // ... with "Repeated rows", folded too and without tick boxes
+        $repeated = $crawler->filter('[data-testid="import-repeats"]');
+        self::assertSame('1', $repeated->attr('data-rows'));
+        self::assertStringContainsString('Repeated rows (1) - counted once', $repeated->text());
+        self::assertSame([$repeat], $repeated->filter('[data-testid="import-on-profile-row"]')->each(static fn (Crawler $row): string => (string) $row->attr('data-row-id')));
+        self::assertCount(0, $repeated->filter('button, input'));
         self::assertSame($adds, $listed, 'every row an "Add" would add something from, in the order it takes them');
         $onProfile = $crawler->filter('[data-testid="import-on-profile"]');
         self::assertSame('1', $onProfile->attr('data-rows'));
@@ -124,7 +131,6 @@ final class ImportAddListTest extends WebTestCase
         // A day known to the month only is added as the month - explained on the row
         self::assertMatchesRegularExpression('/^1:23:20 · Mar(ch)? 2021 · solo/', self::spaced(self::row($second, $both)->filter('[data-testid="add-row-said"]')->text()));
         self::assertStringContainsString('The result is added as “March 2021”', self::row($second, $both)->filter('[data-testid="import-explain-month-only"]')->text());
-        self::assertSame('Repeats another row - counted once', self::note($second, $repeat));
         self::assertSame('Kept just for you', self::note($second, $unlisted));
         // Nothing of the file is in an address
         self::assertSame([], array_values(array_filter(
@@ -137,7 +143,7 @@ final class ImportAddListTest extends WebTestCase
         self::assertSame(['59', '54', '2', '1'], [$review->attr('data-rows'), $review->attr('data-results'), $review->attr('data-owned'), $review->attr('data-wish-list')]);
         self::assertSame('58 will be added', self::spaced($crawler->filter('[data-testid="import-add-list-will-add"]')->text()));
         self::assertSame(
-            [['all', '58'], ['results', '54'], ['collection', '2'], ['wish', '1']],
+            [['all', '57'], ['results', '54'], ['collection', '2'], ['wish', '1']],
             $crawler->filter('[data-testid="import-add-list-tab"]')->each(static fn (Crawler $tab): array => [$tab->attr('data-makes'), $tab->attr('data-count')]),
         );
         self::assertSame([$both, $owned], self::rowIds($this->browser->request('GET', $path . '?makes=collection')));
@@ -149,7 +155,7 @@ final class ImportAddListTest extends WebTestCase
         $collectionId = $collection->id->toString();
         self::assertSame([$owned, $wish], self::rowIds($this->browser->request('GET', $path . '?sheet=' . $collectionId)));
         $found = $this->browser->request('GET', $path . '?q=MEADOW');
-        self::assertSame([$both, $standing, $repeat], self::rowIds($found));
+        self::assertSame([$both, $standing], self::rowIds($found));
         self::assertSame('MEADOW', $found->filter('[data-testid="import-add-list-q"]')->attr('value'));
         // The catalogue's name is searched like everywhere else: without its accents and marks
         self::assertSame([$owned], self::rowIds($this->browser->request('GET', $path . '?q=' . rawurlencode('örchard'))));
@@ -208,8 +214,15 @@ final class ImportAddListTest extends WebTestCase
         $nothing = $crawler->filter('[data-testid="import-add-nothing-to-add"]');
         self::assertStringContainsString('Nothing to add - everything in this file is already on your profile.', $nothing->text());
         self::assertSame('on_profile', $nothing->filter('[data-testid="import-add-nothing-reason"]')->attr('data-reason'));
-        // Nothing was ever added from it: finishing is discarding the file
-        self::assertSame($base . '/discard', $nothing->filter('form')->attr('action'));
+        // Nothing is wrong with such a file: "I'm done with this import" is the way on - never only "Discard"
+        self::assertSame($base . '/done', $nothing->filter('[data-testid="import-add-finish"]')->attr('action'));
+        self::assertStringContainsString("I'm done with this import", $nothing->filter('[data-testid="import-add-finish-button"]')->text());
+        self::assertStringContainsString('what it holds is on your profile already', $nothing->text());
+        // No talk of a button that is not there, and no "ready to add" over rows that are not
+        $page = self::spaced($crawler->filter('[data-testid="import-add-page"]')->text());
+        self::assertStringNotContainsString('until you press the button', $page);
+        self::assertStringNotContainsString('Ready to add', $page);
+        self::assertCount(0, $crawler->filter('[data-testid="import-add-what"]'));
         // Nothing is ready: the page keeps asking for a while whether that changed - with or without the live channel
         $live = $crawler->filter('[data-testid="import-setup-live"]');
         self::assertSame(['true', 'true', 'false'], [$live->attr('data-data-import-setup-reload-page-value'), $live->attr('data-data-import-setup-watch-value'), $live->attr('data-data-import-setup-working-value')]);
@@ -281,6 +294,11 @@ final class ImportAddListTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, $player->id->toString());
         $base = '/en/import/' . $importId;
 
+        // "Where you are": the rows WILL be kept - nothing is kept yet, so no link to a page that would be empty
+        $crawler = $this->browser->request('GET', $base);
+        self::assertStringContainsString('will be kept just for you', $crawler->filter('[data-testid="import-ready-unlisted"]')->text());
+        self::assertCount(0, $crawler->filter('[data-testid="import-unlisted-link"]'));
+
         // The review: three rows are on the profile - the repeats of the kept puzzle take nothing off that number
         $crawler = $this->browser->request('GET', $base . '/add');
         self::assertResponseIsSuccessful();
@@ -294,14 +312,21 @@ final class ImportAddListTest extends WebTestCase
         // Something is kept: there is a button, and no "nothing to add"
         self::assertCount(1, $crawler->filter('[data-testid="import-add-button"]'));
         self::assertCount(0, $crawler->filter('[data-testid="import-add-nothing-to-add"]'));
-        self::assertSame('See all 4 and untick any', self::spaced($crawler->filter('[data-testid="import-add-see-all"]')->text()));
+        // One row adds something: the kept puzzle's result - its three repeats are counted once
+        self::assertSame('See it and untick it if you like', self::spaced($crawler->filter('[data-testid="import-add-see-all"]')->text()));
+        // This tap only keeps rows just for the player: the button and "what adding does" say that
+        self::assertStringContainsString('just for me', self::spaced($crawler->filter('[data-testid="import-add-button"]')->text()));
+        self::assertStringContainsString('Nothing goes to your profile, a leaderboard or your statistics', $crawler->filter('[data-testid="import-add-what-keeping"]')->text());
 
-        // The list: the four rows of the kept puzzle, and the very same three under the same number
+        // The list: the one row that adds something - the very same three under the same number, and the repeats
         $crawler = $this->browser->request('GET', $base . '/add/list');
-        self::assertSame([$standing, ...$repeats], self::rowIds($crawler));
+        self::assertSame([$standing], self::rowIds($crawler));
         $list = $crawler->filter('[data-testid="import-add-list"]');
-        self::assertSame(['4', '7'], [$list->attr('data-total'), $list->attr('data-rows-taken')]);
-        self::assertSame('4', $crawler->filter('[data-testid="import-add-list-tab"][data-makes="all"]')->attr('data-count'));
+        self::assertSame(['1', '7'], [$list->attr('data-total'), $list->attr('data-rows-taken')]);
+        self::assertSame('1', $crawler->filter('[data-testid="import-add-list-tab"][data-makes="all"]')->attr('data-count'));
+        $repeated = $crawler->filter('[data-testid="import-repeats"]');
+        self::assertSame('3', $repeated->attr('data-rows'));
+        self::assertSame($repeats, $repeated->filter('[data-testid="import-on-profile-row"]')->each(static fn (Crawler $row): string => (string) $row->attr('data-row-id')));
         $fold = $crawler->filter('[data-testid="import-on-profile"]');
         self::assertSame('3', $fold->attr('data-rows'));
         self::assertSame($onProfile, $fold->filter('[data-testid="import-on-profile-row"]')->each(static fn (Crawler $row): string => (string) $row->attr('data-row-id')));
@@ -504,7 +529,7 @@ final class ImportAddListTest extends WebTestCase
         self::assertSame(2, self::getContainer()->get(GetImportAddScreen::class)->summary($second, $playerId)->rowsReady);
         $this->database->executeStatement('UPDATE data_import_sheet SET mapping_version = mapping_version + 1 WHERE import_id = :id', ['id' => $second]);
         $crawler = $this->browser->request('GET', '/en/import/' . $second . '/add/list');
-        self::assertSame('A sheet is being read again - a moment. Its rows are not counted here until it is read. Refresh', self::spaced($crawler->filter('[data-testid="import-add-list-reading-again"]')->text()));
+        self::assertSame('Your rows are being read - a moment. They are not counted here until they are read. Refresh', self::spaced($crawler->filter('[data-testid="import-add-list-reading-again"]')->text()));
         self::assertCount(0, $crawler->filter('[data-testid="import-add-list-row"]'));
         $review = $this->browser->request('GET', '/en/import/' . $second . '/add');
         self::assertCount(1, $review->filter('[data-testid="import-add-reading-again"]'));

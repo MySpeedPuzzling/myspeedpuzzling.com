@@ -1752,8 +1752,9 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
   while nothing is ready).
 - [ ] The batch page after an "Add" of new rows and already-yours rows together still says the latter only inside
   a fold ("On your profile already: N") - say it in the headline's sentence too.
-- [ ] An import whose rows are all on the profile already can only be discarded (it never added anything, so
-  "I'm done" is not offered): if players want it kept in their list, "Finish" needs to take an import without a batch.
+- [ ] Imports home's card says "N rows ready to add" for the rows an Add takes - also the ones that are on the
+  profile already or repeat another row. Its statement counts all of a player's imports at once without judging
+  what each row would make; give it the number that will be added when that can be had cheaply.
 
 ## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
 

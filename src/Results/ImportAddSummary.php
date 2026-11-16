@@ -76,6 +76,14 @@ readonly final class ImportAddSummary
         public int $onProfile = 0,
         /** Rows the player said "Don't import" about */
         public int $notImported = 0,
+        /** Rows taken that repeat another row of the file and make nothing of their own - counted once */
+        public int $repeats = 0,
+        /** Rows taken that make something: what "What will be added" lists */
+        public int $rowsThatAdd = 0,
+        /** @var list<string> the first rows that repeat another row */
+        public array $repeatIds = [],
+        /** Rows of this import that are kept just for the player right now (added, not undone) */
+        public int $keptNow = 0,
     ) {
     }
 
@@ -106,6 +114,18 @@ readonly final class ImportAddSummary
     public function everythingIsOnProfile(): bool
     {
         return $this->onProfile > 0 && $this->onProfile === $this->rowsTaken && $this->notImported === 0;
+    }
+
+    /** The import kept rows just for the player and put nothing on the profile */
+    public function onlyKept(): bool
+    {
+        return $this->rowsAdded > 0 && $this->resultsAdded + $this->collectionItemsAdded + $this->wishListItemsAdded === 0;
+    }
+
+    /** This tap would only keep rows just for the player */
+    public function onlyKeeps(): bool
+    {
+        return $this->toAdd() > 0 && $this->unlisted === $this->toAdd();
     }
 
     /**

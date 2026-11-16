@@ -305,6 +305,11 @@ readonly final class ImportFlow
             $addLines[] = new ImportFlowText('data_import.flow.add.rows_wait', $add->notAdded);
         }
 
+        if ($open && $add->canAdd && $add->notImported > 0) {
+            // "All five steps are done" must not hide a row the player unticked
+            $addLines[] = new ImportFlowText('data_import.flow.add.not_imported', $add->notImported);
+        }
+
         if ($open && $add->paused) {
             // The safety switch: said calmly, nothing is lost (docs/features/data-import/adding-screens.md)
             $addLines[] = new ImportFlowText('data_import.add.paused');
@@ -373,7 +378,8 @@ readonly final class ImportFlow
             $primary,
             $secondary,
             $add->hasAdded(),
-            $open && $add->latestBatchId !== null && $add->runningBatchId === null,
+            // ... also an import nothing was added from because everything of it is on the profile already
+            $open && $add->runningBatchId === null && ($add->latestBatchId !== null || ($add->canAdd && $add->nothingLeftToAdd())),
             $add->latestBatchId === null,
             $import->importId,
             $look,

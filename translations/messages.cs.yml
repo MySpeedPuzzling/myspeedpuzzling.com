@@ -11863,6 +11863,7 @@ data_import:
             nothing_step: "Zatím není nic připraveno - nejdřív krok %step%."
             nothing_reading: "Zatím není nic připraveno - vaše řádky se ještě čtou."
             already_yours: "{1}1 řádek už na svém profilu máte - nepřidá se podruhé.|[2,4]%number% řádky už na svém profilu máte - nepřidají se podruhé.|[0,Inf[%number% řádků už na svém profilu máte - nepřidají se podruhé."
+            not_imported: "{1}1 řádek jste se rozhodli neimportovat.|[2,4]%number% řádky jste se rozhodli neimportovat.|[0,Inf[%number% řádků jste se rozhodli neimportovat."
         primary:
             see_added: "Zobrazit, co se přidalo"
             check_and_add: "Zkontrolovat a přidat"
@@ -11894,6 +11895,8 @@ data_import:
         set_ups_summary: "Co znamená „přečteno jako minule“?"
         finish: "Z tohoto souboru se už nic dalšího nepřidá a uvolní se místo pro další. Co přidal, zůstává na vašem profilu a dá se stále vrátit zpět. Dokud soubor uchováváme, můžete v něm později pokračovat."
         finish_kept: "Z tohoto souboru se už nic dalšího nepřidá a uvolní se místo pro další. Co ponechal, zůstává jen pro vás a dá se stále vrátit zpět. Dokud soubor uchováváme, můžete v něm později pokračovat."
+        finish_nothing: "Z tohoto souboru se nic nepřidává - co obsahuje, už na svém profilu máte. Zůstane ve vašem seznamu a uvolní místo pro další. Dokud soubor uchováváme, můžete v něm později pokračovat."
+        keep: "Tyto řádky se ponechají jen pro vás, i s jejich puzzle, na stránce Puzzle mimo databázi. Na váš profil, do žebříčků ani do statistik se nic nedostane, dokud puzzle nepřiřadíte k některému v naší databázi."
         discard: "Soubor a vše, co jsme z něj přečetli, se smaže. Na vašem profilu se nic nezmění - zatím se nic nepřidalo."
         kept: "Zůstává ve vašem seznamu, aby se stejné řádky nikdy nepřidaly dvakrát a abyste je mohli vrátit zpět."
         file: "Soubor vidíte jen vy. Uchováváme ho %days% dní, potom ho odstraníme - co se přidalo, zůstává na vašem profilu."
@@ -12092,6 +12095,9 @@ data_import:
         button_part: "Přidat teď %number% z %total% - zbytek zítra"
         nothing_to_add: "Není co přidat - vše z tohoto souboru už na svém profilu máte."
         nothing_to_add_hint: "Tento import můžete ukončit zde. Na vašem profilu se nic nezmění."
+        all_added: "Vše z tohoto souboru je přidáno."
+        rows_title: "Řádky tohoto souboru"
+        already_on_title: "Už na vašem profilu"
         nothing_right_now: "Teď není co přidat."
         nothing_why:
             repeats: "Řádky, které opakují jiný řádek souboru: %number%"
@@ -13004,7 +13010,7 @@ data_import:
     add_review:
         ready_title: "Připraveno k přidání"
         quoted: "„%text%“"
-        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        reading_again: "Vaše řádky se čtou - okamžik. Dokud nebudou přečtené, tady se nepočítají."
         line:
             results: "{1}1 výsledek|[2,4]%number% výsledky|[0,Inf[%number% výsledků"
             no_time: "{1}1 výsledek nemá čas - přidá se bez něj.|[2,4]%number% výsledky nemají čas - přidají se bez něj.|[0,Inf[%number% výsledků nemá čas - přidají se bez něj."
@@ -13047,6 +13053,8 @@ data_import:
             answer: "Odpovědět"
         what_adding_does: "Co přidání udělá"
     add_list:
+        repeats_title: "Opakované řádky (%number%) - počítají se jednou"
+        repeats_hint: "Tyto řádky opakují jiný řádek vašeho souboru. Počítají se jako jeden výsledek - pokud jde o samostatná složení, řekněte to na stránce „Zkontrolovat a přidat“."
         title: "Co se přidá"
         intro: "Vše, co by se po stisknutí Přidat právě teď přidalo, v pořadí vašeho souboru. Řádek, který přidat nechcete, odškrtněte - uloží se to hned."
         tab:
@@ -13082,7 +13090,7 @@ data_import:
             done: "Hotovo - zpět na kontrolu"
         empty: "Zatím není nic připraveno k přidání."
         no_hit: "Žádný řádek s takovým puzzle."
-        reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        reading_again: "Vaše řádky se čtou - okamžik. Dokud nebudou přečtené, tady se nepočítají."
         reading_again_file: "Váš soubor se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         taking_longer: "Trvá to déle."
         refresh: "Obnovit"

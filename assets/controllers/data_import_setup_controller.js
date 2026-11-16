@@ -1,5 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import { createReloadGuard } from '../data_import_reload_guard';
 
 /**
  * The live line of an import that is being set up - "Reading your rows… 1,200 of 3,400" - on the "Sheets and columns"
@@ -94,16 +95,19 @@ export default class extends Controller {
             event.detail.visit(this.fallbackUrlValue || window.location.href);
         };
 
-        // The player typed, ticked or chose something on the page: it is never loaded again under their hands
-        this.touched = false;
-        this.onTouch = (event) => {
-            if (event.target instanceof Element && event.target.closest('form')) {
-                this.touched = true;
-            }
-        };
+        // The page never loads itself again against the player: not once they are leaving it (an answer of a poll
+        // that arrives after a click would throw them back here - the request on its way is aborted), not under a
+        // form they touched (data_import_reload_guard.js)
+        this.guard = createReloadGuard();
+        this.guard.whenLeaving(() => {
+            this.stopped = true;
+            window.clearTimeout(this.timer);
 
-        document.addEventListener('input', this.onTouch, true);
-        document.addEventListener('change', this.onTouch, true);
+            if (this.request) {
+                this.request.abort();
+            }
+        });
+
         document.addEventListener('mercure:message', this.onMessage);
         document.addEventListener('turbo:frame-missing', this.onFrameMissing);
 
@@ -114,8 +118,14 @@ export default class extends Controller {
     }
 
     disconnect() {
-        document.removeEventListener('input', this.onTouch, true);
-        document.removeEventListener('change', this.onTouch, true);
+        if (this.guard) {
+            this.guard.dispose();
+        }
+
+        if (this.request) {
+            this.request.abort();
+        }
+
         document.removeEventListener('mercure:message', this.onMessage);
         document.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.stopped = true;
@@ -147,12 +157,15 @@ export default class extends Controller {
         this.asking = true;
 
         try {
+            this.request = new AbortController();
+
             const response = await fetch(this.urlValue, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
+                signal: this.request.signal,
             });
-            // Turbo went on to another page while the answer was on its way: nothing of it is for that page
-            if (this.stopped || !this.element.isConnected) {
+            // The player went on to another page while the answer was on its way: nothing of it is for that page
+            if (this.stopped || this.guard.leaving || !this.element.isConnected) {
                 return;
             }
 
@@ -176,12 +189,17 @@ export default class extends Controller {
             this.failingSince = 0;
             const data = await response.json();
 
-            if (this.stopped || !this.element.isConnected) {
+            if (this.stopped || this.guard.leaving || !this.element.isConnected) {
                 return;
             }
 
             this.show(data);
-        } catch {
+        } catch (error) {
+            // Aborted because the player is leaving the page: not a failure
+            if (error && error.name === 'AbortError') {
+                return;
+            }
+
             // Offline or a deploy
             this.failed();
         } finally {
@@ -268,18 +286,20 @@ export default class extends Controller {
      * here: a field they changed, a form control they stand in. Then a small "Refresh" link is shown instead.
      */
     reloadPage() {
-        if (this.stopped || !this.element.isConnected) {
+        const verdict = this.guard.verdict({
+            connected: this.element.isConnected,
+            stopped: this.stopped,
+            activeElement: document.activeElement,
+        });
+
+        if (verdict === 'no') {
             return;
         }
-
-        const active = document.activeElement;
-        const busy = this.touched
-            || (active instanceof Element && active.matches('input:not([type="hidden"]), textarea, select'));
 
         this.stopped = true;
         window.clearTimeout(this.timer);
 
-        if (busy) {
+        if (verdict === 'refresh') {
             this.element.hidden = false;
 
             if (this.hasSpinnerTarget) {

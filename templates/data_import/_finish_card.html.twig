@@ -2,7 +2,7 @@
     "I'm done with this import" (docs/features/data-import/upload.md "Finished", guided-flow.md §5.3): a plain link
     with its one sentence, at the very bottom of "Where you are" - a plain form, the confirmation is the text under
     it. Offered for an import that took rows (it can not be discarded) while nothing of it is running.
-    Variables: import_id, csrf, kept_only (optional).
+    Variables: import_id, csrf, kept_only (optional), nothing_added (optional: everything of the file was on the profile already).
 #}
 <form action="{{ path('data_import_done', {importId: import_id}) }}" method="post" class="mb-3" data-testid="import-finish">
     <input type="hidden" name="_token" value="{{ csrf }}">
@@ -10,5 +10,5 @@
         <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'data_import.finish.button'|trans }}
     </button>
     {# An import that only kept rows just for the player put nothing on the profile - the sentence does not say it did #}
-    <p class="fs-sm text-muted mb-0">{{ (kept_only|default(false) ? 'data_import.explain.finish_kept' : 'data_import.explain.finish')|trans }}</p>
+    <p class="fs-sm text-muted mb-0">{{ (nothing_added|default(false) ? 'data_import.explain.finish_nothing' : (kept_only|default(false) ? 'data_import.explain.finish_kept' : 'data_import.explain.finish'))|trans }}</p>
 </form>

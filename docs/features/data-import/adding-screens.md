@@ -272,6 +272,35 @@ on the overview, all 20 with ticked boxes under "What will be added" beside "Not
 Not changed: the batch page of an "Add" that took new rows and already-yours rows together still counts the latter
 under its fold (`docs/TODO.md`).
 
+### After the browser walk of this change (2026-11-16)
+
+- **Repeats are not "what will be added" either.** A row that repeats another row of the file is counted once, so
+  it adds nothing of its own: it leaves the list like the rows on the profile, into a second folded list under it -
+  **"Repeated rows (N) - counted once"**, no tick boxes (`repeats`, `repeatIds`). The rows an "Add" takes are
+  exactly three sets, each one SQL count with its own predicate: `rows_that_add` (the list, "See all N", the "All"
+  tab) + `on_profile` + `repeats`. `ImportAddListTest` checks list + both folds against what an "Add" queues.
+  Imports home's card still counts the rows an Add *takes* ("9 rows ready to add") - its statement covers all of a
+  player's imports at once and does not judge what each row would make (`docs/TODO.md`).
+- **A file that is on the profile already can be finished**: "I'm done with this import" is the primary of
+  "Nothing to add…" and is offered on "Where you are" too (`ImportFlow::$canFinish`, `FinishImport` always took an
+  import that added nothing) - with a sentence of its own ("Nothing is added from this file - what it holds is on
+  your profile already…"). Discard stays where it was.
+- **Keep-only Adds, the rest**: the finished page drops "Statistics, XP and achievements follow…", "I'm done" on
+  the overview says "What it kept stays just for you", and "What adding does" says what keeping does.
+- **The link to Unlisted puzzles** on an import's overview only while THIS import has rows kept right now
+  (`keptNow`: added, not undone) - not for rows that will be kept, not after "Undo everything", not because another
+  import kept something.
+- **"Check and add" in its other states**: everything added → "Everything of this file is added." with "See what
+  was added" (no "Nothing is ready yet", no empty "What adding does"); nothing to add → the heading is "The rows of
+  this file", no talk of the button, no "added as" examples; "Your rows are being read" (it said "A sheet is being
+  read again" on a first read too); the "Not added this time" card is not shown while its only line would be a
+  sheet that is being read; `…/add/already-on` opened by itself is titled "Already on your profile".
+- **A row the player unticked is said on "Where you are"**: "1 row you chose not to import." in step 5.
+- **The page's own reload never wins against the player** (`assets/data_import_reload_guard.js`,
+  `ImportReloadGuardScriptTest`): once they are leaving - a link clicked, a Turbo visit or form, the window
+  unloading - the poll on its way is aborted and nothing is loaded again (a click 10 ms after a poll began was
+  answered by a reload of the page just left); under a form they touched, a "Refresh" link instead.
+
 ### Wording found on the sandbox with it (2026-11-16)
 
 - **Rows that will be kept just for the player are said as that**: before an Add - and again after an "Undo

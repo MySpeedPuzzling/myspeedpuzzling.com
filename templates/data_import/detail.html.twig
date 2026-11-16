@@ -185,7 +185,7 @@
                     <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.ready'|trans({'%number%': add.unlisted|format_number}) }}
                 </p>
             {% endif %}
-            {{ include('unlisted_puzzles/_import_link.html.twig', {show: viewer_unlisted.hasAny}, with_context = false) }}
+            {{ include('unlisted_puzzles/_import_link.html.twig', {show: add.keptNow > 0}, with_context = false) }}
             {% if add.hasAdded %}
                 <p class="fs-sm text-muted mt-3 mb-0" data-testid="{{ import_flow.stage == 'finished' ? 'import-finished-added' : 'import-ready-added' }}">
                     {{ 'data_import.add.added_so_far'|trans({'%results%': add.resultsAdded|format_number, '%owned%': add.collectionItemsAdded|format_number, '%wish_list%': add.wishListItemsAdded|format_number}) }}
@@ -238,7 +238,7 @@
     {% endif %}
 
     {% if import_flow.canFinish %}
-        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf}) }}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf, kept_only: add.onlyKept, nothing_added: not add.hasAdded}) }}
     {% endif %}
 
     {% if not import_flow.canDiscard %}

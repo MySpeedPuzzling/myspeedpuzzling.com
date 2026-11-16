@@ -12,7 +12,7 @@
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 
-{% block title %}{{ 'data_import.once.said.heading'|trans }} - {{ import_name }}{% endblock %}
+{% block title %}{{ (on_profile_total|default(0) > 0 ? 'data_import.add.already_on_title' : 'data_import.once.said.heading')|trans }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}

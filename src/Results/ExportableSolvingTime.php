@@ -53,6 +53,10 @@ readonly final class ExportableSolvingTime
         public null|int $mspRatingPuzzleFirstTrySolvers = null,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): pieces
+        // placed when the round's time ran out (no time - and no relax solve), and the later total when they kept going
+        public null|int $piecesPlaced = null,
+        public null|int $finishedLaterSeconds = null,
     ) {
         $this->ppm = $secondsToSolve !== null && $secondsToSolve > 0
             ? (new SolvingTime($secondsToSolve))->calculatePpm($piecesCount, $playersCount)
@@ -69,6 +73,8 @@ readonly final class ExportableSolvingTime
      *     seconds_to_solve: null|int,
      *     finished_at: null|string,
      *     finished_at_precision?: null|string,
+     *     pieces_placed?: null|int,
+     *     finished_later_seconds?: null|int,
      *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
@@ -150,6 +156,8 @@ readonly final class ExportableSolvingTime
             mspRatingReason: $rating->reason,
             mspRatingPuzzleFirstTrySolvers: $solvers,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
+            piecesPlaced: $row['pieces_placed'] ?? null,
+            finishedLaterSeconds: $row['finished_later_seconds'] ?? null,
         );
     }
 
@@ -205,6 +213,10 @@ readonly final class ExportableSolvingTime
             // How exactly `finished_at` is known: day, or month / year - `finished_at` is then the first day of that
             // period (docs/features/data-import/date-precision.md). Empty without a `finished_at`
             'date_precision' => $this->finishedAt === null ? null : $this->datePrecision->value,
+            // An unfinished competition result: the pieces placed (seconds_to_solve is then empty - no relax solve) and the
+            // later total when they kept going (docs/features/competitions-management/unfinished-results-plan.md)
+            'pieces_placed' => $this->piecesPlaced,
+            'finished_later_seconds' => $this->finishedLaterSeconds,
         ];
     }
 }

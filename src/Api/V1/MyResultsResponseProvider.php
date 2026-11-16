@@ -73,6 +73,8 @@ final readonly class MyResultsResponseProvider implements ProviderInterface
                     teamId: $puzzle->teamId,
                     teamName: $puzzle->teamName,
                     datePrecision: ($puzzle->finishedAt === null ? DatePrecision::Day : $puzzle->datePrecision)->value,
+                    piecesPlaced: $puzzle->piecesPlaced,
+                    finishedLaterSeconds: $puzzle->finishedLaterSeconds,
                 ),
                 $results,
             ),

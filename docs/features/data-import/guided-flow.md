@@ -1686,3 +1686,22 @@ keeping the old step until a reload. Not looked at in a browser.
 - **Times are read as**: "As written: hours:minutes:seconds" (was "Hours and minutes, as the cell stores it").
 - **The row's page of a held row** leads back to its sheet; the footer's back link stands on a line of its own.
 
+**After the second walk (2026-11-16)**:
+
+- **Puzzles while rows are read (again)**: only the reading line - "We matched 0 of your 0 puzzles." is hidden until
+  there is something to say.
+- **"Saved - your rows are being read again."** is also taken away when the reading was over before the page first
+  looked (a fast worker), not only when it ends while the page is open.
+- **A step that waits for the check shows no spinner**: while every puzzle of the file waits for the columns check
+  and none is there to match, step 4 is "ahead" with its one waiting sentence - never "Matching your puzzles…"
+  (`ImportFlow`: not "looking" then).
+- **"Check and add" follows a re-read by itself**: while a sheet is read (again) the page carries the live line and
+  is loaded again when the reading ends (`reload_page` of `_setup_live.html.twig` - the page has no live frame of
+  its own). A sheet that is only being read is not counted under "Sheets whose columns are not set up yet"
+  (`ImportAddSummary::$sheetsBeingRead`). Results that have no time are named before the Add: "6 results have no
+  time - they are added without one." (`$resultsWithoutTime`; a sheet confirmed without a time column).
+- **Wording**: step 5 says "Nothing is ready yet - your rows are still being read." while step 2 only works by
+  itself; the heading is "We are reading your file…" until the rows are read; "Or add what is ready now" is not on
+  step 2's summary any more (the screen has no count of what is ready, and a statement more would break its
+  budget) - "Where you are", which counts it, has it. The one-question screen keeps its quiet line.
+

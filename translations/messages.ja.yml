@@ -11803,6 +11803,7 @@ data_import:
             kept_until: "%date% まで保管"
         headline:
             read: "ファイルの %number% 行を読み取りました。"
+            reading: "ファイルを読み取っています…"
             finished: "このインポートは完了しています。"
             gone: "このファイルの行はもう保管されていません。"
         file:
@@ -11847,6 +11848,7 @@ data_import:
             added_on: "%date% に %number% 件を追加しました。"
             nothing: "まだ追加できるものはありません。"
             nothing_step: "まだ追加できるものはありません。先にステップ %step% を進めてください。"
+            nothing_reading: "まだ準備ができていません - 行を読み取っている途中です。"
         primary:
             see_added: "追加された内容を見る"
             check_and_add: "確認して追加"
@@ -12982,6 +12984,7 @@ data_import:
         reading_again: "シートを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
         line:
             results: "記録 %number% 件"
+            no_time: "タイムのない結果: %number% 件 - タイムなしで追加されます。"
             owned: "コレクションに入るパズル %number% 件"
             wish_list: "ほしい物リストに入るパズル %number% 件"
             unlisted: "自分専用に保持される行 %number% 件"

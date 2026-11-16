@@ -11816,6 +11816,7 @@ data_import:
             kept_until: "Uchováme do %date%"
         headline:
             read: "{1}Přečetli jsme 1 řádek vašeho souboru.|[2,4]Přečetli jsme %number% řádky vašeho souboru.|[0,Inf[Přečetli jsme %number% řádků vašeho souboru."
+            reading: "Čteme váš soubor…"
             finished: "Tento import je dokončený."
             gone: "Řádky tohoto souboru už neuchováváme."
         file:
@@ -11860,6 +11861,7 @@ data_import:
             added_on: "Přidáno: %number% (%date%)."
             nothing: "Zatím není nic připraveno."
             nothing_step: "Zatím není nic připraveno - nejdřív krok %step%."
+            nothing_reading: "Zatím není nic připraveno - vaše řádky se ještě čtou."
         primary:
             see_added: "Zobrazit, co se přidalo"
             check_and_add: "Zkontrolovat a přidat"
@@ -12995,6 +12997,7 @@ data_import:
         reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         line:
             results: "{1}1 výsledek|[2,4]%number% výsledky|[0,Inf[%number% výsledků"
+            no_time: "{1}1 výsledek nemá čas - přidá se bez něj.|[2,4]%number% výsledky nemají čas - přidají se bez něj.|[0,Inf[%number% výsledků nemá čas - přidají se bez něj."
             owned: "{1}1 puzzle do vaší sbírky|[0,Inf[%number% puzzle do vaší sbírky"
             wish_list: "{1}1 puzzle na váš seznam přání|[0,Inf[%number% puzzle na váš seznam přání"
             unlisted: "{1}1 řádek ponechaný jen pro vás|[2,4]%number% řádky ponechané jen pro vás|[0,Inf[%number% řádků ponechaných jen pro vás"

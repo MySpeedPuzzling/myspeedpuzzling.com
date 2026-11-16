@@ -249,7 +249,7 @@
         {% if summary.working %}
             {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
         {% elseif questions > 0 %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: summary.ready > 0, primary: {
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {
                 label: 'data_import.flow.primary.questions'|trans({'%count%': questions, '%number%': questions|format_number}),
                 url: path('data_import_columns', {importId: import.importId}),
                 icon: 'bi-question-circle',
@@ -260,7 +260,7 @@
         {% elseif sheets|filter(sheet => sheet.heldForACheck) is not empty %}
             {# A sheet whose reading is a guess comes before rows, people and puzzles - the same button as "Where you are" #}
             {% set first_held = sheets|filter(sheet => sheet.heldForACheck)|first %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: summary.ready > 0, primary: {
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {
                 label: 'data_import.flow.primary.check_first'|trans,
                 url: path('data_import_sheet', {importId: import.importId, sheetId: first_held.sheetId}),
                 icon: 'bi-eye',
@@ -275,10 +275,9 @@
                 continue_label: unsure|length == 1
                     ? 'data_import.check.continue_one'|trans({'%sheet%': first_unsure.title != '' ? first_unsure.title : 'data_import.sheets.untitled'|trans})
                     : 'data_import.check.continue_many'|trans,
-                offer_add: summary.ready > 0,
             }, with_context = false) }}
         {% else %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: summary.ready > 0}, with_context = false) }}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans}, with_context = false) }}
         {% endif %}
     </turbo-frame>
 

@@ -179,7 +179,7 @@ final readonly class ColumnRecogniser
 
         $asked = [];
 
-        foreach ($texts as $number => $counted) {
+        foreach ($texts as $counted) {
             // A column of fewer cells than the floor can not reach it: not asked about
             if (array_sum($counted) >= self::BRAND_CELLS) {
                 foreach (array_keys($counted) as $text) {

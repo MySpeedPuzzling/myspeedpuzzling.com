@@ -101,7 +101,8 @@ final class ImportFlowTest extends TestCase
             ['sheets' => [self::sheet(mapped: false)], 'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, false)],
             ImportFlow::STAGE_STEPS,
             [1 => $done, 2 => $working, 3 => $ahead, 4 => $working, 5 => $ahead],
-            [2 => ['data_import.flow.check.working'], 4 => ['data_import.flow.puzzles.working'], 5 => ['data_import.flow.add.nothing_step']],
+            // Step 2 works by itself: step 5 does not send the player there
+            [2 => ['data_import.flow.check.working'], 4 => ['data_import.flow.puzzles.working'], 5 => ['data_import.flow.add.nothing_reading']],
             null, null, 2, null,
         ];
 
@@ -193,6 +194,17 @@ final class ImportFlowTest extends TestCase
             [1 => $done, 2 => $working, 3 => $ahead, 4 => $ahead, 5 => $ahead],
             [2 => ['data_import.flow.check.reading'], 4 => ['data_import.flow.puzzles.waiting_rows']],
             null, null, 2, null,
+        ];
+
+        yield 'every puzzle waits for the check and the matching has not come to rest: the step waits for the player - no spinner' => [
+            [
+                'sheets' => [self::sheet(rowsUnderstood: 0, rowsWaiting: 72, checkFirst: 'no_header', sheetId: self::SHEET), self::sheet(rowsUnderstood: 0, rowsWaiting: 20, checkFirst: 'no_header', sheetId: self::SHEET)],
+                'pairing' => new ImportPairingSummary(0, 0, 0, 0, 0, 0, 0, false),
+            ],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $open, 3 => $ahead, 4 => $ahead, 5 => $ahead],
+            [4 => ['data_import.flow.puzzles.held'], 5 => ['data_import.flow.add.nothing_step']],
+            'data_import.flow.primary.check_first', 'data_import_sheet', 2, null,
         ];
 
         yield 'several sheets, one without a header row: "one sheet of your file"' => [
@@ -427,6 +439,9 @@ final class ImportFlowTest extends TestCase
         self::assertSame('data_import.flow.headline.gone', self::flow(['add' => ['wiped' => true, 'canAdd' => false]])->headline->key);
         self::assertSame('data_import.flow.headline.read', $open->headline->key);
         self::assertSame(792, $open->headline->count, 'the rows the file was read with');
+        // While rows are read the heading waits: "We read N rows" is not said above "Reading your rows… 0 of 40"
+        $reading = self::flow(['sheets' => [new DataImportSheetOverview(position: 0, title: 'Log', hidden: false, rows: 41, columns: 5, kind: DataImportSheetKind::Results, mapped: true, parsed: false)]]);
+        self::assertSame('data_import.flow.headline.reading', $reading->headline->key);
         // ... without the rows of an imported sheet that are no puzzle (its header row, a totals line)
         $withHeaders = self::flow(['sheets' => [new DataImportSheetOverview(position: 0, title: 'Log', hidden: false, rows: 41, columns: 5, kind: DataImportSheetKind::Results, mapped: true, parsed: true, rowsUnderstood: 40, rowsLeftOut: 1)]]);
         self::assertSame(791, $withHeaders->headline->count);

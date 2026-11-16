@@ -1740,8 +1740,8 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
 - [ ] Look at it in a real browser at 390 px: the notice and "Yes, this is right" on a sheet's page, the "Our guess"
   badges, the brand hint, the primary "Check how we read your file" on "Where you are" and on step 2's summary.
 - [ ] No "one brand for the whole sheet" setting: a sheet without a brand column can only be told a column.
-- [ ] The flash "Saved - your rows are being read again." is taken away by script when the reading ends - check
-  it in a browser (it was not); so are "Sheet 1 of 2 to check" and the Puzzles page of a held import.
+- [ ] Check in a browser: "Check and add" loading itself again when a re-read ends (a whole-page reload by
+  `data_import_setup_controller.js`), and the "Saved…" flash going when the reading was over at the first look.
 
 ## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
 

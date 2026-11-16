@@ -230,7 +230,9 @@ readonly final class ImportFlow
         };
 
         // ---- 4 Puzzles ----
-        $looking = $pairing->paired === false || $pairing->searching > 0;
+        // While nothing is there to match because every puzzle of the file waits for the columns check, the step
+        // waits for the player - it is not "matching": no spinner above "… wait for you to check their columns"
+        $looking = ($pairing->paired === false || $pairing->searching > 0) && ($held === [] || $pairing->puzzles > 0);
         $puzzleLines = [];
 
         if ($pairing->puzzles > 0) {
@@ -318,9 +320,12 @@ readonly final class ImportFlow
                 $add->hasAdded() => ImportFlowStep::DONE,
                 default => ImportFlowStep::AHEAD,
             },
-            $addLines !== [] ? $addLines : [$firstOpen === null
-                ? new ImportFlowText('data_import.flow.add.nothing')
-                : new ImportFlowText('data_import.flow.add.nothing_step', null, ['step' => $firstOpen])],
+            $addLines !== [] ? $addLines : [match (true) {
+                $firstOpen === null => new ImportFlowText('data_import.flow.add.nothing'),
+                // Step 2 only works by itself: there is nothing for the player to do first
+                $firstOpen === self::CHECK && $steps[self::CHECK]->state === ImportFlowStep::WORKING => new ImportFlowText('data_import.flow.add.nothing_reading'),
+                default => new ImportFlowText('data_import.flow.add.nothing_step', null, ['step' => $firstOpen]),
+            }],
             $open ? 'data_import_add' : null,
             $id,
             $ready,
@@ -355,8 +360,9 @@ readonly final class ImportFlow
         return new self(
             $stage,
             $steps,
+            // "We read N rows" only once they are read: above "Reading your rows… 0 of 40" the heading waits
             $open
-                ? new ImportFlowText('data_import.flow.headline.read', $rows)
+                ? ($working ? new ImportFlowText('data_import.flow.headline.reading') : new ImportFlowText('data_import.flow.headline.read', $rows))
                 : new ImportFlowText($add->wiped && $import->status !== DataImportStatus::Done ? 'data_import.flow.headline.gone' : 'data_import.flow.headline.finished'),
             $primary,
             $secondary,

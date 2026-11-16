@@ -388,7 +388,7 @@ final class XlsxWorkbook implements ReadWorkbook
 
         // More days than a spreadsheet can count is a number, whatever its format says
         if ($kind === NumberFormatKind::Duration && abs($number) <= self::LAST_DAY_1900 + 1) {
-            return ReadCell::duration($format !== null && $format->secondFractionShown ? self::wholeSeconds($number) : (int) round($number * self::SECONDS_PER_DAY), $formula);
+            return ReadCell::duration($format->secondFractionShown ? self::wholeSeconds($number) : (int) round($number * self::SECONDS_PER_DAY), $formula);
         }
 
         // A negative "date" is shown as ##### by a spreadsheet; so is one beyond the year 9999 - which a workbook

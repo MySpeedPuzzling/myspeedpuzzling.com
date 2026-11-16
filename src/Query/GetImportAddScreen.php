@@ -241,7 +241,7 @@ SQL;
 ) AS known_ids
 SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 counts AS (
@@ -295,6 +295,26 @@ SELECT
         FROM data_import_sheet sheet
         WHERE sheet.import_id = import.id AND sheet.included AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
     ) AS sheets_not_set_up,
+    (
+        SELECT COUNT(*)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = import.id AND sheet.included AND sheet.mapping_version > 0 AND sheet.set_up_failure IS NULL
+            AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
+    ) AS sheets_being_read,
+    -- Results of the read sheets that hold no time and nothing unclear: what an Add would add without a time
+    (
+        SELECT COUNT(*)
+        FROM data_import_row untimed
+        INNER JOIN data_import_sheet sheet ON sheet.id = untimed.sheet_id
+        WHERE untimed.import_id = import.id
+            AND sheet.included AND sheet.parsed_version = sheet.mapping_version
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            AND untimed.kind IN ('result', 'both')
+            AND untimed.state = 'waiting'
+            AND untimed.problems IS NULL
+            AND untimed.source_key IS NOT NULL
+            AND untimed.parsed ->> 'seconds' IS NULL
+    ) AS results_without_time,
     (
         SELECT batch.id FROM data_import_batch batch
         WHERE batch.import_id = import.id AND batch.state = 'running'
@@ -379,6 +399,8 @@ SQL, [
             sampleIds: array_values(array_filter(self::decoded($row['sample_ids']), is_string(...))),
             knownIds: array_values(array_filter(self::decoded($row['known_ids']), is_string(...))),
             wiped: $row['wiped'],
+            sheetsBeingRead: $row['sheets_being_read'],
+            resultsWithoutTime: $row['results_without_time'],
         );
     }
 

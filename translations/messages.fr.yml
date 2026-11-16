@@ -11809,6 +11809,7 @@ data_import:
             kept_until: "Conservé jusqu'au %date%"
         headline:
             read: "{1}Nous avons lu 1 ligne de votre fichier.|[0,Inf[Nous avons lu %number% lignes de votre fichier."
+            reading: "Nous lisons votre fichier…"
             finished: "Cet import est terminé."
             gone: "Les lignes de ce fichier ne sont plus conservées."
         file:
@@ -11853,6 +11854,7 @@ data_import:
             added_on: "%number% ajoutés le %date%."
             nothing: "Rien n'est encore prêt."
             nothing_step: "Rien n'est encore prêt - d'abord l'étape %step%."
+            nothing_reading: "Rien n'est encore prêt - vos lignes sont encore en cours de lecture."
         primary:
             see_added: "Voir ce qui a été ajouté"
             check_and_add: "Vérifier et ajouter"
@@ -12988,6 +12990,7 @@ data_import:
         reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
         line:
             results: "{0,1}%number% résultat|[2,Inf[%number% résultats"
+            no_time: "{1}1 résultat n'a pas de temps - il est ajouté sans temps.|[0,Inf[%number% résultats n'ont pas de temps - ils sont ajoutés sans temps."
             owned: "{0,1}%number% puzzle pour votre collection|[2,Inf[%number% puzzles pour votre collection"
             wish_list: "{0,1}%number% puzzle pour votre liste de souhaits|[2,Inf[%number% puzzles pour votre liste de souhaits"
             unlisted: "{0,1}%number% ligne conservée rien que pour vous|[2,Inf[%number% lignes conservées rien que pour vous"

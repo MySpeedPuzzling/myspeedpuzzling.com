@@ -41,6 +41,8 @@ export default class extends Controller {
         rowsText: String,
         // "Saved - your rows are being read again.": the flash a Save brings - gone once they are read
         savedText: String,
+        // A page without live frames (the add review): loaded again as a whole once the reading ends
+        reloadPage: Boolean,
         // The puzzles' pages (docs/features/data-import/pairing-screens.md "The live line"): the pairing of the
         // import's puzzles with the database is followed too - `data.pairing` of the same payload
         pairing: Boolean,
@@ -56,6 +58,11 @@ export default class extends Controller {
         this.failingSince = 0;
         this.revision = this.revisionValue || null;
         this.working = this.workingValue;
+
+        // The reading was over before the page was rendered: "your rows are being read again" is not true any more
+        if (!this.working) {
+            this.dropSavedFlash();
+        }
         this.numbers = new Intl.NumberFormat(document.documentElement.lang || undefined);
 
         this.onMessage = (event) => {
@@ -210,8 +217,14 @@ export default class extends Controller {
             this.reloadFrames();
         }
 
-        if (wasWorking && !this.working) {
+        if (!this.working) {
             this.dropSavedFlash();
+        }
+
+        if (wasWorking && !this.working && this.reloadPageValue) {
+            this.stopped = true;
+            window.clearTimeout(this.timer);
+            window.location.reload();
         }
 
         if (this.working && !wasWorking) {

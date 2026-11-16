@@ -266,6 +266,35 @@ final class ImportCheckFirstScreensTest extends WebTestCase
             'We did not find a column with your times. Pick it below - otherwise your puzzles are added without a time.',
             $crawler->filter('[data-testid="import-sheet-check-first"] [data-testid="import-sheet-no-time"]')->text(),
         );
+
+        // Confirmed as it is: "Check and add" says that these results have no time - before anything is added
+        $this->browser->submit($crawler->filter('[data-testid="import-sheet-check-yes"]')->form());
+        $this->workImportsQueue();
+        $this->buildPuzzles($importId);
+        $this->database->executeStatement("UPDATE data_import_puzzle SET choice = 'unlisted' WHERE import_id = :id", ['id' => $importId]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('6', $crawler->filter('[data-testid="import-add-no-time"]')->attr('data-rows'));
+        self::assertStringContainsString('6 results have no time - they are added without one.', $crawler->filter('[data-testid="import-add-no-time"]')->text());
+        // Nothing is read right now: the page has no live line, and no sheet is "not set up"
+        self::assertCount(0, $crawler->filter('[data-testid="import-setup-live"]'));
+
+        // ---- While a sheet is read again: the page follows by itself, and that sheet is not "not set up" ----
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = NULL WHERE id = :id', ['id' => $log]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add');
+        self::assertSame('true', $crawler->filter('[data-testid="import-setup-live"]')->attr('data-data-import-setup-reload-page-value'));
+        self::assertCount(1, $crawler->filter('[data-testid="import-add-reading-again"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="not-ready-sheets"]'));
+
+        // ... and the Puzzles page shows the reading, not "We matched 0 of your 0 puzzles"
+        $this->database->executeStatement('DELETE FROM data_import_puzzle WHERE import_id = :id', ['id' => $importId]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles');
+        self::assertNotNull($crawler->filter('[data-testid="import-puzzles-count"]')->attr('hidden'));
+        self::assertNull($crawler->filter('[data-testid="import-setup-live"]')->attr('hidden'));
+        // ... and "Where you are" waits with its heading and with step 5
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertStringContainsString('We are reading your file', $crawler->filter('[data-testid="import-flow-headline"]')->text());
+        self::assertStringContainsString('Nothing is ready yet - your rows are still being read.', $crawler->filter('[data-testid="import-flow-lines"]')->text());
     }
 
     public function testOnlyApprovedBrandsMakeAColumnTheBrandAndTheCatalogueIsReadOnce(): void

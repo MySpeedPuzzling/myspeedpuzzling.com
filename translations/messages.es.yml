@@ -11814,6 +11814,7 @@ data_import:
             kept_until: "Se guarda hasta el %date%"
         headline:
             read: "{1}Hemos leído 1 fila de tu archivo.|[0,Inf[Hemos leído %number% filas de tu archivo."
+            reading: "Estamos leyendo tu archivo…"
             finished: "Esta importación está terminada."
             gone: "Las filas de este archivo ya no se guardan."
         file:
@@ -11858,6 +11859,7 @@ data_import:
             added_on: "Añadido: %number%, el %date%."
             nothing: "Todavía no hay nada listo."
             nothing_step: "Todavía no hay nada listo - primero el paso %step%."
+            nothing_reading: "Aún no hay nada listo: tus filas todavía se están leyendo."
         primary:
             see_added: "Ver lo que se añadió"
             check_and_add: "Revisar y añadir"
@@ -12993,6 +12995,7 @@ data_import:
         reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
         line:
             results: "{1}1 resultado|[0,Inf[%number% resultados"
+            no_time: "{1}1 resultado no tiene tiempo: se añade sin él.|[0,Inf[%number% resultados no tienen tiempo: se añaden sin él."
             owned: "{1}1 puzzle para tu colección|[0,Inf[%number% puzzles para tu colección"
             wish_list: "{1}1 puzzle para tu lista de deseos|[0,Inf[%number% puzzles para tu lista de deseos"
             unlisted: "{1}1 fila guardada solo para ti|[0,Inf[%number% filas guardadas solo para ti"

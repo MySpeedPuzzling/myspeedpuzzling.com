@@ -37,7 +37,7 @@
                 <span>{{ 'data_import.flow.puzzles.held'|trans({'%count%': held, '%number%': held|format_number}) }}</span>
             </div>
         {% endif %}
-        <p class="fw-medium mb-1" data-testid="import-puzzles-count" data-puzzles="{{ overview.puzzles }}" data-matched="{{ overview.matched }}"{% if held > 0 and overview.puzzles == 0 %} hidden{% endif %}>
+        <p class="fw-medium mb-1" data-testid="import-puzzles-count" data-puzzles="{{ overview.puzzles }}" data-matched="{{ overview.matched }}"{% if overview.puzzles == 0 and (held > 0 or live.working) %} hidden{% endif %}>
             {%- if overview.puzzles > 0 and overview.matched == overview.puzzles -%}
                 {{ 'data_import.flow.puzzles.all_matched'|trans({'%count%': overview.puzzles, '%number%': overview.puzzles|format_number}) }}
             {%- else -%}

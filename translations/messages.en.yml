@@ -12060,6 +12060,7 @@ data_import:
             kept_until: "Kept until %date%"
         headline:
             read: "{1}We read 1 row of your file.|[0,Inf[We read %number% rows of your file."
+            reading: "We are reading your file…"
             finished: "This import is finished."
             gone: "The rows of this file are no longer kept."
         file:
@@ -12104,6 +12105,7 @@ data_import:
             added_on: "Added %number% on %date%."
             nothing: "Nothing is ready yet."
             nothing_step: "Nothing is ready yet - step %step% first."
+            nothing_reading: "Nothing is ready yet - your rows are still being read."
         primary:
             see_added: "See what was added"
             check_and_add: "Check and add"
@@ -13239,6 +13241,7 @@ data_import:
         reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
         line:
             results: "{1}1 result|[0,Inf[%number% results"
+            no_time: "{1}1 result has no time - it is added without one.|[0,Inf[%number% results have no time - they are added without one."
             owned: "{1}1 puzzle for your collection|[0,Inf[%number% puzzles for your collection"
             wish_list: "{1}1 puzzle for your wish list|[0,Inf[%number% puzzles for your wish list"
             unlisted: "{1}1 row kept just for you|[0,Inf[%number% rows kept just for you"

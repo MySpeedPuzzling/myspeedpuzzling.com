@@ -13507,3 +13507,10 @@ my_data:
         cell_hint: "Enter speichert, Esc bricht ab."
         in_sheet_only: "An diesem Ergebnis sind weitere Puzzler beteiligt - öffne die Zeile, um es zu bearbeiten, damit sie nur einmal benachrichtigt werden."
         not_moved: "Das Puzzle wurde nicht verschoben: Es ist nicht mehr in dieser Sammlung, oder die andere Sammlung enthält es bereits."
+unfinished_result:
+    pieces: "%placed% / %total% Teile"
+    title: "Nicht innerhalb des Zeitlimits fertig geworden"
+    finished_later: "fertig in %time%"
+    section: "Nicht innerhalb des Zeitlimits fertig geworden"
+    your_result: "Dein Ergebnis"
+    no_rank: "Kein Rang - nicht innerhalb des Zeitlimits fertig geworden"

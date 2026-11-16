@@ -13503,3 +13503,10 @@ my_data:
         cell_hint: "Entrée enregistre, Échap annule."
         in_sheet_only: "D'autres puzzleurs figurent sur ce résultat - ouvrez la ligne pour le modifier, ils ne seront ainsi prévenus qu'une fois."
         not_moved: "Le puzzle n'a pas été déplacé : il n'est plus dans cette collection, ou l'autre collection le contient déjà."
+unfinished_result:
+    pieces: "%placed% / %total% pièces"
+    title: "Pas terminé dans le temps imparti"
+    finished_later: "terminé en %time%"
+    section: "Pas terminé dans le temps imparti"
+    your_result: "Votre résultat"
+    no_rank: "Sans classement - pas terminé dans le temps imparti"

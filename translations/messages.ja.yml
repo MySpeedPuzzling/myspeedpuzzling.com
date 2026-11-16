@@ -13497,3 +13497,10 @@ my_data:
         cell_hint: "Enter で保存、Esc でキャンセル。"
         in_sheet_only: "この結果にはほかのパズラーもいます。通知が一度で済むように、行を開いて編集してください。"
         not_moved: "パズルは移動されませんでした。元のコレクションにもうないか、移動先のコレクションにすでにあります。"
+unfinished_result:
+    pieces: "%placed% / %total% ピース"
+    title: "制限時間内に完成できなかった"
+    finished_later: "%time% で完成"
+    section: "制限時間内に完成できなかった"
+    your_result: "あなたの結果"
+    no_rank: "順位なし - 制限時間内に完成できなかった"

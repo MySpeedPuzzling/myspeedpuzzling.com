@@ -87,7 +87,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetFirstTryTimes.php' => 'activity: first-try integrity - an earlier unfinished attempt is earlier contact with the puzzle, a later solve is no first try.',
         'Query/GetGettingStartedProgress.php' => 'history: "has logged a puzzle" - any result logged by the player ticks the onboarding step.',
         'Query/GetGroupPredictionResults.php' => self::PREDICTIONS,
-        'Query/GetGroupPuzzleFirstAttempts.php' => self::PREDICTIONS,
+        'Query/GetGroupPuzzleFirstAttempts.php' => 'predictions: emits the timed qualifying first attempts of PlayerBaselineCalculator - the pair/team subquery only picks the puzzles.',
         'Query/GetGuestLinkRequests.php' => self::HISTORY,
         'Query/GetImageEstimateEvaluationRows.php' => self::PREDICTIONS,
         'Query/GetImportAddScreen.php' => 'neutral: the spreadsheet import\'s "Add" screens - "nothing to wish for" mirrors ImportNeverTwice::hasSolved() of the import engine (any result of the puzzle on the profile); revisited with the write path (docs/TODO.md).',
@@ -96,7 +96,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetImportRowsOnProfile.php' => self::DATA_IMPORT,
         'Query/GetInsightsFingerprint.php' => 'neutral: a cache key over the player\'s results - pieces_placed and seconds_spent are part of it (concat_ws skips NULLs, so no key changed).',
         'Query/GetInsightsGroupResults.php' => self::PERFORMANCE,
-        'Query/GetInsightsPaceHistory.php' => self::PREDICTIONS,
+        'Query/GetInsightsPaceHistory.php' => 'predictions: joins player_pace_history, written for timed qualifying attempts only (PlayerPaceHistoryWriter).',
         'Query/GetInsightsRatingInputs.php' => self::PERFORMANCE,
         'Query/GetInsightsResolveCandidates.php' => 'performance + activity: attempts are timed only; "last done at all" takes any result - an unfinished attempt is doing it.',
         'Query/GetInsightsResultCount.php' => self::PERFORMANCE,
@@ -215,6 +215,25 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
 
             self::assertArrayHasKey($relative, $readers);
             self::assertStringContainsString('piecesPlaced', $readers[$relative], $relative . ' is classified as deciding in PHP, but never reads piecesPlaced.');
+        }
+    }
+
+    public function testATimedReaderShowsItsSecondsFilter(): void
+    {
+        $root = (string) realpath(__DIR__ . '/../src');
+        $readers = self::readers($root);
+
+        foreach (self::CLASSIFIED as $relative => $reason) {
+            if ($reason !== self::PERFORMANCE && $reason !== self::PREDICTIONS) {
+                continue;
+            }
+
+            self::assertArrayHasKey($relative, $readers);
+            self::assertMatchesRegularExpression(
+                '/seconds_to_solve\s+IS\s+NOT\s+NULL|seconds_to_solve\s*>\s*0|secondsToSolve\s+IS\s+NOT\s+NULL/i',
+                $readers[$relative],
+                $relative . ' is classified as reading timed rows only, but shows no seconds filter - give it its own reason.',
+            );
         }
     }
 

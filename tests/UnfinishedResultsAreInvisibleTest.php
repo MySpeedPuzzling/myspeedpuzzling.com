@@ -11,6 +11,8 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -19,6 +21,19 @@ use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
 use SpeedPuzzling\Web\MessageHandler\RecalculateCommunityStatsHandler;
 use SpeedPuzzling\Web\MessageHandler\RecalculatePuzzleStatisticsOnSolvingTimeChange;
 use SpeedPuzzling\Web\MessageHandler\RemoveFromWishListWhenPuzzleSolved;
+use SpeedPuzzling\Web\Query\GetAccountDeletionSummary;
+use SpeedPuzzling\Web\Query\GetExportablePuzzleSolveSummary;
+use SpeedPuzzling\Web\Query\GetInsightsActivity;
+use SpeedPuzzling\Web\Query\GetInsightsShelf;
+use SpeedPuzzling\Web\Query\GetProgressionDrift;
+use SpeedPuzzling\Web\Query\GetSolveXpDisplayInfo;
+use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Results\PlayerPeriodActivity;
+use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
+use SpeedPuzzling\Web\Value\DigestPeriod;
+use SpeedPuzzling\Web\Value\DigestPeriodLength;
+use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleSearchList;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetMostActivePlayers;
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
@@ -61,6 +76,15 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
     private const string REGULAR = PlayerFixture::PLAYER_REGULAR;
     private const string PARTNER = PlayerFixture::PLAYER_PRIVATE;
     private const string BORROWER = PlayerFixture::PLAYER_WITH_STRIPE;
+
+    // Valley Speed Puzzle Cup 2025: in person, public, ended, nobody of them took part
+    private const string COMPETITION_IN_PERSON = '018d0040-0000-0000-0000-000000000034';
+    // API Reveal Test Competition: online, public
+    private const string COMPETITION_ONLINE = '018d0006-0000-0000-0000-000000000001';
+    private const string COMPETITION_ONLINE_ROUND = '018d0006-0000-0000-0000-000000000010';
+    // Results Cup: in person, ended, with rounds
+    private const string COMPETITION_WITH_ROUND = '018d0020-0000-0000-0000-000000000001';
+    private const string COMPETITION_WITH_ROUND_ROUND = '018d0020-0000-0000-0000-000000000101';
 
     private const array PUZZLES = [
         PuzzleFixture::PUZZLE_500_02, // REGULAR finished it three times
@@ -126,6 +150,40 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
             foreach (['pieces_total', 'pieces7d', 'pieces_this_month'] as $column) {
                 self::add($expected, $pieces, 'communityPlayerStats', $playerId, $column);
             }
+        }
+
+        // Account deletion: every result of the account goes with it, unfinished ones too - its numbers count them all
+        self::add($expected, 4, 'accountDeletion', 'solvingTimesCount');
+        self::add($expected, 321 + 1234 + 777 + 250, 'accountDeletion', 'totalPieces');
+        self::add($expected, 3600 + 9000 + 5400 + 4000, 'accountDeletion', 'totalSeconds');
+
+        // The digest of the week: no puzzle more, the pieces and the minutes rise
+        self::add($expected, $everybody[self::REGULAR][0], 'digest', 'pieces');
+        $minutesBefore = self::at($before, 'digest', 'minutes');
+        self::assertIsInt($minutesBefore);
+        $minutesAfter = self::at($after, 'digest', 'minutes');
+        self::assertIsInt($minutesAfter);
+        self::assertContains($minutesAfter - $minutesBefore, [intdiv($everybody[self::REGULAR][1], 60), intdiv($everybody[self::REGULAR][1], 60) + 1]);
+        self::put($expected, $minutesAfter, 'digest', 'minutes');
+        $split = self::at($expected, 'digest', 'split');
+        self::assertIsArray($split);
+
+        // A week without a solve of REGULAR's before: the split shows what they puzzled, no puzzle in it
+        if ($split === []) {
+            $lines = [];
+
+            foreach (['solo' => $solo, 'duo' => $duo, 'team' => $team] as $type => $kind) {
+                $lines[] = ['pieces' => $kind[self::REGULAR][0], 'puzzles' => 0, 'type' => $type];
+            }
+
+            self::put($expected, $lines, 'digest', 'split');
+        }
+
+        foreach ($split as $index => $line) {
+            self::assertIsArray($line);
+            self::assertIsString($line['type']);
+            $kind = ['solo' => $solo, 'duo' => $duo, 'team' => $team][$line['type']];
+            self::add($expected, $kind[self::REGULAR][0], 'digest', 'split', (string) $index, 'pieces');
         }
 
         // The profile statistics page (ComputeStatistics): pieces per kind and overall, time spent per day, and the
@@ -210,25 +268,34 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
         $borrower = $this->player(self::BORROWER);
         $guest = new Puzzler(playerId: null, playerName: 'Rita Guest', playerCode: null, playerCountry: null, isPrivate: false);
 
+        // An unfinished result always belongs to a competition: an ended in-person one nobody of them took part in
+        // (Competitor), an online one (Online Competitor), one with a round
+        $inPerson = [self::COMPETITION_IN_PERSON, null];
+        $online = [self::COMPETITION_ONLINE, self::COMPETITION_ONLINE_ROUND];
+        $withRound = [self::COMPETITION_WITH_ROUND, self::COMPETITION_WITH_ROUND_ROUND];
+
         $results = [
             // Solo, on a puzzle REGULAR finished before
-            [$regular, PuzzleFixture::PUZZLE_500_02, null, 321, null, 3600],
+            [$regular, PuzzleFixture::PUZZLE_500_02, null, 321, null, 3600, $inPerson],
             // Solo, finished afterwards, on a puzzle REGULAR never finished (collection, lent out)
-            [$regular, PuzzleFixture::PUZZLE_3000, null, 1234, 9000, 9000],
+            [$regular, PuzzleFixture::PUZZLE_3000, null, 1234, 9000, 9000, $inPerson],
             // Solo, a borrowed puzzle the borrower never finished
-            [$borrower, PuzzleFixture::PUZZLE_3000, null, 600, null, 7200],
+            [$borrower, PuzzleFixture::PUZZLE_3000, null, 600, null, 7200, $withRound],
             // Pair, on a puzzle the pair finished before
-            [$regular, PuzzleFixture::PUZZLE_1000_01, [self::puzzler($regular), self::puzzler($partner)], 777, null, 5400],
+            [$regular, PuzzleFixture::PUZZLE_1000_01, [self::puzzler($regular), self::puzzler($partner)], 777, null, 5400, $online],
             // Team with a guest, finished afterwards, on a puzzle on REGULAR's wish list
-            [$regular, PuzzleFixture::PUZZLE_500_04, [self::puzzler($regular), self::puzzler($partner), $guest], 250, 4000, 4000],
+            [$regular, PuzzleFixture::PUZZLE_500_04, [self::puzzler($regular), self::puzzler($partner), $guest], 250, 4000, 4000, $online],
         ];
 
         $teamResolver = self::getContainer()->get(PuzzlingTeamResolver::class);
         $solvedAt = TestClock::now()->modify('-1 day');
         $ids = [];
 
-        foreach ($results as [$tracker, $puzzleId, $puzzlers, $piecesPlaced, $finishedLater, $secondsSpent]) {
+        foreach ($results as [$tracker, $puzzleId, $puzzlers, $piecesPlaced, $finishedLater, $secondsSpent, [$competitionId, $roundId]]) {
             $group = $puzzlers === null ? null : new PuzzlersGroup(teamId: null, puzzlers: $puzzlers);
+            $competition = $this->entityManager->find(Competition::class, $competitionId);
+            self::assertNotNull($competition);
+            $round = $roundId === null ? null : $this->entityManager->find(CompetitionRound::class, $roundId);
             $time = new PuzzleSolvingTime(
                 id: Uuid::uuid7(),
                 secondsToSolve: null,
@@ -242,6 +309,8 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
                 finishedPuzzlePhoto: null,
                 firstAttempt: false,
                 unboxed: false,
+                competitionRound: $round,
+                competition: $competition,
                 piecesPlaced: $unfinished ? $piecesPlaced : null,
                 finishedLaterSeconds: $unfinished ? $finishedLater : null,
                 puzzlingTeam: $teamResolver->resolve($group),
@@ -319,10 +388,11 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
                 'global' => self::normalize($getStatistics->globally()),
                 'month' => self::normalize($getStatistics->globallyInMonth($month, $year)),
             ],
-            'mostSolved' => self::normalize($getMostSolved->top(50)),
-            'mostSolvedInMonth' => self::normalize($getMostSolved->topInMonth(50, $month, $year)),
-            'mostActiveSolo' => self::byPlayer(self::normalize($getMostActive->mostActiveSoloPlayers(100))),
-            'mostActiveSoloInMonth' => self::byPlayer(self::normalize($getMostActive->mostActiveSoloPlayersInMonth(100, $month, $year))),
+            // Keyed: ties are in the query's order, which is not a meaning
+            'mostSolved' => self::byKey(self::normalize($getMostSolved->top(10000)), 'puzzleId'),
+            'mostSolvedInMonth' => self::byKey(self::normalize($getMostSolved->topInMonth(10000, $month, $year)), 'puzzleId'),
+            'mostActiveSolo' => self::byKey(self::normalize($getMostActive->mostActiveSoloPlayers(10000)), 'playerId'),
+            'mostActiveSoloInMonth' => self::byKey(self::normalize($getMostActive->mostActiveSoloPlayersInMonth(10000, $month, $year)), 'playerId'),
             'puzzleStatistics' => $this->rows('SELECT * FROM puzzle_statistics WHERE puzzle_id IN (:puzzleIds) ORDER BY puzzle_id', ['puzzleIds' => self::PUZZLES]),
             'wishList' => $this->rows('SELECT player_id, puzzle_id FROM wish_list_item WHERE player_id IN (:people) ORDER BY player_id, puzzle_id', ['people' => $people]),
             'xpEntries' => $this->rows('SELECT player_id, solving_time_id, reason, amount FROM xp_entry WHERE player_id IN (:people) ORDER BY player_id, solving_time_id, reason, amount', ['people' => $people]),
@@ -341,6 +411,22 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
             'activityCalendar' => [
                 self::REGULAR => self::normalize($container->get(GetPlayerActivityCalendar::class)->perDayInMonth(self::REGULAR, $year, $month)),
             ],
+            'accountDeletion' => self::normalize($container->get(GetAccountDeletionSummary::class)->byPlayerId(self::REGULAR)),
+            'progressionDrift' => $container->get(GetProgressionDrift::class)->find()->counts(),
+            'insightsActivity' => $container->get(GetInsightsActivity::class)->forPlayer(self::REGULAR, 500, TestClock::now()),
+            'insightsShelf' => self::normalize($container->get(GetInsightsShelf::class)->unsolved(self::REGULAR)),
+            'searchSolved' => $container->get(SearchPuzzle::class)->countByUserInput(null, null, PiecesRange::any(), null, [], PuzzleSearchList::tryFrom('solved'), self::REGULAR),
+            'searchUnsolved' => $container->get(SearchPuzzle::class)->countByUserInput(null, null, PiecesRange::any(), null, [], PuzzleSearchList::tryFrom('unsolved'), self::REGULAR),
+            'repeatNote' => array_map(
+                static fn (string $puzzleId): int => $container->get(GetSolveXpDisplayInfo::class)->countPlayerSolvesOfPuzzle(self::REGULAR, $puzzleId),
+                self::PUZZLES,
+            ),
+            'exportSummary' => self::normalize($container->get(GetExportablePuzzleSolveSummary::class)->forPuzzles(self::REGULAR, self::PUZZLES)),
+            'digest' => self::digestNumbers($container->get(PlayerPeriodActivityReader::class)->read(
+                self::REGULAR,
+                DigestPeriod::containing(DigestPeriodLength::Week, TestClock::now()),
+                true,
+            )),
             'activityBuckets' => [
                 'dow' => $container->get(GetPlayerActivityCalendar::class)->dayOfWeekBucketsInMonth(self::REGULAR, $year, $month),
                 'hour' => $container->get(GetPlayerActivityCalendar::class)->hourOfDayBucketsInMonth(self::REGULAR, $year, $month),
@@ -405,6 +491,21 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
         return $normalized;
     }
 
+    /**
+     * @return array{puzzles: int, pieces: int, minutes: int, previousPuzzles: int, previousPieces: int, split: list<array{type: string, puzzles: int, pieces: int}>}
+     */
+    private static function digestNumbers(PlayerPeriodActivity $activity): array
+    {
+        return [
+            'puzzles' => $activity->puzzlesCount,
+            'pieces' => $activity->piecesCount,
+            'minutes' => $activity->minutesSpent,
+            'previousPuzzles' => $activity->previousPuzzlesCount,
+            'previousPieces' => $activity->previousPiecesCount,
+            'split' => $activity->splitByPuzzlingType(),
+        ];
+    }
+
     private function player(string $id): Player
     {
         $player = $this->entityManager->find(Player::class, $id);
@@ -461,23 +562,23 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
     }
 
     /**
-     * @param mixed $rows a normalized list of rows with a playerId
+     * @param mixed $rows a normalized list of rows carrying $key
      * @return array<string, mixed>
      */
-    private static function byPlayer(mixed $rows): array
+    private static function byKey(mixed $rows, string $key): array
     {
         self::assertIsArray($rows);
-        $byPlayer = [];
+        $byKey = [];
 
         foreach ($rows as $row) {
             self::assertIsArray($row);
-            self::assertIsString($row['playerId']);
-            $byPlayer[$row['playerId']] = $row;
+            self::assertIsString($row[$key]);
+            $byKey[$row[$key]] = $row;
         }
 
-        ksort($byPlayer);
+        ksort($byKey);
 
-        return $byPlayer;
+        return $byKey;
     }
 
     /**

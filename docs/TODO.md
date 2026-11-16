@@ -24,7 +24,10 @@ list or show results were left for step 2 (display), the write-side ones for ste
       (`time === null` would show an unfinished result) and "Solved 0×" for a puzzle with only an unfinished result
       (`SolvedPuzzle::$solvedTimes`, now 0 there).
 - [ ] Step 2: the digest's highlight lines (`PlayerPeriodActivity::highlights()`) list an unfinished result like a relax
-      one - label it; its numbers already count it as pieces + time spent only.
+      one - label it; its numbers already count it as pieces + time spent only. A period with only unfinished results
+      now has activity (`hadActivity()`: pieces without a puzzle) and a "0 puzzles · N pieces" split line - word it.
+- [ ] Step 2: a pieces milestone moment of the Players page can now be crossed by an unfinished result
+      (`PlayerMomentDetector`: pieces running total) - its moment chip must not call it a solve.
 - [ ] Step 2: API v0/v1 results and the export (`is_relax_mode`, `ExportableSolvingTime`) read a null time as relax.
 - [ ] Steps 3-4: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen`
       `can_wish`) still takes any result of the puzzle - decide whether an unfinished one counts there (both together).

@@ -12034,6 +12034,7 @@ data_import:
             see_why: "理由を見る"
             ready: "追加できる行 %number% 行"
             on_profile: "%number% 行はすでにプロフィールにあります - 追加するものはありません"
+            repeats: "追加するものはありません - %number% 行はほかの行の繰り返しです"
             to_match: "照合待ちのパズル %number% 個"
             added_today: "今日 %number% 件追加"
             tomorrow: "あと %number% 件は明日追加できます"

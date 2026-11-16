@@ -12040,6 +12040,7 @@ data_import:
             see_why: "Voir pourquoi"
             ready: "{1}1 ligne prête à être ajoutée|[0,Inf[%number% lignes prêtes à être ajoutées"
             on_profile: "{0,1}%number% ligne est déjà sur votre profil - rien à ajouter|[2,Inf[%number% lignes sont déjà sur votre profil - rien à ajouter"
+            repeats: "{0,1}Rien à ajouter - %number% ligne répète une autre ligne|[2,Inf[Rien à ajouter - %number% lignes répètent d'autres lignes"
             to_match: "{1}1 puzzle reste à associer|[0,Inf[%number% puzzles restent à associer"
             added_today: "Ajoutés aujourd'hui : %number%"
             tomorrow: "{1}1 de plus pourra être ajouté demain|[0,Inf[%number% de plus pourront être ajoutés demain"

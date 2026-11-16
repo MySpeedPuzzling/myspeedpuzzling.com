@@ -12045,6 +12045,7 @@ data_import:
             see_why: "Ver por qué"
             ready: "{1}1 fila lista para añadir|[0,Inf[%number% filas listas para añadir"
             on_profile: "{1}1 fila ya está en tu perfil: no hay nada que añadir|[0,Inf[%number% filas ya están en tu perfil: no hay nada que añadir"
+            repeats: "{1}Nada que añadir: 1 fila repite otra fila|[0,Inf[Nada que añadir: %number% filas repiten otras filas"
             to_match: "{1}Queda 1 puzzle por emparejar|[0,Inf[Quedan %number% puzzles por emparejar"
             added_today: "Añadidos hoy: %number%"
             tomorrow: "{1}Mañana se puede añadir 1 más|[0,Inf[Mañana se pueden añadir %number% más"

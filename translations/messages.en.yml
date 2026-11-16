@@ -12291,6 +12291,7 @@ data_import:
             see_why: "See why"
             ready: "{1}1 row ready to add|[0,Inf[%number% rows ready to add"
             on_profile: "{1}1 row is already on your profile - nothing to add|[0,Inf[%number% rows are already on your profile - nothing to add"
+            repeats: "{1}Nothing to add - 1 row repeats another row|[0,Inf[Nothing to add - %number% rows repeat other rows"
             to_match: "{1}1 puzzle still to match|[0,Inf[%number% puzzles still to match"
             added_today: "Added %number% today"
             tomorrow: "{1}1 more can be added tomorrow|[0,Inf[%number% more can be added tomorrow"

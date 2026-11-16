@@ -52,7 +52,7 @@ readonly final class ImportHomeCard
     }
 
     /**
-     * @param null|array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
+     * @param null|array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, repeats: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
      *        what GetImportAddScreen::addedByImports() says about the import - null: nothing
      *        (`ready` = rows an "Add" would take that add something, `onProfile` = rows it would take that are on
      *        the profile already, `later` = rows that wait for tomorrow: the numbers of the import's own screens)
@@ -158,6 +158,16 @@ readonly final class ImportHomeCard
             // Said as it is - never "ready to add" - and the button only opens the import (it can be finished there)
             return $card(
                 [$addedLine, new ImportFlowText('data_import.after.home.on_profile', $standing['onProfile'])],
+                $open,
+                'data_import_detail',
+                quiet: true,
+            );
+        }
+
+        if ($standing['repeats'] > 0) {
+            // What is left only repeats other rows of the file: counted once, so nothing more comes of them
+            return $card(
+                [$addedLine, new ImportFlowText('data_import.after.home.repeats', $standing['repeats'])],
                 $open,
                 'data_import_detail',
                 quiet: true,

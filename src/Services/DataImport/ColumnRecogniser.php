@@ -233,12 +233,15 @@ final readonly class ColumnRecogniser
      * its values when most of them differ - which a log of a few puzzles solved again and again never does (five
      * names in the 200 cells looked at). Such a sheet would be "not puzzles" and dropped without a word. So: when
      * something of a puzzle list was recognised (a time, a solve date, pieces, a brand, a barcode) and no column is
-     * the name, the free column of texts that says the most - the most different values, then the longest ones, the
-     * left one first - is the name: `probable`, `reason: values`. The sheet is then a list of puzzles, and - having
-     * no header row - held for the player's check (ImportCheckFirst), who puts it right when the guess is wrong.
+     * the name, **the leftmost** free column of texts is the name: `probable`, `reason: values`. Leftmost, not the
+     * most varied one: a tracker puts the puzzle before its notes, and a column of comments or partners differs
+     * more than five repeating names do. The sheet is then a list of puzzles, and - having no header row - held for
+     * the player's check (ImportCheckFirst), who puts it right when the guess is wrong.
      *
-     * Called after withBrandByValues(), so that the brand's column is never taken for the name. Never a column of
-     * one value, of yes / no, of dates or of times.
+     * A candidate: nothing was made of it (no field, no role - and not the weaker of two columns of one field, a
+     * second "1000 pcs" column), ≥ 3 cells, ≥ 2 different values, ≥ 90 % texts, a median length of ≥ 4 characters,
+     * not a column of yes / no, of dates or of times. Called after withBrandByValues(), so the brand's column is
+     * never taken for the name.
      *
      * @param list<MappedColumn> $columns
      * @param iterable<array<int, array<string, mixed>>> $rows rows of the table's data (cells by column), a sample
@@ -261,7 +264,7 @@ final readonly class ColumnRecogniser
 
             $evidence = $evidence || in_array($column->field, [ImportField::Time, ImportField::SolvedOn, ImportField::Pieces, ImportField::Brand, ImportField::Barcode], true);
 
-            if ($column->field === null && $column->role === null && $column->header === '') {
+            if ($column->field === null && $column->role === null && $column->header === '' && $column->reason !== MappedColumn::BY_DUPLICATE) {
                 $free[$column->column] = true;
             }
         }
@@ -283,38 +286,35 @@ final readonly class ColumnRecogniser
         }
 
         ksort($values);
-        $best = null;
-        $bestScore = [0, 0.0];
+        $name = null;
 
         foreach ($values as $number => $cells) {
             $profile = $this->profile($cells);
             $count = $profile['count'];
+            $lengths = array_map(static fn (array $cell): int => mb_strlen(trim(StoredCells::shown($cell))), $cells);
+            sort($lengths);
 
             if (
-                $count < 3
-                || $profile['distinct'] < 2
-                || $profile['texts'] / $count < 0.9
-                || $profile['yesNo'] / $count >= 0.5
-                || $profile['textDays'] / $count >= 0.5
-                || $profile['textTimes'] / $count >= 0.5
+                $count >= 3
+                && $profile['distinct'] >= 2
+                && $profile['texts'] / $count >= 0.9
+                && $lengths[intdiv($count, 2)] >= 4
+                && $profile['yesNo'] / $count < 0.5
+                && $profile['textDays'] / $count < 0.5
+                && $profile['textTimes'] / $count < 0.5
             ) {
-                continue;
-            }
+                $name = $number;
 
-            $score = [$profile['distinct'], $profile['length'] / $count];
-
-            if ($score > $bestScore) {
-                $best = $number;
-                $bestScore = $score;
+                break;
             }
         }
 
-        if ($best === null) {
+        if ($name === null) {
             return $columns;
         }
 
         return array_map(
-            static fn (MappedColumn $column): MappedColumn => $column->column === $best
+            static fn (MappedColumn $column): MappedColumn => $column->column === $name
                 ? new MappedColumn($column->column, $column->header, ImportField::PuzzleName, ColumnCertainty::Probable, MappedColumn::BY_VALUES)
                 : $column,
             $columns,

@@ -75,6 +75,8 @@ final class ImportHomeCardTest extends TestCase
         yield 'every ready row is on the profile already' => [DataImportStatus::SettingUp, ['onProfile' => 6], ['data_import.after.home.on_profile'], $open, 'data_import_detail', true, false];
         yield 'some rows add, the others are on the profile' => [DataImportStatus::SettingUp, ['ready' => 3, 'onProfile' => 6], ['data_import.after.home.ready'], 'data_import.flow.primary.check_and_add', 'data_import_add', false, false];
         yield 'added, and the rest is on the profile already' => [DataImportStatus::SettingUp, ['results' => 4, 'onProfile' => 6, 'tookRows' => true], ['data_import.flow.add.added', 'data_import.after.home.on_profile'], $open, 'data_import_detail', true, false];
+        yield 'what is left only repeats other rows' => [DataImportStatus::SettingUp, ['results' => 4, 'repeats' => 3, 'tookRows' => true], ['data_import.flow.add.added', 'data_import.after.home.repeats'], $open, 'data_import_detail', true, false];
+        yield 'only repeats, nothing added' => [DataImportStatus::SettingUp, ['repeats' => 3], ['data_import.after.home.repeats'], $open, 'data_import_detail', true, false];
         yield 'added, nothing left' => [DataImportStatus::SettingUp, ['results' => 900, 'collectionItems' => 18, 'lastAddedAt' => new DateTimeImmutable('2026-11-14'), 'tookRows' => true], ['data_import.flow.add.added_on'], 'data_import.flow.primary.see_added', 'data_import_added', true, false];
         yield 'everything undone' => [DataImportStatus::SettingUp, ['tookRows' => true], ['data_import.home.nothing_added_now'], $open, 'data_import_detail', true, false];
         yield 'nothing of it can be added' => [DataImportStatus::SettingUp, [], ['data_import.flow.add.nothing'], $open, 'data_import_detail', true, false];
@@ -119,7 +121,7 @@ final class ImportHomeCardTest extends TestCase
     /**
      * @param array<string, mixed> $given
      *
-     * @return array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}
+     * @return array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, repeats: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}
      */
     private static function standing(array $given): array
     {
@@ -139,6 +141,7 @@ final class ImportHomeCardTest extends TestCase
             'ready' => $int('ready'),
             'later' => $int('later'),
             'onProfile' => $int('onProfile'),
+            'repeats' => $int('repeats'),
             'waiting' => $int('waiting'),
             'questions' => $int('questions'),
             'toCheck' => $int('toCheck'),

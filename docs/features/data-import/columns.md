@@ -194,10 +194,12 @@ left out without a word (it is not imported, so "Check first" never saw it), and
 the name was still "Don't import" and every row "could not read".
 
 So, **only on a sheet without a header row**, after the brand was looked for: when something of a puzzle list was
-recognised (a time, a solve date, pieces, a brand or a barcode) and no column is the name, the free column of texts
-that says the most - the most different values, then the longest, the left one first - is the name: `probable`,
-`reason: values`. Never a column of one value, of yes / no, of dates or of times; never a column that has a field
-(the brand found by its values is not taken for the name). The sheet is then results or a list of owned puzzles,
+recognised (a time, a solve date, pieces, a brand or a barcode) and no column is the name, **the leftmost** free
+column of texts is the name: `probable`, `reason: values`. Leftmost, not the most varied: a tracker puts the puzzle
+before its notes, and comments or partners differ more than five repeating names. A candidate has ≥ 3 cells, ≥ 2
+different values, ≥ 90 % texts and a median length of ≥ 4 characters; never a column of yes / no, of dates or of
+times, never a column that has a field (the brand found by its values) and never the weaker of two columns of one
+field (`reason: duplicate` - a second "1000 pcs" column). The sheet is then results or a list of owned puzzles,
 and - having no header row - **held for the check**, where a wrong guess is one tap to put right.
 
 What stays `not_puzzles` without a question: a header-less sheet with no text column at all (a drill log), or

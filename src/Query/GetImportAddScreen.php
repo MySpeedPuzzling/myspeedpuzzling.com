@@ -270,7 +270,7 @@ SQL;
 ) AS repeat_ids
 SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids, NULL AS repeat_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, on_profile: int, repeats: int, rows_that_add: int, kept_now: int, not_imported: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string, repeat_ids: null|string} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, on_profile: int, repeats: int, rows_that_add: int, kept_now: int, not_imported: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, undone: bool, sheets: null|string, sample_ids: null|string, known_ids: null|string, repeat_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 counts AS (
@@ -363,6 +363,8 @@ SELECT
         WHERE batch.import_id = import.id
         ORDER BY batch.started_at DESC, batch.id DESC LIMIT 1
     ) AS latest_batch_id,
+    -- Something of this import was ever taken back (an Undo of a row, a batch or all of it)
+    EXISTS (SELECT 1 FROM data_import_undo taken_back WHERE taken_back.import_id = import.id) AS undone,
     {$review}
 FROM import
 CROSS JOIN counts
@@ -445,6 +447,7 @@ SQL, [
             repeatIds: array_values(array_filter(self::decoded($row['repeat_ids']), is_string(...))),
             keptNow: $row['kept_now'],
             notImported: $row['not_imported'],
+            everUndone: $row['undone'],
         );
     }
 
@@ -1523,12 +1526,12 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
      * what it added, whether it is adding right now, and what is left - the rows that are ready (the engine's own
      * definition, DataImportRowRepository::sqlReadyRows(), over the imports that can still add) as the import's own
      * "Check and add" counts them: `ready` = the rows an Add would take **that add something**, `onProfile` = the
-     * rows it would take that are on the profile already, `later` = the rows that wait for tomorrow (the daily
+     * rows that are on the profile already, `repeats` = the rows that only repeat another row of the file, `later` = the rows that wait for tomorrow (the daily
      * guard) -, rows that wait for an answer after an "Add", questions of its sheets, rows we could not read,
      * puzzles still to match. **One statement for all of them**, whatever their number and size. Numbers only;
      * nobody's identity is selected.
      *
-     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
+     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, later: int, onProfile: int, repeats: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
      */
     public function addedByImports(string $playerId): array
     {
@@ -1549,9 +1552,12 @@ r.import_id IN (
 SQL);
         $notAdded = self::NOT_ADDED;
         $adds = self::ROW_ADDS;
-        $onProfile = self::ROW_ON_PROFILE;
+        // For a card, a row that makes nothing is said whether today's "Add" would take it or not: at the daily
+        // limit the rows that are known anyway are no "more for tomorrow"
+        $onProfile = str_replace('judged.taken AND ', '', self::ROW_ON_PROFILE);
+        $repeats = str_replace('judged.taken AND ', '', self::ROW_REPEATS);
 
-        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, later: int, on_profile: int, waiting: int, took_rows: bool, questions: int|string, to_check: int|string, look: int|string, to_match: int, working: bool}> $rows */
+        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, later: int, on_profile: int, repeats: int, waiting: int, took_rows: bool, questions: int|string, to_check: int|string, look: int|string, to_match: int, working: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 ready_by AS (
@@ -1560,6 +1566,7 @@ ready_by AS (
         -- The numbers of the import's own "Check and add" (summary(): `rows_that_add`, `on_profile`), per import
         COUNT(*) FILTER (WHERE {$adds}) AS adds,
         COUNT(*) FILTER (WHERE {$onProfile}) AS on_profile,
+        COUNT(*) FILTER (WHERE {$repeats}) AS repeats,
         -- Rows that would add something and wait for tomorrow: the daily guard
         COUNT(*) FILTER (WHERE judged.taken = FALSE AND (judged.new_result OR judged.new_owned OR judged.new_wish)) AS later
     FROM judged
@@ -1597,6 +1604,7 @@ SELECT
     COALESCE(ready_by.adds, 0) AS ready,
     COALESCE(ready_by.later, 0) AS later,
     COALESCE(ready_by.on_profile, 0) AS on_profile,
+    COALESCE(ready_by.repeats, 0) AS repeats,
     -- The questions of its sheets and the rows we could not read, as "Where you are" counts them (ImportFlow)
     (
         SELECT COALESCE(SUM(jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb))), 0)
@@ -1668,6 +1676,7 @@ SQL, [
                 'ready' => $row['ready'],
                 'later' => $row['later'],
                 'onProfile' => $row['on_profile'],
+                'repeats' => $row['repeats'],
                 'waiting' => $row['waiting'],
                 'questions' => (int) $row['questions'],
                 'toCheck' => (int) $row['to_check'],

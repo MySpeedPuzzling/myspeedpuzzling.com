@@ -14,6 +14,8 @@ enum PuzzleModerationAction: string
     case ChangeRequestRejected = 'change_request_rejected';
     case MergeRequestApproved = 'merge_request_approved';
     case MergeRequestRejected = 'merge_request_rejected';
+    // An admin undid an approved merge from its audit (the merged puzzles exist again)
+    case MergeRequestReverted = 'merge_request_reverted';
     // Closed by the application, nothing left to do (PuzzleReportStatus::Outdated) - no decider
     case ChangeRequestOutdated = 'change_request_outdated';
     case MergeRequestOutdated = 'merge_request_outdated';

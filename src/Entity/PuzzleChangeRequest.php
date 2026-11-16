@@ -265,6 +265,18 @@ class PuzzleChangeRequest
     }
 
     /**
+     * The merge that moved it was undone - back on the puzzle it was filed on (RevertPuzzleMergeRequestHandler).
+     */
+    public function puzzleMergeReverted(Puzzle $restoredPuzzle): void
+    {
+        if ($this->mergedFromPuzzleId?->equals($restoredPuzzle->id) === true) {
+            $this->mergedFromPuzzleId = null;
+        }
+
+        $this->puzzle = $restoredPuzzle;
+    }
+
+    /**
      * Whether its puzzle has every value it proposes already. Errs on "something left": a proposed image is a new file,
      * a brand it created is no brand of any puzzle yet, and other names count as applied only when applying them
      * changes nothing - a moderator decides anything less clear.

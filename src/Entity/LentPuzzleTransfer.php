@@ -61,4 +61,13 @@ class LentPuzzleTransfer
         public null|string $ownerName = null,
     ) {
     }
+
+    /**
+     * A merge moved this transfer onto the survivor (a bulk update, ApprovePuzzleMergeRequestHandler) and was undone -
+     * back on the puzzle it was recorded for (RevertPuzzleMergeRequestHandler).
+     */
+    public function puzzleMergeReverted(Puzzle $restoredPuzzle): void
+    {
+        $this->puzzle = $restoredPuzzle;
+    }
 }

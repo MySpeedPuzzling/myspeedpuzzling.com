@@ -26,6 +26,7 @@ final class LegacyAlternativeNameCoverageTest extends TestCase
         'src/Controller/InternalApi/ListPuzzleMergeRequestsController.php' => self::INTERNAL_API,
         'src/Results/PuzzleHistoryChange.php' => self::APPEND_ONLY_LOG,
         'src/Services/PuzzleRecordUpdater.php' => self::APPEND_ONLY_LOG,
+        'src/MessageHandler/RevertPuzzleMergeRequestHandler.php' => self::APPEND_ONLY_LOG,
     ];
 
     public function testTheOldSingleAlternativeNameIsUsedOnlyWhereAllowListed(): void

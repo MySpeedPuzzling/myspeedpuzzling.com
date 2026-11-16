@@ -15,6 +15,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
+use SpeedPuzzling\Web\Events\PuzzleMergeReverted;
 use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
@@ -35,6 +36,16 @@ class PuzzleMergeRequest implements EntityWithEvents
     #[ManyToOne]
     #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
     public null|Player $reviewedBy = null;
+
+    // An admin undid the approved merge (PuzzleReportStatus::Reverted) - reviewedAt/reviewedBy keep who approved it
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $revertedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|Player $revertedBy = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: 'text', nullable: true)]
@@ -125,6 +136,26 @@ class PuzzleMergeRequest implements EntityWithEvents
             mergeRequestId: $this->id,
             survivorPuzzleId: $survivorPuzzleId,
             puzzleIdsToDelete: $mergedPuzzleIds,
+        ));
+    }
+
+    /**
+     * The approved merge was undone - the merged puzzles exist again (RevertPuzzleMergeRequestHandler).
+     *
+     * @param list<string> $restoredPuzzleIds
+     */
+    public function revert(Player $revertedBy, DateTimeImmutable $revertedAt, array $restoredPuzzleIds): void
+    {
+        assert($this->survivorPuzzleId !== null);
+
+        $this->status = PuzzleReportStatus::Reverted;
+        $this->revertedBy = $revertedBy;
+        $this->revertedAt = $revertedAt;
+
+        $this->recordThat(new PuzzleMergeReverted(
+            mergeRequestId: $this->id,
+            survivorPuzzleId: $this->survivorPuzzleId,
+            restoredPuzzleIds: $restoredPuzzleIds,
         ));
     }
 

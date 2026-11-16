@@ -91,6 +91,7 @@
                             {% elseif active_tab != 'pending' and request.reviewedAt %}
                                 <div class="small text-muted">
                                     Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}
+                                    {% if request.status.value == 'reverted' %}<span class="badge bg-dark ms-1">Reverted</span>{% endif %}
                                 </div>
                             {% endif %}
                         </div>

@@ -27,6 +27,8 @@
                     <span class="badge bg-success">Approved</span>
                 {% elseif request.status.value == 'outdated' %}
                     <span class="badge bg-secondary">Already done</span>
+                {% elseif request.status.value == 'reverted' %}
+                    <span class="badge bg-dark">Reverted</span>
                 {% else %}
                     <span class="badge bg-danger">Rejected</span>
                 {% endif %}
@@ -74,6 +76,30 @@
                         The merged puzzle:
                         <a href="{{ path('puzzle_detail', {puzzleId: request.finalMergedPuzzleId}) }}" target="_blank">{{ request.survivorPuzzleName ?? 'view' }}</a>
                         &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.finalMergedPuzzleId}) }}">History</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if request.status.value == 'reverted' %}
+                <div class="alert alert-secondary small text-break" data-role="reverted">
+                    Reverted {{ request.revertedAt ? request.revertedAt|ago }}{% if request.reverterName %} by {{ request.reverterName }}{% endif %}
+                    - the merged puzzle exists again:
+                    {% for puzzleId in request.mergedPuzzleIds %}
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzleId}) }}" target="_blank">puzzle</a>
+                        &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: puzzleId}) }}">History</a>{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                </div>
+            {% elseif request.status.value == 'approved' and is_granted('ADMIN_ACCESS') %}
+                {# Admins only: undo the merge from its audit (RevertPuzzleMergeRequestHandler) #}
+                <div class="mb-3" data-role="revert">
+                    {% if request.isRevertible() %}
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#revertMergeModal">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Revert this merge
+                        </button>
+                    {% elseif request.auditedMergedCount is null %}
+                        <p class="small text-muted mb-0">Merged before merges were audited (2026-09-16) - it can only be reverted by hand.</p>
+                    {% else %}
+                        <p class="small text-muted mb-0">This merge joined {{ request.auditedMergedCount }} puzzles at once - it can only be reverted by hand.</p>
                     {% endif %}
                 </div>
             {% endif %}
@@ -414,6 +440,36 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if request.status.value == 'approved' and request.isRevertible() and is_granted('ADMIN_ACCESS') %}
+<div class="modal fade" id="revertMergeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ path('admin_revert_puzzle_merge_request', {id: request.id}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\RevertPuzzleMergeRequestController::CSRF_TOKEN_ID')) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Revert this merge?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body small">
+                    <ul class="ps-3 mb-3">
+                        <li>The merged puzzle comes back under its old address, as it was before the merge.</li>
+                        <li>Results, collections, wishlists, sell/swap lists and lendings the merge moved go back to it.</li>
+                        <li>{{ request.survivorPuzzleName ?? 'The puzzle that stayed' }} gets back what the merge changed - except fields edited since.</li>
+                        <li>Anything logged on {{ request.survivorPuzzleName ?? 'it' }} after the merge stays there, and rows the merge deleted as duplicates do not come back.</li>
+                    </ul>
+                    <label for="revertNote" class="form-label">Note for the history (optional)</label>
+                    <textarea class="form-control" id="revertNote" name="note" rows="2" placeholder="Why the merge was wrong..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Revert the merge</button>
                 </div>
             </form>
         </div>

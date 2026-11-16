@@ -107,8 +107,8 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
         $nameLanguage = InternalApiJsonBody::optionalLanguageTag($body, 'nameLanguage');
         $nameLanguage = $nameLanguage === false ? $puzzle->nameLanguage : $nameLanguage;
 
-        if (is_int($piecesCount) === false || $piecesCount < 10 || $piecesCount > 25000) {
-            throw new BadRequestHttpException('"piecesCount" must be a whole number from 10 to 25000.');
+        if (is_int($piecesCount) === false || $piecesCount < 10 || $piecesCount > 99999) {
+            throw new BadRequestHttpException('"piecesCount" must be a whole number from 10 to 99999.');
         }
 
         if ($manufacturerId !== null && Uuid::isValid($manufacturerId) === false) {

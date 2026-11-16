@@ -61,7 +61,7 @@ final class ProposePuzzleChangesFormType extends AbstractType
                 'label' => 'puzzle_report.form.pieces_count',
                 'attr' => [
                     'min' => 10,
-                    'max' => 25000,
+                    'max' => 99999,
                 ],
             ])
             // Labels and help in templates/puzzle-report/_propose_changes_form.html.twig (puzzle/_code_inputs.html.twig)

@@ -71,7 +71,7 @@ final class CreatePuzzleController extends AbstractController
 
         $name = $input->string('name', required: true, maxLength: PuzzleNames::MAX_NAME_LENGTH);
         $name = $name !== null ? PuzzleNames::cleanName($name) : null;
-        $piecesCount = $input->int('piecesCount', required: true, minimum: 10, maximum: 25000);
+        $piecesCount = $input->int('piecesCount', required: true, minimum: 10, maximum: 99999);
         $brandName = $input->string('brand', maxLength: 255);
         $manufacturerId = $input->string('manufacturerId');
         $allowDuplicateEan = $input->bool('allowDuplicateEan') ?? false;

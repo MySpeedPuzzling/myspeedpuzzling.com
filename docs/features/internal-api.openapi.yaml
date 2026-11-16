@@ -4049,7 +4049,7 @@ components:
         piecesCount:
           type: integer
           minimum: 10
-          maximum: 25000
+          maximum: 99999
         ean:
           oneOf:
             - type: string
@@ -4332,7 +4332,7 @@ components:
         piecesCount:
           type: integer
           minimum: 10
-          maximum: 25000
+          maximum: 99999
         ean:
           description: Every EAN as it should end up - a list, one code per entry (`[]` removes every code), or one comma-separated string.
           oneOf:

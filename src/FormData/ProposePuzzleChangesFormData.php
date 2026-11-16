@@ -34,7 +34,7 @@ final class ProposePuzzleChangesFormData
 
     #[NotBlank]
     #[Positive]
-    #[Range(min: 10, max: 25000)]
+    #[Range(min: 10, max: 99999)]
     public int $piecesCount = 0;
 
     #[Image(

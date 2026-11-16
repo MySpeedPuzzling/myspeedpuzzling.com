@@ -926,7 +926,7 @@ competition puzzles (`hide_until` in the future) are not found, as on the site. 
 
 `POST /internal-api/puzzles` adds a puzzle **approved and without a photo** (`AddApprovedPuzzle` - the only way besides
 a competition round's new puzzle to add one without a box photo; players always add through `AddPuzzle`, whose photo
-is required). Body: `name` (required), `piecesCount` (required, 10-25000), the brand as `manufacturerId` **or**
+is required). Body: `name` (required), `piecesCount` (required, 10-99999), the brand as `manufacturerId` **or**
 `brand` (a name: an existing brand of that name - any letter case, the add form's `ManufacturerResolver` - else a new,
 unapproved brand; the answer's `brandCreated` says which; approve a new one with
 `POST /internal-api/manufacturers/{id}/approve`), optional `ean` / `identificationNumber` (one code, a comma-separated

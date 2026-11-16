@@ -482,10 +482,14 @@
     {% set comparison_launcher = logged_user.profile is not null
         and not hide_comparison_launcher|default(false)
         and logged_user.profile.comparisonLineUp.hasOthers() %}
+    {# Google Analytics stays off when the edge bot-blocker says this visitor comes from a datacenter / ISP-proxy
+       network (`X-Bb-Analytics: off`, set via Traefik forwardAuth authResponseHeaders - the edge strips any copy the
+       client sends). Those exits solve the challenge for a living and were the 2026-11 GA spike (lily.srv D96). #}
+    {% set load_analytics = ga_tracking is not empty and app.request.headers.get('X-Bb-Analytics') != 'off' %}
     {# A page adds its own class with `{% set page_body_class = '…' %}` at its top (outside blocks) #}
     <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}{{ page_body_class|default(null) ? ' ' ~ page_body_class }}"
-          data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
-          {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
+          data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if load_analytics %} analytics{% endif %}"
+          {% if load_analytics %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
         {% if sandbox %}
             {# Every page of the sandbox says what it is (docs/features/sandbox/README.md) #}

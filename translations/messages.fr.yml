@@ -13545,6 +13545,20 @@ results_import:
         try_again: "Cela n'a pas fonctionné - veuillez réessayer."
         newer_check: "Votre feuille a été vérifiée à nouveau entre-temps - regardez la dernière vérification et cochez à nouveau."
         nothing_ticked: "Cochez au moins un événement à importer."
+    sheet:
+        heading: "Votre feuille"
+        open: "Ouvrir dans Google Sheets"
+        change: "Changer de feuille"
+        label: "Lien vers votre feuille Google"
+        hint: "Collez le lien de votre navigateur pendant que la feuille est ouverte. Elle doit être partagée en « Tous les utilisateurs disposant du lien : Lecteur ». Nous la lisons une fois pour la vérifier, puis nous affichons ici ses événements - les événements déjà importés sont conservés."
+        button: "Utiliser cette feuille"
+        flash:
+            changed: "Votre feuille a changé - voici ses événements."
+            same: "C'est déjà votre feuille."
+            taken: "Cette feuille est déjà utilisée pour un autre import de résultats. Écrivez-nous si c'est la vôtre."
+            unreadable: "Nous n'avons pas pu lire cette feuille - partagez-la en « Tous les utilisateurs disposant du lien : Lecteur » et réessayez. Votre feuille reste inchangée."
+            published: "C'est un lien « Publier sur le Web ». Ouvrez la feuille et copiez plutôt le lien de votre navigateur."
+            not_a_sheet: "Ce n'est pas un lien vers une feuille Google. Ouvrez la feuille et copiez le lien de votre navigateur."
     guide:
         title: "À quoi doit ressembler votre feuille"
     sources:
@@ -13564,6 +13578,7 @@ results_import:
         unreadable_tabs: "Google ne nous a pas donné ces onglets cette fois - vérifiez à nouveau dans un instant :"
         no_events: "Nous n'avons trouvé aucun événement dans la feuille."
     list:
+        from_previous_sheet: "De votre feuille précédente - il a la date et le nom d'un événement déjà importé, l'import met donc à jour cet événement au lieu d'en ajouter un nouveau."
         heading: "Événements de votre feuille"
         tab: "Onglet « %tab% »"
         teams: "%count% équipe|%count% équipes"
@@ -13585,6 +13600,8 @@ results_import:
         needs_fixing: "Corrigez cela dans votre feuille, puis vérifiez à nouveau - rien de cet événement n'est importé d'ici là."
         event_deleted: "L'événement créé à partir de cet onglet a été supprimé sur MySpeedPuzzling - il n'est pas recréé."
     note:
+        matches_several_imported_events: "Cet événement est dans votre feuille, et %detail% événements avec la même date et le même nom ont été importés de votre feuille précédente - renommez l'un d'eux pour que nous sachions lequel c'est."
+        shares_imported_event: "Un autre événement de votre feuille a la même date et le même nom, et les deux correspondent à un seul événement importé - renommez l'un d'eux."
         row: "ligne %line%"
         missing_column: "La colonne « %detail% » manque."
         missing_event_field: "« %detail% » est vide sur la ligne 2."

@@ -27,4 +27,9 @@ readonly final class EventResultsSheetTabRepository
     {
         $this->entityManager->persist($tab);
     }
+
+    public function delete(EventResultsSheetTab $tab): void
+    {
+        $this->entityManager->remove($tab);
+    }
 }

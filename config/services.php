@@ -148,11 +148,6 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('env(UNFINISHED_RESULTS_FORM)', '1');
     $parameters->set('unfinishedResultsForm', '%env(bool:UNFINISHED_RESULTS_FORM)%');
 
-    // The results import page of organizations with a results source (docs/features/feature_flags.md): the kill switch,
-    // on by default - 0 = the page answers 404 and no link leads to it (the console command and the internal API stay)
-    $parameters->set('env(RESULTS_IMPORT_PAGE)', '1');
-    $parameters->set('resultsImportPage', '%env(bool:RESULTS_IMPORT_PAGE)%');
-
     // Insights (docs/features/feature_flags.md): the page and its links only while 1, admins always.
     $parameters->set('insightsPublic', '%env(bool:INSIGHTS_PUBLIC)%');
 

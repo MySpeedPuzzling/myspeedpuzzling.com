@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\ResultsImportScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -21,12 +20,11 @@ use Symfony\Component\Messenger\MessageBusInterface;
 /**
  * The results import page (docs/features/event-results-import/results-import-page.md): who reaches it, "Check sheet"
  * keeping the sheet as read (Google faked), every status of an event against what is stored, the plain-words problems,
- * the soft warnings, the preview with its ranking and its team differences (P4 wording), and the kill switch.
+ * the soft warnings, the preview with its ranking and its team differences (P4 wording), and the menu link where a source exists.
  * Made-up events and teams.
  */
 final class ResultsImportPageTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use ResultsImportScenario;
 
     private const string SLUG = OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
@@ -41,12 +39,6 @@ final class ResultsImportPageTest extends WebTestCase
         $this->browser->disableReboot();
         $this->source = $this->createResultsSource(self::getContainer());
         $this->fakeGoogle(self::getContainer());
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-        parent::tearDown();
     }
 
     private function pageUrl(): string
@@ -113,28 +105,12 @@ final class ResultsImportPageTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testTheKillSwitchHidesThePageAndItsLink(): void
+    public function testTheMenuOfAnOrganizationWithASourceLinksThePage(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $this->browser->request('GET', '/en/event-actions/organization/' . OrganizationFixture::ORGANIZATION_RIVERBEND);
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('/results-import', (string) $this->browser->getResponse()->getContent());
-
-        self::ensureKernelShutdown();
-        $this->overrideFeatureFlagEnv('RESULTS_IMPORT_PAGE', false);
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-
-        $browser->request('GET', $this->pageUrl());
-        self::assertResponseStatusCodeSame(404);
-        $browser->request('GET', '/en/organizations/' . self::SLUG . '/results-import');
-        self::assertResponseStatusCodeSame(404);
-        $browser->request('POST', $this->pageUrl() . '/check');
-        self::assertResponseStatusCodeSame(404);
-
-        $browser->request('GET', '/en/event-actions/organization/' . OrganizationFixture::ORGANIZATION_RIVERBEND);
-        self::assertResponseIsSuccessful();
-        self::assertStringNotContainsString('/results-import', (string) $browser->getResponse()->getContent());
     }
 
     public function testTheMenuLinksThePageOnlyWhereASourceExists(): void

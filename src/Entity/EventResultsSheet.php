@@ -38,7 +38,8 @@ class EventResultsSheet
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
+        // Registered by an admin; the organization's team changes it on the results import page (changeSpreadsheet())
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 100, unique: true)]
         public string $spreadsheetId,
         // The events land here; they are approved at once when the organization is (OrganizationApprovalPolicy)
@@ -68,6 +69,17 @@ class EventResultsSheet
         #[Column(length: 50, options: ['default' => SarahDoesPuzzlesFormat::KEY])]
         public string $format = SarahDoesPuzzlesFormat::KEY,
     ) {
+    }
+
+    /**
+     * The organization's team moved its results to another spreadsheet ("Change sheet" on the results import page,
+     * docs/features/event-results-import/results-import-page.md "As built: PR 4"). The events already imported stay
+     * the source's: the new sheet's events are matched to them by their stable keys, else by date and name.
+     */
+    public function changeSpreadsheet(string $spreadsheetId): void
+    {
+        $this->spreadsheetId = $spreadsheetId;
+        $this->lastFetchError = null;
     }
 
     public function fetched(DateTimeImmutable $at): void

@@ -22,6 +22,9 @@ readonly final class ApplyEventResultsTab implements SerializedByLock
         // When the sheet was read, for an import from a stored check (the results import page): an event applied after
         // that read is not applied again from it - a newer check won. Null = read just now (the sync)
         public null|DateTimeImmutable $readAt = null,
+        // The key the event was imported under from the organizer's previous spreadsheet (PreviousSheetEvents matched
+        // it by date and name): that stored event moves to this event's key and is updated - never created twice
+        public null|string $replacesKey = null,
     ) {
     }
 

@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Services\EventResultsImport\Format\ResultsFormats;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
+use SpeedPuzzling\Web\Value\EventResultsImport\PreviousSheetMatch;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultsImportStatus;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\UnfinishedResult;
@@ -57,6 +58,8 @@ readonly final class ResultsImportComparison
 
         $events = $this->formats->get($source->format)->parse($snapshot);
         $stored = $this->getStoredTabs->ofSource($source->id->toString());
+        // After a change of the spreadsheet: events stored under another key, matched by date and name
+        $previous = PreviousSheetEvents::match($events, $stored);
         $puzzles = $this->getPuzzles->byLinkedIds(array_values(array_filter(array_map(
             static fn (ParsedEvent $event): null|string => $event->puzzleId,
             $events,
@@ -68,12 +71,20 @@ readonly final class ResultsImportComparison
             checkedByName: $checkedBy,
             readError: null,
             events: array_map(
-                fn (ParsedEvent $event): ResultsImportEvent => $this->event(
-                    $source,
-                    $event,
-                    $stored[$event->key] ?? null,
-                    $event->puzzleId !== null ? ($puzzles[strtolower($event->puzzleId)] ?? null) : null,
-                ),
+                function (ParsedEvent $event) use ($source, $stored, $previous, $puzzles): ResultsImportEvent {
+                    $match = $previous[$event->key] ?? null;
+                    $storedTab = $match !== null && $match->storedKey !== null
+                        ? ($stored[$match->storedKey] ?? null)
+                        : ($stored[$event->key] ?? null);
+
+                    return $this->event(
+                        $source,
+                        $event,
+                        $storedTab,
+                        $event->puzzleId !== null ? ($puzzles[strtolower($event->puzzleId)] ?? null) : null,
+                        $match,
+                    );
+                },
                 $events,
             ),
             unreadableTabs: $snapshot->unreadableTabs,
@@ -177,7 +188,7 @@ readonly final class ResultsImportComparison
         return $rows;
     }
 
-    private function event(EventResultsSheet $source, ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle): ResultsImportEvent
+    private function event(EventResultsSheet $source, ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match): ResultsImportEvent
     {
         $blockers = [];
         $warnings = [];
@@ -191,7 +202,7 @@ readonly final class ResultsImportComparison
             }
         }
 
-        $status = $this->status($event, $stored, $puzzle, $blockers);
+        $status = $this->status($event, $stored, $puzzle, $match, $blockers);
 
         if ($puzzle !== null && $puzzle->approved === false) {
             $warnings[] = new ResultsImportNote(ResultsImportNote::PUZZLE_NOT_APPROVED, $puzzle->name);
@@ -215,16 +226,34 @@ readonly final class ResultsImportComparison
             }
         }
 
-        return new ResultsImportEvent($event, $status, $stored, $puzzle, $blockers, $warnings, $eventChanges, $teamChanges);
+        return new ResultsImportEvent(
+            $event,
+            $status,
+            $stored,
+            $puzzle,
+            $blockers,
+            $warnings,
+            $eventChanges,
+            $teamChanges,
+            previousSheetKey: $match?->storedKey,
+        );
     }
 
     /**
-     * ApplyEventResultsTabHandler's order of decisions - change both together.
+     * ApplyEventResultsTabHandler's order of decisions - change both together. An event matched to one imported from
+     * the previous sheet comes with that event as $stored (the import moves it to the event's key first); an uncertain
+     * match is never dispatched to the import at all (ImportResultsFromCheckHandler, SyncEventResultsSheetHandler).
      *
      * @param list<ResultsImportNote> $blockers
      */
-    private function status(ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, array &$blockers): ResultsImportStatus
+    private function status(ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match, array &$blockers): ResultsImportStatus
     {
+        if ($match !== null && $match->problem !== null) {
+            $blockers[] = new ResultsImportNote($match->problem, $match->detail);
+
+            return ResultsImportStatus::NeedsFixing;
+        }
+
         if ($stored !== null && $stored->status === EventTabStatus::Imported && $stored->isImported() && $stored->contentHash === $event->contentHash) {
             return ResultsImportStatus::Unchanged;
         }

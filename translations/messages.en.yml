@@ -13796,6 +13796,20 @@ results_import:
         try_again: "That did not work - please try again."
         newer_check: "Your sheet was checked again meanwhile - look at the latest check and tick again."
         nothing_ticked: "Tick at least one event to import."
+    sheet:
+        heading: "Your sheet"
+        open: "Open it in Google Sheets"
+        change: "Change sheet"
+        label: "Link to your Google sheet"
+        hint: "Paste the link from your browser while the sheet is open. It must be shared as “Anyone with the link: Viewer”. We read it once to check it, then show its events here - events you imported before are kept."
+        button: "Use this sheet"
+        flash:
+            changed: "Your sheet is changed - here are the events in it."
+            same: "This is your sheet already."
+            taken: "This sheet is used for another results import already. Write to us if it is yours."
+            unreadable: "We could not read this sheet - share it as “Anyone with the link: Viewer” and try again. Your sheet stays as it was."
+            published: "This is a “Publish to the web” link. Open the sheet and copy the link from your browser instead."
+            not_a_sheet: "This is not a link to a Google sheet. Open the sheet and copy the link from your browser."
     guide:
         title: "How your sheet must look"
     sources:
@@ -13815,6 +13829,7 @@ results_import:
         unreadable_tabs: "Google did not give us these tabs this time - check again in a moment:"
         no_events: "We found no events in the sheet."
     list:
+        from_previous_sheet: "From your previous sheet - it has the date and name of an event imported before, so importing updates that event instead of adding a new one."
         heading: "Events in your sheet"
         tab: "Tab “%tab%”"
         teams: "%count% team|%count% teams"
@@ -13836,6 +13851,8 @@ results_import:
         needs_fixing: "Fix this in your sheet, then check again - nothing of this event is imported until then."
         event_deleted: "The event made from this tab was deleted on MySpeedPuzzling - it is not created again."
     note:
+        matches_several_imported_events: "Your sheet has this event, and %detail% events with the same date and name were imported from your previous sheet - rename one of them so we know which one this is."
+        shares_imported_event: "Another event in your sheet has the same date and name, and both match one imported event - rename one of them."
         row: "row %line%"
         missing_column: "The column “%detail%” is missing."
         missing_event_field: "“%detail%” is empty in row 2."

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use LogicException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
@@ -81,7 +82,7 @@ readonly final class ApplyEventResultsTabHandler
     {
         $parsed = $message->event;
         $sheet = $this->sheetRepository->get($message->sheetId);
-        $tab = $this->tabRepository->findOfSheet($sheet, $parsed->key);
+        $tab = $this->tabOf($sheet, $message);
 
         // Nothing changed since it was imported - a tab still waiting for its puzzle is looked at again every run
         if ($tab !== null && $tab->status === EventTabStatus::Imported && $tab->competition !== null && $tab->contentHash === $parsed->contentHash) {
@@ -134,7 +135,7 @@ readonly final class ApplyEventResultsTabHandler
             $createdCompetitionId = $tab?->competition === null ? $this->createEvent($sheet, $parsed, $puzzle->id->toString()) : null;
 
             $sheet = $this->sheetRepository->get($message->sheetId);
-            $tab = $this->tabRepository->findOfSheet($sheet, $parsed->key) ?? $this->newTab($sheet, $message);
+            $tab = $this->tabOf($sheet, $message) ?? $this->newTab($sheet, $message);
             $puzzle = $this->puzzle($puzzle->id->toString());
             assert($puzzle !== null);
 
@@ -242,6 +243,47 @@ readonly final class ApplyEventResultsTabHandler
         $counts = $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $unfinished, $problems);
 
         return EventTabStatus::Imported;
+    }
+
+    /**
+     * The stored item of the event - under its key, or (after the organizer changed the spreadsheet) the event imported
+     * under the key it replaces, moved to the event's key. Asked twice per apply (the event's messages may clear the
+     * entity manager): the move is not flushed yet, so the second lookup finds it under the old key again and moving
+     * it once more changes nothing.
+     */
+    private function tabOf(EventResultsSheet $sheet, ApplyEventResultsTab $message): null|EventResultsSheetTab
+    {
+        $key = $message->event->key;
+        $tab = $this->tabRepository->findOfSheet($sheet, $key);
+
+        if ($message->replacesKey === null || $message->replacesKey === $key || $tab?->competition !== null) {
+            return $tab;
+        }
+
+        $previous = $this->tabRepository->findOfSheet($sheet, $message->replacesKey);
+
+        // Only an imported event moves - nothing else of the previous sheet is worth keeping
+        if ($previous === null || $previous->competition === null) {
+            return $tab;
+        }
+
+        if ($tab !== null) {
+            // The importer removes a never-imported item under the key first (RemoveUnimportedResultsSourceItem) - two
+            // items under one key would break the unique key, and applying it as new would make the event twice
+            throw new LogicException(sprintf('Event "%s" of results source %s: an item is stored under its key already, it cannot replace "%s".', $key, $sheet->id->toString(), $message->replacesKey));
+        }
+
+        if ($previous->gid !== $key) {
+            $this->logger->info('Event "{title}" of results source {sheet} moves from key {from} to {to} (matched in the new spreadsheet by date and name)', [
+                'title' => $message->event->title,
+                'sheet' => $sheet->id->toString(),
+                'from' => $previous->gid,
+                'to' => $key,
+            ]);
+            $previous->movedToKey($key);
+        }
+
+        return $previous;
     }
 
     private function newTab(EventResultsSheet $sheet, ApplyEventResultsTab $message): EventResultsSheetTab

@@ -49,7 +49,8 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   be ticked). Soft warnings never block: puzzle not approved yet, rows out of time order, a team name twice, a time over
   the limit without pieces placed.
 - Reading Google takes seconds: outside any transaction (`HandledOutsideTransaction`, writes through a message of its
-  own). Kill switch flag hides the page; the generic console command + internal API stay for admins.
+  own). No kill switch (Jan, PR 4): the page exists where an admin registered a source; the generic console command +
+  internal API stay for admins.
 
 ## Changes to today's code (nothing breaks)
 
@@ -135,7 +136,7 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   sheet - kept, claimed" (it stays on the round page, P4; `rankedRows($event, $teamChanges)`). "Claimed" = tracker or a registered member in the group snapshot =
   `isClaimedByAnybody()` (pinned, also after the first claimer left). Claimers are never named - the only name on the
   page is the team member (or admin) who pressed "Check sheet".
-- **Guide**: the format's `guideTemplate()` in a `<details>` help box. Kill switch `RESULTS_IMPORT_PAGE`
+- **Guide**: the format's `guideTemplate()` in a `<details>` help box. Kill switch `RESULTS_IMPORT_PAGE` (removed in PR 4)
   (`docs/features/feature_flags.md`).
 - **Not in the canaries on purpose**: the page is for the organization's team and admins only and names no player of a
   result (no claimer; the only name is the teammate who pressed "Check sheet"), so `DraftCanaryTest`, `BlocklistCanaryTest`
@@ -181,3 +182,55 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   made-up sheet): list → previews → tick → confirmation → import → result with links → round page → history, and a
   failed "Check sheet". It found that the preview left out a claimed team the sheet dropped (it stays on the round page)
   and that the status counts did not wrap on phones - both fixed in PR 2; no page overflows at 390 px.
+
+## As built: PR 4 - the organizer changes the sheet, no duplicates, no kill switch (2026-11-16)
+
+Jan's decisions of 2026-11-16: no kill switch; the organizer may change the spreadsheet any time; a change never
+duplicates an event.
+
+- **No kill switch.** `RESULTS_IMPORT_PAGE` is gone (parameter, `ResultsImportPage::isEnabled()`, the Twig function
+  `results_import_enabled()` and its extension, the flag's tests and its row in `docs/features/feature_flags.md`).
+  The toggle is whether an admin registered a results source (with a format) for the organization: none = every route
+  404 and no link (`OrganizedEvent::$resultsSourceCount`), as before.
+- **"Your sheet"** on the source's page (`#your-sheet`): a link opening the current spreadsheet in Google and, folded,
+  **Change sheet** - paste the sheet's link (or its id). `results_import_sheet` `POST
+  …/results-import/{sourceId}/sheet` (`ChangeResultsSourceSheetController`, session CSRF `results_import_sheet_<id>`,
+  the team + admins like every route of the page) cuts the id out with `GoogleSheetLink` (the data import's rule:
+  any docs.google.com spreadsheet address, a bare id too; a "Publish to the web" link gets its own sentence) and
+  dispatches `ChangeResultsSourceSheet` (`HandledOutsideTransaction` + `SerializedByLock` on the source's import lock
+  `results-import-<sourceId>` - never in the middle of an import). Its handler only reads: the same sheet → "This is
+  your sheet already", another source's sheet (`spreadsheet_id` is unique) → refused, then
+  `GoogleSheetReader::snapshot()` once - unreadable (not shared "Anyone with the link: Viewer") → refused (info log,
+  like a failed check). A readable one goes to `RecordResultsSourceSheetChange` (its own transaction): the named
+  entity method `EventResultsSheet::changeSpreadsheet()`, **every older check dropped** (they were of the previous
+  sheet - an import is made only from the latest check) and the read stored as the new check, so the page shows the new
+  sheet's events at once. Answered as `ResultsSourceSheetChange` (the handler's result); always a redirect + flash -
+  success to the page, a refusal back to `#your-sheet`. A refusal writes nothing, not even a check.
+- **Who and when, no schema change**: the check written by the change keeps `checked_by` / `checked_at` ("Last checked
+  … by …" on the page until the next check); the change itself is logged at `info` with the previous and the new id
+  (`Results source …: spreadsheet changed by …`). No line in the import history - that would need a column or a log
+  row type of its own; ask if wanted.
+- **No duplicates after a change** - `PreviousSheetEvents::match()` (pure, format-agnostic, reads only the neutral
+  model): the new sheet's tabs may have other gids (a *duplicated* Google spreadsheet usually keeps them - then nothing
+  here is needed). An event with **no imported item under its own key** is the event imported before when exactly one
+  imported item of the source, stored under a key the sheet no longer has, has its **date** (the day of
+  `localStartsAt` = the competition's `date_from`) **and name** (`SearchText::fold()` of the trimmed name = the
+  competition's: case, accents, whitespace folded). The page shows it as Changed / Unchanged **against that event**
+  with "From your previous sheet …" (list, preview, confirmation; `ResultsImportEvent::$previousSheetKey`), and the
+  import passes `ApplyEventResultsTab::$replacesKey`: the stored item moves to the new key
+  (`EventResultsSheetTab::movedToKey()`, info log) and the same event is updated - its results follow (they hang on the
+  item's id). Uncertain = **Needs fixing, never imported**: two imported events with its date and name
+  (`matches_several_imported_events`, "rename one"), or two events of the sheet matching one imported event
+  (`shares_imported_event`). A never-imported item under the new key (it waited for its puzzle) is removed first by
+  `RemoveUnimportedResultsSourceItem` in its own transaction (the unique `(sheet_id, gid)` - Doctrine updates before
+  it deletes). Decided again at import time from what is stored then (`ImportResultsFromCheckHandler`), never taken
+  from the page, and the admins' sync does the same (an uncertain one is skipped and named in `last_fetch_error`).
+  An event whose MySpeedPuzzling event was deleted (detached) has no name to match by and is not matched. An
+  Unchanged match is not tickable, so its item stays under the old key and is matched again on every check - harmless.
+- Tests: `PreviousSheetEventsTest` (the rule: folded name, another day / name, a key still in the sheet, imported under
+  its own key, never-imported items, both uncertain cases), `PreviousSheetEventsImportTest` (predicted statuses, import
+  moves the item and updates the same event - one competition, same item id, new key, time updated; both uncertain
+  cases import nothing; the never-imported item makes way; the sync moves too and skips an uncertain one),
+  `ResultsSourceSheetChangeTest` (change → new link, the only check with its changer, the event Changed "from your
+  previous sheet"; every refusal changes nothing and writes no check; guest / another player; every locale).
+- **Not run locally**: Docker was off the day it was built - written and verified on CI only; no browser walk yet.

@@ -20,7 +20,8 @@ use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 
 /**
  * One tab of an organizer's results sheet and what became of it (docs/features/event-results-import/README.md
- * "Tab outcomes"). Keyed by Google's gid, which survives a rename of the tab.
+ * "Tab outcomes"). Keyed by Google's gid, which survives a rename of the tab - and moved to the new key when the
+ * organizer changes the spreadsheet and the event is matched in the new one (movedToKey()).
  */
 #[Entity]
 #[UniqueConstraint(columns: ['sheet_id', 'gid'])]
@@ -63,13 +64,24 @@ class EventResultsSheetTab
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public EventResultsSheet $sheet,
-        #[Immutable]
+        // The format's stable key of the event (Sarah Does Puzzles: the tab's gid) - changed only by movedToKey()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 20)]
         public string $gid,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public string $title,
     ) {
+    }
+
+    /**
+     * The organizer changed the source's spreadsheet and this event is in the new one under another key (a tab of
+     * another sheet has another gid) - matched by its date and name (PreviousSheetEvents). The same event and its
+     * results go on under the new key: an import never creates it a second time.
+     */
+    public function movedToKey(string $key): void
+    {
+        $this->gid = $key;
     }
 
     public function isDetached(): bool

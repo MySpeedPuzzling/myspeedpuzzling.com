@@ -42,7 +42,7 @@
             {label: 'organizer_tools.menu.add_event', url: path('add_competition', {organization: item.id}|merge(back))},
         ] -%}
         {#- Its results import page - only where an admin set up a results source (docs/features/event-results-import/results-import-page.md) -#}
-        {%- if item.resultsSourceCount > 0 and item.slug and results_import_enabled() -%}
+        {%- if item.resultsSourceCount > 0 and item.slug -%}
             {%- set links = links|merge([{label: 'results_import.title', url: path('results_import_sources', {slug: item.slug})}]) -%}
         {%- endif -%}
         {%- set draft_routes = {publish: 'publish_organization', unpublish: 'unpublish_organization', param: 'organizationId'} -%}

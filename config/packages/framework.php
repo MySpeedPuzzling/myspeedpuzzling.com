@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotConvertible;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\OrganizationSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
@@ -98,6 +99,7 @@ return App::config([
             // The internal API's refusals of an event change that breaks a rule - answered 409 with the reason,
             // nothing applied (docs/features/internal-api.md, Competitions and events)
             CompetitionSlugTaken::class => ['log_level' => 'info'],
+            OrganizationSlugTaken::class => ['log_level' => 'info'],
             CompetitionSlugAmbiguous::class => ['log_level' => 'info'],
             CompetitionNotApprovable::class => ['log_level' => 'info'],
             CompetitionRoundHasResults::class => ['log_level' => 'info'],

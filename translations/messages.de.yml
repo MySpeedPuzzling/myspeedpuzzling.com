@@ -13680,7 +13680,7 @@ results_import:
         failed: "Nicht importiert - etwas ist schiefgegangen, nichts davon wurde geändert. Bitte versuche es noch einmal."
     result:
         heading: "Import abgeschlossen"
-        teams: "Teams: %added% neu, %updated% geändert, %removed% entfernt"
+        teams: "Teams - neu: %added%, geändert: %updated%, entfernt: %removed%"
         open_results: "Ergebnisse"
         open_event: "Event"
     history:

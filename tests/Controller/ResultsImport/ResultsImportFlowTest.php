@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\ResultsImport;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\EventResultsSheet;
+use SpeedPuzzling\Web\Entity\ResultsImportLog;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\ResultsImportScenario;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\EventResultsImport\ResultsImportOutcome;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -26,6 +32,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class ResultsImportFlowTest extends WebTestCase
 {
+    use OverridesFeatureFlagEnv;
     use ResultsImportScenario;
 
     private const string SLUG = OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
@@ -40,6 +47,12 @@ final class ResultsImportFlowTest extends WebTestCase
         $this->browser->disableReboot();
         $this->source = $this->createResultsSource(self::getContainer());
         $this->fakeGoogle(self::getContainer());
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreFeatureFlagEnv();
+        parent::tearDown();
     }
 
     private function pageUrl(): string
@@ -99,8 +112,15 @@ final class ResultsImportFlowTest extends WebTestCase
         self::assertSame(['102', '103'], $crawler->filter('[data-results-import-tick]:checked')->each(static fn (Crawler $box): string => (string) $box->attr('value')));
         self::assertCount(1, $crawler->filter('[data-results-import-event="104"] input[disabled]'));
 
+        // The preview ranks the claimed team the sheet dropped too - it stays on the round page (P4)
+        $preview = $this->browser->request('GET', $this->pageUrl() . '/events/102');
+        $previewRanks = array_map('trim', $preview->filter('[data-results-import-rank]')->each(static fn (Crawler $cell): string => $cell->text()));
+        self::assertSame(['1', '2', '3'], $previewRanks);
+        self::assertStringContainsString('Kept Team', $preview->filter('[data-results-import-kept]')->closest('tr')?->text() ?? '');
+
         // What Google says from now on is never imported - the stored check is
         $this->fakeSheetShared = false;
+        $crawler = $this->browser->request('GET', $this->pageUrl());
 
         $form = $crawler->filter('[data-results-import-form]')->form();
         $confirm = $this->browser->submit($form);
@@ -117,8 +137,8 @@ final class ResultsImportFlowTest extends WebTestCase
         $result = $this->browser->followRedirect();
         self::assertSame(['imported', 'imported'], $result->filter('[data-results-import-result-event]')->each(static fn (Crawler $row): string => (string) $row->attr('data-outcome')));
         self::assertCount(2, $result->filter('[data-results-import-results-link]'));
-        self::assertStringContainsString('Teams: 1 new, 1 changed, 1 removed', $result->filter('[data-results-import-result-event="102"]')->text());
-        self::assertStringContainsString('Teams: 3 new, 0 changed, 0 removed', $result->filter('[data-results-import-result-event="103"]')->text());
+        self::assertStringContainsString('Teams - new: 1, changed: 1, removed: 1', $result->filter('[data-results-import-result-event="102"]')->text());
+        self::assertStringContainsString('Teams - new: 3, changed: 0, removed: 0', $result->filter('[data-results-import-result-event="103"]')->text());
 
         // The results page the link leads to
         $resultsLink = $result->filter('[data-results-import-result-event="103"] [data-results-import-results-link]')->attr('href');
@@ -126,6 +146,12 @@ final class ResultsImportFlowTest extends WebTestCase
         $this->browser->request('GET', $resultsLink);
         self::assertResponseIsSuccessful();
         self::assertSame(['1', '2'], array_values(array_filter(array_map('trim', $this->browser->getCrawler()->filter('[data-round-result-rank]')->each(static fn (Crawler $cell): string => $cell->text())))));
+
+        // The round page of the changed event ranks what the preview ranked
+        $changedResults = $result->filter('[data-results-import-result-event="102"] [data-results-import-results-link]')->attr('href');
+        self::assertIsString($changedResults);
+        $this->browser->request('GET', $changedResults);
+        self::assertSame($previewRanks, array_map('trim', $this->browser->getCrawler()->filter('[data-round-result-rank]')->each(static fn (Crawler $cell): string => $cell->text())));
 
         // P4: the unclaimed team is gone, the claimed one kept; the claim untouched
         $teams = $this->connection()->fetchFirstColumn("SELECT pt.name FROM puzzle_solving_time pst JOIN puzzling_team pt ON pt.id = pst.puzzling_team_id JOIN competition c ON c.id = pst.competition_id WHERE c.name = 'Corner Cafe Night' ORDER BY pt.name");
@@ -212,5 +238,68 @@ final class ResultsImportFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         $this->browser->request('POST', $this->pageUrl() . '/import');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testAGuestIsAskedToSignInAndTheKillSwitchHidesImporting(): void
+    {
+        foreach (['GET', 'POST'] as $method) {
+            $this->browser->request($method, $this->pageUrl() . '/import');
+            self::assertResponseRedirects();
+            self::assertStringContainsString('/login', (string) $this->browser->getResponse()->headers->get('Location'));
+        }
+
+        self::ensureKernelShutdown();
+        $this->overrideFeatureFlagEnv('RESULTS_IMPORT_PAGE', false);
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        foreach (['GET', 'POST'] as $method) {
+            $browser->request($method, $this->pageUrl() . '/import');
+            self::assertResponseStatusCodeSame(404);
+        }
+    }
+
+    public function testEveryLocaleRendersTheConfirmationAndEveryOutcome(): void
+    {
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $this->fakeSheetTabs = ['901' => ['title' => 'Locale', 'csv' => self::sheetCsv([
+            "Locale Team,0:45:00,4,,Locale Night,Hall,\"Springfield, MN\",10/11/26,,,Teams,$link",
+        ])]];
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $this->checkSheet();
+        $checkId = (string) $crawler->filter('[data-results-import-form] input[name="check"]')->attr('value');
+
+        // Every outcome an import can log, one event each
+        $importId = Uuid::uuid7();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $source = $entityManager->find(EventResultsSheet::class, $this->source->id);
+        self::assertNotNull($source);
+        $events = [];
+
+        foreach (ResultsImportOutcome::cases() as $i => $outcome) {
+            $events[] = ['key' => (string) (950 + $i), 'title' => 'Outcome ' . $outcome->value, 'outcome' => $outcome->value, 'competition_id' => null, 'added' => 1, 'updated' => 0, 'removed' => 0];
+        }
+
+        $entityManager->persist(new ResultsImportLog($importId, $source, Uuid::fromString($checkId), null, TestClock::now(), $events, 6, 0, 0));
+        $entityManager->flush();
+
+        foreach (['cs', 'de', 'es', 'fr', 'ja', 'en'] as $locale) {
+            $base = '/' . $locale . '/organizations/' . self::SLUG . '/results-import/' . $this->source->id->toString();
+            $this->browser->request('GET', $base . '/import', ['check' => $checkId, 'events' => ['901']]);
+            self::assertResponseIsSuccessful($locale);
+            self::assertSelectorExists('[data-results-import-confirm-form]');
+
+            $page = $this->browser->request('GET', $base, ['import' => $importId->toString()]);
+            self::assertResponseIsSuccessful($locale);
+            self::assertSame(
+                array_map(static fn (ResultsImportOutcome $outcome): string => $outcome->value, ResultsImportOutcome::cases()),
+                $page->filter('[data-results-import-result-event]')->each(static fn (Crawler $row): string => (string) $row->attr('data-outcome')),
+            );
+        }
+
+        // Nobody's name for an account gone; every outcome in plain words
+        self::assertSelectorTextContains('[data-results-import-result]', 'Import done');
+        self::assertStringContainsString('somebody imported a newer check of it meanwhile', (string) $this->browser->getResponse()->getContent());
     }
 }

@@ -13927,7 +13927,7 @@ results_import:
         failed: "Not imported - something went wrong and nothing of it changed. Please try again."
     result:
         heading: "Import done"
-        teams: "Teams: %added% new, %updated% changed, %removed% removed"
+        teams: "Teams - new: %added%, changed: %updated%, removed: %removed%"
         open_results: "Results"
         open_event: "Event"
     history:

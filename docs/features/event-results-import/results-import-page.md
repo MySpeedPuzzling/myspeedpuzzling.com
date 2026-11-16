@@ -177,3 +177,7 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
 - Tests: `ResultsImportFlowTest` (ticks, confirmation, import from the stored check with Google switched off, result +
   links, log, double submit, P4, older check, nothing ticked, stale token, access), `ImportResultsFromCheckHandlerTest`
   (stale refusal, a failing event among others, same import id twice, not importable / not in the check).
+- **Browser walk** (headless Chromium, desktop and 390 px, the dev app on a fixture database with a stored check of a
+  made-up sheet): list → previews → tick → confirmation → import → result with links → round page → history, and a
+  failed "Check sheet". It found that the preview left out a claimed team the sheet dropped (it stays on the round page)
+  and that the status counts did not wrap on phones - both fixed in PR 2; no page overflows at 390 px.

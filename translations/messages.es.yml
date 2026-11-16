@@ -13681,7 +13681,7 @@ results_import:
         failed: "No importado: algo salió mal y no cambió nada. Inténtalo de nuevo."
     result:
         heading: "Importación terminada"
-        teams: "Equipos: %added% nuevos, %updated% cambiados, %removed% eliminados"
+        teams: "Equipos - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
         open_results: "Resultados"
         open_event: "Evento"
     history:

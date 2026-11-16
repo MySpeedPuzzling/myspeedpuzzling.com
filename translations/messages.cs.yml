@@ -13683,7 +13683,7 @@ results_import:
         failed: "Neimportováno - něco se pokazilo a nic z ní se nezměnilo. Zkuste to prosím znovu."
     result:
         heading: "Import hotový"
-        teams: "Týmy: %added% nových, %updated% změněných, %removed% odstraněných"
+        teams: "Týmy - nové: %added%, změněné: %updated%, odstraněné: %removed%"
         open_results: "Výsledky"
         open_event: "Událost"
     history:

@@ -13676,7 +13676,7 @@ results_import:
         failed: "Non importé - un problème est survenu et rien n'a changé. Veuillez réessayer."
     result:
         heading: "Import terminé"
-        teams: "Équipes : %added% nouvelles, %updated% modifiées, %removed% supprimées"
+        teams: "Équipes - nouvelles : %added%, modifiées : %updated%, supprimées : %removed%"
         open_results: "Résultats"
         open_event: "Événement"
     history:

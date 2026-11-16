@@ -16,7 +16,8 @@
 
 <div class="mx-auto" style="max-width: 720px;" data-testid="unlisted-puzzles-page" data-puzzles="{{ summary.puzzles }}" data-results="{{ summary.results }}">
     <h1 class="h3 mb-2"><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.title'|trans }}</h1>
-    <p class="text-muted mb-2">{{ 'unlisted_puzzles.intro'|trans }}</p>
+    {# Two plain sentences: what an unlisted puzzle is, and what can be done with it #}
+    <p class="text-muted mb-2" data-testid="unlisted-intro">{{ 'unlisted_puzzles.intro'|trans }} {{ 'unlisted_puzzles.intro_actions'|trans }}</p>
     <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-secondary" data-testid="unlisted-only-you">
         <i class="bi bi-eye-slash flex-shrink-0" aria-hidden="true"></i>
         <span>{{ 'data_import.explain.unlisted'|trans }} {{ 'data_import.explain.unlisted_more'|trans }}</span>
@@ -28,10 +29,7 @@
             <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'data_import.home.title'|trans }}
         </a>
     {% else %}
-        <p class="fw-medium mb-2" data-testid="unlisted-summary">
-            {{ 'unlisted_puzzles.summary.puzzles'|trans({'%number%': summary.puzzles|format_number}) }}
-            · {{ 'unlisted_puzzles.summary.results'|trans({'%number%': summary.results|format_number}) }}
-        </p>
+        {{ include('unlisted_puzzles/_summary.html.twig', {summary: summary}, with_context = false) }}
         {% if summary.suggested > 0 %}
             <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-faded-primary" data-testid="unlisted-suggested-line" data-suggested="{{ summary.suggested }}">
                 <i class="bi bi-bookmark-check text-primary flex-shrink-0" aria-hidden="true"></i>
@@ -41,32 +39,32 @@
 
         <div class="d-flex flex-column gap-2 mb-3">
             {% for puzzle in puzzles %}
-                <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="card card-body shadow-sm p-3 text-reset text-decoration-none" style="min-height: 44px;"
-                   data-testid="unlisted-puzzle" data-unlisted-puzzle-id="{{ puzzle.id }}" data-results="{{ puzzle.results }}">
-                    <span class="d-flex justify-content-between align-items-start gap-2">
-                        <span class="d-block" style="min-width: 0;">
-                            <span class="d-block fw-semibold text-break" data-testid="unlisted-puzzle-name">{{ puzzle.name }}</span>
-                            <span class="d-block fs-sm text-muted text-break">
-                                {%- set facts = [] -%}
-                                {%- if puzzle.brandText is not null %}{% set facts = facts|merge([puzzle.brandText]) %}{% endif -%}
-                                {%- if puzzle.piecesCount is not null %}{% set facts = facts|merge(['data_import.columns.row.pieces'|trans({'%number%': puzzle.piecesCount|format_number})]) %}{% endif -%}
-                                {%- set facts = facts|merge(['unlisted_puzzles.results'|trans({'%number%': puzzle.results|format_number})]) -%}
-                                {{ facts|join(' · ') }}
-                            </span>
-                            <span class="d-block mt-1">
-                                {% if puzzle.owned %}<span class="badge bg-faded-success text-success me-1" data-testid="unlisted-puzzle-owned"><i class="bi bi-box-seam me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.owned'|trans }}</span>{% endif %}
-                                {% if puzzle.wishList %}<span class="badge bg-faded-info text-info me-1" data-testid="unlisted-puzzle-wish"><i class="bi bi-heart me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.mark.wish_list'|trans }}</span>{% endif %}
-                                {% if puzzle.suggested %}<span class="badge bg-faded-primary text-primary me-1" data-testid="unlisted-puzzle-suggested"><i class="bi bi-bookmark-check me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.suggested.badge'|trans }}</span>{% endif %}
-                                {% if puzzle.paired %}<span class="badge bg-faded-warning text-warning me-1" data-testid="unlisted-puzzle-left"><i class="bi bi-hourglass me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.paired.left_badge'|trans }}</span>{% endif %}
-                            </span>
-                        </span>
-                        <i class="bi bi-chevron-right text-muted flex-shrink-0 mt-1" aria-hidden="true"></i>
-                    </span>
-                </a>
+                {{ include('unlisted_puzzles/_row.html.twig', {puzzle: puzzle}, with_context = false) }}
             {% endfor %}
         </div>
 
         {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'unlisted_puzzles', parameters: {}, label: 'unlisted_puzzles.title'|trans}, with_context = false) }}
+    {% endif %}
+
+    {# Matched ones left the list - while the match can be taken back (30 days) their page stays one tap away #}
+    {% if summary.matched is not empty %}
+        <details class="mb-3" data-testid="unlisted-matched" data-puzzles="{{ summary.matched|length }}">
+            <summary class="fw-medium" style="cursor: pointer; padding: 10px 0; min-height: 44px;">{{ 'unlisted_puzzles.matched.title'|trans({'%number%': summary.matched|length|format_number}) }}</summary>
+            <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.matched.hint'|trans }}</p>
+            <ul class="list-unstyled mb-0">
+                {% for matched in summary.matched %}
+                    <li class="border-top">
+                        <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: matched.id}) }}" class="d-flex justify-content-between align-items-center gap-2 py-2 text-reset text-decoration-none" style="min-height: 44px;" data-testid="unlisted-matched-puzzle" data-unlisted-puzzle-id="{{ matched.id }}">
+                            <span style="min-width: 0;">
+                                <span class="d-block text-break">{{ matched.name }}</span>
+                                <span class="d-block fs-sm text-muted">{{ 'unlisted_puzzles.matched.on'|trans({'%date%': matched.pairedAt|format_date('long')}) }}</span>
+                            </span>
+                            <i class="bi bi-chevron-right text-muted flex-shrink-0" aria-hidden="true"></i>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
     {% endif %}
 </div>
 {% endblock %}

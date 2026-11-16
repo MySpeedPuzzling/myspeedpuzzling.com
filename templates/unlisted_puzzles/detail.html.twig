@@ -190,7 +190,7 @@
 
     {# --- It is this catalogue puzzle --- #}
     {% if can_choose %}
-        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-pair">
+        <div class="card card-body shadow-sm mb-3" id="match" style="scroll-margin-top: 80px;" data-testid="unlisted-pair">
             <h2 class="h5 mb-1">{{ 'unlisted_puzzles.pair.title'|trans }}</h2>
             <p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.pair.hint'|trans }}</p>
 
@@ -238,6 +238,17 @@
                     {% endfor %}
                 </div>
             {% endif %}
+        </div>
+    {% endif %}
+
+    {# --- Not in the catalogue at all: add it, with a photo of its box (a page of its own from here) --- #}
+    {% if can_choose %}
+        <div class="card card-body shadow-sm mb-3" data-testid="unlisted-add-to-catalogue">
+            <h2 class="h5 mb-1">{{ 'unlisted_puzzles.catalogue.card_title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.catalogue.card_hint'|trans }}</p>
+            <a href="{{ path('unlisted_puzzle_add_to_catalogue', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-primary w-100 text-wrap d-inline-flex align-items-center justify-content-center" style="min-height: 44px;" rel="nofollow" data-testid="unlisted-add-to-catalogue-link">
+                <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.button'|trans }}
+            </a>
         </div>
     {% endif %}
 

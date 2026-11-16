@@ -1696,6 +1696,10 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] The import pages follow a pairing by polling every 4 s (no Mercure for pairing); the progress statement counts
   rows on every poll (docs/features/data-import/columns-screen.md "Performance").
 - [ ] "Keep all not-found puzzles as unlisted" in one go; "one result or two?" exists only before the Add.
+- [ ] "Add to the catalogue" of an unlisted puzzle (`docs/features/data-import/unlisted-puzzles.md`): the photo is a
+  plain file input - no background upload / shrinking in the browser as on the add form, and a refused form loses
+  the picked photo; one puzzle at a time (no adding of several); other names of the box are not asked; Check the modal on a real phone (file picker,
+  camera, the stream replacing the row).
 - [ ] XP awards of an import sit on the `imports` transport, which has no retries - a failed award is in `failed`.
 - [ ] An owned row always goes to the main collection; a "both" row (result + owned) carries one key.
 - [ ] Cron rows on lily take effect when pushed: push them AFTER the release that brings the command (three Sentry

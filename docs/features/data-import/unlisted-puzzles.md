@@ -19,6 +19,8 @@ The add-result form is not touched: nothing here calls its messages or handlers,
 | `ImportResultQuestions` | **The one way a result of a spreadsheet reaches the profile** - the questions and the writer, called by an "Add" and by a pairing alike |
 | `UndoUnlistedPairing` | Undo of a pairing - the same worker, the other way |
 | `RemoveUnlistedPuzzle`, `AnswerUnlistedSuggestion` | "Remove", "Not this one" |
+| `AddUnlistedPuzzleToCatalogueController` (+ `UnlistedCatalogueProposalFormType`) | "Add to the catalogue": dispatches the add form's `AddPuzzle` and then `PairUnlistedPuzzle`, both unchanged |
+| `ViewerUnlistedPuzzles` (Twig global `viewer_unlisted`) | Whether the menu shows "Unlisted puzzles" - remembered in the session |
 | `SuggestUnlistedPuzzlePairings`, `myspeedpuzzling:pair-unlisted-puzzles` | The daily look at the grown catalogue |
 | `UnlistedPuzzleMatcher` | The import's own pairing rules, asked for unlisted puzzles |
 | `NotificationType::UnlistedPuzzlesFound` | "Some of your unlisted puzzles may be in the catalogue now" |
@@ -124,7 +126,9 @@ them", they are not among "what will be added to your profile", and the done pag
 Owner only, all 6 locales, mobile first, no JavaScript of their own.
 
 - **`/{_locale}/unlisted-puzzles`** (`unlisted_puzzles`): the list, 50 a page, the suggested ones first, then by
-  name - name, brand as written, pieces, results, owned / wished - and the plain line "Only you see these. They do
+  name - name, brand as written, pieces, results, owned / wished; two sentences on top say what an unlisted puzzle
+  is and what can be done with it; **each row that is not matched yet has the two actions** "Match" (its page, at
+  `#match`) and "Add to the catalogue" (the form, in the site's modal) - and the plain line "Only you see these. They do
   not count in statistics, charts or rankings until you pair them with a catalogue puzzle." On the list: an unlisted
   puzzle that is not paired, or a paired one something unlisted is still left on. **Two statements** whatever the
   size (tested with 1 and with 61 puzzles).
@@ -140,7 +144,109 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
     which says what would go for good (so many unlisted results, so many marks; what is a real result by now
     stays), then a POST with its CSRF token. The puzzle goes with its unlisted results and marks; nothing on the
     profile is touched; reading the same file again does not bring it back (its rows keep saying "added").
-- Entry points: a link on the import's done page and on Imports home, and the notification. Nothing else yet.
+  - **"Add to the catalogue"** - a link to the form's own page (below).
+
+## Where it is linked from
+
+"Where does 'Keep just for me' go?" (the first tester, 2026-11): Imports home, the done page of an "Add", My data
+and the notification - and since then also
+
+- **the import's overview** (`data_import/detail.html.twig` includes `unlisted_puzzles/_import_link.html.twig`): one
+  line when this import will keep rows as unlisted (`add.unlisted > 0`) or the player has unlisted puzzles;
+- **the public guide** (`#unlisted`): where they are found later and what can be done there - the words for
+  everybody, the link only for a signed-in reader (a guest gets 404 on the page);
+- **the user menu**, only for a player who has at least one (`viewer_unlisted.hasAny`).
+
+The menu is on every page and nearly nobody has unlisted puzzles, so `ViewerUnlistedPuzzles` remembers the answer
+in the player's session, like `ViewerResultFields`: "none" for 2 minutes, "some" for 10 - one small statement
+(`GetUnlistedPuzzles::has()`) per 2 minutes of use for a player without any, never one per page; the pinned page
+budgets count a second request and did not move. The list page tells the service what it just read
+(`remember()`), so the item is right there at once. **A remembered "none" is not believed on the import's own pages
+and on the unlisted pages** (routes `data_import…` / `unlisted_…`; one statement there for a player without any):
+the worker that makes the first unlisted puzzle has no session to tell, and the overview of the import that made
+them shows the line - and the menu the item - at once. "Has some" also means a match young enough to be taken back.
+
+**Matched ones stay reachable**: a puzzle everything of which was matched leaves the list, but its page holds the
+match's Undo for 30 days - so the list ends with a folded "Matched in the last 30 days (N)" with a link to each
+(read by the summary's own statement: the list still costs two).
+
+**The import's Undo and a matched puzzle**: the page that asks first names the rows kept just for the player and
+says that what was matched since stays; on the Undo's page such a row carries no "Remove it too" (it could do
+nothing) but the reason and a link to the unlisted puzzle, where the match's Undo is
+(`GetImportAddScreen::keptJustForYouOfRows()` - the row's own record, never the unlisted tables).
+
+## Add to the catalogue
+
+`/{_locale}/unlisted-puzzles/{id}/add-to-catalogue` (`unlisted_puzzle_add_to_catalogue`, GET + POST, owner only -
+404 for anybody else and for a guest). For an unlisted puzzle that is not matched and has nothing at work
+(`can_choose`); otherwise it redirects to the puzzle's page.
+
+**One source of truth for "a player proposes a new puzzle": the add form's own message.** The controller dispatches
+`AddPuzzle` unchanged - as the scanner's quick-add does - and then `PairUnlistedPuzzle` unchanged. Nothing of the
+add-result form (controllers, form types, messages, handlers) is touched, and there is no schema change.
+
+- **The form** (`UnlistedCatalogueProposalFormType`, plain inputs, no JavaScript): name, brand, pieces (10 - 99,999,
+  the add form's range), **a photo of the box - required, `PuzzleBoxPhoto`, the rule of every place a new puzzle is
+  made**, and optionally a barcode and a brand code by the catalogue's one rule for codes (`EanList`,
+  `BrandCodeList`). Filled from what the file said: the brand as **the catalogue's own name of it** when the file's
+  brand is one of ours (`UnlistedPuzzleMatcher` → it is that brand), else as written; of the file's barcodes only
+  those the catalogue would take.
+- **Before anything is created** the form shows the catalogue puzzles it may already be - MySpeedPuzzling's
+  suggestion and what `UnlistedPuzzleMatcher::candidatesOf()` finds (the import's exact rules, else the same brand
+  and pieces with a similar name; never a hidden or secret puzzle) - each a button "It is this one" that is the
+  unlisted page's own matching (`unlisted_puzzle_pair`).
+- **The brand** goes through `ManufacturerResolver` inside `AddPuzzleHandler`: a typed name that is a brand we have
+  (ignoring case and spacing, approved or not) is that brand; only otherwise a new, unapproved brand - exactly what
+  the add form allows.
+- **The puzzle** is `approved = false`, added by the player, with the photo stored by `AddPuzzleHandler` - in the
+  moderators' approvals queue like any puzzle a player adds, with everything that follows from there.
+- **The results and marks move by the pairing** "It is this one" starts: the same worker, the same questions
+  (`ImportResultQuestions`), the same daily guard, the same record (`unlisted_pairing`) and **the same Undo, 30
+  days**. `GetImportPuzzleCandidates::choosable()` lets a player choose a puzzle waiting for approval that they
+  added themselves. An Undo makes the results unlisted again; the catalogue puzzle stays in the queue, like any
+  puzzle a player added. **The import's own Undo** behaves as after any pairing: rows whose results are real ones
+  now stay `added` until the pairing is undone (tested).
+- **What becomes public**: results on a puzzle waiting for approval are ordinary results - on the profile, counted
+  like any other; the puzzle itself is out of the catalogue's search and lists until approved. The form says so in
+  one sentence before anything is sent.
+- **Never twice**: the form carries `new_puzzle_id` and `request_id`; sent again `AddPuzzle` creates nothing and the
+  pairing answers the same - the answer is the same success.
+- **No puzzle without its match**: the two messages are two transactions, so everything that would refuse the match
+  is asked **before** `AddPuzzle` - a match at work (`can_choose`), the safety switch, the rate limit of "Add"
+  (looked at with `consume(0)`, never used up twice: `PairUnlistedPuzzleHandler` takes the one token). Should the
+  match be refused all the same, the form says "The puzzle is in the catalogue; we could not move your results yet -
+  try again in a minute", the controller remembers that puzzle for this unlisted puzzle in the session, and the
+  form leads with it.
+- **The player's own puzzle leads** (`catalogueProposal()`'s `own_puzzle`): a catalogue puzzle they added that still
+  waits for approval and that is this unlisted puzzle's - the one of a match they took back (the pairing's record),
+  the remembered one, or one of theirs with exactly this name and pieces - is shown first with "It is this one"
+  (no photo, no second puzzle), the form folded under it. The form then carries **that puzzle's id**: sent, it
+  corrects that puzzle (`AddPuzzleHandler`, while nothing uses it) and matches onto it - Undo and "Add to the
+  catalogue" again never makes a duplicate (tested).
+- A tampered `new_puzzle_id`: somebody else's puzzle gets a fresh id before anything is dispatched; one the handler
+  refuses (`PuzzleIdTaken` - a secret puzzle of the player's own) is a refused form with a fresh id, logged at
+  `info`.
+- **A list that went stale**: asked for inside the modal for a puzzle that is matched or at work by now, the answer
+  is a small frame body with one sentence and a link to the puzzle's page (a redirect would empty the frame); as a
+  page it redirects.
+- **The photo** is a plain file input: the add form's background upload could not be reused without changing it
+  (`submit_prevention_controller.js` is built around that form's markup, and "a photo that can not be left out" is
+  its field name `puzzlePhoto`). So the size is smaller here - `UnlistedCatalogueProposalFormType::MAX_PHOTO_BYTES`
+  (20 MB; the add form's 60 MB assumes its shrinking) - and a request above PHP's `post_max_size`, which arrives
+  without any field, is answered with the form and "The photo is too large", not with the token check's 403.
+- **The day's ten used up**: the message stands **instead of the form** (modal and page), with "Match" still
+  offered - never a form that is refused after it was filled.
+- **Limits**: at most `UnlistedPuzzlePage::MAX_CATALOGUE_ADDITIONS_PER_DAY` (10) new puzzles per player in 24 hours,
+  counted over every way a player adds a puzzle (`CountPuzzlesAddedByPlayer` - there was no limiter for added
+  puzzles to reuse; the add form itself is not limited by it); nothing is created while the import's safety switch
+  is on (pairing would refuse afterwards); the pairing's own rate limit (`data_import_add`) applies.
+- **In place**: opened from the list the form is the site's modal (`Turbo-Frame: modal-frame`; every form in it
+  names its action). A success asked for as a Turbo Stream closes the modal and replaces the row
+  (`#unlisted-puzzle-{id}`) with "Added to the catalogue - waiting for approval" and a link to the puzzle. Without
+  JavaScript, and from the puzzle's own page, the same address is a page of its own that redirects to the unlisted
+  puzzle's page. A refused form is a 422 both ways (the photo has to be picked again - a plain file input).
+- A failed store of the photo (`AddPuzzleHandler` throws) is caught: nothing was created, the form says "try
+  again", the exception is logged as an error.
 
 ## Pairing ("It is this catalogue puzzle")
 
@@ -265,14 +371,14 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 | Undo of a pairing: no limit named | 30 days, the player's own | The brief |
 | A weekly job `match-unlisted-puzzles` that tells "3 of your unlisted puzzles are in the catalogue now" | Daily `pair-unlisted-puzzles`; the notification names no number | The brief; a number would need a target column in the notifications' UNION - the list page says it |
 | A 404 for somebody else, a sign-in redirect for a guest (as the import's pages) | 404 for both | The brief |
-| Owner-only blocks on the profile's results and the collection pages, the banner line (`HintType::UnlistedPuzzles`), the totals line, export sections, "Add to the catalogue", "These are the same", "Fine as it is", edit | Not built | Left for later |
+| Owner-only blocks on the profile's results and the collection pages, the banner line (`HintType::UnlistedPuzzles`), the totals line, export sections, "These are the same", "Fine as it is", edit | Not built | Left for later |
+| "Add to the catalogue" as a proposal of its own | The add form's `AddPuzzle` + the unlisted page's pairing, both unchanged | One source of truth for a player's new puzzle; the move, its questions and its Undo already exist |
 | `UnlistedPuzzleCoverageTest`, `UnlistedPuzzleCanaryTest` | `UnlistedDataCoverageTest`; the canary is part of `UnlistedPuzzlesPagesTest` | One guard file per the brief |
 
 ## Left for later
 
-- Suggesting an unlisted puzzle for the catalogue (a proposal with a photo of the box - `AddPuzzle`, 10 a day);
-  pictures fetched from the file's links; editing an unlisted result by hand; adding an unlisted puzzle outside the
-  import; joining two spellings ("These are the same"); "Fine as it is"; My data; other entry points; the
+- Pictures fetched from the file's links; editing an unlisted result by hand; adding an unlisted puzzle outside the
+  import; joining two spellings ("These are the same"); "Fine as it is"; the
   owner-only blocks on the profile and the collection pages, the banner line and the totals line.
 - An undated unlisted result can not be given a date on the unlisted page (editing is left for later): it stays
   unlisted when its puzzle is paired.
@@ -287,6 +393,9 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 - After an Undo of a pairing only the remembered decision goes back to "unlisted"; a `data_import_puzzle` of an
   import that was decided as the catalogue puzzle through that remembered decision keeps its decision.
 - The import's "what this import added" list shows a row kept as unlisted without a badge of its own.
+- **Add to the catalogue**: no adding of several at once; the photo is a plain file input (no background upload, no
+  shrinking in the browser as on the add form - a big photo on a slow connection holds a request); a 422 loses the
+  picked photo; other names / languages of the box are not asked.
 - Progress of a pairing is a "Refresh the page" button, not the live line of an "Add".
 - The cron row for `myspeedpuzzling:pair-unlisted-puzzles` on lily.
 
@@ -301,4 +410,8 @@ between the tap and the step; the lock of pairing, Undo and Remove; an undone pa
 record outlives the puzzle; account deletion), `tests/Services/DataImport/ImportResultQuestionsParityTest` (the
 same cases through an "Add" and through a pairing), `tests/Controller/Unlisted/
 UnlistedPuzzlesPagesTest` (owner only, the canary, the list's statements, the flow from the page, every language),
-`tests/UnlistedDataCoverageTest`.
+`tests/UnlistedDataCoverageTest`, `tests/Controller/Unlisted/AddUnlistedPuzzleToCatalogueTest` (the two actions on
+a row, the form filled from the file, the photo required, 422 / 403, the modal's Turbo Stream and the page's
+redirect, the puzzle waiting for approval in the queue with the right brand, a new brand, the moved results, the
+form sent again, the likely catalogue puzzle → matching, the daily ten, the safety switch, the import's Undo
+afterwards, owner only, the menu / overview / guide links and their cost, every language).

@@ -766,6 +766,14 @@
                                             <i class="bi bi-table me-1"></i> {{ 'my_data.title'|trans }}
                                         </a>
                                     </li>
+                                    {# Only for a player who has some - the answer is remembered in the session (ViewerUnlistedPuzzles) #}
+                                    {% if viewer_unlisted.hasAny %}
+                                        <li>
+                                            <a class="dropdown-item {% if currentRoute == 'unlisted_puzzles' %}active{% endif %}" href="{{ path('unlisted_puzzles') }}" data-testid="menu-unlisted-puzzles">
+                                                <i class="bi bi-bookmark me-1"></i> {{ 'unlisted_puzzles.title'|trans }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'data_imports' %}active{% endif %}" href="{{ path('data_imports') }}" data-testid="menu-import">
                                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> {{ 'data_import.home.import_button'|trans }}

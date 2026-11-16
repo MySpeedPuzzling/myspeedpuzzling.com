@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\UnlistedPuzzleNotFound;
@@ -79,30 +80,116 @@ SQL, ['ownerPlayerId' => $ownerPlayerId, 'limit' => max(1, $limit), 'offset' => 
     }
 
     /**
-     * The numbers above the list. One statement.
-     *
-     * @return array{puzzles: int, results: int, suggested: int}
+     * Whether the player has anything on their list (or matched since `$matchedSince`) - what the menu asks (ViewerUnlistedPuzzles remembers the answer).
+     * One statement, by the index of the player.
      */
-    public function summary(string $ownerPlayerId): array
+    public function has(string $ownerPlayerId, DateTimeImmutable $matchedSince): bool
     {
         if (Uuid::isValid($ownerPlayerId) === false) {
-            return ['puzzles' => 0, 'results' => 0, 'suggested' => 0];
+            return false;
         }
 
         $listed = self::SQL_LISTED;
 
-        /** @var false|array{puzzles: int, results: int, suggested: int} $row */
+        return (bool) $this->database->executeQuery(<<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM unlisted_puzzle
+    WHERE unlisted_puzzle.player_id = :ownerPlayerId
+        -- … or a match young enough to be taken back: its page is reached from the list
+        AND ({$listed} OR unlisted_puzzle.paired_at >= :matchedSince)
+)
+SQL, ['ownerPlayerId' => $ownerPlayerId, 'matchedSince' => $matchedSince->format('Y-m-d H:i:s')])->fetchOne();
+    }
+
+    /**
+     * Of these rows of the player's imports, the ones whose unlisted result or mark was matched since - it is a
+     * real result or puzzle of the profile now, so an Undo of the import leaves the row (the match's own Undo is
+     * first). One statement.
+     *
+     * @param list<string> $importRowIds
+     *
+     * @return list<string> row ids
+     */
+    public function matchedImportRows(string $ownerPlayerId, array $importRowIds): array
+    {
+        $importRowIds = array_values(array_unique(array_map(strtolower(...), array_filter($importRowIds, Uuid::isValid(...)))));
+
+        if (Uuid::isValid($ownerPlayerId) === false || $importRowIds === []) {
+            return [];
+        }
+
+        /** @var list<string> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT result.import_row_id
+FROM unlisted_result result
+WHERE result.player_id = :ownerPlayerId
+    AND result.import_row_id IN (:importRowIds)
+    AND result.converted_at IS NOT NULL
+UNION
+SELECT mark.import_row_id
+FROM unlisted_ownership mark
+WHERE mark.player_id = :ownerPlayerId
+    AND mark.import_row_id IN (:importRowIds)
+    AND mark.converted_at IS NOT NULL
+SQL, ['ownerPlayerId' => $ownerPlayerId, 'importRowIds' => $importRowIds], ['importRowIds' => ArrayParameterType::STRING])->fetchFirstColumn();
+
+        return $rows;
+    }
+
+    /**
+     * The numbers above the list - and, with `$matchedSince`, the puzzles that left it because everything of them
+     * was matched since then (their page still holds the match's Undo), the latest first, at most 50. One statement.
+     *
+     * @return array{puzzles: int, results: int, suggested: int, matched: list<array{id: string, name: string, pairedAt: DateTimeImmutable}>}
+     */
+    public function summary(string $ownerPlayerId, null|DateTimeImmutable $matchedSince = null): array
+    {
+        if (Uuid::isValid($ownerPlayerId) === false) {
+            return ['puzzles' => 0, 'results' => 0, 'suggested' => 0, 'matched' => []];
+        }
+
+        $listed = self::SQL_LISTED;
+
+        $notListed = str_replace(['unlisted_puzzle.', 'left_result', 'left_mark'], ['matched.', 'matched_result', 'matched_mark'], $listed);
+
+        /** @var false|array{puzzles: int, results: int, suggested: int, matched: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
+    (
+        SELECT json_agg(json_build_object('id', recent.id, 'name', recent.name, 'pairedAt', recent.paired_at) ORDER BY recent.paired_at DESC, recent.id)
+        FROM (
+            SELECT matched.id, matched.name, matched.paired_at
+            FROM unlisted_puzzle matched
+            WHERE matched.player_id = :ownerPlayerId
+                AND CAST(:matchedSince AS TIMESTAMP) IS NOT NULL
+                AND matched.paired_at >= CAST(:matchedSince AS TIMESTAMP)
+                AND NOT {$notListed}
+            ORDER BY matched.paired_at DESC, matched.id
+            LIMIT 50
+        ) recent
+    ) AS matched,
     COUNT(*) AS puzzles,
     COALESCE(SUM((SELECT COUNT(*) FROM unlisted_result result WHERE result.unlisted_puzzle_id = unlisted_puzzle.id AND result.converted_at IS NULL)), 0)::int AS results,
     COUNT(*) FILTER (WHERE unlisted_puzzle.suggested_puzzle_id IS NOT NULL AND unlisted_puzzle.paired_at IS NULL) AS suggested
 FROM unlisted_puzzle
 WHERE unlisted_puzzle.player_id = :ownerPlayerId
     AND {$listed}
-SQL, ['ownerPlayerId' => $ownerPlayerId])->fetchAssociative();
+SQL, ['ownerPlayerId' => $ownerPlayerId, 'matchedSince' => $matchedSince?->format('Y-m-d H:i:s')])->fetchAssociative();
 
-        return $row === false ? ['puzzles' => 0, 'results' => 0, 'suggested' => 0] : $row;
+        if ($row === false) {
+            return ['puzzles' => 0, 'results' => 0, 'suggested' => 0, 'matched' => []];
+        }
+
+        $matched = [];
+
+        foreach ($row['matched'] === null ? [] : (array) json_decode($row['matched'], true) as $puzzle) {
+            if (is_array($puzzle) && is_string($puzzle['id'] ?? null) && is_string($puzzle['name'] ?? null) && is_string($puzzle['pairedAt'] ?? null)) {
+                $matched[] = ['id' => $puzzle['id'], 'name' => $puzzle['name'], 'pairedAt' => new DateTimeImmutable($puzzle['pairedAt'])];
+            }
+        }
+
+        return ['puzzles' => $row['puzzles'], 'results' => $row['results'], 'suggested' => $row['suggested'], 'matched' => $matched];
     }
 
     /**

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -62,6 +63,9 @@ final class ImportUndoController extends AbstractController
             'undo' => $undo,
             'kept' => $kept,
             'request_ids' => $requestIds,
+            // Rows the Undo left alone because their puzzle, kept just for the player, was matched since: the match's own
+            // Undo is on that puzzle's page - "Remove it too" could do nothing for them
+            'kept_matched' => $this->getImportAddScreen->keptJustForYouOfRows($importId, $player->playerId, array_map(static fn (ImportAddRow $row): string => $row->rowId, $kept)),
             // The one row a single "Take back" was about: its puzzle's pairing can be forgotten from here
             'row_pairing' => $undo['running'] === false && $undo['scope'] === 'rows' && Uuid::isValid($rowId)
                 ? $this->getImportAddScreen->pairingOfRow($importId, $player->playerId, $rowId)

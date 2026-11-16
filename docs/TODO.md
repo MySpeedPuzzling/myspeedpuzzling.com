@@ -1639,6 +1639,9 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 
 ## Data import - answers in place (`docs/features/data-import/pairing-screens.md` "Answers in place")
 
+- [ ] "Matched like last time": after an Untick the counts line under the title still says "Puzzles: N · Nothing waits for you" above cards that offer "Pick" (seen on the sandbox 2026-11-16, #388) - the line should follow the answer like the cards do.
+- [ ] Nothing of the in-place answers has been tried on a real phone - only at 390 px in a frame on the branch and at desktop width on the sandbox.
+
 Built without a browser: the server's streams and the script (in jsdom) are tested, the screen itself was never
 looked at. To try on a phone (390 px) and a desktop, with an import that has all three piles:
 

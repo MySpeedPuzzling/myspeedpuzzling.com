@@ -218,11 +218,12 @@ At a team event a pair sometimes competes too; the sheet gives it Team Size 2. S
   claiming and releasing never touch the round. Ordinary results follow the category rule exactly as before.
 - **The round's team size** (`competition_round.team_size`) is the most common size of the tab's teams of 3 and more -
   a pair says nothing about the event's teams; a Teams tab of pairs only has none.
-- **Not built: a single person** (Team Size 1). One person is a solo result (`puzzling_type = solo`), and a solo result
-  without its player - or, once claimed, a solo result with a one-person group snapshot - is a shape no solo reader
-  handles (the solo tab and boards join the tracker, ~20 readers tell solo from group by `team IS NULL`, the trackerless
-  audit assumed pairs/teams only). It stays `team_size_does_not_fit_category` until the solo slots of "Not in scope" are
-  built. A Pairs event still takes pairs only.
+- **Not built: a single person** (Team Size 1) - decided from reading the code, not tried. One person is a solo
+  result (`puzzling_type = solo`) without its player - or, once claimed, a solo result with a one-person group snapshot:
+  `PuzzleSolvingTime::importedFromEvent()` refuses fewer than two people, the puzzle page's solo tab inner-joins the
+  tracker while its counts go by `puzzling_type`, several readers tell solo from group by `team IS NULL`, and the
+  trackerless audit covered pairs/teams only. It stays `team_size_does_not_fit_category` until the solo slots of
+  "Not in scope" are built (docs/TODO.md). A Pairs event still takes pairs only.
 - Content hashes: a tab that had a pair row skipped now parses differently (the row is in, the problem gone), so it shows
   as Changed once and imports the pair; every other tab hashes as before.
 

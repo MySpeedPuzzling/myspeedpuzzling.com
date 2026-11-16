@@ -19,9 +19,11 @@ use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetResultsImportStoredTabs;
 use SpeedPuzzling\Web\Query\GetRoundResults;
 use SpeedPuzzling\Web\Results\ResultsImport\PreviewResultRow;
+use SpeedPuzzling\Web\Results\ResultsImport\TeamChange;
 use SpeedPuzzling\Web\Results\RoundResult;
 use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use SpeedPuzzling\Web\Services\EventResultsImport\ResultsImportComparison;
+use SpeedPuzzling\Web\Services\RoundResults\RoundResultsReconciler;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\ResultsImportScenario;
@@ -264,6 +266,47 @@ final class ResultsImportComparisonTest extends KernelTestCase
             array_map(static fn ($event): string => $event->contentHash, $format->parse($snapshot)),
             array_map(static fn ($event): string => $event->contentHash, $format->parse($loaded->sheetSnapshot() ?? new SheetSnapshot([]))),
         );
+    }
+
+    /**
+     * README D10 on production: a teams event imported while its pair row was skipped. The next check shows it Changed
+     * with the pair added; the import adds it as a pair's result ranked in the event's teams round.
+     */
+    public function testAPairAtATeamsEventImportedBeforeWithoutItIsChangedAndAddedToTheRound(): void
+    {
+        $container = self::getContainer();
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $rows = [
+            "First Team,0:40:00,4,,Pair Night,Hall,\"Springfield, MN\",10/1/26,7:00 PM,90,Teams,$link",
+            'Second Team,0:45:00,4,,,,,,,,,',
+        ];
+        self::applyTab($container, $this->source, '301', 'Pair Night', self::sheetCsv($rows));
+
+        $withPair = self::sheetCsv([...$rows, 'Just Us Two,0:42:00,2,,,,,,,,,']);
+        $check = $this->check(new SheetSnapshot([new SheetSnapshotTab('301', 'Pair Night', $withPair)]));
+        $event = $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('301');
+
+        self::assertNotNull($event);
+        self::assertSame(ResultsImportStatus::Changed, $event->status);
+        self::assertSame([[TeamChange::ADDED, 'Just Us Two']], array_map(static fn (TeamChange $change): array => [$change->kind, $change->teamName], $event->teamChanges));
+
+        self::applyTab($container, $this->source, '301', 'Pair Night', $withPair);
+        $container->get(RoundResultsReconciler::class)->reconcile();
+
+        $connection = $container->get(Connection::class);
+        $competitionId = $connection->fetchOne("SELECT id FROM competition WHERE name = 'Pair Night'");
+        self::assertIsString($competitionId);
+        $rounds = $container->get(GetEditionRounds::class)->forCompetition($competitionId);
+        self::assertCount(1, $rounds);
+        $round = array_values($rounds)[0];
+
+        $ranked = $container->get(GetRoundResults::class)->forRound($round, null)[PuzzleFixture::PUZZLE_500_01] ?? [];
+        self::assertSame(
+            [['First Team', 1], ['Just Us Two', 2], ['Second Team', 3]],
+            array_map(static fn (RoundResult $result): array => [$result->teamName, $result->rank], $ranked),
+        );
+        self::assertSame('duo', $connection->fetchOne("SELECT puzzling_type FROM puzzle_solving_time WHERE id = :id", ['id' => $ranked[1]->timeId]));
+        self::assertSame(ResultsImportStatus::Unchanged, $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('301')?->status);
     }
 
     private function check(SheetSnapshot $snapshot): ResultsImportCheck

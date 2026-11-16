@@ -250,8 +250,8 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
         }
 
         // A pair at a teams event is fine (README D10): imported as the pair's result, ranked in the event's round. Not
-        // a single person yet - a result of one nobody tracks is a solo result without its player, which no solo
-        // reader handles (README "Not in scope"); and never more than two at a pairs event
+        // a single person yet - a result of one nobody tracks would be a solo result without its player, not built
+        // (README D10, "Not in scope"); and never more than two at a pairs event
         $fits = match ($category) {
             RoundCategory::Duo => $teamSize === 2,
             RoundCategory::Team => $teamSize >= 2,

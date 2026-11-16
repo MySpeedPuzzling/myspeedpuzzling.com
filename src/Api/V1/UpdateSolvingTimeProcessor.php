@@ -11,6 +11,8 @@ use DateTimeZone;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\SolvingTimeEventLinkResolver;
@@ -52,12 +54,6 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new CanNotModifyOtherPlayersTime();
         }
 
-        // An unfinished result: the input has no pieces placed yet (step 4) - refused before anything is saved, the
-        // handler would refuse it too (UnfinishedResultNeedsItsOwnEdit)
-        if ($solvingTime->isUnfinished()) {
-            throw new UnfinishedResultNotEditable();
-        }
-
         // The handler resolves the player by its user_id identity (and creates one when missing),
         // so passing the player uuid here would attribute the edit to a phantom player
         $userId = $player->userId;
@@ -79,9 +75,33 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
         // explicit link to the edition found for it). Ids sent are checked here: 404 / 422 before anything is saved
         $eventLink = $this->eventLinkResolver->forUpdate($solvingTime, $data->competitionId, $data->seriesId);
 
+        // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md, step 4):
+        // pieces_placed saves it unfinished, time = the optional total. An unfinished result sent without either keeps its
+        // pieces and total - a client that does not know the field (it reads a null time) never turns it into a relax
+        // solve; one sent a time becomes a finished result
+        $staysUnfinished = $data->piecesPlaced !== null || ($solvingTime->isUnfinished() && $data->time === null);
+        $piecesPlaced = $data->piecesPlaced ?? $solvingTime->piecesPlaced;
+        $totalTime = $data->piecesPlaced !== null || $data->time !== null
+            ? $data->time
+            : (new SolvingTime($solvingTime->finishedLaterSeconds))->toTimeString();
+
         try {
-            $this->messageBus->dispatch(
-                new EditPuzzleSolvingTime(
+            $this->messageBus->dispatch($staysUnfinished && $piecesPlaced !== null
+                ? new EditUnfinishedPuzzleSolvingTime(
+                    currentUserId: $userId,
+                    puzzleSolvingTimeId: $timeId,
+                    competitionId: $eventLink?->competitionId(),
+                    piecesPlaced: $piecesPlaced,
+                    totalTime: $totalTime,
+                    comment: $data->comment,
+                    groupPlayers: $data->groupPlayers,
+                    finishedAt: $finishedAt,
+                    finishedPuzzlesPhoto: null,
+                    firstAttempt: $data->firstAttempt,
+                    unboxed: $data->unboxed,
+                    seriesId: $eventLink?->seriesId(),
+                )
+                : new EditPuzzleSolvingTime(
                     currentUserId: $userId,
                     puzzleSolvingTimeId: $timeId,
                     competitionId: $eventLink?->competitionId(),
@@ -93,6 +113,8 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
                     firstAttempt: $data->firstAttempt,
                     unboxed: $data->unboxed,
                     seriesId: $eventLink?->seriesId(),
+                    // The stored row says it, never the request
+                    endsUnfinishedResult: $solvingTime->isUnfinished(),
                 ),
             );
         } catch (HandlerFailedException $exception) {
@@ -101,7 +123,8 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
                 throw FirstTryConflictResponse::from($exception->getPrevious(), $player->id->toString());
             }
 
-            throw $exception;
+            // An unfinished result the rule refuses (no round with a limit, pieces, total within the limit): 422
+            throw UnfinishedResultViolation::from($exception->getPrevious()) ?? $exception;
         }
 
         // The event link as saved: the handler finds a series pick's edition again and derives the round (P18)

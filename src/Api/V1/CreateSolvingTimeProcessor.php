@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -79,8 +80,27 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             : null;
 
         try {
-            $this->messageBus->dispatch(
-                new AddPuzzleSolvingTime(
+            $this->messageBus->dispatch($data->piecesPlaced !== null
+                // An unfinished competition result: its own message, the time (when sent) is the total
+                // (docs/features/competitions-management/unfinished-results-plan.md, step 4)
+                ? new AddUnfinishedPuzzleSolvingTime(
+                    timeId: $timeId,
+                    userId: $userId,
+                    puzzleId: $data->puzzleId,
+                    competitionId: $eventLink?->competitionId(),
+                    piecesPlaced: $data->piecesPlaced,
+                    totalTime: trim($data->time) !== '' ? $data->time : null,
+                    comment: $data->comment,
+                    finishedPuzzlesPhoto: null,
+                    groupPlayers: $data->groupPlayers,
+                    finishedAt: $finishedAt,
+                    firstAttempt: $data->firstAttempt,
+                    unboxed: $data->unboxed,
+                    roundId: $data->roundId,
+                    createdVia: SolvingTimeSource::Api,
+                    seriesId: $eventLink?->seriesId(),
+                )
+                : new AddPuzzleSolvingTime(
                     timeId: $timeId,
                     userId: $userId,
                     puzzleId: $data->puzzleId,
@@ -115,12 +135,13 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
                 throw new IdempotencyKeyReused($exception->getPrevious());
             }
 
-            throw $exception;
+            // An unfinished result the rule refuses (no round with a limit, pieces, total within the limit): 422
+            throw UnfinishedResultViolation::from($exception->getPrevious()) ?? $exception;
         }
 
         // The same parser the handler stores from (SolvingTime::fromUserInput);
-        // the input regex guarantees the HH:MM:SS / MM:SS shape it asserts.
-        $timeSeconds = SolvingTime::fromUserInput($data->time)->seconds;
+        // the input regex guarantees the HH:MM:SS / MM:SS shape it asserts. An unfinished result has no time to solve
+        $timeSeconds = $data->piecesPlaced === null ? SolvingTime::fromUserInput($data->time)->seconds : null;
 
         // The event link as saved: the handler finds a series pick's edition and the round (P18)
         $solvingTime = $this->puzzleSolvingTimeRepository->get($timeId->toString());

@@ -56,6 +56,7 @@ Players report duplicate puzzles; approving a report merges them. **A merge is d
 | `POST` | `/internal-api/puzzle-merge-requests` | File a duplicate report yourself (`201` + `{"mergeRequestId"}`) |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/approve` | Merge the puzzles |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/reject` | Decline the report |
+| `POST` | `/internal-api/puzzle-merge-requests/{id}/revert` | Undo an approved merge (the merged puzzle comes back) |
 
 `GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, `reportedNameLanguages` (what the reporter said each puzzle's name is in: an object puzzle id → base language, `{}` when nothing was said) and every candidate puzzle with its name, `nameLanguage` (the main title's language, null = English or not known), its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …) and its `recordVersion` (a fingerprint of the record - names, brand, pieces, codes, image - to send back on approve). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. The candidates are the reported puzzles **as they are now**: one merged into another puzzle since the report is that puzzle (`mergedMeanwhile`: an object reported id → the puzzle it was merged into, `{}` when none), one deleted without a merge is listed in `missingPuzzleIds`. `actionable` is false when fewer than two puzzles are left — such a request cannot be merged; it is closed as already done by itself (docs/features/puzzle-approvals.md, "Outdated requests"), or can be rejected. `survivorPuzzleId` on approve is one of the candidates.
 
@@ -84,6 +85,12 @@ README.md, decision 6).
 **A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and - unless `mergedAlternativeNames` is given - keeps every name of every merged puzzle (main title and other names) as an other name of the survivor, the survivor's previous main title too when `mergedName` is another one; each main title in the language the reporter gave it (`reportedNameLanguages`), else in its own `nameLanguage` (docs/features/puzzle-names/). Re-read the queue right before approving and send every candidate's `recordVersion` as `recordVersions`: a puzzle saved in between answers `409` with `{"error": "…"}` - read the queue again and decide again.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
+
+Revert body: `survivorPuzzleId` (required - the puzzle the merge kept, checked against the request) and `note`
+(optional, kept in both puzzles' history). The same as "Revert this merge" on the admin page
+(docs/features/puzzle-approvals.md, "Reverting a merge"): the merged puzzle comes back under its id and everything the
+merge moved goes back; `204`. A merge approved before the audit existed (2026-09-16), a merge of several puzzles at
+once, or one already reverted answers `422` with the reason.
 
 File body: `puzzleIds` (required, at least two distinct puzzle ids; the first is the request's source puzzle) and
 `reportedNameLanguages` (optional: `{"<puzzle id>": "cs"}` - the language a reported puzzle's name is in, null = not

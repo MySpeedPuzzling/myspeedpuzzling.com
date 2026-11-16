@@ -168,6 +168,7 @@ readonly final class RevertPuzzleMergeRequestHandler
         $this->puzzleModerationDecisionRecorder->record(
             action: PuzzleModerationAction::MergeRequestReverted,
             decidedBy: $admin,
+            source: $message->decisionSource,
             puzzleId: $survivor->id,
             puzzleName: $survivor->name,
             mergeRequestId: $mergeRequest->id,

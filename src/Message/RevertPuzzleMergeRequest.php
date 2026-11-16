@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
@@ -19,6 +20,7 @@ readonly final class RevertPuzzleMergeRequest implements SerializedByLock
         // The puzzle the merge kept - the request's survivor, checked by the handler; the lock is the survivor's record
         public string $survivorPuzzleId,
         public null|string $note = null,
+        public MergeDecisionSource $decisionSource = MergeDecisionSource::AdminUi,
     ) {
     }
 

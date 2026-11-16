@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
+use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -274,6 +276,26 @@ final class AddUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::getContainer()->get(XpChainRecomputer::class)->awardForNewSolve($timeId);
 
         self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM xp_entry WHERE solving_time_id = :id', ['id' => $timeId]));
+    }
+
+    public function testNoAchievementMovesForIt(): void
+    {
+        $evaluator = self::getContainer()->get(BadgeEvaluator::class);
+        $badges = fn (): array => $this->database->fetchAllAssociative(
+            'SELECT type, tier FROM badge WHERE player_id = :id ORDER BY type, tier',
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+        $before = $badges();
+
+        $this->add(puzzleId: PuzzleFixture::PUZZLE_500_01, piecesPlaced: 300);
+        $this->add(puzzleId: PuzzleFixture::PUZZLE_500_02, piecesPlaced: 499, totalTime: '01:30:00');
+        $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        self::assertSame($before, $badges());
     }
 
     /**

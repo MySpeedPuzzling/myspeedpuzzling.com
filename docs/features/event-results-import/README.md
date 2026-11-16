@@ -63,8 +63,9 @@ its own team; every further row is one team.
 | Brand, Puzzle Title, Puzzle Link- manufacturer | 2 | no | informational; the link decides the puzzle |
 
 **What the organizer has to add** to today's sheet: the MySpeedPuzzling link on every tab. `Start time` and `Time limit`
-are optional (an unreadable value is still a `problem` - a typo must not drop it quietly). Everything else already
-matches. The importer is Sarah Does Puzzles' own (`SarahDoesPuzzlesTabParser`, command
+are optional (an unreadable value is still a `problem` - a typo must not drop it quietly) - **except that a tab with
+unfinished teams ("Pieces placed") needs its `Time limit`**, otherwise the whole tab waits as a `problem`. Everything
+else already matches. The importer is Sarah Does Puzzles' own (`SarahDoesPuzzlesTabParser`, command
 `myspeedpuzzling:sync-sarah-does-puzzles-results`); the data model underneath is not tied to her.
 
 Tolerated without a warning: row order (the ranking is computed from the times), trailing spaces, empty rows.

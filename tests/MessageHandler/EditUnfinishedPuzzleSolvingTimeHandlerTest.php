@@ -12,16 +12,22 @@ use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsItsOwnEdit;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
 use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
+use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TrackerlessTimeSeeding;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -175,6 +181,57 @@ final class EditUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
         $this->finishedEdit(PuzzleSolvingTimeFixture::TIME_01, time: '00:31:00', endsUnfinishedResult: true);
 
         self::assertSame(1860, $this->row(PuzzleSolvingTimeFixture::TIME_01)['seconds_to_solve']);
+    }
+
+    public function testASeriesPickPairIsResolvedAsTheSaveWouldResolveIt(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $series = $scenario->series();
+        $puzzle = $scenario->puzzle();
+        $edition = $scenario->edition($series, 'Jam No. 31', '2026-03-02');
+        $round = $scenario->round($edition, RoundCategory::Duo, '2026-03-02 19:00', puzzleIds: [$puzzle]);
+
+        // A finished solo time of the puzzle turns out an unfinished pair's result of the series' edition
+        $timeId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: self::USER,
+            puzzleId: $puzzle,
+            competitionId: null,
+            time: '01:30:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: new DateTimeImmutable('2026-03-02'),
+            firstAttempt: false,
+            unboxed: false,
+        ));
+
+        $this->messageBus->dispatch(new EditUnfinishedPuzzleSolvingTime(
+            currentUserId: self::USER,
+            puzzleSolvingTimeId: $timeId->toString(),
+            competitionId: null,
+            piecesPlaced: 400,
+            totalTime: null,
+            comment: null,
+            groupPlayers: ['Anna Guest'],
+            finishedAt: new DateTimeImmutable('2026-03-02'),
+            finishedPuzzlesPhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            seriesId: $series,
+        ));
+
+        self::assertSame(
+            ['competition_id' => $edition, 'competition_series_id' => $series, 'series_edition_match' => 'puzzle', 'competition_round_id' => $round],
+            $scenario->link($timeId->toString()),
+        );
+
+        $stored = self::getContainer()->get(PuzzleSolvingTimeRepository::class)->get($timeId->toString());
+        self::assertSame($edition, self::getContainer()->get(SeriesEditionResolver::class)->resolve($stored)->competitionId);
+        self::assertSame($round, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($stored)?->id->toString());
+        self::assertSame(7200, $stored->secondsSpent);
+        self::assertNotNull($stored->puzzlingTeam);
     }
 
     public function testAnImportedEventResultIsNeverEditedHere(): void

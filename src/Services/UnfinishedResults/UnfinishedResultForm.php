@@ -78,7 +78,8 @@ readonly final class UnfinishedResultForm
      * fields. With the kill switch off nothing is checked here (an unfinished result being edited is decided by its
      * handler alone).
      *
-     * @param FormInterface<mixed> $form
+     * @template TData
+     * @param FormInterface<TData> $form
      */
     public function check(FormInterface $form, null|UnfinishedFormState $state, null|int $piecesPlaced, null|int $totalSeconds): void
     {
@@ -114,7 +115,7 @@ readonly final class UnfinishedResultForm
      */
     private static function coPuzzlers(array $groupPlayers): int
     {
-        return count(array_filter($groupPlayers, static fn (mixed $groupPlayer): bool => is_string($groupPlayer) && trim($groupPlayer) !== ''));
+        return count(array_filter($groupPlayers, static fn (string $groupPlayer): bool => trim($groupPlayer) !== ''));
     }
 
     private function piecesCount(null|string $puzzleId): null|int

@@ -116,8 +116,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
                     roundId: $data->roundId,
                     createdVia: SolvingTimeSource::Api,
                     seriesId: $eventLink?->seriesId(),
-                ),
-            );
+                ),);
         } catch (HandlerFailedException $exception) {
             // The handler decides the first-try rules (docs/features/first-try-integrity.md)
             if ($exception->getPrevious() instanceof FirstTryAlreadyTaken) {

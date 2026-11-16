@@ -115,8 +115,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
                     seriesId: $eventLink?->seriesId(),
                     // The stored row says it, never the request
                     endsUnfinishedResult: $solvingTime->isUnfinished(),
-                ),
-            );
+                ),);
         } catch (HandlerFailedException $exception) {
             // The handler decides the first-try rules (docs/features/first-try-integrity.md)
             if ($exception->getPrevious() instanceof FirstTryAlreadyTaken) {

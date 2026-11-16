@@ -66,7 +66,7 @@ final class UnfinishedSolvingTimeEndpointTest extends WebTestCase
         $answer = $this->send($browser, 'POST', '/api/v1/me/solving-times', ['puzzle_id' => PuzzleFixture::PUZZLE_500_02]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('time', $answer['violations'][0]['propertyPath'] ?? null);
+        self::assertSame('time', self::violationPath($answer));
     }
 
     /**
@@ -93,7 +93,7 @@ final class UnfinishedSolvingTimeEndpointTest extends WebTestCase
         $answer = $this->send($browser, 'POST', '/api/v1/me/solving-times', ['puzzle_id' => PuzzleFixture::PUZZLE_500_02, ...$fields]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame($field, $answer['violations'][0]['propertyPath'] ?? null, (string) json_encode($answer));
+        self::assertSame($field, self::violationPath($answer), (string) json_encode($answer));
         self::assertSame($before, $this->countTimes());
     }
 
@@ -141,7 +141,7 @@ final class UnfinishedSolvingTimeEndpointTest extends WebTestCase
         $answer = $this->send($browser, 'PUT', '/api/v1/me/solving-times/' . $timeId, ['pieces_placed' => 500]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('pieces_placed', $answer['violations'][0]['propertyPath'] ?? null);
+        self::assertSame('pieces_placed', self::violationPath($answer));
         self::assertSame(479, $this->stored($timeId)['pieces_placed']);
     }
 
@@ -205,6 +205,21 @@ final class UnfinishedSolvingTimeEndpointTest extends WebTestCase
 
     private function countTimes(): int
     {
-        return (int) self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time');
+        $count = self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time');
+        self::assertIsNumeric($count);
+
+        return (int) $count;
+    }
+
+    /**
+     * @param array<string, mixed> $answer
+     */
+    private static function violationPath(array $answer): null|string
+    {
+        $violations = $answer['violations'] ?? null;
+        $first = is_array($violations) ? ($violations[0] ?? null) : null;
+        $path = is_array($first) ? ($first['propertyPath'] ?? null) : null;
+
+        return is_string($path) ? $path : null;
     }
 }

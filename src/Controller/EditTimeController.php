@@ -326,8 +326,7 @@ final class EditTimeController extends AbstractController
                         // Only an answer to a time the check raised is a confirmation
                         $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
                         endsUnfinishedResult: $solvedPuzzle->isUnfinished(),
-                    ),
-                );
+                    ),);
 
                 // The photos stay until they expire: the same form sent again (the answer got lost) must find them
                 // (docs/features/photo-uploads/README.md)

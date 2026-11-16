@@ -27,7 +27,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class UnfinishedResultFields
 {
     /**
-     * @param FormBuilderInterface<mixed> $builder
+     * @template TData
+     * @param FormBuilderInterface<TData> $builder
      */
     public static function add(FormBuilderInterface $builder): void
     {
@@ -51,7 +52,8 @@ final class UnfinishedResultFields
     /**
      * The checks the form makes itself (the domain checks the rest - mapped by refused()).
      *
-     * @param FormInterface<mixed> $form
+     * @template TData
+     * @param FormInterface<TData> $form
      */
     public static function validate(FormInterface $form, null|int $piecesPlaced, TranslatorInterface $translator): void
     {
@@ -63,7 +65,8 @@ final class UnfinishedResultFields
     /**
      * A refusal of the unfinished result as an error on its field - false for anything else.
      *
-     * @param FormInterface<mixed> $form
+     * @template TData
+     * @param FormInterface<TData> $form
      */
     public static function refused(\Throwable $refusal, FormInterface $form, TranslatorInterface $translator): bool
     {

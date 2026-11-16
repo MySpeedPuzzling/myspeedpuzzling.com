@@ -123,7 +123,7 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
 
         // A puzzle left the old way (undecided, never looked at, marked as the player's - no run would take it, the
         // import "paired"): the safety net asks for a run although the last one came to rest, and the run takes it
-        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = NULL, candidates = '[]', decided_how = 'player', decided_at = NOW() WHERE id = :id", ['id' => $unlisted['id']]);
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = NULL, candidates = '[]', decided_how = 'player', decided_at = " . TestClock::SQL_NOW . " WHERE id = :id", ['id' => $unlisted['id']]);
         self::assertSame(1, $screen->overview($nextId, $player->id->toString())->searching);
         self::assertTrue($this->handledWithResult(new RequestImportPairing($nextId)));
         $this->pair($next);
@@ -134,7 +134,7 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         self::assertFalse($this->handledWithResult(new RequestImportPairing($nextId)));
         // Nor one whose finished run left a puzzle without a pile (another run would leave it again): the asking
         // is bounded by what a run changes - a finished run resets the count of tries, so that could not bound it
-        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = NOW(), decided_how = NULL, decided_at = (SELECT paired_at - INTERVAL '1 minute' FROM data_import WHERE data_import.id = data_import_puzzle.import_id) WHERE id = :id", ['id' => $unlisted['id']]);
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = " . TestClock::SQL_NOW . ", decided_how = NULL, decided_at = (SELECT paired_at - INTERVAL '1 minute' FROM data_import WHERE data_import.id = data_import_puzzle.import_id) WHERE id = :id", ['id' => $unlisted['id']]);
         self::assertSame(1, $screen->overview($nextId, $player->id->toString())->searching);
         self::assertFalse($this->handledWithResult(new RequestImportPairing($nextId)));
     }
@@ -193,7 +193,7 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
 
         // A puzzle left the old way (undecided, never looked at, marked as the player's) and released by the run:
         // the same - never matched by the rules
-        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET choice = 'undecided', puzzle_id = NULL, decided_how = 'player', decided_at = NOW() WHERE import_id = :id AND name = 'Zq Taken Back Cove'", ['id' => $next->id->toString()]);
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET choice = 'undecided', puzzle_id = NULL, decided_how = 'player', decided_at = " . TestClock::SQL_NOW . " WHERE import_id = :id AND name = 'Zq Taken Back Cove'", ['id' => $next->id->toString()]);
         $this->pairingDatabase()->executeStatement("DELETE FROM import_puzzle_decision WHERE player_id = :id AND choice = 'left_out'", ['id' => $playerId]);
         $this->pair($next);
         $released = $this->importPuzzle($next, 'Zq Taken Back Cove');

@@ -58,7 +58,10 @@ Competitor and Competitor included - a participant row still counts as taking pa
 pieces placed (`CommunityStatsCalculator::resultsSql()` keeps the row, every count filters - it had excluded it entirely,
 so pieces never reached the pieces totals); "N results" of an event / round, "puzzled together N times", first-try
 integrity, the onboarding "logged a puzzle" and the model features of PuzzleIntelligence keep an unfinished result
-(listed as history / activity). Loose ends: `docs/TODO.md` "Unfinished results - after step 1".
+(listed as history / activity). The activity calendar keeps its day active (the day's cell and the streak), while
+its per-day solve pills and the weekday / hour "solves" histograms count solves only and its time sums `seconds_spent`;
+the streak and quarter achievements (Steady Hands) count solves only - "no achievement progress" read strictly
+(Jan's call if the streak achievements should follow the calendar instead). Loose ends: `docs/TODO.md` "Unfinished results - after step 1".
 
 **Status:** plan, 2026-09-18, refined 2026-11-16. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 

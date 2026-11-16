@@ -12,7 +12,9 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\ResetOAuth2ClientCredentials;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Value\OAuth2ApplicationType;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 
 #[AsMessageHandler]
 final readonly class ResetOAuth2ClientCredentialsHandler
@@ -23,6 +25,8 @@ final readonly class ResetOAuth2ClientCredentialsHandler
         private ClientManagerInterface $clientManager,
         private Connection $database,
         private ClockInterface $clock,
+        #[Autowire(service: 'league.oauth2_server.password_hasher')]
+        private PasswordHasherInterface $clientSecretHasher,
     ) {
     }
 
@@ -41,11 +45,8 @@ final readonly class ResetOAuth2ClientCredentialsHandler
         if ($request->applicationType === OAuth2ApplicationType::Confidential) {
             $newSecret = bin2hex(random_bytes(32));
 
-            $newClient = new Client($client->getName(), $client->getIdentifier(), $newSecret);
-            $newClient->setRedirectUris(...$client->getRedirectUris());
-            $newClient->setGrants(...$client->getGrants());
-            $newClient->setScopes(...$client->getScopes());
-            $this->clientManager->save($newClient);
+            // The client stores only the hash; the plain secret waits on the request for the one-time claim page
+            $client->setSecret($this->clientSecretHasher->hash($newSecret));
         }
 
         $claimToken = bin2hex(random_bytes(32));

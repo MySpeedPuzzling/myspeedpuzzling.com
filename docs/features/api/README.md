@@ -433,12 +433,12 @@ The pair's time of the series "Lantern Weekly Jam" (`…b001`) was matched to it
 5. Admin reviews at `/admin/oauth2-requests` — approve or reject with reason
 6. **On approval:** User receives email with a one-time credential claim link (valid 7 days)
 7. User clicks link → sees client ID + secret once → saves them securely
-8. Credentials are never shown again after claiming
+8. Credentials are never shown again after claiming - the client stores only a hash of the secret (see "Client secrets are stored hashed")
 
 ### Credential Management
 
 - Users can view their applications in profile settings ("My Applications" section)
-- Approved apps can reset credentials (generates new secret, revokes all tokens, sends new claim link)
+- Approved apps can reset credentials (generates new secret, revokes all tokens, new claim link) - the `ResetOAuth2ClientCredentials` handler exists, but no page dispatches it yet
 
 ### CLI Client Management
 
@@ -609,35 +609,35 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `templates/oauth2/request-api-access.html.twig` | Client registration form |
 | `templates/oauth2/claim-credentials.html.twig` | One-time credential display |
 
-## Client secrets are stored in plaintext (follow-up, raised 2026-08-01)
+## Client secrets are stored hashed (since 2026-11-16, bundle 2.0)
 
-`league/oauth2-server-bundle` 1.2 moved to hashed client secrets, but the hashing lives only in
-the bundle's own `CreateClientCommand` — `ClientManager::save()` does **not** hash. Every place
-this repo creates a client passes a raw secret straight to `save()`:
+`league/oauth2-server-bundle` 2.0 verifies a confidential client's secret **only as a hash**
+(`league.oauth2_server.password_hasher` = `NativePasswordHasher`: bcrypt, cost 13); a plaintext secret in
+`oauth2_client.secret` would refuse its client. `ClientManager::save()` does not hash, so every place that
+creates or changes a secret hashes it first, with that same service
+(`#[Autowire(service: 'league.oauth2_server.password_hasher')]`):
 
-- `src/MessageHandler/ApproveOAuth2ClientRequestHandler.php`
-- `src/MessageHandler/ResetOAuth2ClientCredentialsHandler.php`
-- `src/ConsoleCommands/OAuth2CreateClientConsoleCommand.php`
-- `tests/DataFixtures/OAuth2ClientFixture.php`
+- `src/MessageHandler/ApproveOAuth2ClientRequestHandler.php` - new client
+- `src/MessageHandler/ResetOAuth2ClientCredentialsHandler.php` - new secret on the same client (`setSecret()`; no UI
+  dispatches the reset yet)
+- `src/ConsoleCommands/OAuth2CreateClientConsoleCommand.php` - prints the plain secret once
+- `tests/DataFixtures/OAuth2ClientFixture.php` (the test env runs the hasher at cost 4, `config/services_test.php`)
 
-This works today only because `client.allow_plaintext_secrets` defaults to `true`, which wraps the
-hasher in a `MigratingPasswordHasher`. Consequences:
+**A secret is shown once.** The plain secret lives only on `oauth2_client_request.client_secret` until the claim
+page shows it (`markCredentialsClaimed()` nulls it), or on the console output of `create-client`. Nothing can show
+it again: a lost secret means a reset (new secret, existing tokens revoked).
 
-1. A **deprecation fires on every container compile** (verified in `var/cache/*/…Deprecations.log`).
-2. It breaks outright at bundle **2.0**, and breaks *immediately* if anyone sets
-   `allow_plaintext_secrets: false` to silence the deprecation without fixing creation first.
-3. Since 1.2 the token endpoint **opportunistically rehashes**: on the first successful
-   confidential-client authentication, `ClientRepository` calls `setSecret(hash)` +
-   `ClientManager::save()`, which does `persist()` **and `flush()`** — a mid-request flush on
-   `POST /oauth2/token`, outside any Messenger handler, contrary to the project's flush rule. It is
-   wrapped in `try/catch (\Throwable)` so it cannot fail authentication, and it happens once per
-   existing client.
+**Existing secrets** were hashed by the hand-written data migration `Version20261116140000` (same logic as
+`league:oauth2-server:rehash-client-secrets`: public clients skipped, already-hashed secrets left alone). Every
+client kept its plain secret - only the stored form changed, so no integrator had to do anything. The new container
+runs it before it serves, and the old one (bundle 1.2 with its plaintext-migrating hasher) verifies hashes too, so the
+blue-green deploy never refused a client. Should a plaintext secret ever appear again (hand-edited row), run
+`php bin/console league:oauth2-server:rehash-client-secrets`.
 
-**Fix:** hash via the `league.oauth2_server.password_hasher` service before `save()`, keeping the
-plaintext only in `oauth2_client_request.client_secret` for the one-time claim flow (nothing
-compares the two — the claim page reads only `oauth2_client_request`). Then run
-`league:oauth2-server:rehash-client-secrets` and set `allow_plaintext_secrets: false`.
+Cost: every confidential token request (`client_credentials`, code exchange, refresh) verifies one bcrypt hash,
+~0.2-0.3 s of CPU on `POST /oauth2/token`. The `secret` column stays `VARCHAR(128)` (bcrypt is 60 chars).
 
-**No migration needed:** `UPGRADE-1.x.md` claims the `secret` column grew 128 → 255, but the
-installed 1.2.2 mapping still declares `length(128)`, which matches `Version20260131170741` and
-fits bcrypt's 60 chars. `doctrine:schema:validate` stays green — verified.
+Other 2.0 changes that did not touch this repo: inactive clients (`active = false`) are refused, `getName()`/`setSecret()`
+are on `ClientInterface` (the stock `Client` has them), password and implicit grants default to off (we set both
+explicitly), `GrantConfigurator`/`GrantTypeInterface` removed (we have no custom grants), `allow_plaintext_secrets` is
+ignored (never set here).

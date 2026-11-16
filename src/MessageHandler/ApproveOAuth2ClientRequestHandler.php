@@ -17,8 +17,10 @@ use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\OAuth2ApplicationType;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -34,6 +36,8 @@ final readonly class ApproveOAuth2ClientRequestHandler
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
         private ClockInterface $clock,
+        #[Autowire(service: 'league.oauth2_server.password_hasher')]
+        private PasswordHasherInterface $clientSecretHasher,
     ) {
     }
 
@@ -48,7 +52,8 @@ final readonly class ApproveOAuth2ClientRequestHandler
         $isPublic = $request->applicationType === OAuth2ApplicationType::Public;
         $secret = $isPublic ? null : bin2hex(random_bytes(32));
 
-        $client = new Client($request->clientName, $identifier, $secret);
+        // The client stores only the hash; the plain secret waits on the request for the one-time claim page
+        $client = new Client($request->clientName, $identifier, $secret === null ? null : $this->clientSecretHasher->hash($secret));
 
         $redirectUris = array_filter($request->redirectUris, static fn(string $uri) => $uri !== '');
 

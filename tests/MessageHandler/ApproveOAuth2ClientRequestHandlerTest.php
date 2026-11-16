@@ -56,6 +56,32 @@ final class ApproveOAuth2ClientRequestHandlerTest extends KernelTestCase
         self::assertContains('refresh_token', $grantTypes);
     }
 
+    public function testApprovedConfidentialClientStoresOnlyTheHashOfTheClaimableSecret(): void
+    {
+        $this->messageBus->dispatch(
+            new ApproveOAuth2ClientRequest(
+                requestId: OAuth2ClientRequestFixture::PENDING_CONFIDENTIAL_REQUEST,
+                adminPlayerId: PlayerFixture::PLAYER_ADMIN,
+            ),
+        );
+
+        $request = $this->requestRepository->get(OAuth2ClientRequestFixture::PENDING_CONFIDENTIAL_REQUEST);
+        self::assertNotNull($request->clientIdentifier);
+        $plainSecret = $request->clientSecret;
+        self::assertNotNull($plainSecret);
+        self::assertSame(64, strlen($plainSecret));
+
+        $client = $this->clientManager->find($request->clientIdentifier);
+        self::assertNotNull($client);
+        $storedSecret = $client->getSecret();
+        self::assertNotNull($storedSecret);
+        self::assertNotSame($plainSecret, $storedSecret);
+
+        $hasher = self::getContainer()->get('league.oauth2_server.password_hasher');
+        self::assertTrue($hasher->verify($storedSecret, $plainSecret));
+        self::assertFalse($hasher->needsRehash($storedSecret));
+    }
+
     public function testApprovedClientWithLongNameFitsIdentifierColumn(): void
     {
         $this->messageBus->dispatch(

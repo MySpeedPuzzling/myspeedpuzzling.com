@@ -11,6 +11,8 @@ use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Grant;
 use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 
 final class OAuth2ClientFixture extends Fixture
 {
@@ -18,12 +20,15 @@ final class OAuth2ClientFixture extends Fixture
     public const string CONFIDENTIAL_CLIENT_ID = 'confidential-test-client';
     public const string CONFIDENTIAL_CLIENT_SECRET = 'test-secret-12345678901234567890123456789012';
     public const string FIRST_PARTY_CLIENT_ID = 'first-party-client';
+    public const string FIRST_PARTY_CLIENT_SECRET = 'first-party-secret-12345678901234567890';
     public const string WRITE_CLIENT_ID = 'write-test-client';
     public const string WRITE_CLIENT_SECRET = 'write-secret-1234567890123456789012345678';
     public const string REDIRECT_URI = 'https://example.com/callback';
 
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
+        #[Autowire(service: 'league.oauth2_server.password_hasher')]
+        private readonly PasswordHasherInterface $clientSecretHasher,
     ) {
     }
 
@@ -52,7 +57,7 @@ final class OAuth2ClientFixture extends Fixture
         $confidentialClient = new Client(
             'Confidential Test Client',
             self::CONFIDENTIAL_CLIENT_ID,
-            self::CONFIDENTIAL_CLIENT_SECRET,
+            $this->clientSecretHasher->hash(self::CONFIDENTIAL_CLIENT_SECRET),
         );
         $confidentialClient->setRedirectUris(new RedirectUri(self::REDIRECT_URI));
         $confidentialClient->setGrants(
@@ -73,7 +78,7 @@ final class OAuth2ClientFixture extends Fixture
         $firstPartyClient = new Client(
             'First Party Client',
             self::FIRST_PARTY_CLIENT_ID,
-            'first-party-secret-12345678901234567890',
+            $this->clientSecretHasher->hash(self::FIRST_PARTY_CLIENT_SECRET),
         );
         $firstPartyClient->setRedirectUris(new RedirectUri(self::REDIRECT_URI));
         $firstPartyClient->setGrants(
@@ -95,7 +100,7 @@ final class OAuth2ClientFixture extends Fixture
         $writeClient = new Client(
             'Write Test Client',
             self::WRITE_CLIENT_ID,
-            self::WRITE_CLIENT_SECRET,
+            $this->clientSecretHasher->hash(self::WRITE_CLIENT_SECRET),
         );
         $writeClient->setRedirectUris(new RedirectUri(self::REDIRECT_URI));
         $writeClient->setGrants(

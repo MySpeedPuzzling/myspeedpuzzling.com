@@ -84,7 +84,7 @@ final class RefreshTokenFlowTest extends WebTestCase
             [
                 'grant_type' => 'refresh_token',
                 'client_id' => OAuth2ClientFixture::FIRST_PARTY_CLIENT_ID,
-                'client_secret' => 'first-party-secret-12345678901234567890',
+                'client_secret' => OAuth2ClientFixture::FIRST_PARTY_CLIENT_SECRET,
                 'refresh_token' => $tokens['refresh_token'],
             ],
         );

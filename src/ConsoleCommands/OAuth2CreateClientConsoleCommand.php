@@ -16,6 +16,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 
 #[AsCommand(
     name: 'myspeedpuzzling:oauth2:create-client',
@@ -25,6 +27,8 @@ final class OAuth2CreateClientConsoleCommand extends Command
 {
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
+        #[Autowire(service: 'league.oauth2_server.password_hasher')]
+        private readonly PasswordHasherInterface $clientSecretHasher,
     ) {
         parent::__construct();
     }
@@ -54,7 +58,8 @@ final class OAuth2CreateClientConsoleCommand extends Command
         $isPublic = (bool) $input->getOption('public');
         $secret = $isPublic ? null : bin2hex(random_bytes(32));
 
-        $client = new Client($name, $identifier, $secret);
+        // The client stores only the hash - the plain secret is printed below, once
+        $client = new Client($name, $identifier, $secret === null ? null : $this->clientSecretHasher->hash($secret));
 
         /** @var array<non-empty-string> $redirectUris */
         $redirectUris = $input->getOption('redirect-uri');
@@ -99,7 +104,7 @@ final class OAuth2CreateClientConsoleCommand extends Command
             ],
         );
 
-        if (!$isPublic && $secret !== null) {
+        if (!$isPublic) {
             $io->warning('Save the client secret securely - it will not be shown again!');
         }
 

@@ -8,10 +8,8 @@ that would otherwise be forgotten. Newest section on top.
 
 Majors and deprecations the upgrade left on purpose - each is its own change:
 
-- [ ] `league/oauth2-server-bundle` 2.0: it verifies client secrets only as hashes, ours are plaintext. First hash
-  secrets on save (approve/reset handlers, `OAuth2CreateClientConsoleCommand`, `OAuth2ClientFixture`), deploy, run
-  `league:oauth2-server:rehash-client-secrets` on production, set `client.allow_plaintext_secrets: false`, then bump
-  to ^2.0 ([api/README.md](features/api/README.md#client-secrets-are-stored-in-plaintext-follow-up-raised-2026-08-01))
+- [x] `league/oauth2-server-bundle` 2.0 (2026-11-16): secrets hashed on save, existing ones hashed by migration
+  `Version20261116140000`, bundle on ^2.0 ([api/README.md](features/api/README.md#client-secrets-are-stored-hashed-since-2026-11-16-bundle-20))
 - [ ] Mercure protocol 1.0: `config/packages/mercure.php` pins `protocol_version: 0.x` (mercure-bundle 0.7 defaults
   to 1.0). Moving needs a Mercure 1.x hub, `match=` instead of `topic=` in the JS subscribers, the new cookie name
   and `turbo_stream_from()` instead of the deprecated `turbo_stream_listen()` (messaging modals)

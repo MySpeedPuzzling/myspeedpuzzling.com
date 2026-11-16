@@ -13535,3 +13535,10 @@ unfinished_result:
         pieces_invalid: "Introduce un número de piezas entre 1 y %max%."
         total_within_limit: "%time% está dentro del límite de %minutes% min. Deja el tiempo vacío si paraste cuando se acabó el tiempo, o desactiva «No terminé dentro del tiempo límite» si terminaste a tiempo."
         needs_round: "Un resultado que no terminó dentro del tiempo límite necesita una ronda de competición con tiempo límite, y este evento no tiene ninguna para este puzzle y este número de participantes."
+results_import:
+    format_guide:
+        sarah_does_puzzles:
+            intro: "Cada pestaña de tu hoja es un evento. La fila 1 contiene los nombres de las columnas, la fila 2 el evento y su primer equipo, y cada fila siguiente un equipo más."
+            event_columns: "El evento, en la fila 2: Contest Name, Location, City and State, Date y Competition Type (Pairs o Teams), y la página del puzzle en MySpeedPuzzling en Link to MySpeedPuzzling. Start time y Time limit son opcionales."
+            team_columns: "Cada equipo: Name, Team Size y Time (h:mm:ss). Un equipo que no terminó dentro del tiempo límite lleva sus Pieces placed en lugar de un tiempo; la pestaña necesita entonces un Time limit."
+            example: "Ejemplo"

@@ -47,6 +47,7 @@ final class EventResultsSheetsInternalApiTest extends WebTestCase
         self::assertIsString($created['id'] ?? null);
         self::assertSame(self::SPREADSHEET_ID, $created['spreadsheetId']);
         self::assertSame('us', $created['countryCode'], 'The organization\'s country when none is given');
+        self::assertSame('sarah_does_puzzles', $created['format'], 'The one format before formats when none is given');
         self::assertSame([], $created['tabs']);
 
         $list = self::callInternalApi($browser, 'GET', '/internal-api/event-results-sheets');
@@ -74,6 +75,12 @@ final class EventResultsSheetsInternalApiTest extends WebTestCase
         self::callInternalApi($browser, 'POST', '/internal-api/event-results-sheets', ['spreadsheet' => 'not a sheet'] + $valid);
         self::assertResponseStatusCodeSame(400);
 
+        // A format no code knows
+        $answer = self::callInternalApi($browser, 'POST', '/internal-api/event-results-sheets', ['format' => 'somebody_else'] + $valid);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($answer['errors'] ?? null);
+        self::assertArrayHasKey('format', $answer['errors']);
+
         // Somebody not on the organization's team cannot be credited with its events
         self::callInternalApi($browser, 'POST', '/internal-api/event-results-sheets', ['actingPlayerId' => PlayerFixture::PLAYER_REGULAR] + $valid);
         self::assertResponseStatusCodeSame(422);
@@ -82,6 +89,26 @@ final class EventResultsSheetsInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         self::callInternalApi($browser, 'POST', '/internal-api/event-results-sheets', $valid);
         self::assertResponseStatusCodeSame(409, 'A sheet is registered once');
+    }
+
+    public function testRegistersASheetWithItsFormat(): void
+    {
+        $browser = self::createClient();
+
+        $created = self::callInternalApi($browser, 'POST', '/internal-api/event-results-sheets', [
+            'spreadsheet' => self::SPREADSHEET_ID,
+            'organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND,
+            'actingPlayerId' => PlayerFixture::PLAYER_WITH_STRIPE,
+            'timezone' => 'America/Chicago',
+            'format' => 'sarah_does_puzzles',
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('sarah_does_puzzles', $created['format']);
+
+        $list = self::callInternalApi($browser, 'GET', '/internal-api/event-results-sheets');
+        self::assertIsArray($list['sheets'] ?? null);
+        self::assertSame(['sarah_does_puzzles'], array_column($list['sheets'], 'format'));
     }
 
     public function testSyncReadsTheSheetAtOnceAndAnswersWhatBecameOfItsTabs(): void

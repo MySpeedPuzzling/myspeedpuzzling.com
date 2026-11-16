@@ -13534,3 +13534,10 @@ unfinished_result:
         pieces_invalid: "Gib eine Teilezahl zwischen 1 und %max% ein."
         total_within_limit: "%time% liegt innerhalb des Zeitlimits von %minutes% Min. Lass die Zeit leer, wenn du aufgehört hast, als die Zeit abgelaufen war - oder schalte „Ich bin im Zeitlimit nicht fertig geworden“ aus, wenn du rechtzeitig fertig warst."
         needs_round: "Ein Ergebnis, das im Zeitlimit nicht fertig wurde, braucht eine Wettbewerbsrunde mit Zeitlimit - diese Veranstaltung hat keine für dieses Puzzle und diese Anzahl an Puzzlern."
+results_import:
+    format_guide:
+        sarah_does_puzzles:
+            intro: "Jeder Tab deiner Tabelle ist ein Event. Zeile 1 enthält die Spaltennamen, Zeile 2 das Event und sein erstes Team, jede weitere Zeile ein weiteres Team."
+            event_columns: "Das Event, in Zeile 2: Contest Name, Location, City and State, Date und Competition Type (Pairs oder Teams) sowie die Seite des Puzzles auf MySpeedPuzzling in Link to MySpeedPuzzling. Start time und Time limit sind optional."
+            team_columns: "Jedes Team: Name, Team Size und Time (h:mm:ss). Ein Team, das innerhalb des Zeitlimits nicht fertig wurde, bekommt statt einer Zeit seine Pieces placed - der Tab braucht dann ein Time limit."
+            example: "Beispiel"

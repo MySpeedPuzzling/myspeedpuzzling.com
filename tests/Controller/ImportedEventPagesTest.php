@@ -12,10 +12,11 @@ use SpeedPuzzling\Web\Entity\EventResultsSheet;
 use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
-use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -55,14 +56,14 @@ final class ImportedEventPagesTest extends WebTestCase
         $entityManager->persist($sheet);
         $entityManager->flush();
 
-        $tab = new SarahDoesPuzzlesTabParser()->parse(implode("\n", [
+        $tab = new SarahDoesPuzzlesFormat()->parseTab(new SheetSnapshotTab('515151', 'Maple Street 10/5', implode("\n", [
             self::HEADER,
             '"Puzzle Pals",1:10:13,4,Maple Street Puzzle Night,Maple Street Taproom,"Springfield, MN",Some Brand,Some Puzzle,10/5/26,Teams,https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01,
             '"Edge Lords",1:12:04,3,,,,,,,,',
-        ]));
+        ])));
         self::assertSame([], $tab->problems);
 
-        $container->get(MessageBusInterface::class)->dispatch(new ApplyEventResultsTab($sheet->id->toString(), '515151', 'Maple Street 10/5', $tab));
+        $container->get(MessageBusInterface::class)->dispatch(new ApplyEventResultsTab($sheet->id->toString(), $tab));
         $entityManager->clear();
     }
 

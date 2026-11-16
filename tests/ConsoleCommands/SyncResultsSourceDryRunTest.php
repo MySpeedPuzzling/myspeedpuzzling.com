@@ -22,11 +22,11 @@ use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
- * `myspeedpuzzling:sync-sarah-does-puzzles-results --dry-run` says what each tab would become - unfinished teams
+ * `myspeedpuzzling:sync-results-source <sourceId> --dry-run` says what each tab would become - unfinished teams
  * counted, a tab with unfinished teams and no Time limit a problem - and writes nothing
  * (docs/features/event-results-import/README.md "Unfinished results (D9)"). Made-up events and teams.
  */
-final class SyncSarahDoesPuzzlesResultsDryRunTest extends KernelTestCase
+final class SyncResultsSourceDryRunTest extends KernelTestCase
 {
     private const string HEADER = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling';
 
@@ -66,8 +66,8 @@ final class SyncSarahDoesPuzzlesResultsDryRunTest extends KernelTestCase
 
         $kernel = self::$kernel;
         self::assertNotNull($kernel);
-        $tester = new CommandTester(new Application($kernel)->find('myspeedpuzzling:sync-sarah-does-puzzles-results'));
-        $tester->execute(['--sheet' => $sheet->id->toString(), '--dry-run' => true]);
+        $tester = new CommandTester(new Application($kernel)->find('myspeedpuzzling:sync-results-source'));
+        $tester->execute(['sourceId' => $sheet->id->toString(), '--dry-run' => true]);
 
         $tester->assertCommandIsSuccessful();
         $output = preg_replace('/\s+/', ' ', $tester->getDisplay()) ?? '';
@@ -78,6 +78,43 @@ final class SyncSarahDoesPuzzlesResultsDryRunTest extends KernelTestCase
             'SELECT COUNT(*) FROM event_results_sheet_tab WHERE sheet_id = :id',
             ['id' => $sheet->id->toString()],
         ));
+    }
+
+    public function testWithoutASourceIdEverySourceIsSynced(): void
+    {
+        self::bootKernel();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $organization = $entityManager->find(Organization::class, OrganizationFixture::ORGANIZATION_RIVERBEND);
+        $creator = $entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNotNull($organization);
+        self::assertNotNull($creator);
+
+        foreach (['test-spreadsheet-first-0123456789', 'test-spreadsheet-second-0123456789'] as $spreadsheetId) {
+            $entityManager->persist(new EventResultsSheet(Uuid::uuid7(), $spreadsheetId, $organization, $creator, 'America/Chicago', 'us', new DateTimeImmutable('2026-11-01')));
+        }
+
+        $entityManager->flush();
+
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_02;
+        $csv = self::HEADER . "\n" . "Puzzle Pals,1:10:13,4,,Maple Street,Taproom,\"Springfield, MN\",10/5/26,7:00 PM,120,Teams,$link\n";
+        self::getContainer()->set(GoogleSheetReader::class, new GoogleSheetReader(new MockHttpClient(
+            static fn (string $method, string $url): MockResponse => str_contains($url, 'htmlview')
+                ? new MockResponse('<script>items.push({name: "Maple 10\/5", pageUrl: "x", gid: "11",initialSheet: false});</script>', ['response_headers' => ['content-type' => 'text/html']])
+                : new MockResponse($csv, ['response_headers' => ['content-type' => 'text/csv']]),
+        )));
+
+        $kernel = self::$kernel;
+        self::assertNotNull($kernel);
+        $tester = new CommandTester(new Application($kernel)->find('myspeedpuzzling:sync-results-source'));
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertSame(
+            ['test-spreadsheet-first-0123456789' => 'imported', 'test-spreadsheet-second-0123456789' => 'imported'],
+            self::getContainer()->get(Connection::class)->fetchAllKeyValue(
+                'SELECT sheet.spreadsheet_id, tab.status FROM event_results_sheet_tab tab JOIN event_results_sheet sheet ON sheet.id = tab.sheet_id ORDER BY sheet.spreadsheet_id',
+            ),
+        );
     }
 
     private static function csv(string $rows): MockResponse

@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\Message\AddEventResultsSheet;
 use SpeedPuzzling\Web\Query\GetEventResultsSheets;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\ResultsFormats;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,8 +22,9 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * Registers an organizer's results sheet (docs/features/event-results-import/README.md): `spreadsheet` = its link or
  * id, the `organizationId` its events land in, `actingPlayerId` = who on the organization's team they are created as,
- * `timezone` of the sheet's start times, optional `countryCode` (the organization's when left out). The hourly sync
- * reads it from then on; POST …/{id}/sync reads it at once.
+ * `timezone` of the sheet's start times, optional `countryCode` (the organization's when left out), optional `format`
+ * = the key of the ResultsFormat it is written in (`sarah_does_puzzles` when left out - the one format before formats).
+ * Read on demand: POST …/{id}/sync, or myspeedpuzzling:sync-results-source.
  */
 final class CreateEventResultsSheetController extends AbstractController
 {
@@ -31,6 +34,7 @@ final class CreateEventResultsSheetController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly GetEventResultsSheets $getEventResultsSheets,
         private readonly OrganizationRepository $organizationRepository,
+        private readonly ResultsFormats $formats,
     ) {
     }
 
@@ -40,7 +44,7 @@ final class CreateEventResultsSheetController extends AbstractController
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        $input = InternalApiInput::fromRequest($request, ['spreadsheet', 'organizationId', 'actingPlayerId', 'timezone', 'countryCode']);
+        $input = InternalApiInput::fromRequest($request, ['spreadsheet', 'organizationId', 'actingPlayerId', 'timezone', 'countryCode', 'format']);
 
         $spreadsheet = $input->string('spreadsheet', required: true);
         $spreadsheetId = null;
@@ -68,6 +72,12 @@ final class CreateEventResultsSheetController extends AbstractController
             $input->addError('countryCode', 'must be two letters.');
         }
 
+        $format = $input->string('format') ?? SarahDoesPuzzlesFormat::KEY;
+
+        if ($this->formats->has($format) === false) {
+            $input->addError('format', sprintf('must be one of: %s.', implode(', ', $this->formats->keys())));
+        }
+
         $input->throwIfInvalid();
         assert($spreadsheetId !== null && $organizationId !== null && $actingPlayerId !== null && $timezone !== null);
 
@@ -81,7 +91,7 @@ final class CreateEventResultsSheetController extends AbstractController
         assert($countryCode !== null);
         $sheetId = Uuid::uuid7();
 
-        $this->messageBus->dispatch(new AddEventResultsSheet($sheetId, $spreadsheetId, $organizationId, $actingPlayerId, $timezone, $countryCode));
+        $this->messageBus->dispatch(new AddEventResultsSheet($sheetId, $spreadsheetId, $organizationId, $actingPlayerId, $timezone, $countryCode, $format));
 
         $request->attributes->set(InternalApiAuditSubscriber::CREATED_ID_ATTRIBUTE, $sheetId->toString());
 

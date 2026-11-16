@@ -13537,3 +13537,10 @@ unfinished_result:
         pieces_invalid: "Zadej počet dílků od 1 do %max%."
         total_within_limit: "%time% je v limitu %minutes% min. Nech čas prázdný, pokud jsi skončil(a), když vypršel čas - nebo vypni „Nestihl(a) jsem to v časovém limitu“, pokud jsi to stihl(a)."
         needs_round: "Výsledek nedokončený v časovém limitu potřebuje soutěžní kolo s časovým limitem - tato akce žádné takové kolo pro toto puzzle a tento počet skládajících nemá."
+results_import:
+    format_guide:
+        sarah_does_puzzles:
+            intro: "Každá záložka vaší tabulky je jedna událost. Řádek 1 obsahuje názvy sloupců, řádek 2 událost a její první tým, každý další řádek další tým."
+            event_columns: "Událost, na řádku 2: Contest Name, Location, City and State, Date a Competition Type (Pairs nebo Teams) a stránka puzzle na MySpeedPuzzling ve sloupci Link to MySpeedPuzzling. Start time a Time limit jsou nepovinné."
+            team_columns: "Každý tým: Name, Team Size a Time (h:mm:ss). Tým, který nedoskládal v časovém limitu, má místo času Pieces placed - záložka pak potřebuje Time limit."
+            example: "Příklad"

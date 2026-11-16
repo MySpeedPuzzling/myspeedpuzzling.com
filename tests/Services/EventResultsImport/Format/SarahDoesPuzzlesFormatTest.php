@@ -2,18 +2,22 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Tests\Services\EventResultsImport;
+namespace SpeedPuzzling\Web\Tests\Services\EventResultsImport\Format;
 
 use PHPUnit\Framework\TestCase;
-use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
+use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshot;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 /**
- * One tab of an organizer's results sheet, as Google's CSV export gives it (docs/features/event-results-import/README.md
- * "Format"). Made-up events and teams - the real sheets never go into this public repo.
+ * Sarah Does Puzzles' format: one tab of her results sheet, as Google's CSV export gives it, is one event
+ * (docs/features/event-results-import/README.md "Format"). Made-up events and teams - the real sheets never go into
+ * this public repo.
  */
-final class SarahDoesPuzzlesTabParserTest extends TestCase
+final class SarahDoesPuzzlesFormatTest extends TestCase
 {
     private const string HEADER = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Brand,Puzzle Title,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Puzzle Link- manufacturer';
     private const string PUZZLE_URL = 'https://myspeedpuzzling.com/en/puzzle/018d0003-0000-0000-0000-000000000001';
@@ -384,15 +388,52 @@ final class SarahDoesPuzzlesTabParserTest extends TestCase
         );
     }
 
-    private function parse(string ...$lines): \SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab
+    public function testEveryTabIsOneEventKeyedByItsGidInTheSheetsOrder(): void
     {
-        return (new SarahDoesPuzzlesTabParser())->parse(implode("\n", $lines));
+        $tab = implode("\n", [self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4')]);
+
+        $events = new SarahDoesPuzzlesFormat()->parse(new SheetSnapshot([
+            new SheetSnapshotTab('2001', 'Maple 10/5', $tab),
+            new SheetSnapshotTab('17', 'Corner 10/7', ''),
+        ]));
+
+        self::assertCount(2, $events);
+        self::assertSame(['2001', '17'], [$events[0]->key, $events[1]->key]);
+        self::assertSame(['Maple 10/5', 'Corner 10/7'], [$events[0]->title, $events[1]->title]);
+        self::assertTrue($events[0]->isImportable());
+        self::assertSame(EventTabProblemCode::MissingColumn, $events[1]->problems[0]->code);
+    }
+
+    public function testTheKeyAndTheTitleAreNotPartOfTheContentHash(): void
+    {
+        $csv = implode("\n", [self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4')]);
+        $format = new SarahDoesPuzzlesFormat();
+
+        // A renamed tab is the same event, unchanged - nothing to apply again
+        self::assertSame(
+            $format->parseTab(new SheetSnapshotTab('11', 'Maple 10/5', $csv))->contentHash,
+            $format->parseTab(new SheetSnapshotTab('12', 'Maple Street - October', $csv))->contentHash,
+        );
+    }
+
+    public function testItIsTheSarahDoesPuzzlesFormat(): void
+    {
+        $format = new SarahDoesPuzzlesFormat();
+
+        self::assertSame('sarah_does_puzzles', $format->key());
+        self::assertSame('Sarah Does Puzzles', $format->name());
+        self::assertSame([], $format->parse(new SheetSnapshot([])));
+    }
+
+    private function parse(string ...$lines): ParsedEvent
+    {
+        return new SarahDoesPuzzlesFormat()->parseTab(new SheetSnapshotTab('101', 'Some tab', implode("\n", $lines)));
     }
 
     /**
      * @return list<EventTabProblemCode>
      */
-    private function codes(\SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab $tab): array
+    private function codes(ParsedEvent $tab): array
     {
         return array_map(static fn($problem) => $problem->code, $tab->problems);
     }

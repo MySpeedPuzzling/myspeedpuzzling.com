@@ -8,10 +8,12 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\EventResultsSheet;
 use SpeedPuzzling\Web\Exceptions\ActingPlayerNotOnOrganizationTeam;
 use SpeedPuzzling\Web\Exceptions\EventResultsSheetAlreadyRegistered;
+use SpeedPuzzling\Web\Exceptions\UnknownResultsFormat;
 use SpeedPuzzling\Web\Message\AddEventResultsSheet;
 use SpeedPuzzling\Web\Repository\EventResultsSheetRepository;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\ResultsFormats;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -21,6 +23,7 @@ readonly final class AddEventResultsSheetHandler
         private EventResultsSheetRepository $sheetRepository,
         private OrganizationRepository $organizationRepository,
         private PlayerRepository $playerRepository,
+        private ResultsFormats $formats,
         private ClockInterface $clock,
     ) {
     }
@@ -28,9 +31,11 @@ readonly final class AddEventResultsSheetHandler
     /**
      * @throws ActingPlayerNotOnOrganizationTeam
      * @throws EventResultsSheetAlreadyRegistered
+     * @throws UnknownResultsFormat
      */
     public function __invoke(AddEventResultsSheet $message): void
     {
+        $format = $this->formats->get($message->format)->key();
         $organization = $this->organizationRepository->get($message->organizationId);
         $player = $this->playerRepository->get($message->actingPlayerId);
 
@@ -50,6 +55,7 @@ readonly final class AddEventResultsSheetHandler
             timezone: $message->timezone,
             countryCode: strtolower($message->countryCode),
             addedAt: $this->clock->now(),
+            format: $format,
         ));
     }
 }

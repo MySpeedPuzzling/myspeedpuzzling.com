@@ -65,8 +65,10 @@ its own team; every further row is one team.
 **What the organizer has to add** to today's sheet: the MySpeedPuzzling link on every tab. `Start time` and `Time limit`
 are optional (an unreadable value is still a `problem` - a typo must not drop it quietly) - **except that a tab with
 unfinished teams ("Pieces placed") needs its `Time limit`**, otherwise the whole tab waits as a `problem`. Everything
-else already matches. The importer is Sarah Does Puzzles' own (`SarahDoesPuzzlesTabParser`, command
-`myspeedpuzzling:sync-sarah-does-puzzles-results`); the data model underneath is not tied to her.
+else already matches. These rules are Sarah Does Puzzles' **format** (`SarahDoesPuzzlesFormat`, key
+`sarah_does_puzzles`, one tab = one event keyed by its gid) - the only per-organizer code; the read, the import and the
+data model underneath are shared (`ResultsFormat`, [results-import-page.md](results-import-page.md)). Command
+`myspeedpuzzling:sync-results-source [<sourceId>] [--dry-run]`.
 
 Tolerated without a warning: row order (the ranking is computed from the times), trailing spaces, empty rows.
 

@@ -39,7 +39,7 @@ use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventRow;
-use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab;
+use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
@@ -76,9 +76,9 @@ readonly final class ApplyEventResultsTabHandler
 
     public function __invoke(ApplyEventResultsTab $message): void
     {
-        $parsed = $message->tab;
+        $parsed = $message->event;
         $sheet = $this->sheetRepository->get($message->sheetId);
-        $tab = $this->tabRepository->findOfSheet($sheet, $message->gid);
+        $tab = $this->tabRepository->findOfSheet($sheet, $parsed->key);
 
         // Nothing changed since it was imported - a tab still waiting for its puzzle is looked at again every run
         if ($tab !== null && $tab->status === EventTabStatus::Imported && $tab->competition !== null && $tab->contentHash === $parsed->contentHash) {
@@ -125,7 +125,7 @@ readonly final class ApplyEventResultsTabHandler
             $createdCompetitionId = $tab?->competition === null ? $this->createEvent($sheet, $parsed, $puzzle->id->toString()) : null;
 
             $sheet = $this->sheetRepository->get($message->sheetId);
-            $tab = $this->tabRepository->findOfSheet($sheet, $message->gid) ?? $this->newTab($sheet, $message);
+            $tab = $this->tabRepository->findOfSheet($sheet, $parsed->key) ?? $this->newTab($sheet, $message);
             $puzzle = $this->puzzle($puzzle->id->toString());
             assert($puzzle !== null);
 
@@ -141,12 +141,12 @@ readonly final class ApplyEventResultsTabHandler
         // Every way through the import above decided it
         assert($status !== null);
 
-        $changed = $tab->record($message->title, $status, $problems, $parsed->contentHash, $competition, $this->clock->now());
+        $changed = $tab->record($parsed->title, $status, $problems, $parsed->contentHash, $competition, $this->clock->now());
 
         if ($changed && ($status !== EventTabStatus::Imported || $problems !== [])) {
             // Once per change, not every hourly run - the organizer fixes the sheet, somebody tells them what
             $this->logger->warning('Event results tab "{title}" of sheet {sheet}: {status}', [
-                'title' => $message->title,
+                'title' => $parsed->title,
                 'sheet' => $sheet->id->toString(),
                 'status' => $status->value,
                 'problems' => array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
@@ -162,7 +162,7 @@ readonly final class ApplyEventResultsTabHandler
      * @param list<EventTabProblem> $problems
      * @return null|array<string, UnfinishedResult>
      */
-    private function unfinishedResults(ParsedEventTab $parsed, Puzzle $puzzle, array &$problems): null|array
+    private function unfinishedResults(ParsedEvent $parsed, Puzzle $puzzle, array &$problems): null|array
     {
         $unfinished = [];
         $fits = true;
@@ -194,7 +194,7 @@ readonly final class ApplyEventResultsTabHandler
     private function apply(
         EventResultsSheet $sheet,
         EventResultsSheetTab $tab,
-        ParsedEventTab $parsed,
+        ParsedEvent $parsed,
         Competition $competition,
         Puzzle $puzzle,
         array $unfinished,
@@ -227,7 +227,7 @@ readonly final class ApplyEventResultsTabHandler
 
     private function newTab(EventResultsSheet $sheet, ApplyEventResultsTab $message): EventResultsSheetTab
     {
-        $tab = new EventResultsSheetTab(Uuid::uuid7(), $sheet, $message->gid, $message->title);
+        $tab = new EventResultsSheetTab(Uuid::uuid7(), $sheet, $message->event->key, $message->event->title);
         $this->tabRepository->save($tab);
 
         return $tab;
@@ -236,7 +236,7 @@ readonly final class ApplyEventResultsTabHandler
     /**
      * @return array{string, DateTimeImmutable, DateTimeImmutable} location, the event's day, the round's start (UTC)
      */
-    private static function eventPlaceAndTime(EventResultsSheet $sheet, ParsedEventTab $parsed): array
+    private static function eventPlaceAndTime(EventResultsSheet $sheet, ParsedEvent $parsed): array
     {
         assert($parsed->location !== null && $parsed->cityAndState !== null && $parsed->localStartsAt !== null);
 
@@ -252,7 +252,7 @@ readonly final class ApplyEventResultsTabHandler
     /**
      * @return string the new event's id
      */
-    private function createEvent(EventResultsSheet $sheet, ParsedEventTab $parsed, string $puzzleId): string
+    private function createEvent(EventResultsSheet $sheet, ParsedEvent $parsed, string $puzzleId): string
     {
         assert($parsed->eventName !== null && $parsed->category !== null);
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
@@ -308,7 +308,7 @@ readonly final class ApplyEventResultsTabHandler
         Competition $competition,
         CompetitionRound $round,
         EventResultsSheet $sheet,
-        ParsedEventTab $parsed,
+        ParsedEvent $parsed,
         string $location,
         DateTimeImmutable $eventDay,
         DateTimeImmutable $startsAt,
@@ -368,7 +368,7 @@ readonly final class ApplyEventResultsTabHandler
      */
     private function upsertResults(
         EventResultsSheetTab $tab,
-        ParsedEventTab $parsed,
+        ParsedEvent $parsed,
         Competition $competition,
         CompetitionRound $round,
         Puzzle $puzzle,
@@ -526,7 +526,7 @@ readonly final class ApplyEventResultsTabHandler
     /**
      * The size most teams had - a team of three at a teams event of fours is normal.
      */
-    private static function teamSize(ParsedEventTab $parsed): null|int
+    private static function teamSize(ParsedEvent $parsed): null|int
     {
         if ($parsed->category !== RoundCategory::Team || $parsed->rows === []) {
             return null;

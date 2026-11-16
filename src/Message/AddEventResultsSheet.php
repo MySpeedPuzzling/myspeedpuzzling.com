@@ -15,6 +15,8 @@ readonly final class AddEventResultsSheet
         public string $actingPlayerId,
         public string $timezone,
         public string $countryCode,
+        // A ResultsFormat key
+        public string $format,
     ) {
     }
 }

@@ -1234,7 +1234,7 @@ paths:
     post:
       summary: Register an organizer's results sheet
       operationId: createEventResultsSheet
-      description: Read every hour from then on; every tab becomes a one-time event of the organization. The sheet must be shared "Anyone with the link".
+      description: Read on demand (POST …/sync, or the console command myspeedpuzzling:sync-results-source). Its format decides which events the sheet holds (sarah_does_puzzles - every tab a one-time event of the organization). The sheet must be shared "Anyone with the link".
       requestBody:
         required: true
         content:
@@ -1259,6 +1259,10 @@ paths:
                 countryCode:
                   type: string
                   description: Two letters; the organization's country when left out.
+                format:
+                  type: string
+                  default: sarah_does_puzzles
+                  description: The key of the results format the sheet is written in; an unknown key is a 400.
       responses:
         "201":
           description: The registered sheet
@@ -3219,6 +3223,7 @@ components:
         actingPlayerId: {type: string, format: uuid}
         timezone: {type: string}
         countryCode: {type: string}
+        format: {type: string, description: "The results format's key (sarah_does_puzzles)"}
         addedAt: {type: string}
         lastFetchedAt: {type: string, nullable: true}
         lastFetchError: {type: string, nullable: true}
@@ -3227,7 +3232,7 @@ components:
           items:
             type: object
             properties:
-              gid: {type: string}
+              gid: {type: string, description: The event's stable key chosen by the format (sarah_does_puzzles - the tab's gid)}
               title: {type: string}
               status: {type: string, enum: [imported, waiting_for_puzzle, problem, detached]}
               problems:

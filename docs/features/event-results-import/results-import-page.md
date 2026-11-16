@@ -66,8 +66,34 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
 ## Delivery
 
 1. **Generalise the core** - format interface, Sarah's parser behind it, `format` column, stable keys. No visible
-   change; a test proves the current import produces identical results.
+   change; a test proves the current import produces identical results. **Built (2026-11-16, branch
+   `results-import-1-core`)** - see "As built: PR 1" below.
 2. **Read-only page** - check, statuses, preview, differences, Sarah's guide.
 3. **Import from the page** - tick + import from the snapshot, the log, removed-team handling (P4), kill switch.
 4. **Sandbox for Sarah** - her account copied, her organization and source registered on sandbox.
 5. **The second organizer** - their format class + guide, an admin registers their sheet.
+
+## As built: PR 1 - the core behind formats (2026-11-16)
+
+- **Format**: `Services\EventResultsImport\Format\ResultsFormat` (`key()`, `name()`, `guideTemplate()`,
+  `parse(SheetSnapshot): list<ParsedEvent>`), tagged by `#[AutoconfigureTag]`; registry `ResultsFormats` (`get()` throws
+  `UnknownResultsFormat` naming the known keys, `has()`, `keys()`, `all()`). `SarahDoesPuzzlesFormat` (key
+  `sarah_does_puzzles`) = the old parser moved, its rules untouched; `parseTab()` reads one tab.
+- **Neutral model**: `ParsedEvent` (was `ParsedEventTab`) + `key` (the stable key, ≤ 20 characters) and `title`.
+  `SheetSnapshot` = what `GoogleSheetReader::snapshot()` fetched: `SheetSnapshotTab` (gid, title, CSV) per tab, and the
+  tabs whose CSV did not come aside as `UnreadableSheetTab` (never parsed as empty). `ResultsSourceReader::read()` =
+  snapshot + the source's format → `ResultsSourceRead` - the one read of the sync and the dry run (PR 2's check reuses it).
+- **The content hash is the format's** and computed exactly as before - never of the key or the title (a renamed tab is
+  unchanged). `EventResultsImportParityTest` holds the hashes, problems, stored tabs and results captured from the old
+  code before the change, plus a tab stored by the old code that the new path must skip.
+- **Stable keys kept in `event_results_sheet_tab.gid`** - no column rename: Sarah's key is the gid, so every stored tab
+  (production: 4 tabs, 1 imported) matches as it did; the internal API keeps the field name `gid`. A later format with
+  keys longer than 20 characters widens the column (a generated migration).
+- **`event_results_sheet.format`** `VARCHAR(50) NOT NULL DEFAULT 'sarah_does_puzzles'` (one generated statement; the
+  constant default fills the existing rows without a table rewrite). `ApplyEventResultsTab(sheetId, ParsedEvent)` - lock
+  key unchanged (`event-results-tab-<sheet>-<key>`). Per-tab read failures give the same `last_fetch_error` text.
+- **Console**: `myspeedpuzzling:sync-results-source [<sourceId>] [--dry-run]` (no id = every source); the Sarah command is
+  gone. **Internal API**: `POST /internal-api/event-results-sheets` takes an optional `format` (default
+  `sarah_does_puzzles`, unknown = 400), every answer carries `format`.
+- **Guide**: `templates/results_import/format_guide/sarah_does_puzzles.html.twig` (`results_import.format_guide.*` in all
+  6 locales, rendered by `ResultsFormatsTest`), not linked anywhere until PR 2.

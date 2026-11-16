@@ -210,7 +210,7 @@ Covered in the README's table. Numbers worth keeping:
 | `AddPuzzleToCollectionHandler` overwrites a passed comment, makes its own id, returns nothing; results without a time go through `AddPuzzleTrackingHandler` | `src/MessageHandler/` |
 | The participants import is upload → mapping → preview → confirm with the file in a 24 h stash and the state in the URL | `participant-import-preview.md` |
 | Google Sheets are read without credentials (`htmlview` for tabs, CSV export per gid), no size cap | `GoogleSheetReader` |
-| No tolerant duration parser exists; the most tolerant is the event import's `h:mm:ss` / `mmm:ss` | `SarahDoesPuzzlesTabParser` |
+| No tolerant duration parser exists; the most tolerant is the event import's `h:mm:ss` / `mmm:ss` | `SarahDoesPuzzlesTabParser` (since 2026-11-16 `SarahDoesPuzzlesFormat`) |
 | The participants sheet's grid, keys, TSV, toasts and preview dialog are generic; its model, save queue and undo are not. Phones get lists and a full-screen editor, not the grid | `assets/participants_sheet/` |
 | The review banner's count is one statement of scalar subqueries, paid by the owner only | `GetPlayerReviewCounts` |
 | A result's comment is public (result detail) | `templates/puzzle_result/_body.html.twig` |

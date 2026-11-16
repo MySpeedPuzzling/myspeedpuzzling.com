@@ -1,0 +1,33 @@
+{#
+    An answer of the puzzles' screens, shown in place (DecideImportPuzzlesController::shown(),
+    docs/features/data-import/pairing-screens.md "Answers in place"). One of:
+
+    - `pile`    - the screen of a pile (#import-pile) as it stands after the answer. Morphed: the cards that stay keep
+                  their place and their pictures, the answered one is gone, the next one moved up;
+    - `chooser` - the chooser (#import-chooser): the same puzzle as it stands now, or the next one of the round;
+    - `card`    - a card of a list where it stands (#puzzle-<id>), and the list's count;
+
+    and always the line that stays in view (#import-answer-said): what the answer did, "Undo the last one", the way
+    to the next step - or nothing, when the screen itself says it.
+#}
+{% if pile is not null %}
+<turbo-stream action="replace" method="morph" target="import-pile">
+    <template>{{ include('data_import/_pile.html.twig', pile, with_context = false) }}</template>
+</turbo-stream>
+{% endif %}
+{% if chooser is not null %}
+<turbo-stream action="replace" target="import-chooser">
+    <template>{{ include('data_import/_chooser.html.twig', chooser, with_context = false) }}</template>
+</turbo-stream>
+{% endif %}
+{% if card is not null %}
+<turbo-stream action="replace" target="puzzle-{{ card.importPuzzleId }}">
+    <template>{{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import_id, group: group, page: page, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}, with_context = false) }}</template>
+</turbo-stream>
+<turbo-stream action="replace" target="import-puzzle-group-counts">
+    <template>{{ include('data_import/_pile_counts.html.twig', {total: counts.total, open: counts.open}, with_context = false) }}</template>
+</turbo-stream>
+{% endif %}
+<turbo-stream action="update" target="import-answer-said">
+    <template>{% if said is not null %}{{ include('data_import/_answer_said_message.html.twig', {said: said}, with_context = false) }}{% endif %}</template>
+</turbo-stream>

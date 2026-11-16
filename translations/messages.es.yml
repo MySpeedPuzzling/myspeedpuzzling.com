@@ -12329,6 +12329,7 @@ data_import:
             empty: "Aquí no hay puzzles."
             tick_all: "{1}Sí, este es correcto|[0,Inf[Sí, estos %number% son correctos"
             next_20: "Hacer los 20 siguientes"
+            next_n: "{1}Hacer el siguiente|[0,Inf[Hacer los %number% siguientes"
             one_by_one_hint: "Un puzzle por pantalla. Cada toque se guarda y puedes parar cuando quieras."
         card:
             in_file: "En tu archivo"
@@ -12385,6 +12386,9 @@ data_import:
             back_to_list: "Volver a la lista"
             decided_as: "Decidido:"
             take_back: "Deshacer esta decisión"
+        said:
+            where: "¿Dónde lo encuentro?"
+            kept_where: "Cuando añadas la importación, encontrarás los puzzles guardados solo para ti en Mis datos → Puzzles fuera del catálogo. Allí podrás emparejarlos más adelante con un puzzle de nuestra base de datos o añadirlos a ella."
         flash:
             nothing: "No se ha cambiado nada."
             decided_meanwhile: "Esto se decidió mientras tanto, en otra pestaña o por una nueva búsqueda de tus puzzles. No se ha cambiado nada; así está ahora."
@@ -12395,7 +12399,7 @@ data_import:
             taken_back: "Deshecho. El puzzle vuelve a esperarte."
             group_done: "En este grupo ya no te espera nada."
         bulk:
-            rejected: "Dijiste que no es este."
+            rejected: "Has retirado este emparejamiento."
             nothing_left: "Aquí ya no queda nada."
             see_all: "Ver todo el montón (%number%)"
             working: "Guardando tu respuesta… Puzzles que quedan: %number%"
@@ -12450,6 +12454,7 @@ data_import:
                 keep_rest_button: "Guardarlos solo para mí"
             chooser:
                 undo_last: "Deshacer el último"
+                back_to_last: "Volver al puzzle anterior"
             flash:
                 matched: "{1}1 emparejado.|[0,Inf[%number% emparejados."
                 kept: "{1}1 puzzle guardado solo para ti.|[0,Inf[%number% puzzles guardados solo para ti."
@@ -12897,6 +12902,10 @@ data_import:
         with_you_open: "Parejas y equipos"
         leave: "Estos no son míos - quítame de ellos"
         left: "{0}Ya no estabas en ninguno de esos resultados. Las importaciones de este jugador ya no te añadirán.|{1}Se te quitó de 1 resultado. Las importaciones de este jugador ya no te añadirán.|[0,Inf[Se te quitó de %count% resultados. Las importaciones de este jugador ya no te añadirán."
+    in_place:
+        close: "Cerrar"
+        failed: "No se ha guardado. Comprueba tu conexión e inténtalo de nuevo."
+        working: "Guardando…"
     people:
         title: "Personas en tu archivo"
         intro: "Estas son las personas que tu archivo nombra en resultados de pareja y de equipo. Un código de jugador (#abc123) en el archivo se convierte en ese jugador. Un nombre se queda como invitado hasta que digas quién es."
@@ -13006,6 +13015,7 @@ data_import:
             leave_out: "No importar ninguna"
             confirm: "{1}¿No importar la fila de «%title%»? Puedes cambiarlo en el paso 2.|[0,Inf[¿No importar las %number% filas de «%title%»? Puedes cambiarlo en el paso 2."
             confirm_button: "Sí, no importar esta hoja"
+            confirm_button_file: "Sí, no importar este archivo"
         row:
             leave_out: "No importar esta fila"
             not_imported: "No se importa"
@@ -13023,12 +13033,15 @@ data_import:
         empty: "Todavía no hay nada listo para añadir."
         no_hit: "Ninguna fila con ese puzzle."
         reading_again: "Se está leyendo de nuevo una hoja - un momento. Sus filas no cuentan aquí hasta que esté leída."
+        reading_again_file: "Se está leyendo de nuevo tu archivo - un momento. Sus filas no cuentan aquí hasta que esté leído."
         refresh: "Actualizar"
         flash:
             left_out: "No se importa. Con «Volver a incluir» la fila vuelve."
             put_back: "Incluida de nuevo. Vuelve a la lista en cuanto su puzzle esté emparejado - normalmente al momento."
             left_out_puzzle: "{1}1 fila no se importa. Puedes volver a incluirla.|[0,Inf[%number% filas no se importan. Puedes volver a incluir cada una."
             left_out_sheet: "Las filas de «%title%» no se importan. Puedes cambiarlo en el paso 2, «Cómo hemos leído tu archivo»."
+            left_out_file: "Las filas de todo el archivo no se importan. Puedes cambiarlo en el paso 2, «Cómo hemos leído tu archivo»."
+            put_back_sheet: "Recuperado. Sus filas se leen de nuevo y estarán en la lista en un momento."
             changed_meanwhile: "Esto ha cambiado mientras tanto - así está ahora. No se ha guardado nada."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

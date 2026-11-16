@@ -19,7 +19,7 @@
     {% if is_running %}
         {{ include('data_import/_pile_working.html.twig', {open: open}, with_context = false) }}
     {% elseif open > 0 %}
-        <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" class="mb-3" data-testid="import-pile-answer" data-pile="not-found" data-open="{{ open }}">
+        <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" data-import-answer class="mb-3" data-testid="import-pile-answer" data-pile="not-found" data-open="{{ open }}">
             <input type="hidden" name="_token" value="{{ csrf }}">
             <input type="hidden" name="pile" value="not-found">
             <input type="hidden" name="revision" value="{{ live.revision }}">
@@ -53,7 +53,7 @@
     {% endif %}
 
     {% if total > 0 %}
-        <details class="mb-2" data-testid="import-pile-see">
+        <details class="mb-2" data-testid="import-pile-see"{% if list_open|default(false) %} open{% endif %}>
             <summary class="d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
                 <i class="bi bi-chevron-right me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.not_found.see'|trans({'%count%': total, '%number%': total|format_number}) }}
             </summary>
@@ -72,5 +72,5 @@
     {# The form's own Continue is the primary; while puzzles are still looked up, what is ready can be added #}
     {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, back: back_to_summary}, with_context = false) }}
 {% else %}
-    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, continue_after: continue_after}, with_context = false) }}
 {% endif %}

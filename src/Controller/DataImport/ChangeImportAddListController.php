@@ -49,6 +49,8 @@ final class ChangeImportAddListController extends AbstractController
 {
     /** Said inside the list's own frame (add_list.html.twig) - so it is there after a frame swap too */
     public const string FLASH = 'import_add_list';
+    /** The sheet that was just set to "not imported" and what it was before ({sheet, kind}): "Put back" in the same bar */
+    public const string FLASH_SHEET = 'import_add_list_sheet';
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -86,7 +88,7 @@ final class ChangeImportAddListController extends AbstractController
         $action = $form->getString('action');
         $rowId = $form->getString('row');
 
-        if ($action === 'leave_out_sheet') {
+        if ($action === 'leave_out_sheet' || $action === 'put_back_sheet') {
             // `sheet` names the sheet that goes - not a filter of the list to come back to
             unset($filters['sheet']);
         }
@@ -102,6 +104,7 @@ final class ChangeImportAddListController extends AbstractController
                 'leave_out', 'put_back' => $this->row($importId, $playerId, $rowId, $action === 'leave_out'),
                 'leave_out_puzzle' => $this->puzzle($importId, $playerId, $form->getString('puzzle')),
                 'leave_out_sheet' => $this->sheet($importId, $playerId, $form->getString('sheet'), $form->getInt('version')),
+                'put_back_sheet' => $this->sheetBack($importId, $playerId, $form->getString('sheet'), $form->getString('kind')),
                 default => null,
             };
         } catch (HandlerFailedException $exception) {
@@ -185,6 +188,54 @@ final class ChangeImportAddListController extends AbstractController
             sheetWide: $submission['sheetWide'],
         ));
 
-        return $this->translator->trans('data_import.add_list.flash.left_out_sheet', ['%title%' => $sheet->title]);
+        if ($sheet->kind !== null && $sheet->kind !== DataImportSheetKind::NotPuzzles) {
+            // What it was: "Put back" in the list's bar sets it to that again
+            $this->addFlash(self::FLASH_SHEET, ['sheet' => $sheetId, 'kind' => $sheet->kind->value]);
+        }
+
+        // A file without sheets (a CSV) has one sheet without a name: "the whole file"
+        return trim($sheet->title) === ''
+            ? $this->translator->trans('data_import.add_list.flash.left_out_file')
+            : $this->translator->trans('data_import.add_list.flash.left_out_sheet', ['%title%' => $sheet->title]);
+    }
+
+    /**
+     * "Put back" for a sheet that was just set to "not imported": the same one-tap change, back to what the sheet
+     * was (`kind` - one of the kinds a sheet of puzzles has), with the version the sheet has now. Its rows are read
+     * again in the background and are in the list as soon as they are.
+     */
+    private function sheetBack(string $importId, string $playerId, string $sheetId, string $kind): null|string
+    {
+        $was = DataImportSheetKind::tryFrom($kind);
+
+        if (Uuid::isValid($sheetId) === false || $was === null || $was === DataImportSheetKind::NotPuzzles) {
+            return null;
+        }
+
+        $sheet = $this->getImportSheetScreen->sheet($importId, $sheetId, $playerId);
+
+        if ($sheet->kind !== DataImportSheetKind::NotPuzzles) {
+            return null;
+        }
+
+        /** @var InputBag<string> $form the one field the one-tap change of a sheet's kind sends */
+        $form = new InputBag(['kind' => $was->value]);
+        $submission = $this->sheetScreen->submission($sheet, $form);
+
+        if ($sheet->beingSetUp === false || $submission['errors'] !== [] || $submission['mapping'] === null) {
+            return null;
+        }
+
+        $this->messageBus->dispatch(new ConfirmImportMapping(
+            importId: $importId,
+            playerId: $playerId,
+            sheetId: $sheetId,
+            mappingVersion: $sheet->mappingVersion,
+            mapping: $submission['mapping'],
+            answers: $submission['answers'],
+            sheetWide: $submission['sheetWide'],
+        ));
+
+        return $this->translator->trans('data_import.add_list.flash.put_back_sheet');
     }
 }

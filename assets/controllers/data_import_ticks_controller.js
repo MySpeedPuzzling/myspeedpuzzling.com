@@ -20,7 +20,14 @@ export default class extends Controller {
     };
 
     connect() {
+        // The screen may be rendered again around the boxes (an answer shown in place, morphed): counted again
+        this.onMorph = () => this.count();
+        this.element.addEventListener('turbo:morph-element', this.onMorph);
         this.count();
+    }
+
+    disconnect() {
+        this.element.removeEventListener('turbo:morph-element', this.onMorph);
     }
 
     boxTargetConnected() {

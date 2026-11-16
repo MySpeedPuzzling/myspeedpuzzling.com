@@ -12331,6 +12331,7 @@ data_import:
             empty: "Žádná puzzle tu nejsou."
             tick_all: "{1}Ano, toto je správně|[2,4]Ano, tato %number% jsou správně|[0,Inf[Ano, těchto %number% je správně"
             next_20: "Projít dalších 20"
+            next_n: "{1}Projít další|[2,4]Projít další %number%|[0,Inf[Projít dalších %number%"
             one_by_one_hint: "Jedno puzzle na obrazovku. Každé klepnutí se uloží a kdykoli můžete přestat."
         card:
             in_file: "Ve vašem souboru"
@@ -12387,6 +12388,9 @@ data_import:
             back_to_list: "Zpět na seznam"
             decided_as: "Rozhodnuto:"
             take_back: "Vrátit toto rozhodnutí zpět"
+        said:
+            where: "Kde ho najdu?"
+            kept_where: "Po přidání importu najdete puzzle ponechané jen pro vás v části Moje data → Puzzle mimo databázi. Tam je můžete později přiřadit k puzzle v naší databázi, nebo je do naší databáze přidat."
         flash:
             nothing: "Nic se nezměnilo."
             decided_meanwhile: "Mezitím o tom bylo rozhodnuto - v jiné záložce, nebo novým vyhledáním vašich puzzle. Nic se nezměnilo; takhle to vypadá teď."
@@ -12397,7 +12401,7 @@ data_import:
             taken_back: "Vráceno zpět. Puzzle na vás znovu čeká."
             group_done: "V této skupině už na vás nic nečeká."
         bulk:
-            rejected: "Řekli jste, že tohle to není."
+            rejected: "Toto přiřazení jste vzali zpět."
             nothing_left: "Tady už nic nezbývá."
             see_all: "Zobrazit celou hromádku (%number%)"
             working: "Ukládáme vaši odpověď… Zbývá puzzle: %number%"
@@ -12452,6 +12456,7 @@ data_import:
                 keep_rest_button: "Ponechat je jen pro mě"
             chooser:
                 undo_last: "Vrátit zpět to poslední"
+                back_to_last: "Zpět na předchozí puzzle"
             flash:
                 matched: "{1}1 puzzle přiřazeno.|[2,4]%number% puzzle přiřazena.|[0,Inf[%number% puzzle přiřazeno."
                 kept: "{1}1 puzzle ponecháno jen pro vás.|[2,4]%number% puzzle ponechána jen pro vás.|[0,Inf[%number% puzzle ponecháno jen pro vás."
@@ -12899,6 +12904,10 @@ data_import:
         with_you_open: "Dvojice a týmy"
         leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
         left: "{0}Na žádném z těch výsledků už jste nebyli. Importy tohoto hráče vás už nepřidají.|{1}Byli jste odebráni z 1 výsledku. Importy tohoto hráče vás už nepřidají.|[2,4]Byli jste odebráni ze %count% výsledků. Importy tohoto hráče vás už nepřidají.|[0,Inf[Byli jste odebráni z %count% výsledků. Importy tohoto hráče vás už nepřidají."
+    in_place:
+        close: "Zavřít"
+        failed: "Nepodařilo se to uložit. Zkontrolujte připojení a zkuste to znovu."
+        working: "Ukládáme…"
     people:
         title: "Lidé ve vašem souboru"
         intro: "Tohle jsou lidé, které váš soubor jmenuje u výsledků dvojic a týmů. Kód hráče (#abc123) v souboru se stane tím hráčem. Jméno zůstane hostem, dokud neřeknete, kdo to je."
@@ -13008,6 +13017,7 @@ data_import:
             leave_out: "Neimportovat žádný"
             confirm: "{1}Neimportovat 1 řádek listu „%title%“? Můžete to změnit v kroku 2.|[2,4]Neimportovat %number% řádky listu „%title%“? Můžete to změnit v kroku 2.|[0,Inf[Neimportovat %number% řádků listu „%title%“? Můžete to změnit v kroku 2."
             confirm_button: "Ano, tento list neimportovat"
+            confirm_button_file: "Ano, tento soubor neimportovat"
         row:
             leave_out: "Tento řádek neimportovat"
             not_imported: "Neimportuje se"
@@ -13025,12 +13035,15 @@ data_import:
         empty: "Zatím není nic připraveno k přidání."
         no_hit: "Žádný řádek s takovým puzzle."
         reading_again: "Jeden list se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
+        reading_again_file: "Váš soubor se právě čte znovu - chviličku. Jeho řádky se tu nepočítají, dokud není přečtený."
         refresh: "Obnovit"
         flash:
             left_out: "Neimportuje se. Tlačítkem „Vrátit“ řádek zase přidáte."
             put_back: "Vráceno. V seznamu bude znovu, jakmile se přiřadí jeho puzzle - obvykle hned."
             left_out_puzzle: "{1}1 řádek se neimportuje. Můžete ho vrátit.|[2,4]%number% řádky se neimportují. Každý můžete vrátit.|[0,Inf[%number% řádků se neimportuje. Každý můžete vrátit."
             left_out_sheet: "Řádky listu „%title%“ se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
+            left_out_file: "Řádky celého souboru se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
+            put_back_sheet: "Vráceno. Řádky se čtou znovu a za chvíli budou v seznamu."
             changed_meanwhile: "Mezitím se to změnilo - takto to vypadá teď. Nic se neuložilo."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

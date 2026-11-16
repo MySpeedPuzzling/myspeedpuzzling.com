@@ -1,0 +1,10 @@
+{#
+    The attributes of the element around a screen whose answers are shown in place
+    (assets/controllers/data_import_answers_controller.js, docs/features/data-import/pairing-screens.md "Answers in
+    place"): every `<form data-import-answer>` inside is sent by the script - the tapped button shows it is working and
+    can not be tapped twice, the answer is put where it belongs without the page moving, and an answer that could not
+    be saved leaves everything as it was, with a short message. Without the script the forms are plain forms.
+#}
+data-controller="data-import-answers"
+     data-data-import-answers-failed-value="{{ 'data_import.in_place.failed'|trans }}"
+     data-data-import-answers-working-value="{{ 'data_import.in_place.working'|trans }}"

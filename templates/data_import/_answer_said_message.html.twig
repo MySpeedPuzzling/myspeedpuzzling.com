@@ -1,0 +1,47 @@
+{#
+    What the last answer did, in one small card (_answer_said.html.twig): the sentence; for "Keep it just for me"
+    where the puzzle will be; "Undo the last one" - a plain form that takes the answer back, with the version the
+    answer left; "Close"; and, when nothing waits any more, the way to the next step. One or two short lines on a
+    phone - it lies over the screen.
+
+    Variables: said -
+      type        success, warning or info
+      text        the sentence
+      kept        (optional) the answer was "Keep it just for me": where such a puzzle is after adding
+      undo        (optional) the fields of the form that takes the answer back (name => value)
+      import_id
+      step_done   (optional) no puzzle of the import waits any more
+#}
+{% set colours = {success: 'border-success', warning: 'border-warning', info: 'border-primary'} %}
+<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-1" data-testid="import-answer-said-message" data-type="{{ said.type }}" data-import-answers-dismissable>
+    <div class="card-body py-1 px-3">
+        {# Row 1: the sentence, the whole width, two lines at most. Row 2: what can be done, to the right. #}
+        <div class="fs-sm fw-medium" style="line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" data-testid="import-answer-said-text">
+            <i class="bi {{ said.type == 'success' ? 'bi-check-circle text-success' : (said.type == 'warning' ? 'bi-exclamation-triangle text-warning' : 'bi-info-circle text-primary') }} me-1" aria-hidden="true"></i>{{ said.text }}
+            {%- if said.kept|default(false) %}
+                {# Where a kept puzzle will be: its page, in a new tab - the round is not left #}
+                <a href="{{ path('unlisted_puzzles') }}" target="_blank" rel="noopener" class="fw-normal" data-testid="import-kept-where">{{ 'data_import.puzzles.said.where'|trans }}</a>
+            {%- endif %}
+        </div>
+        <div class="d-flex justify-content-end align-items-center gap-2">
+            {% if said.undo|default(null) is not null %}
+                <form action="{{ path('data_import_puzzles_decide', {importId: said.import_id}) }}" method="post" data-import-answer data-import-answers-returns="puzzle-{{ said.undo.puzzle }}" data-testid="import-answer-undo">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                    {% for name, value in said.undo %}
+                        <input type="hidden" name="{{ name }}" value="{{ value }}">
+                    {% endfor %}
+                    <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary btn-sm text-nowrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-answer-undo-button">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.undo_last'|trans }}
+                    </button>
+                </form>
+            {% endif %}
+            <button type="button" class="btn btn-link btn-sm text-nowrap px-2 d-inline-flex align-items-center" style="min-height: 44px; min-width: 44px;" data-action="data-import-answers#dismiss" data-testid="import-answer-said-close">{{ 'data_import.in_place.close'|trans }}</button>
+        </div>
+        {% if said.step_done|default(false) %}
+            <p class="fs-sm fw-medium mt-2 mb-2" data-testid="import-answer-step-done">{{ 'data_import.puzzles.next.nothing'|trans }}</p>
+            <a href="{{ path('data_import_detail', {importId: said.import_id, after: 'puzzles'}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center mb-1" style="min-height: 48px;" rel="nofollow" data-testid="import-answer-next-step">
+                {{ 'data_import.flow.continue'|trans }}<i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
+            </a>
+        {% endif %}
+    </div>
+</div>

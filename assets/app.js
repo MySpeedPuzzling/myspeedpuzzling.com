@@ -61,6 +61,14 @@ function revealCachedLazyImages() {
 document.addEventListener('turbo:render', revealCachedLazyImages);
 document.addEventListener('turbo:morph', revealCachedLazyImages);
 document.addEventListener('turbo:frame-render', revealCachedLazyImages);
+// A Turbo Stream that morphs a part of the page (`method="morph"`) takes "loaded" off the pictures it keeps too
+document.addEventListener('turbo:morph-element', function (event) {
+    var img = event.target;
+
+    if (img instanceof HTMLImageElement && img.classList.contains('lazy-img') && img.complete && img.naturalWidth > 0) {
+        img.classList.add('loaded');
+    }
+});
 
 // register zoom plugin only when a chart initializes (lazy-loaded)
 document.addEventListener('chartjs:init', function (event) {

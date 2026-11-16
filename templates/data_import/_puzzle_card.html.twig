@@ -5,14 +5,20 @@
     (opens the chooser), and for a decided card its state with "Change".
 
     Variables: card (ImportPuzzleCard), import_id, group, page, csrf; part, after (optional) - the card stands on a
-    screen of "Looks like a match" (the cards to look at closer): its answer leads back to that screen.
+    screen of "Looks like a match" (the cards to look at closer): its answer leads back to that screen; in_pile
+    (optional) - the card stands in the folded list of a pile's own screen.
+
+    Its forms are answered in place (docs/features/data-import/pairing-screens.md "Answers in place"): on a list the
+    card is rendered again where it stands; on a pile's screen (`part`, `in_pile`) the screen is - the card leaves,
+    the next one moves up. Without a script they are plain forms, answered by a redirect to the card.
 #}
 {% set part = part|default(null) %}
 {% set after = after|default(null) %}
+{% set in_pile = in_pile|default(false) %}
 {% set shown = card.shown %}
 {% set chooser = path('data_import_puzzle_choose', {importId: import_id, importPuzzleId: card.importPuzzleId}) %}
 <div class="card shadow-sm mb-2{{ card.isDecided ? '' : ' border-warning' }}" id="puzzle-{{ card.importPuzzleId }}" style="scroll-margin-top: 90px;"
-     data-testid="import-puzzle-card" data-choice="{{ card.choice }}" data-tier="{{ card.tier ?? 'none_yet' }}" data-version="{{ card.decisionVersion }}">
+     data-testid="import-puzzle-card" data-import-answers-scope data-choice="{{ card.choice }}" data-tier="{{ card.tier ?? 'none_yet' }}" data-version="{{ card.decisionVersion }}">
     <div class="card-body py-2 px-3">
         <div class="d-flex justify-content-between align-items-start gap-2">
             <div style="min-width: 0;">
@@ -39,13 +45,14 @@
 
         <div class="d-flex flex-wrap gap-2 mt-2">
             {% if card.isDecided %}
-                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline">
+                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline" data-import-answer>
                     <input type="hidden" name="_token" value="{{ csrf }}">
                     <input type="hidden" name="puzzle" value="{{ card.importPuzzleId }}">
                     <input type="hidden" name="version" value="{{ card.decisionVersion }}">
                     <input type="hidden" name="group" value="{{ group }}">
                     <input type="hidden" name="page" value="{{ page }}">
                     {% if part is not null %}<input type="hidden" name="part" value="{{ part }}">{% endif %}
+                    {% if in_pile %}<input type="hidden" name="in_pile" value="1">{% endif %}
                     {% if part is not null and after is not null %}<input type="hidden" name="after" value="{{ after }}">{% endif %}
                     <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-untick">
                         <i class="bi bi-x-lg me-1" aria-hidden="true"></i>
@@ -58,7 +65,7 @@
                     <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.change'|trans }}
                 </a>
             {% elseif group == 'probably' and card.canBeTickedInAGroup %}
-                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline">
+                <form action="{{ path('data_import_puzzles_decide', {importId: import_id}) }}" method="post" class="d-inline" data-import-answer>
                     <input type="hidden" name="_token" value="{{ csrf }}">
                     <input type="hidden" name="puzzle" value="{{ card.importPuzzleId }}">
                     <input type="hidden" name="version" value="{{ card.decisionVersion }}">
@@ -66,6 +73,7 @@
                     <input type="hidden" name="group" value="{{ group }}">
                     <input type="hidden" name="page" value="{{ page }}">
                     {% if part is not null %}<input type="hidden" name="part" value="{{ part }}">{% endif %}
+                    {% if in_pile %}<input type="hidden" name="in_pile" value="1">{% endif %}
                     {% if part is not null and after is not null %}<input type="hidden" name="after" value="{{ after }}">{% endif %}
                     <button type="submit" name="action" value="catalogue" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-puzzle-tick">
                         <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.card.yes'|trans }}

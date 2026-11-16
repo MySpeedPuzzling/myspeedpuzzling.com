@@ -11,16 +11,15 @@
       (_pile_list.html.twig).
 
     One primary a screen. The address holds ids and numbers only; nothing of the file is in it.
+
+    The screen itself is `_pile.html.twig` - one element (`#import-pile`), so an answer given on it can be shown in
+    place (docs/features/data-import/pairing-screens.md "Answers in place"): the element is rendered again as it
+    stands after the answer, nothing scrolls. `#import-answer-said` under it says what the last answer did.
 #}
 
 {% set hide_comparison_launcher = true %}
 {% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
-{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 {% set group_title = ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.title')|trans %}
-{% set summary_url = path('data_import_puzzles', {importId: import.importId}) %}
-{% set pile_url = path('data_import_puzzle_group', {importId: import.importId, group: group}) %}
-{% set back_to_summary = {label: 'data_import.puzzles.back_to_summary'|trans, url: summary_url} %}
-{% set continue = {label: 'data_import.flow.continue'|trans, url: summary_url, testid: 'import-flow-continue'} %}
 
 {% block title %}{{ group_title }} - {{ import_name }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -28,41 +27,11 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-import-flow-screen="puzzle_group" data-group="{{ group }}" data-mode="{{ as_list ? 'list' : 'pile' }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-import-flow-screen="puzzle_group" data-group="{{ group }}" data-mode="{{ as_list ? 'list' : 'pile' }}"
+     {{ include('data_import/_answers_controller.html.twig', with_context = false) }}>
     {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
 
-    {% if is_running %}
-        {# An answer for the whole pile runs on the worker: the part below is loaded again every few seconds #}
-        <div hidden data-controller="data-import-pile" data-data-import-pile-frame-value="import-puzzle-list-live"></div>
-    {% endif %}
-
-    {% if as_list %}
-        <h1 class="h3 mb-2">{{ group_title }}</h1>
-        {% if group == 'found' %}
-            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.matched'|trans, testid: 'import-explain-matched'}, with_context = false) }}
-            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.wrong_puzzle'|trans, fold: true, summary: 'data_import.explain.wrong_puzzle_summary'|trans, testid: 'import-explain-wrong-puzzle'}, with_context = false) }}
-        {% else %}
-            <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
-        {% endif %}
-
-        <turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
-            <p class="fs-sm fw-medium" data-testid="import-puzzle-group-counts">
-                {{ (open > 0 ? 'data_import.puzzles.group_counts' : 'data_import.puzzles.group_all_done')|trans({'%total%': total|format_number, '%open%': open|format_number}) }}
-            </p>
-            {{ include('data_import/_pile_list.html.twig') }}
-        </turbo-frame>
-
-        {% if group in ['found', 'remembered'] %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
-        {% else %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, back: {label: group_title, url: pile_url}}, with_context = false) }}
-        {% endif %}
-    {% elseif group == 'probably' %}
-        {{ include('data_import/_pile_probably.html.twig') }}
-    {% elseif group == 'choose' %}
-        {{ include('data_import/_pile_choose.html.twig') }}
-    {% else %}
-        {{ include('data_import/_pile_not_found.html.twig') }}
-    {% endif %}
+    {{ include('data_import/_pile.html.twig') }}
+    {{ include('data_import/_answer_said.html.twig', {said: null}, with_context = false) }}
 </div>
 {% endblock %}

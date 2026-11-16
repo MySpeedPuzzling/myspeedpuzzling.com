@@ -165,6 +165,127 @@ Every button posts to `data_import_puzzles_decide`:
 "Not this one" is `Undecided` on an automatic "found": the puzzle stays undecided through every later run of the
 pairing (remembered as "not this puzzle", pairing.md).
 
+## Answers in place
+
+The table above is what a **plain browser post** gets. A tester with 30+ puzzles on "Looks like a match" was sent
+back to the top of the page by every "Yes, this is it"; since then every answer of these screens - and of "People in
+your file" (people.md) - is **shown in place**: the same controller, the same message, the same checks, and instead
+of the redirect an answer of Turbo Streams with the screen *as it stands after the answer*. Nothing scrolls.
+
+**Who gets it.** `ImportInPlace::asked()`: the request names `text/vnd.turbo-stream.html` first in `Accept` - Turbo
+does that on every form it sends, and so does the import's own script. Nothing else decides; a request without it
+gets the redirect (the no-JavaScript path, pinned by the same tests).
+
+**What is rendered again** (`DecideImportPuzzlesController::shown()`, `_puzzles_answer.stream.html.twig`) - read with
+the screens' own queries after the message was handled, never returned by the handler:
+
+| The form stood on | Streams |
+|---|---|
+| a list (`…/puzzles/{group}?page=N`, "Matched", "Matched like last time") | `replace #puzzle-<id>` - the card where it stands, in its new state - and `replace #import-puzzle-group-counts` |
+| a pile's own screen: the cards to look at closer (`part`), the picture grid (`tick_all`), a card of a pile's folded list (`in_pile=1`), one answer for the pile (`all_in_pile`) | `replace method="morph" #import-pile` - the screen (`_pile.html.twig`, what `ImportPuzzleGroupController::screen()` gives): the answered card is gone, the next one moved up, a waiting one took the free place, the counts are right; the folded list stays open; "Nothing left here" with ONE way on when nothing waits |
+| the chooser | `replace #import-chooser` (`_chooser.html.twig`): the same puzzle as it stands now - or, in a round, **the next puzzle** (`NextImportPuzzleController::target()`, one rule for the address and the stream); the element says its address (`data-import-answers-url`) and the script puts it in the address bar |
+| - always - | `update #import-answer-said`: the line that stays in view |
+
+Where the answer leads to **another screen** - the round rests after twenty, nothing waits in the pile any more, the
+import is past its set-up - the answer is the redirect it always was. Another piece count tapped on the chooser: the
+question takes its place at the top of the chooser (a stream; 422 with the page for a plain post). Tapped on a card
+(only a stale one can): a redirect to the chooser with `?ask=<catalogue puzzle>`, which asks the same question
+(`ImportPuzzleChooserController` - the id is checked like every puzzle that is offered) - never a 422 page the script
+could only call "not saved".
+
+**The line that stays in view** (`_answer_said.html.twig`, `#import-answer-said`, `position: sticky; bottom: 0`,
+`aria-live="polite"`): what the answer did ("1 matched.", "1 puzzle kept just for you.", "This was decided
+meanwhile …"), **"Undo the last one"** - a form with the puzzle, the version the answer left and the fields that
+lead back to the screen it was given on - and, when the answer was the last puzzle that waited, "Nothing waits for
+you here." with the button to the next step (`?after=puzzles`). An answer for several that was **taken** (the grid, a pile) is said at the top of the screen it renders instead -
+that screen is a new one, shown from its beginning - and the line is cleared; one that was **refused** (a set that
+holds a puzzle needing a closer look, a stale tile) is said in the line, because the grid's button is at the bottom.
+
+**What the player set and did not send stays.** A screen rendered again comes with the server's defaults; the
+script puts back the boxes the player unticked (and has them counted again - the tick counter also recounts on
+`turbo:morph-element`), the answer picked for a pile ("Don't import them") and the folded parts they opened - unless
+another screen took the place (`data-import-answers-show`).
+
+**The address stays true.** `#import-pile` says the address of the screen it shows (`data-import-answers-url`:
+`?part=…&after=…`, `?done=…`, `?page=…`), like the chooser; after an answer shown in place the script puts it in
+the address bar, so loading the page again shows the screen the player was on.
+
+**A card that comes back by "Undo the last one"** carries the handler's memory of it: a match taken back is
+remembered as "not this puzzle" (pairing.md) - there is no neutral take-back - so the card says **"You took this
+match back."** (it said "You said this is not it.", which was not true for an Undo; the same words now stand on a
+card after "Wrong puzzle").
+
+**A round says its real size:** "Do the next 3" and "This round: 1 of 3" when fewer than twenty wait
+(`ImportPuzzleChooserController::portion()` - one statement, inside a round only).
+
+**No "Undo" for one answer for several.** The handler would take twenty decisions back in one message, but it is
+not an undo: a match taken back is remembered as "not this puzzle", and such a puzzle may no longer be confirmed
+with others (`ImportPuzzleBulkConfirm`) - the twenty would come back as cards to look at closer, not as the grid
+they were. An answer for a pile can run on the worker for thousands. Each puzzle is taken back on its own card.
+
+The line lies over the screen, so it is small (≤ ~96 px at 390 px): row 1 the sentence, the whole width, two lines
+at most; row 2 the actions to the right - "Undo the last one", "Close" (the script's `dismiss`; focus returns to the
+card that is answered next). Where a kept puzzle will be is a short link in the sentence ("Where do I find it?" →
+`unlisted_puzzles`, a new tab, so a round is not left). **It never covers what is answered next:** while it is
+shown the script gives the page `scroll-padding-bottom` and the screen's element a bottom padding of the line's
+real height (`room()`), and after every answer brings the element focus goes to wholly into view - below the site's
+header (`--header-height`), above the line - without moving anything that already is (`reveal()`). A notice on a
+card (`data-import-answers-attention`, a refused code) and the beginning of a new screen are revealed the same way;
+a screen that only says "Nothing left here" gets its Continue focused, not its heading.
+
+The chooser's own link under "Later" leads to the previous puzzle's screen and is called that ("Go back to the
+previous puzzle"); "Undo the last one" is only the line's button, which takes the answer back at once.
+
+**Found in a real browser (2026-11), and why the script reads attributes:** every answer form holds
+`<button name="action">`, and in a browser a control's name shadows the form's property - `form.action` is the
+button, the request went to `…/[object HTMLButtonElement]` and nothing was saved. The address is
+`form.getAttribute('action')`; the jsdom harness now shadows `action` / `method` the way a browser does, and
+`ImportAnswersScriptTest` refuses `form.action|method|id|name|target` in the script's source.
+
+**"Keep it just for me" says where the puzzle goes**, at the moment it is picked: "After you add the import, you
+find puzzles kept just for you under My data → Unlisted puzzles. There you can match them … or add them to our
+database later." with the link to `unlisted_puzzles` - in the line, in the pile's notice for "Keep them just for me",
+and in the flash of the plain post.
+
+**The step is done** when no pile holds a waiting puzzle and nothing is looked up: every screen of the piles then
+shows `import-step-done` and its Continue leads to the next step (`continue_after: 'puzzles'`) instead of back to the
+overview.
+
+**The script** (`data_import_answers_controller.js`, on the element around the screen -
+`_answers_controller.html.twig`) sends every `<form data-import-answer>` itself:
+
+- the tapped button turns (a spinner, "Saving…" for a screen reader), every button of its card
+  (`data-import-answers-scope`) is off, `aria-busy`; a second tap sends nothing;
+- answers go one after another, in the order tapped; a card whose answer is still on its way stays switched off on a
+  screen that was rendered again meanwhile; while an answer for the whole screen is on its way no other is sent;
+- streams → `Turbo.renderStreamMessage`; then focus: a new screen (`data-import-answers-show`) is brought into view
+  and its heading focused; else the card where it stands, else the card that moved up, else the one before - its
+  first button or link; else the line that stays in view;
+- a page instead of streams (a redirect) → `Turbo.visit(url, {response})` - the page that was fetched, not asked for
+  twice (so its flash is not lost);
+- no connection, a timeout (20 s), an error page (403 of a token that ran out, 422, 500) → **nothing changes**: the
+  card as it was, its buttons on again, one line under them ("That did not save. Check your connection and try
+  again."), focus back on the button, which is brought above the line at the bottom. **The failure is always said
+  in the line that stays in view** (`role="alert"`, in place of what the answer before did, until the next answer) -
+  a card keeps its own line under its buttons as well;
+- "Undo the last one" names the card it brings back (`data-import-answers-returns`): that card is brought wholly
+  above the line and its first button focused, and it is the card focus returns to on "Close". Nothing is ever
+  focused without being brought into view first - Enter must not answer a card nobody sees;
+- what is revealed is **the whole card**, not its button: its top just below the header when it stood above, moved
+  up only as far as the top stays below the header when it stood below - a card taller than the room shows its
+  beginning (name and picture), its buttons a scroll away;
+- the last card of a screen answered: the screen's ONE way on (`#import-pile .btn-primary`, or the next step's
+  button in the line) is brought into view and focused - the page got shorter under the player;
+- "No" on the piece-count question takes the question away in place (`dismiss`), nothing is sent.
+
+Before the script has loaded (it is lazy) Turbo sends the form and puts the same streams in place - without the
+waiting state and the focus. `assets/app.js` puts `loaded` back on a lazy picture a morph kept
+(`turbo:morph-element`).
+
+`_flow_footer.html.twig` inside a part rendered again links the guide by the screen's route and path
+(`ImportInPlace::answerFor()` sets `_import_screen_route` / `_import_screen_path`), not by the address the form was
+posted to.
+
 ## To fix
 
 The rows that need a look - waiting, a puzzle, read for their sheet's current mapping, with a problem no question of
@@ -455,6 +576,16 @@ message; leave out and take in; the row sheet (fields, 422 at the field, saved, 
 that become equal by an answer; the statement budgets.
 `tests/Services/DataImport/ImportRowAnswersTest.php` - what each kind of answer is read as, and what the parser
 makes of a row with answers. `ImportReadingTest` pins the payload's `pairing`.
+
+Answers in place: `ImportPuzzlesInBulkTest` (four tests - a card to look at closer: the streams' targets, the card
+gone, the count, "Undo the last one" with its fields, a second tap refused, the unchanged redirect; the grid; one
+answer for a pile, a card of a folded list, a card of a list, "Keep it just for me" saying where, the last puzzle
+→ the next step on every screen; the chooser's round - the next puzzle in place, Undo, the round's end as a
+redirect, 403 / 404), `ImportPairingScreensTest` (the other piece count asked in place), `ImportPeopleScreenTest`,
+and `tests/ImportAnswersScriptTest.php` - the real script in jsdom (`tests/import-answers-harness.mjs`): one request
+for three taps, the waiting card, focus after each kind of answer, no connection and an error page leaving the card
+as it was, a redirect handed to Turbo, the order of two answers. **Not run in a real browser** - what to try is in
+`docs/TODO.md` "Data import - answers in place".
 
 **Nothing was run in a browser by this stage's author** - the script's pairing mode
 (`data_import_setup_controller.js`), the frames' reload, the search frame and how the pages look on a phone are to

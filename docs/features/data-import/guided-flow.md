@@ -1562,3 +1562,22 @@ streams as Turbo applies them (a 422 stream replacing the group's card, the conf
 `data-turbo-confirm` of "Don't import them" with a stream answer), and the anchors after a redirect
 (`#group-<key>`, `#row-<id>`). Covered as the server answers them: `ImportPairingScreensTest`,
 `ImportColumnsScreenTest`, `ImportRowOriginTest`, `ImportRowAnswersTest`.
+
+## As built - answers in place (tester feedback, 2026-11)
+
+A tester's "Looks like a match" held 30+ cards and every "Yes, this is it" loaded the page again at its top. Rule 2
+of §2 now has a companion: **an answer never moves the page**. Every answer form of step 3 (People) and step 4
+(Puzzles: cards, the picture grid, one answer for a pile, the chooser, take back) is answered with Turbo Streams -
+the card, the pile or the screen as it stands after the answer - and what the answer did is said in a line that
+stays in view at the bottom, with "Undo the last one"; the chooser's round swaps the next puzzle in place and the
+address follows. Step 5's "What will be added" already swapped its list's frame for a row and a puzzle; the sheet's
+"Don't import" does now too. The mechanics, the script and what is tested: pairing-screens.md "Answers in place",
+people.md "Answers in place".
+
+| Where | As built | Why |
+|---|---|---|
+| "the step header's status sentence updates" | The flow's header has no sentence about the step on these screens (only "Where you are" has `ImportFlow`); what updates are the screen's own counts - a list's "N of M wait", the grid's "1-20 of 34", a pile's title - and the line that stays in view says when the step is done. | Nothing to update; `ImportFlow` is another builder's. |
+| "Undo the last one" for one answer for several | Not offered after "Yes, these N are right" or an answer for a pile: the screen says what was done, and each puzzle is taken back on its card ("Matched - see them", "Kept just for you - change"). | Taking twenty back in one message works, but is no undo: a match taken back is remembered as "not this puzzle" and may then only be confirmed on its own - the twenty would return as cards to look at closer. A pile's answer can run on the worker. |
+| Where the round rests or ends | A redirect (a page load), as before. | It is another screen with another address; only "the next puzzle" is the same screen. |
+| "What will be added" | Stays the list's `<turbo-frame>` (a redirect inside the frame), not streams. | It already did not scroll; the whole sheet's form joined the frame. Its buttons have Turbo's own waiting state only. |
+

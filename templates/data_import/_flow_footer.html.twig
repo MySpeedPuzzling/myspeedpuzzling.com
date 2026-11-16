@@ -59,14 +59,18 @@
         data_import_not_added: 'step-add', data_import_not_added_times: 'step-add', data_import_added: 'step-add',
         data_import_undo: 'take-back', data_import_undo_progress: 'take-back',
     } %}
-    {% set guide_anchor = guide_anchors[app.request.attributes.get('_route')] ?? null %}
-    <a href="{{ path('import_guide', {return: app.request.pathInfo}) }}{{ guide_anchor is not null ? '#' ~ guide_anchor }}" class="fs-sm d-inline-flex align-items-center mt-1" style="min-height: 44px;" rel="nofollow" data-testid="import-flow-guide">
+    {# A screen rendered again for an answer shown in place says which screen it is (ImportInPlace::screen()) #}
+    {% set guide_anchor = guide_anchors[app.request.attributes.get('_import_screen_route') ?? app.request.attributes.get('_route')] ?? null %}
+    <a href="{{ path('import_guide', {return: app.request.attributes.get('_import_screen_path') ?? app.request.pathInfo}) }}{{ guide_anchor is not null ? '#' ~ guide_anchor }}" class="fs-sm d-inline-flex align-items-center mt-1" style="min-height: 44px;" rel="nofollow" data-testid="import-flow-guide">
         <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'data_import.flow.how_step_works'|trans }}
     </a>
 
     {% if back is defined and back is not null %}
-        <a href="{{ back.url }}" class="btn btn-link px-0 mt-2 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
-            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}
-        </a>
+        {# On a line of its own: beside the guide's link the two did not stand on one base line #}
+        <div>
+            <a href="{{ back.url }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}
+            </a>
+        </div>
     {% endif %}
 </div>

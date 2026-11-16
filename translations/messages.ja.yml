@@ -12318,6 +12318,7 @@ data_import:
             empty: "ここにパズルはありません。"
             tick_all: "はい、この %number% 件で合っています"
             next_20: "次の20件を進める"
+            next_n: "次の%number%件を進める"
             one_by_one_hint: "1画面に1つのパズル。タップするたびに保存され、いつでも中断できます。"
         card:
             in_file: "ファイルの内容"
@@ -12374,6 +12375,9 @@ data_import:
             back_to_list: "一覧に戻る"
             decided_as: "決定:"
             take_back: "この決定を元に戻す"
+        said:
+            where: "どこで見られますか？"
+            kept_where: "インポートを追加すると、自分専用に保持したパズルは「マイデータ」→「未掲載パズル」に表示されます。そこで、あとからデータベースのパズルと照合したり、データベースに追加したりできます。"
         flash:
             nothing: "何も変更されませんでした。"
             decided_meanwhile: "別のタブ、またはパズルの再検索によって、すでに決定されていました。何も変更されていません。現在の状態を表示しています。"
@@ -12384,7 +12388,7 @@ data_import:
             taken_back: "元に戻しました。このパズルは再びあなたの確認を待っています。"
             group_done: "このグループに対応待ちのものはもうありません。"
         bulk:
-            rejected: "これは違うと指定済みです。"
+            rejected: "この照合は取り消されました。"
             nothing_left: "ここにはもう何も残っていません。"
             see_all: "このグループをすべて見る（%number% 件）"
             working: "回答を保存しています… 残りのパズル: %number% 件"
@@ -12439,6 +12443,7 @@ data_import:
                 keep_rest_button: "自分専用に保持する"
             chooser:
                 undo_last: "直前の選択を元に戻す"
+                back_to_last: "前のパズルに戻る"
             flash:
                 matched: "%number% 件を照合しました。"
                 kept: "%number% 件のパズルを自分専用に保持しました。"
@@ -12886,6 +12891,10 @@ data_import:
         with_you_open: "ペアとチーム"
         leave: "自分の記録ではありません - 外してください"
         left: "[0,Inf[%count% 件の記録からあなたを外しました。このプレイヤーのインポートであなたが追加されることはもうありません。"
+    in_place:
+        close: "閉じる"
+        failed: "保存できませんでした。接続を確認して、もう一度お試しください。"
+        working: "保存中…"
     people:
         title: "ファイルに出てくる人"
         intro: "ファイルのペア・チームの記録に書かれている人の一覧です。ファイルにプレイヤーコード(#abc123)があれば、そのプレイヤーになります。名前は、誰なのかを指定するまでゲストのままです。"
@@ -12995,6 +13004,7 @@ data_import:
             leave_out: "すべてインポートしない"
             confirm: "「%title%」の %number% 行をインポートしませんか？ステップ2で変更できます。"
             confirm_button: "はい、このシートはインポートしない"
+            confirm_button_file: "はい、このファイルはインポートしません"
         row:
             leave_out: "この行をインポートしない"
             not_imported: "インポートしません"
@@ -13012,12 +13022,15 @@ data_import:
         empty: "追加の準備ができたものはまだありません。"
         no_hit: "そのパズルの行はありません。"
         reading_again: "シートを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
+        reading_again_file: "ファイルを読み直しています - 少々お待ちください。読み終わるまで、その行はここに数えられません。"
         refresh: "更新"
         flash:
             left_out: "インポートしません。「戻す」で行を元に戻せます。"
             put_back: "戻しました。パズルが照合され次第、リストに戻ります - 通常はすぐです。"
             left_out_puzzle: "%number% 行をインポートしません。それぞれ元に戻せます。"
             left_out_sheet: "「%title%」の行はインポートしません。ステップ2「ファイルの読み取り方」で変更できます。"
+            left_out_file: "ファイル全体の行はインポートしません。ステップ2「ファイルの読み取り方」で変更できます。"
+            put_back_sheet: "元に戻しました。行を読み直しています。まもなく一覧に表示されます。"
             changed_meanwhile: "その間に変更がありました - 現在の状態を表示しています。何も保存されていません。"
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

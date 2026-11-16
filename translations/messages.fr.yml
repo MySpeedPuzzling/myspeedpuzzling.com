@@ -12324,6 +12324,7 @@ data_import:
             empty: "Aucun puzzle ici."
             tick_all: "{1}Oui, celui-ci est correct|[0,Inf[Oui, ces %number% sont corrects"
             next_20: "Traiter les 20 suivants"
+            next_n: "{1}Traiter le suivant|[0,Inf[Traiter les %number% suivants"
             one_by_one_hint: "Un puzzle par écran. Chaque appui est enregistré et vous pouvez vous arrêter à tout moment."
         card:
             in_file: "Dans votre fichier"
@@ -12380,6 +12381,9 @@ data_import:
             back_to_list: "Retour à la liste"
             decided_as: "Décidé :"
             take_back: "Annuler cette décision"
+        said:
+            where: "Où le retrouver ?"
+            kept_where: "Une fois l'import ajouté, vous trouverez les puzzles conservés rien que pour vous dans Mes données → Puzzles hors catalogue. Vous pourrez alors les associer plus tard à un puzzle de notre base de données, ou les y ajouter."
         flash:
             nothing: "Rien n'a été modifié."
             decided_meanwhile: "Cela a été décidé entre-temps - dans un autre onglet, ou par une nouvelle recherche de vos puzzles. Rien n'a été modifié ; voici où cela en est."
@@ -12390,7 +12394,7 @@ data_import:
             taken_back: "Annulé. Le puzzle vous attend à nouveau."
             group_done: "Plus rien ne vous attend dans ce groupe."
         bulk:
-            rejected: "Vous avez dit que ce n'est pas celui-ci."
+            rejected: "Vous avez retiré cette association."
             nothing_left: "Il ne reste rien ici."
             see_all: "Voir toute la pile (%number%)"
             working: "Enregistrement de votre réponse… Puzzles restants : %number%"
@@ -12445,6 +12449,7 @@ data_import:
                 keep_rest_button: "Les garder rien que pour moi"
             chooser:
                 undo_last: "Annuler le dernier"
+                back_to_last: "Revenir au puzzle précédent"
             flash:
                 matched: "{1}1 associé.|[0,Inf[%number% associés."
                 kept: "{1}1 puzzle conservé rien que pour vous.|[0,Inf[%number% puzzles conservés rien que pour vous."
@@ -12892,6 +12897,10 @@ data_import:
         with_you_open: "Duos et équipes"
         leave: "Ce ne sont pas les miens - retirez-moi"
         left: "{0}Vous n'étiez plus sur aucun de ces résultats. Les imports de ce joueur ne vous ajouteront plus.|{1}Vous avez été retiré de 1 résultat. Les imports de ce joueur ne vous ajouteront plus.|[0,Inf[Vous avez été retiré de %count% résultats. Les imports de ce joueur ne vous ajouteront plus."
+    in_place:
+        close: "Fermer"
+        failed: "Cela n'a pas été enregistré. Vérifiez votre connexion et réessayez."
+        working: "Enregistrement…"
     people:
         title: "Les personnes de votre fichier"
         intro: "Voici les personnes que votre fichier nomme dans les résultats en duo et en équipe. Un code joueur (#abc123) dans le fichier devient ce joueur. Un nom reste un invité tant que vous ne dites pas qui c'est."
@@ -13001,6 +13010,7 @@ data_import:
             leave_out: "N'en importer aucune"
             confirm: "{0,1}Ne pas importer la ligne de « %title% » ? Vous pouvez le modifier à l'étape 2.|[2,Inf[Ne pas importer les %number% lignes de « %title% » ? Vous pouvez le modifier à l'étape 2."
             confirm_button: "Oui, ne pas importer cette feuille"
+            confirm_button_file: "Oui, ne pas importer ce fichier"
         row:
             leave_out: "Ne pas importer cette ligne"
             not_imported: "Non importée"
@@ -13018,12 +13028,15 @@ data_import:
         empty: "Rien n'est encore prêt à être ajouté."
         no_hit: "Aucune ligne avec ce puzzle."
         reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
+        reading_again_file: "Votre fichier est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'il n'est pas lu."
         refresh: "Actualiser"
         flash:
             left_out: "Non importée. « Remettre » fait revenir la ligne."
             put_back: "Remise. Elle revient dans la liste dès que son puzzle est associé - en général aussitôt."
             left_out_puzzle: "{0,1}%number% ligne n'est pas importée. Vous pouvez la remettre.|[2,Inf[%number% lignes ne sont pas importées. Vous pouvez remettre chacune d'elles."
             left_out_sheet: "Les lignes de « %title% » ne sont pas importées. Vous pouvez le modifier à l'étape 2, « Comment nous avons lu votre fichier »."
+            left_out_file: "Les lignes du fichier entier ne sont pas importées. Vous pouvez le modifier à l'étape 2, « Comment nous avons lu votre fichier »."
+            put_back_sheet: "Remis. Ses lignes sont relues et seront dans la liste dans un instant."
             changed_meanwhile: "Cela a changé entre-temps - voici où on en est maintenant. Rien n'a été enregistré."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

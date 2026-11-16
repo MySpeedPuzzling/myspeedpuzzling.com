@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -59,19 +60,39 @@ final class ImportPuzzleGroupController extends AbstractController
         $player = $this->retrieveLoggedUserProfile->getProfile();
         assert($player !== null);
 
-        $import = $this->getDataImports->byIdOfPlayer($importId, $player->playerId);
-        $overview = $this->getImportPuzzleScreen->overview($importId, $player->playerId);
+        $parameters = $this->screen($importId, $player->playerId, $group, $request->query);
+
+        if ($parameters === null) {
+            return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
+        }
+
+        return $this->render('data_import/puzzle_group.html.twig', $parameters);
+    }
+
+    /**
+     * What the screen of a pile shows - for its page, and for the answer given on it that is shown in place
+     * (DecideImportPuzzlesController): the same screen, as it stands after the answer. `$query` is what the page's
+     * address says (`page`, `part`, `after`, `done`). Null: the import is past its set-up.
+     *
+     * @param InputBag<string> $query
+     *
+     * @return null|array<string, mixed>
+     */
+    public function screen(string $importId, string $playerId, string $group, InputBag $query): null|array
+    {
+        $import = $this->getDataImports->byIdOfPlayer($importId, $playerId);
+        $overview = $this->getImportPuzzleScreen->overview($importId, $playerId);
 
         if ($overview->beingSetUp === false) {
-            return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
+            return null;
         }
 
         $total = $overview->groups[$group]['total'];
         $pages = max(1, (int) ceil($total / self::PUZZLES_PER_PAGE));
-        $page = min($pages, max(1, $request->query->getInt('page', 1)));
+        $page = min($pages, max(1, $query->getInt('page', 1)));
 
         // The list: the piles that are nothing else, and any pile asked for by its page
-        $asList = $request->query->has('page') || in_array($group, ['found', 'remembered'], true);
+        $asList = $query->has('page') || in_array($group, ['found', 'remembered'], true);
         $withList = $asList || isset(GetImportPuzzleScreen::PILES[$group]);
 
         $parameters = [
@@ -79,12 +100,12 @@ final class ImportPuzzleGroupController extends AbstractController
             'overview' => $overview,
             'group' => $group,
             'as_list' => $asList,
-            'cards' => $total === 0 || $withList === false ? [] : $this->getImportPuzzleScreen->page($importId, $player->playerId, $group, self::PUZZLES_PER_PAGE, ($page - 1) * self::PUZZLES_PER_PAGE),
+            'cards' => $total === 0 || $withList === false ? [] : $this->getImportPuzzleScreen->page($importId, $playerId, $group, self::PUZZLES_PER_PAGE, ($page - 1) * self::PUZZLES_PER_PAGE),
             'total' => $total,
             'open' => $overview->groups[$group]['open'],
             'page' => $page,
             'pages' => $pages,
-            'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
+            'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $playerId)),
             // An answer for the whole pile still runs on the worker (DataImportPileAnswer - read with the overview)
             'is_running' => in_array($group, $overview->pilesBeingAnswered, true),
             'tiles_per_screen' => self::TILES_PER_SCREEN,
@@ -92,10 +113,10 @@ final class ImportPuzzleGroupController extends AbstractController
         ];
 
         if ($asList === false && $group === 'probably') {
-            $after = $request->query->getString('after');
+            $after = $query->getString('after');
             $after = Uuid::isValid($after) ? strtolower($after) : null;
-            $counts = $this->getImportPuzzleScreen->partCounts($importId, $player->playerId, $after);
-            $part = $request->query->getString('part');
+            $counts = $this->getImportPuzzleScreen->partCounts($importId, $playerId, $after);
+            $part = $query->getString('part');
 
             if ($part !== GetImportPuzzleScreen::PART_SAME && $part !== GetImportPuzzleScreen::PART_DIFFERS) {
                 // The grid first; what needs a closer look when nothing of the grid waits
@@ -106,19 +127,19 @@ final class ImportPuzzleGroupController extends AbstractController
                 'part' => $part,
                 'after' => $after,
                 'counts' => $counts,
-                'tiles' => $counts[$part] === 0 ? [] : $this->getImportPuzzleScreen->partPage($importId, $player->playerId, $part, self::TILES_PER_SCREEN, $after),
+                'tiles' => $counts[$part] === 0 ? [] : $this->getImportPuzzleScreen->partPage($importId, $playerId, $part, self::TILES_PER_SCREEN, $after),
             ];
         }
 
         if ($asList === false && $group === 'choose') {
             $parameters += [
-                'done' => min(NextImportPuzzleController::PORTION, max(0, $request->query->getInt('done'))),
-                'round' => $this->getImportPuzzleScreen->nextRound($importId, $player->playerId, $group, NextImportPuzzleController::PORTION),
+                'done' => min(NextImportPuzzleController::PORTION, max(0, $query->getInt('done'))),
+                'round' => $this->getImportPuzzleScreen->nextRound($importId, $playerId, $group, NextImportPuzzleController::PORTION),
                 // "Add what is ready now (614)" of the rest screen - one statement
-                'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
+                'add' => $this->getImportAddScreen->summary($importId, $playerId),
             ];
         }
 
-        return $this->render('data_import/puzzle_group.html.twig', $parameters);
+        return $parameters;
     }
 }

@@ -12575,6 +12575,7 @@ data_import:
             empty: "No puzzles here."
             tick_all: "{1}Yes, this one is right|[0,Inf[Yes, these %number% are right"
             next_20: "Do the next 20"
+            next_n: "{1}Do the next one|[0,Inf[Do the next %number%"
             one_by_one_hint: "One puzzle per screen. Every tap is saved, and you can stop at any time."
         card:
             in_file: "In your file"
@@ -12631,6 +12632,9 @@ data_import:
             back_to_list: "Back to the list"
             decided_as: "Decided:"
             take_back: "Undo this decision"
+        said:
+            where: "Where do I find it?"
+            kept_where: "After you add the import, you find puzzles kept just for you under My data → Unlisted puzzles. There you can match them with a puzzle in our database, or add them to our database later."
         flash:
             nothing: "Nothing was changed."
             decided_meanwhile: "This was decided meanwhile - in another tab, or by a new look-up of your puzzles. Nothing was changed; here is how it stands now."
@@ -12641,7 +12645,7 @@ data_import:
             taken_back: "Undone. The puzzle waits for you again."
             group_done: "Nothing else waits for you in this group."
         bulk:
-            rejected: "You said this is not it."
+            rejected: "You took this match back."
             nothing_left: "Nothing left here."
             see_all: "See the whole pile (%number%)"
             working: "Saving your answer… Puzzles left: %number%"
@@ -12696,6 +12700,7 @@ data_import:
                 keep_rest_button: "Keep them just for me"
             chooser:
                 undo_last: "Undo the last one"
+                back_to_last: "Go back to the previous puzzle"
             flash:
                 matched: "{1}1 matched.|[0,Inf[%number% matched."
                 kept: "{1}1 puzzle kept just for you.|[0,Inf[%number% puzzles kept just for you."
@@ -13143,6 +13148,10 @@ data_import:
         with_you_open: "Pairs & teams"
         leave: "These are not mine - take me off them"
         left: "{0}You were on none of those results any more. This player's imports will no longer add you.|{1}You were taken off 1 result. This player's imports will no longer add you.|[0,Inf[You were taken off %count% results. This player's imports will no longer add you."
+    in_place:
+        close: "Close"
+        failed: "That did not save. Check your connection and try again."
+        working: "Saving…"
     people:
         title: "People in your file"
         intro: "These are the people your file names in pair and team results. A player code (#abc123) in the file becomes that player. A name stays a guest unless you say who it is."
@@ -13252,6 +13261,7 @@ data_import:
             leave_out: "Don't import any"
             confirm: "{1}Don't import the 1 row of “%title%”? You can change this in step 2.|[0,Inf[Don't import the %number% rows of “%title%”? You can change this in step 2."
             confirm_button: "Yes, don't import this sheet"
+            confirm_button_file: "Yes, don't import this file"
         row:
             leave_out: "Don't import this row"
             not_imported: "Not imported"
@@ -13269,12 +13279,15 @@ data_import:
         empty: "Nothing is ready to add yet."
         no_hit: "No row with that puzzle."
         reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
+        reading_again_file: "Your file is being read again - a moment. Its rows are not counted here until it is read."
         refresh: "Refresh"
         flash:
             left_out: "Not imported. “Put back” brings the row back."
             put_back: "Put back. It is in the list again as soon as its puzzle is matched - usually at once."
             left_out_puzzle: "{1}1 row is not imported. You can put it back.|[0,Inf[%number% rows are not imported. You can put each of them back."
             left_out_sheet: "The rows of “%title%” are not imported. You can change this in step 2, “How we read your file”."
+            left_out_file: "The rows of the whole file are not imported. You can change this in step 2, “How we read your file”."
+            put_back_sheet: "Put back. Its rows are read again and are in the list in a moment."
             changed_meanwhile: "This changed in the meantime - here is how it stands now. Nothing was saved."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

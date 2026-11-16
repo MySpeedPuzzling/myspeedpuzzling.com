@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImport\ImportPersonChoice;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -21,6 +22,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 final class ImportPeopleScreenTest extends WebTestCase
 {
     use ImportAddingScenario;
+    use TurboStreamAnswers;
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -168,6 +170,8 @@ final class ImportPeopleScreenTest extends WebTestCase
         $offer = $crawler->filter('[data-testid="import-person-remembered"]');
         self::assertSame(['player', $friend->id->toString()], [$offer->attr('data-remembered'), $offer->attr('data-player')]);
         self::assertStringContainsString('Last time “Zq Pagefriend” was Zq Pagefriend - still right?', $offer->text());
+        // What an earlier file remembered is offered - the answer that is selected is the stored one: a guest
+        self::assertSame(['guest'], $crawler->filter('[data-testid="import-person"][data-name="Zq Pagefriend"] input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
         $this->browser->submit($offer->selectButton('Yes, still right')->form());
         self::assertResponseRedirects();
         $crawler = $this->browser->followRedirect();
@@ -180,5 +184,113 @@ final class ImportPeopleScreenTest extends WebTestCase
             self::assertCount(2, $crawler->filter('[data-testid="import-person"]'), $locale);
             self::assertStringNotContainsString('data_import.', (string) $crawler->filter('[data-testid="import-people-page"]')->text(), $locale);
         }
+    }
+
+    /**
+     * Answers in place (docs/features/data-import/people.md "Answers in place"): to Turbo the answer is the person's
+     * card as it stands after it - what is written is what the redirect's answer writes.
+     */
+    public function testAnAnswerAboutAPersonIsShownInPlaceAndWritesTheSame(): void
+    {
+        $importer = $this->seedPairingPlayer('peopleinplace');
+        $friend = $this->seedPairingPlayer('peopleinplacefriend');
+        $other = $this->seedPairingPlayer('peopleinplaceother');
+        $this->database->update('player', ['name' => 'Zq Placefriend'], ['id' => $friend->id->toString()]);
+        $this->database->update('player', ['favorite_players' => json_encode([$friend->id->toString()])], ['id' => $importer->id->toString()]);
+        $brand = $this->seedBrand('Zqplace');
+        $this->seedCataloguePuzzle('Zq Place Harbour', 1000, $brand);
+
+        [$import, $sheet] = $this->importOf($importer);
+        $this->resultRow($import, $sheet, 'Zq Place Harbour', 1000, 'Zqplace', '2024-03-01', 5400, ['type' => 'duo', 'people' => ['zq placefriend']]);
+        $this->resultRow($import, $sheet, 'Zq Place Harbour', 1000, 'Zqplace', '2024-03-02', 5500, ['type' => 'duo', 'people' => ['zq somebody else']]);
+        $this->pair($import);
+        $importId = $import->id->toString();
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 1, mapping_version = 1 WHERE import_id = :id', ['id' => $importId]);
+        $path = '/en/import/' . $importId . '/people';
+
+        TestingLogin::asPlayer($this->browser, $importer->id->toString());
+        $crawler = $this->browser->request('GET', $path);
+        self::assertResponseIsSuccessful();
+        // The screen is under the script, every answer form is marked for it, and the line that stays in view is empty
+        self::assertCount(1, $crawler->filter('[data-testid="import-people-page"][data-controller="data-import-answers"]'));
+        self::assertCount(2, $crawler->filter('#import-people-list > [data-testid="import-person"]'));
+        self::assertCount(0, $crawler->filter('form[action="' . $path . '"]:not([data-import-answer])'));
+        self::assertSame('', trim($crawler->filter('#import-answer-said')->text()));
+        $token = $crawler->filter('input[name="_token"]')->first()->attr('value');
+        $friendCard = $crawler->filter('[data-testid="import-person"][data-name="zq placefriend"]');
+        $personId = substr((string) $friendCard->attr('id'), strlen('person-'));
+        $otherPersonId = substr((string) $crawler->filter('[data-testid="import-person"][data-name="zq somebody else"]')->attr('id'), strlen('person-'));
+
+        // Not taken (a code nobody has, a player who was not offered): the card again with why - nothing written
+        foreach ([['answer' => 'code', 'code' => '#zz9zz9'], ['answer' => $other->id->toString()]] as $fields) {
+            $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, ...$fields], server: self::AS_TURBO);
+            $streams = self::streams($this->browser);
+            self::assertSame(['person-' . $personId, 'import-people-remembered', 'import-answer-said'], array_keys($streams));
+            self::assertSame('replace', $streams['person-' . $personId]['action']);
+            $card = $streams['person-' . $personId]['part']->filter('#person-' . $personId);
+            self::assertCount(1, $card->filter('[data-testid="import-person-refused"][role="alert"]'));
+            self::assertSame('guest', $card->attr('data-choice'));
+            self::assertSame('', trim($streams['import-answer-said']['html']));
+            self::assertSame('guest', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $personId]));
+        }
+
+        // A code typed while "keep as a guest" is still the selected answer is the code answer - refused here, with
+        // the typed code kept in its field and its answer selected; never silently saved as a guest
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#zz9zz9'], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
+        self::assertCount(1, $card->filter('[data-testid="import-person-refused"]'));
+        self::assertSame('#zz9zz9', $card->filter('[data-testid="import-person-code"]')->attr('value'));
+        self::assertSame(['code'], $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+        self::assertSame('code', $card->filter('[data-testid="import-person-code"]')->attr('data-import-answers-picks'));
+
+        // ... and taken with a code somebody has: the card in place is the card a reload shows - the code in its
+        // field, its answer selected
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#' . $other->code], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
+        $state = static fn (Crawler $card): array => [$card->attr('data-choice'), $card->attr('data-player'), $card->filter('[data-testid="import-person-code"]')->attr('value'), $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value'))];
+        self::assertSame(['player', $other->id->toString(), '#' . strtoupper($other->code), ['code']], $state($card));
+        self::assertSame($state($card), $state($this->browser->request('GET', $path)->filter('#person-' . $personId)));
+        self::assertSame($other->id->toString(), $this->database->fetchOne('SELECT player_id FROM data_import_person WHERE id = :id', ['id' => $personId]));
+
+        // Taken: that person's card as it stands now - the other card is not sent - and "Saved." in view
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => $friend->id->toString()], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertArrayNotHasKey('person-' . $otherPersonId, $streams);
+        self::assertArrayNotHasKey('import-people-list', $streams);
+        $card = $streams['person-' . $personId]['part']->filter('#person-' . $personId);
+        self::assertSame(['player', 'player', $friend->id->toString()], [$card->attr('data-choice'), $card->attr('data-how'), $card->attr('data-player')]);
+        self::assertCount(0, $card->filter('[data-testid="import-person-refused"]'));
+        self::assertCount(1, $card->filter('form[data-import-answer][data-testid="import-person-form"]'));
+        self::assertCount(1, $card->filter('[data-testid="add-row"]'));
+        self::assertSame('Saved.', trim($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertCount(0, $streams['import-answer-said']['part']->filter('form'));
+        self::assertSame(['player', $friend->id->toString()], [$this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $personId]), $this->database->fetchOne('SELECT player_id FROM data_import_person WHERE id = :id', ['id' => $personId])]);
+
+        // "That is me", in place - and the same answer without Turbo is the redirect to the person, as before
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $otherPersonId, 'answer' => 'me'], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $otherPersonId]['part']->filter('#person-' . $otherPersonId);
+        self::assertSame('me', $card->attr('data-choice'));
+        self::assertSame(['me'], $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+        self::assertSame('me', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $otherPersonId]));
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $otherPersonId, 'answer' => 'guest']);
+        self::assertResponseRedirects($path . '#person-' . $otherPersonId);
+        self::assertSame('guest', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $otherPersonId]));
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'code', 'code' => '#zz9zz9']);
+        self::assertResponseStatusCodeSame(422);
+
+        // The one answer that is about all of them: every card
+        $this->browser->request('POST', $path, ['_token' => $token, 'answer' => 'remembered_all'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('update', $streams['import-people-list']['action']);
+        self::assertCount(2, $streams['import-people-list']['part']->filter('[data-testid="import-person"]'));
+        self::assertSame('remove', $streams['import-people-remembered']['action']);
+
+        // Somebody else's import, and a form without its token: refused with Turbo too
+        $this->browser->request('POST', $path, ['person' => $personId, 'answer' => 'guest'], server: self::AS_TURBO);
+        self::assertResponseStatusCodeSame(403);
+        TestingLogin::asPlayer($this->browser, $other->id->toString());
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest'], server: self::AS_TURBO);
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame('player', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $personId]));
     }
 }

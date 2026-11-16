@@ -57,8 +57,14 @@ final class ImportPuzzleChooserController extends AbstractController
         }
 
         $card = $this->getImportPuzzleScreen->one($importId, $player->playerId, $importPuzzleId);
+        // "Your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" for a puzzle tapped elsewhere
+        // (an answer shown in place leads here with it): an id, checked like every puzzle that is offered
+        $ask = $request->query->getString('ask');
+        $asked = Uuid::isValid($ask) && $card->isDecided() === false
+            ? $this->getImportPuzzleScreen->offered($player->playerId, $ask, $card->piecesCount, $card->manufacturerId)
+            : null;
 
-        return $this->render('data_import/puzzle_choose.html.twig', self::parameters(
+        return $this->render('data_import/puzzle_choose.html.twig', ['portion' => $this->portion($importId, $player->playerId, $request->query->getString('flow'), $request->query->getInt('done'))] + self::parameters(
             $request->query->getString('flow'),
             $request->query->getInt('done'),
             $import,
@@ -66,8 +72,24 @@ final class ImportPuzzleChooserController extends AbstractController
             $this->getImportPuzzleScreen->rowsOf($importId, $player->playerId, $importPuzzleId, self::ROWS_SHOWN),
             null,
             null,
+            askOtherPieces: $asked !== null && $asked->piecesDiffer ? $asked : null,
             last: $request->query->getString('last'),
         ));
+    }
+
+    /**
+     * How many puzzles the round is of: twenty - or fewer, when fewer are left ("This round: 1 of 3"). One
+     * statement, inside a round only.
+     */
+    public function portion(string $importId, string $playerId, string $flow, int $done): int
+    {
+        if (in_array($flow, GetImportPuzzleScreen::GROUPS, true) === false) {
+            return NextImportPuzzleController::PORTION;
+        }
+
+        $open = $this->getImportPuzzleScreen->overview($importId, $playerId)->groups[$flow]['open'];
+
+        return max(1, min(NextImportPuzzleController::PORTION, max(0, $done) + $open));
     }
 
     /**

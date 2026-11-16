@@ -1414,7 +1414,9 @@ An organization's results source: its results spreadsheet and the **format** it 
 cron). The format decides which events the sheet holds (`sarah_does_puzzles`: every tab one one-time event of the
 organization); each event gets one nobody's result per team until the puzzlers claim their spots
 (`docs/features/event-results-import/README.md`, `results-import-page.md`). The sheet must be shared "Anyone with the
-link: Viewer". The spreadsheet id lives in the database only - never in the repo.
+link: Viewer". The spreadsheet id lives in the database only - never in the repo. The registered spreadsheet is
+the default: the organization's team can change it on its results import page ("Change sheet"), so the `spreadsheetId`
+a later `GET` answers may differ from the one registered.
 
 | Method | Path | What |
 |---|---|---|

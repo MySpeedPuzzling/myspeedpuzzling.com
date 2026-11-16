@@ -13549,6 +13549,20 @@ results_import:
         try_again: "Das hat nicht geklappt - bitte versuche es noch einmal."
         newer_check: "Deine Tabelle wurde inzwischen erneut geprüft - sieh dir die neueste Prüfung an und hake erneut an."
         nothing_ticked: "Hake mindestens ein Event zum Importieren an."
+    sheet:
+        heading: "Deine Tabelle"
+        open: "In Google Tabellen öffnen"
+        change: "Tabelle ändern"
+        label: "Link zu deiner Google-Tabelle"
+        hint: "Füge den Link aus deinem Browser ein, während die Tabelle geöffnet ist. Sie muss als „Jeder mit dem Link: Betrachter“ freigegeben sein. Wir lesen sie einmal zur Prüfung und zeigen dann hier ihre Events - schon importierte Events bleiben erhalten."
+        button: "Diese Tabelle verwenden"
+        flash:
+            changed: "Deine Tabelle ist geändert - hier sind ihre Events."
+            same: "Das ist bereits deine Tabelle."
+            taken: "Diese Tabelle wird schon für einen anderen Ergebnisimport verwendet. Schreib uns, wenn es deine ist."
+            unreadable: "Wir konnten diese Tabelle nicht lesen - gib sie als „Jeder mit dem Link: Betrachter“ frei und versuche es noch einmal. Deine Tabelle bleibt, wie sie war."
+            published: "Das ist ein Link „Im Web veröffentlichen“. Öffne die Tabelle und kopiere stattdessen den Link aus deinem Browser."
+            not_a_sheet: "Das ist kein Link zu einer Google-Tabelle. Öffne die Tabelle und kopiere den Link aus deinem Browser."
     guide:
         title: "So muss deine Tabelle aussehen"
     sources:
@@ -13568,6 +13582,7 @@ results_import:
         unreadable_tabs: "Diese Tabs hat uns Google diesmal nicht gegeben - prüfe gleich noch einmal:"
         no_events: "Wir haben keine Events in der Tabelle gefunden."
     list:
+        from_previous_sheet: "Aus deiner vorherigen Tabelle - es hat Datum und Namen eines schon importierten Events, deshalb aktualisiert der Import dieses Event, statt ein neues anzulegen."
         heading: "Events in deiner Tabelle"
         tab: "Tab „%tab%“"
         teams: "%count% Team|%count% Teams"
@@ -13589,6 +13604,8 @@ results_import:
         needs_fixing: "Korrigiere das in deiner Tabelle und prüfe dann noch einmal - bis dahin wird von diesem Event nichts importiert."
         event_deleted: "Das aus diesem Tab angelegte Event wurde auf MySpeedPuzzling gelöscht - es wird nicht wieder angelegt."
     note:
+        matches_several_imported_events: "Dieses Event steht in deiner Tabelle, und aus deiner vorherigen Tabelle wurden %detail% Events mit demselben Datum und Namen importiert - benenne eines davon um, damit wir wissen, welches es ist."
+        shares_imported_event: "Ein anderes Event in deiner Tabelle hat dasselbe Datum und denselben Namen, und beide passen zu einem importierten Event - benenne eines davon um."
         row: "Zeile %line%"
         missing_column: "Die Spalte „%detail%“ fehlt."
         missing_event_field: "„%detail%“ ist in Zeile 2 leer."

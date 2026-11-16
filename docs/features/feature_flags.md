@@ -183,22 +183,6 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   fields dialog, `_add_form_area.html.twig`) and `src/Controller/CustomFields/AddFormMyFieldsBlockController.php` (404)
 - **Remove when:** never - it is the off switch of an optional part of the app's most important form.
 
-## Results import page of organizations (`RESULTS_IMPORT_PAGE`)
-
-- **Feature:** "Results import" of an organization with a results source
-  (`docs/features/event-results-import/results-import-page.md`): check the sheet, the statuses, the preview
-- **Flag:** env var `RESULTS_IMPORT_PAGE` → parameter `resultsImportPage` (`config/services.php`, with the default `1`
-  as the parameter `env(RESULTS_IMPORT_PAGE)` - no `.env` line needed), injected into
-  `Services\EventResultsImport\ResultsImportPage` (`isEnabled()`); Twig function `results_import_enabled()`
-  (`ResultsImportTwigExtension`, no statement) for the links.
-- **Default:** **ON** (`1`). It is the kill switch: `0` = every route of the page answers 404 (the POSTs too) and no
-  link leads to it. The admins' way stays: `myspeedpuzzling:sync-results-source` and `/internal-api/event-results-sheets`.
-  Stored checks are kept; switching it on again shows them.
-- **Gated files:** `src/Services/EventResultsImport/ResultsImportPage.php` (`organization()` - every controller of
-  `src/Controller/ResultsImport/` asks it first), `templates/events/_manage_items.html.twig` (the ⋯ menu of an
-  organization and "You organize").
-- **Remove when:** never - it is the off switch of the organizers' import, should a sheet or Google misbehave.
-
 ## "I didn't finish within the time limit" in the add/edit-time form (`UNFINISHED_RESULTS_FORM`)
 
 - **Feature:** the switch, pieces placed and the round hint of the add/edit-time form

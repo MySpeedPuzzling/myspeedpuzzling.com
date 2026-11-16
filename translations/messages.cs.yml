@@ -13552,6 +13552,20 @@ results_import:
         try_again: "Nepovedlo se - zkuste to prosím znovu."
         newer_check: "Tabulka byla mezitím zkontrolována znovu - podívejte se na poslední kontrolu a zaškrtněte události znovu."
         nothing_ticked: "Zaškrtněte aspoň jednu událost k importu."
+    sheet:
+        heading: "Vaše tabulka"
+        open: "Otevřít v Tabulkách Google"
+        change: "Změnit tabulku"
+        label: "Odkaz na vaši tabulku Google"
+        hint: "Vložte odkaz z prohlížeče, když máte tabulku otevřenou. Musí být sdílená jako „Kdokoli s odkazem: Čtenář“. Jednou ji načteme, abychom ji ověřili, a pak tu ukážeme její události - dříve importované události zůstanou."
+        button: "Použít tuto tabulku"
+        flash:
+            changed: "Tabulka je změněná - tady jsou události, které obsahuje."
+            same: "Tohle už je vaše tabulka."
+            taken: "Tato tabulka se už používá pro jiný import výsledků. Pokud je vaše, napište nám."
+            unreadable: "Tuto tabulku se nepodařilo načíst - nasdílejte ji jako „Kdokoli s odkazem: Čtenář“ a zkuste to znovu. Vaše tabulka zůstává beze změny."
+            published: "Tohle je odkaz „Publikovat na webu“. Otevřete tabulku a zkopírujte odkaz z prohlížeče."
+            not_a_sheet: "Tohle není odkaz na tabulku Google. Otevřete tabulku a zkopírujte odkaz z prohlížeče."
     guide:
         title: "Jak musí tabulka vypadat"
     sources:
@@ -13571,6 +13585,7 @@ results_import:
         unreadable_tabs: "Tyto záložky nám Google tentokrát nedal - zkuste to za chvíli znovu:"
         no_events: "V tabulce jsme nenašli žádné události."
     list:
+        from_previous_sheet: "Z vaší předchozí tabulky - má datum a název události importované dříve, takže import aktualizuje tuto událost a nepřidá novou."
         heading: "Události ve vaší tabulce"
         tab: "Záložka „%tab%“"
         teams: "{1}%count% tým|[2,4]%count% týmy|[0,Inf[%count% týmů"
@@ -13592,6 +13607,8 @@ results_import:
         needs_fixing: "Opravte to v tabulce a zkontrolujte ji znovu - do té doby se z této události nic neimportuje."
         event_deleted: "Událost vytvořená z této záložky byla na MySpeedPuzzling smazána - znovu se nevytvoří."
     note:
+        matches_several_imported_events: "Tato událost je ve vaší tabulce a z vaší předchozí tabulky byly importovány %detail% události se stejným datem a názvem - jednu z nich přejmenujte, ať víme, o kterou jde."
+        shares_imported_event: "Jiná událost ve vaší tabulce má stejné datum a název a obě odpovídají jedné importované události - jednu z nich přejmenujte."
         row: "řádek %line%"
         missing_column: "Chybí sloupec „%detail%“."
         missing_event_field: "„%detail%“ je v řádku 2 prázdné."

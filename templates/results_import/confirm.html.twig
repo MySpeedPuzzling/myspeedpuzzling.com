@@ -40,6 +40,9 @@
                             {%- if item.status.value == 'changed' %} · {{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}{% endif -%}
                             {%- if item.warnings is not empty %} · <span class="text-warning-emphasis">{{ 'results_import.list.warnings'|trans({'%count%': item.warnings|length}) }}</span>{% endif -%}
                         </div>
+                        {% if item.previousSheetKey is not null %}
+                            <div class="small" data-results-import-previous-sheet>{{ 'results_import.list.from_previous_sheet'|trans }}</div>
+                        {% endif %}
                     </div>
                     <a class="small" href="{{ path('results_import_event', {slug: organization.slug, sourceId: source_id, eventKey: item.event.key, check: overview.checkId}) }}">{{ 'results_import.list.preview'|trans }}</a>
                 </li>

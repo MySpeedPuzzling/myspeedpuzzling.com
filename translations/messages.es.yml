@@ -13550,6 +13550,20 @@ results_import:
         try_again: "No ha funcionado. Inténtalo de nuevo."
         newer_check: "Tu hoja se ha vuelto a revisar mientras tanto: mira la última revisión y vuelve a marcar."
         nothing_ticked: "Marca al menos un evento para importar."
+    sheet:
+        heading: "Tu hoja"
+        open: "Abrir en Hojas de cálculo de Google"
+        change: "Cambiar hoja"
+        label: "Enlace a tu hoja de Google"
+        hint: "Pega el enlace de tu navegador con la hoja abierta. Debe estar compartida como «Cualquier persona con el enlace: Lector». La leemos una vez para comprobarla y después mostramos aquí sus eventos; los eventos que ya importaste se mantienen."
+        button: "Usar esta hoja"
+        flash:
+            changed: "Tu hoja ha cambiado: estos son sus eventos."
+            same: "Esta ya es tu hoja."
+            taken: "Esta hoja ya se usa para otra importación de resultados. Escríbenos si es tuya."
+            unreadable: "No hemos podido leer esta hoja. Compártela como «Cualquier persona con el enlace: Lector» e inténtalo de nuevo. Tu hoja sigue como estaba."
+            published: "Es un enlace de «Publicar en la Web». Abre la hoja y copia el enlace de tu navegador."
+            not_a_sheet: "No es un enlace a una hoja de Google. Abre la hoja y copia el enlace de tu navegador."
     guide:
         title: "Cómo debe ser tu hoja"
     sources:
@@ -13569,6 +13583,7 @@ results_import:
         unreadable_tabs: "Google no nos dio estas pestañas esta vez; vuelve a revisar en un momento:"
         no_events: "No encontramos eventos en la hoja."
     list:
+        from_previous_sheet: "De tu hoja anterior: tiene la fecha y el nombre de un evento ya importado, así que al importarlo se actualiza ese evento en lugar de añadir uno nuevo."
         heading: "Eventos de tu hoja"
         tab: "Pestaña «%tab%»"
         teams: "%count% equipo|%count% equipos"
@@ -13590,6 +13605,8 @@ results_import:
         needs_fixing: "Corrígelo en tu hoja y vuelve a revisar; hasta entonces no se importa nada de este evento."
         event_deleted: "El evento creado a partir de esta pestaña se eliminó en MySpeedPuzzling; no se vuelve a crear."
     note:
+        matches_several_imported_events: "Este evento está en tu hoja y desde tu hoja anterior se importaron %detail% eventos con la misma fecha y el mismo nombre. Cambia el nombre de uno para que sepamos cuál es."
+        shares_imported_event: "Otro evento de tu hoja tiene la misma fecha y el mismo nombre, y ambos coinciden con un evento importado. Cambia el nombre de uno de ellos."
         row: "fila %line%"
         missing_column: "Falta la columna «%detail%»."
         missing_event_field: "«%detail%» está vacío en la fila 2."

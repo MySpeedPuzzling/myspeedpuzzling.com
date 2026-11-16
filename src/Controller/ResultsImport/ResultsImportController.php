@@ -20,7 +20,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * The results import page of one results source (docs/features/event-results-import/results-import-page.md): "Check
  * sheet", then every event of the latest check with its status against what is stored - New and Changed ones ticked
  * for "Import" -, the tabs Google did not give us, the result of an import just made (`?import=`, with links to each
- * event's results), the latest imports and the format's guide. Nothing is read from Google here - only the stored check.
+ * event's results), the latest imports, the format's guide and "Your sheet" (open it, or change it -
+ * ChangeResultsSourceSheetController). Nothing is read from Google here - only the stored check.
  */
 final class ResultsImportController extends AbstractController
 {
@@ -72,6 +73,7 @@ final class ResultsImportController extends AbstractController
         $response = $this->render('results_import/page.html.twig', [
             'organization' => $organization,
             'source_id' => $source->id->toString(),
+            'spreadsheet_id' => $source->spreadsheetId,
             'format' => $this->formats->get($source->format),
             'overview' => $check !== null ? $this->comparison->compare($source, $check) : null,
             'history' => array_values(array_filter($history, static fn (ResultsImportLog $log): bool => $log !== $justImported)),

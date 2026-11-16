@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\ResultsImportScenario;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -32,7 +31,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class ResultsImportFlowTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use ResultsImportScenario;
 
     private const string SLUG = OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
@@ -47,12 +45,6 @@ final class ResultsImportFlowTest extends WebTestCase
         $this->browser->disableReboot();
         $this->source = $this->createResultsSource(self::getContainer());
         $this->fakeGoogle(self::getContainer());
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-        parent::tearDown();
     }
 
     private function pageUrl(): string
@@ -240,22 +232,12 @@ final class ResultsImportFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testAGuestIsAskedToSignInAndTheKillSwitchHidesImporting(): void
+    public function testAGuestIsAskedToSignIn(): void
     {
         foreach (['GET', 'POST'] as $method) {
             $this->browser->request($method, $this->pageUrl() . '/import');
             self::assertResponseRedirects();
             self::assertStringContainsString('/login', (string) $this->browser->getResponse()->headers->get('Location'));
-        }
-
-        self::ensureKernelShutdown();
-        $this->overrideFeatureFlagEnv('RESULTS_IMPORT_PAGE', false);
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-
-        foreach (['GET', 'POST'] as $method) {
-            $browser->request($method, $this->pageUrl() . '/import');
-            self::assertResponseStatusCodeSame(404);
         }
     }
 

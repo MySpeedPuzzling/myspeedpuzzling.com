@@ -32,6 +32,11 @@
         </div>
         <h1 class="h3 mb-2 text-break">{{ event.eventName ?? event.title }}</h1>
         <p class="small text-muted mb-3">{{ ('results_import.status_hint.' ~ item.status.value)|trans }}</p>
+        {% if item.previousSheetKey is not null %}
+            <p class="small mb-3" data-results-import-previous-sheet>
+                <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'results_import.list.from_previous_sheet'|trans }}
+            </p>
+        {% endif %}
 
         {% if item.blockers is not empty %}
             <div class="alert alert-danger" role="alert" data-results-import-blockers>

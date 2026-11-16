@@ -28,6 +28,9 @@ readonly final class ResultsImportEvent
         public array $warnings,
         public array $eventChanges,
         public array $teamChanges,
+        // Matched to the event imported from the organizer's previous sheet under this key (same date and name) -
+        // $stored is that event; importing moves it to this event's key (PreviousSheetEvents)
+        public null|string $previousSheetKey = null,
     ) {
     }
 

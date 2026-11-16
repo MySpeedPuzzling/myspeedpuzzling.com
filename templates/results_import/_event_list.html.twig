@@ -42,6 +42,12 @@
                                 {%- if item.status.value == 'changed' and item.changedTeamCount > 0 %} · <span class="text-nowrap">{{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}</span>{% endif -%}
                             </div>
 
+                            {% if item.previousSheetKey is not null %}
+                                <p class="small mb-0 mt-1" data-results-import-previous-sheet>
+                                    <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'results_import.list.from_previous_sheet'|trans }}
+                                </p>
+                            {% endif %}
+
                             {% if item.blockers is not empty %}
                                 <ul class="small mb-0 mt-2 ps-3 text-danger-emphasis" data-results-import-blockers>
                                     {% for note in item.blockers %}

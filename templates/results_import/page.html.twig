@@ -5,7 +5,9 @@
     sheet", the result of an import just made, the latest check's events with their status against what is stored (each
     links to its preview; New and Changed ticked for "Import"), the tabs Google did not give us, the latest imports and
     how the sheet must look (the format's guide). For the organization's team and admins.
-    Variables: organization (OrganizationDetail), source_id, format (ResultsFormat), overview (null|ResultsImportOverview),
+    "Your sheet" opens the source's spreadsheet in Google and changes it (results-import-page.md "As built: PR 4").
+    Variables: organization (OrganizationDetail), source_id, spreadsheet_id, format (ResultsFormat),
+    overview (null|ResultsImportOverview),
     history (list<ResultsImportLog>), just_imported (null|ResultsImportLog), event_links
 #}
 
@@ -29,6 +31,25 @@
         {% if just_imported %}
             {{ include('results_import/_import_result.html.twig', {log: just_imported}) }}
         {% endif %}
+
+        <div class="card card-body shadow-sm mb-3" id="your-sheet" data-results-import-sheet>
+            <h2 class="h6 mb-1">{{ 'results_import.sheet.heading'|trans }}</h2>
+            <p class="small mb-2">
+                <a href="https://docs.google.com/spreadsheets/d/{{ spreadsheet_id|url_encode }}/edit" target="_blank" rel="noopener noreferrer" class="text-break" data-results-import-sheet-link>
+                    <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>{{ 'results_import.sheet.open'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                </a>
+            </p>
+            <details data-results-import-sheet-change>
+                <summary class="small fw-medium">{{ 'results_import.sheet.change'|trans }}</summary>
+                <form method="post" action="{{ path('results_import_sheet', {slug: organization.slug, sourceId: source_id}) }}" class="mt-2" data-results-import-sheet-form>
+                    <input type="hidden" name="_token" value="{{ csrf_token('results_import_sheet_' ~ source_id) }}">
+                    <label for="results-import-sheet-input" class="form-label small fw-medium mb-1">{{ 'results_import.sheet.label'|trans }}</label>
+                    <input type="text" class="form-control" id="results-import-sheet-input" name="spreadsheet" required maxlength="2000" autocomplete="off" inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/…" aria-describedby="results-import-sheet-hint">
+                    <p class="form-text small mb-2" id="results-import-sheet-hint">{{ 'results_import.sheet.hint'|trans }}</p>
+                    <button type="submit" class="btn btn-outline-primary btn-sm" data-results-import-sheet-button>{{ 'results_import.sheet.button'|trans }}</button>
+                </form>
+            </details>
+        </div>
 
         <div class="card card-body shadow-sm mb-4" data-results-import-check>
             <div class="d-flex flex-wrap align-items-center gap-3">

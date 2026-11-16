@@ -13,10 +13,11 @@ use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
-use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -323,9 +324,9 @@ final class ApplyEventResultsTabHandlerTest extends KernelTestCase
 
     private function apply(string ...$rows): void
     {
-        $tab = (new SarahDoesPuzzlesTabParser())->parse(implode("\n", [self::HEADER, ...$rows]));
+        $event = new SarahDoesPuzzlesFormat()->parseTab(new SheetSnapshotTab(self::GID, 'Maple Street 10/5', implode("\n", [self::HEADER, ...$rows])));
 
-        $this->messageBus->dispatch(new ApplyEventResultsTab($this->sheetId, self::GID, 'Maple Street 10/5', $tab));
+        $this->messageBus->dispatch(new ApplyEventResultsTab($this->sheetId, $event));
         $this->entityManager->clear();
     }
 

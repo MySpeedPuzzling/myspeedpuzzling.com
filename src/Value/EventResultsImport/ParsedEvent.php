@@ -8,16 +8,22 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 /**
- * One tab of an organizer's results sheet, read and checked (docs/features/event-results-import/README.md "Format").
- * Whether the linked puzzle exists is for the import to find out - here a link is only a well-formed one.
+ * One event of an organizer's results source, read and checked by the source's format - the neutral model every format
+ * gives the shared import (docs/features/event-results-import/results-import-page.md "Three layers"). Whether the
+ * linked puzzle exists is for the import to find out - here a link is only a well-formed one.
  */
-readonly final class ParsedEventTab
+readonly final class ParsedEvent
 {
     /**
      * @param list<ParsedEventRow> $rows
      * @param list<EventTabProblem> $problems
      */
     public function __construct(
+        // The event's identity across reads, chosen by the format (Sarah Does Puzzles: the tab's gid, which survives a
+        // rename of the tab) - a re-import matches by it. At most 20 characters (event_results_sheet_tab.gid)
+        public string $key,
+        // What the organizer calls it in their sheet (the tab's name) - shown with its problems
+        public string $title,
         public null|string $eventName,
         public null|string $location,
         public null|string $cityAndState,
@@ -31,7 +37,8 @@ readonly final class ParsedEventTab
         public null|string $puzzleId,
         public array $rows,
         public array $problems,
-        // Changes only when something the import reads changes - an unchanged tab is not applied again
+        // Changes only when something the import reads changes - an unchanged event is not applied again. The format's
+        // own: never of the key or the title, and never recomputed another way (stored hashes would all differ)
         public string $contentHash,
     ) {
     }

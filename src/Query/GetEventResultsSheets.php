@@ -41,9 +41,9 @@ readonly final class GetEventResultsSheets
      */
     private function sheets(null|string $sheetId): array
     {
-        /** @var list<array{id: string, spreadsheet_id: string, organization_id: string, acting_player_id: string, timezone: string, country_code: string, added_at: string, last_fetched_at: null|string, last_fetch_error: null|string}> $sheets */
+        /** @var list<array{id: string, spreadsheet_id: string, organization_id: string, acting_player_id: string, timezone: string, country_code: string, format: string, added_at: string, last_fetched_at: null|string, last_fetch_error: null|string}> $sheets */
         $sheets = $this->database->fetchAllAssociative(
-            'SELECT id, spreadsheet_id, organization_id, acting_player_id, timezone, country_code, added_at, last_fetched_at, last_fetch_error
+            'SELECT id, spreadsheet_id, organization_id, acting_player_id, timezone, country_code, format, added_at, last_fetched_at, last_fetch_error
              FROM event_results_sheet
              WHERE CAST(:sheetId AS UUID) IS NULL OR id = CAST(:sheetId AS UUID)
              ORDER BY added_at, id',
@@ -87,6 +87,7 @@ readonly final class GetEventResultsSheets
             'actingPlayerId' => $sheet['acting_player_id'],
             'timezone' => $sheet['timezone'],
             'countryCode' => $sheet['country_code'],
+            'format' => $sheet['format'],
             'addedAt' => $sheet['added_at'],
             'lastFetchedAt' => $sheet['last_fetched_at'],
             'lastFetchError' => $sheet['last_fetch_error'],

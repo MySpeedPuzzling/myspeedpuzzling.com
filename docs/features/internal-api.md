@@ -1410,14 +1410,16 @@ both venue series, the redirects of the old addresses).
 
 ### Event results sheets
 
-An organizer's results spreadsheet, read on demand (no cron); every tab becomes a one-time event of the organization with one
-nobody's result per team until the puzzlers claim their spots (`docs/features/event-results-import/README.md`). The
-sheet must be shared "Anyone with the link: Viewer". The spreadsheet id lives in the database only - never in the repo.
+An organization's results source: its results spreadsheet and the **format** it is written in, read on demand (no
+cron). The format decides which events the sheet holds (`sarah_does_puzzles`: every tab one one-time event of the
+organization); each event gets one nobody's result per team until the puzzlers claim their spots
+(`docs/features/event-results-import/README.md`, `results-import-page.md`). The sheet must be shared "Anyone with the
+link: Viewer". The spreadsheet id lives in the database only - never in the repo.
 
 | Method | Path | What |
 |---|---|---|
-| `GET` | `/internal-api/event-results-sheets` | every sheet with what became of each tab: `status` (`imported` / `waiting_for_puzzle` / `problem` / `detached`), `problems` (`code`, `detail`, `line`), `competitionId`, `results` |
-| `POST` | `/internal-api/event-results-sheets` | register a sheet: `spreadsheet` (its link or id), `organizationId`, `actingPlayerId` (somebody on the organization's team - the events are created as them, 422 otherwise), `timezone` of the sheet's start times (`America/Chicago`), optional `countryCode` (the organization's). `201` + the sheet; `409` when it is registered already |
+| `GET` | `/internal-api/event-results-sheets` | every sheet with its `format` and what became of each tab (`gid` = the event's stable key, Sarah's format: the tab's gid): `status` (`imported` / `waiting_for_puzzle` / `problem` / `detached`), `problems` (`code`, `detail`, `line`), `competitionId`, `results` |
+| `POST` | `/internal-api/event-results-sheets` | register a sheet: `spreadsheet` (its link or id), `organizationId`, `actingPlayerId` (somebody on the organization's team - the events are created as them, 422 otherwise), `timezone` of the sheet's start times (`America/Chicago`), optional `countryCode` (the organization's), optional `format` (a known format's key, `sarah_does_puzzles` when left out - `400` for an unknown one). `201` + the sheet; `409` when it is registered already |
 | `POST` | `/internal-api/event-results-sheets/{id}/sync` | read it now (the import runs only on demand); answers the sheet with its tabs |
 
 ```bash
@@ -1425,12 +1427,14 @@ curl -s -X POST "$API/event-results-sheets" -H "$AUTH" -H 'Content-Type: applica
   "spreadsheet": "https://docs.google.com/spreadsheets/d/<id>/edit",
   "organizationId": "<organization id>",
   "actingPlayerId": "<player on its team>",
-  "timezone": "America/Chicago"
+  "timezone": "America/Chicago",
+  "format": "sarah_does_puzzles"
 }'
 ```
 
-Before the first sync on production: `myspeedpuzzling:sync-sarah-does-puzzles-results --dry-run` says what every tab would
-become and writes nothing.
+The same from the console: `myspeedpuzzling:sync-results-source [<sourceId>] [--dry-run]` (no id = every source);
+`--dry-run` reads the sheet through its format, says what every event would become and writes nothing - run it before
+the first sync on production.
 
 ### Examples
 

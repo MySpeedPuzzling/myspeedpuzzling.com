@@ -13524,3 +13524,10 @@ unfinished_result:
         pieces_invalid: "1〜%max% のピース数を入力してください。"
         total_within_limit: "%time% は制限時間 %minutes% 分以内です。時間切れで終了した場合は時間を空欄にし、時間内に完成した場合は「制限時間内に完成できなかった」をオフにしてください。"
         needs_round: "制限時間内に完成できなかった記録には、制限時間のある競技ラウンドが必要です。このイベントには、このパズルとこの人数に該当するラウンドがありません。"
+results_import:
+    format_guide:
+        sarah_does_puzzles:
+            intro: "シートの各タブが1つのイベントです。1行目に列名、2行目にイベントと最初のチーム、それ以降の各行にチームを1つずつ記入します。"
+            event_columns: "イベント（2行目）：Contest Name、Location、City and State、Date、Competition Type（Pairs または Teams）、そして Link to MySpeedPuzzling に MySpeedPuzzling のパズルページ。Start time と Time limit は任意です。"
+            team_columns: "各チーム：Name、Team Size、Time（h:mm:ss）。制限時間内に完成しなかったチームは、タイムの代わりに Pieces placed を記入します。その場合、タブには Time limit が必要です。"
+            example: "例"

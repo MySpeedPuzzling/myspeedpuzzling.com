@@ -1,0 +1,61 @@
+{# How Sarah Does Puzzles' results sheet must look (SarahDoesPuzzlesFormat::guideTemplate()) - shown on the results
+   import page. The column names are the sheet's own, never translated. Made-up event and teams. #}
+<div class="results-import-format-guide">
+    <p>{{ 'results_import.format_guide.sarah_does_puzzles.intro'|trans }}</p>
+    <ul>
+        <li>{{ 'results_import.format_guide.sarah_does_puzzles.event_columns'|trans }}</li>
+        <li>{{ 'results_import.format_guide.sarah_does_puzzles.team_columns'|trans }}</li>
+    </ul>
+
+    <p class="fw-semibold mb-1">{{ 'results_import.format_guide.sarah_does_puzzles.example'|trans }}</p>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered small mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Time</th>
+                    <th>Team Size</th>
+                    <th>Pieces placed</th>
+                    <th>Contest Name</th>
+                    <th>Location</th>
+                    <th>City and State</th>
+                    <th>Date</th>
+                    <th>Start time</th>
+                    <th>Time limit</th>
+                    <th>Competition Type</th>
+                    <th>Link to MySpeedPuzzling</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Puzzle Pals</td>
+                    <td>1:10:13</td>
+                    <td>4</td>
+                    <td></td>
+                    <td>Maple Street Puzzle Night</td>
+                    <td>Maple Street Taproom</td>
+                    <td>Springfield, MN</td>
+                    <td>10/5/26</td>
+                    <td>7:00 PM</td>
+                    <td>120</td>
+                    <td>Teams</td>
+                    <td>https://myspeedpuzzling.com/en/puzzle/…</td>
+                </tr>
+                <tr>
+                    <td>Edge Lords</td>
+                    <td>1:12:04</td>
+                    <td>3</td>
+                    <td></td>
+                    <td colspan="8"></td>
+                </tr>
+                <tr>
+                    <td>Out of Time</td>
+                    <td></td>
+                    <td>4</td>
+                    <td>412</td>
+                    <td colspan="8"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

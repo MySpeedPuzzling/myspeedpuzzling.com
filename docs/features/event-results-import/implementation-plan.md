@@ -9,6 +9,11 @@ visible: no unfinished and no trackerless row exists before phase 3.
   [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) "Refined 2026-11-16". Its step 3
   (2026-11-16) makes the import write unfinished teams ("Pieces placed" with a `Time limit`) - `unfinished_not_supported_yet`
   is gone; README "Unfinished results (D9)".
+- **2026-11-16, results import page PR 1 (generalise the core):** the parser is Sarah's format behind the
+  `ResultsFormat` interface (`SarahDoesPuzzlesFormat`, a snapshot of the sheet → `ParsedEvent`s with a stable key = the
+  tab's gid), `event_results_sheet.format`, the generic `myspeedpuzzling:sync-results-source` replaces the Sarah command -
+  [results-import-page.md](results-import-page.md) "Delivery". Same behaviour and the same content hashes
+  (`EventResultsImportParityTest`).
 - History below as of 2026-11-12.
 
 - **Order changed:** trackerless times (phase 2) and the import (phase 3) first; unfinished results (phases 1 + 5) become
@@ -99,7 +104,7 @@ From the audit of 2026-10-30 (174 readers of `puzzle_solving_time`). No row exis
    `SolvingTimeSource::EventImport`.
 2. `GoogleSheetReader` (`src/Services/EventResultsImport/`): `htmlview` → gids + titles, CSV per gid; bounded
    timeouts, a failure = `last_fetch_error` + one warning per change. Pure parser `SarahDoesPuzzlesTabParser` →
-   `ParsedEventTab` (event fields, rows, problems) - unit-tested on made-up CSVs, including the shapes seen in the
+   `ParsedEventTab` (event fields, rows, problems; since 2026-11-16 `SarahDoesPuzzlesFormat` → `ParsedEvent`) - unit-tested on made-up CSVs, including the shapes seen in the
    first organizer's sheet (`1:10:13` and `24:48`, `team Size`, trailing spaces, rows not in time order).
 3. Messages: `SyncEventResultsSheet` (`HandledOutsideTransaction`: fetch + parse only) → `ApplyEventResultsTab` per
    changed tab (own transaction, `SerializedByLock` on the tab):
@@ -112,7 +117,8 @@ From the audit of 2026-10-30 (174 readers of `puzzle_solving_time`). No row exis
      row, untouched), delete a removed unclaimed row through `PuzzleSolvingTimeRepository::delete()`, keep a removed
      claimed row (warning);
    - a changed puzzle link moves the tab's times (`moveToPuzzle()`).
-4. Console command `myspeedpuzzling:sync-sarah-does-puzzles-results [--sheet=] [--dry-run]` dispatches only. **No cron**
+4. Console command `myspeedpuzzling:sync-sarah-does-puzzles-results [--sheet=] [--dry-run]` (since 2026-11-16
+   `myspeedpuzzling:sync-results-source [<sourceId>] [--dry-run]`) dispatches only. **No cron**
    (Jan, 2026-11-13): run on demand when the organizer says the sheet changed, or `POST …/{id}/sync`.
 5. Internal API: `GET|POST /internal-api/event-results-sheets`, `DELETE …/{id}`, `GET …/{id}/tabs` (statuses and
    problems), `POST …/{id}/sync`. OpenAPI + `internal-api.md`.

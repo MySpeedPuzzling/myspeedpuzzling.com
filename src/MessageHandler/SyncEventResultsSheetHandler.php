@@ -10,23 +10,22 @@ use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\RecordEventResultsSheetFetch;
 use SpeedPuzzling\Web\Message\SyncEventResultsSheet;
 use SpeedPuzzling\Web\Repository\EventResultsSheetRepository;
-use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
-use SpeedPuzzling\Web\Services\EventResultsImport\GoogleSheetReader;
+use SpeedPuzzling\Web\Services\EventResultsImport\ResultsSourceReader;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * Reads and dispatches only - outside a transaction while Google answers (HandledOutsideTransaction); every tab is
- * applied by ApplyEventResultsTab in a transaction of its own, so one broken tab never holds back the others. A tab
- * that disappeared from the sheet is left as it is: its event and results stay.
+ * Reads and dispatches only - outside a transaction while Google answers (HandledOutsideTransaction). The source's
+ * format makes the events of the sheet; every event is applied by ApplyEventResultsTab in a transaction of its own, so
+ * one broken tab never holds back the others. A tab that disappeared from the sheet is left as it is: its event and
+ * results stay.
  */
 #[AsMessageHandler]
 readonly final class SyncEventResultsSheetHandler
 {
     public function __construct(
         private EventResultsSheetRepository $sheetRepository,
-        private GoogleSheetReader $reader,
-        private SarahDoesPuzzlesTabParser $parser,
+        private ResultsSourceReader $sourceReader,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
     ) {
@@ -40,23 +39,19 @@ readonly final class SyncEventResultsSheetHandler
         $errors = [];
 
         try {
-            $tabs = $this->reader->tabs($spreadsheetId);
+            $read = $this->sourceReader->read($spreadsheetId, $sheet->format);
         } catch (GoogleSheetUnreadable $e) {
             $this->recordFetch($message->sheetId, $e->getMessage(), $previousError, $e);
 
             return;
         }
 
-        foreach ($tabs as $tab) {
-            try {
-                $csv = $this->reader->csv($spreadsheetId, $tab->gid);
-            } catch (GoogleSheetUnreadable $e) {
-                $errors[] = sprintf('Tab "%s": %s', $tab->title, $e->getMessage());
+        foreach ($read->snapshot->unreadableTabs as $tab) {
+            $errors[] = sprintf('Tab "%s": %s', $tab->title, $tab->reason);
+        }
 
-                continue;
-            }
-
-            $this->messageBus->dispatch(new ApplyEventResultsTab($message->sheetId, $tab->gid, $tab->title, $this->parser->parse($csv)));
+        foreach ($read->events as $event) {
+            $this->messageBus->dispatch(new ApplyEventResultsTab($message->sheetId, $event));
         }
 
         $this->recordFetch($message->sheetId, $errors === [] ? null : implode("\n", $errors), $previousError);

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\EventResultsImport;
 
 use SpeedPuzzling\Web\Exceptions\GoogleSheetUnreadable;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshot;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
 use SpeedPuzzling\Web\Value\EventResultsImport\SheetTab;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnreadableSheetTab;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -25,6 +28,27 @@ readonly final class GoogleSheetReader
     public function __construct(
         private HttpClientInterface $client,
     ) {
+    }
+
+    /**
+     * Every tab with its CSV. A tab whose CSV does not come is kept aside as unreadable - the others are read anyway.
+     *
+     * @throws GoogleSheetUnreadable when the sheet's tabs cannot be listed
+     */
+    public function snapshot(string $spreadsheetId): SheetSnapshot
+    {
+        $tabs = [];
+        $unreadable = [];
+
+        foreach ($this->tabs($spreadsheetId) as $tab) {
+            try {
+                $tabs[] = new SheetSnapshotTab($tab->gid, $tab->title, $this->csv($spreadsheetId, $tab->gid));
+            } catch (GoogleSheetUnreadable $e) {
+                $unreadable[] = new UnreadableSheetTab($tab->gid, $tab->title, $e->getMessage());
+            }
+        }
+
+        return new SheetSnapshot($tabs, $unreadable);
     }
 
     /**

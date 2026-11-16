@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Services\EventResultsImport;
+namespace SpeedPuzzling\Web\Services\EventResultsImport\Format;
 
 use DateTimeImmutable;
 use DateTimeZone;
@@ -12,17 +12,22 @@ use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventRow;
-use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshot;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
+use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\SearchText;
 
 /**
- * Reads one tab of Sarah Does Puzzles' results sheet - Google's CSV export of it, in the format agreed with her - into
- * an event and its teams (docs/features/event-results-import/README.md "Format"). Pure: no database, no clock. Row 2 carries the event,
- * every row a team; a wrong event field keeps the whole tab out, a wrong row is skipped.
+ * Sarah Does Puzzles' results sheet, in the format agreed with her (docs/features/event-results-import/README.md
+ * "Format"): every tab is one event, keyed by the tab's gid (survives a rename of the tab). Each tab - Google's CSV
+ * export of it - becomes an event and its teams. Pure: no database, no clock. Row 2 carries the event, every row a
+ * team; a wrong event field keeps the whole tab out, a wrong row is skipped.
  */
-final class SarahDoesPuzzlesTabParser
+final class SarahDoesPuzzlesFormat implements ResultsFormat
 {
+    public const string KEY = 'sarah_does_puzzles';
+
     private const string NAME = 'name';
     private const string TIME = 'time';
     private const string TEAM_SIZE = 'team size';
@@ -51,14 +56,37 @@ final class SarahDoesPuzzlesTabParser
 
     private const int MAX_TEAM_SIZE = 20;
 
-    // The wall clock of an event whose sheet gives only its day (ParsedEventTab::$startTimeKnown = false)
+    // The wall clock of an event whose sheet gives only its day (ParsedEvent::$startTimeKnown = false)
     private const string UNKNOWN_START_TIME = '12:00';
 
     private const string PUZZLE_LINK_PATTERN = '~^https?://(?:www\.)?myspeedpuzzling\.com/(?:[a-z]{2}/)?puzzle/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#].*)?$~i';
 
-    public function parse(string $csv): ParsedEventTab
+    public function key(): string
     {
-        $records = $this->records($csv);
+        return self::KEY;
+    }
+
+    public function name(): string
+    {
+        return 'Sarah Does Puzzles';
+    }
+
+    public function guideTemplate(): string
+    {
+        return 'results_import/format_guide/sarah_does_puzzles.html.twig';
+    }
+
+    /**
+     * One event per tab, in the sheet's order.
+     */
+    public function parse(SheetSnapshot $sheet): array
+    {
+        return array_map($this->parseTab(...), $sheet->tabs);
+    }
+
+    public function parseTab(SheetSnapshotTab $sheetTab): ParsedEvent
+    {
+        $records = $this->records($sheetTab->csv);
         $problems = [];
 
         $columns = $this->columns($records[0] ?? []);
@@ -70,7 +98,7 @@ final class SarahDoesPuzzlesTabParser
         }
 
         if ($problems !== []) {
-            return $this->tab(null, null, null, null, false, null, null, null, [], $problems);
+            return $this->tab($sheetTab, null, null, null, null, false, null, null, null, [], $problems);
         }
 
         /** @var list<array{int, array<int, string>}> $dataRecords line + cells, empty rows left out */
@@ -83,7 +111,7 @@ final class SarahDoesPuzzlesTabParser
         }
 
         if ($dataRecords === []) {
-            return $this->tab(null, null, null, null, false, null, null, null, [], [new EventTabProblem(EventTabProblemCode::NoTeams)]);
+            return $this->tab($sheetTab, null, null, null, null, false, null, null, null, [], [new EventTabProblem(EventTabProblemCode::NoTeams)]);
         }
 
         $eventCells = $dataRecords[0][1];
@@ -175,7 +203,7 @@ final class SarahDoesPuzzlesTabParser
             $problems[] = new EventTabProblem(EventTabProblemCode::NoTeams);
         }
 
-        return $this->tab($eventName, $location, $cityAndState, $localStartsAt, $startTime !== null, $timeLimit, $category, $puzzleId, $rows, $problems);
+        return $this->tab($sheetTab, $eventName, $location, $cityAndState, $localStartsAt, $startTime !== null, $timeLimit, $category, $puzzleId, $rows, $problems);
     }
 
     /**
@@ -312,6 +340,7 @@ final class SarahDoesPuzzlesTabParser
      * @param list<EventTabProblem> $problems
      */
     private function tab(
+        SheetSnapshotTab $sheetTab,
         null|string $eventName,
         null|string $location,
         null|string $cityAndState,
@@ -322,7 +351,7 @@ final class SarahDoesPuzzlesTabParser
         null|string $puzzleId,
         array $rows,
         array $problems,
-    ): ParsedEventTab {
+    ): ParsedEvent {
         $eventName = $eventName === '' ? null : $eventName;
         $location = $location === '' ? null : $location;
         $cityAndState = $cityAndState === '' ? null : $cityAndState;
@@ -343,7 +372,7 @@ final class SarahDoesPuzzlesTabParser
             array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
         ]));
 
-        return new ParsedEventTab($eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
+        return new ParsedEvent($sheetTab->gid, $sheetTab->title, $eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
     }
 
     /**

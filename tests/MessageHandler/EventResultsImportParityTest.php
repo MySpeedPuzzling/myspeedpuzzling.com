@@ -17,13 +17,15 @@ use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\SyncEventResultsSheet;
 use SpeedPuzzling\Web\Services\EventResultsImport\GoogleSheetReader;
-use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshot;
+use SpeedPuzzling\Web\Value\EventResultsImport\SheetSnapshotTab;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -267,12 +269,28 @@ final class EventResultsImportParityTest extends KernelTestCase
         ];
     }
 
-    #[DataProvider('sheetTabs')]
-    public function testEveryTabParsesExactlyAsBefore(string $csv): void
+    /**
+     * @return array<string, array{string, null|array<string, mixed>}>
+     */
+    public static function sheetTabsWithWhatTheyGaveBefore(): array
     {
-        $name = $this->dataName();
-        self::assertIsString($name);
-        $expected = self::expectedParses()[$name] ?? null;
+        $expected = self::expectedParses();
+        $cases = [];
+
+        foreach (self::sheetTabs() as $name => [$csv]) {
+            $cases[$name] = [$csv, $expected[$name] ?? null];
+        }
+
+        return $cases;
+    }
+
+    /**
+     * @param null|array<string, mixed> $expected
+     */
+    #[DataProvider('sheetTabsWithWhatTheyGaveBefore')]
+    public function testEveryTabParsesExactlyAsBefore(string $csv, null|array $expected): void
+    {
+        self::assertNotNull($expected, 'Every case has its captured outcome');
 
         $parsed = self::parse('101', 'Some tab', $csv);
         $actual = [
@@ -327,8 +345,8 @@ final class EventResultsImportParityTest extends KernelTestCase
         self::assertIsArray($stored);
         self::assertSame('imported', $stored['status']);
         self::assertSame(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $stored['competition_id']);
-        self::assertSame('2026-11-13 12:00:00', substr((string) $stored['applied_at'], 0, 19), 'Not applied again');
-        self::assertSame(0, (int) $stored['results']);
+        self::assertSame('2026-11-13 12:00:00', substr(self::text($stored['applied_at']), 0, 19), 'Not applied again');
+        self::assertSame(0, $stored['results']);
     }
 
     /**
@@ -336,7 +354,12 @@ final class EventResultsImportParityTest extends KernelTestCase
      */
     private static function parse(string $gid, string $title, string $csv): array
     {
-        $parsed = new SarahDoesPuzzlesTabParser()->parse($csv);
+        $events = new SarahDoesPuzzlesFormat()->parse(new SheetSnapshot([new SheetSnapshotTab($gid, $title, $csv)]));
+        self::assertCount(1, $events);
+        $parsed = $events[0];
+        // The tab's gid is the stable key - the stored tabs keep matching
+        self::assertSame($gid, $parsed->key);
+        self::assertSame($title, $parsed->title);
 
         return [
             'hash' => $parsed->contentHash,

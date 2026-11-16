@@ -14,10 +14,12 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Services\EventResultsImport\Format\SarahDoesPuzzlesFormat;
 
 /**
- * An organizer's results spreadsheet MySpeedPuzzling reads on a schedule (docs/features/event-results-import/README.md):
- * every tab becomes a one-time event of the organization. The spreadsheet id lives here only, never in the repo.
+ * An organization's results source (docs/features/event-results-import/README.md + results-import-page.md): its
+ * results spreadsheet and the format it is written in - the format decides which events the sheet holds (Sarah Does
+ * Puzzles: every tab one one-time event of the organization). The spreadsheet id lives here only, never in the repo.
  */
 #[Entity]
 class EventResultsSheet
@@ -60,6 +62,11 @@ class EventResultsSheet
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $addedAt,
+        // The key of the ResultsFormat the sheet is read with (ResultsFormats) - the sources registered before formats
+        // were all Sarah Does Puzzles' (the column default filled them)
+        #[Immutable]
+        #[Column(length: 50, options: ['default' => SarahDoesPuzzlesFormat::KEY])]
+        public string $format = SarahDoesPuzzlesFormat::KEY,
     ) {
     }
 

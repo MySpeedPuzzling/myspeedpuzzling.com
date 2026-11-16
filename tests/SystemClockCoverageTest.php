@@ -92,6 +92,7 @@ final class SystemClockCoverageTest extends TestCase
         'Panther/Extension/PantherDatabaseManager.php' => [['microtime('], 'microtime() as entropy for a database name, not as a time.'],
         'RelativeTimeParityTest.php' => [['\'now\''], 'The label "now" the relative-time formatter prints - an expected text, no clock read.'],
         'Services/Doctrine/MigrationLockTest.php' => [['microtime('], self::DURATION],
+        'Services/MercureHubTimeoutTest.php' => [['microtime('], self::DURATION],
         'MessageHandler/ReadImportFileLargeTest.php' => [['hrtime('], self::DURATION],
         'Services/Insights/InsightsBuilderTest.php' => [['hrtime('], self::DURATION],
         'Services/Insights/InsightsFramesBudgetTest.php' => [['hrtime('], self::DURATION],

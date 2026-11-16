@@ -1,0 +1,21 @@
+{#
+    An unfinished result - the pieces placed when a competition round's time ran out
+    (docs/features/competitions-management/unfinished-results-plan.md "Read side - tier 3"): "479 / 500 pcs", titled
+    "Didn't finish within the time limit", and "finished in 1:48:12" when they kept going. Shown where a list would show
+    a time - an unfinished result has none, and is never a relax solve.
+
+    Inputs:
+      - placed (int): pieces placed
+      - total (int): pieces of the puzzle
+      - finished_later (null|int, optional): seconds of the later finish
+      - stacked (bool, optional): "finished in …" on a line of its own under the pill (a time cell); inline otherwise
+#}
+{%- set finished_later = finished_later|default(null) -%}
+<span class="badge rounded-pill bg-light text-dark border unfinished-result-badge" title="{{ 'unfinished_result.title'|trans }}" data-testid="unfinished-result">
+    <i class="bi bi-hourglass-bottom" aria-hidden="true"></i> <span class="tabular-nums">{{ 'unfinished_result.pieces'|trans({'%placed%': placed|plain_number, '%total%': total|plain_number}) }}</span>
+    <span class="visually-hidden">({{ 'unfinished_result.title'|trans }})</span>
+</span>
+{%- if finished_later is not null -%}
+    {%- if stacked|default(false) %}<br>{% else %} {% endif -%}
+    <span class="text-muted fs-xs unfinished-result-later">{{ 'unfinished_result.finished_later'|trans({'%time%': finished_later|puzzlingTime}) }}</span>
+{%- endif -%}

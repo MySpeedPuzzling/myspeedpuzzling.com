@@ -49,7 +49,17 @@ readonly final class PuzzleResultAttempt
         public bool $importedFromEvent = false,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md): the pieces placed
+        // when the round's time ran out - $time is then null, and it is no relax solve
+        public null|int $piecesPlaced = null,
+        // Its total when they finished it afterwards - display only
+        public null|int $finishedLaterSeconds = null,
     ) {
+    }
+
+    public function isUnfinished(): bool
+    {
+        return $this->piecesPlaced !== null;
     }
 
     public function isEditableBy(null|string $playerId): bool
@@ -87,6 +97,8 @@ readonly final class PuzzleResultAttempt
             gapToBest: $gapToBest,
             importedFromEvent: $this->importedFromEvent,
             datePrecision: $this->datePrecision,
+            piecesPlaced: $this->piecesPlaced,
+            finishedLaterSeconds: $this->finishedLaterSeconds,
         );
     }
 }

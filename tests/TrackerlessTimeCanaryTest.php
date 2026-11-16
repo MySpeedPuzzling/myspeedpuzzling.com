@@ -51,6 +51,7 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
     use TrackerlessTimeSeeding;
+    use UnfinishedResultSeeding;
 
     private const string PUZZLE = PuzzleFixture::PUZZLE_1000_01;
     private const string PALS = 'Puzzle Pals';
@@ -135,6 +136,48 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
             $detail = $this->page('/en/result/' . $pals->id->toString());
             self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $detail);
             self::assertStringContainsString('>+3</span>', $detail);
+        }
+    }
+
+    /**
+     * An imported team that did not finish within the limit (docs/features/competitions-management/unfinished-results-plan.md):
+     * a bottom row of the puzzle page with its name, "4 puzzlers" and "This was my team" like a ranked imported row, its
+     * own row on the round's results and in the result detail - each anonymous team its own row.
+     */
+    public function testAnUnfinishedImportedTeamIsItsOwnBottomRowAndKeepsItsClaimButton(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE);
+        $this->seedTrackerlessTime($round, self::PUZZLE, self::PALS, 4000);
+        $crew = $this->seedUnfinishedImportedTeam($round, self::PUZZLE, self::CREW, 812);
+        $this->seedUnfinishedImportedTeam($round, self::PUZZLE, 'Edge Pieces', 640);
+
+        foreach ([null, PlayerFixture::PLAYER_WITH_STRIPE] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $teams = $this->createLiveComponent('PuzzleTimes', [
+                'puzzleId' => self::PUZZLE,
+                'piecesCount' => 1000,
+                'category' => 'group',
+            ], $this->browser);
+            $teams->setRouteLocale('en');
+            $html = $teams->render()->toString();
+            self::assertSame(2, substr_count($html, 'data-testid="unfinished-row"'), 'Two anonymous unfinished teams are two bottom rows.');
+            self::assertStringContainsString(self::CREW, $html);
+            self::assertStringContainsString('Edge Pieces', $html);
+            self::assertStringContainsString('812 / 1', $html);
+            self::assertSame(3, substr_count($html, 'data-testid="anonymous-team"'));
+            // A guest never gets the claim button; a signed-in player gets it on the ranked row and both bottom rows
+            self::assertSame($viewer === null ? 0 : 3, substr_count($html, 'data-testid="event-result-claim-button"'));
+
+            $roundPage = $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+            self::assertStringContainsString(self::CREW, $roundPage);
+            self::assertStringContainsString('812 / 1', $roundPage);
+
+            $detail = $this->page('/en/result/' . $crew->id->toString());
+            self::assertStringContainsString(self::CREW, $detail);
+            self::assertStringContainsString('812 / 1', $detail);
         }
     }
 

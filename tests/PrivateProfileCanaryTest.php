@@ -26,6 +26,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class PrivateProfileCanaryTest extends WebTestCase
 {
+    use UnfinishedResultSeeding;
+
     private const string OWNER = PlayerFixture::PLAYER_PRIVATE;
     private const string OWNER_NAME = 'Jane Smith';
     private const string FRIEND = PlayerFixture::PLAYER_WITH_FAVORITES;
@@ -39,8 +41,24 @@ final class PrivateProfileCanaryTest extends WebTestCase
     #[DataProvider('providePagesWhereFriendsSeeThePrivatePlayer')]
     public function testOnlyTheAllowedFriendSeesThePrivatePlayer(string $url, string $needle = self::OWNER_NAME): void
     {
-        $browser = self::createClient();
+        $this->assertOnlyTheFriendSees(self::createClient(), $url, $needle);
+    }
 
+    /**
+     * An unfinished result (docs/features/competitions-management/unfinished-results-plan.md) is a bottom row of the
+     * puzzle page - on a puzzle she has no time of, so the bottom row is the only place that could name her
+     */
+    public function testHerUnfinishedResultOnThePuzzlePageNamesHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $this->seedUnfinishedResult(self::OWNER, PuzzleFixture::PUZZLE_1500_01, 1234);
+
+        $this->assertOnlyTheFriendSees($browser, '/en/puzzle/' . PuzzleFixture::PUZZLE_1500_01, self::OWNER_NAME);
+        self::assertStringContainsString('data-testid="unfinished-row"', (string) $browser->getResponse()->getContent());
+    }
+
+    private function assertOnlyTheFriendSees(KernelBrowser $browser, string $url, string $needle): void
+    {
         self::assertStringNotContainsString($needle, $this->get($browser, $url), 'A guest is shown a private player.');
         self::assertStringContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'Guest pages stay shared-cacheable.');
 

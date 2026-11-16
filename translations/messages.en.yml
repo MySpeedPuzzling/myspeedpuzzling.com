@@ -13754,3 +13754,10 @@ my_data:
         cell_hint: "Press Enter to save, Esc to cancel."
         in_sheet_only: "Other puzzlers are on this result - open the row to edit it, so they are told once."
         not_moved: "The puzzle was not moved: it is no longer in that collection, or the other collection already holds it."
+unfinished_result:
+    pieces: "%placed% / %total% pcs"
+    title: "Didn't finish within the time limit"
+    finished_later: "finished in %time%"
+    section: "Didn't finish within the time limit"
+    your_result: "Your result"
+    no_rank: "No rank - didn't finish within the time limit"

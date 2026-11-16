@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
  * The read side has no chokepoint - every query is hand-written SQL - so nothing but a test can
@@ -29,6 +30,9 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class BlocklistCanaryTest extends WebTestCase
 {
+    use InteractsWithLiveComponents;
+    use UnfinishedResultSeeding;
+
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string BLOCKER_NAME = PlayerFixture::PLAYER_WITH_FAVORITES_NAME;
     private const string BLOCKED = PlayerFixture::PLAYER_WITH_STRIPE;
@@ -60,6 +64,50 @@ final class BlocklistCanaryTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
+     * Unfinished results are bottom rows of the puzzle page (docs/features/competitions-management/unfinished-results-plan.md):
+     * the blocked player's own and a team they are in, on a puzzle they have no time of - the bystander sees both, the
+     * blocker neither.
+     */
+    public function testBlockedPlayersUnfinishedResultsAreNowhereOnThePuzzlePage(): void
+    {
+        $browser = self::createClient();
+        $puzzle = PuzzleFixture::PUZZLE_500_05;
+        $url = '/en/puzzle/' . $puzzle;
+
+        $this->seedUnfinishedResult(self::BLOCKED, $puzzle, 321);
+        $this->seedUnfinishedResult(self::BYSTANDER, $puzzle, 432, puzzlers: [self::BYSTANDER, self::BLOCKED, 'Rita Guest']);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED_NAME, $content, 'No canary: the bystander does not see the unfinished result.');
+        self::assertStringContainsString('321 / 500', $content);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('321 / 500', $content);
+
+        // The team tab: the bystander's team with the blocked player
+        foreach ([self::BYSTANDER => true, self::BLOCKER => false] as $viewer => $sees) {
+            TestingLogin::asPlayer($browser, $viewer);
+            $teams = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => $puzzle, 'piecesCount' => 500, 'category' => 'group'], $browser);
+            $teams->setRouteLocale('en');
+            $html = $teams->render()->toString();
+            self::assertSame($sees, str_contains($html, self::BLOCKED_NAME));
+            self::assertSame($sees, str_contains($html, '432 / 500'));
+        }
     }
 
     /**

@@ -132,7 +132,6 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetPuzzleIdsForSitemap.php' => self::BACKGROUND,
         'Query/GetPuzzleMergeReviewQueue.php' => self::ADMIN,
         'Query/GetPuzzlePickerSuggestions.php' => self::OWN,
-        'Query/GetPuzzleSolvers.php' => 'The puzzle page lists every result: solo through an inner join on its (always present) player; a pair\'s/team\'s row takes a time without a tracker (PuzzleSolversGroup::$addedByPlayerId nullable) and anonymous slots (PuzzlesSorter keeps two anonymous teams apart).',
         'Query/GetPuzzleSpeedPercentiles.php' => self::SOLO,
         'Query/GetPuzzlingTeamDetail.php' => self::COUNTS,
         'Query/GetRanking.php' => self::SOLO,

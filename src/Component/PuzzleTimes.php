@@ -9,8 +9,11 @@ use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
+use SpeedPuzzling\Web\Results\UnfinishedPuzzleResult;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\UnfinishedResultsBoard;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\LeaderboardPosition;
@@ -157,6 +160,27 @@ final class PuzzleTimes
     // The viewer's row lies beyond the top rows and is shown with its neighbours, so "Jump to me" always has a target
     public bool $ownRowBeyondLimit = false;
 
+    /**
+     * Unfinished results of the tab - after every ranked row, never ranked (UnfinishedResultsBoard): one row per player
+     * or pair/team without a ranked row, most pieces placed first, keyed like $times
+     *
+     * @var array<string, non-empty-list<UnfinishedPuzzleResult>>
+     */
+    public array $unfinishedRows = [];
+
+    // Bottom rows per tab, counted with the same filters as the ranked rows of the tab buttons
+    public int $soloUnfinishedCount = 0;
+    public int $duoUnfinishedCount = 0;
+    public int $groupUnfinishedCount = 0;
+
+    /**
+     * The viewer's own unfinished results of the tab, newest first - in "My attempts" only, never in $myAttempts (the
+     * best / latest / new PB and the chart are about times)
+     *
+     * @var list<UnfinishedPuzzleResult>
+     */
+    public array $myUnfinishedAttempts = [];
+
     /** @var array<PuzzleSolver|PuzzleSolversGroup> */
     public array $myAttempts = [];
 
@@ -187,6 +211,7 @@ final class PuzzleTimes
     public function __construct(
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
+        readonly private UnfinishedResultsBoard $unfinishedResultsBoard,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
     ) {
@@ -278,6 +303,8 @@ final class PuzzleTimes
 
         $rawTeamAttempts = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
         $teamPuzzleSolversGrouped = $this->leaderboardRows($rawTeamAttempts);
+
+        $untimedCounts = $this->getPuzzleSolvers->untimedCountsByPuzzleId($this->puzzleId);
 
         // Filter out private profiles (unless they belong to the logged user)
         $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutPrivateProfiles($soloPuzzleSolversGrouped, $loggedPlayerId);
@@ -401,10 +428,23 @@ final class PuzzleTimes
         $this->duoTimesCount = count($duoPuzzleSolversGrouped);
         $this->groupTimesCount = count($teamPuzzleSolversGrouped);
 
-        $relaxCounts = $this->getPuzzleSolvers->relaxCountsByPuzzleId($this->puzzleId);
-        $this->soloRelaxCount = $relaxCounts['solo'];
-        $this->duoRelaxCount = $relaxCounts['duo'];
-        $this->groupRelaxCount = $relaxCounts['team'];
+        $this->soloRelaxCount = $untimedCounts['relax']['solo'];
+        $this->duoRelaxCount = $untimedCounts['relax']['duo'];
+        $this->groupRelaxCount = $untimedCounts['relax']['team'];
+
+        $this->populateUnfinished(
+            hasAny: array_sum($untimedCounts['unfinished']) > 0,
+            rankedRows: [
+                'solo' => $this->puzzlesSorter->groupPlayers($rawSoloAttempts),
+                'duo' => $this->puzzlesSorter->groupPlayers($rawDuoAttempts),
+                'group' => $this->puzzlesSorter->groupPlayers($rawTeamAttempts),
+            ],
+            loggedPlayerId: $loggedPlayerId,
+            activeCountry: $activeCountry,
+            favoritePlayers: $this->onlyFavoritePlayers === true && $loggedProfile !== null
+                ? [...array_values($loggedProfile->favoritePlayers), ...($loggedPlayerId !== null ? [$loggedPlayerId] : [])]
+                : null,
+        );
 
         $this->myAttempts = [];
         $this->myLastAttempt = null;
@@ -663,27 +703,123 @@ final class PuzzleTimes
     }
 
     /**
-     * @return list<array{attempt: PuzzleSolver|PuzzleSolversGroup, prevTime: null|int, isBest: bool}>
+     * Unfinished results (docs/features/competitions-management/unfinished-results-plan.md "Puzzle detail page"): loaded
+     * only when the puzzle has one ($hasAny, counted by the relax count's statement) - no statement more for every other
+     * puzzle. Never part of $times: the ranked pipeline, the numbers and the chart never see them.
+     *
+     * @param array{solo: array<string, mixed>, duo: array<string, mixed>, group: array<string, mixed>} $rankedRows
+     * @param null|list<string> $favoritePlayers
+     */
+    private function populateUnfinished(
+        bool $hasAny,
+        array $rankedRows,
+        null|string $loggedPlayerId,
+        null|CountryCode $activeCountry,
+        null|array $favoritePlayers,
+    ): void {
+        $this->unfinishedRows = [];
+        $this->myUnfinishedAttempts = [];
+        $this->soloUnfinishedCount = 0;
+        $this->duoUnfinishedCount = 0;
+        $this->groupUnfinishedCount = 0;
+
+        if ($hasAny === false) {
+            return;
+        }
+
+        assert($this->puzzleId !== null);
+        $byTab = ['solo' => [], 'duo' => [], 'group' => []];
+
+        foreach ($this->getPuzzleSolvers->unfinishedByPuzzleId($this->puzzleId) as $result) {
+            $tab = match ($result->puzzlingType) {
+                PuzzlingType::Solo => 'solo',
+                PuzzlingType::Duo => 'duo',
+                PuzzlingType::Team => 'group',
+            };
+            $byTab[$tab][] = $result;
+        }
+
+        foreach ($byTab as $tab => $results) {
+            $rows = $this->unfinishedResultsBoard->rows(
+                results: $results,
+                rankedRows: $rankedRows[$tab],
+                viewerId: $loggedPlayerId,
+                onlyFirstTries: $this->onlyFirstTries,
+                onlyUnboxed: $this->onlyUnboxed,
+                country: $activeCountry,
+                favoritePlayers: $favoritePlayers,
+            );
+
+            match ($tab) {
+                'solo' => $this->soloUnfinishedCount = count($rows),
+                'duo' => $this->duoUnfinishedCount = count($rows),
+                'group' => $this->groupUnfinishedCount = count($rows),
+            };
+
+            if ($tab !== $this->category) {
+                continue;
+            }
+
+            if ($this->onlyMyTeams === true && $loggedPlayerId !== null && $tab !== 'solo') {
+                $rows = array_filter($rows, static fn (array $row): bool => $row[0]->containsPlayer($loggedPlayerId));
+            }
+
+            $this->unfinishedRows = $rows;
+
+            if ($loggedPlayerId !== null) {
+                $mine = array_values(array_filter(
+                    $results,
+                    static fn (UnfinishedPuzzleResult $result): bool => $result->containsPlayer($loggedPlayerId),
+                ));
+
+                usort($mine, static function (UnfinishedPuzzleResult $a, UnfinishedPuzzleResult $b): int {
+                    return ($b->finishedAt ?? $b->trackedAt) <=> ($a->finishedAt ?? $a->trackedAt) ?: $b->trackedAt <=> $a->trackedAt;
+                });
+
+                $this->myUnfinishedAttempts = $mine;
+            }
+        }
+    }
+
+    /**
+     * Every attempt of the viewer in this tab, newest first: times with the change against the previous time and the
+     * best one marked, and unfinished results (`kind` = unfinished) in between by their date - they never take part in
+     * the best, the previous time or a new PB
+     *
+     * @return list<array{kind: 'timed', attempt: PuzzleSolver|PuzzleSolversGroup, prevTime: null|int, isBest: bool}|array{kind: 'unfinished', attempt: UnfinishedPuzzleResult, prevTime: null, isBest: false}>
      */
     public function getMyAttemptsWithContext(): array
     {
-        if ($this->myAttempts === [] || $this->myFastestAttempt === null) {
-            return [];
-        }
-
-        $bestTime = $this->myFastestAttempt->time;
+        $bestTime = $this->myFastestAttempt?->time;
         $chronological = array_values(array_reverse($this->myAttempts));
         $rows = [];
 
         foreach ($chronological as $i => $attempt) {
             $rows[] = [
+                'kind' => 'timed',
                 'attempt' => $attempt,
                 'prevTime' => $i > 0 ? $chronological[$i - 1]->time : null,
-                'isBest' => $attempt->time === $bestTime,
+                'isBest' => $bestTime !== null && $attempt->time === $bestTime,
             ];
         }
 
-        return array_reverse($rows);
+        foreach ($this->myUnfinishedAttempts as $attempt) {
+            $rows[] = [
+                'kind' => 'unfinished',
+                'attempt' => $attempt,
+                'prevTime' => null,
+                'isBest' => false,
+            ];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            $aDate = $a['attempt']->finishedAt ?? $a['attempt']->trackedAt;
+            $bDate = $b['attempt']->finishedAt ?? $b['attempt']->trackedAt;
+
+            return $bDate <=> $aDate ?: $b['attempt']->trackedAt <=> $a['attempt']->trackedAt;
+        });
+
+        return $rows;
     }
 
     /**

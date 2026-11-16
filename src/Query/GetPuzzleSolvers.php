@@ -6,13 +6,21 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\PlayerHeader;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
+use SpeedPuzzling\Web\Results\UnfinishedPuzzleResult;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\SkillTier;
 
+/**
+ * The puzzle page lists every result. A time without a tracker (an imported event result nobody has claimed,
+ * docs/features/event-results-import/README.md): solo rows join their always present player; a pair's/team's row takes
+ * it (PuzzleSolversGroup::$addedByPlayerId nullable) with its anonymous slots (PuzzlesSorter keeps two anonymous teams
+ * apart); unfinishedByPuzzleId() takes it the same way.
+ */
 readonly final class GetPuzzleSolvers
 {
     /**
@@ -341,6 +349,20 @@ SQL;
      */
     public function relaxCountsByPuzzleId(string $puzzleId): array
     {
+        return $this->untimedCountsByPuzzleId($puzzleId)['relax'];
+    }
+
+    /**
+     * The results of the puzzle without a time, in one scan: relax solves (counted under the table) and unfinished
+     * results (docs/features/competitions-management/unfinished-results-plan.md) - the puzzle page loads the bottom
+     * rows of unfinished results only when this counts one, so a puzzle without any costs no statement more. The
+     * unfinished counts only gate: the page counts its rows from unfinishedByPuzzleId(), which leaves blocked players out.
+     *
+     * @throws PuzzleNotFound
+     * @return array{relax: array{solo: int, duo: int, team: int}, unfinished: array{solo: int, duo: int, team: int}}
+     */
+    public function untimedCountsByPuzzleId(string $puzzleId): array
+    {
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
         }
@@ -350,17 +372,19 @@ SQL;
 
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE puzzling_type = 'solo') AS solo_count,
-    COUNT(*) FILTER (WHERE puzzling_type = 'duo') AS duo_count,
-    COUNT(*) FILTER (WHERE puzzling_type = 'team') AS team_count
+    COUNT(*) FILTER (WHERE puzzling_type = 'solo' AND {$countsAsSolve}) AS solo_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'duo' AND {$countsAsSolve}) AS duo_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'team' AND {$countsAsSolve}) AS team_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'solo' AND NOT {$countsAsSolve}) AS solo_unfinished_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'duo' AND NOT {$countsAsSolve}) AS duo_unfinished_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'team' AND NOT {$countsAsSolve}) AS team_unfinished_count
 FROM puzzle_solving_time
 WHERE puzzle_id = :puzzleId
     AND seconds_to_solve IS NULL
     AND suspicious = false
-    AND {$countsAsSolve}
 SQL;
 
-        /** @var array{solo_count: int, duo_count: int, team_count: int} $row */
+        /** @var array{solo_count: int, duo_count: int, team_count: int, solo_unfinished_count: int, duo_unfinished_count: int, team_unfinished_count: int} $row */
         $row = $this->database
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
@@ -368,9 +392,145 @@ SQL;
             ->fetchAssociative();
 
         return [
-            'solo' => (int) $row['solo_count'],
-            'duo' => (int) $row['duo_count'],
-            'team' => (int) $row['team_count'],
+            'relax' => [
+                'solo' => (int) $row['solo_count'],
+                'duo' => (int) $row['duo_count'],
+                'team' => (int) $row['team_count'],
+            ],
+            'unfinished' => [
+                'solo' => (int) $row['solo_unfinished_count'],
+                'duo' => (int) $row['duo_unfinished_count'],
+                'team' => (int) $row['team_unfinished_count'],
+            ],
         ];
+    }
+
+    /**
+     * The unfinished results of the puzzle - pieces placed when a competition round's time ran out, no time
+     * (docs/features/competitions-management/unfinished-results-plan.md "Puzzle detail page"): solo, pairs and teams,
+     * most pieces first. Never ranked - the page shows them after every ranked row. The same rules as the ranked
+     * statements above: blocked players left out (a solo result with its player, a pair/team by its members - the
+     * viewer's own groups stay), private players masked for the viewer, suspicious results nowhere. An imported event
+     * result nobody has claimed yet has no tracker - its people are the anonymous slots of its team snapshot.
+     *
+     * @throws PuzzleNotFound
+     * @return list<UnfinishedPuzzleResult>
+     */
+    public function unfinishedByPuzzleId(string $puzzleId): array
+    {
+        if (Uuid::isValid($puzzleId) === false) {
+            throw new PuzzleNotFound();
+        }
+
+        $soloNotHidden = $this->hiddenPlayers->sqlExclude('tracker.id');
+        $groupNotHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+        $groupMembers = self::GROUP_MEMBERS;
+        $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
+
+        $query = <<<SQL
+SELECT
+    pst.id AS time_id,
+    pst.player_id AS player_id,
+    pst.puzzle_id AS puzzle_id,
+    pst.puzzling_type,
+    pst.pieces_placed,
+    pst.finished_later_seconds,
+    pst.puzzling_team_id::varchar AS team_id,
+    (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    (pst.created_via = 'event_import') AS imported_from_event,
+    pst.finished_at,
+    pst.finished_at_precision,
+    pst.tracked_at,
+    pst.first_attempt,
+    pst.unboxed,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
+    CASE WHEN pst.team IS NULL THEN JSON_BUILD_ARRAY(
+        JSON_BUILD_OBJECT(
+            'player_id', tracker.id,
+            'player_name', tracker.name,
+            'player_code', tracker.code,
+            'player_country', tracker.country,
+            'player_avatar', tracker.avatar,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('tracker')},
+            'skill_tier', (SELECT ps.skill_tier FROM player_skill ps WHERE ps.player_id = tracker.id AND ps.pieces_count = {$tierPieces}),
+            'ranking_opted_out', COALESCE(tracker.ranking_opted_out, false),
+            'anonymous_slot', NULL
+        )
+    ) ELSE members.players END AS players
+FROM puzzle_solving_time pst
+    LEFT JOIN player tracker ON tracker.id = pst.player_id
+    LEFT JOIN competition ON competition.id = pst.competition_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
+    LEFT JOIN LATERAL (
+        SELECT JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'player_id', player_elem.player ->> 'player_id',
+                'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
+                'player_code', p.code,
+                'player_country', p.country,
+                'player_avatar', p.avatar,
+                'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
+                'skill_tier', ps_member.skill_tier,
+                'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+                'anonymous_slot', player_elem.player ->> 'anonymous_slot'
+            ) ORDER BY player_elem.ordinality
+        ) AS players
+        FROM {$groupMembers}
+            LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
+            LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = {$tierPieces}
+    ) members ON pst.team IS NOT NULL
+WHERE pst.puzzle_id = :puzzleId
+    AND pst.pieces_placed IS NOT NULL
+    AND pst.seconds_to_solve IS NULL
+    AND pst.suspicious = false
+    -- A solo result is its tracker's; a pair/team result has its people in the snapshot (an imported one no tracker)
+    AND (pst.team IS NOT NULL OR tracker.id IS NOT NULL)
+    AND (pst.team IS NOT NULL OR (TRUE{$soloNotHidden}))
+    {$groupNotHidden}
+ORDER BY pst.pieces_placed DESC, pst.tracked_at ASC, pst.id ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'puzzleId' => $puzzleId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): UnfinishedPuzzleResult {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     puzzle_id: string,
+             *     puzzling_type: string,
+             *     player_id: null|string,
+             *     players: string,
+             *     pieces_placed: int,
+             *     finished_later_seconds: null|int,
+             *     finished_at: null|string,
+             *     finished_at_precision: null|string,
+             *     tracked_at: string,
+             *     first_attempt: bool,
+             *     unboxed: bool,
+             *     competition_id: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
+             *     competition_series_name: null|string,
+             *     competition_series_shortcut: null|string,
+             *     competition_series_slug: null|string,
+             *     team_id: null|string,
+             *     team_name: null|string,
+             *     imported_from_event: null|bool,
+             * } $row
+             */
+
+            return UnfinishedPuzzleResult::fromDatabaseRow($row);
+        }, $data);
     }
 }

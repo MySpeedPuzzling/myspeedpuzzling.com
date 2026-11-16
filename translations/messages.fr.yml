@@ -13516,3 +13516,5 @@ unfinished_result:
     see_round_results: "Voir les résultats de la manche"
     notification: "a concouru avec le puzzle"
     split_pieces: "%pieces% pièces"
+    edit_not_yet: "Vous pourrez bientôt modifier un résultat qui n'a pas été terminé dans le temps limite - d'ici là, il reste tel quel."
+    round_changed: "Ce résultat n'a pas été terminé dans le temps limite et sa manche a changé depuis (plus de temps limite ou d'autres puzzles) - il n'a pas été enregistré."

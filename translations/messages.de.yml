@@ -13520,3 +13520,5 @@ unfinished_result:
     see_round_results: "Ergebnisse der Runde ansehen"
     notification: "trat mit dem Puzzle an"
     split_pieces: "%pieces% Teile"
+    edit_not_yet: "Ein Ergebnis, das nicht innerhalb des Zeitlimits fertig wurde, kann bald bearbeitet werden - bis dahin bleibt es, wie es ist."
+    round_changed: "Dieses Ergebnis wurde nicht innerhalb des Zeitlimits fertig, und seine Runde hat sich seitdem geändert (kein Zeitlimit oder andere Puzzles) - es wurde nicht gespeichert."

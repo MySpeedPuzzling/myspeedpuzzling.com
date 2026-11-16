@@ -13523,3 +13523,5 @@ unfinished_result:
     see_round_results: "Zobrazit výsledky kola"
     notification: "{0,1} soutěžil(a) s puzzle|[2,Inf] soutěžili s puzzle"
     split_pieces: "%pieces% dílků"
+    edit_not_yet: "Úpravy výsledku, který se nestihl dokončit v časovém limitu, brzy přidáme - do té doby zůstane, jak je."
+    round_changed: "Tento výsledek se nestihl dokončit v časovém limitu a jeho kolo se mezitím změnilo (bez časového limitu nebo jiné puzzle) - neuložilo se."

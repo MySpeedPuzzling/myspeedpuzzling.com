@@ -1,0 +1,31 @@
+{#
+    The edit page of an unfinished result until the edit form asks for pieces placed
+    (docs/features/competitions-management/unfinished-results-plan.md, step 4): the result as it is, why it is not
+    editable here yet, and - for whoever tracked it - Delete, like on the edit form.
+
+    Inputs: solved_puzzle (SolvedPuzzleDetail, unfinished), return_context (string)
+#}
+<div data-testid="unfinished-result-not-editable">
+    <p class="mb-2">
+        <strong>{{ solved_puzzle.puzzleName }}</strong>
+        <span class="text-muted">· {{ solved_puzzle.manufacturerName }}</span>
+    </p>
+    <p class="mb-3">
+        {{ include('_unfinished_result_badge.html.twig', {placed: solved_puzzle.piecesPlaced, total: solved_puzzle.piecesCount, finished_later: solved_puzzle.finishedLaterSeconds}) }}
+    </p>
+    <div class="alert alert-info fs-sm">
+        <i class="bi bi-hourglass-bottom me-1" aria-hidden="true"></i>{{ 'unfinished_result.edit_not_yet'|trans }}
+    </div>
+
+    {% if solved_puzzle.playerId is same as logged_user.profile.playerId %}
+        <form action="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}"
+              method="post"
+              class="d-inline"
+              data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}">
+            <input type="hidden" name="context" value="{{ return_context }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}
+            </button>
+        </form>
+    {% endif %}
+</div>

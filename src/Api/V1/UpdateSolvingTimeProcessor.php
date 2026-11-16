@@ -52,6 +52,12 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new CanNotModifyOtherPlayersTime();
         }
 
+        // An unfinished result: the input has no pieces placed yet (step 4) - refused before anything is saved, the
+        // handler would refuse it too (UnfinishedResultNeedsItsOwnEdit)
+        if ($solvingTime->isUnfinished()) {
+            throw new UnfinishedResultNotEditable();
+        }
+
         // The handler resolves the player by its user_id identity (and creates one when missing),
         // so passing the player uuid here would attribute the edit to a phantom player
         $userId = $player->userId;

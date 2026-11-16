@@ -59,6 +59,60 @@ final class AnonymousCacheHeadersSubscriberTest extends WebTestCase
         self::assertStringNotContainsString('public', $cacheControl);
     }
 
+    public function testAnalyticsOffResponseIsNotSharedCacheableAndHasNoAnalytics(): void
+    {
+        $this->withGaTracking(function (): void {
+            $browser = self::createClient();
+
+            $browser->request('GET', '/');
+            $this->assertResponseIsSuccessful();
+            self::assertStringContainsString(
+                'data-analytics-tracking-id-value="G-TEST123"',
+                (string) $browser->getResponse()->getContent(),
+                'Control: a normal visitor gets the analytics controller',
+            );
+
+            $browser->request('GET', '/', server: ['HTTP_X_BB_ANALYTICS' => 'off']);
+            $this->assertResponseIsSuccessful();
+
+            $response = $browser->getResponse();
+            $cacheControl = (string) $response->headers->get('Cache-Control');
+
+            self::assertStringNotContainsString('s-maxage', $cacheControl);
+            self::assertStringNotContainsString('public', $cacheControl);
+            self::assertStringNotContainsString('data-analytics-tracking-id-value', (string) $response->getContent());
+            self::assertStringNotContainsString('toast analytics', (string) $response->getContent());
+        });
+    }
+
+    /**
+     * GA_TRACKING is empty in the test env; the env var is resolved when the
+     * (per-client) container builds the Twig globals, so set it around the run.
+     */
+    private function withGaTracking(callable $test): void
+    {
+        $previousEnv = $_ENV['GA_TRACKING'] ?? null;
+        $previousServer = $_SERVER['GA_TRACKING'] ?? null;
+        $_ENV['GA_TRACKING'] = 'G-TEST123';
+        $_SERVER['GA_TRACKING'] = 'G-TEST123';
+
+        try {
+            $test();
+        } finally {
+            if ($previousEnv === null) {
+                unset($_ENV['GA_TRACKING']);
+            } else {
+                $_ENV['GA_TRACKING'] = $previousEnv;
+            }
+
+            if ($previousServer === null) {
+                unset($_SERVER['GA_TRACKING']);
+            } else {
+                $_SERVER['GA_TRACKING'] = $previousServer;
+            }
+        }
+    }
+
     public function testTurboFrameResponseIsNotSharedCacheable(): void
     {
         $browser = self::createClient();

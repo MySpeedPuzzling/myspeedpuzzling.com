@@ -23,6 +23,8 @@ final class AnonymousCacheHeadersSubscriber implements EventSubscriberInterface
 {
     public const int SHARED_MAX_AGE = 60;
 
+    public const string ANALYTICS_HEADER = 'X-Bb-Analytics';
+
     /**
      * @return array<string, array{0: string, 1: int}>
      */
@@ -55,6 +57,10 @@ final class AnonymousCacheHeadersSubscriber implements EventSubscriberInterface
             // Turbo Frame fragments share the URL with the full page - caching
             // either under that URL would serve the wrong variant to the other.
             || $request->headers->has('Turbo-Frame')
+            // The edge bot-blocker turned analytics off for this visitor (base
+            // template drops the GA controller) - a shared cache must never
+            // hand that GA-less variant to real visitors.
+            || $request->headers->has(self::ANALYTICS_HEADER)
         ) {
             return;
         }

@@ -88,6 +88,31 @@ final class PuzzleAddFormData
 
     public null|string $competition = null;
 
+    // "I didn't finish within the time limit" + the pieces placed when the time ran out
+    // (docs/features/competitions-management/unfinished-results-plan.md) - read only through isUnfinished() /
+    // piecesPlacedCount(): posted by a hidden or relax/collection form they mean nothing, and never invalidate the form
+    public bool $unfinished = false;
+
+    public null|string $piecesPlaced = null;
+
+    /**
+     * Saved as an unfinished result: Speed Puzzling with the switch on - the time fields hold the total time then
+     */
+    public function isUnfinished(): bool
+    {
+        return $this->mode === PuzzleAddMode::SpeedPuzzling && $this->unfinished;
+    }
+
+    /**
+     * The pieces placed as typed - null when empty or no whole number
+     */
+    public function piecesPlacedCount(): null|int
+    {
+        $value = trim($this->piecesPlaced ?? '');
+
+        return $value !== '' && strlen($value) <= 6 && ctype_digit($value) ? (int) $value : null;
+    }
+
     public function getTimeAsString(): null|string
     {
         if ($this->hasTime() === false) {

@@ -65,6 +65,7 @@ readonly final class EditPuzzleSolvingTime
         FirstTryResolution $firstTryResolution = FirstTryResolution::None,
         bool $duplicateConfirmed = false,
         null|int $paceConfirmedExpectedSeconds = null,
+        bool $endsUnfinishedResult = false,
     ): self {
         // `<uuid>` / `edition:<uuid>` link the competition explicitly, `series:<uuid>` is a series pick
         $competitionPick = CompetitionPick::tryFrom($formData->competition);
@@ -87,6 +88,7 @@ readonly final class EditPuzzleSolvingTime
             paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
             seriesId: $competitionPick?->seriesId(),
             finishedPuzzlesPhotoBrowserMetadata: $formData->finishedPuzzlesPhotoBrowserMetadata,
+            endsUnfinishedResult: $endsUnfinishedResult,
         );
     }
 }

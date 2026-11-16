@@ -46,6 +46,24 @@
             'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
         }
     } %}
+    {# "I didn't finish within the time limit" (docs/features/competitions-management/unfinished-results-plan.md): the server
+       renders the state, unfinished-result takes over while the form is filled in - only while the round hint is on #}
+    {% set unfinished = unfinished|default(null) %}
+    {% if unfinished is not null and unfinished.enabled %}
+        {% set form_start_options = form_start_options|merge({attr: form_start_options.attr|merge({
+            'data-controller': form_start_options.attr['data-controller'] ~ ' unfinished-result',
+            'data-unfinished-result-hint-url-value': path('solving_time_round_hint'),
+            'data-unfinished-result-round-value': unfinished.round is not null ? unfinished.round.toArray()|json_encode : 'null',
+            'data-unfinished-result-pieces-total-value': unfinished.piecesTotal ?? 0,
+            'data-unfinished-result-texts-value': {
+                round: 'unfinished_result.form.round_line'|trans,
+                nudge: 'unfinished_result.form.over_limit'|trans,
+                pieces_left: 'unfinished_result.form.pieces_left'|trans,
+                time: 'time'|trans,
+                time_total: 'unfinished_result.form.time_total'|trans,
+            }|json_encode,
+        })}) %}
+    {% endif %}
     {# Each photo uploads in the background the moment it is picked; Save sends its token (docs/features/photo-uploads/README.md) #}
     {% if direct_photo_uploads|default(false) %}
         {% set form_start_options = form_start_options|merge({attr: form_start_options.attr|merge({
@@ -322,7 +340,8 @@
                             {% endif %}
 
                             <div style="{% if active_stopwatch is not null %}display: none;{% endif %}">
-                                <label class="form-label required">{{ 'time'|trans }}</label>
+                                {# An unfinished result's time is its optional total (unfinished-result relabels it) #}
+                                <label class="form-label {{ unfinished is not null and unfinished.on ? '' : 'required' }}" data-unfinished-result-target="timeLabel">{{ unfinished is not null and unfinished.on ? 'unfinished_result.form.time_total'|trans : 'time'|trans }}</label>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="flex-grow-1">
                                         {{ form_widget(solving_time_form.timeHours, {'attr': {'data-ppm-validator-target': 'timeHours', 'data-first-try-check-target': 'hours'}}) }}
@@ -342,6 +361,9 @@
                                 {{ form_errors(solving_time_form.timeHours) }}
                                 {{ form_errors(solving_time_form.timeMinutes) }}
                                 {{ form_errors(solving_time_form.timeSeconds) }}
+                                {% if unfinished is not null %}
+                                    <div class="form-text {{ unfinished.on ? '' : 'd-none' }}" data-unfinished-result-target="timeHelp">{{ 'unfinished_result.form.time_total_help'|trans }}</div>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -434,6 +456,7 @@
                             <div class="form-text">{{ 'series_picker.hint'|trans }}</div>
                             {{ form_errors(solving_time_form.competition) }}
                             <div class="sp-preview" data-series-edition-preview-target="output" aria-live="polite"></div>
+                            {{ include('_unfinished_result_fields.html.twig') }}
                         </div>
                     </div>
                 </div>{{ my_fields_invite|default(false) or my_fields|default(null) is not null ? include('my_fields/_add_form_area.html.twig') : '' }}

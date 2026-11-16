@@ -211,6 +211,8 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
+        UnfinishedResultFields::add($builder);
+
         $builder->add('firstAttempt', CheckboxType::class, [
             'label' => 'forms.first_attempt',
             'required' => false,
@@ -383,9 +385,14 @@ final class PuzzleAddFormType extends AbstractType
             }
         }
 
-        // Speed Puzzling: time required
-        if ($mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false) {
+        // Speed Puzzling: time required - except for a result that did not finish within the time limit, whose time is
+        // the optional total (docs/features/competitions-management/unfinished-results-plan.md)
+        if ($mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false && $data->isUnfinished() === false) {
             $form->get('timeMinutes')->addError(new FormError($this->translator->trans('forms.time_required')));
+        }
+
+        if ($data->isUnfinished()) {
+            UnfinishedResultFields::validate($form, $data->piecesPlacedCount(), $this->translator);
         }
 
         // Collection: collection required

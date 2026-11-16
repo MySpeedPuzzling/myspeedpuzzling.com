@@ -1,0 +1,55 @@
+{# "I didn't finish within the time limit" inside the competition card of the add / edit-time form
+   (docs/features/competitions-management/unfinished-results-plan.md "Refined 2026-11-16"): shown only while a round with a
+   time limit resolves and the time is empty or over it - or while it is on. Rendered right without JavaScript
+   (UnfinishedFormState); unfinished_result_controller.js keeps it right while the form is filled in. Inputs that are not
+   shown are disabled, so they are never posted. #}
+{% if unfinished is not null %}
+    {% set asks = unfinished.asks %}
+    <div class="mt-3 {{ asks ? '' : 'd-none' }}" data-unfinished-result-target="question" data-testid="unfinished-question">
+        <div class="form-text mb-2 {{ unfinished.round is null ? 'd-none' }}" data-unfinished-result-target="roundLine">
+            <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i><span data-unfinished-result-target="roundText">
+                {%- if unfinished.round is not null -%}
+                    {{ 'unfinished_result.form.round_line'|trans({'%round%': unfinished.round.name, '%minutes%': unfinished.round.minutesLimit}) }}
+                {%- endif -%}
+            </span>
+        </div>
+
+        <div class="form-switch">
+            {{ form_row(solving_time_form.unfinished, {'attr': {
+                'role': 'switch',
+                'disabled': not asks,
+                'data-unfinished-result-target': 'switch',
+                'data-action': 'unfinished-result#render',
+            }}) }}
+        </div>
+
+        <div class="alert alert-info small py-2 px-3 mt-2 mb-0 {{ unfinished.suggests ? '' : 'd-none' }}" role="status" data-unfinished-result-target="nudge" data-testid="unfinished-nudge">
+            {%- if unfinished.suggests -%}
+                {{ 'unfinished_result.form.over_limit'|trans({'%time%': unfinished.typedSeconds|puzzlingTime, '%minutes%': unfinished.round.minutesLimit, '%round%': unfinished.round.name}) }}
+            {%- endif -%}
+        </div>
+
+        <div class="mt-3 {{ unfinished.on ? '' : 'd-none' }}" data-unfinished-result-target="details" data-testid="unfinished-details">
+            {{ form_label(solving_time_form.piecesPlaced, null, {'label_attr': {'class': 'required'}}) }}
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                {{ form_widget(solving_time_form.piecesPlaced, {'attr': solving_time_form.piecesPlaced.vars.attr|merge({
+                    'class': 'form-control text-center',
+                    'style': 'max-width: 7rem;',
+                    'disabled': not unfinished.on,
+                    'data-unfinished-result-target': 'pieces',
+                })}) }}
+                <span class="text-nowrap" data-unfinished-result-target="piecesTotal">{{ unfinished.piecesTotal is not null ? '/ ' ~ unfinished.piecesTotal : '' }}</span>
+                <span class="text-muted small text-nowrap" data-unfinished-result-target="piecesLeft">
+                    {%- set placed = solving_time_form.piecesPlaced.vars.value matches '/^\\d{1,6}$/' ? solving_time_form.piecesPlaced.vars.value + 0 : null -%}
+                    {%- if unfinished.piecesTotal is not null and placed is not null and placed > 0 and placed < unfinished.piecesTotal -%}
+                        · {{ 'unfinished_result.form.pieces_left'|trans({'%count%': unfinished.piecesTotal - placed}) }}
+                    {%- endif -%}
+                </span>
+            </div>
+            {{ form_errors(solving_time_form.piecesPlaced) }}
+        </div>
+    </div>
+{% else %}
+    {% do solving_time_form.unfinished.setRendered %}
+    {% do solving_time_form.piecesPlaced.setRendered %}
+{% endif %}

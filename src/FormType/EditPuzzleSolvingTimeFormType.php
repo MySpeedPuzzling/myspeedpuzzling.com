@@ -120,6 +120,8 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             ],
         ]);
 
+        UnfinishedResultFields::add($builder);
+
         $builder->add('firstAttempt', CheckboxType::class, [
             'label' => 'forms.first_attempt',
             'required' => false,
@@ -255,9 +257,14 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         EditPuzzleSolvingTimeFormData $data,
         CompetitionChoices $competitionChoices,
     ): void {
-        // Time is required only for Speed Puzzling mode
-        if ($data->mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false) {
+        // Time is required only for Speed Puzzling mode - except for a result that did not finish within the time limit,
+        // whose time is the optional total (docs/features/competitions-management/unfinished-results-plan.md)
+        if ($data->mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false && $data->isUnfinished() === false) {
             $form->get('timeMinutes')->addError(new FormError($this->translator->trans('forms.time_required')));
+        }
+
+        if ($data->isUnfinished()) {
+            UnfinishedResultFields::validate($form, $data->piecesPlacedCount(), $this->translator);
         }
 
         // Existing puzzles only - no new puzzle from the edit form (EditTimeController checks that it exists)

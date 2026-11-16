@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
+use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddTableRow;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
@@ -54,6 +55,7 @@ use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishImport;
 use SpeedPuzzling\Web\Message\FinishSettledImport;
 use SpeedPuzzling\Web\Message\GenerateTableLayout;
@@ -290,6 +292,7 @@ final class SerializedByLockMessagesTest extends TestCase
         ApplyEventResultsTab::class => 'an organizer\'s results sheet tab: creates the event and its round, keeps the round\'s limit and start as the sheet says, writes solving times - never a participant, entry or official result; serialized per tab (docs/features/event-results-import)',
         ClaimEventResultSlot::class => 'only reads the round of an imported event result (one spot per person per round) - never a participant, entry, team or official result; serialized per result with its release and removal (docs/features/event-results-import/README.md "Claiming a spot")',
         AddPuzzleSolvingTime::class => 'a player\'s own time - reads the round to link the time, never writes entries or official results',
+        AddUnfinishedPuzzleSolvingTime::class => 'a player\'s own unfinished result - reads the round for its limit and to link it, never writes entries or official results',
         AddPuzzleToCompetitionRound::class => 'adds a puzzle to a round - entries and results are not touched',
         AddTableRow::class => 'the table layout (rows and spots), not round entries',
         GenerateTableLayout::class => 'the table layout (rows and spots), not round entries',
@@ -318,6 +321,7 @@ final class SerializedByLockMessagesTest extends TestCase
         ReconcileRoundResults::class => 'console reconcile of players\' own times and their rounds (puzzle_solving_time) - never entries or official results',
         SeriesEditionsChanged::class => 're-matches players\' series picks to editions and their rounds (puzzle_solving_time) - never entries or official results',
         EditPuzzleSolvingTime::class => 'a player\'s own time - reads the rounds to link it, never writes entries or official results',
+        EditUnfinishedPuzzleSolvingTime::class => 'a player\'s own unfinished result - reads the rounds for the limit and to link it, never writes entries or official results',
         KeepDuplicateCopy::class => 'a player\'s own times (duplicate results) - reads the rounds to link them, never writes entries or official results',
         UndoAutoRemoval::class => 'a player\'s own time restored (duplicate results) - reads the rounds to link it, never writes entries or official results',
         RemovePuzzleFromCompetitionRound::class => 'removes a puzzle from a round - entries and results are not touched',

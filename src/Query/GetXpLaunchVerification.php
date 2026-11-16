@@ -23,8 +23,10 @@ readonly final class GetXpLaunchVerification
 
     public function check(): XpLaunchVerification
     {
+        // A counted solve - an unfinished result is none and earns no XP (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
         $withSolves = <<<SQL
-EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.player_id = p.id AND pst.suspicious = false)
+EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.player_id = p.id AND pst.suspicious = false AND {$countsAsSolve})
 SQL;
 
         $playersWithSolves = $this->count("SELECT COUNT(*) FROM player p WHERE {$withSolves}");

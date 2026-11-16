@@ -28,14 +28,17 @@ readonly final class GetPlayerActivityCalendar
         }
 
         [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
+        // An unfinished result keeps its day active, but is not a solve; its time spent was puzzled (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+        $secondsPuzzled = CountsAsSolve::secondsPuzzled('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
     to_char(finished_at, 'YYYY-MM-DD') AS day,
     puzzling_type,
-    COUNT(*) AS solve_count,
-    COUNT(*) FILTER (WHERE first_attempt = true) AS first_attempt_count,
-    COALESCE(SUM(seconds_to_solve), 0) AS total_seconds
+    COUNT(*) FILTER (WHERE {$countsAsSolve}) AS solve_count,
+    COUNT(*) FILTER (WHERE first_attempt = true AND {$countsAsSolve}) AS first_attempt_count,
+    COALESCE(SUM({$secondsPuzzled}), 0) AS total_seconds
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
@@ -142,6 +145,8 @@ SQL;
         }
 
         [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
+        // Solves per weekday - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -155,6 +160,7 @@ WHERE
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
     AND suspicious = false
+    AND {$countsAsSolve}
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -195,6 +201,8 @@ SQL;
         // the hour portion of `finished_at` is unreliable because the UI only lets users pick a date.
         // A result from a spreadsheet import has no hour: its `tracked_at` is noon of the solve day by construction
         // (docs/features/data-import/adding.md "Readers of the hour") - left out, or every import would be a noon peak.
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
         $query = <<<SQL
 SELECT
     EXTRACT(HOUR FROM tracked_at)::int AS hour_of_day,
@@ -205,6 +213,7 @@ WHERE
     AND tracked_at <= :dateTo
     AND suspicious = false
     AND created_via IS DISTINCT FROM 'spreadsheet_import'
+    AND {$countsAsSolve}
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

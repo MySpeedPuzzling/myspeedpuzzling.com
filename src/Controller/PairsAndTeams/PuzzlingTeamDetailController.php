@@ -105,6 +105,12 @@ final class PuzzlingTeamDetailController extends AbstractController
                 continue;
             }
 
+            // An unfinished result puzzled its pieces placed, and is no solve (Query\CountsAsSolve)
+            if ($time->piecesPlaced !== null) {
+                $pieces += $time->piecesPlaced;
+                continue;
+            }
+
             $pieces += $time->piecesCount;
             $puzzles[$time->puzzleId] = true;
             $first = $first === null || $time->solvedAt < $first ? $time->solvedAt : $first;

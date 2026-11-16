@@ -163,6 +163,9 @@ SQL;
             return [];
         }
 
+        // Solved N times - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('t');
+
         $query = <<<SQL
 SELECT
     p.id AS puzzle_id,
@@ -177,7 +180,7 @@ SELECT
     p.added_at,
     m.id AS manufacturer_id,
     m.name AS manufacturer_name,
-    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.puzzle_id = p.id) AS solved_times_count,
+    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.puzzle_id = p.id AND {$countsAsSolve}) AS solved_times_count,
     (SELECT COUNT(*) FROM collection_item ci WHERE ci.puzzle_id = p.id) AS collection_items_count,
     (SELECT COUNT(*) FROM wish_list_item wli WHERE wli.puzzle_id = p.id) AS wish_list_items_count,
     (SELECT COUNT(*) FROM sell_swap_list_item ssli WHERE ssli.puzzle_id = p.id) AS sell_swap_items_count

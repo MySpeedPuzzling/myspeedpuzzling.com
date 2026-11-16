@@ -39,7 +39,7 @@ readonly final class GetInsightsFingerprint
      */
     public function withGeneration(string $playerId): array
     {
-        $resultHash = "hashtext(concat_ws('|', pst.id, pst.puzzle_id, pst.seconds_to_solve, pst.finished_at, pst.tracked_at, pst.suspicious, pst.unboxed, pst.first_attempt, pst.puzzling_type, pst.puzzling_team_id, pst.competition_id, pst.competition_series_id))";
+        $resultHash = "hashtext(concat_ws('|', pst.id, pst.puzzle_id, pst.seconds_to_solve, pst.finished_at, pst.tracked_at, pst.suspicious, pst.unboxed, pst.first_attempt, pst.puzzling_type, pst.puzzling_team_id, pst.competition_id, pst.competition_series_id, pst.pieces_placed, pst.seconds_spent))";
 
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('member');
 

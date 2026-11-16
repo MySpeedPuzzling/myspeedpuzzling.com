@@ -45,6 +45,9 @@ readonly final class GetInsightsShelf
     {
         $puzzleColumns = InsightsPuzzleRef::sqlColumns();
         $secret = InsightsPuzzleRef::sqlSecret();
+        // Done = solved - an unfinished result is not a solve (CountsAsSolve)
+        $ownCountsAsSolve = CountsAsSolve::condition('own');
+        $togetherCountsAsSolve = CountsAsSolve::condition('together');
 
         $query = <<<SQL
 WITH shelf AS (
@@ -61,11 +64,13 @@ done AS MATERIALIZED (
     SELECT own.puzzle_id
     FROM puzzle_solving_time own
     WHERE own.player_id = :playerId
+      AND {$ownCountsAsSolve}
     UNION
     SELECT together.puzzle_id
     FROM puzzling_team_member me
     JOIN puzzle_solving_time together ON together.puzzling_team_id = me.team_id
     WHERE me.player_id = :playerId
+      AND {$togetherCountsAsSolve}
 )
 SELECT
     {$puzzleColumns},

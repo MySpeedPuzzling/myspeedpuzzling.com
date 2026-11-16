@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 use SpeedPuzzling\Web\Value\PuzzleStatisticsData;
 
 readonly final class PuzzleStatisticsCalculator
@@ -17,6 +18,9 @@ readonly final class PuzzleStatisticsCalculator
 
     public function calculateForPuzzle(UuidInterface $puzzleId): PuzzleStatisticsData
     {
+        // An unfinished result is not a solve (CountsAsSolve) - and has no time, so it changes nothing else here
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $result = $this->connection->executeQuery("
             WITH times AS (
                 -- A suspicious time is neither a solve nor a time here (docs/features/suspicious-times.md)
@@ -24,7 +28,7 @@ readonly final class PuzzleStatisticsCalculator
                 -- stands for its own team (docs/features/event-results-import/README.md)
                 SELECT COALESCE(player_id, puzzling_team_id, id) AS solver_id, puzzling_type, first_attempt, seconds_to_solve
                 FROM puzzle_solving_time
-                WHERE puzzle_id = :puzzleId AND suspicious = false
+                WHERE puzzle_id = :puzzleId AND suspicious = false AND {$countsAsSolve}
             ),
             player_best_per_type AS (
                 SELECT solver_id, puzzling_type, MIN(seconds_to_solve) AS best_time

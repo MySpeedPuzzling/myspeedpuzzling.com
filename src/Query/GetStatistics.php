@@ -16,11 +16,13 @@ readonly final class GetStatistics
 
     public function globally(): GlobalStatistics
     {
+        [$countsAsSolve, $piecesPuzzled, $secondsPuzzled] = self::puzzledFragments();
+
         $query = <<<SQL
 SELECT
-    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
-    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
-    SUM(puzzle.pieces_count) AS total_pieces
+    SUM({$secondsPuzzled}) AS total_seconds,
+    COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) AS solved_puzzles_count,
+    SUM({$piecesPuzzled}) AS total_pieces
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE puzzle_solving_time.suspicious = false
@@ -62,11 +64,13 @@ SQL;
             ? sprintf('%04d-01-01', $year + 1)
             : sprintf('%04d-%02d-01', $year, $month + 1);
 
+        [$countsAsSolve, $piecesPuzzled, $secondsPuzzled] = self::puzzledFragments();
+
         $query = <<<SQL
 SELECT
-    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
-    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
-    SUM(puzzle.pieces_count) AS total_pieces
+    SUM({$secondsPuzzled}) AS total_seconds,
+    COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) AS solved_puzzles_count,
+    SUM({$piecesPuzzled}) AS total_pieces
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE puzzle_solving_time.tracked_at >= :startDate
@@ -89,5 +93,19 @@ SQL;
             ->fetchAssociative();
 
         return GlobalStatistics::fromDatabaseRow($row);
+    }
+
+    /**
+     * An unfinished result is not a solve, but its pieces placed and time spent were puzzled (CountsAsSolve).
+     *
+     * @return array{string, string, string}
+     */
+    private static function puzzledFragments(): array
+    {
+        return [
+            CountsAsSolve::condition('puzzle_solving_time'),
+            CountsAsSolve::piecesPuzzled('puzzle_solving_time', 'puzzle.pieces_count'),
+            CountsAsSolve::secondsPuzzled('puzzle_solving_time'),
+        ];
     }
 }

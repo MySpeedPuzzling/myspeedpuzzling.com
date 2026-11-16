@@ -128,6 +128,9 @@ SQL;
      */
     public function unsolvedByHolderId(string $holderId): array
     {
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 SELECT
     p.id as puzzle_id,
@@ -153,6 +156,7 @@ AND NOT EXISTS (
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.player_id = :holderId
       AND pst.puzzle_id = p.id
+      AND {$countsAsSolve}
 )
 ORDER BY lp.lent_at DESC
 SQL;
@@ -199,6 +203,9 @@ SQL;
 
     public function countUnsolvedByHolderId(string $holderId): int
     {
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 SELECT COUNT(*) as item_count
 FROM lent_puzzle lp
@@ -209,6 +216,7 @@ AND NOT EXISTS (
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.player_id = :holderId
       AND pst.puzzle_id = p.id
+      AND {$countsAsSolve}
 )
 SQL;
 

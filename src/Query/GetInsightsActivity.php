@@ -27,6 +27,9 @@ readonly final class GetInsightsActivity
      */
     public function forPlayer(string $playerId, int $piecesCount, DateTimeImmutable $now): array
     {
+        // Solves counted - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         /** @var array{total: int|string, recent: int|string, recent_times: null|string}|false $row */
         $row = $this->database->fetchAssociative(
             "WITH mine AS (
@@ -35,12 +38,14 @@ readonly final class GetInsightsActivity
                 WHERE pst.player_id = :playerId
                     AND pst.puzzling_team_id IS NULL
                     AND pst.suspicious = false
+                    AND {$countsAsSolve}
                 UNION ALL
                 SELECT COALESCE(pst.finished_at, pst.tracked_at)
                 FROM puzzling_team_member me
                 JOIN puzzle_solving_time pst ON pst.puzzling_team_id = me.team_id
                 WHERE me.player_id = :playerId
                     AND pst.suspicious = false
+                    AND {$countsAsSolve}
             )
             SELECT
                 COUNT(*) AS total,

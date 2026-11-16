@@ -184,7 +184,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[ManyToOne]
         public null|Competition $competition = null,
         // Unfinished competition result: pieces placed when the round's time ran out. Such a result never has
-        // secondsToSolve, so every leaderboard and statistic (which read only secondsToSolve) leaves it out
+        // secondsToSolve (assertUnfinishedResultIsConsistent()), so no leaderboard, rank or median sees it, and it is
+        // not a solve - counts of completed puzzles leave it out (Query\CountsAsSolve)
         #[Column(nullable: true)]
         public null|int $piecesPlaced = null,
         #[Column(nullable: true)]
@@ -211,10 +212,17 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
         public null|CompetitionSeries $competitionSeries = null,
         null|UploadedImageMetadata $finishedPuzzlePhotoUploadMetadata = null,
+        // Time spent puzzling on an unfinished result (docs/features/competitions-management/unfinished-results-plan.md):
+        // the round's limit, or the total when they finished afterwards - what "time spent puzzling" sums for it
+        // instead of secondsToSolve. Null on every other result
+        #[Column(nullable: true)]
+        public null|int $secondsSpent = null,
     ) {
         if ($competitionSeries !== null && $competition !== null) {
             throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
         }
+
+        self::assertUnfinishedResultIsConsistent($secondsToSolve, $piecesPlaced, $finishedLaterSeconds, $secondsSpent);
 
         $this->finishedPuzzlePhotoUploadMetadata = $finishedPuzzlePhoto !== null ? $finishedPuzzlePhotoUploadMetadata?->toArray() : null;
         $this->puzzlersCount = $this->calculatePuzzlersCount();
@@ -317,6 +325,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         if ($secondsToSolve === $this->secondsToSolve) {
             return;
         }
+
+        self::assertUnfinishedResultIsConsistent($secondsToSolve, $this->piecesPlaced, $this->finishedLaterSeconds, $this->secondsSpent);
 
         $this->secondsToSolve = $secondsToSolve;
 
@@ -461,6 +471,7 @@ class PuzzleSolvingTime implements EntityWithEvents
             createdVia: $snapshot->createdVia,
             competitionSeries: $competitionSeries,
             finishedPuzzlePhotoUploadMetadata: $snapshot->finishedPuzzlePhotoUploadMetadata,
+            secondsSpent: $snapshot->secondsSpent,
         );
 
         // The shown prediction comes back as it was; its side-by-side rows (solving_time_prediction) went with the
@@ -802,6 +813,9 @@ class PuzzleSolvingTime implements EntityWithEvents
             throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
         }
 
+        // Checked before anything changes - a refused edit must leave nothing behind for a later flush
+        self::assertUnfinishedResultIsConsistent($seconds, $this->piecesPlaced, $this->finishedLaterSeconds, $this->secondsSpent);
+
         $puzzlingTypeBefore = $this->puzzlingType;
         $finishedAtBefore = $this->finishedAt;
         $hadSecondsBefore = $this->secondsToSolve !== null;
@@ -944,6 +958,30 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * An unfinished result (pieces placed when the round's time ran out) never has a time to solve - that keeps it off
+     * every leaderboard, rank and median - and only an unfinished result has a later total or a time spent
+     * (docs/features/competitions-management/unfinished-results-plan.md). A programming error, never a user's.
+     */
+    private static function assertUnfinishedResultIsConsistent(
+        null|int $secondsToSolve,
+        null|int $piecesPlaced,
+        null|int $finishedLaterSeconds,
+        null|int $secondsSpent,
+    ): void {
+        if ($piecesPlaced !== null && $secondsToSolve !== null) {
+            throw new LogicException('An unfinished result (pieces placed) has no time to solve.');
+        }
+
+        if ($finishedLaterSeconds !== null && $piecesPlaced === null) {
+            throw new LogicException('Only an unfinished result (pieces placed) has a later total time.');
+        }
+
+        if ($secondsSpent !== null && $piecesPlaced === null) {
+            throw new LogicException('Only an unfinished result (pieces placed) has a time spent.');
+        }
     }
 
     private function forgetPrediction(): void

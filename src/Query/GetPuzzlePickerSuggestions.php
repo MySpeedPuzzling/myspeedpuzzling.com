@@ -223,6 +223,9 @@ SQL;
             }
         }
 
+        // The player's solves - an unfinished result is not one (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 WITH RECURSIVE {$predictionCte} my_solves AS (
     SELECT
@@ -236,11 +239,12 @@ WITH RECURSIVE {$predictionCte} my_solves AS (
             FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve IS NOT NULL))[1] AS latest_seconds,
         min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
         min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
-        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE :playerId::uuid IS NOT NULL
         AND pst.player_id = :playerId
+        AND {$countsAsSolve}
     GROUP BY pst.puzzle_id
 ),
 my_team_solves AS (
@@ -249,13 +253,14 @@ my_team_solves AS (
         count(*) AS solve_count,
         min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
         min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
-        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE :playerId::uuid IS NOT NULL
         AND pst.team IS NOT NULL
         AND pst.player_id <> :playerId
         AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+        AND {$countsAsSolve}
     GROUP BY pst.puzzle_id
 ),
 my_items AS (

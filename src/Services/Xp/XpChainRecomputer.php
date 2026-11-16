@@ -12,6 +12,7 @@ use Nette\Utils\JsonException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -878,10 +879,14 @@ SQL;
      */
     private function occurrenceIndex(string $playerId, string $puzzleId, DateTimeImmutable $earnedAt, string $solvingTimeId): int
     {
+        // An unfinished result is not a solve and takes no occurrence (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $sql = <<<SQL
 SELECT COUNT(*)
 FROM puzzle_solving_time pst
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND pst.puzzle_id = :puzzleId
   AND (
     pst.player_id = :playerId

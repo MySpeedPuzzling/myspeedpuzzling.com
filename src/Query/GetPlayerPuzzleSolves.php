@@ -27,7 +27,8 @@ readonly final class GetPlayerPuzzleSolves
 
     /**
      * Puzzles the player has never solved are absent from the result; a
-     * discipline without solves is an empty group (count 0, nulls).
+     * discipline without solves is an empty group (count 0, nulls). An unfinished
+     * result is not a solve (CountsAsSolve).
      *
      * @param list<string> $puzzleIds
      *
@@ -38,6 +39,8 @@ readonly final class GetPlayerPuzzleSolves
         if ($puzzleIds === []) {
             return [];
         }
+
+        $countsAsSolve = CountsAsSolve::condition('pst');
 
         $query = <<<SQL
 SELECT
@@ -51,6 +54,7 @@ SELECT
     max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
 FROM puzzle_solving_time pst
 WHERE pst.puzzle_id IN (:puzzleIds)
+    AND {$countsAsSolve}
     AND (
         (pst.puzzling_type = 'solo' AND pst.player_id = :playerId)
         OR (

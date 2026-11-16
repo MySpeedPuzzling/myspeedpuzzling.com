@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\BadgeConditions\BadgeConditionInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
@@ -85,9 +86,10 @@ readonly final class PlayerPeriodActivityReader
         return new PlayerPeriodActivity(
             period: $period,
             results: $results,
-            puzzlesCount: count($counted),
-            piecesCount: array_sum(array_map(static fn (PeriodResult $result): int => $result->piecesCount, $counted)),
-            minutesSpent: intdiv(array_sum(array_map(static fn (PeriodResult $result): int => $result->secondsToSolve ?? 0, $counted)), 60),
+            // An unfinished result is not a solve, but its pieces placed and time spent were puzzled (CountsAsSolve)
+            puzzlesCount: count(array_filter($counted, static fn (PeriodResult $result): bool => $result->isSolve())),
+            piecesCount: array_sum(array_map(static fn (PeriodResult $result): int => $result->piecesPuzzled(), $counted)),
+            minutesSpent: intdiv(array_sum(array_map(static fn (PeriodResult $result): int => $result->secondsPuzzled() ?? 0, $counted)), 60),
             xpVisible: $xpVisible,
             xpGained: $player['xp_gained'],
             levelBefore: LevelTable::levelForXp(max(0, $xpAtEnd - $player['xp_gained'])),
@@ -186,6 +188,8 @@ SELECT
     COALESCE(pst.pieces_count_snapshot, pz.pieces_count) AS pieces_count,
     CASE WHEN pz.hide_image_until IS NOT NULL AND pz.hide_image_until > CAST(:now AS TIMESTAMP) THEN NULL ELSE pz.image END AS puzzle_image,
     pst.seconds_to_solve,
+    pst.pieces_placed,
+    pst.seconds_spent,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
     pst.puzzling_type,
     pst.puzzlers_count,
@@ -229,7 +233,7 @@ WHERE (
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.id DESC
 SQL;
 
-        /** @var list<array{time_id: string, puzzle_id: string, puzzle_name: string, brand_name: string, pieces_count: int|string, puzzle_image: null|string, seconds_to_solve: null|int|string, solved_at: string, puzzling_type: string, puzzlers_count: null|int|string, first_attempt: bool, suspicious: bool, xp: int|string, personal_best: null|bool}> $rows */
+        /** @var list<array{time_id: string, puzzle_id: string, puzzle_name: string, brand_name: string, pieces_count: int|string, puzzle_image: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, seconds_spent: null|int|string, solved_at: string, puzzling_type: string, puzzlers_count: null|int|string, first_attempt: bool, suspicious: bool, xp: int|string, personal_best: null|bool}> $rows */
         $rows = $this->database->executeQuery($sql, [
             'playerId' => $playerId,
             'periodStart' => $period->startUtc(),
@@ -252,6 +256,8 @@ SQL;
             personalBest: $row['personal_best'] === true,
             awaitingVerification: $row['suspicious'],
             xp: (int) $row['xp'],
+            piecesPlaced: $row['pieces_placed'] === null ? null : (int) $row['pieces_placed'],
+            secondsSpent: $row['seconds_spent'] === null ? null : (int) $row['seconds_spent'],
         ), $rows);
     }
 
@@ -295,8 +301,12 @@ SQL;
      */
     private function previousPeriodTotals(string $playerId, DigestPeriod $period): array
     {
+        // An unfinished result is not a solve, but its pieces placed were puzzled (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+        $piecesPuzzled = CountsAsSolve::piecesPuzzled('pst', 'COALESCE(pst.pieces_count_snapshot, pz.pieces_count)');
+
         $sql = <<<SQL
-SELECT COUNT(*) AS puzzles, COALESCE(SUM(COALESCE(pst.pieces_count_snapshot, pz.pieces_count)), 0) AS pieces
+SELECT COUNT(*) FILTER (WHERE {$countsAsSolve}) AS puzzles, COALESCE(SUM({$piecesPuzzled}), 0) AS pieces
 FROM puzzle_solving_time pst
 INNER JOIN puzzle pz ON pz.id = pst.puzzle_id
 WHERE (
@@ -485,13 +495,16 @@ SQL;
 
         // Rendered in a consumer too, so there is no viewer for HiddenPlayers / PrivateProfileAccess: the player's own
         // blocks (docs/features/player-blocklist.md - admin blocks never touch the favourites) and the allow list
-        // (docs/features/private-profile-allow-list.md - a block either way outranks it) are applied here
+        // (docs/features/private-profile-allow-list.md - a block either way outranks it) are applied here.
+        // Solves - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
         $sql = <<<SQL
 SELECT p.id AS player_id, COALESCE(p.name, '#' || UPPER(p.code)) AS name, COUNT(*) AS solves
 FROM puzzle_solving_time pst
 JOIN player p ON p.id = pst.player_id
 WHERE pst.player_id IN (:favoriteIds)
   AND pst.suspicious = false
+  AND {$countsAsSolve}
   AND NOT EXISTS (SELECT 1 FROM user_block ub WHERE ub.blocker_id = :recipientId AND ub.blocked_id = p.id)
   AND (
     p.is_private = false
@@ -536,11 +549,15 @@ SQL;
      */
     private function mostSolved(DigestPeriod $period): null|array
     {
+        // Solvers - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $sql = <<<SQL
 SELECT pz.id AS puzzle_id, pz.name, COUNT(DISTINCT pst.player_id) AS solvers
 FROM puzzle_solving_time pst
 JOIN puzzle pz ON pz.id = pst.puzzle_id
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND (pz.hide_until IS NULL OR pz.hide_until <= CAST(:now AS TIMESTAMP))
   AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
   AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)

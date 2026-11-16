@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\Community;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 
 /**
  * Rebuilds community_player_stats and community_scope_stats (docs/features/players-page/README.md).
@@ -37,8 +38,9 @@ readonly final class CommunityStatsCalculator
 
     /**
      * The results of every player: their own tracked times and every pair/team time they are a registered member of,
-     * each once. Unfinished competition results (pieces placed, no time) are not solves and stay out, nor are
-     * suspicious ones (docs/features/suspicious-times.md).
+     * each once. Unfinished competition results (pieces placed, no time) are carried with their `pieces_placed`: they
+     * are no solves - every count filters CountsAsSolve - but their pieces placed were puzzled (pieces totals and
+     * milestones). Suspicious results stay out (docs/features/suspicious-times.md).
      */
     public static function resultsSql(string $nowParameter = ':now'): string
     {
@@ -55,10 +57,10 @@ SELECT
     -- resp. to its year only. Such a result stands on the first day of its period (date-precision.md)
     CASE WHEN t.finished_at_precision IS NULL THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END AS day_at,
     CASE WHEN t.finished_at_precision IS DISTINCT FROM 'year' THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END AS month_at,
-    t.tracked_at
+    t.tracked_at,
+    t.pieces_placed
 FROM puzzle_solving_time t
-WHERE (t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL)
-    AND t.suspicious = false
+WHERE t.suspicious = false
 
 UNION ALL
 
@@ -71,7 +73,8 @@ SELECT
     LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp),
     CASE WHEN t.finished_at_precision IS NULL THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END,
     CASE WHEN t.finished_at_precision IS DISTINCT FROM 'year' THEN LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) END,
-    t.tracked_at
+    t.tracked_at,
+    t.pieces_placed
 FROM puzzle_solving_time t
 CROSS JOIN LATERAL (
     SELECT DISTINCT (elem ->> 'player_id')::uuid AS player_id
@@ -80,7 +83,6 @@ CROSS JOIN LATERAL (
 ) member
 WHERE t.team IS NOT NULL
     AND member.player_id <> t.player_id
-    AND (t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL)
     AND t.suspicious = false
 SQL;
     }
@@ -97,13 +99,17 @@ SQL;
             'lastMonth' => self::format($monthStart->modify('-1 month')),
         ];
 
+        // An unfinished result is not a solve, but its pieces placed were puzzled (CountsAsSolve)
+        $solve = CountsAsSolve::condition('r');
+        $pieces = CountsAsSolve::piecesPuzzled('r', 'z.pieces_count');
+
         $monthly = [];
         for ($i = self::MONTHS - 1; $i >= 0; $i--) {
             $from = $monthStart->modify(sprintf('-%d months', $i));
             $parameters['m' . $i] = self::format($from);
             $monthly[] = $i === 0
-                ? 'COUNT(*) FILTER (WHERE r.month_at >= :m0)'
-                : sprintf('COUNT(*) FILTER (WHERE r.month_at >= :m%d AND r.month_at < :m%d)', $i, $i - 1);
+                ? "COUNT(*) FILTER (WHERE {$solve} AND r.month_at >= :m0)"
+                : sprintf('COUNT(*) FILTER (WHERE %s AND r.month_at >= :m%d AND r.month_at < :m%d)', $solve, $i, $i - 1);
         }
         $monthlySql = 'jsonb_build_array(' . implode(', ', $monthly) . ')';
         $emptyMonths = 'jsonb_build_array(' . implode(', ', array_fill(0, self::MONTHS, '0')) . ')';
@@ -129,22 +135,22 @@ WITH results AS ({$results}),
 per_player AS (
     SELECT
         r.player_id,
-        COUNT(*) AS solved_total,
-        COALESCE(SUM(z.pieces_count), 0) AS pieces_total,
-        COUNT(*) FILTER (WHERE r.day_at >= :d7) AS solves7d,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.day_at >= :d7), 0) AS pieces7d,
-        COUNT(*) FILTER (WHERE r.day_at >= :d30) AS solves30d,
-        COUNT(*) FILTER (WHERE r.day_at >= :d60 AND r.day_at < :d30) AS solves_prev30d,
-        COUNT(*) FILTER (WHERE r.month_at >= :thisMonth) AS solves_this_month,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.month_at >= :thisMonth), 0) AS pieces_this_month,
-        COUNT(*) FILTER (WHERE r.month_at >= :lastMonth AND r.month_at < :thisMonth) AS solves_last_month,
-        COALESCE(SUM(z.pieces_count) FILTER (WHERE r.month_at >= :lastMonth AND r.month_at < :thisMonth), 0) AS pieces_last_month,
+        COUNT(*) FILTER (WHERE {$solve}) AS solved_total,
+        COALESCE(SUM({$pieces}), 0) AS pieces_total,
+        COUNT(*) FILTER (WHERE {$solve} AND r.day_at >= :d7) AS solves7d,
+        COALESCE(SUM({$pieces}) FILTER (WHERE r.day_at >= :d7), 0) AS pieces7d,
+        COUNT(*) FILTER (WHERE {$solve} AND r.day_at >= :d30) AS solves30d,
+        COUNT(*) FILTER (WHERE {$solve} AND r.day_at >= :d60 AND r.day_at < :d30) AS solves_prev30d,
+        COUNT(*) FILTER (WHERE {$solve} AND r.month_at >= :thisMonth) AS solves_this_month,
+        COALESCE(SUM({$pieces}) FILTER (WHERE r.month_at >= :thisMonth), 0) AS pieces_this_month,
+        COUNT(*) FILTER (WHERE {$solve} AND r.month_at >= :lastMonth AND r.month_at < :thisMonth) AS solves_last_month,
+        COALESCE(SUM({$pieces}) FILTER (WHERE r.month_at >= :lastMonth AND r.month_at < :thisMonth), 0) AS pieces_last_month,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500) AS best500_seconds,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 1000) AS best1000_seconds,
         ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500))::int AS median500_seconds,
         ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 1000))::int AS median1000_seconds,
-        MIN(r.solved_at) AS first_solved_at,
-        MAX(r.solved_at) AS last_solved_at,
+        MIN(r.solved_at) FILTER (WHERE {$solve}) AS first_solved_at,
+        MAX(r.solved_at) FILTER (WHERE {$solve}) AS last_solved_at,
         {$monthlySql} AS monthly_solves
     FROM results r
     JOIN puzzle z ON z.id = r.puzzle_id

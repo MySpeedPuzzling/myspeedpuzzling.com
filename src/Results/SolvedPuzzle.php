@@ -59,7 +59,19 @@ readonly final class SolvedPuzzle
         public bool $importedFromEvent = false,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished competition result: pieces placed when the round's time ran out, and the time spent - not a
+        // solve (Query\CountsAsSolve), shown from step 2 of docs/features/competitions-management/unfinished-results-plan.md
+        public null|int $piecesPlaced = null,
+        public null|int $secondsSpent = null,
     ) {
+    }
+
+    /**
+     * An unfinished result is not a solve (Query\CountsAsSolve).
+     */
+    public function isSolve(): bool
+    {
+        return $this->piecesPlaced === null;
     }
 
     /**
@@ -103,6 +115,8 @@ readonly final class SolvedPuzzle
      *     ranking_opted_out?: bool,
      *     predicted_seconds?: null|int,
      *     imported_from_event?: null|bool,
+     *     pieces_placed?: null|int,
+     *     seconds_spent?: null|int,
      *     ...
      * } $row
      */
@@ -158,6 +172,8 @@ readonly final class SolvedPuzzle
             predictedSeconds: $row['predicted_seconds'] ?? null,
             importedFromEvent: ($row['imported_from_event'] ?? false) === true,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
+            piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
+            secondsSpent: isset($row['seconds_spent']) ? (int) $row['seconds_spent'] : null,
         );
     }
 

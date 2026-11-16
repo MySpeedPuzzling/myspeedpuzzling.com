@@ -100,7 +100,7 @@ SQL;
     {
         $value = $this->database
             ->executeQuery(
-                'SELECT COUNT(*) FROM badge b ' . self::EARNED_WITH_SOLVE,
+                'SELECT COUNT(*) FROM badge b ' . self::earnedWithSolveCondition(),
                 ['playerId' => $playerId, 'solvingTimeId' => $solvingTimeId],
             )
             ->fetchOne();
@@ -117,7 +117,7 @@ SQL;
     public function earnedWithSolve(string $playerId, string $solvingTimeId): array
     {
         $sql = 'SELECT DISTINCT ON (b.type) b.id, b.type, b.tier, b.earned_at, b.revealed_at FROM badge b '
-            . self::EARNED_WITH_SOLVE
+            . self::earnedWithSolveCondition()
             . ' ORDER BY b.type ASC, b.tier DESC NULLS LAST';
 
         /** @var list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows */
@@ -132,7 +132,15 @@ SQL;
         return $badges;
     }
 
-    private const string EARNED_WITH_SOLVE = <<<SQL
+    /**
+     * The badges a solve earned: within 10 minutes of it, and no later solve of the player in between - an unfinished
+     * result is not a solve and earns nothing (CountsAsSolve).
+     */
+    private static function earnedWithSolveCondition(): string
+    {
+        $laterCountsAsSolve = CountsAsSolve::condition('later');
+
+        return <<<SQL
 JOIN puzzle_solving_time solve ON solve.id = :solvingTimeId
 WHERE b.player_id = :playerId
   AND b.earned_at >= solve.tracked_at
@@ -144,8 +152,10 @@ WHERE b.player_id = :playerId
       AND later.id != solve.id
       AND later.tracked_at > solve.tracked_at
       AND later.tracked_at <= b.earned_at
+      AND {$laterCountsAsSolve}
   )
 SQL;
+    }
 
     /**
      * @param list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows

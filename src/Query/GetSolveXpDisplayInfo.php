@@ -24,10 +24,14 @@ readonly class GetSolveXpDisplayInfo
      */
     public function countPlayerSolvesOfPuzzle(string $playerId, string $puzzleId): int
     {
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $sql = <<<SQL
 SELECT COUNT(*)
 FROM puzzle_solving_time pst
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND pst.puzzle_id = :puzzleId
   AND (
     pst.player_id = :playerId
@@ -74,10 +78,14 @@ SQL;
             return null;
         }
 
+        // The solve's place among the player's solves of the puzzle - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $occurrenceSql = <<<SQL
 SELECT COUNT(*)
 FROM puzzle_solving_time pst
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND pst.puzzle_id = :puzzleId
   AND (
     pst.player_id = :playerId

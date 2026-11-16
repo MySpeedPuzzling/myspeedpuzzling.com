@@ -35,10 +35,11 @@ SQL;
      * it - logged right after finishing, so the logging moment is the solve moment. Players without a time zone
      * have none. **Never a result from a spreadsheet import**: its `tracked_at` is made up (noon of the solve day, or
      * the moment of the import for a result solved today - docs/features/data-import/adding.md "Readers of the hour")
-     * - an import has no hour. Requires alias `pst` and `owning_player` = the player's row.
+     * - an import has no hour. Never an unfinished result either: it is not a solve (CountsAsSolve). Requires alias `pst`
+     * and `owning_player` = the player's row.
      */
-    public const string IS_NIGHT_OWL_RESULT = <<<SQL
-(pst.player_id = owning_player.id
+    public const string IS_NIGHT_OWL_RESULT = '(' . CountsAsSolve::SQL_CONDITION . ' AND ' . <<<SQL
+pst.player_id = owning_player.id
  AND pst.created_via IS DISTINCT FROM 'spreadsheet_import'
  AND owning_player.timezone IS NOT NULL
  AND pst.finished_at IS NOT NULL
@@ -49,17 +50,19 @@ SQL;
     /**
      * Online Competitor: a result linked to a public online competition, or to a public online series without an
      * edition. Most online events are one undated entry holding every session, so each result counts as one online
-     * event. Requires the joins of RESULT_COMPETITION_JOINS.
+     * event. An unfinished result is not a solve and earns no progress (CountsAsSolve). Requires the joins of
+     * RESULT_COMPETITION_JOINS.
      */
-    public const string IS_ONLINE_COMPETITION_RESULT = '((c.id IS NOT NULL AND c.is_online = true AND '
+    public const string IS_ONLINE_COMPETITION_RESULT = '(' . CountsAsSolve::SQL_CONDITION . ' AND ((c.id IS NOT NULL AND c.is_online = true AND '
         . IsCompetitionPubliclyVisible::SQL_CONDITION . ' AND ' . self::IS_COMPETITION_KIND . ')'
         . ' OR (c.id IS NULL AND cs.id IS NOT NULL AND cs.is_online = true AND ' . IsSeriesPubliclyVisible::SQL_CONDITION
-        . " AND (cs.event_types = '[]'::jsonb OR cs.event_types @> '[\"competition\"]'::jsonb)))";
+        . " AND (cs.event_types = '[]'::jsonb OR cs.event_types @> '[\"competition\"]'::jsonb))))";
 
     /**
      * Competitor: one row per public in-person competition that has ended (before :today) and that the player took
      * part in - connected as its participant, or in a result linked to it. `at` = when it counted: the day after it
-     * ended, or later when the player was connected or linked a result only afterwards. Binds :playerId and :today.
+     * ended, or later when the player was connected or linked a result only afterwards. An unfinished result is not a
+     * solve and earns no progress (CountsAsSolve) - a participant row still counts. Binds :playerId and :today.
      *
      * Starts from the player's own entries and results (a handful of competitions), then keeps the public, ended,
      * in-person ones - not from every competition with two lookups each, which grew with the number of competitions
@@ -83,6 +86,9 @@ FROM (
         FROM puzzle_solving_time pst
         WHERE pst.competition_id IS NOT NULL
           AND pst.suspicious = false
+          AND
+SQL . ' ' . CountsAsSolve::SQL_CONDITION . <<<SQL
+
           AND (
             pst.player_id = :playerId
             OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

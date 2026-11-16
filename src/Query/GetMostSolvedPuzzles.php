@@ -76,6 +76,9 @@ SQL;
             ? sprintf('%04d-01-01', $year + 1)
             : sprintf('%04d-%02d-01', $year, $month + 1);
 
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -93,6 +96,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE puzzle_solving_time.tracked_at >= :startDate
   AND puzzle_solving_time.tracked_at < :endDate
   AND puzzle_solving_time.suspicious = false
+  AND {$countsAsSolve}
 GROUP BY puzzle.id, manufacturer.id
 ORDER BY solved_times DESC
 LIMIT :howManyPuzzles

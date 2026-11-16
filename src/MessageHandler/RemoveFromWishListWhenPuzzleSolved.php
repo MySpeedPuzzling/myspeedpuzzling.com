@@ -27,6 +27,11 @@ readonly final class RemoveFromWishListWhenPuzzleSolved
             return;
         }
 
+        // An unfinished competition result (pieces placed) is not a solve - the puzzle stays wished for (CountsAsSolve)
+        if ($puzzleSolvingTime->piecesPlaced !== null) {
+            return;
+        }
+
         $wishListItem = $this->wishListItemRepository->findByPlayerIdAndPuzzleIdWithRemoveFlag(
             $puzzleSolvingTime->player->id->toString(),
             $puzzleSolvingTime->puzzle->id->toString(),

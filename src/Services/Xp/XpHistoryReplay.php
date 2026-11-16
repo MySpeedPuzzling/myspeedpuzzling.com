@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 use SpeedPuzzling\Web\Query\GetPuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Results\PuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Value\SolveXpContext;
@@ -45,6 +46,10 @@ readonly final class XpHistoryReplay
      */
     public function loadHistory(string $playerId): array
     {
+        // An unfinished result is not a solve: no XP, no occurrence, no weekly slot (CountsAsSolve) - like a suspicious
+        // one, a touched solve missing from the history earns nothing (XpChainRecomputer::rebuildScope())
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $sql = <<<SQL
 SELECT
     pst.id,
@@ -63,6 +68,7 @@ LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = pst.puzzle_id
 LEFT JOIN xp_solve_tier xst
     ON xst.player_id = :playerId AND xst.solving_time_id = pst.id AND xst.puzzle_id = pst.puzzle_id
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND (
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

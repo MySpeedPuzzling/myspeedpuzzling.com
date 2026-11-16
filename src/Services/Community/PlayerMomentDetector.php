@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\PlayerMomentType;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 
 /**
  * Detects player moments (personal bests, milestones, first results) among the results solved in the last
@@ -128,7 +129,8 @@ SQL;
 
     /**
      * Moments of a player's running totals - the n-th result, the pieces crossing a milestone, the very first result -
-     * for every player with a result tracked inside the window. Results include pair/team times of registered members.
+     * for every player with a result tracked inside the window. An unfinished result adds its pieces placed to the
+     * pieces running total, never a position (CountsAsSolve). Results include pair/team times of registered members.
      *
      * @param array{now: string, since: string} $parameters
      * @return list<array{player_id: string, type: string, dedupe_key: string, occurred_at: string, solving_time_id: null|string, pieces_count: null|int, value: null|int, previous_value: null|int}>
@@ -138,6 +140,10 @@ SQL;
         $results = CommunityStatsCalculator::resultsSql();
         $puzzleMilestones = 'ARRAY[' . implode(',', PlayerMomentType::PUZZLE_MILESTONES) . ']';
         $piecesMilestones = 'ARRAY[' . implode(',', PlayerMomentType::PIECES_MILESTONES) . ']';
+        // An unfinished result is no n-th result and no first result, but its pieces placed were puzzled (CountsAsSolve)
+        $solve = CountsAsSolve::condition('r');
+        $solveRow = CountsAsSolve::condition('n');
+        $pieces = CountsAsSolve::piecesPuzzled('r', 'z.pieces_count');
 
         $sql = <<<SQL
 WITH candidates AS (
@@ -159,9 +165,10 @@ numbered AS (
         r.solved_at,
         -- NULL for a result known to its month or year only: it counts in the running totals and is no moment
         r.day_at,
-        z.pieces_count,
-        ROW_NUMBER() OVER w AS position,
-        SUM(z.pieces_count) OVER w AS pieces_running
+        r.pieces_placed,
+        {$pieces} AS pieces_count,
+        COUNT(*) FILTER (WHERE {$solve}) OVER w AS position,
+        SUM({$pieces}) OVER w AS pieces_running
     FROM results r
     JOIN candidates c ON c.player_id = r.player_id
     JOIN player p ON p.id = r.player_id
@@ -171,7 +178,7 @@ numbered AS (
 SELECT 'puzzles' AS kind, n.player_id, n.time_id, n.solved_at, m.milestone
 FROM numbered n
 JOIN unnest({$puzzleMilestones}) AS m(milestone) ON n.position = m.milestone
-WHERE n.day_at >= :since
+WHERE n.day_at >= :since AND {$solveRow}
 
 UNION ALL
 
@@ -185,7 +192,7 @@ UNION ALL
 
 SELECT 'first', n.player_id, n.time_id, n.solved_at, NULL
 FROM numbered n
-WHERE n.position = 1 AND n.day_at >= :since
+WHERE n.position = 1 AND n.day_at >= :since AND {$solveRow}
 SQL;
 
         /** @var list<array{kind: string, player_id: string, time_id: string, solved_at: string, milestone: null|int|string}> $rows */

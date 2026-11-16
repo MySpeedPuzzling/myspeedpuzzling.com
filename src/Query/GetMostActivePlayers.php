@@ -21,6 +21,8 @@ readonly final class GetMostActivePlayers
     public function mostActivePlayersQuery(): string
     {
         $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
 
         return <<<SQL
 SELECT
@@ -39,6 +41,7 @@ FROM (
         puzzle_solving_time pst
     WHERE
         pst.suspicious = false
+        AND {$countsAsSolve}
 
     UNION ALL
 
@@ -51,6 +54,7 @@ FROM (
     WHERE
         pst.team IS NOT NULL
         AND pst.suspicious = false
+        AND {$countsAsSolve}
 ) as subquery
 JOIN player p ON subquery.player_id = p.id{$notHidden}
 GROUP BY p.id, p.name, p.country
@@ -65,6 +69,10 @@ SQL;
     public function mostActiveSoloPlayers(int $limit): array
     {
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        // An unfinished result is not a solve, but its pieces placed and time spent were puzzled (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+        $piecesPuzzled = CountsAsSolve::piecesPuzzled('puzzle_solving_time', 'puzzle.pieces_count');
+        $secondsPuzzled = CountsAsSolve::secondsPuzzled('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -73,9 +81,9 @@ SELECT
     player.country AS player_country,
     player.avatar AS player_avatar,
     player.code AS player_code,
-    COUNT(puzzle_solving_time.id) as solved_puzzles_count,
-    SUM(puzzle.pieces_count) as total_pieces_count,
-    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
+    COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) as solved_puzzles_count,
+    SUM({$piecesPuzzled}) as total_pieces_count,
+    SUM({$secondsPuzzled}) as total_seconds,
     {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -84,6 +92,7 @@ WHERE puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.suspicious = false
     {$notHidden}
 GROUP BY player.id
+HAVING COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) > 0
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
 SQL;
@@ -124,6 +133,10 @@ SQL;
             : sprintf('%04d-%02d-01', $year, $month + 1);
 
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        // An unfinished result is not a solve, but its pieces placed and time spent were puzzled (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+        $piecesPuzzled = CountsAsSolve::piecesPuzzled('puzzle_solving_time', 'puzzle.pieces_count');
+        $secondsPuzzled = CountsAsSolve::secondsPuzzled('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -132,9 +145,9 @@ SELECT
     player.country AS player_country,
     player.avatar AS player_avatar,
     player.code AS player_code,
-    COUNT(puzzle_solving_time.id) as solved_puzzles_count,
-    SUM(puzzle.pieces_count) as total_pieces_count,
-    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
+    COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) as solved_puzzles_count,
+    SUM({$piecesPuzzled}) as total_pieces_count,
+    SUM({$secondsPuzzled}) as total_seconds,
     {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -148,6 +161,7 @@ WHERE puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.finished_at_precision IS DISTINCT FROM 'year'
     {$notHidden}
 GROUP BY player.id
+HAVING COUNT(puzzle_solving_time.id) FILTER (WHERE {$countsAsSolve}) > 0
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
 SQL;

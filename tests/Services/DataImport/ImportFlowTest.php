@@ -244,6 +244,30 @@ final class ImportFlowTest extends TestCase
             'data_import.flow.primary.how_read', 'data_import_columns', 2, null,
         ];
 
+        yield 'everything of the file is on the profile already: said as the status - nothing to press, nothing "first"' => [
+            ['add' => ['rowsReady' => 20, 'rowsTaken' => 20, 'alreadyYours' => 20, 'onProfile' => 20]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $done, 3 => $ahead, 4 => $done, 5 => $done],
+            [5 => ['data_import.flow.add.already_yours']],
+            null, null, null, null,
+        ];
+
+        yield 'some rows are on the profile already, others are new: both said, and the Add is for the new ones' => [
+            ['add' => ['rowsReady' => 25, 'rowsTaken' => 25, 'results' => 5, 'alreadyYours' => 20, 'onProfile' => 20]],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $done, 3 => $ahead, 4 => $done, 5 => $open],
+            [5 => ['data_import.flow.add.ready', 'data_import.flow.add.already_yours']],
+            'data_import.flow.primary.check_and_add', 'data_import_add', 5, null,
+        ];
+
+        yield 'rows on the profile already while a step still waits: the status says both, never "nothing is ready"' => [
+            ['add' => ['rowsReady' => 20, 'rowsTaken' => 20, 'alreadyYours' => 20, 'onProfile' => 20, 'undecided' => 4], 'pairing' => new ImportPairingSummary(10, 6, 0, 4, 0, 0, 0, true)],
+            ImportFlow::STAGE_STEPS,
+            [1 => $done, 2 => $done, 3 => $ahead, 4 => $open, 5 => $ahead],
+            [5 => ['data_import.flow.add.already_yours']],
+            'data_import.flow.primary.puzzles', 'data_import_puzzles', 4, null,
+        ];
+
         yield 'only rows that could not be read: the primary leads to them' => [
             ['sheets' => [self::sheet(rowsNeedLook: 45)], 'add' => ['needLook' => 45]],
             ImportFlow::STAGE_STEPS,

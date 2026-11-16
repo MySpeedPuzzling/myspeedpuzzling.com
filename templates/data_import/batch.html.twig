@@ -24,7 +24,7 @@
 <div class="mx-auto" style="max-width: 720px;" data-testid="import-batch-page" data-import-flow-screen="batch" data-state="{{ batch.running ? 'running' : 'finished' }}">
     {# An "Add" that only kept rows just for the player put nothing on the profile - its heading does not say it did #}
     {% set only_kept = not batch.running and batch.unlisted > 0 and batch.results + batch.collectionItems + batch.wishListItems == 0 %}
-    <h1 class="h3 mb-3">{{ (batch.running ? 'data_import.batch.title' : (only_kept ? 'data_import.batch.title_kept' : 'data_import.batch.title_done'))|trans }}</h1>
+    <h1 class="h3 mb-3">{{ (batch.running ? (batch.onlyKeeps ? 'data_import.batch.title_keeping' : 'data_import.batch.title') : (only_kept ? 'data_import.batch.title_kept' : 'data_import.batch.title_done'))|trans }}</h1>
 
     {% if batch.running %}
         {{ include('data_import/_adding_live.html.twig', {
@@ -193,7 +193,7 @@
 
     {% if not batch.running and import.status.value == 'setting_up' %}
         {# Nothing more to bring from this spreadsheet? The import is finished from here too #}
-        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}) }}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, kept_only: only_kept, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}) }}
     {% endif %}
 
     {# Running: nothing to press. Done: a question card or "See them on my profile" is the primary - else the way on #}

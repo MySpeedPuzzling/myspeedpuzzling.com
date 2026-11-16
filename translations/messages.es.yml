@@ -11860,6 +11860,7 @@ data_import:
             nothing: "Todavía no hay nada listo."
             nothing_step: "Todavía no hay nada listo - primero el paso %step%."
             nothing_reading: "Aún no hay nada listo: tus filas todavía se están leyendo."
+            already_yours: "{1}1 fila ya está en tu perfil: no se añade dos veces.|[0,Inf[%number% filas ya están en tu perfil: no se añaden dos veces."
         primary:
             see_added: "Ver lo que se añadió"
             check_and_add: "Revisar y añadir"
@@ -11890,6 +11891,7 @@ data_import:
         set_ups: "Cuando confirmas cómo se lee una hoja, lo recordamos. Tu próximo archivo con los mismos encabezados se lee igual por sí solo."
         set_ups_summary: "¿Qué significa «leída como la última vez»?"
         finish: "No se añade nada más de este archivo, y deja sitio para otro. Lo que añadió se queda en tu perfil y todavía se puede deshacer. Puedes seguir con él más adelante mientras se guarde el archivo."
+        finish_kept: "No se añade nada más de este archivo, y deja sitio para otro. Lo que guardó se queda solo para ti y todavía se puede deshacer. Puedes seguir con él más adelante mientras se guarde el archivo."
         discard: "Se eliminan el archivo y todo lo que se leyó de él. En tu perfil no cambia nada - todavía no se había añadido nada."
         kept: "Se queda en tu lista para que las mismas filas nunca se añadan dos veces y puedas deshacerlas."
         file: "Solo tú ves el archivo. Lo guardamos %days% días y después se elimina - lo que se añadió se queda en tu perfil."
@@ -12084,8 +12086,15 @@ data_import:
         with_guests: "con %people%"
         first_try: "primer intento"
         button: "Añadir %number% a mi perfil"
+        button_keep: "Guardar %number% solo para mí"
         button_part: "Añadir ahora %number% de %total%: el resto mañana"
-        button_settle: "Repasar estas filas (%number%)"
+        nothing_to_add: "Nada que añadir: todo lo de este archivo ya está en tu perfil."
+        nothing_to_add_hint: "Puedes terminar con esta importación aquí. En tu perfil no cambia nada."
+        nothing_right_now: "Ahora mismo no hay nada que añadir."
+        nothing_why:
+            repeats: "Filas que repiten otra fila del archivo: %number%"
+            not_imported: "Filas que elegiste no importar: %number%"
+        none_on_profile: "Ninguna fila de este archivo está ya en tu perfil."
         button_hint: "Se añade todo lo que esté listo cuando lo pulses. Se hace en segundo plano - puedes salir de la página."
         ready:
             adding: "Ahora mismo se están añadiendo filas de esta importación a tu perfil."
@@ -12167,6 +12176,7 @@ data_import:
         title: "Añadiendo a tu perfil"
         title_done: "Añadido a tu perfil"
         title_kept: "Guardado solo para ti"
+        title_keeping: "Guardándolas solo para ti"
         line: "Añadiendo… %done% de %total%"
         finishing: "Terminando…"
         leave: "Puedes salir de esta página: el trabajo sigue en segundo plano."
@@ -13290,7 +13300,7 @@ unlisted_puzzles:
         left: "Siguen fuera del catálogo: %number%. Abajo se indica el motivo de cada uno."
         try_again: "Intentar añadir el resto de nuevo"
     add:
-        ready: "Filas guardadas solo para ti: %number% - solo tú las ves."
+        ready: "Filas que se guardarán solo para ti: %number% - solo tú las verás."
     batch:
         kept: "Filas guardadas solo para ti: %number%. Solo tú las ves, y no cuentan hasta que se emparejen."
     notification:

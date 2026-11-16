@@ -23,6 +23,7 @@
      data-data-import-setup-working-text-value="{{ 'data_import.columns.live.working'|trans }}"
      data-data-import-setup-rows-text-value="{{ 'data_import.columns.live.rows'|trans }}"
      {% if reload_page|default(false) %}data-data-import-setup-reload-page-value="true"{% endif %}
+     {% if watch|default(false) %}data-data-import-setup-watch-value="true"{% endif %}
      data-data-import-setup-saved-text-value="{{ 'data_import.columns.flash.saved'|trans }}"
      {% if follows_pairing %}
          data-data-import-setup-pairing-value="true"
@@ -37,6 +38,10 @@
     <div class="fs-sm text-muted mt-2" data-data-import-setup-target="stale" hidden>
         {{ 'data_import.reading.stale'|trans }}
     </div>
+    {# The page would have been loaded again, but the player is in the middle of something on it: a link instead #}
+    <p class="fs-sm mt-2 mb-0" data-data-import-setup-target="refresh" data-testid="import-setup-refresh" hidden>
+        <a href="{{ app.request.pathInfo }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow"><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'data_import.reading.refresh'|trans }}</a>
+    </p>
     <noscript>
         <a href="{{ app.request.pathInfo }}" class="btn btn-outline-primary btn-sm mt-2" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
     </noscript>

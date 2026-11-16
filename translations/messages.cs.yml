@@ -11862,6 +11862,7 @@ data_import:
             nothing: "Zatím není nic připraveno."
             nothing_step: "Zatím není nic připraveno - nejdřív krok %step%."
             nothing_reading: "Zatím není nic připraveno - vaše řádky se ještě čtou."
+            already_yours: "{1}1 řádek už na svém profilu máte - nepřidá se podruhé.|[2,4]%number% řádky už na svém profilu máte - nepřidají se podruhé.|[0,Inf[%number% řádků už na svém profilu máte - nepřidají se podruhé."
         primary:
             see_added: "Zobrazit, co se přidalo"
             check_and_add: "Zkontrolovat a přidat"
@@ -11892,6 +11893,7 @@ data_import:
         set_ups: "Když potvrdíte, jak se má list číst, zapamatujeme si to. Váš další soubor se stejnými záhlavími se přečte stejně, sám od sebe."
         set_ups_summary: "Co znamená „přečteno jako minule“?"
         finish: "Z tohoto souboru se už nic dalšího nepřidá a uvolní se místo pro další. Co přidal, zůstává na vašem profilu a dá se stále vrátit zpět. Dokud soubor uchováváme, můžete v něm později pokračovat."
+        finish_kept: "Z tohoto souboru se už nic dalšího nepřidá a uvolní se místo pro další. Co ponechal, zůstává jen pro vás a dá se stále vrátit zpět. Dokud soubor uchováváme, můžete v něm později pokračovat."
         discard: "Soubor a vše, co jsme z něj přečetli, se smaže. Na vašem profilu se nic nezmění - zatím se nic nepřidalo."
         kept: "Zůstává ve vašem seznamu, aby se stejné řádky nikdy nepřidaly dvakrát a abyste je mohli vrátit zpět."
         file: "Soubor vidíte jen vy. Uchováváme ho %days% dní, potom ho odstraníme - co se přidalo, zůstává na vašem profilu."
@@ -12086,8 +12088,15 @@ data_import:
         with_guests: "s: %people%"
         first_try: "první pokus"
         button: "Přidat na můj profil (%number%)"
+        button_keep: "Ponechat %number% jen pro mě"
         button_part: "Přidat teď %number% z %total% - zbytek zítra"
-        button_settle: "Projít tyto řádky (%number%)"
+        nothing_to_add: "Není co přidat - vše z tohoto souboru už na svém profilu máte."
+        nothing_to_add_hint: "Tento import můžete ukončit zde. Na vašem profilu se nic nezmění."
+        nothing_right_now: "Teď není co přidat."
+        nothing_why:
+            repeats: "Řádky, které opakují jiný řádek souboru: %number%"
+            not_imported: "Řádky, které jste se rozhodli neimportovat: %number%"
+        none_on_profile: "Žádný řádek tohoto souboru na svém profilu zatím nemáte."
         button_hint: "Přidá se vše, co je ve chvíli stisknutí připravené. Běží to na pozadí - stránku můžete opustit."
         ready:
             adding: "Řádky tohoto importu se právě přidávají na váš profil."
@@ -12169,6 +12178,7 @@ data_import:
         title: "Přidávání na váš profil"
         title_done: "Přidáno na váš profil"
         title_kept: "Ponecháno jen pro vás"
+        title_keeping: "Ponecháváme je jen pro vás"
         line: "Přidáváme… %done% z %total%"
         finishing: "Dokončujeme…"
         leave: "Tuto stránku můžete opustit - práce pokračuje na pozadí."
@@ -13292,7 +13302,7 @@ unlisted_puzzles:
         left: "Stále mimo databázi: %number%. U každého je níže důvod."
         try_again: "Zkusit přidat zbytek znovu"
     add:
-        ready: "Řádky ponechané jen pro vás: %number% - vidíte je jen vy."
+        ready: "Řádky, které se ponechají jen pro vás: %number% - uvidíte je jen vy."
     batch:
         kept: "Řádky ponechané jen pro vás: %number%. Vidíte je jen vy a do přiřazení se nepočítají."
     notification:

@@ -296,6 +296,11 @@ readonly final class ImportFlow
             $addLines[] = new ImportFlowText('data_import.flow.add.ready', $ready);
         }
 
+        if ($open && $add->canAdd && $add->runningBatchId === null && $add->onProfileAlready() > 0) {
+            // Said as the status, not hidden in a fold: these rows are why "nothing is ready" - and it is good news
+            $addLines[] = new ImportFlowText('data_import.flow.add.already_yours', $add->onProfileAlready());
+        }
+
         if ($add->notAdded > 0) {
             $addLines[] = new ImportFlowText('data_import.flow.add.rows_wait', $add->notAdded);
         }
@@ -317,7 +322,8 @@ readonly final class ImportFlow
             match (true) {
                 $add->runningBatchId !== null => ImportFlowStep::WORKING,
                 $ready > 0 || $add->notAdded > 0 => ImportFlowStep::OPEN,
-                $add->hasAdded() => ImportFlowStep::DONE,
+                // Everything of the file is on the profile already: nothing is left to do here
+                $add->hasAdded(), $open && $add->canAdd && $add->nothingLeftToAdd() => ImportFlowStep::DONE,
                 default => ImportFlowStep::AHEAD,
             },
             $addLines !== [] ? $addLines : [match (true) {

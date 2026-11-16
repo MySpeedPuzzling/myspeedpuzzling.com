@@ -91,6 +91,17 @@ final class ImportDetailController extends AbstractController
             return $this->redirectToRoute($next['route'], $next['parameters']);
         }
 
+        // What the page's live line starts from: it follows the reading of the rows and the pairing by itself - but
+        // not a pairing that has nothing to pair because every puzzle of the file waits for the columns check
+        // (ImportCheckFirst): no "Matching your puzzles…" there
+        $progress = $this->getDataImports->progressOfPlayer($importId, $player->playerId);
+        $live = ImportPuzzlesController::live($progress);
+        $followsPairing = $progress->sheetsHeld === 0 || $progress->pairing['puzzles'] > 0;
+
+        if ($followsPairing === false) {
+            $live = [...$live, 'working' => $progress->sheetsWorking > 0, 'revision' => $progress->revision];
+        }
+
         return $this->render('data_import/detail.html.twig', [
             'import' => $import,
             'sheets' => $sheets,
@@ -98,8 +109,8 @@ final class ImportDetailController extends AbstractController
             'add' => $add,
             // A finished import can be gone on with while its rows still hold what the spreadsheet said
             'can_go_on' => $add->wiped === false,
-            // What the page's live line starts from: it follows the reading of the rows and the pairing by itself
-            'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
+            'live' => $live,
+            'live_pairing' => $followsPairing,
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,
             'limits' => [
                 '%megabytes%' => intdiv(DataImportLimits::MAX_FILE_BYTES, 1024 * 1024),

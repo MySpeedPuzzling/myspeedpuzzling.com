@@ -1743,6 +1743,18 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
 - [ ] Check in a browser: "Check and add" loading itself again when a re-read ends (a whole-page reload by
   `data_import_setup_controller.js`), and the "Saved…" flash going when the reading was over at the first look.
 
+## Data import - rows that are on the profile already (docs/features/data-import/adding-screens.md "Already on your profile")
+
+- [ ] Look at it in a real browser: "Check and add" and "What will be added" of a file that is on the profile
+  already, and `…/add/already-on` opened by itself.
+- [ ] Look at it in a real browser: "Check and add" loading itself again while puzzles are still matched after a
+  save, also with `/.well-known/mercure` unavailable (it asks the progress endpoint every 4 s; watched 2 minutes
+  while nothing is ready).
+- [ ] The batch page after an "Add" of new rows and already-yours rows together still says the latter only inside
+  a fold ("On your profile already: N") - say it in the headline's sentence too.
+- [ ] An import whose rows are all on the profile already can only be discarded (it never added anything, so
+  "I'm done" is not offered): if players want it kept in their list, "Finish" needs to take an import without a batch.
+
 ## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
 
 - [ ] 13 of 21 "Probably" puzzles of Puzzle Tracker's export carried "Another brand" - look at them: a re-release, or

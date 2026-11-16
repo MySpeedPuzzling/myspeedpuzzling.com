@@ -58,6 +58,14 @@
         {% endif %}
     </turbo-frame>
 
+    {# The page opened by itself: the rows of the file that are on the profile already #}
+    {% if on_profile_total|default(0) > 0 %}
+        <h1 class="h4 mb-2">{{ 'data_import.flow.add.already_yours'|trans({'%count%': on_profile_total, '%number%': on_profile_total|format_number}) }}</h1>
+        {{ include('data_import/_on_profile_rows.html.twig', {rows: on_profile, total: on_profile_total, open: true}, with_context = false) }}
+    {% elseif on_profile_total is defined and not (check.notFound > 0 or stands) %}
+        <p class="text-muted" data-testid="import-on-profile-none">{{ 'data_import.add.none_on_profile'|trans }}</p>
+    {% endif %}
+
     {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.add.back_to_review'|trans, url: path('data_import_add', {importId: import.importId}), testid: 'import-flow-back-primary'}}, with_context = false) }}
 </div>
 {% endblock %}

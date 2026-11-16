@@ -235,13 +235,13 @@ SQL;
     SELECT jsonb_agg(first.id)
     FROM (
         SELECT judged.id FROM judged
-        WHERE judged.taken AND judged.unlisted_row = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
+        WHERE judged.taken AND judged.unlisted_row = FALSE AND (judged.has_result AND judged.equal_row) = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE AND judged.equal_row = FALSE
         ORDER BY judged.position, judged.row_number, judged.id LIMIT :known
     ) first
 ) AS known_ids
 SQL : 'NULL AS sheets, NULL AS sample_ids, NULL AS known_ids';
 
-        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
+        /** @var false|array{status: string, wiped: bool, paused: bool, rows_ready: int, rows_taken: int, results: int, owned: int, wish_list: int, later: int, already_yours: int, equal_rows: int, on_profile: int, not_imported: int, results_left: int, unlisted: int, needs_exact_day: int, undecided: int, need_look: int|string, sheets_not_set_up: int, sheets_being_read: int, results_without_time: int, not_added: int, rows_added: int, results_added: int, collection_items_added: int, wish_list_items_added: int, last_added_at: null|string, running_batch_id: null|string, latest_batch_id: null|string, sheets: null|string, sample_ids: null|string, known_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 WITH {$judged},
 counts AS (
@@ -256,8 +256,16 @@ counts AS (
         COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS already_yours,
         -- Rows kept with the player's unlisted puzzles - only they see them
         COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row) AS unlisted,
-        COUNT(*) FILTER (WHERE judged.taken AND judged.has_result AND judged.equal_row) AS equal_rows
+        COUNT(*) FILTER (WHERE judged.taken AND judged.has_result AND judged.equal_row) AS equal_rows,
+        -- **On the profile already**: taken, and everything the row says is the player's - not kept just for them,
+        -- not a repeat of another row. ONE predicate (self::ON_PROFILE) for this count, the rows "What will be
+        -- added" leaves out, and the rows the review shows under "On your profile already"
+        COUNT(*) FILTER (WHERE judged.taken AND judged.unlisted_row = FALSE AND (judged.has_result AND judged.equal_row) = FALSE AND judged.new_result = FALSE AND judged.new_owned = FALSE AND judged.new_wish = FALSE) AS on_profile,
+        -- Of the results this Add takes - the rows of `results`, and results kept just for the player - those that
+        -- hold no time: never a row that is not ready
+        COUNT(*) FILTER (WHERE judged.taken AND (judged.new_result OR (judged.unlisted_row AND judged.has_result)) AND timed.parsed ->> 'seconds' IS NULL) AS results_without_time
     FROM judged
+    INNER JOIN data_import_row timed ON timed.id = judged.id
 ),
 waiting AS (
     SELECT
@@ -295,26 +303,20 @@ SELECT
         FROM data_import_sheet sheet
         WHERE sheet.import_id = import.id AND sheet.included AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
     ) AS sheets_not_set_up,
+    -- Rows the player said "Don't import" about - why nothing may be left to add
+    (
+        SELECT COUNT(*)
+        FROM data_import_row left_out
+        INNER JOIN data_import_sheet sheet ON sheet.id = left_out.sheet_id
+        WHERE left_out.import_id = import.id AND sheet.included
+            AND left_out.state = 'left_out' AND left_out.parsed ->> 'leftOut' = 'by_player'
+    ) AS not_imported,
     (
         SELECT COUNT(*)
         FROM data_import_sheet sheet
         WHERE sheet.import_id = import.id AND sheet.included AND sheet.mapping_version > 0 AND sheet.set_up_failure IS NULL
             AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
     ) AS sheets_being_read,
-    -- Results of the read sheets that hold no time and nothing unclear: what an Add would add without a time
-    (
-        SELECT COUNT(*)
-        FROM data_import_row untimed
-        INNER JOIN data_import_sheet sheet ON sheet.id = untimed.sheet_id
-        WHERE untimed.import_id = import.id
-            AND sheet.included AND sheet.parsed_version = sheet.mapping_version
-            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
-            AND untimed.kind IN ('result', 'both')
-            AND untimed.state = 'waiting'
-            AND untimed.problems IS NULL
-            AND untimed.source_key IS NOT NULL
-            AND untimed.parsed ->> 'seconds' IS NULL
-    ) AS results_without_time,
     (
         SELECT batch.id FROM data_import_batch batch
         WHERE batch.import_id = import.id AND batch.state = 'running'
@@ -401,6 +403,8 @@ SQL, [
             wiped: $row['wiped'],
             sheetsBeingRead: $row['sheets_being_read'],
             resultsWithoutTime: $row['results_without_time'],
+            onProfile: $row['on_profile'],
+            notImported: $row['not_imported'],
         );
     }
 
@@ -444,6 +448,10 @@ SQL, [
             $conditions[] = $makesColumn;
         }
 
+        // A row an "Add" takes although everything it says is on the profile already adds nothing: it is not part
+        // of "What will be added" - it has a list of its own (ImportAddListRow::onProfileAlready() is the same rule)
+        $conditions[] = 'NOT (listed.not_imported = FALSE AND listed.unlisted_row = FALSE AND listed.equal_row = FALSE AND listed.new_result = FALSE AND listed.new_owned = FALSE AND listed.new_wish = FALSE)';
+
         if ($sheetId !== null) {
             $conditions[] = 'listed.sheet_id = :sheetId';
             $parameters['sheetId'] = strtolower($sheetId);
@@ -460,7 +468,7 @@ SQL, [
             $parameters = [...$parameters, ...$textSearch->parameters($now), 'needle' => '%' . addcslashes(mb_strtolower($search), '%_\\') . '%'];
         }
 
-        $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
+        $where = 'WHERE ' . implode(' AND ', $conditions);
 
         /** @var list<array{id: string, row_number: int, kind: null|string, parsed: null|string, title: string, state: string, failure: null|string, import_puzzle_id: null|string, puzzle_id: null|string, puzzle_name: null|string, brand_name: null|string, pieces_count: null|int, image: null|string, image_ratio: null|float|string, solving_time_id: null|string, made_collection_item: bool, made_wish_list_item: bool, added_at: null|string, kept_by_undo: bool, being_taken_back: bool, batch_id: null|string, equal_rows: int, add_as_separate: bool, sheet_id: string, not_imported: bool, new_result: bool, new_owned: bool, new_wish: bool, unlisted_row: bool, equal_row: bool, file_says: null|string, total: int, taken: int}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
@@ -951,7 +959,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['
     /**
      * One "Add" of the player's import: what it took, how far it is, what came of it. One statement.
      *
-     * @return array{id: string, state: string, running: bool, paused: bool, endedByUndo: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, rows: int, queued: int, done: int, added: int, alreadyYours: int, notAdded: int, results: int, collectionItems: int, wishListItems: int, stillAdded: int, unlisted: int, skipped: array<string, int>}
+     * @return array{id: string, state: string, running: bool, paused: bool, endedByUndo: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, rows: int, queued: int, done: int, added: int, alreadyYours: int, notAdded: int, results: int, collectionItems: int, wishListItems: int, stillAdded: int, unlisted: int, onlyKeeps: bool, skipped: array<string, int>}
      *
      * @throws DataImportNotFound
      */
@@ -961,7 +969,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['
 
         $notAdded = self::NOT_ADDED;
 
-        /** @var false|array{id: string, state: string, paused: bool, ended_by_undo: bool, started_at: string, finished_at: null|string, undone_at: null|string, rows_requested: int, rows_added: int, rows_already_yours: int, rows_refused: int, rows_failed: int, results_added: int, collection_items_added: int, wish_list_items_added: int, skipped: string, queued: int, live_added: int, live_already_yours: int, live_not_added: int, live_results: int, live_collection_items: int, live_wish_list_items: int, live_unlisted: int} $row */
+        /** @var false|array{id: string, state: string, paused: bool, ended_by_undo: bool, started_at: string, finished_at: null|string, undone_at: null|string, rows_requested: int, rows_added: int, rows_already_yours: int, rows_refused: int, rows_failed: int, results_added: int, collection_items_added: int, wish_list_items_added: int, skipped: string, queued: int, live_added: int, live_already_yours: int, live_not_added: int, live_results: int, live_collection_items: int, live_wish_list_items: int, live_unlisted: int, rows_not_kept: int} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     batch.id,
@@ -988,7 +996,9 @@ SELECT
     COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS live_collection_items,
     COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS live_wish_list_items,
     -- Rows kept with the player's unlisted puzzles (only the row's own record is read - never the unlisted tables)
-    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.made -> 'unlisted' IS NOT NULL) AS live_unlisted
+    COUNT(r.id) FILTER (WHERE r.state = 'added' AND r.made -> 'unlisted' IS NOT NULL) AS live_unlisted,
+    -- Rows of the batch whose puzzle is not one "kept just for you": none of them = the Add only keeps rows
+    COUNT(r.id) FILTER (WHERE NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted')) AS rows_not_kept
 FROM data_import_batch batch
 INNER JOIN data_import ON data_import.id = batch.import_id
 LEFT JOIN data_import_row r ON r.batch_id = batch.id
@@ -1035,6 +1045,8 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])-
             'stillAdded' => $row['live_added'],
             // Rows that are kept with the player's unlisted puzzles
             'unlisted' => $row['live_unlisted'],
+            // Every row of it belongs to a puzzle kept just for the player: nothing of it goes to the profile
+            'onlyKeeps' => $row['rows_requested'] > 0 && $row['rows_not_kept'] === 0,
             'skipped' => $skipped,
         ];
     }

@@ -23,11 +23,13 @@ import { Controller } from '@hotwired/stimulus';
 const ASK_EVERY_MS = 4000;
 // An event younger than this: the stream works, no need to ask
 const QUIET_MS = 4000;
+// How long a page that watches (nothing works, but something may begin) keeps asking
+const WATCH_FOR_MS = 120000;
 const BACK_OFF_MS = [4000, 8000, 16000, 30000];
 const GIVE_UP_AFTER_MS = 10 * 60 * 1000;
 
 export default class extends Controller {
-    static targets = ['line', 'spinner', 'stale'];
+    static targets = ['line', 'spinner', 'stale', 'refresh'];
 
     static values = {
         importId: String,
@@ -43,6 +45,8 @@ export default class extends Controller {
         savedText: String,
         // A page without live frames (the add review): loaded again as a whole once the reading ends
         reloadPage: Boolean,
+        // Keep asking for a while although nothing works right now: a save a moment ago may not have begun yet
+        watch: Boolean,
         // The puzzles' pages (docs/features/data-import/pairing-screens.md "The live line"): the pairing of the
         // import's puzzles with the database is followed too - `data.pairing` of the same payload
         pairing: Boolean,
@@ -58,6 +62,7 @@ export default class extends Controller {
         this.failingSince = 0;
         this.revision = this.revisionValue || null;
         this.working = this.workingValue;
+        this.watchUntil = this.watchValue ? Date.now() + WATCH_FOR_MS : 0;
 
         // The reading was over before the page was rendered: "your rows are being read again" is not true any more
         if (!this.working) {
@@ -89,16 +94,28 @@ export default class extends Controller {
             event.detail.visit(this.fallbackUrlValue || window.location.href);
         };
 
+        // The player typed, ticked or chose something on the page: it is never loaded again under their hands
+        this.touched = false;
+        this.onTouch = (event) => {
+            if (event.target instanceof Element && event.target.closest('form')) {
+                this.touched = true;
+            }
+        };
+
+        document.addEventListener('input', this.onTouch, true);
+        document.addEventListener('change', this.onTouch, true);
         document.addEventListener('mercure:message', this.onMessage);
         document.addEventListener('turbo:frame-missing', this.onFrameMissing);
 
-        if (this.working) {
+        if (this.working || this.watchUntil > 0) {
             // What happened between the page's rendering and now is asked for at once
             this.ask(true).then(() => this.askLater(ASK_EVERY_MS));
         }
     }
 
     disconnect() {
+        document.removeEventListener('input', this.onTouch, true);
+        document.removeEventListener('change', this.onTouch, true);
         document.removeEventListener('mercure:message', this.onMessage);
         document.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.stopped = true;
@@ -108,7 +125,7 @@ export default class extends Controller {
     askLater(ms) {
         window.clearTimeout(this.timer);
 
-        if (this.stopped || !this.working) {
+        if (this.stopped || (!this.working && Date.now() >= this.watchUntil)) {
             return;
         }
 
@@ -134,6 +151,11 @@ export default class extends Controller {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
+            // Turbo went on to another page while the answer was on its way: nothing of it is for that page
+            if (this.stopped || !this.element.isConnected) {
+                return;
+            }
+
             const isJson = (response.headers.get('Content-Type') || '').includes('json');
 
             // Signed out meanwhile, or the import was discarded in another tab: the page itself says what is
@@ -152,7 +174,13 @@ export default class extends Controller {
 
             this.failures = 0;
             this.failingSince = 0;
-            this.show(await response.json());
+            const data = await response.json();
+
+            if (this.stopped || !this.element.isConnected) {
+                return;
+            }
+
+            this.show(data);
         } catch {
             // Offline or a deploy
             this.failed();
@@ -221,16 +249,55 @@ export default class extends Controller {
             this.dropSavedFlash();
         }
 
-        if (wasWorking && !this.working && this.reloadPageValue) {
-            this.stopped = true;
-            window.clearTimeout(this.timer);
-            window.location.reload();
+        // A page without live frames is loaded again when what it shows is out of date: the work ended, or a sheet's
+        // or the matching's state moved on since the first answer. (Work that is found to be running - the page did
+        // not know about the matching - is only followed from then on: no reload for that.)
+        if ((changed || (wasWorking && !this.working)) && this.reloadPageValue) {
+            this.reloadPage();
         }
 
         if (this.working && !wasWorking) {
             // Work began again (a change saved in another tab): the line is kept moving from here on
             this.askLater(ASK_EVERY_MS);
         }
+    }
+
+    /**
+     * The whole page is loaded again - unless the controller was disconnected meanwhile (an answer that arrives
+     * after Turbo went on to another page must not reload THAT page), or the player is in the middle of something
+     * here: a field they changed, a form control they stand in. Then a small "Refresh" link is shown instead.
+     */
+    reloadPage() {
+        if (this.stopped || !this.element.isConnected) {
+            return;
+        }
+
+        const active = document.activeElement;
+        const busy = this.touched
+            || (active instanceof Element && active.matches('input:not([type="hidden"]), textarea, select'));
+
+        this.stopped = true;
+        window.clearTimeout(this.timer);
+
+        if (busy) {
+            this.element.hidden = false;
+
+            if (this.hasSpinnerTarget) {
+                this.spinnerTarget.hidden = true;
+            }
+
+            if (this.hasLineTarget) {
+                this.lineTarget.hidden = true;
+            }
+
+            if (this.hasRefreshTarget) {
+                this.refreshTarget.hidden = false;
+            }
+
+            return;
+        }
+
+        window.location.reload();
     }
 
     /**

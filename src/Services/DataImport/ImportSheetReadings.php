@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\DataImport;
 
+use SpeedPuzzling\Web\Value\DataImport\DurationReadingRule;
+use SpeedPuzzling\Web\Value\DataImport\DurationShape;
 use SpeedPuzzling\Web\Exceptions\InvalidImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\ImportQuestion;
@@ -48,7 +50,13 @@ final class ImportSheetReadings
 
         $rules = [];
 
-        foreach ($read->durations as $setting) {
+        foreach ($read->durations as $shape => $setting) {
+            // "30:20.23" is minutes and seconds to everybody, and nobody was asked: not a reading worth a phrase
+            // beside the column's own ("As written … · Minutes and seconds" read as two rules for one time)
+            if ($shape === DurationShape::TwoPartTextWithHundredths->value && $setting['rule'] === DurationReadingRule::MinutesSeconds) {
+                continue;
+            }
+
             $rules[$setting['rule']->value] = true;
         }
 

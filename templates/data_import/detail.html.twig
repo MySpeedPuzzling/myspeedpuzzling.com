@@ -123,7 +123,7 @@
             "The live line")
         #}
         {% if import_flow.stage == 'steps' %}
-            {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
+            {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: live_pairing|default(true)}) }}
         {% endif %}
         <turbo-frame id="import-detail-live" data-import-live target="_top">
             <h1 class="h4 mb-3" data-testid="import-flow-headline">{{ include('data_import/_flow_text.html.twig', {text: import_flow.headline}, with_context = false) }}</h1>
@@ -185,7 +185,7 @@
                     <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.ready'|trans({'%number%': add.unlisted|format_number}) }}
                 </p>
             {% endif %}
-            {{ include('unlisted_puzzles/_import_link.html.twig', {show: add.unlisted > 0 or viewer_unlisted.hasAny}, with_context = false) }}
+            {{ include('unlisted_puzzles/_import_link.html.twig', {show: viewer_unlisted.hasAny}, with_context = false) }}
             {% if add.hasAdded %}
                 <p class="fs-sm text-muted mt-3 mb-0" data-testid="{{ import_flow.stage == 'finished' ? 'import-finished-added' : 'import-ready-added' }}">
                     {{ 'data_import.add.added_so_far'|trans({'%results%': add.resultsAdded|format_number, '%owned%': add.collectionItemsAdded|format_number, '%wish_list%': add.wishListItemsAdded|format_number}) }}

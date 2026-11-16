@@ -91,7 +91,7 @@ What this means:
 ### 1.3 Mercure today
 
 - **Production:**
-  - a separate `dunglas/mercure:v2.11.3` container behind Traefik (`/.well-known/mercure`, served
+  - a separate `dunglas/mercure` container (Mercure 0.24.2 then, 1.1.6 since 2026-11-16) behind Traefik (`/.well-known/mercure`, served
     directly over HTTP/2 + HTTP/3, `anonymous` allowed);
   - at 09:56 UTC it used **31 MiB of RAM and 0.13 % CPU, with 99 open TCP connections**.
 - **Every signed-in page view already opens an EventSource:**

@@ -73,7 +73,7 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertIsString($mercure['token']);
 
         $token = self::verified($mercure['token']);
-        self::assertSame(['subscribe' => self::ROUND_TOPICS], $token->claims()->get('mercure'));
+        self::assertSame(self::ROUND_TOPICS, self::subscribeTopics($token));
         $expires = $token->claims()->get('exp');
         self::assertInstanceOf(\DateTimeImmutable::class, $expires);
         self::assertSame(TestClock::timestamp() + 3600, $expires->getTimestamp());
@@ -226,7 +226,37 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertIsArray($mercure);
         self::assertSame($topics, $mercure['topics'] ?? null);
         self::assertIsString($mercure['token'] ?? null);
-        self::assertSame(['subscribe' => $topics], self::verified($mercure['token'])->claims()->get('mercure'));
+        self::assertSame($topics, self::subscribeTopics(self::verified($mercure['token'])));
+    }
+
+    /**
+     * The topics of the token's one subscribe grant (Mercure protocol 1.0: an RFC 9068 access token, its
+     * `authorization_details`), each an exact match - never a pattern granting every round.
+     *
+     * @return list<string>
+     */
+    private static function subscribeTopics(UnencryptedToken $token): array
+    {
+        self::assertSame('at+jwt', $token->headers()->get('typ'));
+        $details = $token->claims()->get('authorization_details');
+        self::assertIsArray($details);
+        self::assertCount(1, $details);
+        $grant = $details[0];
+        self::assertIsArray($grant);
+        self::assertSame('https://mercure.rocks/authorization-detail', $grant['type'] ?? null);
+        self::assertSame(['subscribe'], $grant['actions'] ?? null);
+        self::assertIsArray($grant['topics'] ?? null);
+
+        $topics = [];
+
+        foreach ($grant['topics'] as $topic) {
+            self::assertIsArray($topic);
+            self::assertArrayNotHasKey('match_type', $topic, 'exact matches only');
+            self::assertIsString($topic['match'] ?? null);
+            $topics[] = $topic['match'];
+        }
+
+        return $topics;
     }
 
     private static function verified(string $jwt): UnencryptedToken
@@ -250,7 +280,8 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         $found = false;
 
         foreach ($browser->getResponse()->headers->getCookies() as $cookie) {
-            if ($cookie->getName() !== 'mercureAuthorization') {
+            // `__Secure-` in production, prefix-less with kernel.debug (MercureBundle's default for a plain-HTTP hub)
+            if (!in_array($cookie->getName(), ['__Secure-mercure_access_token', 'mercure_access_token'], true)) {
                 continue;
             }
 
@@ -258,12 +289,17 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
             $parts = explode('.', (string) $cookie->getValue());
             $payload = json_decode((string) base64_decode(strtr($parts[1] ?? '', '-_', '+/'), true), true);
             self::assertIsArray($payload);
-            self::assertIsArray($payload['mercure'] ?? null);
-            self::assertIsArray($payload['mercure']['subscribe'] ?? null);
+            self::assertIsArray($payload['authorization_details'] ?? null);
 
-            foreach ($payload['mercure']['subscribe'] as $topic) {
-                self::assertIsString($topic);
-                self::assertStringStartsNotWith('/round-results/', $topic);
+            foreach ($payload['authorization_details'] as $grant) {
+                self::assertIsArray($grant);
+                self::assertIsArray($grant['topics'] ?? null);
+
+                foreach ($grant['topics'] as $topic) {
+                    self::assertIsArray($topic);
+                    self::assertIsString($topic['match'] ?? null);
+                    self::assertStringStartsNotWith('/round-results/', $topic['match']);
+                }
             }
         }
 

@@ -10,9 +10,14 @@ Majors and deprecations the upgrade left on purpose - each is its own change:
 
 - [x] `league/oauth2-server-bundle` 2.0 (2026-11-16): secrets hashed on save, existing ones hashed by migration
   `Version20261116140000`, bundle on ^2.0 ([api/README.md](features/api/README.md#client-secrets-are-stored-hashed-since-2026-11-16-bundle-20))
-- [ ] Mercure protocol 1.0: `config/packages/mercure.php` pins `protocol_version: 0.x` (mercure-bundle 0.7 defaults
-  to 1.0). Moving needs a Mercure 1.x hub, `match=` instead of `topic=` in the JS subscribers, the new cookie name
-  and `turbo_stream_from()` instead of the deprecated `turbo_stream_listen()` (messaging modals)
+- [x] Mercure protocol 1.0: hub 1.1.6 on lily (production + sandbox), the app on `protocol_version: 1.0` (`match=`,
+  RFC 9068 tokens, `__Secure-mercure_access_token`, `turbo_stream_from()` in the messaging modals)
+- [ ] Mercure hub: drop `protocol_version_compatibility 8` from both hubs (`~/www/lily.srv`
+  `apps/myspeedpuzzling/compose.yaml` + `apps/msp-sandbox/compose.yaml`, then `docker compose up -d mercure` in
+  `/srv/<app>` - the reconciler delivers but never activates) once the protocol 1.0 release has been live a few days:
+  it only keeps browser tabs opened before that release (`topic=`, the `mercureAuthorization` cookie) receiving, and
+  it relaxes token checks for 0.x tokens. Before: no `topic=` GETs left in the hub's access log
+  (`docker logs --since 24h myspeedpuzzling-mercure-1 | grep -c '[?&]topic='`)
 - [ ] Doctrine ORM 3.8 / DBAL 4.6 deprecations: `orderBy()`/`addOrderBy()` with string directions (~50 calls) and
   `#[OrderBy(['position' => 'ASC'])]` on `TableRow`/`RoundTable` → `SortDirection`; `options: ['jsonb' => true]`
   (~37 columns) → `type: Types::JSONB` (same SQL - `migrations:diff` must stay empty; phpstan-doctrine needs a

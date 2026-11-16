@@ -51,12 +51,12 @@
                 </div>
             </div>
 
+            {# New messages as Turbo Streams (Mercure protocol 1.0: turbo_stream_from, private = sent with the subscriber cookie) #}
+            {{ turbo_stream_from('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId, private: true) }}
             <div style="max-height: 350px; overflow-y: auto;" id="messages-container"
                  class="p-3"
                  data-messaging-target="messages"
-                 data-conversation-realtime-target="messages"
-                 {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
-                 data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
+                 data-conversation-realtime-target="messages">
 
                 {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
                     {{ include('messaging/_message_list.html.twig') }}

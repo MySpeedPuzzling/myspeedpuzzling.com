@@ -93,7 +93,7 @@ export default class extends Controller {
         }
 
         const url = new URL(this.mercureUrlValue);
-        url.searchParams.append('topic', this.topicValue);
+        url.searchParams.append('match', this.topicValue);
         this.eventSource = new EventSource(url);
 
         this.eventSource.addEventListener('open', () => {

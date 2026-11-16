@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -23,6 +24,7 @@ final class TypingIndicatorController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HubInterface $hub,
         readonly private MessageBusInterface $messageBus,
+        readonly private LoggerInterface $logger,
     ) {
     }
 
@@ -48,15 +50,21 @@ final class TypingIndicatorController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->hub->publish(new Update(
-            '/conversation/' . $conversationId . '/typing',
-            json_encode([
-                'type' => 'typing',
-                'playerId' => $loggedPlayer->playerId,
-                'isTyping' => true,
-            ], JSON_THROW_ON_ERROR),
-            private: true,
-        ));
+        // Fail-open: a hub that is down or restarting only costs the "typing…" hint. Info, not warning - typing pings are
+        // frequent, so an outage would flood Sentry (MercureNotifier reports the same outage once per real message)
+        try {
+            $this->hub->publish(new Update(
+                '/conversation/' . $conversationId . '/typing',
+                json_encode([
+                    'type' => 'typing',
+                    'playerId' => $loggedPlayer->playerId,
+                    'isTyping' => true,
+                ], JSON_THROW_ON_ERROR),
+                private: true,
+            ));
+        } catch (\Throwable $exception) {
+            $this->logger->info('Could not publish a typing indicator', ['exception' => $exception]);
+        }
 
         if ($request->headers->has('X-Mark-As-Read')) {
             $this->messageBus->dispatch(new MarkMessagesAsRead(

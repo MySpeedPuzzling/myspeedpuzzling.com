@@ -135,15 +135,23 @@ services:
             - redis-state-data:/data
 
     mercure:
-        image: dunglas/mercure
+        # The hub production runs (Mercure 1.1.6, protocol 1.0) - keep the version in step with lily's compose.yaml
+        image: dunglas/mercure:v1.1.6@sha256:27845c71dd26878bfb77bb0723fd3ea26e55d07ad0025b1c0948533ac30a5afc
         restart: unless-stopped
-        command: caddy run --config /etc/caddy/dev.Caddyfile
         environment:
             MERCURE_PUBLISHER_JWT_KEY: "dummy-local-secret-key-for-development-only!"
             MERCURE_SUBSCRIBER_JWT_KEY: "dummy-local-secret-key-for-development-only!"
+            # = the `iss` claim the app signs with (config/packages/mercure.php)
+            MERCURE_TRUSTED_ISSUERS: "https://myspeedpuzzling.com"
             SERVER_NAME: ":80"
+            # cookie_name: the app runs with kernel.debug, so MercureBundle names the subscriber cookie without the
+            # `__Secure-` prefix (browsers drop that one over plain HTTP); `debugger` = the read-only UI at
+            # /.well-known/mercure/debug/
             MERCURE_EXTRA_DIRECTIVES: |
                 cors_origins http://localhost:8080
+                anonymous
+                cookie_name mercure_access_token
+                debugger
         ports:
             - "${MERCURE_PORT:-8082}:80"
 

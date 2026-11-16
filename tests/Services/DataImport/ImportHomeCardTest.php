@@ -73,6 +73,10 @@ final class ImportHomeCardTest extends TestCase
         yield 'nothing of it can be added' => [DataImportStatus::SettingUp, [], 0, ['data_import.flow.add.nothing'], $open, 'data_import_detail', true, false];
 
         yield 'finished, it added something' => [DataImportStatus::Done, ['results' => 918, 'lastAddedAt' => new DateTimeImmutable('2026-11-14'), 'tookRows' => true, 'ready' => 12, 'questions' => 3], 0, ['data_import.flow.add.added_on'], 'data_import.flow.primary.see_added', 'data_import_added', true, true];
+        // Rows kept just for the player are there too: named, and what the import added can be seen and undone
+        yield 'only rows kept just for the player' => [DataImportStatus::SettingUp, ['keptJustForYou' => 3, 'tookRows' => true], 0, ['data_import.after.home.kept_just_for_you'], 'data_import.flow.primary.see_added', 'data_import_added', true, false];
+        yield 'results and rows kept just for the player' => [DataImportStatus::SettingUp, ['results' => 5, 'keptJustForYou' => 3, 'tookRows' => true], 0, ['data_import.flow.add.added', 'data_import.after.home.kept_just_for_you'], 'data_import.flow.primary.see_added', 'data_import_added', true, false];
+        yield 'finished, only rows kept just for the player' => [DataImportStatus::Done, ['keptJustForYou' => 3, 'tookRows' => true], 0, ['data_import.after.home.kept_just_for_you'], 'data_import.flow.primary.see_added', 'data_import_added', true, true];
         yield 'finished, everything undone' => [DataImportStatus::Done, ['tookRows' => true], 0, ['data_import.home.nothing_added_now'], $open, 'data_import_detail', true, true];
     }
 
@@ -108,7 +112,7 @@ final class ImportHomeCardTest extends TestCase
     /**
      * @param array<string, mixed> $given
      *
-     * @return array{results: int, collectionItems: int, wishListItems: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}
+     * @return array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}
      */
     private static function standing(array $given): array
     {
@@ -120,6 +124,7 @@ final class ImportHomeCardTest extends TestCase
             'results' => $int('results'),
             'collectionItems' => $int('collectionItems'),
             'wishListItems' => $int('wishListItems'),
+            'keptJustForYou' => $int('keptJustForYou'),
             'lastAddedAt' => $lastAddedAt instanceof DateTimeImmutable ? $lastAddedAt : null,
             'adding' => ($given['adding'] ?? false) === true,
             'runningBatchId' => is_string($runningBatchId) ? $runningBatchId : null,

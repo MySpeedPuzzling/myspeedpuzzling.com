@@ -135,6 +135,7 @@ readonly final class UndoImportRowHandler
         if (isset($row->made['unlisted'])) {
             if ($this->unlistedRows->takeBack($row, $player)) {
                 $outcome['undone'] = true;
+                $outcome['keptRowRemoved'] = true;
                 $row->undone();
             } else {
                 $outcome['resultKeptEdited'] = true;

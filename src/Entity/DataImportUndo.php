@@ -55,6 +55,14 @@ class DataImportUndo
     #[Column(options: ['default' => 0])]
     public int $resultsDeleted = 0;
 
+    /**
+     * Rows kept just for the player (their puzzle is not in the database) whose result or mark this Undo removed -
+     * nothing of them was on the profile, so no other number of the Undo counts them
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $keptRowsRemoved = 0;
+
     /** Results somebody changed after the import (time, day, puzzle, people) - kept, their rows stay added */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
@@ -166,13 +174,14 @@ class DataImportUndo
     /**
      * One row of it is done.
      *
-     * @param array{undone: bool, resultDeleted: bool, resultKeptEdited: bool, resultWasEdited: bool, collectionItemRemoved: bool, collectionItemKept: bool, wishListItemRemoved: bool, wishListItemsRestored: int} $outcome
+     * @param array{undone: bool, resultDeleted: bool, resultKeptEdited: bool, resultWasEdited: bool, collectionItemRemoved: bool, collectionItemKept: bool, wishListItemRemoved: bool, wishListItemsRestored: int, keptRowRemoved?: bool} $outcome
      */
     public function rowDone(array $outcome, DateTimeImmutable $now): void
     {
         $this->lastActivityAt = $now;
         $this->rowsUndone += $outcome['undone'] ? 1 : 0;
         $this->resultsDeleted += $outcome['resultDeleted'] ? 1 : 0;
+        $this->keptRowsRemoved += ($outcome['keptRowRemoved'] ?? false) ? 1 : 0;
         $this->resultsKeptEdited += $outcome['resultKeptEdited'] ? 1 : 0;
         $this->resultsDeletedEdited += $outcome['resultDeleted'] && $outcome['resultWasEdited'] ? 1 : 0;
         $this->collectionItemsRemoved += $outcome['collectionItemRemoved'] ? 1 : 0;

@@ -12019,11 +12019,13 @@ data_import:
             added_today: "Ajoutés aujourd'hui : %number%"
             tomorrow: "{1}1 de plus pourra être ajouté demain|[0,Inf[%number% de plus pourront être ajoutés demain"
             kept_until: "Le fichier est conservé jusqu'au %date%."
+            kept_just_for_you: "{0,1}%number% ligne est gardée rien que pour vous.|[2,Inf[%number% lignes sont gardées rien que pour vous."
         done:
             made:
                 collection: "{1}1 puzzle dans votre collection|[0,Inf[%number% puzzles dans votre collection"
                 wish_list: "{1}1 puzzle dans votre liste de souhaits|[0,Inf[%number% puzzles dans votre liste de souhaits"
             nothing_new: "Rien de nouveau n'a été ajouté cette fois."
+            only_kept: "{0,1}%number% ligne est gardée rien que pour vous - rien n'est allé sur votre profil public.|[2,Inf[%number% lignes sont gardées rien que pour vous - rien n'est allé sur votre profil public."
             card:
                 people: "{1}1 ligne dit duo ou équipe et ne nomme personne.|[0,Inf[%number% lignes disent duo ou équipe et ne nomment personne."
                 people_button: "Dire avec qui vous avez résolu"
@@ -12142,6 +12144,7 @@ data_import:
             this_row: "Résultats que ces lignes avaient déjà ajoutés : %number%"
         title: "Ajout à votre profil"
         title_done: "Ajouté à votre profil"
+        title_kept: "Gardé rien que pour vous"
         line: "Ajout… %done% sur %total%"
         finishing: "Finalisation…"
         leave: "Vous pouvez quitter cette page - le travail continue en arrière-plan."
@@ -12235,6 +12238,7 @@ data_import:
             collection: "Puzzles retirés de votre collection"
             wish_list: "Puzzles retirés de votre liste de souhaits"
             kept_edited: "Résultats conservés - vous les avez modifiés depuis l'import"
+            kept_removed: "Gardées rien que pour vous, retirées"
             kept_matched: "Lignes conservées - déplacées sur un puzzle du catalogue"
             kept_moved: "Puzzles conservés - vous les avez déplacés dans une autre collection"
             failed: "Lignes qui n'ont pas pu être annulées - réessayez"

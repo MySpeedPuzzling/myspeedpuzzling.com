@@ -22,7 +22,9 @@
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
 <div class="mx-auto" style="max-width: 720px;" data-testid="import-batch-page" data-import-flow-screen="batch" data-state="{{ batch.running ? 'running' : 'finished' }}">
-    <h1 class="h3 mb-3">{{ (batch.running ? 'data_import.batch.title' : 'data_import.batch.title_done')|trans }}</h1>
+    {# An "Add" that only kept rows just for the player put nothing on the profile - its heading does not say it did #}
+    {% set only_kept = not batch.running and batch.unlisted > 0 and batch.results + batch.collectionItems + batch.wishListItems == 0 %}
+    <h1 class="h3 mb-3">{{ (batch.running ? 'data_import.batch.title' : (only_kept ? 'data_import.batch.title_kept' : 'data_import.batch.title_done'))|trans }}</h1>
 
     {% if batch.running %}
         {{ include('data_import/_adding_live.html.twig', {
@@ -50,10 +52,16 @@
                     {% if batch.collectionItems > 0 %}<li data-testid="import-batch-made-owned"><i class="bi bi-check-lg text-success me-2" aria-hidden="true"></i>{{ 'data_import.after.done.made.collection'|trans({'%count%': batch.collectionItems, '%number%': batch.collectionItems|format_number}) }}</li>{% endif %}
                     {% if batch.wishListItems > 0 %}<li data-testid="import-batch-made-wish"><i class="bi bi-check-lg text-success me-2" aria-hidden="true"></i>{{ 'data_import.after.done.made.wish_list'|trans({'%count%': batch.wishListItems, '%number%': batch.wishListItems|format_number}) }}</li>{% endif %}
                 </ul>
+            {% elseif batch.unlisted > 0 %}
+                {# Only rows kept just for the player: that is what this "Add" did - never "nothing new" #}
+                <p class="fs-5 mb-0" data-testid="import-batch-only-kept" data-rows="{{ batch.unlisted }}">
+                    <i class="bi bi-bookmark text-success me-2" aria-hidden="true"></i>{{ 'data_import.after.done.only_kept'|trans({'%count%': batch.unlisted, '%number%': batch.unlisted|format_number}) }}
+                </p>
+                <p class="mt-2 mb-0"><a href="{{ path('unlisted_puzzles') }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-batch-unlisted-link">{{ 'unlisted_puzzles.link'|trans }}</a></p>
             {% else %}
                 <p class="mb-0" data-testid="import-batch-nothing-new">{{ 'data_import.after.done.nothing_new'|trans }}</p>
             {% endif %}
-            {% if batch.unlisted > 0 %}
+            {% if batch.unlisted > 0 and batch.results + batch.collectionItems + batch.wishListItems > 0 %}
                 {# Rows kept with the player's unlisted puzzles (docs/features/data-import/unlisted-puzzles.md) #}
                 <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-batch-unlisted" data-rows="{{ batch.unlisted }}">
                     <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.batch.kept'|trans({'%number%': batch.unlisted|format_number}) }}

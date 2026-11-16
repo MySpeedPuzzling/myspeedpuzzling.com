@@ -1379,7 +1379,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchI
     /**
      * One Undo of the player's import. One statement.
      *
-     * @return array{id: string, scope: string, batchId: null|string, running: bool, byAdmin: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, rows: int, left: int, done: int, rowsUndone: int, resultsDeleted: int, resultsKeptEdited: int, collectionItemsRemoved: int, collectionItemsKept: int, wishListItemsRemoved: int, wishListItemsRestored: int, rowsFailed: int}
+     * @return array{id: string, scope: string, batchId: null|string, running: bool, byAdmin: bool, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, rows: int, left: int, done: int, rowsUndone: int, resultsDeleted: int, keptRowsRemoved: int, resultsKeptEdited: int, collectionItemsRemoved: int, collectionItemsKept: int, wishListItemsRemoved: int, wishListItemsRestored: int, rowsFailed: int}
      *
      * @throws DataImportNotFound
      */
@@ -1387,7 +1387,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchI
     {
         self::assertIds($importId, $playerId, $undoId);
 
-        /** @var false|array{id: string, scope: string, batch_id: null|string, state: string, by_admin: bool, started_at: string, finished_at: null|string, rows_requested: int, rows_left: int, rows_undone: int, results_deleted: int, results_kept_edited: int, collection_items_removed: int, collection_items_kept: int, wish_list_items_removed: int, wish_list_items_restored: int, rows_failed: int} $row */
+        /** @var false|array{id: string, scope: string, batch_id: null|string, state: string, by_admin: bool, started_at: string, finished_at: null|string, rows_requested: int, rows_left: int, rows_undone: int, results_deleted: int, kept_rows_removed: int, results_kept_edited: int, collection_items_removed: int, collection_items_kept: int, wish_list_items_removed: int, wish_list_items_restored: int, rows_failed: int} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     undo.id,
@@ -1401,6 +1401,7 @@ SELECT
     (SELECT COUNT(*) FROM data_import_row r WHERE r.undo_id = undo.id) AS rows_left,
     undo.rows_undone,
     undo.results_deleted,
+    undo.kept_rows_removed,
     undo.results_kept_edited,
     undo.collection_items_removed,
     undo.collection_items_kept,
@@ -1432,6 +1433,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
             'done' => max(0, $row['rows_requested'] - $row['rows_left']),
             'rowsUndone' => $row['rows_undone'],
             'resultsDeleted' => $row['results_deleted'],
+            'keptRowsRemoved' => $row['kept_rows_removed'],
             'resultsKeptEdited' => $row['results_kept_edited'],
             'collectionItemsRemoved' => $row['collection_items_removed'],
             'collectionItemsKept' => $row['collection_items_kept'],
@@ -1448,7 +1450,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
      * an answer after an "Add", questions of its sheets, rows we could not read, puzzles still to match. **One
      * statement for all of them**, whatever their number and size. Numbers only; nobody's identity is selected.
      *
-     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
+     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
      */
     public function addedByImports(string $playerId): array
     {
@@ -1467,7 +1469,7 @@ r.import_id IN (
 SQL);
         $notAdded = self::NOT_ADDED;
 
-        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, look: int|string, to_match: int, working: bool}> $rows */
+        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, look: int|string, to_match: int, working: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 WITH {$ready},
 ready_by AS (
@@ -1482,6 +1484,8 @@ taken_by AS (
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made) AS results,
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.collection_item_id IS NOT NULL) AS collection_items,
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.wish_list_item_id IS NOT NULL) AS wish_list_items,
+        -- Rows kept just for the player: nothing of them is on the profile, but they are the player's data all the same
+        COUNT(*) FILTER (WHERE r.state = 'added' AND r.made -> 'unlisted' IS NOT NULL AND r.result_made = FALSE AND r.collection_item_id IS NULL AND r.wish_list_item_id IS NULL) AS kept_just_for_you,
         MAX(r.added_at) FILTER (WHERE r.state = 'added') AS last_added_at,
         COUNT(*) FILTER (WHERE r.state = 'added' AND r.result_made AND r.added_at >= :startOfDay) AS results_today,
         COUNT(*) FILTER (WHERE {$notAdded}) AS waiting
@@ -1497,6 +1501,7 @@ SELECT
     COALESCE(taken_by.results, 0) AS results,
     COALESCE(taken_by.collection_items, 0) AS collection_items,
     COALESCE(taken_by.wish_list_items, 0) AS wish_list_items,
+    COALESCE(taken_by.kept_just_for_you, 0) AS kept_just_for_you,
     taken_by.last_added_at,
     COALESCE(taken_by.results_today, 0) AS results_today,
     COALESCE(taken_by.waiting, 0) AS waiting,
@@ -1554,6 +1559,7 @@ SQL, [
                 'results' => $row['results'],
                 'collectionItems' => $row['collection_items'],
                 'wishListItems' => $row['wish_list_items'],
+                'keptJustForYou' => $row['kept_just_for_you'],
                 'lastAddedAt' => $row['last_added_at'] === null ? null : new DateTimeImmutable($row['last_added_at']),
                 'adding' => $row['running_batch_id'] !== null,
                 'runningBatchId' => $row['running_batch_id'],

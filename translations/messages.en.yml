@@ -12270,11 +12270,13 @@ data_import:
             added_today: "Added %number% today"
             tomorrow: "{1}1 more can be added tomorrow|[0,Inf[%number% more can be added tomorrow"
             kept_until: "The file is kept until %date%."
+            kept_just_for_you: "{1}1 row is kept just for you.|[0,Inf[%number% rows are kept just for you."
         done:
             made:
                 collection: "{1}1 puzzle in your collection|[0,Inf[%number% puzzles in your collection"
                 wish_list: "{1}1 puzzle on your wish list|[0,Inf[%number% puzzles on your wish list"
             nothing_new: "Nothing new was added this time."
+            only_kept: "{1}1 row is kept just for you - nothing went onto your public profile.|[0,Inf[%number% rows are kept just for you - nothing went onto your public profile."
             card:
                 people: "{1}1 row says pair or team and names nobody.|[0,Inf[%number% rows say pair or team and name nobody."
                 people_button: "Say who you solved with"
@@ -12393,6 +12395,7 @@ data_import:
             this_row: "Results these rows had added before: %number%"
         title: "Adding to your profile"
         title_done: "Added to your profile"
+        title_kept: "Kept just for you"
         line: "Adding… %done% of %total%"
         finishing: "Finishing…"
         leave: "You can leave this page - the work goes on in the background."
@@ -12486,6 +12489,7 @@ data_import:
             collection: "Puzzles removed from your collection"
             wish_list: "Puzzles removed from your wish list"
             kept_edited: "Results kept - you changed them since the import"
+            kept_removed: "Kept just for you, removed"
             kept_matched: "Rows kept - moved onto a catalogue puzzle"
             kept_moved: "Puzzles kept - you moved them to another collection"
             failed: "Rows that could not be undone - try again"

@@ -12023,11 +12023,13 @@ data_import:
             added_today: "Heute hinzugefügt: %number%"
             tomorrow: "{1}1 weiteres kann morgen hinzugefügt werden|[0,Inf[%number% weitere können morgen hinzugefügt werden"
             kept_until: "Die Datei wird bis %date% aufbewahrt."
+            kept_just_for_you: "{1}1 Zeile wird nur für dich behalten.|[0,Inf[%number% Zeilen werden nur für dich behalten."
         done:
             made:
                 collection: "{1}1 Puzzle in deiner Sammlung|[0,Inf[%number% Puzzles in deiner Sammlung"
                 wish_list: "{1}1 Puzzle auf deiner Wunschliste|[0,Inf[%number% Puzzles auf deiner Wunschliste"
             nothing_new: "Diesmal wurde nichts Neues hinzugefügt."
+            only_kept: "{1}1 Zeile wird nur für dich behalten - in dein öffentliches Profil kam nichts.|[0,Inf[%number% Zeilen werden nur für dich behalten - in dein öffentliches Profil kam nichts."
             card:
                 people: "{1}1 Zeile sagt Paar oder Team und nennt niemanden.|[0,Inf[%number% Zeilen sagen Paar oder Team und nennen niemanden."
                 people_button: "Sagen, mit wem du gepuzzelt hast"
@@ -12146,6 +12148,7 @@ data_import:
             this_row: "Ergebnisse, die diese Zeilen schon früher hinzugefügt hatten: %number%"
         title: "Wird deinem Profil hinzugefügt"
         title_done: "Deinem Profil hinzugefügt"
+        title_kept: "Nur für dich behalten"
         line: "Wird hinzugefügt… %done% von %total%"
         finishing: "Wird abgeschlossen…"
         leave: "Du kannst diese Seite verlassen - die Arbeit läuft im Hintergrund weiter."
@@ -12239,6 +12242,7 @@ data_import:
             collection: "Aus deiner Sammlung entfernte Puzzles"
             wish_list: "Von deiner Wunschliste entfernte Puzzles"
             kept_edited: "Behaltene Ergebnisse - du hast sie seit dem Import geändert"
+            kept_removed: "Nur für dich behalten, entfernt"
             kept_matched: "Behaltene Zeilen - auf ein Katalogpuzzle verschoben"
             kept_moved: "Behaltene Puzzles - du hast sie in eine andere Sammlung verschoben"
             failed: "Zeilen, die nicht rückgängig gemacht werden konnten - versuche es erneut"

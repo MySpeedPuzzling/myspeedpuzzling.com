@@ -12024,11 +12024,13 @@ data_import:
             added_today: "Añadidos hoy: %number%"
             tomorrow: "{1}Mañana se puede añadir 1 más|[0,Inf[Mañana se pueden añadir %number% más"
             kept_until: "El archivo se guarda hasta el %date%."
+            kept_just_for_you: "{1}1 fila se guarda solo para ti.|[0,Inf[%number% filas se guardan solo para ti."
         done:
             made:
                 collection: "{1}1 puzzle en tu colección|[0,Inf[%number% puzzles en tu colección"
                 wish_list: "{1}1 puzzle en tu lista de deseos|[0,Inf[%number% puzzles en tu lista de deseos"
             nothing_new: "Esta vez no se ha añadido nada nuevo."
+            only_kept: "{1}1 fila se guarda solo para ti; nada ha ido a tu perfil público.|[0,Inf[%number% filas se guardan solo para ti; nada ha ido a tu perfil público."
             card:
                 people: "{1}1 fila dice pareja o equipo y no nombra a nadie.|[0,Inf[%number% filas dicen pareja o equipo y no nombran a nadie."
                 people_button: "Decir con quién lo resolviste"
@@ -12147,6 +12149,7 @@ data_import:
             this_row: "Resultados que estas filas ya habían añadido antes: %number%"
         title: "Añadiendo a tu perfil"
         title_done: "Añadido a tu perfil"
+        title_kept: "Guardado solo para ti"
         line: "Añadiendo… %done% de %total%"
         finishing: "Terminando…"
         leave: "Puedes salir de esta página: el trabajo sigue en segundo plano."
@@ -12240,6 +12243,7 @@ data_import:
             collection: "Puzzles quitados de tu colección"
             wish_list: "Puzzles quitados de tu lista de deseos"
             kept_edited: "Resultados conservados: los cambiaste después de la importación"
+            kept_removed: "Guardadas solo para ti, quitadas"
             kept_matched: "Filas que se quedan: movidas a un puzzle del catálogo"
             kept_moved: "Puzzles conservados: los moviste a otra colección"
             failed: "Filas que no se han podido deshacer - inténtalo de nuevo"

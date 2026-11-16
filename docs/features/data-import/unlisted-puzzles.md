@@ -175,6 +175,20 @@ says that what was matched since stays; on the Undo's page such a row carries no
 nothing) but the reason and a link to the unlisted puzzle, where the match's Undo is
 (`GetImportAddScreen::keptJustForYouOfRows()` - the row's own record, never the unlisted tables).
 
+## On the import's own screens
+
+Rows kept just for the player are something the import added, although nothing of them is on the profile:
+
+- **Imports home**: `GetImportAddScreen::addedByImports()` counts them (`keptJustForYou` - added rows whose record
+  says `unlisted` and that made nothing on the profile), and the card names them ("3 rows are kept just for you.",
+  next to what was added to the profile when there is both) and leads to what was added, where the Undo is - never
+  "Nothing of it is on your profile now" with only "Open".
+- **The page after an "Add"** that only kept rows is headed "Kept just for you" and says "N rows are kept just for
+  you - nothing went onto your public profile" with the link to the list - never "Nothing new was added".
+- **The page of an Undo** lists "Kept just for you, removed: N" (`data_import_undo.kept_rows_removed`, counted by
+  `UndoImportRowHandler` - an undone row keeps no record of what it was), and leaves "Results removed 0" out
+  beside it.
+
 ## Add to the catalogue
 
 `/{_locale}/unlisted-puzzles/{id}/add-to-catalogue` (`unlisted_puzzle_add_to_catalogue`, GET + POST, owner only -

@@ -271,7 +271,10 @@ final class EditUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
 
     private function xpOf(string $timeId): int
     {
-        return (int) $this->database->fetchOne('SELECT COALESCE(SUM(amount), 0) FROM xp_entry WHERE solving_time_id = :id', ['id' => $timeId]);
+        $sum = $this->database->fetchOne('SELECT COALESCE(SUM(amount), 0) FROM xp_entry WHERE solving_time_id = :id', ['id' => $timeId]);
+        self::assertIsInt($sum);
+
+        return $sum;
     }
 
     /**

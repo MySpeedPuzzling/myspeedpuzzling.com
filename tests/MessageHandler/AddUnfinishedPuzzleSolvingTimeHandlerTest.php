@@ -273,7 +273,7 @@ final class AddUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
         // ...and award nothing: an unfinished result is not a solve
         self::getContainer()->get(XpChainRecomputer::class)->awardForNewSolve($timeId);
 
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT COUNT(*) FROM xp_entry WHERE solving_time_id = :id', ['id' => $timeId]));
+        self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM xp_entry WHERE solving_time_id = :id', ['id' => $timeId]));
     }
 
     /**

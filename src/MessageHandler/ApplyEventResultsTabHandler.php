@@ -119,7 +119,6 @@ readonly final class ApplyEventResultsTabHandler
         }
 
         if ($puzzle !== null) {
-            assert($unfinished !== null);
             // First: the event's messages clear the entity manager (SecretPuzzleHides locks the round's puzzles), so
             // everything of this handler is read after them. They run in this handler's transaction - a failure later
             // takes the new event back too

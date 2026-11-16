@@ -74,7 +74,7 @@ final class SyncSarahDoesPuzzlesResultsDryRunTest extends KernelTestCase
         self::assertStringContainsString('Maple 10/5 importable (puzzle checked on import) 3 (2 unfinished)', $output);
         self::assertStringContainsString('Corner 10/7 problem 2 (1 unfinished) unfinished_without_time_limit (Late Pair) @3', $output);
 
-        self::assertSame(0, (int) self::getContainer()->get(Connection::class)->fetchOne(
+        self::assertSame(0, self::getContainer()->get(Connection::class)->fetchOne(
             'SELECT COUNT(*) FROM event_results_sheet_tab WHERE sheet_id = :id',
             ['id' => $sheet->id->toString()],
         ));

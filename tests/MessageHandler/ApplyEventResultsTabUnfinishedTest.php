@@ -150,7 +150,7 @@ final class ApplyEventResultsTabUnfinishedTest extends KernelTestCase
         $this->apply(str_replace(',120,', ',90,', $this->eventRow('Puzzle Pals', '1:10:13')), 'Out of Time,,3,412,,,,,,,,,,,');
 
         self::assertSame(5400, $this->kind('Out of Time')['seconds_spent']);
-        self::assertSame(90, (int) $this->database->fetchOne(
+        self::assertSame(90, $this->database->fetchOne(
             'SELECT cr.minutes_limit FROM competition_round cr JOIN event_results_sheet_tab t ON t.competition_id = cr.competition_id WHERE t.gid = :gid',
             ['gid' => self::GID],
         ));
@@ -176,7 +176,6 @@ final class ApplyEventResultsTabUnfinishedTest extends KernelTestCase
         $xp = array_values(array_filter($sent, static fn (object $message): bool => $message instanceof RecalculateXpChainForSolve));
         $badges = array_values(array_filter($sent, static fn (object $message): bool => $message instanceof RecalculateBadgesForPlayer));
         self::assertCount(1, $xp);
-        self::assertInstanceOf(RecalculateXpChainForSolve::class, $xp[0]);
         self::assertSame($id, $xp[0]->solvingTimeId);
         self::assertCount(1, $badges);
 

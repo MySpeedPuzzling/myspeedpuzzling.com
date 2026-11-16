@@ -13521,3 +13521,5 @@ unfinished_result:
     see_round_results: "Ver resultados de la ronda"
     notification: "compitió con el rompecabezas"
     split_pieces: "%pieces% piezas"
+    edit_not_yet: "Pronto podrás editar un resultado que no se terminó dentro del tiempo límite; hasta entonces se queda como está."
+    round_changed: "Este resultado no se terminó dentro del tiempo límite y su ronda ha cambiado desde entonces (sin tiempo límite u otros puzzles); no se ha guardado."

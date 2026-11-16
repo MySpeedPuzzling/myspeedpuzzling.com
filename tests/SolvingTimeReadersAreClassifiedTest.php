@@ -34,9 +34,9 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
 
     private const string PREDICTIONS = 'performance: stored predictions and the model features of timed attempts - unfinished results are excluded from every calculator (plan "Ratings, skill, difficulty"), nothing in src/Services/PuzzleIntelligence changes.';
 
-    private const string DATA_IMPORT = 'neutral: the spreadsheet import - matches the player\'s own results (by id, or day + time) so nothing is imported twice; an import never writes an unfinished result.';
+    private const string DATA_IMPORT = 'neutral: the spreadsheet import - matches the player\'s own results (by id, or day + time) so nothing is imported twice; an import never writes an unfinished result, and "nothing to wish for" (ImportNeverTwice::hasSolved()) leaves one out.';
 
-    private const string PHOTOS = 'neutral: players\' finished-puzzle photo files and their analyses - no figure.';
+    private const string PHOTOS = 'neutral: players\' finished-puzzle photo files and their analyses - no figure; an unfinished result\'s photo (not of a finished puzzle) is left out of the work list.';
 
     // Decides in PHP: the file must read piecesPlaced
     private const string SOLVE_IN_PHP = 'solve-count in PHP: reads the entity and skips an unfinished result itself (`piecesPlaced !== null`).';
@@ -91,7 +91,6 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetGroupPuzzleFirstAttempts.php' => 'predictions: emits the timed qualifying first attempts of PlayerBaselineCalculator - the pair/team subquery only picks the puzzles.',
         'Query/GetGuestLinkRequests.php' => self::HISTORY,
         'Query/GetImageEstimateEvaluationRows.php' => self::PREDICTIONS,
-        'Query/GetImportAddScreen.php' => 'neutral: the spreadsheet import\'s "Add" screens - "nothing to wish for" mirrors ImportNeverTwice::hasSolved() of the import engine (any result of the puzzle on the profile); revisited with the write path (docs/TODO.md).',
         'Query/GetImportPuzzleCandidates.php' => self::DATA_IMPORT,
         'Query/GetImportPuzzleScreen.php' => self::DATA_IMPORT,
         'Query/GetImportRowsOnProfile.php' => self::DATA_IMPORT,

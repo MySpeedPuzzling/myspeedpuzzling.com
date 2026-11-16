@@ -16,9 +16,14 @@ use SpeedPuzzling\Web\Entity\EventResultsSheet;
 use SpeedPuzzling\Web\Entity\EventResultsSheetTab;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
@@ -39,6 +44,7 @@ use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use SpeedPuzzling\Web\Value\TeamComposition;
+use SpeedPuzzling\Web\Value\UnfinishedResult;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -99,6 +105,19 @@ readonly final class ApplyEventResultsTabHandler
 
         $competition = null;
 
+        // Unfinished teams: their pieces placed checked against the puzzle before anything is created or changed - a
+        // new tab must not leave an event behind, an imported one must not change half its results
+        $unfinished = [];
+
+        if ($puzzle !== null) {
+            $unfinished = $this->unfinishedResults($parsed, $puzzle, $problems);
+
+            if ($unfinished === null) {
+                $puzzle = null;
+                $status = EventTabStatus::Problem;
+            }
+        }
+
         if ($puzzle !== null) {
             // First: the event's messages clear the entity manager (SecretPuzzleHides locks the round's puzzles), so
             // everything of this handler is read after them. They run in this handler's transaction - a failure later
@@ -115,7 +134,7 @@ readonly final class ApplyEventResultsTabHandler
                 : $tab->competition;
             assert($competition !== null);
 
-            $status = $this->apply($sheet, $tab, $parsed, $competition, $puzzle, $problems);
+            $status = $this->apply($sheet, $tab, $parsed, $competition, $puzzle, $unfinished, $problems);
         }
 
         $tab ??= $this->newTab($sheet, $message);
@@ -136,6 +155,40 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * Every unfinished team's result by its team key (docs/features/event-results-import/README.md "Unfinished results
+     * (D9)"): pieces placed fewer than the puzzle has, time spent = the round's limit. Null when a team's pieces do not
+     * fit the puzzle - the tab is a problem then and nothing of it is applied.
+     *
+     * @param list<EventTabProblem> $problems
+     * @return null|array<string, UnfinishedResult>
+     */
+    private function unfinishedResults(ParsedEventTab $parsed, Puzzle $puzzle, array &$problems): null|array
+    {
+        $unfinished = [];
+        $fits = true;
+
+        foreach ($parsed->rows as $row) {
+            if ($row->piecesPlaced === null) {
+                continue;
+            }
+
+            try {
+                $unfinished[$row->teamKey] = UnfinishedResult::fromInput($row->piecesPlaced, null, $puzzle->piecesCount, $parsed->timeLimitMinutes);
+            } catch (InvalidPiecesPlaced) {
+                $problems[] = new EventTabProblem(EventTabProblemCode::PiecesPlacedOutOfRange, sprintf('%s: %d / %d', $row->teamName, $row->piecesPlaced, $puzzle->piecesCount), $row->line);
+                $fits = false;
+            } catch (UnfinishedResultNeedsTimeLimit | UnfinishedTotalTimeWithinLimit) {
+                // The parser keeps a tab with unfinished teams and no limit out already, and an import has no total
+                $problems[] = new EventTabProblem(EventTabProblemCode::UnfinishedWithoutTimeLimit, $row->teamName, $row->line);
+                $fits = false;
+            }
+        }
+
+        return $fits ? $unfinished : null;
+    }
+
+    /**
+     * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
      */
     private function apply(
@@ -144,6 +197,7 @@ readonly final class ApplyEventResultsTabHandler
         ParsedEventTab $parsed,
         Competition $competition,
         Puzzle $puzzle,
+        array $unfinished,
         array &$problems,
     ): EventTabStatus {
         // Checked by hasTabProblem() - every event field is there
@@ -166,7 +220,7 @@ readonly final class ApplyEventResultsTabHandler
 
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
         $this->updateEvent($competition, $round, $sheet, $parsed, $location, $eventDay, $startsAt);
-        $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $problems);
+        $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $unfinished, $problems);
 
         return EventTabStatus::Imported;
     }
@@ -309,6 +363,7 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
      */
     private function upsertResults(
@@ -318,6 +373,7 @@ readonly final class ApplyEventResultsTabHandler
         CompetitionRound $round,
         Puzzle $puzzle,
         DateTimeImmutable $eventDay,
+        array $unfinished,
         array &$problems,
     ): void {
         $existing = $this->importedResultRepository->ofTab($tab);
@@ -327,11 +383,11 @@ readonly final class ApplyEventResultsTabHandler
             unset($existing[$row->teamKey]);
 
             if ($imported === null) {
-                $this->createResult($tab, $row, $competition, $round, $puzzle, $eventDay);
+                $this->createResult($tab, $row, $competition, $round, $puzzle, $eventDay, $unfinished[$row->teamKey] ?? null);
                 continue;
             }
 
-            $this->updateResult($imported->solvingTime, $row, $problems);
+            $this->updateResult($imported->solvingTime, $row, $unfinished[$row->teamKey] ?? null, $problems);
         }
 
         // Taken off the sheet
@@ -355,6 +411,7 @@ readonly final class ApplyEventResultsTabHandler
         CompetitionRound $round,
         Puzzle $puzzle,
         DateTimeImmutable $eventDay,
+        null|UnfinishedResult $unfinished,
     ): void {
         [$group, $puzzlingTeam] = $this->anonymousTeam($row);
 
@@ -365,8 +422,9 @@ readonly final class ApplyEventResultsTabHandler
             competitionRound: $round,
             anonymousGroup: $group,
             puzzlingTeam: $puzzlingTeam,
-            secondsToSolve: $row->seconds,
+            secondsToSolve: $unfinished === null ? $row->seconds : null,
             solvedAt: $eventDay,
+            unfinished: $unfinished,
         );
 
         $this->solvingTimeRepository->save($time);
@@ -374,13 +432,33 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * The team's result follows the sheet - its time, or its pieces placed (and time spent, when the limit changed), also
+     * from one to the other. Its people do not once somebody claimed a spot.
+     *
      * @param list<EventTabProblem> $problems
      */
-    private function updateResult(PuzzleSolvingTime $time, ParsedEventRow $row, array &$problems): void
+    private function updateResult(PuzzleSolvingTime $time, ParsedEventRow $row, null|UnfinishedResult $unfinished, array &$problems): void
     {
-        $time->correctImportedTime($row->seconds);
+        if ($unfinished !== null) {
+            $changed = $time->correctImportedUnfinishedResult($unfinished);
+        } else {
+            assert($row->seconds !== null);
+            $changed = $time->correctImportedTime($row->seconds);
+        }
 
         if ($time->isClaimedByAnybody()) {
+            // Claimed: the result is on people's profiles - their achievements and XP follow it (a team that turned
+            // out unfinished earns nothing, ClaimEventResultSlotHandler's recalculation)
+            if ($changed) {
+                $memberPlayerIds = $time->memberPlayerIds();
+
+                foreach ($memberPlayerIds as $memberPlayerId) {
+                    $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+                }
+
+                $this->messageBus->dispatch(new RecalculateXpChainForSolve($time->id->toString(), $memberPlayerIds));
+            }
+
             if ($time->puzzlersCount !== $row->teamSize) {
                 $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamChangedSize, $row->teamName, $row->line);
             }

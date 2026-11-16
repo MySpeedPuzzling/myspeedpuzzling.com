@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
@@ -11,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
+use SpeedPuzzling\Web\Message\ReleaseEventResultSlot;
 use SpeedPuzzling\Web\Query\GetFastestGroups;
 use SpeedPuzzling\Web\Query\GetFastestPairs;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
@@ -179,6 +181,50 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
             self::assertStringContainsString(self::CREW, $detail);
             self::assertStringContainsString('812 / 1', $detail);
         }
+    }
+
+    /**
+     * What the event results import writes since step 3 (PuzzleSolvingTime::importedFromEvent(unfinished:)) - nobody's,
+     * no time - through every page, then claimed and released like a ranked team
+     * (docs/features/event-results-import/README.md "Unfinished results (D9)").
+     */
+    public function testAnUnfinishedTeamTheImportWroteIsShownClaimedAndReleased(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE);
+        $outOfTime = $this->seedTrackerlessTime($round, self::PUZZLE, self::CREW, 0, piecesPlaced: 412);
+        $timeId = $outOfTime->id->toString();
+        $teamId = $this->teamIdOf($outOfTime);
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $teams = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => self::PUZZLE, 'piecesCount' => 1000, 'category' => 'group'], $this->browser);
+            $teams->setRouteLocale('en');
+            self::assertStringContainsString('412 / 1', $teams->render()->toString());
+
+            self::assertStringContainsString('412 / 1', $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG));
+            self::assertStringContainsString('412 / 1', $this->page('/en/result/' . $timeId));
+            self::assertStringContainsString(self::CREW, $this->page('/en/teams/' . $teamId));
+            self::assertStringContainsString(self::TRACKERLESS_EVENT_NAME, $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG));
+            if ($viewer !== null) {
+                self::assertStringContainsString('412 / 1', $this->page('/en/event-result/' . $timeId . '/claim'));
+            }
+        }
+
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new ClaimEventResultSlot($timeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertStringContainsString('412 / 1', $this->page('/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $this->page('/en/result/' . $timeId));
+        self::assertStringContainsString('412 / 1', $this->page('/en/event-result/' . $timeId . '/remove-from-profile'));
+
+        $bus->dispatch(new ReleaseEventResultSlot($timeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative('SELECT player_id, seconds_to_solve, pieces_placed, seconds_spent FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
+        self::assertSame(['player_id' => null, 'seconds_to_solve' => null, 'pieces_placed' => 412, 'seconds_spent' => 5400], $row);
     }
 
     public function testThePuzzleLeaderboardKeepsTwoAnonymousTeamsApart(): void

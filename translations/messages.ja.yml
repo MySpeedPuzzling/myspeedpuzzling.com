@@ -13510,3 +13510,5 @@ unfinished_result:
     see_round_results: "ラウンドの結果を見る"
     notification: "パズルで競技しました"
     split_pieces: "%pieces% ピース"
+    edit_not_yet: "制限時間内に完成しなかった記録の編集は近日対応予定です。それまではこのままになります。"
+    round_changed: "この記録は制限時間内に完成しておらず、その後ラウンドが変更されました（制限時間なし、または別のパズル）。保存されませんでした。"

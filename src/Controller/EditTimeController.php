@@ -112,6 +112,20 @@ final class EditTimeController extends AbstractController
             : $request->query->getString('context');
         $context = EditTimeReturnContext::tryFrom($contextValue) ?? EditTimeReturnContext::Profile;
 
+        // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md): this form knows no
+        // pieces placed - it would open it as a relax solve. Until the form asks for them (step 4) the result is shown
+        // and nothing is saved; a POST is answered 422 (Turbo drops a 200), the handler refuses it too
+        if ($solvedPuzzle->isUnfinished()) {
+            return $this->render(
+                $isModalRequest ? 'edit-time_unfinished_modal.html.twig' : 'edit-time_unfinished.html.twig',
+                [
+                    'solved_puzzle' => $solvedPuzzle,
+                    'return_context' => $context->value,
+                ],
+                new Response(status: $request->isMethod('POST') ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK),
+            );
+        }
+
         $data = new EditPuzzleSolvingTimeFormData($this->clock->now());
 
         // Detect initial mode based on whether time exists

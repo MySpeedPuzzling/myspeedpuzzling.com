@@ -117,6 +117,8 @@ readonly final class PuzzleSolvingTimeRepository
             ->join('time.puzzle', 'puzzle')
             ->where('time.puzzle IN (:puzzleIds)')
             ->andWhere('time.finishedPuzzlePhoto IS NOT NULL')
+            // An unfinished result's photo is not of a finished puzzle (unfinished-results-plan.md, step 3)
+            ->andWhere('time.piecesPlaced IS NULL')
             ->andWhere('player.isPrivate = false')
             ->setParameter('puzzleIds', $puzzleIds)
             ->getQuery()

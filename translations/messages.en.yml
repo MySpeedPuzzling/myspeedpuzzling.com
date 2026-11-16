@@ -13767,3 +13767,5 @@ unfinished_result:
     see_round_results: "See round results"
     notification: "competed with puzzle"
     split_pieces: "%pieces% pieces"
+    edit_not_yet: "Editing a result that didn't finish within the time limit is coming soon - until then it stays as it is."
+    round_changed: "This result didn't finish within the time limit, and its round has changed since (no time limit or other puzzles) - it was not saved."

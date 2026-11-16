@@ -90,7 +90,8 @@ class EventResultsSheetTab
         DateTimeImmutable $at,
     ): bool {
         $problems = array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems);
-        $changed = $status !== $this->status || $problems !== $this->problems;
+        // jsonb gives the stored problems back with its own key order (code, line, detail) - compared key by key
+        $changed = $status !== $this->status || self::sortedKeys($problems) !== self::sortedKeys($this->problems);
 
         $this->title = $title;
         $this->status = $status;
@@ -104,5 +105,22 @@ class EventResultsSheetTab
         }
 
         return $changed;
+    }
+
+    /**
+     * @param array<mixed> $problems
+     * @return list<array<mixed>>
+     */
+    private static function sortedKeys(array $problems): array
+    {
+        $sorted = [];
+
+        foreach ($problems as $problem) {
+            $problem = is_array($problem) ? $problem : [$problem];
+            ksort($problem);
+            $sorted[] = $problem;
+        }
+
+        return $sorted;
     }
 }

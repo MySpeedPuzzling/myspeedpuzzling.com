@@ -34,6 +34,8 @@ readonly final class EventResultClaimContext
         public int $anonymousCount,
         public array $claimers,
         public array $sameResultCandidates,
+        // An unfinished team (the round's time ran out): its pieces placed - $seconds is null then
+        public null|int $piecesPlaced = null,
     ) {
     }
 

@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\MessageHandler\DecideImportPuzzlesHandler;
 use SpeedPuzzling\Web\MessageHandler\ProcessImportBatchHandler;
 use SpeedPuzzling\Web\MessageHandler\SendImportAddedEmailHandler;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Query\GetPlayerActivityCalendar;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
@@ -38,6 +39,7 @@ use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\TestMailerSpy;
 use SpeedPuzzling\Web\Tests\TestClock;
+use SpeedPuzzling\Web\Tests\UnfinishedResultSeeding;
 use SpeedPuzzling\Web\Value\DataImport\AddImportRowsOutcome;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleDecisionChange;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
@@ -59,6 +61,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class ImportAddingTest extends KernelTestCase
 {
     use ImportAddingScenario;
+    use UnfinishedResultSeeding;
 
     private InMemoryTransport $async;
     private InMemoryTransport $imports;
@@ -199,6 +202,28 @@ final class ImportAddingTest extends KernelTestCase
 
         $batch = $this->batchNow($outcome->id);
         self::assertSame([3, 2, 1, 2, 1], [$batch['rows_added'], $batch['rows_already_yours'], $batch['results_added'], $batch['collection_items_added'], $batch['wish_list_items_added']]);
+    }
+
+    public function testAPuzzleWithOnlyAnUnfinishedResultIsStillSomethingToWishFor(): void
+    {
+        // An unfinished result (pieces placed when a round's time ran out) is no solve
+        // (docs/features/competitions-management/unfinished-results-plan.md, step 3)
+        $player = $this->seedPairingPlayer('unfinished-wisher');
+        $brand = $this->seedBrand('Zqunfin');
+        $unfinished = $this->seedCataloguePuzzle('Zq Unfinished Dream', 1000, $brand);
+        $this->seedUnfinishedResult($player->id->toString(), $unfinished, piecesPlaced: 800);
+
+        [$import, $sheet] = $this->importOf($player);
+        $wishRow = $this->wishRow($import, $sheet, 'Zq Unfinished Dream', 1000, 'Zqunfin');
+        $this->pair($import);
+
+        $summary = self::getContainer()->get(GetImportAddScreen::class)->summary($import->id->toString(), $player->id->toString());
+        self::assertSame(1, $summary->wishList, "the review counts it as a wish");
+
+        $this->addAndWork($import, $player);
+
+        self::assertSame([$unfinished], $this->pairingDatabase()->fetchFirstColumn('SELECT puzzle_id FROM wish_list_item WHERE player_id = :id', ['id' => $player->id->toString()]));
+        self::assertSame('added', $this->rowNow($wishRow)['state']);
     }
 
     public function testRowsThatAreNotReadyAreNotQueuedAndSaySo(): void

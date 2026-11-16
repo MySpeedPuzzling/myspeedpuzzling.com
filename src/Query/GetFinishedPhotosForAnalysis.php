@@ -30,7 +30,8 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  *
  * Two statements a page: the puzzles (one EXISTS probe of puzzle_solving_time's puzzle index per puzzle walked), and
  * their photos with what is stored for them. Whether a result is suspicious does not matter here - a photo of the
- * assembled puzzle is one whatever its time. Once a day for one pipeline: no index of its own.
+ * assembled puzzle is one whatever its time - but an unfinished result's photo (pieces placed when the round's time ran out)
+ * is not of an assembled puzzle and is left out. Once a day for one pipeline: no index of its own.
  */
 readonly final class GetFinishedPhotosForAnalysis
 {
@@ -83,6 +84,8 @@ WHERE p.image IS NOT NULL
         JOIN player pl ON pl.id = pst.player_id
         WHERE pst.puzzle_id = p.id
             AND pst.finished_puzzle_photo IS NOT NULL
+            -- An unfinished result's photo is not of a finished puzzle (unfinished-results-plan.md, step 3)
+            AND pst.pieces_placed IS NULL
             AND pl.is_private = false
     )
 ORDER BY p.id
@@ -142,6 +145,7 @@ JOIN puzzle p ON p.id = pst.puzzle_id
 WHERE pst.puzzle_id = :puzzleId
     AND pst.finished_puzzle_photo IS NOT NULL
     AND {$photo} = :photoFingerprint
+    AND pst.pieces_placed IS NULL
     AND pl.is_private = false
     AND p.image IS NOT NULL
     AND (p.hide_until IS NULL OR p.hide_until <= :now)
@@ -206,6 +210,7 @@ FROM (
     JOIN player pl ON pl.id = pst.player_id
     WHERE pst.puzzle_id IN (:puzzleIds)
         AND pst.finished_puzzle_photo IS NOT NULL
+        AND pst.pieces_placed IS NULL
         AND pl.is_private = false
 ) ph
 LEFT JOIN finished_photo_analysis a ON a.solving_time_id = ph.id AND a.analyzer = :analyzer

@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsItsOwnEdit;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
@@ -89,6 +90,7 @@ readonly final class EditPuzzleSolvingTimeHandler
      * @throws FirstTryAlreadyTaken
      * @throws PuzzleNotFound
      * @throws PuzzleNotRevealedYet
+     * @throws UnfinishedResultNeedsItsOwnEdit
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {
@@ -99,6 +101,13 @@ readonly final class EditPuzzleSolvingTimeHandler
         // finishes this edit and only then loses access
         if ($solvingTime->canBeModifiedBy($currentPlayer) === false) {
             throw new CanNotModifyOtherPlayersTime();
+        }
+
+        // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md, step 3) is edited
+        // through EditUnfinishedPuzzleSolvingTime - this edit knows no pieces placed. Only its way back to a finished
+        // or relax result comes here, said explicitly. Refused before anything changes
+        if ($solvingTime->isUnfinished() && $message->endsUnfinishedResult === false) {
+            throw new UnfinishedResultNeedsItsOwnEdit();
         }
 
         // Another puzzle (docs/features/duplicate-results.md, Layer 4): only whoever tracked the result moves it -
@@ -213,6 +222,11 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         // Time verification: the entry a mark is about, before the edit changes it (null unless flagged)
         $markedEntryBeforeEdit = $this->markedTimeEditRecheck->entryBeforeEdit($solvingTime);
+
+        // Every check above passed - its pieces placed go right before modify() gives it a time (or none: relax)
+        if ($message->endsUnfinishedResult) {
+            $solvingTime->endUnfinishedResult();
+        }
 
         // Before modify(): its PuzzleSolvingTimeModified is then about the new puzzle, the old one is told by this
         $solvingTime->moveToPuzzle($puzzle);

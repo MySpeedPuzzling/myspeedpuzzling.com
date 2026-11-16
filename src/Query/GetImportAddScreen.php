@@ -79,6 +79,9 @@ readonly final class GetImportAddScreen
     private static function sqlJudged(null|string $imports = null): string
     {
         $ready = $imports === null ? DataImportRowRepository::sqlReadyRows() : DataImportRowRepository::sqlReadyRows(imports: $imports);
+        // "Nothing to wish for": a solve of the puzzle - an unfinished result is none (unfinished-results-plan.md, step 3), as
+        // in ImportNeverTwice::hasSolved()
+        $solved = CountsAsSolve::condition('result');
         $import = $imports !== null ? '' : <<<SQL
 import AS (
     SELECT data_import.id, data_import.status, data_import.cells_wiped_at
@@ -150,7 +153,7 @@ judged AS (
             ready.choice <> 'unlisted' AND ready.is_wish
                 AND ready.puzzle_id NOT IN (SELECT wish.puzzle_id FROM wish_list_item wish WHERE wish.player_id = :playerId)
                 AND ready.puzzle_id NOT IN (SELECT item.puzzle_id FROM collection_item item WHERE item.player_id = :playerId)
-                AND ready.puzzle_id NOT IN (SELECT result.puzzle_id FROM puzzle_solving_time result WHERE result.player_id = :playerId)
+                AND ready.puzzle_id NOT IN (SELECT result.puzzle_id FROM puzzle_solving_time result WHERE result.player_id = :playerId AND {$solved})
                 AS can_wish
         FROM ready
     ) flagged

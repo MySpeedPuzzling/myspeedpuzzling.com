@@ -46,6 +46,10 @@ readonly final class EditPuzzleSolvingTime
         // What the browser read from the finish photo before it shrank it (BrowserImageSummary) - stored when the photo
         // that arrived has no EXIF of its own (docs/features/upload-image-metadata.md)
         public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null,
+        // The result is unfinished and becomes a finished (or relax) one - its pieces placed go
+        // (docs/features/competitions-management/unfinished-results-plan.md, step 3). Without it an unfinished result is
+        // refused (UnfinishedResultNeedsItsOwnEdit): it is edited through EditUnfinishedPuzzleSolvingTime
+        public bool $endsUnfinishedResult = false,
     ) {
     }
 

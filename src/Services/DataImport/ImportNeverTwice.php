@@ -69,7 +69,21 @@ readonly final class ImportNeverTwice
      */
     public function hasSolved(Player $player, Puzzle $puzzle): bool
     {
-        return $this->resultsOnProfile($player, $puzzle) !== [];
+        // An unfinished result (pieces placed when a round's time ran out) is no solve - the puzzle may still be wished
+        // for (docs/features/competitions-management/unfinished-results-plan.md, step 3; GetImportAddScreen `can_wish`)
+        $solve = $this->entityManager->createQueryBuilder()
+            ->select('time.id')
+            ->from(PuzzleSolvingTime::class, 'time')
+            ->where('time.puzzle = :puzzle')
+            ->andWhere('time.player = :player OR EXISTS (SELECT 1 FROM ' . PuzzlingTeamMember::class . ' teamMember WHERE teamMember.team = time.puzzlingTeam AND teamMember.player = :player)')
+            ->andWhere('time.piecesPlaced IS NULL')
+            ->setParameter('puzzle', $puzzle)
+            ->setParameter('player', $player)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getArrayResult();
+
+        return $solve !== [];
     }
 
     /**

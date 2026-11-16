@@ -7,9 +7,13 @@ namespace SpeedPuzzling\Web\Services\MyData;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\MyData\MyDataResultEdit;
@@ -231,6 +235,12 @@ readonly final class MyDataResultEditor
         $competitionPick = CompetitionPick::ofTime($time->competitionId, $time->seriesPickId, $time->competitionIsEdition);
         $comment = trim($edit->comment);
 
+        // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md) is saved through its
+        // own edit, with its pieces placed and later total as stored - My data edits none of them
+        if ($time->isUnfinished()) {
+            return $this->saveUnfinished($viewer, $time, $competitionPick, $comment, $groupPlayers, $finishedAt, $edit->firstAttempt, $firstTryResolution, $check);
+        }
+
         try {
             $this->messageBus->dispatch(new EditPuzzleSolvingTime(
                 currentUserId: $viewer->userId,
@@ -271,6 +281,57 @@ readonly final class MyDataResultEditor
         }
 
         return new MyDataResultEditOutcome(true, [], $check, $paceCheck, $paceConfirmed, $check->firstTry);
+    }
+
+    /**
+     * @param list<string> $groupPlayers
+     */
+    private function saveUnfinished(
+        PlayerProfile $viewer,
+        SolvedPuzzleDetail $time,
+        null|CompetitionPick $competitionPick,
+        string $comment,
+        array $groupPlayers,
+        null|DateTimeImmutable $finishedAt,
+        bool $firstAttempt,
+        FirstTryResolution $firstTryResolution,
+        ResultEntryCheck $check,
+    ): MyDataResultEditOutcome {
+        assert($time->piecesPlaced !== null && $viewer->userId !== null);
+
+        try {
+            $this->messageBus->dispatch(new EditUnfinishedPuzzleSolvingTime(
+                currentUserId: $viewer->userId,
+                puzzleSolvingTimeId: $time->timeId,
+                competitionId: $competitionPick?->competitionId(),
+                piecesPlaced: $time->piecesPlaced,
+                totalTime: $time->finishedLaterSeconds !== null ? new SolvingTime($time->finishedLaterSeconds)->toTimeString() : null,
+                comment: $comment !== '' ? $comment : null,
+                groupPlayers: $groupPlayers,
+                finishedAt: $finishedAt,
+                finishedPuzzlesPhoto: null,
+                firstAttempt: $firstAttempt,
+                unboxed: $time->unboxed,
+                firstTryResolution: $firstTryResolution,
+                puzzleId: $time->puzzleId,
+                seriesId: $competitionPick?->seriesId(),
+            ));
+        } catch (HandlerFailedException $exception) {
+            $refusal = $exception->getPrevious();
+
+            if ($refusal instanceof FirstTryAlreadyTaken) {
+                return new MyDataResultEditOutcome(false, ['' => $this->translator->trans('first_try.form_error')], $check, null, false, $refusal->assessment, true);
+            }
+
+            // Its round changed since it was saved (no limit any more, other puzzles, the edition matched again)
+            if ($refusal instanceof UnfinishedResultNeedsTimeLimit || $refusal instanceof InvalidPiecesPlaced || $refusal instanceof UnfinishedTotalTimeWithinLimit) {
+                return new MyDataResultEditOutcome(false, ['' => $this->translator->trans('unfinished_result.round_changed')], $check, null, false, $check->firstTry);
+            }
+
+            throw $exception;
+        }
+
+        return new MyDataResultEditOutcome(true, [], $check, null, false, $check->firstTry);
     }
 
     /**

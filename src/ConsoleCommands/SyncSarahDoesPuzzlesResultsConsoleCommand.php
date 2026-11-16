@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Query\GetEventResultsSheets;
 use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
 use SpeedPuzzling\Web\Services\EventResultsImport\GoogleSheetReader;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
+use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventRow;
+use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -93,6 +95,7 @@ final class SyncSarahDoesPuzzlesResultsConsoleCommand extends Command
             }
 
             $outcome = match (true) {
+                // Whether the puzzle exists and the unfinished teams' pieces placed fit it is found out by the import
                 $parsed->isImportable() => 'importable (puzzle checked on import)',
                 $parsed->waitsForPuzzle() => 'waiting_for_puzzle',
                 default => 'problem',
@@ -102,12 +105,22 @@ final class SyncSarahDoesPuzzlesResultsConsoleCommand extends Command
                 $tab->gid,
                 $tab->title,
                 $outcome,
-                (string) count($parsed->rows),
+                self::teams($parsed),
                 implode(', ', array_map(static fn (EventTabProblem $problem): string => self::describe($problem->toArray()), $parsed->problems)),
             ];
         }
 
         $io->table(['gid', 'Tab', 'Would be', 'Teams', 'Problems'], $rows);
+    }
+
+    /**
+     * "5", or "5 (2 unfinished)" - teams with pieces placed instead of a time (README "Unfinished results (D9)")
+     */
+    private static function teams(ParsedEventTab $parsed): string
+    {
+        $unfinished = count(array_filter($parsed->rows, static fn (ParsedEventRow $row): bool => $row->isUnfinished()));
+
+        return count($parsed->rows) . ($unfinished > 0 ? sprintf(' (%d unfinished)', $unfinished) : '');
     }
 
     /**

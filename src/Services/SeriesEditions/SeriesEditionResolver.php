@@ -38,7 +38,7 @@ readonly final class SeriesEditionResolver
             return SeriesEditionResolution::notIdentified();
         }
 
-        return $this->answer(
+        return $this->resolveFor(
             $time->competitionSeries->id->toString(),
             $time->puzzle->id->toString(),
             // A result known to its month or year only has no day an edition could be matched by: only its puzzle can
@@ -46,6 +46,15 @@ readonly final class SeriesEditionResolver
             $time->hasExactDay() ? $time->finishedAt ?? $time->trackedAt : null,
             $time->puzzlingType,
         );
+    }
+
+    /**
+     * What resolve() answers for a time that does not exist yet - the unfinished result's handlers need the edition
+     * (and its round's limit) before they build or change the entity. $solveDay null = the day is not known exactly.
+     */
+    public function resolveFor(string $seriesId, string $puzzleId, null|DateTimeImmutable $solveDay, PuzzlingType $category): SeriesEditionResolution
+    {
+        return $this->answer($seriesId, $puzzleId, $solveDay, $category);
     }
 
     /**

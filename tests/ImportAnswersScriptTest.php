@@ -143,6 +143,21 @@ final class ImportAnswersScriptTest extends TestCase
         self::assertSame(['scrolledBy' => [-70], 'focused' => 'two div No player has this code.'], self::at($room, 'refused'));
     }
 
+    public function testTheWholeCardIsRevealedBetweenTheHeaderAndTheLineAtTheBottom(): void
+    {
+        ['fits' => $fits] = $this->scenarios(['fits']);
+        $focused = 'two button Yes, this is it';
+
+        // Scrolled far above (its top at -125): the top lands just below the header (110) - the puzzle is seen
+        self::assertSame(['scrolledBy' => [-235], 'focused' => $focused], self::at($fits, 'above'));
+        // Far below (900-1100, the room ends at 602): up until its bottom is above the line
+        self::assertSame(['scrolledBy' => [498], 'focused' => $focused], self::at($fits, 'below'));
+        // Taller than the room (600 px in 492): its top below the header - never its top cut off for its buttons
+        self::assertSame(['scrolledBy' => [290], 'focused' => $focused], self::at($fits, 'taller'));
+        // It fits where it stands: nothing moves
+        self::assertSame(['scrolledBy' => [], 'focused' => $focused], self::at($fits, 'fits'));
+    }
+
     public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void
     {
         ['unsaved' => $unsaved] = $this->scenarios(['unsaved']);

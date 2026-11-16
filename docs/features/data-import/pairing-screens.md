@@ -271,6 +271,9 @@ overview.
 - "Undo the last one" names the card it brings back (`data-import-answers-returns`): that card is brought wholly
   above the line and its first button focused, and it is the card focus returns to on "Close". Nothing is ever
   focused without being brought into view first - Enter must not answer a card nobody sees;
+- what is revealed is **the whole card**, not its button: its top just below the header when it stood above, moved
+  up only as far as the top stays below the header when it stood below - a card taller than the room shows its
+  beginning (name and picture), its buttons a scroll away;
 - the last card of a screen answered: the screen's ONE way on (`#import-pile .btn-primary`, or the next step's
   button in the line) is brought into view and focused - the page got shorter under the player;
 - "No" on the piece-count question takes the question away in place (`dismiss`), nothing is sent.

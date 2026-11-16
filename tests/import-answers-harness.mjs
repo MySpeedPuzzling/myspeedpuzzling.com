@@ -230,8 +230,8 @@ const scenarios = {
         const saidLine = document.getElementById('import-answer-said');
         saidLine.setAttribute('data-height', '90');
         saidLine.innerHTML = '<div>1 matched.</div>';
-        document.querySelector('#one [data-yes]').setAttribute('data-top', '650');
-        document.querySelector('#one [data-yes]').setAttribute('data-height', '44');
+        document.getElementById('one').setAttribute('data-top', '650');
+        document.getElementById('one').setAttribute('data-height', '44');
         tap('#one [data-yes]');
         await settle();
         world.pending.shift().reject(new TypeError('Failed to fetch'));
@@ -345,8 +345,8 @@ const scenarios = {
         const line = (height) => `<turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>1 matched.</span><button type="button" data-action="data-import-answers#dismiss" data-close>Close</button></div></template></turbo-stream>`;
         document.getElementById('import-answer-said').setAttribute('data-height', '90');
         // The next card's button is at 650-694 of a 700 px window: under the 90 px line
-        document.querySelector('#two [data-yes]').setAttribute('data-top', '650');
-        document.querySelector('#two [data-yes]').setAttribute('data-height', '44');
+        document.getElementById('two').setAttribute('data-top', '650');
+        document.getElementById('two').setAttribute('data-height', '44');
         tap('#one [data-yes]');
         await settle();
         world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${line()}`));
@@ -358,7 +358,7 @@ const scenarios = {
         const closed = { focused: focused(), padding: document.documentElement.style.scrollPaddingBottom, room: document.querySelector('[data-controller]').style.paddingBottom };
         // In view already (300-344): nothing moves
         await mount();
-        document.querySelector('#two [data-yes]').setAttribute('data-height', '44');
+        document.getElementById('two').setAttribute('data-height', '44');
         tap('#one [data-yes]');
         await settle();
         world.pending.shift().resolve(streams(`<turbo-stream action="remove" target="one"></turbo-stream>${line()}`));
@@ -388,13 +388,34 @@ const scenarios = {
         await settle();
         const sent = world.calls[1].body;
         // The screen again, the card back in its place - its button at 650-694, under the 90 px line
-        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile">${card('one').replace('data-yes', 'data-yes data-top="650" data-height="44"')}${card('two')}</div></template></turbo-stream><turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>Undone.</span><button type="button" data-action="data-import-answers#dismiss" data-close>Close</button></div></template></turbo-stream>`));
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile">${card('one').replace('id="one"', 'id="one" data-top="650" data-height="44"')}${card('two')}</div></template></turbo-stream><turbo-stream action="update" target="import-answer-said"><template><div data-import-answers-dismissable><span>Undone.</span><button type="button" data-action="data-import-answers#dismiss" data-close>Close</button></div></template></turbo-stream>`));
         await settle();
         const after = { focused: focused(), scrolledBy: [...world.scrolledBy] };
         tap('[data-close]');
         await settle();
 
         return { before, sent, after, closed: focused() };
+    },
+    // What is revealed is the whole card, between the header's bottom (90 + 20) and the top of the 90 px line
+    // (700 - 90 - 8 = 602): a card far above lands with its top below the header; one far below comes up until it
+    // fits; one taller than the room shows its top
+    async fits() {
+        const moved = {};
+
+        for (const [name, top, height] of [['above', -125, 348], ['below', 900, 200], ['taller', 400, 600], ['fits', 200, 300]]) {
+            await mount();
+            document.getElementById('import-answer-said').setAttribute('data-height', '90');
+            document.getElementById('import-answer-said').innerHTML = '<div>1 matched.</div>';
+            document.getElementById('two').setAttribute('data-top', String(top));
+            document.getElementById('two').setAttribute('data-height', String(height));
+            tap('#one [data-yes]');
+            await settle();
+            world.pending.shift().resolve(streams('<turbo-stream action="remove" target="one"></turbo-stream>'));
+            await settle();
+            moved[name] = { scrolledBy: [...world.scrolledBy], focused: focused() };
+        }
+
+        return moved;
     },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {

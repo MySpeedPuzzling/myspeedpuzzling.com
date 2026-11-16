@@ -289,7 +289,7 @@ export default class extends Controller {
 
         if (next !== null) {
             // Never focus on what is not in view: Enter would answer a card nobody sees
-            this.reveal(next, false);
+            this.reveal(next.closest('[data-import-answers-scope]') || next, false);
             next.focus({ preventScroll: true });
         }
     }
@@ -423,7 +423,8 @@ export default class extends Controller {
 
             if (action !== null) {
                 // Its first button or link - wholly in view, above the line that stays at the bottom
-                this.reveal(action, false);
+                // The whole card - what the button answers must be seen, not only the button
+                this.reveal(card, false);
                 action.focus({ preventScroll: true });
                 this.last = id;
 
@@ -468,8 +469,11 @@ export default class extends Controller {
     }
 
     /**
-     * The element is wholly in view - below the site's header, above the line at the bottom. Nothing moves when it
-     * already is. `toTop`: a new screen is shown from its beginning.
+     * The element (a whole card, not only its button) is in view - between the bottom of the site's header and the
+     * top of the line at the bottom. Its top is put just below the header when it stands above; when it stands
+     * below, the page moves up only as far as the top stays below the header - so an element taller than the room
+     * shows its beginning (the puzzle's name and picture), and its buttons are a scroll away. Nothing moves when it
+     * already fits. `toTop`: a new screen is shown from its beginning.
      */
     reveal(element, toTop) {
         const header = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || HEADER_PX;
@@ -539,7 +543,7 @@ export default class extends Controller {
 
         if (submitter !== null && submitter.isConnected) {
             // The tapped button, wholly above the line - and focus back on it
-            this.reveal(submitter, false);
+            this.reveal(submitter.closest('[data-import-answers-scope]') || submitter, false);
             submitter.focus({ preventScroll: true });
         }
     }

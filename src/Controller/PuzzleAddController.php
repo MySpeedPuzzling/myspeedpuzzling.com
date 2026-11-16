@@ -282,6 +282,12 @@ final class PuzzleAddController extends AbstractController
             $data->timeMinutes = $officialEntry->minutes();
             $data->timeSeconds = $officialEntry->secondsPart();
             $data->finishedAt = $officialEntry->finishedAt;
+
+            // An official result that did not finish within the round's time limit: the switch on, its pieces filled in
+            if ($officialEntry->piecesPlaced !== null) {
+                $data->unfinished = true;
+                $data->piecesPlaced = (string) $officialEntry->piecesPlaced;
+            }
         }
 
         // Get player collections for form options (include system collection)

@@ -24,7 +24,8 @@ readonly final class OfficialEntryTime
      */
     public function __construct(
         public string $puzzleId,
-        public int $seconds,
+        // Null for an entry that did not finish within the round's time limit - $piecesPlaced then
+        public null|int $seconds,
         // The round's start date in the round's time zone
         public DateTimeImmutable $finishedAt,
         public array $groupPlayers,
@@ -34,6 +35,8 @@ readonly final class OfficialEntryTime
         public string $competitionName,
         public RoundCategory $category = RoundCategory::Solo,
         public array $memberChoices = [],
+        // The pieces placed when the round's time ran out - the form opens with "I didn't finish within the time limit" on
+        public null|int $piecesPlaced = null,
     ) {
     }
 
@@ -101,16 +104,16 @@ readonly final class OfficialEntryTime
 
     public function hours(): int
     {
-        return intdiv($this->seconds, 3600);
+        return intdiv($this->seconds ?? 0, 3600);
     }
 
     public function minutes(): int
     {
-        return intdiv($this->seconds % 3600, 60);
+        return intdiv(($this->seconds ?? 0) % 3600, 60);
     }
 
     public function secondsPart(): int
     {
-        return $this->seconds % 60;
+        return ($this->seconds ?? 0) % 60;
     }
 }

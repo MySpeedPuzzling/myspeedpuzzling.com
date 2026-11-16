@@ -32,8 +32,22 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
 
 // The process that builds the database (buildDatabaseInItsOwnProcess() below): it does that and nothing else
 if (getenv('MSP_BUILD_TEST_DATABASE') === '1') {
-    bootstrapDatabase($cacheFilePath);
-    createPantherTemplateDatabase();
+    // A failed build must end this process with an error. The exception handler above only prints an uncaught
+    // exception - the process still ended with 0, the cache file was written and the suite ran on a half-built
+    // database without a word (2026-11-16: Postgres 18 refused a custom index, no fixture was loaded)
+    try {
+        bootstrapDatabase($cacheFilePath);
+        createPantherTemplateDatabase();
+    } catch (Throwable $exception) {
+        fwrite(STDERR, sprintf(
+            "\nBuilding the test database failed - %s: %s\n%s\n",
+            $exception::class,
+            $exception->getMessage(),
+            $exception->getTraceAsString(),
+        ));
+
+        exit(1);
+    }
 
     return;
 }
@@ -48,6 +62,9 @@ flock($databaseLock, LOCK_EX);
 
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
+    // The cache file knows what the database was built from, not whether the server still has it: another server or
+    // an empty volume (the move to Postgres 18) left it "up to date" with no database behind it
+    || testDatabaseIsMissing()
 ) {
     buildDatabaseInItsOwnProcess();
     file_put_contents($cacheFilePath, $currentDatabaseHash);
@@ -85,6 +102,45 @@ function buildDatabaseInItsOwnProcess(): void
     }
 }
 
+/**
+ * True only when the server answers and does not have the test database. A server that cannot be reached says
+ * nothing: tests that need no database keep running without one, as before.
+ */
+function testDatabaseIsMissing(): bool
+{
+    $dbConfig = parseDatabaseUrl();
+
+    try {
+        $pdo = new PDO(
+            sprintf('pgsql:host=%s;port=%d;dbname=postgres', $dbConfig['host'], $dbConfig['port']),
+            $dbConfig['user'],
+            $dbConfig['password'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3],
+        );
+
+        $statement = $pdo->prepare('SELECT 1 FROM pg_database WHERE datname = :name');
+        $statement->execute(['name' => $dbConfig['dbname']]);
+
+        return $statement->fetchColumn() === false;
+    } catch (PDOException) {
+        return false;
+    }
+}
+
+/**
+ * A console command prints its own error and returns a code - which nobody looked at for the first three steps
+ *
+ * @param array<string, int|string> $input
+ */
+function runConsoleCommandOrFail(Application $application, array $input): void
+{
+    $result = $application->run(new ArrayInput($input));
+
+    if ($result !== 0) {
+        throw new LogicException(sprintf('Command %s failed (exit code %d)', $input['command'], $result));
+    }
+}
+
 function bootstrapDatabase(string $cacheFilePath): void
 {
     $kernel = new SymfonyApplicationKernel('test', true);
@@ -94,23 +150,23 @@ function bootstrapDatabase(string $cacheFilePath): void
     $application->setAutoExit(false);
 
     // Always drop and recreate when cache is invalid
-    $application->run(new ArrayInput([
+    runConsoleCommandOrFail($application, [
         'command' => 'doctrine:database:drop',
         '--if-exists' => 1,
         '--force' => 1,
-    ]));
+    ]);
 
-    $application->run(new ArrayInput([
+    runConsoleCommandOrFail($application, [
         'command' => 'doctrine:database:create',
-    ]));
+    ]);
 
     // Create PostgreSQL extensions required by queries (from migrations)
     createPostgresExtensions();
 
     // Faster than running migrations
-    $application->run(new ArrayInput([
+    runConsoleCommandOrFail($application, [
         'command' => 'doctrine:schema:create',
-    ]));
+    ]);
 
     // Create custom indexes that Doctrine cannot manage
     createCustomIndexes();
@@ -273,11 +329,12 @@ function createPostgresExtensions(): void
     $pdo->exec('CREATE EXTENSION IF NOT EXISTS unaccent');
     $pdo->exec('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
-    // Create immutable wrapper for unaccent (required for index expressions)
+    // Create immutable wrapper for unaccent (required for index expressions) - schema-qualified like the migrations'
+    // (Version20260726081804): from Postgres 17 on, CREATE INDEX runs it with a restricted search_path
     $pdo->exec("
         CREATE OR REPLACE FUNCTION immutable_unaccent(text)
         RETURNS text AS \$\$
-            SELECT unaccent('unaccent', \$1)
+            SELECT public.unaccent('public.unaccent'::regdictionary, \$1)
         \$\$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
     ");
 

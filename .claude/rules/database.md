@@ -11,7 +11,16 @@ paths:
 # Database, migrations and custom indexes
 
 ## Database
-- Database runs in Docker on port 5432 (postgres/postgres)
+- Database runs in Docker on port 5432 (postgres/postgres): **Postgres 18.7** (`postgres:18.7`, Debian) in development
+  (`compose.yml`), in CI and on production (upgraded from 16.14 on 2026-11-16, data checksums on).
+- The data lives in the volume `postgres18-data`, mounted at `/var/lib/postgresql` (the 18 image refuses a mount at the
+  old `/var/lib/postgresql/data`). One volume per major version: the Postgres 16 volume `postgres-data` of a checkout
+  stays on disk untouched, and `tools/migrate-local-postgres-to-18.sh` copies its databases over (roles + every
+  non-test database, row counts compared, never over a database that holds tables unless `--replace`; local Docker
+  only). Keep the service name `postgres`, its port and the network - other tools reach it as `postgres:5432`.
+- From Postgres 17 on, `CREATE INDEX` / `REINDEX` / `ANALYZE` run index-expression functions with a restricted
+  `search_path`: a function used in an index must schema-qualify what it calls (`immutable_unaccent()` does -
+  `public.unaccent('public.unaccent'::regdictionary, $1)`).
 - Adminer available at localhost:8000
 - Migrations are in `migrations/` directory
 

@@ -1,5 +1,8 @@
 volumes:
-    postgres-data:
+    # One volume per Postgres major version: a data directory only opens with the major that wrote it. The Postgres 16
+    # one (`postgres-data`, used until 2026-11) is no longer listed here on purpose: it stays on disk as it was - compose
+    # only ever removes volumes it lists - and tools/migrate-local-postgres-to-18.sh copies its databases into this one.
+    postgres18-data:
     redis-data:
     redis-state-data:
     mailpit-data:
@@ -54,14 +57,18 @@ services:
         healthcheck:
             disable: true
 
+    # The same version as CI (.github/workflows/test.yml). The service name, the port and the network are what other
+    # tools reach it by (`postgres:5432` on `<project>_default`) - keep them.
     postgres:
-        image: postgres:16.0
+        image: postgres:18.7
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
             POSTGRES_DB: speedpuzzling
         volumes:
-            - postgres-data:/var/lib/postgresql/data
+            # Since 18 the image wants ONE mount at /var/lib/postgresql and keeps the data in <major>/docker below it;
+            # it refuses to start with anything mounted at the old /var/lib/postgresql/data
+            - postgres18-data:/var/lib/postgresql
         ports:
             - "${POSTGRES_PORT:-5432}:5432"
         healthcheck:
@@ -262,7 +269,7 @@ services:
             SKIP_DATABASE_MIGRATIONS: "true"
 
     listmonk-init:
-        image: postgres:16.0
+        image: postgres:18.7
         environment:
             PGPASSWORD: postgres
         command: >
@@ -275,7 +282,7 @@ services:
     # dev defaults in .env work out of the box (tokens are stored in plain text
     # in the listmonk users table, so the row can be seeded deterministically)
     listmonk-seed:
-        image: postgres:16.0
+        image: postgres:18.7
         environment:
             PGPASSWORD: postgres
         command: >

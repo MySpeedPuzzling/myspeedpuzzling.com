@@ -30,7 +30,7 @@ final class DatabaseReadinessTest extends TestCase
 
         try {
             // Nothing listens on port 1: every attempt is refused straight away
-            $readiness->waitFor('postgresql://app:secret@127.0.0.1:1/app?serverVersion=16&charset=utf8', 5);
+            $readiness->waitFor('postgresql://app:secret@127.0.0.1:1/app?serverVersion=18&charset=utf8', 5);
             self::fail('An unreachable database must end in DatabaseNotReady');
         } catch (DatabaseNotReady $exception) {
             // t = 0, 1, 2, 3, 4, 5 s

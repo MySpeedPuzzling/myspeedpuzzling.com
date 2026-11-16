@@ -79,7 +79,7 @@ Never against production. The stack runs the working tree in production mode aga
 
 ```sh
 docker exec speedpuzzlingcz-postgres-1 createdb -U postgres -T speedpuzzling_<x>_test_template speedpuzzling_<x>_test_load
-DATABASE_URL='postgresql://postgres:postgres@postgres:5432/speedpuzzling_<x>_test_load?serverVersion=16&charset=utf8' \
+DATABASE_URL='postgresql://postgres:postgres@postgres:5432/speedpuzzling_<x>_test_load?serverVersion=18&charset=utf8' \
   NAME_PREFIX=<x> VENDOR_DIR=<main checkout>/vendor BUILD_DIR=<main checkout>/public/build \
   tools/online-load/local-stack.sh up
 ```

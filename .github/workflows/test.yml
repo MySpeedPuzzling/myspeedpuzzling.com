@@ -15,12 +15,14 @@ on:
     pull_request:
 
 env:
-    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=16&charset=utf8
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=18&charset=utf8
 
 jobs:
   # The suite runs as 3 parallel jobs (ParaTest shards, test classes dealt out
   # round-robin), each with one worker per CPU. ~60s of every job is fixed cost
   # (containers, checkout, caches, database build), so a 4th shard bought nothing.
+  #
+  # Postgres 18.7 (Debian), the same as production (since 2026-11-16) and development (compose.yml).
   tests:
     name: tests (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
@@ -31,7 +33,7 @@ jobs:
         shard: [1, 2, 3]
     services:
       postgres:
-          image: postgres:16
+          image: postgres:18.7
           env:
               POSTGRES_PASSWORD: postgres
           options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
@@ -93,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-          image: postgres:16
+          image: postgres:18.7
           env:
               POSTGRES_PASSWORD: postgres
               POSTGRES_DB: speedpuzzling
@@ -101,7 +103,7 @@ jobs:
           ports:
               - 5432:5432
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=18&charset=utf8
     steps:
       -   uses: actions/checkout@v7
       -   uses: actions/cache@v6
@@ -213,7 +215,7 @@ jobs:
       container: ghcr.io/myspeedpuzzling/web-base-php85:main
       services:
           postgres:
-              image: postgres:16
+              image: postgres:18.7
               env:
                   POSTGRES_PASSWORD: postgres
                   POSTGRES_DB: speedpuzzling_test

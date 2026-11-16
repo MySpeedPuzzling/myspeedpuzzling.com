@@ -13,8 +13,8 @@ code runs as usual. Pull requests always run.
 
 | job | runs on | what |
 |---|---|---|
-| `tests (1/3..3/3)` | PR + main | ParaTest shards (`--shard=i/3`, round-robin), one worker per CPU, each worker on its own clone of the test database (`tests/bootstrap.php`) |
-| `phpstan`, `migrations-up-to-date` | PR + main | gates |
+| `tests (1/3..3/3)` | PR + main | ParaTest shards (`--shard=i/3`, round-robin), one worker per CPU, each worker on its own clone of the test database (`tests/bootstrap.php`). Postgres 18.7, as development and production. |
+| `phpstan`, `migrations-up-to-date` | PR + main | gates; every migration from scratch on Postgres 18.7 |
 | `coding-standards` | PR + main | advisory (`continue-on-error`), never blocks a deploy; PHPCS with its cache, in the app image |
 | `docker` | main | builds the production image **while the gates run**, pushes `website:sha-<commit>` only, plus `website:build-assets` |
 | `verified` | same-repo PRs | after every gate passed: uploads an artifact `verified-tree-<tree sha>` for the tree the PR run tested (the PR merged into main) |

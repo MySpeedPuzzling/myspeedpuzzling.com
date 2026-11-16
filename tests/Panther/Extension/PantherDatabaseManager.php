@@ -53,7 +53,7 @@ final class PantherDatabaseManager
 
         // Write DATABASE_URL to shared file using same host/port as original
         $databaseUrl = sprintf(
-            'postgresql://%s:%s@%s:%d/%s?serverVersion=16&charset=utf8',
+            'postgresql://%s:%s@%s:%d/%s?serverVersion=18&charset=utf8',
             $this->dbConfig['user'],
             $this->dbConfig['password'],
             $this->dbConfig['host'],

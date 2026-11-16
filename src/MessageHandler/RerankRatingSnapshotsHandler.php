@@ -14,7 +14,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * The stored places used to count ties as the worse place and players who opted out of rankings, and stored 0 for an
  * unrated player - a few places off the ladder. This ranks one stored day again from its stored ratings with the
  * ladder's rule (GetPlayerRatingRanking::sqlOnStoredLadder(), RANK()) and today's privacy and opt-out settings, the
- * same rule recordRatingSnapshots() writes by now. Only rows whose place changes are written.
+ * same rule recordRatingSnapshots() writes by now. Only rows whose place changes are written. The day's best place
+ * (best_elo_rank) is reset to the re-ranked place: places reached under the old rule no longer count.
  *
  * Two set-based UPDATEs on purpose: thousands of rows a day, a million over the history - loading them as entities
  * one by one would take hours.
@@ -34,7 +35,7 @@ readonly final class RerankRatingSnapshotsHandler
 
         $ranked = $this->connection->executeStatement(<<<SQL
 UPDATE player_rating_snapshot s
-SET elo_rank = ranked.place
+SET elo_rank = ranked.place, best_elo_rank = ranked.place
 FROM (
     SELECT
         s2.id,
@@ -46,15 +47,15 @@ FROM (
         AND s2.snapshot_date = CAST(:day AS timestamp)
 ) ranked
 WHERE s.id = ranked.id
-    AND s.elo_rank IS DISTINCT FROM ranked.place
+    AND (s.elo_rank, s.best_elo_rank) IS DISTINCT FROM (ranked.place, ranked.place)
 SQL, $params);
 
         $unranked = $this->connection->executeStatement(<<<SQL
 UPDATE player_rating_snapshot s
-SET elo_rank = NULL
+SET elo_rank = NULL, best_elo_rank = NULL
 FROM player p
 WHERE p.id = s.player_id
-    AND s.elo_rank IS NOT NULL
+    AND (s.elo_rank IS NOT NULL OR s.best_elo_rank IS NOT NULL)
     AND (s.elo_rating IS NULL OR NOT ({$onStoredLadder}))
     AND s.snapshot_date = CAST(:day AS timestamp)
 SQL, $params);

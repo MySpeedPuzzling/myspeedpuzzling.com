@@ -49,6 +49,13 @@ class PlayerRatingSnapshot
         public null|int $baselineSeconds = null,
         #[Column(nullable: true)]
         public null|string $baselineType = null,
+        /**
+         * The best place reached during the day - elo_rank holds the day's last place, which a later run can make
+         * worse (a newly rated player ahead), while a place reached is reached ("Best place" on the rating history).
+         * Null on rows written before it existed: then the day's elo_rank stands for it.
+         */
+        #[Column(nullable: true)]
+        public null|int $bestEloRank = null,
     ) {
     }
 }

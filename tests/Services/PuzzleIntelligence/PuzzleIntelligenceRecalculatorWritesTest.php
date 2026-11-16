@@ -491,6 +491,45 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
     }
 
     /**
+     * elo_rank is the day's last place and can get worse when someone overtakes later in the day; best_elo_rank keeps
+     * the best place reached that day (2026-11-16: a player saw "Best place #278" turn into "#279" within an hour).
+     */
+    public function testTheDaysBestPlaceNeverGetsWorseWithinTheDay(): void
+    {
+        $this->recalculate($this->now);
+
+        $day = $this->now->format('Y-m-d 00:00:00');
+        $placeOf = fn (int $player): int => $this->countRows(
+            'SELECT elo_rank FROM player_rating_snapshot WHERE player_id = :player AND pieces_count = 500 AND snapshot_date = :day',
+            ['player' => self::ladderPlayer($player), 'day' => $day],
+        );
+        $bestOf = fn (int $player): int => $this->countRows(
+            'SELECT best_elo_rank FROM player_rating_snapshot WHERE player_id = :player AND pieces_count = 500 AND snapshot_date = :day',
+            ['player' => self::ladderPlayer($player), 'day' => $day],
+        );
+
+        // The first run of the day: the best place is the place
+        self::assertSame($placeOf(5), $bestOf(5));
+        $place5 = $placeOf(5);
+        $place6 = $placeOf(6);
+        self::assertGreaterThan(1, $place5);
+
+        $set = fn (int $player, int $place, null|int $best): int => (int) $this->connection->executeStatement(
+            'UPDATE player_rating_snapshot SET elo_rank = :place, best_elo_rank = :best WHERE player_id = :player AND pieces_count = 500 AND snapshot_date = :day',
+            ['player' => self::ladderPlayer($player), 'place' => $place, 'best' => $best, 'day' => $day],
+        );
+        // Earlier today player 5 stood one place higher, player 6 (a row from before the column) worse than now
+        $set(5, $place5 - 1, $place5 - 1);
+        $set(6, $place6 + 3, null);
+
+        $this->recalculate($this->now->modify('+1 hour'));
+
+        self::assertSame($place5, $placeOf(5), 'The place is the day\'s last one');
+        self::assertSame($place5 - 1, $bestOf(5), 'The place reached earlier today stays the day\'s best');
+        self::assertSame($place6, $bestOf(6), 'A better place improves the day\'s best');
+    }
+
+    /**
      * The ids the run creates in SQL are time-ordered like the ones PHP creates (gen_uuid_v7(), version 7), so a
      * day's rows sit together in the primary key index. Until 2026-11-16 they were random (gen_random_uuid(),
      * version 4): a random page of that index for every row. puzzle_difficulty has no id - its key is the puzzle.
@@ -564,11 +603,14 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         foreach (self::TABLES as $table => $key) {
             $rowKey = implode(", '|', ", array_map(static fn (string $column): string => "t.{$column}::text", $key));
             $computedAt = $table === 'player_skill_history' ? 'NULL' : 't.computed_at::text';
+            // The day's best place remembers earlier runs of the day on purpose, so a run from scratch cannot match it
+            // (testTheDaysBestPlaceNeverGetsWorseWithinTheDay pins it)
+            $notCompared = $table === 'player_rating_snapshot' ? " - 'best_elo_rank'" : '';
 
             /** @var list<array{row_key: string, row_values: string, computed_at: null|string, ctid: string, xmax: string}> $rows */
             $rows = $this->connection->fetchAllAssociative("
                 SELECT concat({$rowKey}) AS row_key,
-                    (to_jsonb(t) - 'id' - 'computed_at')::text AS row_values,
+                    (to_jsonb(t) - 'id' - 'computed_at'{$notCompared})::text AS row_values,
                     {$computedAt} AS computed_at,
                     t.ctid::text AS ctid,
                     t.xmax::text AS xmax

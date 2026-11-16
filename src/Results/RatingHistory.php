@@ -25,7 +25,7 @@ readonly final class RatingHistory
     }
 
     /**
-     * @param list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int}> $rows GetPlayerRatingSnapshots::forPlayer(), one piece count
+     * @param list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int, best_place?: null|int}> $rows GetPlayerRatingSnapshots::forPlayer(), one piece count
      */
     public static function fromSnapshots(array $rows): self
     {
@@ -37,15 +37,21 @@ readonly final class RatingHistory
         foreach ($rows as $row) {
             $days[] = ['date' => $row['date'], 'rating' => (int) round($row['rating'] * 1000), 'place' => $row['place']];
 
-            if ($row['place'] === null) {
+            if ($row['place'] !== null) {
+                $daysOnLadder++;
+            }
+
+            // The day's best place, not its last one: a place reached in the morning stays reached when a newly rated
+            // player pushes the day's place one down later (the best place must never get worse)
+            $dayBest = $row['best_place'] ?? $row['place'];
+
+            if ($dayBest === null) {
                 continue;
             }
 
-            $daysOnLadder++;
-
             // The first day the best place was reached
-            if ($bestPlace === null || $row['place'] < $bestPlace) {
-                $bestPlace = $row['place'];
+            if ($bestPlace === null || $dayBest < $bestPlace) {
+                $bestPlace = $dayBest;
                 $bestPlaceOn = $row['date'];
             }
         }

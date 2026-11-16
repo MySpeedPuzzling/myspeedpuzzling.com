@@ -30,7 +30,7 @@ readonly final class RatingOverTime
     }
 
     /**
-     * @param list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int}> $rows
+     * @param list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int, best_place?: null|int}> $rows
      */
     public static function fromRows(array $rows): RatingOverTimeResult
     {

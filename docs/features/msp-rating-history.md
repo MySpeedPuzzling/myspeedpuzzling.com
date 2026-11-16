@@ -54,7 +54,10 @@ quiet grey for a lost place and green only for a gain.
   the account can stay on a tile until the cache expires (≤ 15 minutes).
 - **Rating card** (`msp_rating_card`, `/en/msp-rating/card/{playerId}`): a tap on a ladder name or a "This week" tile
   opens it in the puzzler card's popover / sheet (the card's name links to the profile) (`players_card_controller.js` on a wrapper outside the Live root;
-  `<turbo-frame id="player-card">`). Place + move, rating + points change, best place + date, rating and place day by day
+  `<turbo-frame id="player-card">`). Place + move, rating + points change, best place + date (the best place reached on any day, during the day included:
+  `player_rating_snapshot.best_elo_rank` keeps the day's best while `elo_rank` is its last place - since 2026-11-16, a
+  player saw "Best place #278" turn into "#279" within an hour when a newly rated player went ahead; older rows fall back to
+  `elo_rank`, a re-rank resets it to the re-ranked place), rating and place day by day
   (`RatingHistoryChartFactory`: two Chart.js lines, place reversed; tooltips/ticks via `comparison-chart`, dashed lines
   via `leaderboard-chart`'s vertical markers at day index + 0.5 - formula changes are **not** marked for now
   (`RatingHistoryChartFactory::markers()`, Jan 2026-10-20: "Formula update" meant nothing to players), the

@@ -22,13 +22,13 @@ readonly final class GetPlayerRatingSnapshots
     /**
      * @param list<int> $piecesCounts
      *
-     * @return list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int}> by piece count, then date
+     * @return list<array{pieces_count: int, date: DateTimeImmutable, rating: float, place: null|int, best_place: null|int}> by piece count, best_place = the best place reached that day, then date
      */
     public function forPlayer(string $playerId, array $piecesCounts, null|DateTimeImmutable $from = null, null|DateTimeImmutable $to = null): array
     {
-        /** @var list<array{pieces_count: int|string, snapshot_date: string, elo_rating: float|string, elo_rank: null|int|string}> $rows */
+        /** @var list<array{pieces_count: int|string, snapshot_date: string, elo_rating: float|string, elo_rank: null|int|string, best_place: null|int|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
-            'SELECT pieces_count, snapshot_date, elo_rating, elo_rank
+            'SELECT pieces_count, snapshot_date, elo_rating, elo_rank, COALESCE(best_elo_rank, elo_rank) AS best_place
             FROM player_rating_snapshot
             WHERE player_id = :playerId
                 AND pieces_count IN (:piecesCounts)
@@ -50,6 +50,7 @@ readonly final class GetPlayerRatingSnapshots
             'date' => new DateTimeImmutable($row['snapshot_date']),
             'rating' => (float) $row['elo_rating'],
             'place' => $row['elo_rank'] !== null ? (int) $row['elo_rank'] : null,
+            'best_place' => $row['best_place'] !== null ? (int) $row['best_place'] : null,
         ], $rows);
     }
 

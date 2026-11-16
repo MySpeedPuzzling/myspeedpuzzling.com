@@ -621,7 +621,8 @@ readonly final class PuzzleIntelligenceRecalculator
      * One row per player, piece count and day, holding the latest values of that day. As with
      * the skill history, the first run of a day inserts the day's rows and later runs update
      * only the rows whose values changed; computed_at of a row is when its values were last
-     * written, no longer the last run of the day.
+     * written, no longer the last run of the day. best_elo_rank keeps the best place of the day: a later run
+     * only ever improves it, so a place reached in the morning stays the day's best when someone overtakes later.
      */
     private function recordRatingSnapshots(\DateTimeImmutable $now): int
     {
@@ -633,7 +634,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         // Bulk insert snapshots for all players with baselines, joining skill and rating data
         $this->connection->executeStatement("
-            INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
+            INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, best_elo_rank, baseline_seconds, baseline_type, computed_at)
             SELECT
                 gen_uuid_v7(),
                 fresh.player_id,
@@ -643,6 +644,7 @@ readonly final class PuzzleIntelligenceRecalculator
                 fresh.skill_tier,
                 fresh.skill_percentile,
                 fresh.elo_rating,
+                fresh.elo_rank,
                 fresh.elo_rank,
                 fresh.baseline_seconds,
                 fresh.baseline_type,
@@ -684,6 +686,10 @@ readonly final class PuzzleIntelligenceRecalculator
                 skill_percentile = EXCLUDED.skill_percentile,
                 elo_rating = EXCLUDED.elo_rating,
                 elo_rank = EXCLUDED.elo_rank,
+                best_elo_rank = CASE
+                    WHEN EXCLUDED.elo_rank IS NULL THEN player_rating_snapshot.best_elo_rank
+                    ELSE LEAST(COALESCE(player_rating_snapshot.best_elo_rank, player_rating_snapshot.elo_rank), EXCLUDED.elo_rank)
+                END,
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 baseline_type = EXCLUDED.baseline_type,
                 computed_at = EXCLUDED.computed_at

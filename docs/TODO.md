@@ -14,6 +14,9 @@ Majors and deprecations the upgrade left on purpose - each is its own change:
   RFC 9068 tokens, `__Secure-mercure_access_token`, `turbo_stream_from()` in the messaging modals)
 - [x] Mercure hub: `protocol_version_compatibility 8` dropped from both hubs on 2026-11-16 (lily.srv `e71bf3e`) - tabs
   still running the pre-1.0 JS lose live updates until reloaded
+- [x] Mercure publishes are time-limited (2026-11-16): the hub's `http_client` is the scoped client `mercure_hub.client`
+  (2 s silence / 3 s total, `config/packages/mercure.php`), so a hub that hangs costs a request 2-3 s instead of 60 s
+  (every publish is fail-open); pinned by `MercureHubTimeoutTest`
 - [ ] Doctrine ORM 3.8 / DBAL 4.6 deprecations: `orderBy()`/`addOrderBy()` with string directions (~50 calls) and
   `#[OrderBy(['position' => 'ASC'])]` on `TableRow`/`RoundTable` → `SortDirection`; `options: ['jsonb' => true]`
   (~37 columns) → `type: Types::JSONB` (same SQL - `migrations:diff` must stay empty; phpstan-doctrine needs a

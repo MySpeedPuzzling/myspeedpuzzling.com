@@ -193,6 +193,7 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle' => 'sync',
                 // Events that must run synchronously for proper transaction ordering
                 'SpeedPuzzling\Web\Events\PuzzleMergeApproved' => 'sync',
+                'SpeedPuzzling\Web\Events\PuzzleMergeReverted' => 'sync',
                 // Reconciles solving times to rounds on postFlush, inside the transaction that changed the rounds
                 'SpeedPuzzling\Web\Events\CompetitionRoundsChanged' => 'sync',
                 // Re-matches series picks to the series' editions on postFlush, in the same transaction

@@ -361,6 +361,47 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         self::assertSelectorNotExists('#rejectModal');
     }
 
+    public function testAnAdminRevertsAnApprovedMergeFromItsPage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $mergeRequestId = $this->report($browser, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05);
+        $this->approve($browser, $mergeRequestId, PuzzleFixture::PUZZLE_500_04);
+
+        $crawler = $browser->request('GET', '/admin/puzzle-merge-requests/' . $mergeRequestId);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-role="revert"] [data-bs-target="#revertMergeModal"]');
+
+        $browser->submit($crawler->filter('#revertMergeModal form')->form(), ['note' => 'Two different boxes']);
+
+        self::assertResponseRedirects('/admin/puzzle-merge-requests/' . $mergeRequestId);
+        $browser->followRedirect();
+        self::assertSelectorExists('[data-role="reverted"]');
+        self::assertSelectorNotExists('[data-role="revert"]');
+
+        $mergeRequest = $browser->getContainer()->get(PuzzleMergeRequestRepository::class)->get($mergeRequestId);
+        self::assertSame(PuzzleReportStatus::Reverted, $mergeRequest->status);
+        $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_05);
+    }
+
+    public function testOnlyAnAdminMayRevert(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $mergeRequestId = $this->report($browser, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05);
+        $this->approve($browser, $mergeRequestId, PuzzleFixture::PUZZLE_500_04);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('POST', '/admin/puzzle-merge-requests/' . $mergeRequestId . '/revert');
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(
+            PuzzleReportStatus::Approved,
+            $browser->getContainer()->get(PuzzleMergeRequestRepository::class)->get($mergeRequestId)->status,
+        );
+    }
+
     private function report(KernelBrowser $browser, string $sourceId, string $duplicateId): string
     {
         $mergeRequestId = Uuid::uuid7()->toString();

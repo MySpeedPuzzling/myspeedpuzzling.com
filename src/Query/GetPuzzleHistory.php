@@ -187,7 +187,7 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) audit ON TRUE
 WHERE d.puzzle_id = :puzzleId
-   OR (d.action = 'merge_request_approved' AND (d.details::jsonb -> 'mergedPuzzleIds') @> :puzzleIdJson::jsonb)
+   OR (d.action IN ('merge_request_approved', 'merge_request_reverted') AND (d.details::jsonb -> 'mergedPuzzleIds') @> :puzzleIdJson::jsonb)
 -- Whole seconds only: decisions of one second keep their order by the time-ordered id
 ORDER BY d.decided_at DESC, d.id DESC
 SQL;
@@ -339,6 +339,32 @@ SQL;
                     proposedByName: self::string($row['merge_reporter_name']),
                     proposedByCode: self::string($row['merge_reporter_code']),
                     puzzles: array_map(static fn (string $id): PuzzleHistoryPuzzle => new PuzzleHistoryPuzzle($id, $names[$id] ?? null), $reported),
+                );
+
+            case 'merge_request_reverted':
+                // On the survivor: the restored puzzles; on a restored puzzle: the survivor it came back from
+                $restoredHere = self::string($row['puzzle_id']) !== $puzzleId;
+                $others = $restoredHere
+                    ? [self::string($row['puzzle_id']) ?? '']
+                    : self::stringList($details['mergedPuzzleIds'] ?? null);
+
+                return new PuzzleHistoryEntry(
+                    kind: PuzzleHistoryEntryKind::MergeReverted,
+                    at: $at,
+                    byId: $byId,
+                    byName: $byName,
+                    byCode: $byCode,
+                    viaInternalApi: $viaInternalApi,
+                    note: $note,
+                    mergeRequestId: $mergeRequestId,
+                    proposedById: self::string($row['merge_reporter_id']),
+                    proposedByName: self::string($row['merge_reporter_name']),
+                    proposedByCode: self::string($row['merge_reporter_code']),
+                    puzzles: array_map(
+                        static fn (string $id): PuzzleHistoryPuzzle => new PuzzleHistoryPuzzle($id, $restoredHere ? self::string($row['puzzle_name']) : ($names[$id] ?? null)),
+                        $others,
+                    ),
+                    decisionId: $decisionId,
                 );
 
             case 'change_request_outdated':

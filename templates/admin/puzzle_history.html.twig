@@ -18,6 +18,7 @@
     merge_approved: {title: 'Duplicates merged into this puzzle', verb: 'Merged by', icon: 'bi-union', color: 'text-success'},
     merged_away: {title: 'Merged into another puzzle', verb: 'Merged by', icon: 'bi-box-arrow-right', color: 'text-muted'},
     merge_rejected: {title: 'Merge request rejected', verb: 'Rejected by', icon: 'bi-x-circle', color: 'text-danger'},
+    merge_reverted: {title: 'Merge reverted', verb: 'Reverted by', icon: 'bi-arrow-counterclockwise', color: 'text-warning'},
     change_request_outdated: {title: 'Change request closed - the puzzle already had it', verb: 'Closed automatically', icon: 'bi-check2-all', color: 'text-muted'},
     merge_outdated: {title: 'Merge request closed - already merged', verb: 'Closed automatically', icon: 'bi-check2-all', color: 'text-muted'},
     approved: {title: 'Approved', verb: 'Approved by', icon: 'bi-patch-check', color: 'text-success'},
@@ -138,7 +139,7 @@
                     {% if entry.puzzles is not empty %}
                         <div class="small mb-2">
                             <div class="text-muted">
-                                {% if entry.kind.value == 'merged_away' %}Merged into{% elseif entry.kind.value in ['merge_rejected', 'merge_outdated'] %}Reported as a duplicate of{% else %}Merged in and deleted{% endif %}
+                                {% if entry.kind.value == 'merged_away' %}Merged into{% elseif entry.kind.value in ['merge_rejected', 'merge_outdated'] %}Reported as a duplicate of{% elseif entry.kind.value == 'merge_reverted' %}Separate puzzles again{% else %}Merged in and deleted{% endif %}
                             </div>
                             <ul class="list-unstyled mb-0">
                                 {% for other in entry.puzzles %}

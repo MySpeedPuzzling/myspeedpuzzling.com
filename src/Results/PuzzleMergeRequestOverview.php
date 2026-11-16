@@ -42,6 +42,11 @@ readonly final class PuzzleMergeRequestOverview
         // Closed without a review (PuzzleReportStatus::Outdated): why, and the merge that did it (null = found by the daily check)
         public null|PuzzleReportOutdatedReason $outdatedReason = null,
         public null|string $outdatedByMergeRequestId = null,
+        // Reverted (PuzzleReportStatus::Reverted) - only the detail selects these (GetPuzzleMergeRequests::byId())
+        public null|DateTimeImmutable $revertedAt = null,
+        public null|string $reverterName = null,
+        // How many puzzles the audited merge deleted, null = approved before the audit existed (2026-09-16)
+        public null|int $auditedMergedCount = null,
     ) {
     }
 
@@ -101,6 +106,9 @@ readonly final class PuzzleMergeRequestOverview
             reportedNameLanguages: self::reportedNameLanguages($row['reported_name_languages'] ?? null),
             outdatedReason: is_string($row['outdated_reason'] ?? null) ? PuzzleReportOutdatedReason::tryFrom($row['outdated_reason']) : null,
             outdatedByMergeRequestId: is_string($row['outdated_by_merge_request_id'] ?? null) ? $row['outdated_by_merge_request_id'] : null,
+            revertedAt: is_string($row['reverted_at'] ?? null) ? new DateTimeImmutable($row['reverted_at']) : null,
+            reverterName: is_string($row['reverter_name'] ?? null) ? $row['reverter_name'] : null,
+            auditedMergedCount: is_int($row['audited_merged_count'] ?? null) ? $row['audited_merged_count'] : null,
         );
     }
 
@@ -121,6 +129,14 @@ readonly final class PuzzleMergeRequestOverview
         }
 
         return $languages;
+    }
+
+    /**
+     * What RevertPuzzleMergeRequestHandler can undo: an approved, audited merge of one puzzle into another.
+     */
+    public function isRevertible(): bool
+    {
+        return $this->status === PuzzleReportStatus::Approved && $this->auditedMergedCount === 1;
     }
 
     public function getDuplicateCount(): int

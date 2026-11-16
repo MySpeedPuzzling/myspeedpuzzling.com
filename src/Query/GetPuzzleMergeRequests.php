@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMergeRequestOverview;
@@ -27,7 +28,7 @@ readonly final class GetPuzzleMergeRequests
         $query = <<<SQL
 SELECT
     COUNT(*) FILTER (WHERE pmr.status = 'pending') as pending,
-    COUNT(*) FILTER (WHERE pmr.status = 'approved') as approved,
+    COUNT(*) FILTER (WHERE pmr.status IN ('approved', 'reverted')) as approved,
     COUNT(*) FILTER (WHERE pmr.status = 'rejected') as rejected,
     COUNT(*) FILTER (WHERE pmr.status = 'outdated') as outdated
 FROM puzzle_merge_request pmr
@@ -62,15 +63,17 @@ SQL;
      */
     public function allPending(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Pending, 'pmr.submitted_at DESC');
+        return $this->byStatus([PuzzleReportStatus::Pending], 'pmr.submitted_at DESC');
     }
 
     /**
+     * Approved merges - the reverted ones too, marked (PuzzleReportStatus::Reverted).
+     *
      * @return array<PuzzleMergeRequestOverview>
      */
     public function allApproved(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Approved, 'pmr.reviewed_at DESC');
+        return $this->byStatus([PuzzleReportStatus::Approved, PuzzleReportStatus::Reverted], 'pmr.reviewed_at DESC');
     }
 
     /**
@@ -78,7 +81,7 @@ SQL;
      */
     public function allRejected(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Rejected, 'pmr.reviewed_at DESC');
+        return $this->byStatus([PuzzleReportStatus::Rejected], 'pmr.reviewed_at DESC');
     }
 
     /**
@@ -88,7 +91,7 @@ SQL;
      */
     public function allOutdated(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Outdated, 'pmr.reviewed_at DESC');
+        return $this->byStatus([PuzzleReportStatus::Outdated], 'pmr.reviewed_at DESC');
     }
 
     /**
@@ -145,7 +148,17 @@ SELECT
     reporter.name as reporter_name,
     reporter.code as reporter_code,
     reviewer.id as reviewer_id,
-    reviewer.name as reviewer_name
+    reviewer.name as reviewer_name,
+    pmr.reverted_at,
+    reverter.name as reverter_name,
+    -- How many puzzles the audited merge deleted (null = merged before the audit existed) - what a revert can undo
+    (
+        SELECT jsonb_array_length(a.snapshot_before::jsonb -> 'mergedPuzzles')
+        FROM puzzle_merge_audit a
+        WHERE a.merge_request_id = pmr.id
+        ORDER BY a.performed_at DESC
+        LIMIT 1
+    ) AS audited_merged_count
 FROM puzzle_merge_request pmr
 LEFT JOIN puzzle source_p ON source_p.id = pmr.source_puzzle_id
 LEFT JOIN manufacturer source_m ON source_m.id = source_p.manufacturer_id
@@ -153,6 +166,7 @@ LEFT JOIN puzzle survivor_p ON survivor_p.id = pmr.survivor_puzzle_id
 LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
+LEFT JOIN player reverter ON reverter.id = pmr.reverted_by_id
 WHERE pmr.id = :id
     AND {$noSecretPuzzle}
 SQL;
@@ -170,9 +184,10 @@ SQL;
     }
 
     /**
+     * @param non-empty-list<PuzzleReportStatus> $statuses
      * @return array<PuzzleMergeRequestOverview>
      */
-    private function byStatus(PuzzleReportStatus $status, string $orderBy): array
+    private function byStatus(array $statuses, string $orderBy): array
     {
         $noSecretPuzzle = self::sqlNoSecretPuzzle();
         $query = <<<SQL
@@ -211,14 +226,16 @@ LEFT JOIN puzzle survivor_p ON survivor_p.id = pmr.survivor_puzzle_id
 LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
-WHERE pmr.status = :status
+WHERE pmr.status IN (:statuses)
     AND {$noSecretPuzzle}
 ORDER BY {$orderBy}
 SQL;
 
         $rows = $this->database->fetchAllAssociative($query, [
-            'status' => $status->value,
+            'statuses' => array_map(static fn (PuzzleReportStatus $status): string => $status->value, $statuses),
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ], [
+            'statuses' => ArrayParameterType::STRING,
         ]);
 
         return array_map(

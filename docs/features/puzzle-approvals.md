@@ -185,6 +185,30 @@ is gone) - "B was merged into C since it was reported" and C is reviewed in B's 
 that is not pending or has fewer than two puzzles left. A pending request with fewer than two puzzles shows "Nothing
 left to merge" and the Reject button - normally it is closed as already done first (next section).
 
+### Reverting a merge (admins)
+
+An approved merge can be undone from the request's page: **"Revert this merge"** (admins only - `ADMIN_ACCESS`, a
+confirmation modal with an optional note; moderators do not see it). `RevertPuzzleMergeRequestHandler` works from the
+merge's `puzzle_merge_audit` row (2026-11-15, Bibi's two Moominhouse boxes):
+
+- the merged puzzle is created again **under its own id** from the snapshot before the merge (names, codes, brand,
+  pieces, picture - a merge deletes no picture file, adder and added date, approval), and its `puzzle_redirect` goes,
+  so its old address works again;
+- every row the merge moved (the inventory's ids: results, collection/wishlist/sell-swap items, lendings and their
+  transfers, sold items, round puzzles, conversations, stopwatches, change requests, borrow/listing asks, import
+  pairings, tags it added) goes back when it is still on the survivor. Results move with `returnAfterMergeRevert()`
+  (statistics of both puzzles recalculated, the prediction forgotten), XP and badges are rebuilt for every member;
+- the survivor gets back each field the merge changed (names, pieces, EANs, brand codes, brand, picture, approval)
+  **unless that field was changed after the merge** - then the newer value stays (`keptOnSurvivor` in the decision);
+- rows the merge deleted as duplicates do not come back (the audit has their ids only), and what was logged on the
+  survivor after the merge stays there - nothing tells it apart. Other requests the merge closed as outdated stay closed.
+
+The request becomes `reverted` (`PuzzleReportStatus::Reverted`, listed under Approved with a "Reverted" badge,
+`reverted_at` / `reverted_by_id`), a `merge_request_reverted` decision is recorded (history of both puzzles: "Merge
+reverted"), the reporter's karma for it goes (only `approved` counts) and `KarmaDerivation` stops treating the
+restored puzzle as a merged-away copy. **Refused:** merges approved before the audit existed (2026-09-16) and merges of
+several puzzles at once (the inventory does not say which row came from which puzzle) - revert those by hand.
+
 ## Outdated requests - "Already done"
 
 Requests the catalogue already took care of close by themselves, so the queues hold only work

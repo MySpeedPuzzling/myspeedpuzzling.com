@@ -10,7 +10,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Signs the trusted-human cookie (__bb_trust) that the Traefik bot-blocker
- * sidecar validates: a logged-in account is the strongest "not a bot" signal
+ * sidecar validates: an eligible logged-in account (GetBotTrustEligibility -
+ * a bare, unverified, brand-new one is not) is the strongest "not a bot" signal
  * we have, and the cookie lets the edge middleware skip every heuristic for
  * this browser. The app only ISSUES the cookie; enforcement lives in the
  * bot-blocker (MySpeedPuzzling/bot-blocker-middleware).
@@ -30,11 +31,25 @@ readonly final class BotTrustCookieSigner
 {
     public const string COOKIE_NAME = '__bb_trust';
 
-    /** Validated by the sidecar against the issued-at in the payload. */
-    public const int LIFETIME_DAYS = 365;
+    /**
+     * The browser's expiry of a minted cookie. The sidecar judges the issued-at in the payload against its own
+     * lifetime setting - a value replayed outside a browser lives as long as the sidecar allows, not this.
+     */
+    public const int LIFETIME_DAYS = 90;
 
-    /** Re-mint on authenticated responses once the cookie is older than this. */
-    public const int REFRESH_AFTER_DAYS = 30;
+    /**
+     * Re-mint on authenticated responses once the cookie is older than this - and re-check the account's
+     * eligibility (GetBotTrustEligibility) on the way, so trust follows the account within a week.
+     */
+    public const int REFRESH_AFTER_DAYS = 7;
+
+    /**
+     * 2026-11-16T11:30:00Z in ms, just before this rule's deploy. Cookies issued before it were minted for ANY
+     * signed-in account (no eligibility rule yet), so they are treated as stale: the next authenticated response
+     * re-checks the account and re-mints the cookie or expires it. A re-minted cookie is issued after the cutoff,
+     * so each browser is re-checked once, not on every request.
+     */
+    public const int TRUST_REVALIDATE_ISSUED_BEFORE = 1_794_828_600_000;
 
     public function __construct(
         #[Autowire(env: 'CHALLENGE_COOKIE_SECRET')]
@@ -106,6 +121,20 @@ readonly final class BotTrustCookieSigner
         }
 
         return (int) $fields[3];
+    }
+
+    /**
+     * A valid cookie of this account needs a refresh (re-check eligibility, then re-mint or expire) once it is
+     * older than REFRESH_AFTER_DAYS or was issued before TRUST_REVALIDATE_ISSUED_BEFORE. Both instants are real
+     * time (issued-at from build(), now from the caller), never the app's clock.
+     */
+    public static function needsRefresh(int $issuedAtMs, int $nowMs): bool
+    {
+        if ($issuedAtMs < self::TRUST_REVALIDATE_ISSUED_BEFORE) {
+            return true;
+        }
+
+        return $nowMs - $issuedAtMs >= self::REFRESH_AFTER_DAYS * 24 * 60 * 60 * 1000;
     }
 
     private function sign(string $payload): string

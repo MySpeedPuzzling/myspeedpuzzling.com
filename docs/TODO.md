@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)
+
+The app now mints `__bb_trust` only for eligible accounts, for 90 days, and expires the cookie of an ineligible account
+and on logout - but expiring only reaches honest browsers. A copied cookie value is judged by the sidecar alone
+(`server.js`: `issuedAt + TRUST_COOKIE_TTL_MS`, default 365 days, no issued-at cutoff).
+
+- [ ] Box (lily.srv): set `TRUST_COOKIE_TTL_DAYS=90` for the bot-blocker, matching `BotTrustCookieSigner::LIFETIME_DAYS`
+- [ ] Bot-blocker: reject a trust cookie issued before `BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE`
+  (`1794828600000`, 2026-11-16T11:30:00Z) - or rotate the trust secret on both sides at once - so cookies minted for
+  throwaway accounts before the eligibility rule stop working
+
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
 
 - [ ] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)

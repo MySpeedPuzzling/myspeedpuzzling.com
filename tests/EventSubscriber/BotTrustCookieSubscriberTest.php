@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
+use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\BotTrustCookieSubscriber;
+use SpeedPuzzling\Web\Query\GetBotTrustEligibility;
 use SpeedPuzzling\Web\Services\BotTrustCookieSigner;
+use SpeedPuzzling\Web\Tests\TestClock;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -14,10 +21,16 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\InMemoryUser;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Event\LogoutEvent;
 
 final class BotTrustCookieSubscriberTest extends TestCase
 {
     private const string SECRET = 'test-secret-for-unit-tests';
+
+    private const string USER_ID = 'msp|bot-trust-unit';
+
+    private const int DAY_MS = 24 * 60 * 60 * 1000;
 
     /**
      * GOLDEN VECTOR — frozen cross-language constant. The bot-blocker sidecar
@@ -55,105 +68,299 @@ final class BotTrustCookieSubscriberTest extends TestCase
         self::assertNull($signer->parseIssuedAt($cookie . 'x', $uid));
     }
 
-    public function testMintsCookieForAuthenticatedUser(): void
+    public function testRevalidationCutoffIsJustBeforeTheEligibilityDeploy(): void
     {
-        $event = $this->dispatchResponse(authenticated: true);
+        self::assertSame(
+            (int) new DateTimeImmutable('2026-11-16T11:30:00Z')->format('Uv'),
+            BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE,
+        );
+    }
 
-        $cookies = $event->getResponse()->headers->getCookies();
-        self::assertCount(1, $cookies);
-        self::assertSame(BotTrustCookieSigner::COOKIE_NAME, $cookies[0]->getName());
-        self::assertTrue($cookies[0]->isHttpOnly());
-        self::assertSame('/', $cookies[0]->getPath());
+    public function testNeedsRefreshByAgeAndByTheCutoff(): void
+    {
+        $cutoff = BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE;
+        $refreshAfter = BotTrustCookieSigner::REFRESH_AFTER_DAYS * self::DAY_MS;
+
+        // Issued at or after the cutoff: fresh until REFRESH_AFTER_DAYS old
+        self::assertFalse(BotTrustCookieSigner::needsRefresh($cutoff, $cutoff + 1000));
+        self::assertFalse(BotTrustCookieSigner::needsRefresh($cutoff + 1, $cutoff + 1 + $refreshAfter - 1));
+        self::assertTrue(BotTrustCookieSigner::needsRefresh($cutoff + 1, $cutoff + 1 + $refreshAfter));
+
+        // Issued before the cutoff: always revalidated, however young
+        self::assertTrue(BotTrustCookieSigner::needsRefresh($cutoff - 1, $cutoff));
+        self::assertTrue(BotTrustCookieSigner::needsRefresh($cutoff - 1, $cutoff - 1));
+    }
+
+    public function testMintsCookieForEligibleAccount(): void
+    {
+        $event = $this->dispatchResponse(user: $this->account(), eligibility: $this->eligibility(true, 1));
+
+        $cookie = $this->onlyCookie($event);
+        self::assertTrue($cookie->isHttpOnly());
+        self::assertSame('/', $cookie->getPath());
+        self::assertSame(Cookie::SAMESITE_LAX, $cookie->getSameSite());
+        self::assertFalse($cookie->isCleared());
+
+        // The browser keeps it for LIFETIME_DAYS, in real time
+        $expectedExpiry = (int) floor(microtime(true)) + BotTrustCookieSigner::LIFETIME_DAYS * 24 * 60 * 60;
+        self::assertEqualsWithDelta($expectedExpiry, $cookie->getExpiresTime(), 5);
 
         $signer = new BotTrustCookieSigner(self::SECRET);
-        $uid = BotTrustCookieSigner::uidFor('jan@example.com');
-        self::assertNotNull($signer->parseIssuedAt((string) $cookies[0]->getValue(), $uid));
+        self::assertNotNull($signer->parseIssuedAt((string) $cookie->getValue(), $this->uid()));
+    }
+
+    public function testIneligibleAccountWithoutCookieGetsNothing(): void
+    {
+        $event = $this->dispatchResponse(user: $this->account(), eligibility: $this->eligibility(false, 1));
+
+        self::assertSame([], $event->getResponse()->headers->getCookies());
+    }
+
+    public function testIneligibleAccountsCookieIsExpired(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        $stale = $signer->buildAt($this->uid(), $this->freshIssuedAtMs() - (BotTrustCookieSigner::REFRESH_AFTER_DAYS + 1) * self::DAY_MS);
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $stale,
+            eligibility: $this->eligibility(false, 1),
+            secure: true,
+        );
+
+        $this->assertExpiredCookie($this->onlyCookie($event), secure: true);
+    }
+
+    public function testIneligibleAccountsInvalidCookieIsExpiredToo(): void
+    {
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: 'garbage',
+            eligibility: $this->eligibility(false, 1),
+        );
+
+        $this->assertExpiredCookie($this->onlyCookie($event), secure: false);
+    }
+
+    public function testCookieIssuedBeforeTheCutoffIsRevalidatedAndRemintedForEligibleAccount(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        // Valid, this account's, and younger than REFRESH_AFTER_DAYS on either side of the cutoff date - only the
+        // cutoff makes it due
+        $preCutoff = $signer->buildAt($this->uid(), BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE - 1);
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $preCutoff,
+            eligibility: $this->eligibility(true, 1),
+        );
+
+        $cookie = $this->onlyCookie($event);
+        self::assertFalse($cookie->isCleared());
+        self::assertNotSame($preCutoff, $cookie->getValue());
+        self::assertNotNull($signer->parseIssuedAt((string) $cookie->getValue(), $this->uid()));
+    }
+
+    public function testCookieIssuedBeforeTheCutoffIsExpiredForIneligibleAccount(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        $preCutoff = $signer->buildAt($this->uid(), BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE - 1);
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $preCutoff,
+            eligibility: $this->eligibility(false, 1),
+        );
+
+        $this->assertExpiredCookie($this->onlyCookie($event), secure: false);
+    }
+
+    public function testFreshCookieIsNotRemintedAndAsksNoQuery(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        $fresh = $signer->buildAt($this->uid(), $this->freshIssuedAtMs());
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $fresh,
+            eligibility: $this->eligibility(true, 0),
+        );
+
+        self::assertSame([], $event->getResponse()->headers->getCookies());
+    }
+
+    public function testStaleCookieIsRemintedForEligibleAccount(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        $stale = $signer->buildAt($this->uid(), $this->freshIssuedAtMs() - (BotTrustCookieSigner::REFRESH_AFTER_DAYS + 1) * self::DAY_MS);
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $stale,
+            eligibility: $this->eligibility(true, 1),
+        );
+
+        self::assertFalse($this->onlyCookie($event)->isCleared());
+    }
+
+    public function testForeignAccountCookieIsRemintedForEligibleAccount(): void
+    {
+        $signer = new BotTrustCookieSigner(self::SECRET);
+        $foreign = $signer->buildAt(BotTrustCookieSigner::uidFor('someone-else'), $this->freshIssuedAtMs());
+
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            existingCookie: $foreign,
+            eligibility: $this->eligibility(true, 1),
+        );
+
+        $cookie = $this->onlyCookie($event);
+        self::assertNotNull($signer->parseIssuedAt((string) $cookie->getValue(), $this->uid()));
     }
 
     public function testAnonymousResponseGetsNoCookie(): void
     {
-        $event = $this->dispatchResponse(authenticated: false);
+        $event = $this->dispatchResponse(user: null, eligibility: $this->eligibility(true, 0));
 
         self::assertSame([], $event->getResponse()->headers->getCookies());
     }
 
-    public function testFreshCookieIsNotReminted(): void
+    public function testNonAccountUsersAreIgnored(): void
     {
-        $signer = new BotTrustCookieSigner(self::SECRET);
-        $uid = BotTrustCookieSigner::uidFor('jan@example.com');
-        $fresh = $signer->build($uid);
+        // API users (PatUser, OAuth2User) are not a UserAccount - they authenticate every call with their token
+        $user = new InMemoryUser('api-client', 'irrelevant', ['ROLE_USER']);
 
-        $event = $this->dispatchResponse(authenticated: true, existingCookie: $fresh);
+        $event = $this->dispatchResponse(user: $user, eligibility: $this->eligibility(true, 0));
 
         self::assertSame([], $event->getResponse()->headers->getCookies());
-    }
-
-    public function testStaleCookieIsReminted(): void
-    {
-        $signer = new BotTrustCookieSigner(self::SECRET);
-        $uid = BotTrustCookieSigner::uidFor('jan@example.com');
-        $staleIat = (int) floor(microtime(true) * 1000)
-            - (BotTrustCookieSigner::REFRESH_AFTER_DAYS + 1) * 24 * 60 * 60 * 1000;
-        $stale = $signer->buildAt($uid, $staleIat);
-
-        $event = $this->dispatchResponse(authenticated: true, existingCookie: $stale);
-
-        self::assertCount(1, $event->getResponse()->headers->getCookies());
-    }
-
-    public function testForeignAccountCookieIsReminted(): void
-    {
-        $signer = new BotTrustCookieSigner(self::SECRET);
-        $foreign = $signer->build(BotTrustCookieSigner::uidFor('someone-else@example.com'));
-
-        $event = $this->dispatchResponse(authenticated: true, existingCookie: $foreign);
-
-        self::assertCount(1, $event->getResponse()->headers->getCookies());
     }
 
     public function testDisabledEntirelyWithoutSecret(): void
     {
-        $event = $this->dispatchResponse(authenticated: true, secret: '');
+        $event = $this->dispatchResponse(user: $this->account(), eligibility: $this->eligibility(true, 0), secret: '');
 
         self::assertSame([], $event->getResponse()->headers->getCookies());
     }
 
     public function testSubRequestsAreIgnored(): void
     {
-        $event = $this->dispatchResponse(authenticated: true, requestType: HttpKernelInterface::SUB_REQUEST);
+        $event = $this->dispatchResponse(
+            user: $this->account(),
+            eligibility: $this->eligibility(true, 0),
+            requestType: HttpKernelInterface::SUB_REQUEST,
+        );
 
         self::assertSame([], $event->getResponse()->headers->getCookies());
     }
 
-    private function dispatchResponse(
-        bool $authenticated,
-        null|string $existingCookie = null,
-        string $secret = self::SECRET,
-        int $requestType = HttpKernelInterface::MAIN_REQUEST,
-    ): ResponseEvent {
-        $signer = new BotTrustCookieSigner($secret);
+    public function testLogoutExpiresTheCookie(): void
+    {
+        $request = Request::create('https://myspeedpuzzling.com/logout');
+        $request->cookies->set(BotTrustCookieSigner::COOKIE_NAME, 'whatever');
+        $event = new LogoutEvent($request, null);
+        $event->setResponse(new RedirectResponse('/'));
 
+        $this->subscriber($this->eligibility(true, 0))->onLogout($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        $cookies = $response->headers->getCookies();
+        self::assertCount(1, $cookies);
+        $this->assertExpiredCookie($cookies[0], secure: true);
+    }
+
+    public function testLogoutWithoutResponseIsLeftAlone(): void
+    {
+        $event = new LogoutEvent(Request::create('/logout'), null);
+
+        $this->subscriber($this->eligibility(true, 0))->onLogout($event);
+
+        self::assertNull($event->getResponse());
+    }
+
+    private function assertExpiredCookie(Cookie $cookie, bool $secure): void
+    {
+        self::assertSame(BotTrustCookieSigner::COOKIE_NAME, $cookie->getName());
+        self::assertTrue($cookie->isCleared(), 'The cookie must carry an expiry in the past');
+        self::assertLessThan(TestClock::now()->getTimestamp(), $cookie->getExpiresTime());
+        self::assertSame('/', $cookie->getPath());
+        self::assertNull($cookie->getDomain());
+        self::assertTrue($cookie->isHttpOnly());
+        self::assertSame($secure, $cookie->isSecure());
+        self::assertSame(Cookie::SAMESITE_LAX, $cookie->getSameSite());
+    }
+
+    private function onlyCookie(ResponseEvent $event): Cookie
+    {
+        $cookies = $event->getResponse()->headers->getCookies();
+        self::assertCount(1, $cookies);
+        self::assertSame(BotTrustCookieSigner::COOKIE_NAME, $cookies[0]->getName());
+
+        return $cookies[0];
+    }
+
+    /**
+     * An issued-at that is "fresh" whatever the real date: never before the revalidation cutoff (a cookie issued
+     * before it is always due, so a plain "now" is not fresh before 2026-11-16T11:30Z), and never older than now.
+     */
+    private function freshIssuedAtMs(): int
+    {
+        return max((int) floor(microtime(true) * 1000), BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE);
+    }
+
+    private function account(): UserAccount
+    {
+        return new UserAccount(Uuid::uuid7(), self::USER_ID, 'bot-trust@example.com', TestClock::now());
+    }
+
+    private function uid(): string
+    {
+        return BotTrustCookieSigner::uidFor(self::USER_ID);
+    }
+
+    private function eligibility(bool $eligible, int $expectedQueries): GetBotTrustEligibility
+    {
+        $eligibility = $this->createMock(GetBotTrustEligibility::class);
+        $eligibility->expects(self::exactly($expectedQueries))
+            ->method('isEligible')
+            ->with(self::USER_ID)
+            ->willReturn($eligible);
+
+        return $eligibility;
+    }
+
+    private function subscriber(GetBotTrustEligibility $eligibility, string $secret = self::SECRET, null|UserInterface $user = null): BotTrustCookieSubscriber
+    {
         $tokenStorage = new TokenStorage();
-        if ($authenticated) {
-            $user = new InMemoryUser('jan@example.com', 'irrelevant', ['ROLE_USER']);
+
+        if ($user !== null) {
             $tokenStorage->setToken(new UsernamePasswordToken($user, 'main', $user->getRoles()));
         }
 
-        $subscriber = new BotTrustCookieSubscriber($signer, $tokenStorage);
+        return new BotTrustCookieSubscriber(new BotTrustCookieSigner($secret), $tokenStorage, $eligibility);
+    }
 
-        $request = Request::create('/muj-profil');
+    private function dispatchResponse(
+        null|UserInterface $user,
+        GetBotTrustEligibility $eligibility,
+        null|string $existingCookie = null,
+        string $secret = self::SECRET,
+        int $requestType = HttpKernelInterface::MAIN_REQUEST,
+        bool $secure = false,
+    ): ResponseEvent {
+        $request = Request::create(($secure ? 'https' : 'http') . '://myspeedpuzzling.com/muj-profil');
         if ($existingCookie !== null) {
             $request->cookies->set(BotTrustCookieSigner::COOKIE_NAME, $existingCookie);
         }
 
         $event = new ResponseEvent(
-            $this->createMock(HttpKernelInterface::class),
+            $this->createStub(HttpKernelInterface::class),
             $request,
             $requestType,
             new Response(),
         );
 
-        $subscriber->onKernelResponse($event);
+        $this->subscriber($eligibility, $secret, $user)->onKernelResponse($event);
 
         return $event;
     }

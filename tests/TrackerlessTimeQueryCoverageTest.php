@@ -58,6 +58,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetAllPlayerIdsWithSolveTimes.php' => 'Background: every player with a result - `id IS NOT NULL` leaves a time without a tracker out.',
         'Query/GetBadges.php' => self::OWN,
         'Query/GetBorrowedPuzzles.php' => self::OWN,
+        'Query/GetBotTrustEligibility.php' => self::OWN,
         'Query/GetBrandDirectory.php' => self::COUNTS,
         'Query/GetBrandHub.php' => self::COUNTS,
         'Query/GetCandidatePrediction.php' => self::SOLO,

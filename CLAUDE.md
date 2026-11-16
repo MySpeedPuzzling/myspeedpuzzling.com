@@ -81,7 +81,7 @@ final class MyService implements ResetInterface
 ## Conventions
 
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
-- Always use `Uuid::uuid7()` to create new ids.
+- Always use `Uuid::uuid7()` to create new ids; a set-based SQL statement that creates rows itself calls `gen_uuid_v7()`, never `gen_random_uuid()` (`.claude/rules/database.md`).
 - An exception extending `NotFoundHttpException` or carrying the `WithHttpStatus` attribute is not caught to build a 404 response - just call `$this->getPuzzleOverview->byId($puzzleId);` and let it bubble.
 - When logging exceptions, always pass the full exception object as `'exception' => $e`, never just the message string. A caught `HandlerFailedException` is logged as is — `UnwrapMessengerExceptionProcessor` swaps any Messenger wrapper for the exception the handler actually threw; don't dig out `getPrevious()` just for logging.
 - **The log level decides what becomes a Sentry issue: warning and above do.** So `warning` means *a person should look at this* — a degraded-but-handled condition (a Stripe dispute, a corrupt upload-spool entry, a form answered 200). Routine events (a wrong password, a bot, a client's cache hiccup) are `info`. Caveat: `info` reaches Loki only when a warning happens in the same request (fingers_crossed), so a signal to count in Loki but keep out of Sentry needs its own excluded channel, not `info`. Wiring: `config/packages/prod/monolog.php` (both Sentry issue handlers top-level; `messenger`/`php`/`sentry_sdk`/`object_storage` excluded — those reach Sentry by another route, or their caller reports what the failure means), pinned by `tests/SentryMonologHandlersTest.php`. Sentry's DSN caps at 1,000 events/hour.
@@ -126,7 +126,7 @@ surface is added to the matching canary tests** (`BlocklistCanaryTest`, `Private
 | Internal API | `.claude/rules/internal-api.md` | `/internal-api/*` admin endpoints (calling it: skill `internal-api`) |
 | Frontend | `.claude/rules/frontend.md` | Turbo configuration, Stimulus/Live Components, performance (LCP/CLS) |
 | Service worker | `.claude/rules/service-worker.md` | `CACHE_VERSION` rules, caching strategies, asset/stale-document self-heal |
-| Database | `.claude/rules/database.md` | custom `custom_*` indexes, `immutable_unaccent()` |
+| Database | `.claude/rules/database.md` | custom `custom_*` indexes, `immutable_unaccent()`, `gen_uuid_v7()` for ids created in SQL |
 | Translations | `.claude/rules/translations.md` | locales and the words features fixed on purpose (never "suspicious", never "rival", Brand code…) |
 
 Other references (read when needed): `.claude/fixtures.md` (test fixture players, puzzles, collections…), `.claude/symfony-ux-hotwire-architecture-guide.md` (modal patterns + Gotchas), `.claude/postgres-puzzle-query-optimization.md`, `docs/features/` (one design doc per feature), `docs/ci-pipeline.md`, `docs/TODO.md`, `docs/features/feature_flags.md`.

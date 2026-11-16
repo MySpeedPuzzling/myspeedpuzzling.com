@@ -53,7 +53,7 @@ final class ResultsImportEventController extends AbstractController
             'source' => $source,
             'overview' => $overview,
             'item' => $event,
-            'ranked' => ResultsImportComparison::rankedRows($event->event),
+            'ranked' => ResultsImportComparison::rankedRows($event->event, $event->teamChanges),
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

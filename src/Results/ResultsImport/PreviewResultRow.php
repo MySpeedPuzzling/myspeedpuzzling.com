@@ -21,7 +21,10 @@ readonly final class PreviewResultRow
         public null|int $rank,
         public null|int $gapToLeader,
         public null|int $gapToFaster,
+        // The sheet's row; 0 for a team kept because it is claimed
         public int $line,
+        // Gone from the sheet, kept because somebody claimed it (P4)
+        public bool $keptClaimed = false,
     ) {
     }
 }

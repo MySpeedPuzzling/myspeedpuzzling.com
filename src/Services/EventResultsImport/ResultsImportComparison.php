@@ -25,7 +25,6 @@ use SpeedPuzzling\Web\Services\EventResultsImport\Format\ResultsFormats;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
-use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventRow;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultsImportStatus;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\UnfinishedResult;
@@ -84,23 +83,39 @@ readonly final class ResultsImportComparison
     /**
      * The event's teams ranked as the round page ranks the organizer's results (GetRoundResults::order()): finished
      * within the limit by time (equal times share a place, gaps to the fastest and the one above), then the unfinished
-     * by pieces placed, then times over the limit - each group in the sheet's order on a tie.
+     * by pieces placed, then times over the limit - each group in the sheet's order on a tie. A claimed team gone from
+     * the sheet stays on the round page (P4), so it is ranked here too, marked kept.
      *
+     * @param list<TeamChange> $teamChanges the event's differences - its KEPT_CLAIMED teams are ranked with the sheet's
      * @return list<PreviewResultRow>
      */
-    public static function rankedRows(ParsedEvent $event): array
+    public static function rankedRows(ParsedEvent $event, array $teamChanges = []): array
     {
         $limitSeconds = $event->timeLimitMinutes === null ? PHP_INT_MAX : $event->timeLimitMinutes * 60;
         $statusOrder = [RoundResultStatus::Finished->value => 0, RoundResultStatus::Unfinished->value => 1, RoundResultStatus::OverLimit->value => 2];
 
-        $candidates = array_map(static fn (ParsedEventRow $row): array => [
-            'row' => $row,
+        /** @var list<array{name: string, size: int, seconds: null|int, pieces: null|int, line: int, kept: bool}> $teams */
+        $teams = [];
+
+        // Imported before every row of the sheet - first on a tie, as on the round page (earliest first)
+        foreach ($teamChanges as $change) {
+            if ($change->kind === TeamChange::KEPT_CLAIMED && ($change->secondsBefore !== null || $change->piecesBefore !== null)) {
+                $teams[] = ['name' => $change->teamName, 'size' => $change->sizeBefore ?? 0, 'seconds' => $change->secondsBefore, 'pieces' => $change->piecesBefore, 'line' => 0, 'kept' => true];
+            }
+        }
+
+        foreach ($event->rows as $row) {
+            $teams[] = ['name' => $row->teamName, 'size' => $row->teamSize, 'seconds' => $row->seconds, 'pieces' => $row->piecesPlaced, 'line' => $row->line, 'kept' => false];
+        }
+
+        $candidates = array_map(static fn (array $team): array => [
+            'team' => $team,
             'status' => match (true) {
-                $row->piecesPlaced !== null => RoundResultStatus::Unfinished,
-                $row->seconds !== null && $row->seconds <= $limitSeconds => RoundResultStatus::Finished,
+                $team['pieces'] !== null => RoundResultStatus::Unfinished,
+                $team['seconds'] !== null && $team['seconds'] <= $limitSeconds => RoundResultStatus::Finished,
                 default => RoundResultStatus::OverLimit,
             },
-        ], $event->rows);
+        ], $teams);
 
         usort($candidates, static function (array $a, array $b) use ($statusOrder): int {
             $byStatus = $statusOrder[$a['status']->value] <=> $statusOrder[$b['status']->value];
@@ -110,10 +125,10 @@ readonly final class ResultsImportComparison
             }
 
             if ($a['status'] === RoundResultStatus::Unfinished) {
-                return ($b['row']->piecesPlaced ?? 0) <=> ($a['row']->piecesPlaced ?? 0);
+                return ($b['team']['pieces'] ?? 0) <=> ($a['team']['pieces'] ?? 0);
             }
 
-            return ($a['row']->seconds ?? 0) <=> ($b['row']->seconds ?? 0);
+            return ($a['team']['seconds'] ?? 0) <=> ($b['team']['seconds'] ?? 0);
         });
 
         $rows = [];
@@ -122,14 +137,14 @@ readonly final class ResultsImportComparison
         $previousSeconds = null;
         $leaderSeconds = null;
 
-        foreach ($candidates as ['row' => $row, 'status' => $status]) {
+        foreach ($candidates as ['team' => $team, 'status' => $status]) {
             $resultRank = null;
             $gapToLeader = null;
             $gapToFaster = null;
 
             if ($status === RoundResultStatus::Finished) {
                 $ranked++;
-                $seconds = (int) $row->seconds;
+                $seconds = (int) $team['seconds'];
 
                 if ($leaderSeconds !== null && $previousSeconds !== null) {
                     $gapToFaster = $seconds - $previousSeconds;
@@ -146,15 +161,16 @@ readonly final class ResultsImportComparison
             }
 
             $rows[] = new PreviewResultRow(
-                teamName: $row->teamName,
-                teamSize: $row->teamSize,
+                teamName: $team['name'],
+                teamSize: $team['size'],
                 status: $status,
-                seconds: $row->seconds,
-                piecesPlaced: $row->piecesPlaced,
+                seconds: $team['seconds'],
+                piecesPlaced: $team['pieces'],
                 rank: $resultRank,
                 gapToLeader: $gapToLeader,
                 gapToFaster: $gapToFaster,
-                line: $row->line,
+                line: $team['line'],
+                keptClaimed: $team['kept'],
             );
         }
 

@@ -250,6 +250,9 @@ final class ResultsImportPageTest extends WebTestCase
         // The wall clock as written, never shifted by a zone
         self::assertSelectorTextContains('[data-results-import-start]', '19:00');
         self::assertSelectorExists('[data-results-import-stored-links]');
+        // The claimed team the sheet dropped stays on the round page - ranked in the preview too, marked
+        self::assertSame(['1', '2', '3', '4'], array_map('trim', $preview->filter('[data-results-import-rank]')->each(static fn ($node): string => $node->text())));
+        self::assertStringContainsString('Kept Team', $preview->filter('[data-results-import-kept]')->closest('tr')?->text() ?? '');
 
         // The new pairs event: ranked like its round page - places, the unfinished pair, the time over the limit last
         $this->browser->request('GET', $this->pageUrl() . '/events/103');

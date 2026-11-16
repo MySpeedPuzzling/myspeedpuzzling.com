@@ -4,11 +4,10 @@
     Variables: organization, source_id, overview (ResultsImportOverview)
 #}
 <h2 class="h5 mb-2">{{ 'results_import.list.heading'|trans }}</h2>
-<p class="small mb-3" data-results-import-counts>
-    {%- for status, count in overview.statusCounts -%}
-        {%- if not loop.first %}<span class="text-muted mx-1" aria-hidden="true">·</span>{% endif -%}
+<p class="small mb-3 d-flex flex-wrap gap-2" data-results-import-counts>
+    {% for status, count in overview.statusCounts %}
         <span class="text-nowrap">{{ ('results_import.status.' ~ status)|trans }}: <strong>{{ count }}</strong></span>
-    {%- endfor -%}
+    {% endfor %}
 </p>
 
 <ul class="list-group shadow-sm" data-results-import-events>

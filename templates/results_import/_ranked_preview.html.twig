@@ -1,7 +1,7 @@
 {#
     The event's teams as its round results page will show them (round_results/_player_times.html.twig with the
     organizer's results): places (equal times share one), the gap lines, then the unfinished teams by pieces placed and
-    the times over the limit, each after a section line. Variables: item (ResultsImportEvent), ranked (list<PreviewResultRow>)
+    the times over the limit, each after a section line; a claimed team gone from the sheet stays there, marked. Variables: item (ResultsImportEvent), ranked (list<PreviewResultRow>)
 #}
 <section data-results-import-ranked>
     <h2 class="h5 mb-2">{{ 'results_import.preview.results'|trans }}</h2>
@@ -33,6 +33,7 @@
                                 <span class="lb-name lb-name-guest text-break">{{ row.teamName }}</span>
                                 <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': row.teamSize}) }}</span>
                             </span>
+                            {% if row.keptClaimed %}<div class="small text-warning-emphasis" data-results-import-kept>{{ 'results_import.differences.kept_claimed'|trans }}</div>{% endif %}
                         </td>
                         <td class="text-end">
                             {{ include('results_import/_result.html.twig', {seconds: row.seconds, pieces: row.piecesPlaced, pieces_count: item.puzzle ? item.puzzle.piecesCount : null}) }}

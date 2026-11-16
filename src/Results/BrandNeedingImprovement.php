@@ -10,6 +10,7 @@ readonly final class BrandNeedingImprovement
         public string $manufacturerId,
         public string $manufacturerName,
         public int $puzzlesCount,
+        public null|string $manufacturerLogo = null,
     ) {
     }
 }

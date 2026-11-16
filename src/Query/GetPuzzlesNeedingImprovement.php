@@ -120,16 +120,16 @@ SQL;
     {
         $missingEan = self::MISSING_EAN;
         $query = <<<SQL
-SELECT manufacturer.id AS manufacturer_id, manufacturer.name AS manufacturer_name, COUNT(*) AS puzzles_count
+SELECT manufacturer.id AS manufacturer_id, manufacturer.name AS manufacturer_name, manufacturer.logo AS manufacturer_logo, COUNT(*) AS puzzles_count
 FROM puzzle
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE {$missingEan}
-GROUP BY manufacturer.id, manufacturer.name
+GROUP BY manufacturer.id, manufacturer.name, manufacturer.logo
 HAVING COUNT(*) >= :minPuzzles OR manufacturer.id = CAST(:selectedManufacturerId AS uuid)
 ORDER BY puzzles_count DESC, manufacturer.name
 SQL;
 
-        /** @var list<array{manufacturer_id: string, manufacturer_name: string, puzzles_count: int|string}> $rows */
+        /** @var list<array{manufacturer_id: string, manufacturer_name: string, manufacturer_logo: null|string, puzzles_count: int|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'now' => $this->now(),
             'minPuzzles' => self::BRAND_FILTER_MIN_PUZZLES,
@@ -140,6 +140,7 @@ SQL;
             manufacturerId: $row['manufacturer_id'],
             manufacturerName: $row['manufacturer_name'],
             puzzlesCount: (int) $row['puzzles_count'],
+            manufacturerLogo: $row['manufacturer_logo'],
         ), $rows);
     }
 

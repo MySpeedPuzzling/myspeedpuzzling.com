@@ -20,12 +20,15 @@
 
     <form method="get" class="mb-3 d-flex flex-wrap align-items-center gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
         <label class="form-label mb-0" for="improvement-brand">{{ 'puzzles_needing_improvement.brand_filter'|trans }}</label>
-        <select class="form-select w-auto" id="improvement-brand" name="brand">
-            <option value="">{{ 'puzzles_needing_improvement.all_brands'|trans }}</option>
-            {% for brand in brands %}
-                <option value="{{ brand.manufacturerId }}" {% if brand.manufacturerId == brand_id %}selected{% endif %}>{{ brand.manufacturerName }} ({{ brand.puzzlesCount|plain_number }})</option>
-            {% endfor %}
-        </select>
+        {# Tom Select: type to search, brand logos, the brands with the most puzzles missing an EAN first (the query's order) #}
+        <div class="flex-grow-1" style="min-width: 0; max-width: 28rem;">
+            <select class="form-select" id="improvement-brand" name="brand" data-controller="tomselect-sync" data-placeholder="{{ 'puzzles_needing_improvement.all_brands'|trans }}">
+                <option value="">{{ 'puzzles_needing_improvement.all_brands'|trans }}</option>
+                {% for brand in brands %}
+                    <option value="{{ brand.manufacturerId }}" {% if brand.manufacturerId == brand_id %}selected{% endif %}{% if brand.manufacturerLogo is not null %} data-data="{{ {logo: brand.manufacturerLogo|thumbnail('puzzle_small')}|json_encode|e('html_attr') }}"{% endif %}>{{ brand.manufacturerName }} ({{ brand.puzzlesCount|plain_number }})</option>
+                {% endfor %}
+            </select>
+        </div>
         <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'puzzles_needing_improvement.apply_filter'|trans }}</button>
     </form>
 
@@ -51,7 +54,8 @@
                     </div>
 
                     {# Replaced by the proposal form's answer once a change is suggested (puzzle-report/_stream.html.twig) #}
-                    <div class="flex-shrink-0 text-end" id="improvement-action-{{ puzzle.puzzleId }}">
+                    {# max-width: the "waiting for review" badge wraps instead of squeezing the name column on phones #}
+                    <div class="flex-shrink-0 text-end" style="max-width: 9rem;" id="improvement-action-{{ puzzle.puzzleId }}">
                         {% if puzzle.eanProposed %}
                             {{ include('puzzle-report/_improvement_proposed.html.twig') }}
                         {% else %}

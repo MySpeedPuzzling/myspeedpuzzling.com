@@ -22,10 +22,14 @@
 {% macro coming(row) %}
     <div class="card card-body shadow-sm p-2 border-primary" id="row-{{ row.rowId }}" data-testid="import-add-list-row" data-row-id="{{ row.rowId }}" data-state="coming-back" data-import-coming-back>
         <div class="d-flex align-items-start gap-2">
-            <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="min-width: 44px; min-height: 44px;"><span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span></span>
+            <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="min-width: 44px; min-height: 44px;"><span class="spinner-border spinner-border-sm text-primary" aria-hidden="true" data-import-waiting-spinner></span></span>
             <div class="flex-grow-1" style="min-width: 0;">
                 {{ include('data_import/_add_row.html.twig', {row: row}) }}
-                <div class="fs-sm fw-medium mt-1" role="status" data-testid="import-add-list-coming-back">{{ 'data_import.add_list.flash.put_back'|trans }}</div>
+                <div class="fs-sm fw-medium mt-1" role="status" data-testid="import-add-list-coming-back">
+                    <span data-import-usually-at-once>{{ 'data_import.add_list.flash.put_back'|trans }}</span>
+                    {# Shown by the script when it stops asking: nothing turns for ever #}
+                    <span hidden data-import-taking-longer data-testid="import-add-list-taking-longer">{{ 'data_import.add_list.taking_longer'|trans }} <a href="{{ app.request.requestUri }}" class="d-inline-flex align-items-center" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a></span>
+                </div>
             </div>
         </div>
     </div>
@@ -49,7 +53,7 @@
         {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
            it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
         {% if add.sheetsNotSetUp > 0 %}
-            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again">
+            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again" data-import-reading-again>
                 <span>{{ (import.fileName matches '/\\.(csv|tsv|txt)$/i' ? 'data_import.add_list.reading_again_file' : 'data_import.add_list.reading_again')|trans }}</span>
                 <a href="{{ path('data_import_add_list', here|merge({page: page})) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
             </div>

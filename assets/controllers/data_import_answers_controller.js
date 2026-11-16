@@ -293,7 +293,11 @@ export default class extends Controller {
 
         if (next !== null) {
             // Never focus on what is not in view: Enter would answer a card nobody sees
-            this.reveal(next.closest('[data-import-answers-scope]') || next, false);
+            // ... and never move anything when it is in view already (closing the line is not an answer)
+            if (!this.inView(next)) {
+                this.reveal(next.closest('[data-import-answers-scope]') || next, false);
+            }
+
             next.focus({ preventScroll: true });
         }
     }
@@ -478,6 +482,13 @@ export default class extends Controller {
         return height;
     }
 
+    inView(element) {
+        const header = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || HEADER_PX;
+        const box = element.getBoundingClientRect();
+
+        return box.top >= header && box.bottom <= window.innerHeight - this.room();
+    }
+
     /**
      * The element (a whole card, not only its button) is in view - between the bottom of the site's header and the
      * top of the line at the bottom. Its top is put just below the header when it stands above; when it stands
@@ -539,7 +550,8 @@ export default class extends Controller {
             // In the line that stays in view - instead of what the answer before did, until the next answer - so it
             // is seen wherever the card is; and a card keeps its own line under its buttons
             if (said !== null) {
-                const inView = line('card shadow border-warning my-1 py-2 px-3 fs-sm fw-medium');
+                const inView = line('bg-body border-top border-warning py-2 px-3 fs-sm fw-medium text-center');
+                inView.style.pointerEvents = 'auto';
                 inView.setAttribute('role', 'alert');
                 said.replaceChildren(inView);
             }

@@ -13318,6 +13318,7 @@ data_import:
         no_hit: "No row with that puzzle."
         reading_again: "A sheet is being read again - a moment. Its rows are not counted here until it is read."
         reading_again_file: "Your file is being read again - a moment. Its rows are not counted here until it is read."
+        taking_longer: "This is taking longer."
         refresh: "Refresh"
         flash:
             left_out: "Not imported. “Put back” brings the row back."

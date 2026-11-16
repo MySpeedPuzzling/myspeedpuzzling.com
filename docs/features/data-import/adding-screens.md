@@ -304,7 +304,10 @@ takes it) only when its puzzle is matched again - `BuildImportPuzzles` on the wo
 names the row (`?back=<row id>`); while that row waits, `ImportAddListController` reads it by its id and the list
 shows it **in its place** as "coming back" (`data-import-coming-back`, no buttons), and the script asks for the
 frame again every 1.5 s (12 times at most) until the row is ready: then it has its tick box again and "N will be
-added" counts it - without a reload. Only a waiting row of the import is ever shown by `back`.
+added" counts it - without a reload. A sheet (or the whole file) that is put back is "being read again"
+(`data-import-reading-again`) and is asked for the same way. After the twelfth time nothing turns any more: the
+row says "This is taking longer." with "Refresh". Focus stays on the row (or the notice, brought below the header)
+all along. Only a waiting row of the import is ever shown by `back`.
 
 The list's bar ("N will be added", the notice) is **fixed to the bottom of the window**; the frame keeps the bar's
 real height free under the list (the script measures it; 10 rem without a script). A file without sheets has one sheet

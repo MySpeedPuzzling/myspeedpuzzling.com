@@ -65,9 +65,10 @@ final class DecideImportPersonController extends AbstractController
         $answer = $request->request->getString('answer');
         $code = trim($request->request->getString('code'));
 
-        // A code typed beside the answer that is selected by itself ("keep as a guest"): the player typed a code -
-        // it is the code answer (taken, or refused with its notice), never silently a guest
-        if ($code !== '' && in_array($answer, ['guest', ''], true)) {
+        // The radio that is chosen wins: "keep as a guest" is a guest, whatever is left in the code field (a code
+        // that was refused before stays there until it is corrected). Typing a code selects its radio on the page
+        // (data_import_answers_controller.js `pick`); only a code that arrives with no answer at all is the code answer
+        if ($code !== '' && $answer === '') {
             $answer = 'code';
         }
 

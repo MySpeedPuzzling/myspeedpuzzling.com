@@ -161,7 +161,15 @@ final class ImportAnswersScriptTest extends TestCase
 
     public function testARowThatIsPutBackStaysInItsPlaceAndThePageAsksAgainUntilItIsReady(): void
     {
-        ['comingBack' => $back] = $this->scenarios(['comingBack']);
+        ['comingBack' => $back, 'readAgain' => $again] = $this->scenarios(['comingBack', 'readAgain']);
+
+        // A sheet (or the file) "being read again": its notice takes focus, brought below the site's header (it
+        // stood at 59 px; header 101 + 20), and the frame is asked for again - twelve times, not one more
+        self::assertSame(['focused' => 'import-add-list div Your file is being read again', 'scrolledBy' => [-62]], self::at($again, 'first'));
+        self::assertSame(12, $again['reloads']);
+        // Then nothing turns any more, and the row that is still coming back says so - focus on its "Refresh"
+        self::assertSame([0, false, true], [$again['spinners'], $again['longer'], $again['atOnce']]);
+        self::assertSame('row-x a Refresh', $again['focused']);
 
         // The frame keeps room for its bar, which is fixed to the bottom of the window (120 px + 16)
         self::assertSame('136px', $back['room']);

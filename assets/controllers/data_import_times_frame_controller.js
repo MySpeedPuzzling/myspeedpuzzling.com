@@ -12,6 +12,8 @@ import { Controller } from '@hotwired/stimulus';
 // this often, this many times at most
 const ASK_AGAIN_MS = 1500;
 const ASK_AGAIN_TIMES = 12;
+// What is waited for is not a row: the notice "being read again"
+const NOTICE = '@notice';
 
 export default class extends Controller {
     static values = {
@@ -54,45 +56,61 @@ export default class extends Controller {
 
             this.room(frame);
 
-            // A row that is "coming back" stands in its place without its buttons: the frame is asked for again
-            // until the row is ready - then it has its tick box again and the count is right, without a reload
+            // Something of the list is on its way back - a row that is "coming back" stands in its place without its
+            // buttons, a sheet (or the whole file) is "being read again": the frame is asked for again until it is
+            // there - then the rows have their tick boxes and the count is right, without a reload. Not for ever:
+            // after the last time the page says it takes longer, with "Refresh"
             const coming = frame.querySelector('[data-import-coming-back]');
+            const waiting = coming || frame.querySelector('[data-import-reading-again]');
+            const waitedFor = this.keep;
 
-            if (coming !== null && this.asked < ASK_AGAIN_TIMES && typeof frame.reload === 'function') {
-                this.keep = coming.id;
-                window.clearTimeout(this.timer);
-                this.timer = window.setTimeout(() => {
-                    this.asked += 1;
-                    frame.reload();
-                }, this.askAgainMsValue);
-            }
+            window.clearTimeout(this.timer);
 
-            const waitedFor = coming === null && this.keep !== null ? this.keep : null;
+            if (waiting !== null && typeof frame.reload === 'function') {
+                this.keep = coming !== null ? coming.id : NOTICE;
 
-            if (coming === null) {
+                if (this.asked < ASK_AGAIN_TIMES) {
+                    this.timer = window.setTimeout(() => {
+                        this.asked += 1;
+                        frame.reload();
+                    }, this.askAgainMsValue);
+                } else {
+                    // Asked for the last time: no spinner that turns for ever
+                    frame.querySelectorAll('[data-import-waiting-spinner]').forEach((spinner) => spinner.remove());
+                    frame.querySelectorAll('[data-import-taking-longer]').forEach((line) => line.removeAttribute('hidden'));
+                    frame.querySelectorAll('[data-import-usually-at-once]').forEach((line) => line.setAttribute('hidden', ''));
+                }
+            } else {
                 this.keep = null;
             }
 
-            if (!this.swapped && waitedFor === null) {
-                return;
-            }
-
-            // Where focus goes: the row that was answered (its control - or the row itself while it is coming back),
-            // else what the frame says happened. A row that was waited for takes focus only when focus is nowhere
-            const id = this.swapped ? this.swapped.row : waitedFor;
-            const row = id === null ? null : document.getElementById(id);
+            // Where focus goes. After an answer: the row that was answered (its control - or the row itself while it
+            // is coming back), else what the frame says happened. While something is waited for, and when it is
+            // there: the same row (or notice) again - but only when focus is nowhere, never taken from the player
             const somewhere = document.activeElement !== null && document.activeElement !== document.body && document.activeElement.isConnected;
+            const id = this.swapped ? this.swapped.row : (this.keep || waitedFor);
 
-            if (!this.swapped && somewhere) {
+            if (!this.swapped && (id === null || somewhere)) {
                 return;
             }
 
-            const target = (row === null ? null : row.querySelector('button, a[href]') || row) || frame.querySelector('[role="status"]');
+            const row = id === null || id === NOTICE ? null : document.getElementById(id);
+            // (a control that is shown - "Refresh" of a row that takes longer is in the page all along, hidden)
+            const control = row === null ? null : [...row.querySelectorAll('button, a[href]')].find((element) => element.closest('[hidden]') === null);
+            const target = (row === null ? null : control || row) || frame.querySelector('[data-import-reading-again]') || frame.querySelector('[role="status"]');
             this.swapped = null;
 
             if (target instanceof HTMLElement) {
                 if (!target.matches('a[href], button') && !target.hasAttribute('tabindex')) {
                     target.setAttribute('tabindex', '-1');
+                }
+
+                // In view below the site's header (a notice at the frame's top stands under it otherwise)
+                const header = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 101;
+                const top = target.getBoundingClientRect().top;
+
+                if (top < header + 20) {
+                    window.scrollBy({ top: top - header - 20, behavior: 'auto' });
                 }
 
                 target.focus({ preventScroll: true });

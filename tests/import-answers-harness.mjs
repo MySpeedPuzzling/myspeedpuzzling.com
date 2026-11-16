@@ -453,6 +453,40 @@ const scenarios = {
 
         return { room, coming, asked, askedTwice, reloads: reloads.length, ready };
     },
+    // A sheet (or the whole file) that is put back is "being read again": the frame is asked for again like for a
+    // row - twelve times at most; then nothing turns any more and the page says it takes longer
+    async readAgain() {
+        let reloads = 0;
+        const html = `<div role="status" data-import-reading-again data-top="59">Your file is being read again<span data-import-waiting-spinner></span></div>
+            <div id="row-x" data-import-coming-back><span data-import-waiting-spinner></span><span data-import-usually-at-once>usually at once</span><span hidden data-import-taking-longer>This is taking longer. <a href="/list">Refresh</a></span></div>`;
+        document.body.innerHTML = `<div data-controller="data-import-times-frame" data-data-import-times-frame-ask-again-ms-value="5">
+            <turbo-frame id="import-add-list"><form data-turbo-frame="import-add-list"><button data-back>Put back</button></form></turbo-frame></div>`;
+        await settle();
+        const frame = document.getElementById('import-add-list');
+        const render = (content) => {
+            frame.innerHTML = content;
+            frame.dispatchEvent(new window.CustomEvent('turbo:frame-render', { bubbles: true }));
+        };
+        frame.reload = () => {
+            reloads += 1;
+            render(html.replace(' data-import-coming-back', reloads < 0 ? '' : ' data-import-coming-back'));
+        };
+        world.scrolledBy = [];
+        document.querySelector('[data-back]').focus();
+        document.querySelector('form').dispatchEvent(new window.CustomEvent('turbo:submit-start', { bubbles: true }));
+        render(html.replace('<div id="row-x" data-import-coming-back>', '<div id="row-x" hidden>'));
+        const first = { focused: focused(), scrolledBy: [...world.scrolledBy] };
+        await settle(400);
+
+        return {
+            first,
+            reloads,
+            focused: focused(),
+            spinners: frame.querySelectorAll('[data-import-waiting-spinner]').length,
+            longer: frame.querySelector('[data-import-taking-longer]').hasAttribute('hidden'),
+            atOnce: frame.querySelector('[data-import-usually-at-once]').hasAttribute('hidden'),
+        };
+    },
     // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
     async ended() {
         await mount();

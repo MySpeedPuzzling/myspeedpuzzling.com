@@ -7,6 +7,6 @@
 
     Variables: said (null, or what _answer_said_message.html.twig takes).
 #}
-<div id="import-answer-said" style="position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px); z-index: 25; max-width: 720px; margin: 0 auto; padding: 0 12px; pointer-events: none;" aria-live="polite" data-testid="import-answer-said">
+<div id="import-answer-said" style="position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px); z-index: 25; pointer-events: none;" aria-live="polite" data-testid="import-answer-said">
     {%- if said is not null %}{{ include('data_import/_answer_said_message.html.twig', {said: said}, with_context = false) }}{% endif -%}
 </div>

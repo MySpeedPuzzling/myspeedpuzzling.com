@@ -490,6 +490,31 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         }
     }
 
+    /**
+     * The ids the run creates in SQL are time-ordered like the ones PHP creates (gen_uuid_v7(), version 7), so a
+     * day's rows sit together in the primary key index. Until 2026-11-16 they were random (gen_random_uuid(),
+     * version 4): a random page of that index for every row. puzzle_difficulty has no id - its key is the puzzle.
+     */
+    public function testEveryRowTheRunCreatesGetsATimeOrderedId(): void
+    {
+        $tablesWithAnId = array_diff(array_keys(self::TABLES), ['puzzle_difficulty']);
+
+        foreach ($tablesWithAnId as $table) {
+            $this->connection->executeStatement("DELETE FROM {$table}");
+        }
+
+        $this->recalculate($this->now);
+
+        foreach ($tablesWithAnId as $table) {
+            self::assertGreaterThan(0, $this->countRows("SELECT COUNT(*) FROM {$table}"), $table);
+            self::assertSame(
+                0,
+                $this->countRows("SELECT COUNT(*) FROM {$table} WHERE substring(CAST(id AS text) FROM 15 FOR 1) <> '7'"),
+                $table,
+            );
+        }
+    }
+
     private function recalculate(DateTimeImmutable $now): void
     {
         $clock = new MockClock($now);

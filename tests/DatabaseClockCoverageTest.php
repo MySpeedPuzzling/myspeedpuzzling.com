@@ -32,6 +32,7 @@ final class DatabaseClockCoverageTest extends TestCase
      * Files under tests/ whose SQL-clock words are data, not SQL run against the database, with the reason
      */
     private const array ALLOWED_IN_TESTS = [
+        'bootstrap.php' => 'The mirror of the migration\'s gen_uuid_v7(): the time prefix of an id it creates is the real time, as in Uuid::uuid7() - it orders ids and is no stored time.',
         'DatabaseClockCoverageTest.php' => 'This guard - the patterns and their self-test are data.',
         'PHPStan/SystemClockRule.php' => 'The PHPStan rule clock.systemTime - PHP\'s localtime() is a name it knows, no SQL.',
         'PHPStan/Fixture/SystemClockReads.php' => 'The fixture of the PHPStan rule clock.systemTime - PHP\'s localtime() calls, no SQL.',

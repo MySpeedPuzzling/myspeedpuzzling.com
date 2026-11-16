@@ -280,6 +280,29 @@ function createPostgresExtensions(): void
             SELECT unaccent('unaccent', \$1)
         \$\$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
     ");
+
+    // gen_uuid_v7(): time-ordered ids for the rows SQL creates itself (Version20261116160000). Here, before the schema
+    // and the fixtures, so whatever they run can call it. Word for word the migration's - GenUuidV7FunctionTest compares them
+    $pdo->exec(<<<'SQL'
+CREATE OR REPLACE FUNCTION gen_uuid_v7() RETURNS uuid
+LANGUAGE sql VOLATILE PARALLEL SAFE
+AS $$
+    SELECT encode(
+        set_bit(
+            set_bit(
+                overlay(
+                    uuid_send(gen_random_uuid())
+                    PLACING substring(int8send(floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint) FROM 3)
+                    FROM 1 FOR 6
+                ),
+                52, 1
+            ),
+            53, 1
+        ),
+        'hex'
+    )::uuid
+$$
+SQL);
 }
 
 function createCustomIndexes(): void

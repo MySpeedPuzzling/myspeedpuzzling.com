@@ -42,7 +42,7 @@ If a service was created but ended up detached from the network (e.g. an aborted
 - After changing PHP code ALWAYS run checks: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/paratest --testsuite "Project Test Suite"`, `docker compose exec web php bin/console doctrine:schema:validate`, `docker compose exec web php bin/console cache:warmup`.
 
 ### Database & migrations
-- PostgreSQL in Docker (postgres/postgres), Adminer at localhost:8000, migrations in `migrations/`. Doctrine ORM entities describe the database structure.
+- PostgreSQL 18.7 in Docker (postgres/postgres; production is on 16.14 until its upgrade - CI tests both, `.claude/rules/database.md`), Adminer at localhost:8000, migrations in `migrations/`. Doctrine ORM entities describe the database structure.
 - **Never run `doctrine:migrations:migrate` yourself** - leave it to Jan or ask explicitly.
 - **Never write migrations yourself** - generate them (`docker compose exec web php bin/console doctrine:migrations:diff`), unless explicitly asked for a custom index or similar (custom `custom_*` indexes: `.claude/rules/database.md`).
 - When a migration renames a table, update the raw SQL queries in `src/Query/`.

@@ -20,10 +20,13 @@ final class Version20260102200000 extends AbstractMigration
         $this->addSql('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
         // Create immutable wrapper for unaccent (required for index expressions)
+        // Schema-qualified since 2026-11 - the very body Version20260726081804 installs later anyway: from Postgres 17
+        // on, CREATE INDEX runs the function with a restricted search_path, the unqualified unaccent() was not found
+        // and the two indexes below failed. Changes nothing where this migration has run (it never runs twice).
         $this->addSql("
             CREATE OR REPLACE FUNCTION immutable_unaccent(text)
             RETURNS text AS \$\$
-                SELECT unaccent('unaccent', \$1)
+                SELECT public.unaccent('public.unaccent'::regdictionary, \$1)
             \$\$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
         ");
 

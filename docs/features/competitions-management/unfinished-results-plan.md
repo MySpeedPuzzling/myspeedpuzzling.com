@@ -124,7 +124,7 @@ relabelled time, mapping the three exceptions to field errors), `EditTimeControl
 the "coming soon" page), the hint endpoint on `resolveFor()`, API v1 write fields (`piecesPlaced` on create/update - the
 PUT refusal goes then), "Add to my profile" from an official unfinished result.
 
-**Status step 4 (the form - the release), 2026-11-16 - PR #400, draft:** *Hint:* `Services\UnfinishedResults\UnfinishedResultHint::forPick(pick, puzzle, puzzlers, day)`
+**Status step 4 (the form - the release), 2026-11-16 - merged (#400), live:** *Hint:* `Services\UnfinishedResults\UnfinishedResultHint::forPick(pick, puzzle, puzzlers, day)`
 = `UnfinishedResultRound::forNewResult()` (the save's rule, series picks found by their puzzle) behind three more gates: the
 pick's event publicly visible (a draft's round names nobody may see - `DraftCanaryTest` has the endpoint), the puzzle
 writable by the viewer (`SecretPuzzleAccess`) and **not hidden entirely by the round itself** until it reveals (a public
@@ -163,7 +163,7 @@ two bugs the PHP tests could not see - the controller did not connect where no r
 `null` for an Object value - now `{}`, pinned), and step 2's recap panel never showed (`.recap-card` hides a card without
 `.recap-row`, and it shared the progress card's grid cell - `recap-card-content`, `recap-layout-unfinished`).
 
-**Status:** plan, 2026-09-18, refined 2026-11-16. Steps 1-3 merged, step 4 in review (above). Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
+**Status:** built and live 2026-11-16 (steps 1-4: #394, #397, #399, #400; step 5 = this record). The status paragraphs above are the as-built summary; the sections below are the original plan, kept for its reasoning - where they differ, the "Refined 2026-11-16" section and the status paragraphs win. Loose ends: `docs/TODO.md` "Unfinished results". Open questions for Jan: My data re-importing our own export (rows naming no round with a limit: skip with a reason, or relax?) and whether the streak/quarter achievements should count an unfinished day like the calendar does. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal
 

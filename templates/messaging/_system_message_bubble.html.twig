@@ -1,4 +1,4 @@
-<div class="d-flex flex-column align-items-center mb-3" data-message-id="{{ message.messageId }}">
+<div class="chat-row d-flex flex-column align-items-center mb-3" data-message-id="{{ message.messageId }}" data-sender="" data-own="0" data-ts="{{ message.sentAt|date('U') }}" data-day="{{ message.sentAt|date('Y-m-d') }}">
     <div class="px-3 py-2 rounded-3 border d-inline-flex align-items-center text-body-secondary" style="font-size: 0.85rem; background-color: #fff3cd; border-color: #ffecb5 !important;">
         <i class="bi bi-exclamation-circle me-2"></i>
         <span>{{ message.systemTranslationKey|trans }}</span>

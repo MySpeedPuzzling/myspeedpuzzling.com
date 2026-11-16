@@ -8,6 +8,8 @@ body.conversation-page {
     min-height: 0;
     height: 100vh;
     height: 100dvh;
+    // What is left above the on-screen keyboard (chat_viewport_controller.js)
+    height: var(--chat-viewport-height, 100dvh);
 
     > header {
         flex-shrink: 0;
@@ -65,6 +67,46 @@ body.conversation-page {
 
 .conversation-composer {
     background-color: #f5f5f5;
+}
+
+// "Jump to the newest message": bottom right of the messages, above the composer
+.chat-jump-anchor {
+    position: relative;
+    flex-shrink: 0;
+    height: 0;
+}
+
+.chat-jump {
+    position: absolute;
+    right: .75rem;
+    bottom: .75rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid $gray-300;
+    border-radius: 50%;
+    background-color: $white;
+    font-size: 1.125rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.chat-jump-count {
+    position: absolute;
+    top: -.375rem;
+    right: -.375rem;
+    min-width: 1.25rem;
+    font-size: .6875rem;
+
+    &[hidden] {
+        display: none;
+    }
 }
 
 .conversation-input {

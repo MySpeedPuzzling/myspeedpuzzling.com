@@ -89,6 +89,47 @@ $soft-teal: #5bc0de;
     }
 }
 
+// A person's messages within 5 minutes form a group (messaging/_message_list.html.twig + messaging_controller.js):
+// close together, the avatar, the time and the bubble tail only on the group's last message
+.chat-row.chat-row--joined-next {
+    margin-bottom: .1875rem !important;
+
+    .chat-avatar {
+        visibility: hidden;
+    }
+
+    .chat-meta {
+        display: none;
+    }
+
+    .chat-bubble::after {
+        display: none;
+    }
+}
+
+// The first message of every day: "Today", "Yesterday", "Friday, 13 November"
+.chat-day {
+    display: flex;
+    justify-content: center;
+    margin: .5rem 0 .75rem;
+
+    span {
+        padding: .125rem .625rem;
+        border-radius: 1rem;
+        background-color: $gray-200;
+        color: $gray-700;
+        font-size: .75rem;
+        font-weight: 500;
+    }
+}
+
+// Addresses in messages are links (ChatLinksTwigExtension)
+.chat-bubble a {
+    color: inherit;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+}
+
 // Typing indicator animation
 .typing-dots {
     display: inline-flex;

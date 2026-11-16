@@ -1,0 +1,22 @@
+{# The messages of a conversation in time order: a line for each day, and a person's messages within 5 minutes of
+   each other grouped. messaging_controller.js layout() applies the same rule to messages that arrive later. #}
+{% for message in messages %}
+    {% set previous = loop.first ? null : messages[loop.index0 - 1] %}
+    {% set next = messages[loop.index0 + 1] ?? null %}
+    {% set day = message.sentAt|date('Y-m-d') %}
+
+    {% if previous is null or previous.sentAt|date('Y-m-d') != day %}
+        {{ include('messaging/_day_separator.html.twig', {day: day}, with_context = false) }}
+    {% endif %}
+
+    {% set joins_previous = previous is not null and not previous.isSystemMessage and not message.isSystemMessage
+        and previous.senderId == message.senderId
+        and previous.sentAt|date('Y-m-d') == day
+        and (message.sentAt|date('U')) - (previous.sentAt|date('U')) < 300 %}
+    {% set joins_next = next is not null and not next.isSystemMessage and not message.isSystemMessage
+        and next.senderId == message.senderId
+        and next.sentAt|date('Y-m-d') == day
+        and (next.sentAt|date('U')) - (message.sentAt|date('U')) < 300 %}
+
+    {{ include('messaging/_message_bubble.html.twig') }}
+{% endfor %}

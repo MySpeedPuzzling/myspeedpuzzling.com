@@ -3402,6 +3402,9 @@ competition_referees:
   "conversation_partners": "- Des conversations du marché -"
   "conversation_with": "Conversation avec %name%"
   "conversations": "Conversations"
+  "day":
+    "today": "Aujourd'hui"
+    "yesterday": "Hier"
   "direct_messages_disabled": "Cet utilisateur n'accepte pas les messages directs."
   "conversation_unavailable": "Cette conversation n'est plus disponible — elle a peut-être été supprimée, ou vous n'y avez plus accès."
   "ignore": "Ignorer"
@@ -3409,6 +3412,7 @@ competition_referees:
   "ignored_notice": "Cette demande de conversation a été ignorée."
   "ignored_status": "Ignoré"
   "interested_in_puzzle": "%name% est intéressé par votre puzzle"
+  "jump_to_latest": "Aller au message le plus récent"
   "max_characters": "Maximum 2000 caractères."
   "message_empty": "Le message ne peut pas être vide."
   "message_label": "Message"

@@ -18,6 +18,8 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card" data-controller="messaging conversation-realtime"
+             data-messaging-today-value="{{ 'now'|date('Y-m-d') }}"
+             data-messaging-today-label-value="{{ 'messaging.day.today'|trans }}"
                  data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
                  data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
                  data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
@@ -76,9 +78,7 @@
                      data-conversation-realtime-target="messages">
 
                     {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
-                        {% for message in messages %}
-                            {{ include('messaging/_message_bubble.html.twig') }}
-                        {% endfor %}
+                        {{ include('messaging/_message_list.html.twig') }}
 
                         <div class="text-center py-3">
                             <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
@@ -98,9 +98,7 @@
                             </div>
                         </div>
                     {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
-                        {% for message in messages %}
-                            {{ include('messaging/_message_bubble.html.twig') }}
-                        {% endfor %}
+                        {{ include('messaging/_message_list.html.twig') }}
 
                         <div class="text-center py-3 text-muted">
                             <i class="bi bi-hourglass-split d-block mb-2"></i>
@@ -112,9 +110,7 @@
                                 <p>{{ 'messaging.no_messages_yet'|trans }}</p>
                             </div>
                         {% else %}
-                            {% for message in messages %}
-                                {{ include('messaging/_message_bubble.html.twig') }}
-                            {% endfor %}
+                            {{ include('messaging/_message_list.html.twig') }}
                         {% endif %}
                     {% endif %}
                 </div>

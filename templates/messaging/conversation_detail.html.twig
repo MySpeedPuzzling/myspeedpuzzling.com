@@ -9,12 +9,14 @@
 {% block footer %}{% endblock %}
 
 {% block full_content %}
-<section class="container conversation-section">
+<section class="container conversation-section" data-controller="chat-viewport">
 {# safe_return_url rejects anything that could leave the site, like _return_back_button.html.twig #}
 {% set back_url = safe_return_url(app.request.query.get('return'), path('conversations_list')) %}
 {% set back_title = app.request.query.get('return_title') ?? 'messaging.back_to_messages'|trans %}
 
 <div class="card shadow-custom conversation-card" data-controller="messaging conversation-realtime"
+     data-messaging-today-value="{{ 'now'|date('Y-m-d') }}"
+     data-messaging-today-label-value="{{ 'messaging.day.today'|trans }}"
      data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
      data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
      data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
@@ -115,7 +117,7 @@
         </div>
     {% endif %}
 
-    <div class="card-body conversation-messages" id="messages-container"
+    <div class="card-body conversation-messages" id="messages-container" role="log" aria-label="{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}"
          data-messaging-target="messages"
          data-conversation-realtime-target="messages">
 
@@ -133,9 +135,7 @@
 
         {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
             {% if messages is not empty %}
-                {% for message in messages %}
-                    {{ include('messaging/_message_bubble.html.twig') }}
-                {% endfor %}
+                {{ include('messaging/_message_list.html.twig') }}
             {% endif %}
 
             <div class="text-center py-3">
@@ -156,9 +156,7 @@
                 </div>
             </div>
         {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
-            {% for message in messages %}
-                {{ include('messaging/_message_bubble.html.twig') }}
-            {% endfor %}
+            {{ include('messaging/_message_list.html.twig') }}
 
             <div class="text-center py-3 text-muted">
                 <i class="bi bi-hourglass-split d-block mb-2"></i>
@@ -170,11 +168,19 @@
                     <p>{{ 'messaging.no_messages_yet'|trans }}</p>
                 </div>
             {% else %}
-                {% for message in messages %}
-                    {{ include('messaging/_message_bubble.html.twig') }}
-                {% endfor %}
+                {{ include('messaging/_message_list.html.twig') }}
             {% endif %}
         {% endif %}
+    </div>
+
+    {# Shown while the reader is scrolled up; counts messages that arrived meanwhile (messaging_controller.js) #}
+    <div class="chat-jump-anchor">
+        <button type="button" class="chat-jump btn btn-light shadow-sm" hidden
+                data-messaging-target="jump" data-action="messaging#jumpToLatest"
+                aria-label="{{ 'messaging.jump_to_latest'|trans }}" title="{{ 'messaging.jump_to_latest'|trans }}">
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            <span class="chat-jump-count badge rounded-pill bg-primary" data-messaging-target="jumpCount" hidden></span>
+        </button>
     </div>
 
     {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
@@ -185,7 +191,7 @@
                 <span>{{ 'messaging.typing'|trans }}</span>
             </div>
             <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex align-items-end gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
-                <textarea name="message" class="form-control conversation-input" rows="1" aria-label="{{ 'messaging.type_message'|trans }}" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
+                <textarea name="message" class="form-control conversation-input" rows="1" aria-label="{{ 'messaging.type_message'|trans }}" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->messaging#autoGrow input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
                 <button type="submit" class="btn btn-primary conversation-send flex-shrink-0" aria-label="{{ 'messaging.send'|trans }}">
                     <i class="bi bi-send" aria-hidden="true"></i>
                 </button>

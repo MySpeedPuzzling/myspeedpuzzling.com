@@ -3968,6 +3968,10 @@ messaging:
     title: "Messages"
     send: "Send"
     more_actions: "More actions"
+    jump_to_latest: "Jump to the newest message"
+    day:
+        today: "Today"
+        yesterday: "Yesterday"
     send_placeholder: "Type your message..."
     report: "Report"
     report_reason_placeholder: "Describe why you are reporting this conversation..."

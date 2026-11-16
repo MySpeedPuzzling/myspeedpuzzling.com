@@ -159,6 +159,19 @@ final class UnfinishedResultsListedTest extends WebTestCase
         self::assertSame(1, substr_count($content, self::BADGE));
     }
 
+    public function testMyDataListsThePiecesPlaced(): void
+    {
+        $this->seedUnfinishedResult(self::PLAYER, self::PUZZLE, 479, daysAgo: 0);
+        TestingLogin::asPlayer($this->browser, self::PLAYER);
+
+        $this->browser->request('GET', '/en/my-data');
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $this->browser->getResponse()->getContent();
+        self::assertGreaterThanOrEqual(1, substr_count($content, self::BADGE));
+        self::assertStringContainsString('479 / 500 pcs', $content);
+    }
+
     public function testTheShareImageOfAnUnfinishedResultIsDrawnAndKeptApartFromATime(): void
     {
         $time = $this->seedUnfinishedResult(self::PLAYER, self::PUZZLE, 479);

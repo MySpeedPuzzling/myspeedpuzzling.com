@@ -137,6 +137,35 @@ final class PuzzleTimesUnfinishedTest extends WebTestCase
         self::assertStringNotContainsString('lb-stats', $html);
     }
 
+    /**
+     * The fixture pair (PLAYER_REGULAR + PLAYER_PRIVATE, TIME_12 on PUZZLE_1000_01) has a time: its unfinished result is
+     * no bottom row - the pair key of both sides comes from the team snapshot
+     */
+    public function testAPairWithATimeKeepsItsRankedRowAndGetsNoBottomRow(): void
+    {
+        $this->seedUnfinishedResult(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_01, 640, puzzlers: [
+            PlayerFixture::PLAYER_PRIVATE,
+            PlayerFixture::PLAYER_REGULAR,
+        ]);
+        // Another pair without a time: a bottom row - the canary of this test
+        $this->seedUnfinishedResult(PlayerFixture::PLAYER_ADMIN, PuzzleFixture::PUZZLE_1000_01, 555, puzzlers: [
+            PlayerFixture::PLAYER_ADMIN,
+            PlayerFixture::PLAYER_WITH_STRIPE,
+        ]);
+
+        $component = $this->createLiveComponent('PuzzleTimes', [
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_01,
+            'piecesCount' => 1000,
+            'category' => 'duo',
+        ], $this->browser);
+        $component->setRouteLocale('en');
+        $html = $component->render()->toString();
+
+        self::assertSame(1, substr_count($html, 'data-testid="unfinished-row"'));
+        self::assertStringContainsString('555 / 1', $html);
+        self::assertStringNotContainsString('640 / 1', $html);
+    }
+
     public function testThePuzzleWithoutUnfinishedResultsRendersAsBefore(): void
     {
         $html = $this->render('solo');

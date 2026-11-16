@@ -616,6 +616,42 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertStringNotContainsString('0 puzzles', $html);
     }
 
+    /**
+     * A week with one solo unfinished result and nothing else: there is no split line (everything solo), so the
+     * preheader is what would say "0 puzzles" - it says the pieces placed
+     */
+    public function testAWeekOfOnlyAnUnfinishedResultSaysThePiecesPlaced(): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO puzzle_solving_time
+                (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, team, finished_at,
+                 comment, finished_puzzle_photo, first_attempt, unboxed, puzzlers_count, puzzling_type,
+                 suspicious, pieces_count_snapshot, pieces_placed, seconds_spent, competition_id)
+             VALUES
+                (:id, NULL, :playerId, :puzzleId, :at, false, NULL, :at,
+                 NULL, NULL, false, false, 1, 'solo', false, 500, 321, 5400, :competitionId)",
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'playerId' => self::MEMBER,
+                'puzzleId' => PuzzleFixture::PUZZLE_500_05,
+                'at' => '2030-03-06 18:00:00',
+                'competitionId' => CompetitionFixture::COMPETITION_WJPC_2024,
+            ],
+        );
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        self::assertCount(1, $transport->sent, 'Pieces without a puzzle are a week with puzzling in it');
+        $email = $transport->sent[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        $this->render($email);
+        $html = html_entity_decode((string) $email->getHtmlBody());
+        self::assertStringContainsString('321 pieces placed – your week in one short e-mail.', $html);
+        self::assertStringContainsString('321 / 500 pcs', $html);
+        self::assertStringNotContainsString('0 puzzles', $html);
+    }
+
     private function insertSolve(string $playerId, string $atUtc, int $seconds = 3600): void
     {
         $this->database->executeStatement(

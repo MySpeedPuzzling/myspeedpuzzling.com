@@ -37,6 +37,9 @@ readonly final class MyDataResultRow
         public bool $suspicious,
         // The player tracked it and nobody else registered is on it (solo, or a group with guests only)
         public bool $onlyRegisteredMember = true,
+        // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): pieces
+        // placed when the round's time ran out - shown instead of "no time"; editing keeps to the cells that are not the time
+        public null|int $piecesPlaced = null,
     ) {
     }
 
@@ -118,6 +121,7 @@ readonly final class MyDataResultRow
          *     time_id: string,
          *     puzzle_image: null|string,
          *     seconds_to_solve: null|int,
+         *     pieces_placed?: null|int,
          *     finished_at: null|string,
          *     finished_at_precision: null|string,
          *     tracked_at: string,
@@ -151,6 +155,7 @@ readonly final class MyDataResultRow
             source: SolvingTimeSource::tryFrom($row['created_via'] ?? ''),
             suspicious: $row['suspicious'],
             onlyRegisteredMember: $row['only_registered_member'],
+            piecesPlaced: $row['pieces_placed'] ?? null,
         );
     }
 }

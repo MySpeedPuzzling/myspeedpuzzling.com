@@ -31,11 +31,10 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [ ] Steps 3-4: every edit button on an unfinished result (puzzle page "My attempts", bottom rows' result detail,
       profile, calendar, feed) opens today's edit form, which knows no pieces placed - a save there would make it a relax
       solve. The edit form must keep `pieces_placed` before the first row can exist (plan "Edit form / modal").
-- [ ] Steps 3-4: My data (`GetMyDataResults`, `my_data/_results.html.twig`, the row form via `SolvedPuzzleDetail`) shows an
-      unfinished result as "no time" and its in-place editing treats it like a relax row - show the pieces and keep them
-      on a save.
-- [ ] Steps 3-4: re-importing our own results export (`KnownExportLayout`) ignores the new `pieces_placed` column - an
-      unfinished row would come back as a result without a time.
+- [ ] Steps 3-4: My data's list shows the pieces placed (step 2), but its row form (`my_data/_result_row_form.html.twig`
+      via `SolvedPuzzleDetail`) and in-place editing treat an unfinished result like a relax row - keep the pieces on a save.
+- [ ] Steps 3-4: re-importing our own results export (`KnownExportLayout`: a header it does not list is not imported)
+      ignores the new `pieces_placed` column - an unfinished row would come back as a result without a time.
 - [ ] Steps 3-4: the claim screens of an imported unfinished team (`event_result_claim/_result_summary`, `_claim_body`)
       show the team and date only - add the pieces placed once the import writes such rows (step 4 / D2-D3).
 - [ ] Steps 3-4: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen`

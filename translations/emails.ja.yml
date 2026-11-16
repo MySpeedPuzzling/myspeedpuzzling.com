@@ -583,3 +583,5 @@ unfinished_result:
     pieces: "%placed% / %total% ピース"
     title: "制限時間内に完成できなかった"
     split_pieces: "%pieces% ピース"
+    preheader: "%pieces%ピースを配置 – 1週間を短いメールで。"
+    busiest_day: "いちばん頑張った日：%day%（%pieces%ピース）"

@@ -592,3 +592,5 @@ unfinished_result:
     pieces: "%placed% / %total% pcs"
     title: "Didn't finish within the time limit"
     split_pieces: "%pieces% pieces"
+    preheader: "%pieces% pieces placed – your week in one short e-mail."
+    busiest_day: "Busiest day: %day%, %pieces% pieces"

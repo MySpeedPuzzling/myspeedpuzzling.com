@@ -13512,7 +13512,7 @@ unfinished_result:
     title: "Nicht innerhalb des Zeitlimits fertig geworden"
     finished_later: "fertig in %time%"
     section: "Nicht innerhalb des Zeitlimits fertig geworden"
-    your_result: "Dein Ergebnis"
+    your_result: "Ihr Ergebnis"
     no_rank: "Kein Rang - nicht innerhalb des Zeitlimits fertig geworden"
     day_count: "Nicht innerhalb des Zeitlimits fertig geworden – %count%"
     recap_pieces: "%placed% / %total% Teile"

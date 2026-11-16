@@ -32,6 +32,9 @@
     {% set preheader = 'activity_digest.preheader.personal_best'|trans({'%puzzle%': (personal_bests|first).puzzleName}) %}
 {% elseif activity.rating is not null and activity.rating.placesGained > 0 %}
     {% set preheader = 'activity_digest.preheader.rating'|trans({'%count%': activity.rating.placesGained}) %}
+{% elseif activity.puzzlesCount == 0 %}
+    {# Only unfinished competition results: pieces placed, never "0 puzzles" (unfinished-results-plan.md) #}
+    {% set preheader = 'unfinished_result.preheader'|trans({'%pieces%': activity.piecesCount|plain_number}) %}
 {% else %}
     {% set preheader = 'activity_digest.preheader.numbers'|trans({'%count%': activity.puzzlesCount, '%pieces%': activity.piecesCount|plain_number}) %}
 {% endif %}
@@ -137,7 +140,9 @@
                     </tr>
                 </table>
                 <p style="font-size: 14px; color: #6b7488; margin: 10px 0 0 0; Margin: 10px 0 0 0;">
-                    {{ 'activity_digest.busiest_day'|trans({'%day%': busiest.day|events_date(length == 'week' ? 'EEEE' : 'EEEEMMMMd'), '%count%': busiest.puzzles, '%pieces%': busiest.pieces|plain_number}) }}
+                    {%- set busiest_day = busiest.day|events_date(length == 'week' ? 'EEEE' : 'EEEEMMMMd') -%}
+                    {#- A day of unfinished results only: its pieces, never "0 puzzles" (unfinished-results-plan.md) -#}
+                    {{ busiest.puzzles == 0 ? 'unfinished_result.busiest_day'|trans({'%day%': busiest_day, '%pieces%': busiest.pieces|plain_number}) : 'activity_digest.busiest_day'|trans({'%day%': busiest_day, '%count%': busiest.puzzles, '%pieces%': busiest.pieces|plain_number}) }}
                 </p>
             {% endif %}
         {{ card_close }}

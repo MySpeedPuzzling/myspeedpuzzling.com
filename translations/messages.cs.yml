@@ -13515,7 +13515,7 @@ unfinished_result:
     title: "Nedokončeno v časovém limitu"
     finished_later: "dokončeno za %time%"
     section: "Nedokončili v časovém limitu"
-    your_result: "Váš výsledek"
+    your_result: "Tvůj výsledek"
     no_rank: "Bez pořadí - nedokončeno v časovém limitu"
     day_count: "Nedokončeno v časovém limitu – %count%"
     recap_pieces: "%placed% / %total% dílků"

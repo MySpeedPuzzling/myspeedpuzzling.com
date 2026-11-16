@@ -583,3 +583,5 @@ unfinished_result:
     pieces: "%placed% / %total% pièces"
     title: "Pas terminé dans le temps imparti"
     split_pieces: "%pieces% pièces"
+    preheader: "%pieces% pièces posées – votre semaine en un court e-mail."
+    busiest_day: "Jour le plus actif : %day%, %pieces% pièces"

@@ -583,3 +583,5 @@ unfinished_result:
     pieces: "%placed% / %total% dílků"
     title: "Nedokončeno v časovém limitu"
     split_pieces: "%pieces% dílků"
+    preheader: "Položené dílky: %pieces% – tvůj týden v jednom krátkém e-mailu."
+    busiest_day: "Nejrušnější den: %day%, %pieces% dílků"

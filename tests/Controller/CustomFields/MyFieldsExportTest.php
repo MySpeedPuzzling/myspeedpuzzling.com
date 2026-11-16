@@ -84,7 +84,7 @@ final class MyFieldsExportTest extends WebTestCase
         $csv = $this->download($browser, self::RESULTS . 'csv');
         $header = strtok($csv, "\n");
         self::assertIsString($header);
-        self::assertStringEndsWith('"msp_rating_puzzle_first_try_solvers","date_precision","' . implode('","', $labels) . '"', trim($header));
+        self::assertStringEndsWith('"msp_rating_puzzle_first_try_solvers","date_precision","pieces_placed","finished_later_seconds","' . implode('","', $labels) . '"', trim($header));
         self::assertStringContainsString('"\'=1+1","3","gradient, cats","","true","7"', $csv);
 
         $xml = $this->download($browser, self::RESULTS . 'xml');

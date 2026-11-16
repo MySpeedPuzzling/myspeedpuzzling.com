@@ -44,11 +44,12 @@ readonly final class BotTrustCookieSigner
     public const int REFRESH_AFTER_DAYS = 7;
 
     /**
-     * 2026-11-17T00:00:00Z in ms. Cookies issued before it were minted for ANY signed-in account (no eligibility
-     * rule yet), so they are treated as stale: the next authenticated response re-checks the account and re-mints
-     * the cookie or expires it.
+     * 2026-11-16T11:30:00Z in ms, just before this rule's deploy. Cookies issued before it were minted for ANY
+     * signed-in account (no eligibility rule yet), so they are treated as stale: the next authenticated response
+     * re-checks the account and re-mints the cookie or expires it. A re-minted cookie is issued after the cutoff,
+     * so each browser is re-checked once, not on every request.
      */
-    public const int TRUST_REVALIDATE_ISSUED_BEFORE = 1_794_873_600_000;
+    public const int TRUST_REVALIDATE_ISSUED_BEFORE = 1_794_828_600_000;
 
     public function __construct(
         #[Autowire(env: 'CHALLENGE_COOKIE_SECRET')]

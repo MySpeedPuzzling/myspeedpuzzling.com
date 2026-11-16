@@ -12,7 +12,7 @@ and on logout - but expiring only reaches honest browsers. A copied cookie value
 
 - [ ] Box (lily.srv): set `TRUST_COOKIE_TTL_DAYS=90` for the bot-blocker, matching `BotTrustCookieSigner::LIFETIME_DAYS`
 - [ ] Bot-blocker: reject a trust cookie issued before `BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE`
-  (`1794873600000`, 2026-11-17T00:00:00Z) - or rotate the trust secret on both sides at once - so cookies minted for
+  (`1794828600000`, 2026-11-16T11:30:00Z) - or rotate the trust secret on both sides at once - so cookies minted for
   throwaway accounts before the eligibility rule stop working
 
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)

@@ -68,10 +68,10 @@ final class BotTrustCookieSubscriberTest extends TestCase
         self::assertNull($signer->parseIssuedAt($cookie . 'x', $uid));
     }
 
-    public function testRevalidationCutoffIsMidnightUtcOfNovember17(): void
+    public function testRevalidationCutoffIsJustBeforeTheEligibilityDeploy(): void
     {
         self::assertSame(
-            (int) new DateTimeImmutable('2026-11-17T00:00:00Z')->format('Uv'),
+            (int) new DateTimeImmutable('2026-11-16T11:30:00Z')->format('Uv'),
             BotTrustCookieSigner::TRUST_REVALIDATE_ISSUED_BEFORE,
         );
     }
@@ -301,7 +301,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
 
     /**
      * An issued-at that is "fresh" whatever the real date: never before the revalidation cutoff (a cookie issued
-     * before it is always due, so a plain "now" is not fresh until 2026-11-17), and never older than now.
+     * before it is always due, so a plain "now" is not fresh before 2026-11-16T11:30Z), and never older than now.
      */
     private function freshIssuedAtMs(): int
     {

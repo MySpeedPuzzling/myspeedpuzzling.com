@@ -13568,6 +13568,10 @@ results_import:
         last_checked: "Dernière vérification %when%"
         never_checked: "Pas encore vérifiée"
     check:
+        busy: 'Lecture de votre feuille…'
+        reading: 'Nous lisons chaque onglet de votre feuille sur Google et le comparons avec ce qui est déjà sur MySpeedPuzzling.'
+        elapsed: '%seconds% s'
+        slow: 'Toujours en cours - une feuille avec beaucoup d''onglets prend un peu plus de temps.'
         button: "Vérifier la feuille"
         hint: "Lit votre feuille sur Google maintenant - cela prend quelques secondes."
         last: "Dernière vérification %when%"

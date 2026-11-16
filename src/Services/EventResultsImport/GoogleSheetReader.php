@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\EventResultsImport\SheetTab;
 use SpeedPuzzling\Web\Value\EventResultsImport\UnreadableSheetTab;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /**
  * Reads an organizer's results sheet shared "Anyone with the link: Viewer" - no Google account, no key
@@ -39,10 +40,29 @@ readonly final class GoogleSheetReader
     {
         $tabs = [];
         $unreadable = [];
+        $sheetTabs = $this->tabs($spreadsheetId);
 
-        foreach ($this->tabs($spreadsheetId) as $tab) {
+        // Every tab's CSV is asked for at once - the check waits for the slowest tab, not for the sum of them all
+        // (the organizer watches the button meanwhile)
+        $responses = [];
+
+        foreach ($sheetTabs as $index => $tab) {
             try {
-                $tabs[] = new SheetSnapshotTab($tab->gid, $tab->title, $this->csv($spreadsheetId, $tab->gid));
+                $responses[$index] = $this->send($this->csvUrl($spreadsheetId, $tab->gid));
+            } catch (GoogleSheetUnreadable $e) {
+                $responses[$index] = $e;
+            }
+        }
+
+        foreach ($sheetTabs as $index => $tab) {
+            try {
+                $response = $responses[$index];
+
+                if ($response instanceof GoogleSheetUnreadable) {
+                    throw $response;
+                }
+
+                $tabs[] = new SheetSnapshotTab($tab->gid, $tab->title, $this->read($response, $this->csvUrl($spreadsheetId, $tab->gid), 'text/csv'));
             } catch (GoogleSheetUnreadable $e) {
                 $unreadable[] = new UnreadableSheetTab($tab->gid, $tab->title, $e->getMessage());
             }
@@ -78,7 +98,19 @@ readonly final class GoogleSheetReader
             throw new GoogleSheetUnreadable(sprintf('"%s" is not a tab id.', $gid));
         }
 
-        return $this->get(self::BASE_URL . self::spreadsheetId($spreadsheetId) . '/export?format=csv&gid=' . $gid, 'text/csv');
+        return $this->get($this->csvUrl($spreadsheetId, $gid), 'text/csv');
+    }
+
+    /**
+     * @throws GoogleSheetUnreadable
+     */
+    private function csvUrl(string $spreadsheetId, string $gid): string
+    {
+        if (preg_match('/^\d{1,12}$/', $gid) !== 1) {
+            throw new GoogleSheetUnreadable(sprintf('"%s" is not a tab id.', $gid));
+        }
+
+        return self::BASE_URL . self::spreadsheetId($spreadsheetId) . '/export?format=csv&gid=' . $gid;
     }
 
     /**
@@ -86,13 +118,33 @@ readonly final class GoogleSheetReader
      */
     private function get(string $url, string $expectedContentType): string
     {
+        return $this->read($this->send($url), $url, $expectedContentType);
+    }
+
+    /**
+     * Starts the request - the client answers it lazily, so several can run at once.
+     *
+     * @throws GoogleSheetUnreadable
+     */
+    private function send(string $url): ResponseInterface
+    {
         try {
-            $response = $this->client->request('GET', $url, [
+            return $this->client->request('GET', $url, [
                 'timeout' => 10,
                 'max_duration' => 30,
                 'headers' => ['User-Agent' => 'MySpeedPuzzling event results import (+https://myspeedpuzzling.com)'],
             ]);
+        } catch (ExceptionInterface $e) {
+            throw new GoogleSheetUnreadable(sprintf('Google did not answer %s.', $url), previous: $e);
+        }
+    }
 
+    /**
+     * @throws GoogleSheetUnreadable
+     */
+    private function read(ResponseInterface $response, string $url, string $expectedContentType): string
+    {
+        try {
             $status = $response->getStatusCode();
             $contentType = $response->getHeaders(false)['content-type'][0] ?? '';
             $content = $response->getContent(false);

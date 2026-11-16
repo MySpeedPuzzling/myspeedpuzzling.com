@@ -13819,6 +13819,10 @@ results_import:
         last_checked: "Last checked %when%"
         never_checked: "Not checked yet"
     check:
+        busy: 'Reading your sheet…'
+        reading: 'We are reading every tab of your sheet from Google and comparing it with what is already on MySpeedPuzzling.'
+        elapsed: '%seconds% s'
+        slow: 'Still working - a sheet with many tabs takes a little longer.'
         button: "Check sheet"
         hint: "Reads your sheet from Google now - it takes a few seconds."
         last: "Last checked %when%"

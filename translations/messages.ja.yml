@@ -13562,6 +13562,10 @@ results_import:
         last_checked: "最終確認：%when%"
         never_checked: "まだ確認していません"
     check:
+        busy: 'シートを読み込み中…'
+        reading: 'Googleからシートのすべてのタブを読み込み、MySpeedPuzzlingにすでにある内容と照合しています。'
+        elapsed: '%seconds% 秒'
+        slow: '処理中です。タブが多いシートは少し時間がかかります。'
         button: "シートを確認"
         hint: "今すぐGoogleからシートを読み込みます。数秒かかります。"
         last: "最終確認：%when%"

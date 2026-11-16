@@ -13572,6 +13572,10 @@ results_import:
         last_checked: "Zuletzt geprüft %when%"
         never_checked: "Noch nicht geprüft"
     check:
+        busy: 'Tabelle wird gelesen…'
+        reading: 'Wir lesen jeden Tab deiner Tabelle von Google und vergleichen ihn mit dem, was schon auf MySpeedPuzzling ist.'
+        elapsed: '%seconds% s'
+        slow: 'Noch dabei - eine Tabelle mit vielen Tabs dauert etwas länger.'
         button: "Tabelle prüfen"
         hint: "Liest deine Tabelle jetzt von Google - das dauert ein paar Sekunden."
         last: "Zuletzt geprüft %when%"

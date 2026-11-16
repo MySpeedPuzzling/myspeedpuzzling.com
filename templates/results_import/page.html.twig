@@ -51,11 +51,13 @@
             </details>
         </div>
 
-        <div class="card card-body shadow-sm mb-4" data-results-import-check>
+        <div class="card card-body shadow-sm mb-4" data-results-import-check
+             data-controller="results-import-check"
+             data-results-import-check-busy-value="{{ 'results_import.check.busy'|trans }}">
             <div class="d-flex flex-wrap align-items-center gap-3">
-                <form method="post" action="{{ path('results_import_check', {slug: organization.slug, sourceId: source_id}) }}" class="m-0">
+                <form method="post" action="{{ path('results_import_check', {slug: organization.slug, sourceId: source_id}) }}" class="m-0" data-action="submit->results-import-check#start">
                     <input type="hidden" name="_token" value="{{ csrf_token('results_import_check_' ~ source_id) }}">
-                    <button type="submit" class="btn btn-primary" data-results-import-check-button>
+                    <button type="submit" class="btn btn-primary" data-results-import-check-button data-results-import-check-target="button">
                         <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'results_import.check.button'|trans }}
                     </button>
                 </form>
@@ -71,6 +73,17 @@
                     {% endif %}
                     <div class="text-muted">{{ 'results_import.check.hint'|trans }}</div>
                 </div>
+            </div>
+            {# Shown while the sheet is read (results_import_check_controller.js) #}
+            <div class="mt-3" data-results-import-check-target="status" hidden role="status" aria-live="polite">
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                </div>
+                <div class="small">
+                    {{ 'results_import.check.reading'|trans }}
+                    <span class="text-muted">({{ 'results_import.check.elapsed'|trans({'%seconds%': '<span data-results-import-check-target="elapsed">0</span>'})|raw }})</span>
+                </div>
+                <div class="small text-muted" data-results-import-check-target="slow" hidden>{{ 'results_import.check.slow'|trans }}</div>
             </div>
         </div>
 

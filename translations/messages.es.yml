@@ -13573,6 +13573,10 @@ results_import:
         last_checked: "Revisada por última vez %when%"
         never_checked: "Aún no revisada"
     check:
+        busy: 'Leyendo tu hoja…'
+        reading: 'Estamos leyendo cada pestaña de tu hoja desde Google y comparándola con lo que ya está en MySpeedPuzzling.'
+        elapsed: '%seconds% s'
+        slow: 'Seguimos trabajando: una hoja con muchas pestañas tarda un poco más.'
         button: "Revisar hoja"
         hint: "Lee tu hoja de Google ahora; tarda unos segundos."
         last: "Revisada por última vez %when%"

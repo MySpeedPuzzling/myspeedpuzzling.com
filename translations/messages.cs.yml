@@ -13575,6 +13575,10 @@ results_import:
         last_checked: "Naposledy zkontrolováno %when%"
         never_checked: "Zatím nezkontrolováno"
     check:
+        busy: 'Načítám tabulku…'
+        reading: 'Načítáme z Googlu každou záložku vaší tabulky a porovnáváme ji s tím, co už je na MySpeedPuzzling.'
+        elapsed: '%seconds% s'
+        slow: 'Pořád pracujeme - tabulka s mnoha záložkami trvá o něco déle.'
         button: "Zkontrolovat tabulku"
         hint: "Načte teď vaši tabulku z Googlu - trvá to pár sekund."
         last: "Naposledy zkontrolováno %when%"

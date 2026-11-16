@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
 use SpeedPuzzling\Web\Value\DataImport\ParsedImportRow;
 use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImport\SheetSample;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowMeaning;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
@@ -127,6 +128,132 @@ final class ImportCheckFirstTest extends TestCase
         self::assertSame([ImportField::Time, ColumnCertainty::Probable, MappedColumn::BY_VALUES], $read[7]);
         // The year stays nobody's guess - a column of plain numbers is no time
         self::assertNull($read[6][0]);
+        self::assertSame(DataImportSheetKind::Results, $mapping->kind);
+        self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($mapping));
+    }
+
+    public function testALargeSheetWithoutAHeaderRowWhoseFewPuzzlesRepeatIsStillResultsAndHeldForTheCheck(): void
+    {
+        // The shape a player reported: 4,000 rows of a CSV without a header row - date, brand, pieces, name, time -
+        // made of five puzzles solved again and again. The recognisers see the first rows only
+        $mapping = $this->analysed(self::repeatedLog(DataImportLimits::SAMPLE_ROWS, 4000, 5));
+        $read = [];
+
+        foreach ($mapping->columns as $column) {
+            $read[$column->column] = [$column->field, $column->certainty, $column->reason];
+        }
+
+        self::assertSame([ImportField::SolvedOn, ColumnCertainty::Probable, MappedColumn::BY_VALUES], $read[1]);
+        self::assertSame([ImportField::Brand, ColumnCertainty::Probable, MappedColumn::BY_BRAND_VALUES], $read[2]);
+        self::assertSame([ImportField::Pieces, ColumnCertainty::Probable, MappedColumn::BY_VALUES], $read[3]);
+        // Five names in 300 rows: not "mostly different", and still the only text of the sheet that can be the name
+        self::assertSame([ImportField::PuzzleName, ColumnCertainty::Probable, MappedColumn::BY_VALUES], $read[4]);
+        self::assertSame([ImportField::Time, ColumnCertainty::Probable, MappedColumn::BY_VALUES], $read[5]);
+        self::assertSame([DataImportSheetKind::Results, ColumnCertainty::Probable], [$mapping->kind, $mapping->kindCertainty]);
+        self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($mapping));
+        self::assertTrue(ImportCheckFirst::isAsked(ImportCheckFirst::asked($mapping)));
+
+        // The same without the catalogue's word on the brands: two repeated texts - three brands, five names: the
+        // one that says more different things is the name
+        $unbranded = $this->analysed(self::repeatedLog(DataImportLimits::SAMPLE_ROWS, 4000, 5), []);
+        self::assertSame(4, $unbranded->column(ImportField::PuzzleName)?->column);
+        self::assertSame(DataImportSheetKind::Results, $unbranded->kind);
+        self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($unbranded));
+    }
+
+    public function testTheNameOfAHeaderlessSheetIsATextOnNearlyEveryRowTheMostVariedOneAndNeverAColumnThatLostItsField(): void
+    {
+        $names = ['Harbour at Dusk', 'Lanterns in the Rain', 'Orchard', 'Market Day', 'Kites'];
+
+        // The first tester's order - date, brand, pieces, name, time - with six brands the catalogue does not know
+        // and names that mostly differ: the name, never the brand left of it
+        $brands = ['Qorvale', 'Zintrop', 'Meldahr', 'Fenwick Lane', 'Ostrava Blue', 'Tallow & Pine'];
+        $ordered = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), $brands[$index % 6], ['1000', '500'][$index % 2], $names[$index % 5] . ' ' . intdiv($index, 2), sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 23),
+        ))), []);
+        self::assertSame(4, $ordered->column(ImportField::PuzzleName)?->column);
+        self::assertNull($ordered->column(ImportField::Brand));
+
+        // Date, time, five names on every row, and a comment on three rows of ten, every one different - short or
+        // long: a comment is sparse, the names are on every row
+        foreach (['note %d', 'what a long evening that was, number %d'] as $comment) {
+            $commented = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+                static fn (int $index): array => [sprintf('2024-03-%02d', $index % 28 + 1), sprintf('1:%02d:%02d', 4 + $index, 10 + $index), $names[$index % 5], $index % 10 < 3 ? sprintf($comment, $index) : null],
+                range(0, 39),
+            ))), []);
+            self::assertSame(3, $commented->column(ImportField::PuzzleName)?->column, $comment);
+            self::assertSame(DataImportSheetKind::Results, $commented->kind);
+            self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($commented));
+        }
+
+        // Two texts on every row that say about as many different things (five names, five places): the left one
+        $tied = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), $names[$index % 5], ['kitchen', 'attic', 'porch', 'garden', 'study'][($index * 2) % 5], sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 19),
+        ))), []);
+        self::assertSame(2, $tied->column(ImportField::PuzzleName)?->column);
+
+        // Two columns of piece counts typed with their unit: the weaker one lost the field and is nobody's name,
+        // though it is a text and stands left of the names
+        $twice = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), ['1000 pcs', '500 pcs'][$index % 2], ['500 pcs', '1000 pcs', '2000 pcs'][$index % 3], $names[$index % 5], sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 11),
+        ))), []);
+        $fields = array_column(array_map(static fn (MappedColumn $column): array => [$column->column, $column->field], $twice->columns), 1, 0);
+        self::assertContains(ImportField::Pieces, [$fields[2], $fields[3]]);
+        self::assertContains(null, [$fields[2], $fields[3]]);
+        self::assertSame(4, $twice->column(ImportField::PuzzleName)?->column);
+
+        // Short codes ("A1", "B2") left of the names are no names: half of them are shorter than four characters
+        $coded = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), ['A1', 'B2', 'C3'][$index % 3], $names[$index % 5], sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 11),
+        ))), []);
+        self::assertSame(3, $coded->column(ImportField::PuzzleName)?->column);
+    }
+
+    public function testOnAHeaderlessSheetOnlyATextThatSaysSomethingBecomesTheNameAndNumbersAloneStayNotPuzzles(): void
+    {
+        // A drill log without a header row: dates, times, a count - no text at all. Not puzzles, as before
+        $drills = $this->analysed(Kit::sheet('drills', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), sprintf('0:%02d:%02d', 4 + $index, 10 + $index), (string) (100 + $index * 7)],
+            range(0, 11),
+        ))));
+        self::assertSame(DataImportSheetKind::NotPuzzles, $drills->kind);
+        self::assertNull($drills->column(ImportField::PuzzleName));
+        self::assertNull(ImportCheckFirst::reason($drills));
+
+        // The same with one word in every row ("solo") and a yes / no column: neither is a puzzle's name
+        $marked = $this->analysed(Kit::sheet('drills', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), sprintf('0:%02d:%02d', 4 + $index, 10 + $index), 'solo', $index % 2 === 0 ? 'yes' : 'no'],
+            range(0, 11),
+        ))));
+        self::assertSame(DataImportSheetKind::NotPuzzles, $marked->kind);
+
+        // Texts and nothing of a puzzle list beside them (no time, date, pieces, brand, barcode): nobody's guess
+        $words = $this->analysed(Kit::sheet('notes', self::from(1, array_map(
+            static fn (int $index): array => [['Harbour', 'Orchard', 'Kites'][$index % 3], ['north', 'south'][$index % 2]],
+            range(0, 11),
+        ))));
+        self::assertSame(DataImportSheetKind::NotPuzzles, $words->kind);
+
+        // Under a found header row a repeated text is never made the name: only the header-less sheet is guessed
+        $headed = $this->analysed(Kit::sheet('log', self::from(1, [
+            ['When', 'Qzx', 'Took'],
+            ...array_map(static fn (int $index): array => [Kit::date(sprintf('2024-03-%02d', $index + 1)), ['Harbour at Dusk', 'Lanterns in the Rain'][$index % 2], Kit::duration(3000 + $index)], range(0, 11)),
+        ])));
+        self::assertNull($headed->column(ImportField::PuzzleName));
+    }
+
+    public function testAHeaderlessLogOfFiveHundredRowsWithMostlyDifferentNamesIsReadAsBefore(): void
+    {
+        $mapping = $this->analysed(self::repeatedLog(DataImportLimits::SAMPLE_ROWS, 500, 430));
+
+        self::assertSame(
+            [1 => ImportField::SolvedOn, 2 => ImportField::Brand, 3 => ImportField::Pieces, 4 => ImportField::PuzzleName, 5 => ImportField::Time],
+            array_column(array_map(static fn (MappedColumn $column): array => [$column->column, $column->field], $mapping->columns), 1, 0),
+        );
         self::assertSame(DataImportSheetKind::Results, $mapping->kind);
         self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($mapping));
     }
@@ -426,6 +553,34 @@ final class ImportCheckFirstTest extends TestCase
         }
 
         return Kit::sheet('Sheet1', $rows);
+    }
+
+    /**
+     * A CSV log without a header row (every cell a text): date, brand, pieces, puzzle name, time h:mm:ss - the first
+     * $sampled rows of $total, made of $puzzles made-up puzzles.
+     */
+    private static function repeatedLog(int $sampled, int $total, int $puzzles): SheetSample
+    {
+        $brands = ['Northwind Puzzles', 'Paper Lantern', 'Oakfield'];
+        $words = ['Harbour', 'Lanterns', 'Orchard', 'Market Day', 'Kites', 'Old Mill', 'Tide Pools'];
+        $places = ['at Dusk', 'in the Rain', 'by the Stream', 'in Spring', 'over the Bay'];
+        $rows = [];
+
+        for ($index = 0; $index < $sampled; $index++) {
+            $puzzle = $index % $puzzles;
+            $seconds = 2400 + ($index * 37) % 9000;
+            $rows[$index + 1] = [
+                date('Y-m-d', 1546300800 + ($index % 365) * 86400),
+                $brands[$puzzle % count($brands)],
+                (string) [500, 1500][$puzzle % 2],
+                $words[$puzzle % count($words)] . ' ' . $places[intdiv($puzzle, count($words)) % count($places)] . ($puzzle >= 35 ? ' ' . $puzzle : ''),
+                sprintf('%d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds, 60) % 60, $seconds % 60),
+            ];
+        }
+
+        $sheet = Kit::sheet('noheader', $rows);
+
+        return new SheetSample($sheet->title, $sheet->rows, $sheet->hints, $total);
     }
 
     /**

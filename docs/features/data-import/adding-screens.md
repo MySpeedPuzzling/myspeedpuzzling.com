@@ -279,12 +279,27 @@ under its fold (`docs/TODO.md`).
   **"Repeated rows (N) - counted once"**, no tick boxes (`repeats`, `repeatIds`). The rows an "Add" takes are
   exactly three sets, each one SQL count with its own predicate: `rows_that_add` (the list, "See all N", the "All"
   tab) + `on_profile` + `repeats`. `ImportAddListTest` checks list + both folds against what an "Add" queues.
-  Imports home's card still counts the rows an Add *takes* ("9 rows ready to add") - its statement covers all of a
-  player's imports at once and does not judge what each row would make (`docs/TODO.md`).
+  **Imports home's card says the same numbers** (since 2026-11-16): `GetImportAddScreen::addedByImports()` judges
+  the ready rows of all open imports of the player in its ONE statement with the screens' own CTE (`sqlJudged()`
+  given a condition on the imports instead of one id; the guard's running number and "the first row per puzzle"
+  are counted per import) and the screens' own predicates (`ROW_ADDS`, `ROW_ON_PROFILE`, `ROW_REPEATS` - constants,
+  so the two can not drift): "N rows ready to add" = `rows_that_add`; when that is 0 and rows are on the profile,
+  "N rows are already on your profile - nothing to add" with a quiet **Open** to the import (never "ready to add",
+  and the import gives its place back like any card that waits for nothing); when what is left only repeats other
+  rows, "Nothing to add - N rows repeat other rows" with the same **Open**; rows over the daily guard are "N more
+  can be added tomorrow" (for these two "nothing" sentences a row counts whether today's Add would take it or not).
 - **A file that is on the profile already can be finished**: "I'm done with this import" is the primary of
   "Nothing to add…" and is offered on "Where you are" too (`ImportFlow::$canFinish`, `FinishImport` always took an
   import that added nothing) - with a sentence of its own ("Nothing is added from this file - what it holds is on
   your profile already…"). Discard stays where it was.
+- **The sentence under "I'm done with this import" says what is true** (2026-11-16; `detail.html.twig` →
+  `_finish_card.html.twig`, `nothing_added`): "what it holds is on your profile already" only when rows really are
+  on the profile and nothing is left to add (`on_profile`); after an Undo of everything, when the rows are ready
+  again, **"Nothing of this file is on your profile now - the rows are ready to add again."** (`undone`: nothing
+  added now, an Undo really ran - `ImportAddSummary::$everUndone`, a `data_import_undo` record -, something to add) - "Check and add" stays the primary and "I'm done" the quiet
+  second way; anything else a sentence without a reason. **No Discard is offered then, on purpose**: an import that
+  ever queued a row is never deleted (adding.md "What is never deleted" - its rows are how nothing is added twice),
+  so the page keeps "It stays in your list…" and says nothing about discarding.
 - **Keep-only Adds, the rest**: the finished page drops "Statistics, XP and achievements follow…", "I'm done" on
   the overview says "What it kept stays just for you", and "What adding does" says what keeping does.
 - **The link to Unlisted puzzles** on an import's overview only while THIS import has rows kept right now

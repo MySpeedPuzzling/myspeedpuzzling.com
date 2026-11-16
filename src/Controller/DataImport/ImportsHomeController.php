@@ -52,10 +52,8 @@ final class ImportsHomeController extends AbstractController
         // Where each import stands - what it added, what is ready, what waits: one statement for all of them
         $standing = $imports === [] ? [] : $this->getImportAddScreen->addedByImports($player->playerId);
         $now = $this->clock->now();
-        // The daily limit is the player's, not an import's
-        $resultsToday = array_sum(array_map(static fn (array $of): int => $of['resultsToday'], $standing));
         $cards = array_map(
-            static fn (DataImportOverview $import): ImportHomeCard => ImportHomeCard::of($import, $standing[$import->importId] ?? null, $resultsToday, $now),
+            static fn (DataImportOverview $import): ImportHomeCard => ImportHomeCard::of($import, $standing[$import->importId] ?? null, $now),
             $imports,
         );
         $inProgress = array_values(array_filter($cards, static fn (ImportHomeCard $card): bool => $card->finished === false));

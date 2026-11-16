@@ -185,11 +185,34 @@ still holds the sheet. A sheet that follows a layout confirmed on another sheet 
 
 Imports proposed before this shipped have no such question and go on as they were.
 
+### A header-less sheet always has a name - `ColumnRecogniser::withNameOnAHeaderlessSheet()`
+
+A names column is taken by its values when **at least half of them differ** (and they are texts of 8 characters on
+average). A log of a few puzzles solved again and again fails that by construction: 4,000 rows made of five
+puzzles show five names in the 200 cells a column is judged by. No name column → `not_puzzles` → the sheet was
+left out without a word (it is not imported, so "Check first" never saw it), and after the player said "Results"
+the name was still "Don't import" and every row "could not read".
+
+So, **only on a sheet without a header row**, after the brand was looked for: when something of a puzzle list was
+recognised (a time, a solve date, pieces, a brand or a barcode) and no column is the name, a free column of texts
+is the name: `probable`, `reason: values`. A candidate has ≥ 3 cells, ≥ 2 different values, ≥ 90 % texts, a median
+length of ≥ 4 characters and is **filled in on at least 80 % of the sheet's rows** (a name stands on nearly every
+row; comments and notes are sparse); never a column of yes / no, of dates or of times, never a column that has a
+field (the brand found by its values) and never the weaker of two columns of one field (`reason: duplicate` - a
+second "1000 pcs" column). Of the candidates **the one with the most different values** is taken (names differ more
+than brands the catalogue does not know); of those within 10 % of it, the left one. A name the older by-values rule
+gave to a column that is *not* filled in on 80 % of the rows (long comments that all differ) gives way to such a
+candidate. The sheet is then results or a list of owned puzzles,
+and - having no header row - **held for the check**, where a wrong guess is one tap to put right.
+
+What stays `not_puzzles` without a question: a header-less sheet with no text column at all (a drill log), or
+texts with nothing of a puzzle list beside them (`docs/TODO.md`).
+
 ## What a sheet is - `SheetKindGuesser`, `SheetLookupFactory`
 
 | `kind` | When | `rowMeaning` |
 |---|---|---|
-| `not_puzzles` | no puzzle name column (a drill log, statistics, a brand list, an empty sheet). Its rows are left out (`sheet_left_out`) by the same parse | - |
+| `not_puzzles` | no puzzle name column (a drill log, statistics, a brand list, an empty sheet). Its rows are left out (`sheet_left_out`) by the same parse. A header-less log whose names repeat is not one: "A header-less sheet always has a name" above | - |
 | `results` | a time, a solve date or an attempt number | `result` |
 | `results` / `owned` | a status column ("Completed?", a status of words): the column says per row what the row is | `by_column` |
 | `wish_list` | a list of puzzles whose sheet name says so (wish, wishlist, přání, Wunschliste, deseos, souhaits, ほしい) | `wish_list` |

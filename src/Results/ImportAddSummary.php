@@ -84,6 +84,8 @@ readonly final class ImportAddSummary
         public array $repeatIds = [],
         /** Rows of this import that are kept just for the player right now (added, not undone) */
         public int $keptNow = 0,
+        /** An Undo was ever run for this import (a row, a batch or everything) */
+        public bool $everUndone = false,
     ) {
     }
 

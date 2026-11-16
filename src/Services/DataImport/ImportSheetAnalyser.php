@@ -62,6 +62,12 @@ final readonly class ImportSheetAnalyser
         if ($layout === null && $brandsOf !== null) {
             $columns = ColumnRecogniser::withBrandByValues($columns, $rows, $brandsOf);
         }
+
+        if ($layout === null) {
+            // After the brand: on a sheet without a header row whose names repeat, the name is still found
+            $columns = $this->columnRecogniser->withNameOnAHeaderlessSheet($columns, $table, $rows);
+        }
+
         [$kind, $certainty, $rowMeaning] = $this->kindGuesser->guess($sample->title, $columns, $layout);
 
         $mapping = new ImportMapping($kind, $certainty, $rowMeaning, $regions, 0, $columns, [], $layout?->id);

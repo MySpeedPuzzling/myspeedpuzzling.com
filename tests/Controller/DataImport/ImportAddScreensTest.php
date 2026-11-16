@@ -967,6 +967,20 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertSame([], $this->resultsOf($player));
         self::assertSame('waiting', $this->rowNow($two)['state']);
 
+        // Everything is taken back: the overview never says "what it holds is on your profile already" - nothing
+        // is; the rows are ready again, and being done with the import stays a quiet second way. An import that
+        // once added is kept (never discarded): its rows are how nothing is added twice
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        $overview = self::spaced($crawler->filter('body')->text());
+        self::assertStringNotContainsString('on your profile already', $overview);
+        self::assertStringContainsString('Nothing of this file is on your profile now - the rows are ready to add again.', self::spaced($crawler->filter('[data-testid="import-finish-explain"]')->text()));
+        self::assertStringContainsString("I'm done with this import", self::spaced($crawler->filter('[data-testid="import-finish-button"]')->text()));
+        self::assertSame('data_import_add', $crawler->filter('[data-testid="import-flow-primary"]')->attr('data-route'));
+        self::assertCount(0, $crawler->filter('[data-testid="discard-import"]'));
+        // Imports home says the same number as the overview
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertSame(['3 rows ready to add'], $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text())));
+
         // Nothing is left to take back: said so, without a form - and a POST starts nothing
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/undo');
         self::assertCount(1, $crawler->filter('[data-testid="import-undo-nothing"]'));

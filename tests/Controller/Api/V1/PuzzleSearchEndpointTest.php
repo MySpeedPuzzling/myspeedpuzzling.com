@@ -872,7 +872,8 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $retryAfter = $browser->getResponse()->headers->get('Retry-After');
         $this->assertNotNull($retryAfter);
         $this->assertGreaterThanOrEqual(1, (int) $retryAfter);
-        $this->assertLessThanOrEqual(60, (int) $retryAfter);
+        // The limiter rounds the moment of the next free request up to a whole second
+        $this->assertLessThanOrEqual(61, (int) $retryAfter);
 
         // a 422 before the limiter is not counted, a different owner is not affected
         $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);

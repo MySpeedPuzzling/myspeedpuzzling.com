@@ -73,7 +73,7 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertIsString($mercure['token']);
 
         $token = self::verified($mercure['token']);
-        self::assertSame(['publish' => [], 'subscribe' => self::ROUND_TOPICS], $token->claims()->get('mercure'));
+        self::assertSame(['subscribe' => self::ROUND_TOPICS], $token->claims()->get('mercure'));
         $expires = $token->claims()->get('exp');
         self::assertInstanceOf(\DateTimeImmutable::class, $expires);
         self::assertSame(TestClock::timestamp() + 3600, $expires->getTimestamp());
@@ -226,7 +226,7 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertIsArray($mercure);
         self::assertSame($topics, $mercure['topics'] ?? null);
         self::assertIsString($mercure['token'] ?? null);
-        self::assertSame(['publish' => [], 'subscribe' => $topics], self::verified($mercure['token'])->claims()->get('mercure'));
+        self::assertSame(['subscribe' => $topics], self::verified($mercure['token'])->claims()->get('mercure'));
     }
 
     private static function verified(string $jwt): UnencryptedToken

@@ -8266,6 +8266,8 @@ participants_sheet_people:
   bulk_reg_stopped_forbidden: "停止しました。このイベントはもう変更できないため、%count%件は変更されていません。"
   bulk_reg_stopped_by_you: "停止しました。%count%件は送信されていません。"
 "events_page":
+  "my_organization": "自分の団体"
+  "my_organizations": "自分の団体"
   "title": "イベント"
   "summary":
     "dates": "{0}今後の日程なし|]0,Inf[今後の日程%count%件"

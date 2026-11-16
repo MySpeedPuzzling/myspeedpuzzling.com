@@ -1,0 +1,24 @@
+{# "My organization" in the events page header: the organizations the viewer is on the team of (or created), one click
+   to its page - where its team manages it (and imports results, where it has a results source). Nothing for anybody
+   else. One organization = a button with its name, several = a menu. Variables: organizations (list<{name, slug}>) #}
+{% if organizations|length == 1 %}
+    {% set organization = organizations|first %}
+    <a class="ev-my-organizations" href="{{ path('organization_detail', {slug: organization.slug}) }}" title="{{ 'events_page.my_organization'|trans }}" data-events-my-organization>
+        <i class="bi bi-building ev-organize-icon" aria-hidden="true"></i>
+        <span class="visually-hidden">{{ 'events_page.my_organization'|trans }}:</span>
+        <span>{{ organization.name }}</span>
+    </a>
+{% elseif organizations|length > 1 %}
+    <div class="dropdown" data-events-my-organizations>
+        <button class="ev-my-organizations dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-building ev-organize-icon" aria-hidden="true"></i>
+            <span>{{ 'events_page.my_organizations'|trans }}</span>
+            <span class="ev-organize-count">{{ organizations|length }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            {% for organization in organizations %}
+                <li><a class="dropdown-item" href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ organization.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}

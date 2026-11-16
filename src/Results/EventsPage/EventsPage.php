@@ -27,6 +27,7 @@ readonly final class EventsPage
      *     entries, what the server reads (`?q=` search, the search results)
      * @param list<string> $itemListUrls
      * @param list<CountryRegionGroup> $regions
+     * @param list<array{name: string, slug: string}> $myOrganizations
      * @param list<array<string, mixed>> $shippedIndex the same index as the page ships it (EventsIndexFactory::compact(),
      *     rebuilt in the browser by expandEventsIndex() of assets/events_index.js)
      */
@@ -53,6 +54,8 @@ readonly final class EventsPage
         public array $itemListUrls,
         public array $regions,
         public array $shippedIndex = [],
+        // The viewer's organizations - "My organization" in the header (EventsViewerData::myOrganizations())
+        public array $myOrganizations = [],
     ) {
     }
 }

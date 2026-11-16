@@ -8359,6 +8359,8 @@ participants_sheet_people:
   bulk_reg_stopped_forbidden: "Arrêté - vous ne pouvez plus modifier cet événement. %count% personne n'a pas été modifiée.|Arrêté - vous ne pouvez plus modifier cet événement. %count% personnes n'ont pas été modifiées."
   bulk_reg_stopped_by_you: "Arrêté - %count% action non envoyée.|Arrêté - %count% actions non envoyées."
 "events_page":
+  "my_organization": "Mon organisation"
+  "my_organizations": "Mes organisations"
   "title": "Événements"
   "summary":
     "dates": "{0}Aucune date à venir|{1}1 date à venir|]1,Inf[%count% dates à venir"

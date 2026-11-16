@@ -12,6 +12,7 @@
     <div class="ev-header-actions">
         {# On phones the guide is in the footer card only - the header stays two lines #}
         <a class="ev-guide-link" href="{{ path('for_organizers') }}">{{ 'events_page.guide'|trans }}</a>
+        {{ include('events/_my_organizations.html.twig', {organizations: page.myOrganizations}) }}
         {{ include('events/_organize_button.html.twig', {count: page.organizedCount}) }}
         <a class="btn btn-sm btn-outline-primary ev-add" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">
             <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}

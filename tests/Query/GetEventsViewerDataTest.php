@@ -44,6 +44,7 @@ final class GetEventsViewerDataTest extends KernelTestCase
         // The kinds never mix: the organization's id is no followed series
         self::assertFalse($viewer->follows(FollowTarget::series(OrganizationFixture::ORGANIZATION_RIVERBEND)));
         self::assertSame([], $viewer->organizedOrganizationIds());
+        self::assertSame([], $viewer->myOrganizations());
 
         // Organised: the unapproved event and Euro Jigsaw Jam (maintainer + creator), Garden Swap (created, rejected)
         $organized = $viewer->organizedCompetitionIds();
@@ -89,6 +90,18 @@ final class GetEventsViewerDataTest extends KernelTestCase
             OrganizationFixture::ORGANIZATION_MAPLE_PENDING,
             OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT,
         ], $viewer->organizedOrganizationIds());
+
+        // The events page header's "My organization" button: the same organizations, by name, with their slugs
+        $myOrganizations = $viewer->myOrganizations();
+        self::assertCount(3, $myOrganizations);
+        $names = array_column($myOrganizations, 'name');
+        $sorted = $names;
+        usort($sorted, 'strcasecmp');
+        self::assertSame($sorted, $names);
+
+        foreach ($myOrganizations as $organization) {
+            self::assertNotSame('', $organization['slug']);
+        }
 
         // Riverbend's series through its team, Maple's as its creator
         self::assertEqualsCanonicalizing([

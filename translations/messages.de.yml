@@ -8276,6 +8276,8 @@ participants_sheet_people:
   bulk_reg_stopped_forbidden: "Angehalten – Sie dürfen diese Veranstaltung nicht mehr ändern. 1 wurde nicht geändert.|Angehalten – Sie dürfen diese Veranstaltung nicht mehr ändern. %count% wurden nicht geändert."
   bulk_reg_stopped_by_you: "Angehalten – 1 wurde nicht gesendet.|Angehalten – %count% wurden nicht gesendet."
 "events_page":
+  "my_organization": "Meine Organisation"
+  "my_organizations": "Meine Organisationen"
   "title": "Veranstaltungen"
   "summary":
     "dates": "{0}Keine kommenden Termine|{1}1 kommender Termin|]1,Inf[%count% kommende Termine"

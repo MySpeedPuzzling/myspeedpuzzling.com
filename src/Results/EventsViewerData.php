@@ -22,6 +22,7 @@ readonly final class EventsViewerData
      * @param list<string> $followedOrganizationIds
      * @param list<string> $organizedOrganizationIds the organizations the viewer is on the team of
      * @param array<string, string> $organizationOfItem organized competition or series id => the organization it is under
+     * @param array<string, array{name: string, slug: string}> $organizationLinks organization id => its name and slug, for the viewer's organizations
      */
     public function __construct(
         public array $goingCompetitionIds = [],
@@ -32,6 +33,7 @@ readonly final class EventsViewerData
         public array $followedOrganizationIds = [],
         public array $organizedOrganizationIds = [],
         public array $organizationOfItem = [],
+        public array $organizationLinks = [],
     ) {
     }
 
@@ -68,6 +70,19 @@ readonly final class EventsViewerData
     public function organizedOrganizationIds(): array
     {
         return $this->organizedOrganizationIds;
+    }
+
+    /**
+     * The viewer's organizations (team or creator) by name - the events page header's "My organization" button.
+     *
+     * @return list<array{name: string, slug: string}>
+     */
+    public function myOrganizations(): array
+    {
+        $organizations = array_values($this->organizationLinks);
+        usort($organizations, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+        return $organizations;
     }
 
     /**

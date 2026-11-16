@@ -8366,6 +8366,8 @@ participants_sheet_people:
     bulk_reg_stopped_forbidden: "{1}Zastaveno - tuto událost už nesmíte měnit. 1 člověk nebyl změněn.|[2,4]Zastaveno - tuto událost už nesmíte měnit. %count% lidé nebyli změněni.|[0,Inf[Zastaveno - tuto událost už nesmíte měnit. %count% lidí nebylo změněno."
     bulk_reg_stopped_by_you: "{1}Zastaveno - 1 změna nebyla odeslána.|[2,4]Zastaveno - %count% změny nebyly odeslány.|[0,Inf[Zastaveno - %count% změn nebylo odesláno."
 "events_page":
+  "my_organization": "Moje organizace"
+  "my_organizations": "Moje organizace"
   "title": "Události"
   "summary":
     "dates": "{0}Žádné nadcházející termíny|{1}1 nadcházející termín|[2,4]%count% nadcházející termíny|[5,Inf[%count% nadcházejících termínů"

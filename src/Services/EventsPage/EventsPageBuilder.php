@@ -275,6 +275,7 @@ readonly final class EventsPageBuilder
             itemListUrls: $this->itemListUrls([...$live, ...$upcoming, ...$tba]),
             regions: $this->regions($countryCounts),
             shippedIndex: $this->indexFactory->compact($index),
+            myOrganizations: $viewer?->myOrganizations() ?? [],
         );
     }
 

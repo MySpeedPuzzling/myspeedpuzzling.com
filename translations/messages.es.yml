@@ -8277,6 +8277,8 @@ participants_sheet_people:
   bulk_reg_stopped_forbidden: "Se detuvo porque ya no puedes cambiar este evento. 1 no se cambió.|Se detuvo porque ya no puedes cambiar este evento. %count% no se cambiaron."
   bulk_reg_stopped_by_you: "Se detuvo. 1 no se envió.|Se detuvo. %count% no se enviaron."
 "events_page":
+  "my_organization": "Mi organización"
+  "my_organizations": "Mis organizaciones"
   "title": "Eventos"
   "summary":
     "dates": "{0}Ninguna fecha próxima|{1}1 fecha próxima|]1,Inf[%count% fechas próximas"

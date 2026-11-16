@@ -913,6 +913,8 @@ events:
 
 # Events page - list (workstream A, docs/features/events-page/)
 events_page:
+    my_organization: 'My organization'
+    my_organizations: 'My organizations'
     title: "Events"
     summary:
         dates: "{0}No upcoming dates|{1}1 upcoming date|]1,Inf[%count% upcoming dates"

@@ -35,36 +35,37 @@ readonly final class GetEventsViewerData
 SQL;
 
         $query = <<<SQL
-SELECT 'going' AS kind, cp.competition_id::text AS id, NULL::text AS series_id, NULL::text AS organization_id
+SELECT 'going' AS kind, cp.competition_id::text AS id, NULL::text AS series_id, NULL::text AS organization_id, NULL::text AS name, NULL::text AS slug
 FROM competition_participant cp
 WHERE cp.player_id = :playerId AND {$going}
 UNION ALL
-SELECT 'follow_competition', fc.competition_id::text, NULL, NULL
+SELECT 'follow_competition', fc.competition_id::text, NULL, NULL, NULL, NULL
 FROM followed_competition fc
 WHERE fc.player_id = :playerId AND fc.competition_id IS NOT NULL
 UNION ALL
-SELECT 'follow_series', fc.series_id::text, NULL, NULL
+SELECT 'follow_series', fc.series_id::text, NULL, NULL, NULL, NULL
 FROM followed_competition fc
 WHERE fc.player_id = :playerId AND fc.series_id IS NOT NULL
 UNION ALL
-SELECT 'follow_organization', fc.organization_id::text, NULL, NULL
+SELECT 'follow_organization', fc.organization_id::text, NULL, NULL, NULL, NULL
 FROM followed_competition fc
 WHERE fc.player_id = :playerId AND fc.organization_id IS NOT NULL
 UNION ALL
-SELECT 'organize_competition', c.id::text, c.series_id::text, COALESCE(c.organization_id, cs.organization_id)::text
+SELECT 'organize_competition', c.id::text, c.series_id::text, COALESCE(c.organization_id, cs.organization_id)::text, NULL, NULL
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE c.added_by_player_id = :playerId
     OR EXISTS (SELECT 1 FROM competition_maintainer cm WHERE cm.competition_id = c.id AND cm.player_id = :playerId)
     OR (c.series_id IS NULL AND c.organization_id IN {$teamOrganizations})
 UNION ALL
-SELECT 'organize_series', cs.id::text, NULL, cs.organization_id::text
+SELECT 'organize_series', cs.id::text, NULL, cs.organization_id::text, NULL, NULL
 FROM competition_series cs
 WHERE cs.added_by_player_id = :playerId
     OR EXISTS (SELECT 1 FROM competition_series_maintainer csm WHERE csm.competition_series_id = cs.id AND csm.player_id = :playerId)
     OR cs.organization_id IN {$teamOrganizations}
 UNION ALL
-SELECT 'organize_organization', o.id::text, NULL, NULL
+-- Its name and slug for the "My organization" button of the events page header
+SELECT 'organize_organization', o.id::text, NULL, NULL, o.name, o.slug
 FROM organization o
 WHERE o.id IN {$teamOrganizations}
 SQL;
@@ -77,6 +78,7 @@ SQL;
         $organizedSeries = [];
         $organizedOrganizations = [];
         $organizationOfItem = [];
+        $organizationLinks = [];
 
         /** @var array<string, null|string|int|bool> $row */
 
@@ -98,6 +100,10 @@ SQL;
                 'organize_organization' => $organizedOrganizations[$id] = $id,
                 default => null,
             };
+
+            if ($row['kind'] === 'organize_organization' && is_string($row['name']) && is_string($row['slug'])) {
+                $organizationLinks[$id] = ['name' => $row['name'], 'slug' => $row['slug']];
+            }
         }
 
         return new EventsViewerData(
@@ -109,6 +115,7 @@ SQL;
             followedOrganizationIds: array_values($followedOrganizations),
             organizedOrganizationIds: array_values($organizedOrganizations),
             organizationOfItem: $organizationOfItem,
+            organizationLinks: $organizationLinks,
         );
     }
 }

@@ -197,9 +197,13 @@ could only call "not saved".
 `aria-live="polite"`): what the answer did ("1 matched.", "1 puzzle kept just for you.", "This was decided
 meanwhile …"), **"Undo the last one"** - a form with the puzzle, the version the answer left and the fields that
 lead back to the screen it was given on - and, when the answer was the last puzzle that waited, "Nothing waits for
-you here." with the button to the next step (`?after=puzzles`). An answer for several that was **taken** (the grid, a pile) is said at the top of the screen it renders instead -
-that screen is a new one, shown from its beginning - and the line is cleared; one that was **refused** (a set that
-holds a puzzle needing a closer look, a stale tile) is said in the line, because the grid's button is at the bottom.
+you here." with the button to the next step (`?after=puzzles`). An answer for several (the grid, a pile) is said there too - the sentence and "Close", no
+"Undo the last one" - so there is one place to look.
+
+The line is **fixed to the bottom of the window** (`position: fixed`, above the safe-area inset): a sticky line left
+with the list at the page's end and took "Undo the last one" with it. The script makes the page that much longer
+(`body` padding) so the footer's links are never under it, and sets `--import-said-height`, which the grid's own
+sticky bar stands on.
 
 **What the player set and did not send stays.** A screen rendered again comes with the server's defaults; the
 script puts back the boxes the player unticked (and has them counted again - the tick counter also recounts on
@@ -271,7 +275,9 @@ overview.
 - "Undo the last one" names the card it brings back (`data-import-answers-returns`): that card is brought wholly
   above the line and its first button focused, and it is the card focus returns to on "Close". Nothing is ever
   focused without being brought into view first - Enter must not answer a card nobody sees;
-- what is revealed is **the whole card**, not its button: its top just below the header when it stood above, moved
+- a card that **stayed where it is** (a person's card, a card of a list) gets focus on the button that was used,
+  and nothing moves when that button is in view;
+- for a card that moved up or came back what is revealed is **the whole card**, not its button: its top just below the header when it stood above, moved
   up only as far as the top stays below the header when it stood below - a card taller than the room shows its
   beginning (name and picture), its buttons a scroll away;
 - the last card of a screen answered: the screen's ONE way on (`#import-pile .btn-primary`, or the next step's

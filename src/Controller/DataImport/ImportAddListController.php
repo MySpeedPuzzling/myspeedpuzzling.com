@@ -69,7 +69,7 @@ final class ImportAddListController extends AbstractController
             ($page - 1) * GetImportAddScreen::ROWS_PER_PAGE,
         );
 
-        if ($list['rows'] === [] && $page > 1) {
+        if ($list['rows'] === [] && $page > 1 && $request->query->has('back') === false) {
             // A page that is not there any more (rows were added, a filter narrowed): the first one
             return $this->redirectToRoute('data_import_add_list', ['importId' => $importId, ...$filters]);
         }
@@ -83,7 +83,20 @@ final class ImportAddListController extends AbstractController
             $onePuzzle = ['id' => $puzzleIds[0], 'rows' => count($taken), 'name' => $taken[0]->row->puzzleName ?? $taken[0]->row->said->text('name')];
         }
 
+        // A row that was just put back and is not ready again yet (its puzzle is matched again in a moment): shown
+        // in its place as "coming back", and the page asks again until it is (add_list.html.twig)
+        $comingBack = null;
+        $back = strtolower($request->query->getString('back'));
+
+        if (Uuid::isValid($back) && array_filter($list['rows'], static fn (ImportAddListRow $row): bool => $row->row->rowId === $back) === []) {
+            $comingBack = $this->getImportAddScreen->rowsByIds($importId, $player->playerId, [$back])[$back] ?? null;
+            // Only a row that waits to be ready: not one that is left out (again), added, or of no use
+            $comingBack = $comingBack !== null && $comingBack->state === 'waiting' && $comingBack->solvingTimeId === null ? $comingBack : null;
+        }
+
         return $this->render('data_import/add_list.html.twig', [
+            'coming_back' => $comingBack,
+            'back' => $comingBack !== null ? $back : null,
             'import' => $import,
             'add' => $add,
             'sheets' => $add->sheets,

@@ -13,7 +13,7 @@
       step_done   (optional) no puzzle of the import waits any more
 #}
 {% set colours = {success: 'border-success', warning: 'border-warning', info: 'border-primary'} %}
-<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-1" data-testid="import-answer-said-message" data-type="{{ said.type }}" data-import-answers-dismissable>
+<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-1" data-testid="import-answer-said-message" data-type="{{ said.type }}" style="pointer-events: auto;" data-import-answers-dismissable>
     <div class="card-body py-1 px-3">
         {# Row 1: the sentence, the whole width, two lines at most. Row 2: what can be done, to the right. #}
         <div class="fs-sm fw-medium" style="line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" data-testid="import-answer-said-text">

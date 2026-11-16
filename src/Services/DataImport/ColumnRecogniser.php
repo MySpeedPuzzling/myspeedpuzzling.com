@@ -228,6 +228,100 @@ final readonly class ColumnRecogniser
     }
 
     /**
+     * **The puzzle's name on a sheet without a header row, when no column looks like one**
+     * (docs/features/data-import/columns.md "A header-less sheet always has a name"): a column of names is taken by
+     * its values when most of them differ - which a log of a few puzzles solved again and again never does (five
+     * names in the 200 cells looked at). Such a sheet would be "not puzzles" and dropped without a word. So: when
+     * something of a puzzle list was recognised (a time, a solve date, pieces, a brand, a barcode) and no column is
+     * the name, the free column of texts that says the most - the most different values, then the longest ones, the
+     * left one first - is the name: `probable`, `reason: values`. The sheet is then a list of puzzles, and - having
+     * no header row - held for the player's check (ImportCheckFirst), who puts it right when the guess is wrong.
+     *
+     * Called after withBrandByValues(), so that the brand's column is never taken for the name. Never a column of
+     * one value, of yes / no, of dates or of times.
+     *
+     * @param list<MappedColumn> $columns
+     * @param iterable<array<int, array<string, mixed>>> $rows rows of the table's data (cells by column), a sample
+     *
+     * @return list<MappedColumn>
+     */
+    public function withNameOnAHeaderlessSheet(array $columns, DataRegion $region, iterable $rows): array
+    {
+        if ($region->headerRow !== null) {
+            return $columns;
+        }
+
+        $evidence = false;
+        $free = [];
+
+        foreach ($columns as $column) {
+            if ($column->field === ImportField::PuzzleName) {
+                return $columns;
+            }
+
+            $evidence = $evidence || in_array($column->field, [ImportField::Time, ImportField::SolvedOn, ImportField::Pieces, ImportField::Brand, ImportField::Barcode], true);
+
+            if ($column->field === null && $column->role === null && $column->header === '') {
+                $free[$column->column] = true;
+            }
+        }
+
+        if ($evidence === false || $free === []) {
+            return $columns;
+        }
+
+        $values = [];
+
+        foreach ($rows as $cells) {
+            foreach ($free as $number => $_) {
+                $cell = $cells[$number] ?? null;
+
+                if ($cell !== null && StoredCells::isBlank($cell) === false && count($values[$number] ?? []) < self::SAMPLE) {
+                    $values[$number][] = $cell;
+                }
+            }
+        }
+
+        ksort($values);
+        $best = null;
+        $bestScore = [0, 0.0];
+
+        foreach ($values as $number => $cells) {
+            $profile = $this->profile($cells);
+            $count = $profile['count'];
+
+            if (
+                $count < 3
+                || $profile['distinct'] < 2
+                || $profile['texts'] / $count < 0.9
+                || $profile['yesNo'] / $count >= 0.5
+                || $profile['textDays'] / $count >= 0.5
+                || $profile['textTimes'] / $count >= 0.5
+            ) {
+                continue;
+            }
+
+            $score = [$profile['distinct'], $profile['length'] / $count];
+
+            if ($score > $bestScore) {
+                $best = $number;
+                $bestScore = $score;
+            }
+        }
+
+        if ($best === null) {
+            return $columns;
+        }
+
+        return array_map(
+            static fn (MappedColumn $column): MappedColumn => $column->column === $best
+                ? new MappedColumn($column->column, $column->header, ImportField::PuzzleName, ColumnCertainty::Probable, MappedColumn::BY_VALUES)
+                : $column,
+            $columns,
+        );
+    }
+
+    /**
      * @param list<array<string, mixed>> $values
      *
      * @return array{MappedColumn, float} the column, and how strongly it is what it is (for two columns on one field)

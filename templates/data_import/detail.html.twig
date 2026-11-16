@@ -238,7 +238,10 @@
     {% endif %}
 
     {% if import_flow.canFinish %}
-        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf, kept_only: add.onlyKept, nothing_added: not add.hasAdded}) }}
+        {# Nothing of the import is on the profile: because what it holds is there already - only when it really is and
+           nothing is left to add -, because it was added and taken back (its rows are ready again), or just so #}
+        {% set nothing_added = add.hasAdded ? false : (add.toAdd > 0 and add.latestBatchId is not null ? 'undone' : (add.toAdd == 0 and add.onProfileAlready > 0 ? 'on_profile' : 'none')) %}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf, kept_only: add.onlyKept, nothing_added: nothing_added}) }}
     {% endif %}
 
     {% if not import_flow.canDiscard %}

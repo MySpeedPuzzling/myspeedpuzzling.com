@@ -1752,9 +1752,14 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
   while nothing is ready).
 - [ ] The batch page after an "Add" of new rows and already-yours rows together still says the latter only inside
   a fold ("On your profile already: N") - say it in the headline's sentence too.
-- [ ] Imports home's card says "N rows ready to add" for the rows an Add takes - also the ones that are on the
-  profile already or repeat another row. Its statement counts all of a player's imports at once without judging
-  what each row would make; give it the number that will be added when that can be had cheaply.
+- [ ] Look at it in a real browser (2026-11-16, leftovers): Imports home with an import whose rows are all on the
+  profile ("N rows are already on your profile - nothing to add", **Open**) and a mixed one (the number of "Check
+  and add"); the overview after "Undo everything" ("Nothing of this file is on your profile now - the rows are
+  ready to add again." under "I'm done with this import"); a header-less CSV of thousands of rows made of a few
+  puzzles - held for the check with its name column guessed.
+- [ ] A header-less sheet read as "not puzzles" (no text column at all, or nothing of a puzzle list beside its
+  texts) is still left out without a question - holding it would need a check for a sheet whose rows are not
+  imported (`ImportCheckFirst` holds parsed rows of imported sheets only).
 
 ## Data import - after the first real runs (2026-11-15, docs/features/data-import/STATUS.md)
 

@@ -204,6 +204,14 @@ final class ImportAddListTest extends WebTestCase
         self::assertStringContainsString('3 rows are already on your profile - they are not added twice.', $lines);
         self::assertStringNotContainsString('Nothing is ready yet', $lines);
         self::assertCount(0, $crawler->filter('[data-testid="import-flow-primary"][data-route="data_import_add"]'));
+        // "I'm done with this import" says why nothing is added - here it is true: the rows are on the profile
+        self::assertStringContainsString('what it holds is on your profile already', self::spaced($crawler->filter('[data-testid="import-finish-explain"]')->text()));
+
+        // ---- Imports home: the card says the same - never "3 rows ready to add" - and only opens the import ----
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertSame(['3 rows are already on your profile - nothing to add'], $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text())));
+        self::assertSame(['Open', $base], [self::spaced($card->filter('[data-testid="data-import-button"]')->text()), $card->filter('[data-testid="data-import-button"]')->attr('href')]);
+        self::assertStringNotContainsString('ready to add', self::spaced($card->text()));
 
         // ---- "Check and add": the status, no "Go through these rows", and the way to finish ----
         $crawler = $this->browser->request('GET', $base . '/add');
@@ -260,6 +268,10 @@ final class ImportAddListTest extends WebTestCase
         $crawler = $this->browser->request('GET', $base . '/add/list');
         self::assertSame([$new], self::rowIds($crawler));
         self::assertSame('3', $crawler->filter('[data-testid="import-on-profile"]')->attr('data-rows'));
+        // ... and home counts the one row that adds something, not the four an Add takes
+        $card = $this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]');
+        self::assertSame(['1 row ready to add'], $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text())));
+        self::assertSame(['Check and add', $base . '/add'], [self::spaced($card->filter('[data-testid="data-import-button"]')->text()), $card->filter('[data-testid="data-import-button"]')->attr('href')]);
     }
 
     public function testTheNumberOfRowsOnTheProfileIsOneNumberAlsoBesideRepeatsAndRowsKeptJustForThePlayer(): void
@@ -330,6 +342,26 @@ final class ImportAddListTest extends WebTestCase
         $fold = $crawler->filter('[data-testid="import-on-profile"]');
         self::assertSame('3', $fold->attr('data-rows'));
         self::assertSame($onProfile, $fold->filter('[data-testid="import-on-profile-row"]')->each(static fn (Crawler $row): string => (string) $row->attr('data-row-id')));
+
+        // Imports home: of the seven rows an Add takes, one adds something - the list's own number. And a second
+        // import of the same player is judged by itself, in the same statement
+        [$other, $otherSheet] = $this->importOf($player);
+        $this->resultRow($other, $otherSheet, 'Zq Onenum Harbour', 500, 'Zqonenum', '2024-01-10', 3011);
+        $this->resultRow($other, $otherSheet, 'Zq Onenum Harbour', 500, 'Zqonenum', '2024-06-01', 3200);
+        $this->resultRow($other, $otherSheet, 'Zq Onenum Harbour', 500, 'Zqonenum', '2024-06-02', 3300);
+        $this->pair($other);
+        $this->sheetsAreRead($other->id->toString());
+        $lines = [];
+
+        foreach ($this->browser->request('GET', '/en/import')->filter('[data-testid="data-import"]') as $node) {
+            $card = new Crawler($node, 'http://localhost/en/import');
+            $lines[(string) $card->filter('[data-testid="data-import-button"]')->attr('href')] = $card->filter('[data-testid="data-import-status-line"]')->each(static fn (Crawler $line): string => self::spaced($line->text()));
+        }
+
+        self::assertEquals(
+            [$base . '/add' => ['1 row ready to add'], '/en/import/' . $other->id->toString() . '/add' => ['2 rows ready to add']],
+            array_intersect_key($lines, [$base . '/add' => true, '/en/import/' . $other->id->toString() . '/add' => true]),
+        );
     }
 
     public function testNothingToAddIsOnlyCalledEverythingOnYourProfileWhenItIs(): void

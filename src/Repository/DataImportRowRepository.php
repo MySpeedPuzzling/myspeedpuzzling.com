@@ -544,7 +544,8 @@ SQL;
      * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - that have a
      *   date (a day, a month or a year), and the rows whose puzzle is kept as an unlisted puzzle
      *   (`choice = 'unlisted'`, dated or not), in the file's order, with the running number of results for the
-     *   profile (`results_so_far`: the daily guard takes the first N - unlisted results are private and not counted).
+     *   profile (`results_so_far`, counted per import: the daily guard takes the first N - unlisted results are
+     *   private and not counted).
      *
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
@@ -559,6 +560,7 @@ SQL;
 chosen AS (
     SELECT
         r.id,
+        r.import_id,
         r.sheet_id,
         r.row_number,
         sheet.position,
@@ -605,7 +607,7 @@ ready AS (
     SELECT
         chosen.*,
         -- Only results for the profile use the day up: an unlisted result is private until its puzzle is paired
-        SUM(CASE WHEN chosen.has_result AND chosen.choice = 'catalogue' THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
+        SUM(CASE WHEN chosen.has_result AND chosen.choice = 'catalogue' THEN 1 ELSE 0 END) OVER (PARTITION BY chosen.import_id ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
     FROM chosen
     WHERE (
             chosen.choice = 'catalogue'

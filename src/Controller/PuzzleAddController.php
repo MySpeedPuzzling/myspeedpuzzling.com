@@ -284,7 +284,8 @@ final class PuzzleAddController extends AbstractController
             $data->finishedAt = $officialEntry->finishedAt;
 
             // An official result that did not finish within the round's time limit: the switch on, its pieces filled in
-            if ($officialEntry->piecesPlaced !== null) {
+            // (with the kill switch off the form cannot ask it - the entry then fills in its puzzle, day and people only)
+            if ($officialEntry->piecesPlaced !== null && $this->unfinishedResultForm->isEnabled()) {
                 $data->unfinished = true;
                 $data->piecesPlaced = (string) $officialEntry->piecesPlaced;
             }
@@ -340,6 +341,7 @@ final class PuzzleAddController extends AbstractController
             'has_active_membership' => $hasActiveMembership,
             'current_competition_pick' => $deepLinkPick,
             'submitted_competition_pick' => $this->submittedCompetitionPick($request),
+            'unfinished_enabled' => $this->unfinishedResultForm->isEnabled(),
         ]);
         // A photo part without a single byte counts as no photo at all - never throws (EmptyPhotoParts)
         $this->emptyPhotoParts->leaveOut($request, $addTimeForm);
@@ -351,12 +353,6 @@ final class PuzzleAddController extends AbstractController
         $browserPhotoMetadata = $this->formPhotoStash->browserMetadata($request, $restoredPhotos, $userProfile->playerId);
         $data->puzzlePhotoBrowserMetadata = $browserPhotoMetadata['puzzlePhoto'] ?? null;
         $data->finishedPuzzlesPhotoBrowserMetadata = $browserPhotoMetadata['finishedPuzzlesPhoto'] ?? null;
-
-        // The kill switch UNFINISHED_RESULTS_FORM off: the add form never asks "I didn't finish within the time limit" -
-        // a switch posted by a page rendered before means nothing (docs/features/feature_flags.md)
-        if ($this->unfinishedResultForm->isEnabled() === false) {
-            $data->unfinished = false;
-        }
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422. As a skipped `if` it answered 200 with a

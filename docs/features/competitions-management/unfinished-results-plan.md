@@ -142,7 +142,10 @@ behind). Shown: always while on, else when a round with a limit is known and the
 with the switch off = the non-blocking nudge; on = pieces with "/ 500 · 21 pieces left", the time relabelled "Total time, if
 you finished it afterwards (optional)"; hidden inputs are disabled (never posted). `unfinished_result_controller.js` (on the
 `<form>`, lazy, the other controllers untouched) takes over: hint debounced 300 ms on any change/input of the form + the mode
-buttons, `AbortController`, fail-open (a failed hint = no round, except for what the page was rendered with).
+buttons, `AbortController`, fail-open (a failed hint = no round, except for what the page was rendered with). The one hook
+in another controller: `first_try_check_controller.js` sends no seconds while the switch is on (no same-time or pace
+question about a total - the server asks none either). The kill switch is applied inside the add form's `POST_SUBMIT`
+before its rules (option `unfinished_enabled`), so a switch posted by an old page is a finished submit (time required).
 *Add:* `PuzzleAddController` dispatches `AddUnfinishedPuzzleSolvingTime` when `isUnfinished()` (stopwatch: its time is the
 total, `created_via = stopwatch`), else exactly the old path; no pace check and no duplicate-time check for it (first-try
 check with no seconds); a resend = same pieces + puzzle + day (`isSameEntry()`); recap as before. *Edit:* the "coming soon"

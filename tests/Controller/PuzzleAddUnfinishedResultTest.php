@@ -288,6 +288,16 @@ final class PuzzleAddUnfinishedResultTest extends WebTestCase
 
         self::assertResponseRedirects('/en/time-added/' . $ids['time_id']);
         self::assertNull($this->stored($ids['time_id'])['pieces_placed']);
+
+        // The usual unfinished submit of a page rendered before the flip: no time - the time is required again (422)
+        $crawler = $browser->request('GET', self::ADD_500_02 . '?competition=' . CompetitionFixture::COMPETITION_WJPC_2024);
+        $ids = $this->ids($crawler);
+        $submission = [...$this->submissionOf($crawler), 'puzzle' => PuzzleFixture::PUZZLE_500_02, 'timeHours' => '0', 'timeMinutes' => '0', 'timeSeconds' => '0', 'competition' => CompetitionFixture::COMPETITION_WJPC_2024, 'unfinished' => '1', 'piecesPlaced' => '479'];
+        $crawler = $browser->request('POST', self::ADD_500_02, ['puzzle_add_form' => $submission, ...$ids]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Please enter the time', $crawler->filter('[data-puzzle-add-form-target="timeSection"]')->text());
+        self::assertFalse($this->exists($ids['time_id']));
     }
 
     private function signedIn(): KernelBrowser

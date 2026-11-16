@@ -319,10 +319,19 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices): void {
+        /** @var bool $unfinishedEnabled */
+        $unfinishedEnabled = $options['unfinished_enabled'] ?? true;
+
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices, $unfinishedEnabled): void {
             $form = $event->getForm();
             $data = $event->getData();
             assert($data instanceof PuzzleAddFormData);
+
+            // The kill switch UNFINISHED_RESULTS_FORM off: a switch posted by a page rendered before means nothing - before
+            // the rules, so "time required" applies as to any finished result (docs/features/feature_flags.md)
+            if ($unfinishedEnabled === false) {
+                $data->unfinished = false;
+            }
 
             $this->applyDynamicRules($form, $data, $competitionChoices);
         });
@@ -339,12 +348,15 @@ final class PuzzleAddFormType extends AbstractType
             // What a refused submit held (PuzzleAddController reads it before the form is built) — an edition picked by
             // typing or from the short list is offered again while it is publicly visible
             'submitted_competition_pick' => null,
+            // "I didn't finish within the time limit" (UNFINISHED_RESULTS_FORM) - off: a posted switch is ignored
+            'unfinished_enabled' => true,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');
         $resolver->setAllowedTypes('has_active_membership', 'bool');
         $resolver->setAllowedTypes('current_competition_pick', ['null', CompetitionPick::class]);
         $resolver->setAllowedTypes('submitted_competition_pick', ['null', CompetitionPick::class]);
+        $resolver->setAllowedTypes('unfinished_enabled', 'bool');
     }
 
     /**

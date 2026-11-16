@@ -255,6 +255,7 @@
                         <i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i>
                         {{- left_out_sheet.title == '' ? 'data_import.add_list.flash.left_out_file'|trans : 'data_import.add_list.flash.left_out_sheet'|trans({'%title%': left_out_sheet.title}) -}}
                     </span>
+                    {% if left_out_sheet.kind is not null %}
                     <form action="{{ change_url }}" method="post" class="flex-shrink-0" data-turbo-frame="import-add-list" data-testid="import-add-list-sheet-put-back">
                         <input type="hidden" name="_token" value="{{ csrf }}">
                         <input type="hidden" name="sheet" value="{{ left_out_sheet.sheet }}">
@@ -264,6 +265,7 @@
                             <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.add_list.row.put_back'|trans }}
                         </button>
                     </form>
+                    {% endif %}
                 </div>
             {% endif %}
             <p class="fw-semibold mb-2" data-testid="import-add-list-will-add">{{ 'data_import.add_list.bar.will_add'|trans({'%count%': add.toAdd, '%number%': add.toAdd|format_number}) }}</p>

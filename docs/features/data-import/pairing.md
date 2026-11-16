@@ -179,15 +179,27 @@ Now (`DecideImportPuzzlesHandler`): a decision taken back on a puzzle with `tier
 (`DataImportPuzzle::decisionTakenBackBeforeTheRulesLooked()`: undecided, `decided_how` and `decided_at` null), the
 import's pairing is **due** (`pairingDue()` - "not paired", so its pages follow it) and `BuildImportPuzzles` is
 queued after the commit. The run looks at it like at any new puzzle and puts it in the pile its own look-up gives -
-"Looks like a match", "Pick the right one" or "Not in our database". The player's remembered decision is handled as
+"Looks like a match", "Pick the right one" or "Not in our database".
+
+**Such a puzzle is never matched by the rules.** The card said "The puzzle waits for you again": if the run then
+found an exact hit and ticked it, an Add would put the results on a public catalogue puzzle the player once kept
+for themselves - without having been asked. The mark is on the puzzle itself and needs no column: *undecided,
+decided by nobody, yet with a moment* (`decided_how` null, `decided_at` set - the moment of the take-back; no other
+path writes that combination). `forTheRules()` hands it to the matcher as `takenBack`: "found" is then capped at
+"Looks like a match" (undecided, the hit as its candidate - the player says yes), the moment is kept through every
+later run, and what another file of the player remembers is not applied to it (`applyRememberedDecisions()`). The
+player's own decision ends the mark. The player's remembered decision is handled as
 before (a match taken back is remembered as "not this puzzle", so the run does not make it again; anything else is
 forgotten). A puzzle the rules did look at (`tier` set) is taken back as before: it stays in its pile.
 
 **"Still looking" never stands without a run.** Two guards: every run starts by releasing puzzles left the old way
-(`DataImportPuzzleRepository::releaseUndecidedNobodyLookedAt()` - undecided, `tier` null, marked as decided), so an
-import that was stuck is healed by its next run; and the safety net (`idsPairingStandingSince()`,
-`RequestImportPairing`) also takes an import whose last run came to rest while a puzzle of it is undecided and was
-never looked at - bounded by the same number of tries.
+(`DataImportPuzzleRepository::releaseUndecidedNobodyLookedAt()` - undecided, `tier` null, marked as decided; they
+get the same mark, so the rules never tick them either), so an import that was stuck is healed by its next run; and
+the safety net (`idsPairingStandingSince()`, `RequestImportPairing`) also takes an import whose last run came to
+rest while a puzzle of it waits that **a run would look at** (`sqlARunWouldLookAt()`): undecided, never looked at,
+and either left the old way or taken back after that run. That is what bounds it - not the count of tries, which a
+finished run resets: the run it asks for releases or looks at exactly those puzzles, so the same import is not asked
+about again for them; a puzzle a finished run left without a tier is not asked about at all.
 
 ## Decisions
 

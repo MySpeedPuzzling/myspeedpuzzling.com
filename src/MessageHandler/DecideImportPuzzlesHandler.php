@@ -190,7 +190,7 @@ readonly final class DecideImportPuzzlesHandler
 
                 if ($importPuzzle->tier === null) {
                     // "Matched like last time", taken back: the rules never looked at this puzzle - they do now
-                    $importPuzzle->decisionTakenBackBeforeTheRulesLooked();
+                    $importPuzzle->decisionTakenBackBeforeTheRulesLooked($now);
                     $lookUp = true;
                 } else {
                     $importPuzzle->decisionTakenBack($now);

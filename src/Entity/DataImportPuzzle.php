@@ -168,13 +168,17 @@ class DataImportPuzzle
      * A decision is taken back on a puzzle the rules never looked at (`tier` null: it arrived decided, as in an
      * earlier file - "Matched like last time"). It is nobody's decision any more, so the pairing looks at it like at
      * any new puzzle and puts it in the pile its own look-up gives; marked as the player's it would be skipped by
-     * every run and wait for ever, in no pile.
+     * every run and wait for ever, in no pile. **The rules never decide it for the player**: an exact hit is "Looks
+     * like a match" at most - the card said "the puzzle waits for you again".
      */
-    public function decisionTakenBackBeforeTheRulesLooked(): void
+    public function decisionTakenBackBeforeTheRulesLooked(DateTimeImmutable $now): void
     {
         $this->choice = ImportPuzzleChoice::Undecided;
         $this->puzzle = null;
-        $this->decidedAt = null;
+        // Nobody's decision - but the moment stays: "undecided, decided by nobody, at a moment" is how the rules
+        // know the player took an answer back here, and never tick this puzzle by themselves
+        // (DataImportPuzzleRepository::forTheRules() `takenBack`, ImportPuzzleMatcher)
+        $this->decidedAt = $now;
         $this->decidedHow = null;
         $this->decisionVersion++;
     }

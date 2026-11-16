@@ -32,6 +32,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class ImportAddListController extends AbstractController
 {
     public const array MAKES = ['results', 'collection', 'wish'];
+    /** What a sheet that was left out on this screen can be put back as: the kinds whose rows the list shows */
+    public const array PUT_BACK_AS = [DataImportSheetKind::Results, DataImportSheetKind::Owned, DataImportSheetKind::WishList];
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -69,7 +71,9 @@ final class ImportAddListController extends AbstractController
             $sheet = $this->getImportSheetScreen->sheet($importId, $left, $player->playerId);
 
             if ($sheet->kind === DataImportSheetKind::NotPuzzles && $sheet->beingSetUp) {
-                $leftOutSheet = ['sheet' => $left, 'kind' => $was !== null && $was !== DataImportSheetKind::NotPuzzles ? $was->value : DataImportSheetKind::Results->value, 'title' => trim($sheet->title)];
+                // "Put back" only as a kind the sheet can be put back as - without one the list says what was done, and
+                // the way back is step 2
+                $leftOutSheet = ['sheet' => $left, 'kind' => in_array($was, self::PUT_BACK_AS, true) ? $was->value : null, 'title' => trim($sheet->title)];
             }
         }
 

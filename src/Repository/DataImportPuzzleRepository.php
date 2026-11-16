@@ -23,7 +23,9 @@ use SpeedPuzzling\Web\Value\ImportPuzzleDecidedHow;
  * import holds up to 50,000 rows and thousands of distinct puzzles, built and matched again after every parse of a
  * sheet. Loaded as objects that is a statement per puzzle under the import's lock; here every step is one statement
  * whatever the import's size (ImportPuzzleMatcherTest pins the count). Nothing of it touches a table outside the
- * import. A **decision of the player** is never written here - that is the entity's (DecideImportPuzzlesHandler).
+ * import. A **decision of the player** is never written here - that is the entity's (DecideImportPuzzlesHandler) -
+ * with one exception that writes no decision: releaseUndecidedNobodyLookedAt() hands a puzzle that is undecided and
+ * stuck back to the rules, and says so.
  */
 readonly final class DataImportPuzzleRepository
 {
@@ -246,6 +248,8 @@ FROM ({$valid}) AS valid
 WHERE data_import_puzzle.import_id = :importId
     AND valid.puzzle_key = data_import_puzzle.puzzle_key
     AND data_import_puzzle.decided_how IS DISTINCT FROM :player
+    -- An answer the player took back in this import is not given again by what another file remembers
+    AND NOT (data_import_puzzle.decided_how IS NULL AND data_import_puzzle.decided_at IS NOT NULL)
     AND (
         data_import_puzzle.decided_how IS DISTINCT FROM :remembered
         OR data_import_puzzle.choice <> valid.choice
@@ -259,17 +263,19 @@ SQL, $parameters);
      * The puzzles the rules decide about: those neither the player nor a remembered decision has decided - each
      * with the catalogue puzzle the player once took back for its key ("not this puzzle"), if any.
      *
-     * @return list<array{id: string, name: string, brandText: null|string, pieces: null|int, ownPuzzleId: null|string, eans: list<string>, brandCodes: list<string>, searched: bool, choice: string, puzzleId: null|string, decidedAt: null|string, notThisPuzzleId: null|string}>
+     * @return list<array{id: string, name: string, brandText: null|string, pieces: null|int, ownPuzzleId: null|string, eans: list<string>, brandCodes: list<string>, searched: bool, choice: string, puzzleId: null|string, decidedAt: null|string, notThisPuzzleId: null|string, takenBack: bool}>
      */
     public function forTheRules(DataImport $import): array
     {
-        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, own_puzzle_id: null|string, eans: string, brand_codes: string, searched: bool, choice: string, puzzle_id: null|string, decided_at: null|string, not_this_puzzle_id: null|string}> $rows */
+        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, own_puzzle_id: null|string, eans: string, brand_codes: string, searched: bool, choice: string, puzzle_id: null|string, decided_at: null|string, not_this_puzzle_id: null|string, taken_back_here: bool}> $rows */
         $rows = $this->entityManager->getConnection()->executeQuery(<<<SQL
 SELECT
     data_import_puzzle.id, data_import_puzzle.name, data_import_puzzle.brand_text, data_import_puzzle.pieces_count,
     data_import_puzzle.own_puzzle_id, data_import_puzzle.eans, data_import_puzzle.brand_codes,
     data_import_puzzle.searched_at IS NOT NULL AS searched, data_import_puzzle.choice, data_import_puzzle.puzzle_id,
-    data_import_puzzle.decided_at, taken_back.puzzle_id AS not_this_puzzle_id
+    data_import_puzzle.decided_at, taken_back.puzzle_id AS not_this_puzzle_id,
+    -- Undecided, nobody's decision, yet with a moment: the player took an answer back here
+    (data_import_puzzle.decided_how IS NULL AND data_import_puzzle.decided_at IS NOT NULL) AS taken_back_here
 FROM data_import_puzzle
 LEFT JOIN import_puzzle_decision taken_back
     ON taken_back.player_id = :playerId
@@ -298,6 +304,7 @@ SQL, [
             'puzzleId' => $row['puzzle_id'],
             'decidedAt' => $row['decided_at'],
             'notThisPuzzleId' => $row['not_this_puzzle_id'],
+            'takenBack' => $row['taken_back_here'] === true,
         ], $rows);
     }
 
@@ -347,26 +354,42 @@ SQL, [
      * decision: released at the start of every run, so the run looks at them. One statement over the import's
      * puzzles that must not be loaded one by one (an import has thousands).
      */
-    public function releaseUndecidedNobodyLookedAt(DataImport $import): void
+    public function releaseUndecidedNobodyLookedAt(DataImport $import, DateTimeImmutable $now): void
     {
         $this->entityManager->getConnection()->executeStatement(<<<SQL
 UPDATE data_import_puzzle
-SET decided_how = NULL, decided_at = NULL
+-- The moment stays (or is this one): the rules read it as "taken back by the player" and never tick the puzzle
+SET decided_how = NULL, decided_at = COALESCE(decided_at, :now)
 WHERE import_id = :importId
     AND tier IS NULL
     AND choice = :undecided
     AND decided_how IS NOT NULL
-SQL, ['importId' => $import->id->toString(), 'undecided' => ImportPuzzleChoice::Undecided->value]);
+SQL, ['importId' => $import->id->toString(), 'undecided' => ImportPuzzleChoice::Undecided->value, 'now' => $now->format('Y-m-d H:i:s')]);
     }
 
     /**
-     * Whether a puzzle of the import waits for the rules' look-up: undecided, and never looked at.
+     * What makes a puzzle one **a run would help** although the import's last run came to rest (SQL, the puzzle as
+     * `$puzzle`, its import as `$import`): undecided and never looked at, and either left the old way (marked as
+     * decided - the run's start releases it) or taken back after that run. A puzzle a finished run left without a
+     * tier is not one: another run would leave it again - so asking is bounded by what the run changes, not by a
+     * counter a finished run resets.
      */
-    public function hasUndecidedNobodyLookedAt(DataImport $import): bool
+    public static function sqlARunWouldLookAt(string $puzzle, string $import): string
     {
+        return "{$puzzle}.tier IS NULL AND {$puzzle}.choice = 'undecided'"
+            . " AND ({$puzzle}.decided_how IS NOT NULL OR ({$puzzle}.decided_at IS NOT NULL AND {$puzzle}.decided_at > {$import}.paired_at))";
+    }
+
+    /**
+     * Whether a puzzle of the import waits for a run that nothing has asked for (sqlARunWouldLookAt()).
+     */
+    public function hasUndecidedARunWouldLookAt(DataImport $import): bool
+    {
+        $condition = self::sqlARunWouldLookAt('puzzle', 'data_import');
+
         return $this->entityManager->getConnection()->executeQuery(
-            'SELECT 1 FROM data_import_puzzle WHERE import_id = :importId AND tier IS NULL AND choice = :undecided LIMIT 1',
-            ['importId' => $import->id->toString(), 'undecided' => ImportPuzzleChoice::Undecided->value],
+            "SELECT 1 FROM data_import_puzzle puzzle INNER JOIN data_import ON data_import.id = puzzle.import_id WHERE puzzle.import_id = :importId AND {$condition} LIMIT 1",
+            ['importId' => $import->id->toString()],
         )->fetchOne() !== false;
     }
 

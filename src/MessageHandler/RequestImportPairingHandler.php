@@ -39,7 +39,7 @@ readonly final class RequestImportPairingHandler
         $this->idLock->lockUntilCommit(Uuid::fromString($message->importId));
         $import = $this->dataImportRepository->find($message->importId);
 
-        if ($import === null || $import->pairingRequestedAgain($this->clock->now(), $this->dataImportPuzzleRepository->hasUndecidedNobodyLookedAt($import)) === false) {
+        if ($import === null || $import->pairingRequestedAgain($this->clock->now(), $this->dataImportPuzzleRepository->hasUndecidedARunWouldLookAt($import)) === false) {
             return false;
         }
 

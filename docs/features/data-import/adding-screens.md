@@ -410,7 +410,10 @@ the kind the sheet had; its rows are read again). The answer's redirect **names 
 sheet is left out - so the page's own re-check (it asks for the same address again while the file is "being read
 again") keeps them; as a one-time notice they were gone with the first re-check, 1.6 s after they appeared. The
 "being read again" notice stands in the bar too: above the list it moved the list under the finger when it came and
-went. A sheet of another import in `left` is a 404; a sheet that is not left out is not offered.
+went. A sheet of another import in `left` is a 404; a sheet that is not left out is not offered; "Put back" is
+offered only with a `was` that is a kind this screen can put a sheet back as (results, owned, wish list) - without
+one the bar says what was done, and the way back is step 2. A second tap on "Yes, don't import" that arrives after
+the first answers "changed meanwhile" with the same address (what the sheet was is kept in the session for it).
 
 ### Who did you solve these with?
 

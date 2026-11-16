@@ -589,6 +589,20 @@ final class ImportAddListTest extends WebTestCase
         // is there every time, not only in the first answer (it was a one-time notice, gone with the first re-check)
         self::assertSame($first, $offer($this->browser->request('GET', $answered)));
         self::assertSame($first, $offer($this->browser->request('GET', $answered)));
+        // A second tap on "Yes, don't import this sheet" that arrives after the first: nothing changes - and the
+        // answer still names the sheet and what it was, so the offer stays
+        $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out_sheet', 'sheet' => $sheetId, 'version' => (string) $sheet->filter('input[name="version"]')->attr('value')]);
+        self::assertResponseRedirects($answered);
+        self::assertSame('not_puzzles', $kind());
+        self::assertSame($first[2], $offer($this->browser->followRedirect())[2]);
+        // "Put back" only as a kind this screen can put a sheet back as, named by the address: without one - or
+        // with one that is none of them - the list says what was done and offers no button (the way back is step 2)
+        foreach (['', '&was=somebody_else', '&was=not_puzzles', '&was=nonsense'] as $was) {
+            $bar = $this->browser->request('GET', $path . '?left=' . $sheetId . $was)->filter('[data-testid="import-add-list-bar"]');
+            self::assertStringContainsString('The rows of “Older” are not imported.', $bar->filter('[data-testid="import-add-list-sheet-left-out"]')->text(), $was);
+            self::assertCount(0, $bar->filter('[data-testid="import-add-list-sheet-put-back"]'), $was);
+        }
+
         // Without the sheet in its address the list offers nothing - and a sheet that is not left out is not offered
         self::assertCount(0, $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-sheet-put-back"]'));
         $otherSheetId = (string) $crawler->filter('[data-testid="import-add-list-sheet-heading"]')->eq(0)->attr('data-sheet-id');

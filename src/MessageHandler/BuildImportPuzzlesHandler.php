@@ -68,7 +68,7 @@ readonly final class BuildImportPuzzlesHandler
 
         // A puzzle left undecided in no pile (a remembered answer taken back before the handler handed it back to
         // the rules) is nobody's decision: this run looks at it
-        $this->dataImportPuzzleRepository->releaseUndecidedNobodyLookedAt($import);
+        $this->dataImportPuzzleRepository->releaseUndecidedNobodyLookedAt($import, $now);
         $this->dataImportPuzzleRepository->store($import, $puzzles, $now);
         $this->dataImportPuzzleRepository->deleteWithoutRows($import);
         $this->dataImportPuzzleRepository->linkRows($import);

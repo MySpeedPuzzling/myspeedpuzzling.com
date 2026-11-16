@@ -49,6 +49,8 @@ final class ChangeImportAddListController extends AbstractController
 {
     /** Said inside the list's own frame (add_list.html.twig) - so it is there after a frame swap too */
     public const string FLASH = 'import_add_list';
+    /** Session key (+ the sheet's id): the kind a sheet had when "Don't import this sheet" was taken */
+    private const string SESSION_WAS = 'import_add_list_sheet_was.';
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -125,7 +127,9 @@ final class ChangeImportAddListController extends AbstractController
             if ($cause instanceof ImportRowsChangedMeanwhile || $cause instanceof ImportRowAnswerRefused || $cause instanceof ImportMappingChangedMeanwhile || $cause instanceof InvalidImportMapping) {
                 $this->addFlash(self::FLASH, $this->translator->trans('data_import.add_list.flash.changed_meanwhile'));
 
-                return $back;
+                // A second tap on "Don't import this sheet" (the first one was taken): the list still names the
+                // sheet, so what was done and "Put back" stay
+                return $action === 'leave_out_sheet' ? $this->toTheListOfTheLeftOutSheet($request, $importId, $filters, $form->getString('sheet'), onlyAfterItWasTaken: true) ?? $back : $back;
             }
 
             throw $exception;
@@ -133,13 +137,19 @@ final class ChangeImportAddListController extends AbstractController
 
         if ($flash === null) {
             $this->addFlash(self::FLASH, $this->translator->trans('data_import.add_list.flash.changed_meanwhile'));
+
+            if ($action === 'leave_out_sheet') {
+                // (a second tap after the first was taken: the list still names the sheet)
+                return $this->toTheListOfTheLeftOutSheet($request, $importId, $filters, $form->getString('sheet'), onlyAfterItWasTaken: true) ?? $back;
+            }
         } elseif ($action === 'leave_out_sheet') {
-            // Said by the list itself, with "Put back", for as long as its address names the sheet
-            return $this->redirectToRoute(
-                'data_import_add_list',
-                ['importId' => $importId, ...$filters, 'page' => 1, 'left' => strtolower($form->getString('sheet')), ...($flash === '' ? [] : ['was' => $flash])],
-                Response::HTTP_SEE_OTHER,
-            );
+            // Said by the list itself, with "Put back", for as long as its address names the sheet. What the sheet was
+            // is kept for this visit too: a second tap that arrives after the first knows it only from there
+            if ($flash !== '' && Uuid::isValid($form->getString('sheet'))) {
+                $request->getSession()->set(self::SESSION_WAS . strtolower($form->getString('sheet')), $flash);
+            }
+
+            return $this->toTheListOfTheLeftOutSheet($request, $importId, $filters, $form->getString('sheet')) ?? $back;
         } else {
             $this->addFlash(self::FLASH, $flash);
         }
@@ -205,7 +215,7 @@ final class ChangeImportAddListController extends AbstractController
 
         // What it was: the list's address names the sheet and its kind (`left`, `was`), so the list says what was
         // done and offers "Put back" on every render - the first answer and every time the page asks again
-        return $sheet->kind !== null && $sheet->kind !== DataImportSheetKind::NotPuzzles ? $sheet->kind->value : '';
+        return in_array($sheet->kind, ImportAddListController::PUT_BACK_AS, true) ? $sheet->kind->value : '';
     }
 
     /**
@@ -217,7 +227,7 @@ final class ChangeImportAddListController extends AbstractController
     {
         $was = DataImportSheetKind::tryFrom($kind);
 
-        if (Uuid::isValid($sheetId) === false || $was === null || $was === DataImportSheetKind::NotPuzzles) {
+        if (Uuid::isValid($sheetId) === false || in_array($was, ImportAddListController::PUT_BACK_AS, true) === false) {
             return null;
         }
 
@@ -246,5 +256,34 @@ final class ChangeImportAddListController extends AbstractController
         ));
 
         return $this->translator->trans('data_import.add_list.flash.put_back_sheet');
+    }
+
+    /**
+     * The list with the sheet that was left out in its address (`left`, and `was` - the kind it had - when known):
+     * the list says what was done and offers "Put back" on every render (ImportAddListController).
+     *
+     * @param array{makes?: string, sheet?: string, q?: string} $filters
+     * @param bool $onlyAfterItWasTaken for an answer that changed nothing: only when this visit left the sheet out before
+     */
+    private function toTheListOfTheLeftOutSheet(Request $request, string $importId, array $filters, string $sheetId, bool $onlyAfterItWasTaken = false): null|Response
+    {
+        if (Uuid::isValid($sheetId) === false) {
+            return null;
+        }
+
+        $sheetId = strtolower($sheetId);
+        $was = $request->hasPreviousSession() ? $request->getSession()->get(self::SESSION_WAS . $sheetId) : null;
+
+        // An answer that was not taken (the sheet changed in another tab) names no sheet - unless this visit's
+        // earlier tap did leave it out
+        if ($onlyAfterItWasTaken && is_string($was) === false) {
+            return null;
+        }
+
+        return $this->redirectToRoute(
+            'data_import_add_list',
+            ['importId' => $importId, ...$filters, 'page' => 1, 'left' => $sheetId, ...(is_string($was) ? ['was' => $was] : [])],
+            Response::HTTP_SEE_OTHER,
+        );
     }
 }

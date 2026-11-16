@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Entity\DataImport;
+use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleChoiceRefused;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleDecidedMeanwhile;
@@ -131,6 +132,78 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         self::assertSame(0, $screen->overview($nextId, $player->id->toString())->searching);
         // ... and an import with nothing waiting is not asked about
         self::assertFalse($this->handledWithResult(new RequestImportPairing($nextId)));
+        // Nor one whose finished run left a puzzle without a pile (another run would leave it again): the asking
+        // is bounded by what a run changes - a finished run resets the count of tries, so that could not bound it
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = NOW(), decided_how = NULL, decided_at = (SELECT paired_at - INTERVAL '1 minute' FROM data_import WHERE data_import.id = data_import_puzzle.import_id) WHERE id = :id", ['id' => $unlisted['id']]);
+        self::assertSame(1, $screen->overview($nextId, $player->id->toString())->searching);
+        self::assertFalse($this->handledWithResult(new RequestImportPairing($nextId)));
+    }
+
+    /**
+     * "The puzzle waits for you again" is a promise: a puzzle whose answer the player took back is never matched by
+     * the rules - an Add would put its results on a public catalogue puzzle the player once kept for themselves,
+     * without having been asked. An exact hit is "Looks like a match" at most.
+     */
+    public function testAPuzzleWhoseAnswerWasTakenBackIsNeverMatchedByTheRules(): void
+    {
+        $player = $this->seedPairingPlayer('takenbackexact');
+        $playerId = $player->id->toString();
+        $brand = $this->seedBrand('Zqtakenback');
+
+        // An earlier file: neither puzzle is in the database - the player keeps one for themselves, leaves one out
+        [$earlier, $earlierSheet] = $this->seedImport($player);
+        $this->seedRow($earlier, $earlierSheet, 'Zq Taken Back Bay', 1000, 'Zqtakenback');
+        $this->seedRow($earlier, $earlierSheet, 'Zq Taken Back Cove', 500, 'Zqtakenback');
+        // The player's next file with the same two puzzles, and somebody else's with one of them - read later
+        [$next, $nextSheet] = $this->seedImport($player);
+        $this->seedRow($next, $nextSheet, 'Zq Taken Back Bay', 1000, 'Zqtakenback');
+        $this->seedRow($next, $nextSheet, 'Zq Taken Back Cove', 500, 'Zqtakenback');
+        $other = $this->seedPairingPlayer('takenbackexactother');
+        [$theirs, $theirSheet] = $this->seedImport($other);
+        $this->seedRow($theirs, $theirSheet, 'Zq Taken Back Bay', 1000, 'Zqtakenback');
+        $this->pair($earlier);
+        $this->decide($earlier, $playerId, [
+            new ImportPuzzleDecisionChange($this->importPuzzle($earlier, 'Zq Taken Back Bay')['id'], ImportPuzzleChoice::Unlisted, null, 0),
+            new ImportPuzzleDecisionChange($this->importPuzzle($earlier, 'Zq Taken Back Cove')['id'], ImportPuzzleChoice::LeftOut, null, 0),
+        ]);
+
+        // Meanwhile both are in the database, by their very name, brand and pieces - an exact hit
+        $bay = $this->seedCataloguePuzzle('Zq Taken Back Bay', 1000, $this->pairingEntityManager()->getReference(Manufacturer::class, $brand->id));
+        $cove = $this->seedCataloguePuzzle('Zq Taken Back Cove', 500, $this->pairingEntityManager()->getReference(Manufacturer::class, $brand->id));
+
+        // The next file: both arrive as the player said ("Matched like last time") - and a third file's puzzle of
+        // the same kind is matched by the rules, as ever: the hit IS exact
+        $this->pair($next);
+        self::assertSame(['unlisted', 'remembered', null], [$this->importPuzzle($next, 'Zq Taken Back Bay')['choice'], $this->importPuzzle($next, 'Zq Taken Back Bay')['decided_how'], $this->importPuzzle($next, 'Zq Taken Back Bay')['tier']]);
+        $this->pair($theirs);
+        self::assertSame(['found', 'catalogue', $bay, 'automatic'], [$this->importPuzzle($theirs, 'Zq Taken Back Bay')['tier'], $this->importPuzzle($theirs, 'Zq Taken Back Bay')['choice'], $this->importPuzzle($theirs, 'Zq Taken Back Bay')['puzzle_id'], $this->importPuzzle($theirs, 'Zq Taken Back Bay')['decided_how']]);
+
+        // "Keep it just for me", unticked: the run finds the exact hit - and does NOT match it. "Looks like a
+        // match", undecided, the hit as what it could be: the player says yes
+        $kept = $this->importPuzzle($next, 'Zq Taken Back Bay');
+        $this->decide($next, $playerId, [new ImportPuzzleDecisionChange($kept['id'], ImportPuzzleChoice::Undecided, null, $kept['decision_version'])]);
+        $this->pair($next);
+        $waits = $this->importPuzzle($next, 'Zq Taken Back Bay');
+        self::assertSame(['probably', 'undecided', null, null], [$waits['tier'], $waits['choice'], $waits['puzzle_id'], $waits['decided_how']]);
+        self::assertSame($bay, $waits['candidates'][0]['puzzleId']);
+        // ... whatever runs later (rows read again), and whatever another file of the player remembers by then
+        $this->pair($next);
+        $this->pair($next);
+        self::assertSame(['probably', 'undecided', null], [$this->importPuzzle($next, 'Zq Taken Back Bay')['tier'], $this->importPuzzle($next, 'Zq Taken Back Bay')['choice'], $this->importPuzzle($next, 'Zq Taken Back Bay')['decided_how']]);
+
+        // A puzzle left the old way (undecided, never looked at, marked as the player's) and released by the run:
+        // the same - never matched by the rules
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET choice = 'undecided', puzzle_id = NULL, decided_how = 'player', decided_at = NOW() WHERE import_id = :id AND name = 'Zq Taken Back Cove'", ['id' => $next->id->toString()]);
+        $this->pairingDatabase()->executeStatement("DELETE FROM import_puzzle_decision WHERE player_id = :id AND choice = 'left_out'", ['id' => $playerId]);
+        $this->pair($next);
+        $released = $this->importPuzzle($next, 'Zq Taken Back Cove');
+        self::assertSame(['probably', 'undecided', null, null], [$released['tier'], $released['choice'], $released['puzzle_id'], $released['decided_how']]);
+        self::assertSame($cove, $released['candidates'][0]['puzzleId']);
+
+        // The player's yes takes it - and it is theirs
+        $this->decide($next, $playerId, [new ImportPuzzleDecisionChange($waits['id'], ImportPuzzleChoice::Catalogue, $bay, $this->importPuzzle($next, 'Zq Taken Back Bay')['decision_version'])]);
+        $this->pair($next);
+        self::assertSame(['catalogue', $bay, 'player'], [$this->importPuzzle($next, 'Zq Taken Back Bay')['choice'], $this->importPuzzle($next, 'Zq Taken Back Bay')['puzzle_id'], $this->importPuzzle($next, 'Zq Taken Back Bay')['decided_how']]);
     }
 
     public function testAPairingTakenBackIsNotMadeAgainWhenThePuzzleIsBuiltAnew(): void

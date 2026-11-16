@@ -227,21 +227,29 @@ final readonly class ColumnRecogniser
         );
     }
 
+    /** A names column is filled in on nearly every row of the sheet - comments and notes are sparse */
+    private const float NAME_FILLED = 0.8;
+
     /**
      * **The puzzle's name on a sheet without a header row, when no column looks like one**
      * (docs/features/data-import/columns.md "A header-less sheet always has a name"): a column of names is taken by
      * its values when most of them differ - which a log of a few puzzles solved again and again never does (five
      * names in the 200 cells looked at). Such a sheet would be "not puzzles" and dropped without a word. So: when
      * something of a puzzle list was recognised (a time, a solve date, pieces, a brand, a barcode) and no column is
-     * the name, **the leftmost** free column of texts is the name: `probable`, `reason: values`. Leftmost, not the
-     * most varied one: a tracker puts the puzzle before its notes, and a column of comments or partners differs
-     * more than five repeating names do. The sheet is then a list of puzzles, and - having no header row - held for
-     * the player's check (ImportCheckFirst), who puts it right when the guess is wrong.
+     * the name, a free column of texts is: `probable`, `reason: values`. The sheet is then a list of puzzles, and -
+     * having no header row - held for the player's check (ImportCheckFirst), who puts it right when the guess is
+     * wrong.
      *
      * A candidate: nothing was made of it (no field, no role - and not the weaker of two columns of one field, a
      * second "1000 pcs" column), ≥ 3 cells, ≥ 2 different values, ≥ 90 % texts, a median length of ≥ 4 characters,
-     * not a column of yes / no, of dates or of times. Called after withBrandByValues(), so the brand's column is
-     * never taken for the name.
+     * not a column of yes / no, of dates or of times - and **filled in on at least NAME_FILLED of the rows**: a
+     * name stands on nearly every row, a comment does not. Of the candidates the one with **the most different
+     * values** (names differ more than brands do); of those within 10 % of it, the left one.
+     *
+     * A name the values alone gave (`reason: values`) that is NOT filled in on that share of the rows - a sparse
+     * column of long comments - gives way to such a candidate, when there is one.
+     *
+     * Called after withBrandByValues(), so a brand the catalogue knows is never taken for the name.
      *
      * @param list<MappedColumn> $columns
      * @param iterable<array<int, array<string, mixed>>> $rows rows of the table's data (cells by column), a sample
@@ -256,10 +264,15 @@ final readonly class ColumnRecogniser
 
         $evidence = false;
         $free = [];
+        $guessed = null;
 
         foreach ($columns as $column) {
             if ($column->field === ImportField::PuzzleName) {
-                return $columns;
+                if ($column->reason !== MappedColumn::BY_VALUES) {
+                    return $columns;
+                }
+
+                $guessed = $column->column;
             }
 
             $evidence = $evidence || in_array($column->field, [ImportField::Time, ImportField::SolvedOn, ImportField::Pieces, ImportField::Brand, ImportField::Barcode], true);
@@ -274,19 +287,34 @@ final readonly class ColumnRecogniser
         }
 
         $values = [];
+        $filled = [];
+        $total = 0;
 
         foreach ($rows as $cells) {
-            foreach ($free as $number => $_) {
+            $total++;
+
+            foreach ($free + ($guessed === null ? [] : [$guessed => true]) as $number => $_) {
                 $cell = $cells[$number] ?? null;
 
-                if ($cell !== null && StoredCells::isBlank($cell) === false && count($values[$number] ?? []) < self::SAMPLE) {
+                if ($cell === null || StoredCells::isBlank($cell)) {
+                    continue;
+                }
+
+                $filled[$number] = ($filled[$number] ?? 0) + 1;
+
+                if (isset($free[$number]) && count($values[$number] ?? []) < self::SAMPLE) {
                     $values[$number][] = $cell;
                 }
             }
         }
 
+        if ($guessed !== null && ($filled[$guessed] ?? 0) >= self::NAME_FILLED * $total) {
+            return $columns;
+        }
+
         ksort($values);
-        $name = null;
+        /** @var array<int, int> $candidates column => different values */
+        $candidates = [];
 
         foreach ($values as $number => $cells) {
             $profile = $this->profile($cells);
@@ -296,6 +324,7 @@ final readonly class ColumnRecogniser
 
             if (
                 $count >= 3
+                && ($filled[$number] ?? 0) >= self::NAME_FILLED * $total
                 && $profile['distinct'] >= 2
                 && $profile['texts'] / $count >= 0.9
                 && $lengths[intdiv($count, 2)] >= 4
@@ -303,20 +332,24 @@ final readonly class ColumnRecogniser
                 && $profile['textDays'] / $count < 0.5
                 && $profile['textTimes'] / $count < 0.5
             ) {
-                $name = $number;
-
-                break;
+                $candidates[$number] = $profile['distinct'];
             }
         }
 
-        if ($name === null) {
+        if ($candidates === []) {
             return $columns;
         }
 
+        $most = max($candidates);
+        // Within 10 % of the most varied one: the left one (the array is in the columns' order)
+        $name = (int) array_key_first(array_filter($candidates, static fn (int $distinct): bool => $distinct >= 0.9 * $most));
+
         return array_map(
-            static fn (MappedColumn $column): MappedColumn => $column->column === $name
-                ? new MappedColumn($column->column, $column->header, ImportField::PuzzleName, ColumnCertainty::Probable, MappedColumn::BY_VALUES)
-                : $column,
+            static fn (MappedColumn $column): MappedColumn => match (true) {
+                $column->column === $name => new MappedColumn($column->column, $column->header, ImportField::PuzzleName, ColumnCertainty::Probable, MappedColumn::BY_VALUES),
+                $column->column === $guessed => $column->asUnknown(MappedColumn::BY_NOTHING),
+                default => $column,
+            },
             $columns,
         );
     }

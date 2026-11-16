@@ -1759,9 +1759,9 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
   puzzles - held for the check with its name column guessed.
 - [ ] Imports home's statement now judges the ready rows of every open import (what each would make): measure it
   with `EXPLAIN ANALYZE` on the largest production player before trusting it at size.
-- [ ] Header-less sheets: a column of long comments that all differ, beside names that repeat, is still taken for
-  the name by the older by-values rule (≥ 50 % different values, ≥ 8 characters) - the leftmost-text rule only
-  speaks when that one found nothing. The sheet is held for the check either way.
+- [ ] Header-less sheets: a column of long comments that all differ and stands on (nearly) every row, beside names
+  that repeat, is still taken for the name by the older by-values rule (≥ 50 % different values, ≥ 8 characters).
+  The sheet is held for the check either way.
 - [ ] A header-less sheet read as "not puzzles" (no text column at all, or nothing of a puzzle list beside its
   texts) is still left out without a question - holding it would need a check for a sheet whose rows are not
   imported (`ImportCheckFirst` holds parsed rows of imported sheets only).

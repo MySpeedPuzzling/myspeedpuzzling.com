@@ -153,27 +153,46 @@ final class ImportCheckFirstTest extends TestCase
         self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($mapping));
         self::assertTrue(ImportCheckFirst::isAsked(ImportCheckFirst::asked($mapping)));
 
-        // The same without the catalogue's word on the brands: two repeated texts - the left one is taken (a wrong
-        // guess here), and the sheet is results and held all the same: the player puts it right on the check
+        // The same without the catalogue's word on the brands: two repeated texts - three brands, five names: the
+        // one that says more different things is the name
         $unbranded = $this->analysed(self::repeatedLog(DataImportLimits::SAMPLE_ROWS, 4000, 5), []);
-        self::assertSame(2, $unbranded->column(ImportField::PuzzleName)?->column);
+        self::assertSame(4, $unbranded->column(ImportField::PuzzleName)?->column);
         self::assertSame(DataImportSheetKind::Results, $unbranded->kind);
         self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($unbranded));
     }
 
-    public function testTheNameOfAHeaderlessSheetIsTheLeftmostTextNotTheMostVariedAndNeverAColumnThatLostItsField(): void
+    public function testTheNameOfAHeaderlessSheetIsATextOnNearlyEveryRowTheMostVariedOneAndNeverAColumnThatLostItsField(): void
     {
         $names = ['Harbour at Dusk', 'Lanterns in the Rain', 'Orchard', 'Market Day', 'Kites'];
 
-        // Date, time, five names that repeat, and a short comment that differs in every row: the names stand before
-        // the notes - the comment is not the puzzle, though it says more different things
-        $commented = $this->analysed(Kit::sheet('log', self::from(1, array_map(
-            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), sprintf('1:%02d:%02d', 4 + $index, 10 + $index), $names[$index % 5], 'note ' . $index],
-            range(0, 11),
+        // The first tester's order - date, brand, pieces, name, time - with six brands the catalogue does not know
+        // and names that mostly differ: the name, never the brand left of it
+        $brands = ['Qorvale', 'Zintrop', 'Meldahr', 'Fenwick Lane', 'Ostrava Blue', 'Tallow & Pine'];
+        $ordered = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), $brands[$index % 6], ['1000', '500'][$index % 2], $names[$index % 5] . ' ' . intdiv($index, 2), sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 23),
         ))), []);
-        self::assertSame(3, $commented->column(ImportField::PuzzleName)?->column);
-        self::assertSame(DataImportSheetKind::Results, $commented->kind);
-        self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($commented));
+        self::assertSame(4, $ordered->column(ImportField::PuzzleName)?->column);
+        self::assertNull($ordered->column(ImportField::Brand));
+
+        // Date, time, five names on every row, and a comment on three rows of ten, every one different - short or
+        // long: a comment is sparse, the names are on every row
+        foreach (['note %d', 'what a long evening that was, number %d'] as $comment) {
+            $commented = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+                static fn (int $index): array => [sprintf('2024-03-%02d', $index % 28 + 1), sprintf('1:%02d:%02d', 4 + $index, 10 + $index), $names[$index % 5], $index % 10 < 3 ? sprintf($comment, $index) : null],
+                range(0, 39),
+            ))), []);
+            self::assertSame(3, $commented->column(ImportField::PuzzleName)?->column, $comment);
+            self::assertSame(DataImportSheetKind::Results, $commented->kind);
+            self::assertSame(ImportCheckFirst::BECAUSE_NO_HEADER, ImportCheckFirst::reason($commented));
+        }
+
+        // Two texts on every row that say about as many different things (five names, five places): the left one
+        $tied = $this->analysed(Kit::sheet('log', self::from(1, array_map(
+            static fn (int $index): array => [sprintf('2024-03-%02d', $index + 1), $names[$index % 5], ['kitchen', 'attic', 'porch', 'garden', 'study'][($index * 2) % 5], sprintf('1:%02d:%02d', 4 + $index, 10 + $index)],
+            range(0, 19),
+        ))), []);
+        self::assertSame(2, $tied->column(ImportField::PuzzleName)?->column);
 
         // Two columns of piece counts typed with their unit: the weaker one lost the field and is nobody's name,
         // though it is a text and stands left of the names

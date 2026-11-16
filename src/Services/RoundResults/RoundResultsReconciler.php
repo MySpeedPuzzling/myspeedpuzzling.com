@@ -10,7 +10,8 @@ use Ramsey\Uuid\UuidInterface;
 /**
  * Brings puzzle_solving_time.competition_round_id in line with the rule in SolvingTimeRoundResolver, for one
  * competition, for the editions of one series or for all of them. Two idempotent set-based updates: link or re-link
- * every time that matches a round, unlink every time that no longer does.
+ * every time that matches a round, unlink every time that no longer does. An imported event result with a round is
+ * left alone (SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED).
  *
  * Must only run after the changes it reacts to are flushed - from a postFlush domain event handler or a
  * console command, never from the handler that persists the change.
@@ -67,6 +68,9 @@ readonly final class RoundResultsReconciler
      */
     private function run(string $linkScope, string $unlinkScope, array $parameters): array
     {
+        // An imported event result keeps the round its import gave it - neither re-linked nor unlinked (README D10)
+        $derived = SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED;
+
         $linked = $this->database->executeStatement(
             <<<SQL
 UPDATE puzzle_solving_time AS target
@@ -77,6 +81,7 @@ FROM (
     INNER JOIN competition_round cr ON cr.competition_id = pst.competition_id AND cr.category = pst.puzzling_type
     INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id AND crp.puzzle_id = pst.puzzle_id
     WHERE pst.competition_id IS NOT NULL
+        AND {$derived}
         {$linkScope}
     ORDER BY pst.id, cr.starts_at
 ) AS matched
@@ -91,6 +96,7 @@ SQL,
 UPDATE puzzle_solving_time AS pst
 SET competition_round_id = NULL
 WHERE pst.competition_round_id IS NOT NULL
+    AND {$derived}
     {$unlinkScope}
     AND NOT EXISTS (
         SELECT 1

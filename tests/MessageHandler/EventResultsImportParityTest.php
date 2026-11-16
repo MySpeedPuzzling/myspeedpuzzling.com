@@ -160,18 +160,15 @@ final class EventResultsImportParityTest extends KernelTestCase
                     [2, 'Puzzle Pals', 4, 4213, null],
                 ],
             ],
+            // Changed on purpose 2026-11-16 (README D10): the pair at a teams event ("Duo", line 5) is imported now
+            // instead of team_size_does_not_fit_category - captured before as 78735fcf27285274bd1a61fd454fc59a8f73087b
             'row problems' => [
-                'hash' => '78735fcf27285274bd1a61fd454fc59a8f73087b',
+                'hash' => 'd5710ec8b73790bab6ceeb81d27220acbed57e90',
                 'problems' => [
                     [
                         'code' => 'unreadable_time',
                         'detail' => 'Slowpokes: one hour',
                         'line' => 4,
-                    ],
-                    [
-                        'code' => 'team_size_does_not_fit_category',
-                        'detail' => 'Duo',
-                        'line' => 5,
                     ],
                     [
                         'code' => 'row_without_team_name',
@@ -190,6 +187,7 @@ final class EventResultsImportParityTest extends KernelTestCase
                     ],
                 ],
                 'rows' => [
+                    [5, 'Duo', 2, 4800, null],
                     [8, 'Fast Four', 4, 3540, null],
                 ],
             ],

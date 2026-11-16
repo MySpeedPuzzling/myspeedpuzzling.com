@@ -71,6 +71,14 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [ ] Later: venue series (D8), solo events, per-team claim codes, start time on organizer pages
 - [ ] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - today a result is one puzzle; needs a "several puzzles, one time" result (ties in with multipacks, `docs/features/wasgij-and-multipacks.md`). Until then: no combined catalogue entry
 
+## Event results import - smaller teams (`docs/features/event-results-import/README.md` D10, 2026-11-16)
+
+- [ ] A single person (Team Size 1) at a Teams or Pairs event - needs a trackerless solo result (the solo slots of
+  "Not in scope": `importedFromEvent()` takes 2+ people today, the solo tab inner-joins the tracker, readers telling solo
+  from group by `team IS NULL`, a claimed solo with a one-person group snapshot); spike with failing canary tests first
+- [ ] A round puzzle changed by hand on an imported event: its results keep the round (never reconciled), the next apply
+  says `puzzle_changed_after_import` - fine while the sheet is the source
+
 ## Results import page (`docs/features/event-results-import/results-import-page.md`, 2026-11-16)
 
 - [ ] Sandbox for Sarah (delivery step 4): copy her account and organization, register her source there

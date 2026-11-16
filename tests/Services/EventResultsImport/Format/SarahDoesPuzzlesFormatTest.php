@@ -199,7 +199,7 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
         yield 'unreadable time' => ['Puzzle Pals', 'about an hour', '4', EventTabProblemCode::UnreadableTime];
         yield 'no time, no pieces' => ['Puzzle Pals', '', '4', EventTabProblemCode::RowWithoutResult];
         yield 'no team size' => ['Puzzle Pals', '1:00:00', '', EventTabProblemCode::UnreadableTeamSize];
-        yield 'a team of two at a teams event' => ['Puzzle Pals', '1:00:00', '2', EventTabProblemCode::TeamSizeDoesNotFitCategory];
+        yield 'a single person at a teams event' => ['Puzzle Pals', '1:00:00', '1', EventTabProblemCode::TeamSizeDoesNotFitCategory];
         yield 'an absurd team size' => ['Puzzle Pals', '1:00:00', '40', EventTabProblemCode::UnreadableTeamSize];
         yield 'a name too long for a team' => [str_repeat('Long name ', 6), '1:00:00', '4', EventTabProblemCode::TeamNameTooLong];
         yield 'no name' => ['', '1:00:00', '4', EventTabProblemCode::RowWithoutTeamName];

@@ -22,6 +22,14 @@ use SpeedPuzzling\Web\Value\PuzzlingType;
  */
 readonly final class SolvingTimeRoundResolver
 {
+    /**
+     * SQL twin of PuzzleSolvingTime::keepsItsRound(), negated, for a `pst` alias of puzzle_solving_time: whether the
+     * time's round follows the rule above. An imported event result keeps the round its import gave it (a pair at a
+     * teams event is ranked in the teams round - docs/features/event-results-import/README.md D10). IS DISTINCT FROM:
+     * results saved before created_via existed have none and follow the rule.
+     */
+    public const string SQL_ROUND_IS_DERIVED = "(pst.created_via IS DISTINCT FROM 'event_import' OR pst.competition_round_id IS NULL)";
+
     public function __construct(
         private Connection $database,
         private CompetitionRoundRepository $competitionRoundRepository,
@@ -30,6 +38,10 @@ readonly final class SolvingTimeRoundResolver
 
     public function resolve(PuzzleSolvingTime $solvingTime): null|CompetitionRound
     {
+        if ($solvingTime->keepsItsRound()) {
+            return $solvingTime->competitionRound;
+        }
+
         if ($solvingTime->competition === null) {
             return null;
         }

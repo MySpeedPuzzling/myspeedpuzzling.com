@@ -43,6 +43,7 @@ use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventRow;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use SpeedPuzzling\Web\Value\TeamComposition;
@@ -598,15 +599,18 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
-     * The size most teams had - a team of three at a teams event of fours is normal.
+     * The size most teams had - a team of three at a teams event of fours is normal. Teams only: a pair at a teams event
+     * (README D10) says nothing about the event's teams.
      */
     private static function teamSize(ParsedEvent $parsed): null|int
     {
-        if ($parsed->category !== RoundCategory::Team || $parsed->rows === []) {
+        $teams = array_filter($parsed->rows, static fn (ParsedEventRow $row): bool => PuzzlingType::fromPuzzlersCount($row->teamSize) === PuzzlingType::Team);
+
+        if ($parsed->category !== RoundCategory::Team || $teams === []) {
             return null;
         }
 
-        $counts = array_count_values(array_map(static fn (ParsedEventRow $row): int => $row->teamSize, $parsed->rows));
+        $counts = array_count_values(array_map(static fn (ParsedEventRow $row): int => $row->teamSize, $teams));
         arsort($counts);
 
         $size = (int) array_key_first($counts);

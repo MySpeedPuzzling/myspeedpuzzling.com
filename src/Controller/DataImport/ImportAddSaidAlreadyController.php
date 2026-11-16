@@ -6,11 +6,14 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
+use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\DataImport\ImportSaidAlreadyCheck;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -34,6 +37,7 @@ final class ImportAddSaidAlreadyController extends AbstractController
         readonly private GetDataImports $getDataImports,
         readonly private DataImportRepository $dataImportRepository,
         readonly private ImportSaidAlreadyCheck $saidAlreadyCheck,
+        readonly private GetImportAddScreen $getImportAddScreen,
     ) {
     }
 
@@ -44,7 +48,7 @@ final class ImportAddSaidAlreadyController extends AbstractController
         methods: ['GET'],
     )]
     #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
-    public function __invoke(string $importId): Response
+    public function __invoke(Request $request, string $importId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
         assert($player !== null);
@@ -52,8 +56,15 @@ final class ImportAddSaidAlreadyController extends AbstractController
         $import = $this->getDataImports->byIdOfPlayer($importId, $player->playerId);
         $entity = $this->dataImportRepository->getOwnedBy($importId, $player->playerId);
 
+        // Opened as a page of its own (not as the review's frame): the rows that are on the profile already are
+        // listed here - "already on" is what the address says
+        $add = $request->headers->has('Turbo-Frame') ? null : $this->getImportAddScreen->summary($importId, $player->playerId, forReview: true);
+        $known = $add === null || $add->canAdd === false || $add->knownIds === [] ? [] : $this->getImportAddScreen->rowsByIds($importId, $player->playerId, $add->knownIds);
+
         return $this->render('data_import/add_said.html.twig', [
             'import' => $import,
+            'on_profile_total' => $add !== null && $add->canAdd ? $add->onProfileAlready() : 0,
+            'on_profile' => $add === null ? [] : array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $known[$id] ?? null, $add->knownIds))),
             'check' => $this->saidAlreadyCheck->of($entity),
             'stands' => $entity->hasStandingAnswerFor(ImportRowRefusal::SaidAlreadyOnProfile->value),
             'group_request_ids' => ['missing' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],

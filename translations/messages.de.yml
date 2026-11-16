@@ -11859,6 +11859,8 @@ data_import:
             nothing: "Noch ist nichts bereit."
             nothing_step: "Noch ist nichts bereit - zuerst Schritt %step%."
             nothing_reading: "Noch ist nichts bereit - deine Zeilen werden noch gelesen."
+            already_yours: "{1}1 Zeile ist schon in deinem Profil - sie wird nicht doppelt hinzugefügt.|[0,Inf[%number% Zeilen sind schon in deinem Profil - sie werden nicht doppelt hinzugefügt."
+            not_imported: "{1}1 Zeile wolltest du nicht importieren.|[0,Inf[%number% Zeilen wolltest du nicht importieren."
         primary:
             see_added: "Ansehen, was hinzugefügt wurde"
             check_and_add: "Prüfen und hinzufügen"
@@ -11889,6 +11891,9 @@ data_import:
         set_ups: "Wenn du bestätigst, wie ein Blatt gelesen wird, merken wir uns das. Deine nächste Datei mit denselben Überschriften wird von selbst genauso gelesen."
         set_ups_summary: "Was bedeutet „gelesen wie beim letzten Mal“?"
         finish: "Aus dieser Datei wird nichts mehr hinzugefügt, und sie macht Platz für eine weitere. Was sie hinzugefügt hat, bleibt in deinem Profil und kann weiterhin rückgängig gemacht werden. Solange die Datei aufbewahrt wird, kannst du später damit weitermachen."
+        finish_kept: "Aus dieser Datei wird nichts mehr hinzugefügt, und sie macht Platz für eine weitere. Was sie behalten hat, bleibt nur für dich und kann weiterhin rückgängig gemacht werden. Solange die Datei aufbewahrt wird, kannst du später damit weitermachen."
+        finish_nothing: "Aus dieser Datei wird nichts hinzugefügt - was sie enthält, ist schon in deinem Profil. Sie bleibt in deiner Liste und macht Platz für eine weitere. Solange die Datei aufbewahrt wird, kannst du später damit weitermachen."
+        keep: "Diese Zeilen werden nur für dich behalten, mit ihren Puzzles, auf der Seite Nicht gelistete Puzzles. Nichts kommt in dein Profil, eine Rangliste oder deine Statistiken, bis ein Puzzle einem in unserer Datenbank zugeordnet ist."
         discard: "Die Datei und alles, was daraus gelesen wurde, werden gelöscht. An deinem Profil ändert sich nichts - es wurde noch nichts hinzugefügt."
         kept: "Er bleibt in deiner Liste, damit dieselben Zeilen nie doppelt hinzugefügt werden und du sie rückgängig machen kannst."
         file: "Nur du siehst die Datei. Wir bewahren sie %days% Tage auf, dann wird sie entfernt - was hinzugefügt wurde, bleibt in deinem Profil."
@@ -12083,8 +12088,18 @@ data_import:
         with_guests: "mit %people%"
         first_try: "erster Versuch"
         button: "%number% zu meinem Profil hinzufügen"
+        button_keep: "%number% nur für mich behalten"
         button_part: "Jetzt %number% von %total% hinzufügen - der Rest morgen"
-        button_settle: "Diese Zeilen durchgehen (%number%)"
+        nothing_to_add: "Nichts hinzuzufügen - alles aus dieser Datei ist schon in deinem Profil."
+        nothing_to_add_hint: "Du kannst diesen Import hier abschließen. In deinem Profil ändert sich nichts."
+        all_added: "Alles aus dieser Datei ist hinzugefügt."
+        rows_title: "Die Zeilen dieser Datei"
+        already_on_title: "Schon in deinem Profil"
+        nothing_right_now: "Im Moment gibt es nichts hinzuzufügen."
+        nothing_why:
+            repeats: "Zeilen, die eine andere Zeile der Datei wiederholen: %number%"
+            not_imported: "Zeilen, die du nicht importieren wolltest: %number%"
+        none_on_profile: "Keine Zeile dieser Datei ist schon in deinem Profil."
         button_hint: "Alles, was beim Drücken bereit ist, wird hinzugefügt. Es läuft im Hintergrund - du kannst die Seite verlassen."
         ready:
             adding: "Zeilen dieses Imports werden gerade deinem Profil hinzugefügt."
@@ -12166,6 +12181,7 @@ data_import:
         title: "Wird deinem Profil hinzugefügt"
         title_done: "Deinem Profil hinzugefügt"
         title_kept: "Nur für dich behalten"
+        title_keeping: "Wir behalten sie nur für dich"
         line: "Wird hinzugefügt… %done% von %total%"
         finishing: "Wird abgeschlossen…"
         leave: "Du kannst diese Seite verlassen - die Arbeit läuft im Hintergrund weiter."
@@ -12991,7 +13007,7 @@ data_import:
     add_review:
         ready_title: "Bereit zum Hinzufügen"
         quoted: "„%text%“"
-        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
+        reading_again: "Deine Zeilen werden gelesen - einen Moment. Sie werden hier erst gezählt, wenn sie gelesen sind."
         line:
             results: "{1}1 Ergebnis|[0,Inf[%number% Ergebnisse"
             no_time: "{1}1 Ergebnis hat keine Zeit - es wird ohne Zeit hinzugefügt.|[0,Inf[%number% Ergebnisse haben keine Zeit - sie werden ohne Zeit hinzugefügt."
@@ -13034,6 +13050,8 @@ data_import:
             answer: "Antworten"
         what_adding_does: "Was das Hinzufügen bewirkt"
     add_list:
+        repeats_title: "Wiederholte Zeilen (%number%) - einmal gezählt"
+        repeats_hint: "Diese Zeilen wiederholen eine andere Zeile deiner Datei. Sie zählen als ein Ergebnis - sag es unter „Prüfen und hinzufügen“, wenn es getrennte Durchgänge sind."
         title: "Was hinzugefügt wird"
         intro: "Alles, was ein Klick auf Hinzufügen jetzt hinzufügen würde, in der Reihenfolge deiner Datei. Entferne den Haken bei einer Zeile, die du nicht möchtest - das wird sofort gespeichert."
         tab:
@@ -13069,7 +13087,7 @@ data_import:
             done: "Fertig - zurück zum Prüfen"
         empty: "Noch ist nichts zum Hinzufügen bereit."
         no_hit: "Keine Zeile mit diesem Puzzle."
-        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
+        reading_again: "Deine Zeilen werden gelesen - einen Moment. Sie werden hier erst gezählt, wenn sie gelesen sind."
         reading_again_file: "Deine Datei wird gerade neu gelesen - einen Moment. Ihre Zeilen zählen hier nicht mit, bis sie gelesen ist."
         taking_longer: "Das dauert länger."
         refresh: "Aktualisieren"

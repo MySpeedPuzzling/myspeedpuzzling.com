@@ -1,5 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import { createReloadGuard } from '../data_import_reload_guard';
 
 /**
  * The live line of an import that is being set up - "Reading your rows… 1,200 of 3,400" - on the "Sheets and columns"
@@ -23,11 +24,13 @@ import { Controller } from '@hotwired/stimulus';
 const ASK_EVERY_MS = 4000;
 // An event younger than this: the stream works, no need to ask
 const QUIET_MS = 4000;
+// How long a page that watches (nothing works, but something may begin) keeps asking
+const WATCH_FOR_MS = 120000;
 const BACK_OFF_MS = [4000, 8000, 16000, 30000];
 const GIVE_UP_AFTER_MS = 10 * 60 * 1000;
 
 export default class extends Controller {
-    static targets = ['line', 'spinner', 'stale'];
+    static targets = ['line', 'spinner', 'stale', 'refresh'];
 
     static values = {
         importId: String,
@@ -43,6 +46,8 @@ export default class extends Controller {
         savedText: String,
         // A page without live frames (the add review): loaded again as a whole once the reading ends
         reloadPage: Boolean,
+        // Keep asking for a while although nothing works right now: a save a moment ago may not have begun yet
+        watch: Boolean,
         // The puzzles' pages (docs/features/data-import/pairing-screens.md "The live line"): the pairing of the
         // import's puzzles with the database is followed too - `data.pairing` of the same payload
         pairing: Boolean,
@@ -58,6 +63,7 @@ export default class extends Controller {
         this.failingSince = 0;
         this.revision = this.revisionValue || null;
         this.working = this.workingValue;
+        this.watchUntil = this.watchValue ? Date.now() + WATCH_FOR_MS : 0;
 
         // The reading was over before the page was rendered: "your rows are being read again" is not true any more
         if (!this.working) {
@@ -89,16 +95,37 @@ export default class extends Controller {
             event.detail.visit(this.fallbackUrlValue || window.location.href);
         };
 
+        // The page never loads itself again against the player: not once they are leaving it (an answer of a poll
+        // that arrives after a click would throw them back here - the request on its way is aborted), not under a
+        // form they touched (data_import_reload_guard.js)
+        this.guard = createReloadGuard();
+        this.guard.whenLeaving(() => {
+            this.stopped = true;
+            window.clearTimeout(this.timer);
+
+            if (this.request) {
+                this.request.abort();
+            }
+        });
+
         document.addEventListener('mercure:message', this.onMessage);
         document.addEventListener('turbo:frame-missing', this.onFrameMissing);
 
-        if (this.working) {
+        if (this.working || this.watchUntil > 0) {
             // What happened between the page's rendering and now is asked for at once
             this.ask(true).then(() => this.askLater(ASK_EVERY_MS));
         }
     }
 
     disconnect() {
+        if (this.guard) {
+            this.guard.dispose();
+        }
+
+        if (this.request) {
+            this.request.abort();
+        }
+
         document.removeEventListener('mercure:message', this.onMessage);
         document.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.stopped = true;
@@ -108,7 +135,7 @@ export default class extends Controller {
     askLater(ms) {
         window.clearTimeout(this.timer);
 
-        if (this.stopped || !this.working) {
+        if (this.stopped || (!this.working && Date.now() >= this.watchUntil)) {
             return;
         }
 
@@ -130,10 +157,18 @@ export default class extends Controller {
         this.asking = true;
 
         try {
+            this.request = new AbortController();
+
             const response = await fetch(this.urlValue, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
+                signal: this.request.signal,
             });
+            // The player went on to another page while the answer was on its way: nothing of it is for that page
+            if (this.stopped || this.guard.leaving || !this.element.isConnected) {
+                return;
+            }
+
             const isJson = (response.headers.get('Content-Type') || '').includes('json');
 
             // Signed out meanwhile, or the import was discarded in another tab: the page itself says what is
@@ -152,8 +187,19 @@ export default class extends Controller {
 
             this.failures = 0;
             this.failingSince = 0;
-            this.show(await response.json());
-        } catch {
+            const data = await response.json();
+
+            if (this.stopped || this.guard.leaving || !this.element.isConnected) {
+                return;
+            }
+
+            this.show(data);
+        } catch (error) {
+            // Aborted because the player is leaving the page: not a failure
+            if (error && error.name === 'AbortError') {
+                return;
+            }
+
             // Offline or a deploy
             this.failed();
         } finally {
@@ -221,16 +267,57 @@ export default class extends Controller {
             this.dropSavedFlash();
         }
 
-        if (wasWorking && !this.working && this.reloadPageValue) {
-            this.stopped = true;
-            window.clearTimeout(this.timer);
-            window.location.reload();
+        // A page without live frames is loaded again when what it shows is out of date: the work ended, or a sheet's
+        // or the matching's state moved on since the first answer. (Work that is found to be running - the page did
+        // not know about the matching - is only followed from then on: no reload for that.)
+        if ((changed || (wasWorking && !this.working)) && this.reloadPageValue) {
+            this.reloadPage();
         }
 
         if (this.working && !wasWorking) {
             // Work began again (a change saved in another tab): the line is kept moving from here on
             this.askLater(ASK_EVERY_MS);
         }
+    }
+
+    /**
+     * The whole page is loaded again - unless the controller was disconnected meanwhile (an answer that arrives
+     * after Turbo went on to another page must not reload THAT page), or the player is in the middle of something
+     * here: a field they changed, a form control they stand in. Then a small "Refresh" link is shown instead.
+     */
+    reloadPage() {
+        const verdict = this.guard.verdict({
+            connected: this.element.isConnected,
+            stopped: this.stopped,
+            activeElement: document.activeElement,
+        });
+
+        if (verdict === 'no') {
+            return;
+        }
+
+        this.stopped = true;
+        window.clearTimeout(this.timer);
+
+        if (verdict === 'refresh') {
+            this.element.hidden = false;
+
+            if (this.hasSpinnerTarget) {
+                this.spinnerTarget.hidden = true;
+            }
+
+            if (this.hasLineTarget) {
+                this.lineTarget.hidden = true;
+            }
+
+            if (this.hasRefreshTarget) {
+                this.refreshTarget.hidden = false;
+            }
+
+            return;
+        }
+
+        window.location.reload();
     }
 
     /**

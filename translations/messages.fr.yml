@@ -11855,6 +11855,8 @@ data_import:
             nothing: "Rien n'est encore prêt."
             nothing_step: "Rien n'est encore prêt - d'abord l'étape %step%."
             nothing_reading: "Rien n'est encore prêt - vos lignes sont encore en cours de lecture."
+            already_yours: "{1}1 ligne est déjà sur votre profil - elle n'est pas ajoutée deux fois.|[0,Inf[%number% lignes sont déjà sur votre profil - elles ne sont pas ajoutées deux fois."
+            not_imported: "{1}1 ligne que vous avez choisi de ne pas importer.|[0,Inf[%number% lignes que vous avez choisi de ne pas importer."
         primary:
             see_added: "Voir ce qui a été ajouté"
             check_and_add: "Vérifier et ajouter"
@@ -11885,6 +11887,9 @@ data_import:
         set_ups: "Quand vous confirmez la façon de lire une feuille, nous la retenons. Votre prochain fichier avec les mêmes en-têtes est lu de la même façon, tout seul."
         set_ups_summary: "Que signifie « lue comme la dernière fois » ?"
         finish: "Plus rien n'est ajouté depuis ce fichier, et il laisse la place à un autre. Ce qu'il a ajouté reste sur votre profil et peut toujours être annulé. Vous pourrez le reprendre plus tard tant que le fichier est conservé."
+        finish_kept: "Plus rien n'est ajouté depuis ce fichier, et il laisse la place à un autre. Ce qu'il a gardé reste rien que pour vous et peut toujours être annulé. Vous pourrez le reprendre plus tard tant que le fichier est conservé."
+        finish_nothing: "Rien n'est ajouté depuis ce fichier - ce qu'il contient est déjà sur votre profil. Il reste dans votre liste et laisse la place à un autre. Vous pourrez le reprendre plus tard tant que le fichier est conservé."
+        keep: "Ces lignes sont gardées rien que pour vous, avec leurs puzzles, sur la page Puzzles hors catalogue. Rien ne va sur votre profil, dans un classement ou dans vos statistiques tant qu'un puzzle n'est pas associé à un puzzle de notre base."
         discard: "Le fichier et tout ce qui en a été lu sont supprimés. Rien ne change sur votre profil - rien n'avait encore été ajouté."
         kept: "Il reste dans votre liste pour que les mêmes lignes ne soient jamais ajoutées deux fois et que vous puissiez les annuler."
         file: "Vous seul voyez le fichier. Nous le conservons %days% jours, puis il est supprimé - ce qui a été ajouté reste sur votre profil."
@@ -12079,8 +12084,18 @@ data_import:
         with_guests: "avec %people%"
         first_try: "premier essai"
         button: "Ajouter %number% à mon profil"
+        button_keep: "Garder %number% rien que pour moi"
         button_part: "Ajouter %number% sur %total% maintenant - le reste demain"
-        button_settle: "Passer ces lignes en revue (%number%)"
+        nothing_to_add: "Rien à ajouter - tout ce que contient ce fichier est déjà sur votre profil."
+        nothing_to_add_hint: "Vous pouvez terminer cet import ici. Rien ne change sur votre profil."
+        all_added: "Tout ce fichier est ajouté."
+        rows_title: "Les lignes de ce fichier"
+        already_on_title: "Déjà sur votre profil"
+        nothing_right_now: "Rien à ajouter pour l'instant."
+        nothing_why:
+            repeats: "Lignes qui répètent une autre ligne du fichier : %number%"
+            not_imported: "Lignes que vous avez choisi de ne pas importer : %number%"
+        none_on_profile: "Aucune ligne de ce fichier n'est déjà sur votre profil."
         button_hint: "Tout ce qui est prêt au moment où vous appuyez est ajouté. Cela se fait en arrière-plan - vous pouvez quitter la page."
         ready:
             adding: "Des lignes de cet import sont en train d'être ajoutées à votre profil."
@@ -12162,6 +12177,7 @@ data_import:
         title: "Ajout à votre profil"
         title_done: "Ajouté à votre profil"
         title_kept: "Gardé rien que pour vous"
+        title_keeping: "Nous les gardons rien que pour vous"
         line: "Ajout… %done% sur %total%"
         finishing: "Finalisation…"
         leave: "Vous pouvez quitter cette page - le travail continue en arrière-plan."
@@ -12987,7 +13003,7 @@ data_import:
     add_review:
         ready_title: "Prêt à être ajouté"
         quoted: "« %text% »"
-        reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
+        reading_again: "Vos lignes sont en cours de lecture - un instant. Elles ne sont pas comptées ici tant qu'elles ne sont pas lues."
         line:
             results: "{0,1}%number% résultat|[2,Inf[%number% résultats"
             no_time: "{1}1 résultat n'a pas de temps - il est ajouté sans temps.|[0,Inf[%number% résultats n'ont pas de temps - ils sont ajoutés sans temps."
@@ -13030,6 +13046,8 @@ data_import:
             answer: "Répondre"
         what_adding_does: "Ce que fait l'ajout"
     add_list:
+        repeats_title: "Lignes répétées (%number%) - comptées une fois"
+        repeats_hint: "Ces lignes répètent une autre ligne de votre fichier. Elles comptent pour un seul résultat - dites-le sur « Vérifier et ajouter » s'il s'agit de résolutions distinctes."
         title: "Ce qui sera ajouté"
         intro: "Tout ce qu'un appui sur Ajouter ajouterait maintenant, dans l'ordre de votre fichier. Décochez une ligne pour la laisser de côté - c'est enregistré aussitôt."
         tab:
@@ -13065,7 +13083,7 @@ data_import:
             done: "Terminé - retour à la vérification"
         empty: "Rien n'est encore prêt à être ajouté."
         no_hit: "Aucune ligne avec ce puzzle."
-        reading_again: "Une feuille est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'elle n'est pas lue."
+        reading_again: "Vos lignes sont en cours de lecture - un instant. Elles ne sont pas comptées ici tant qu'elles ne sont pas lues."
         reading_again_file: "Votre fichier est en cours de relecture - un instant. Ses lignes ne sont pas comptées ici tant qu'il n'est pas lu."
         taking_longer: "Cela prend plus de temps."
         refresh: "Actualiser"
@@ -13285,7 +13303,7 @@ unlisted_puzzles:
         left: "Encore hors catalogue : %number%. La raison de chacun est indiquée ci-dessous."
         try_again: "Réessayer d'ajouter le reste"
     add:
-        ready: "Lignes conservées rien que pour vous : %number% - vous seul les voyez."
+        ready: "Lignes qui seront conservées rien que pour vous : %number% - vous seul les verrez."
     batch:
         kept: "Lignes conservées rien que pour vous : %number%. Vous seul les voyez, et elles ne comptent pas tant qu'elles ne sont pas associées."
     notification:

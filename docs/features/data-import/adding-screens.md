@@ -216,8 +216,9 @@ It only writes the answer. Nothing is added by it - "Add" reads the answers (`Im
 ## The button
 
 **Add N to my profile** - N is what **this tap** makes (results + collection puzzles + wishes, after the daily
-guard): with more ready than today's guard allows it reads **"Add 2,000 of 5,000 now - the rest tomorrow"**. "Go
-through these rows (N)" when everything ready is already the player's. Below it: "Everything that is ready when you
+guard): with more ready than today's guard allows it reads **"Add 2,000 of 5,000 now - the rest tomorrow"**. **No
+button when the tap would make nothing** ("Already on your profile", below - it used to read "Go through these rows
+(N)"). Below it: "Everything that is ready when you
 press it is added" - the selection is resolved when the form arrives, not when the page was rendered. It is not shown while adding is paused, while an "Add" of the
 import runs, or when nothing is ready.
 
@@ -236,6 +237,97 @@ From the list of rows that could not be added the same route takes `rows[]` (the
 `request_id`) and optionally `anyway` = one of the four codes: the answer is written first (`ConfirmImportRows`),
 then that row is added (`AddImportRows(rowIds:)`). A code that may not be waved through is ignored - the row is
 only tried again.
+
+## Already on your profile - said plainly, never offered to add
+
+Rows of a file whose result (or puzzle) the player has already are "already yours": an "Add" takes them and makes
+nothing of them (README "Never twice"). A tester's file of 20 such rows showed "Nothing is ready yet - step 2 first"
+on the overview, all 20 with ticked boxes under "What will be added" beside "Nothing will be added", and a button
+"Go through these rows (20)". Now, everywhere:
+
+- **The status sentence** - "20 rows are already on your profile - they are not added twice." - is step 5's line
+  on "Where you are" (`ImportFlow`, `data_import.flow.add.already_yours`) and the line of "Ready to add" on "Check
+  and add". When that is all the file holds, step 5 is done: nothing is "ready", and nothing must be done "first".
+- **"What will be added" lists only rows that add something** (and the rows not imported):
+  `GetImportAddScreen::readyRows()` leaves the rows that are on the profile already out. They stand under the list
+  in the folded **"On your profile already: N"** (`_on_profile_rows.html.twig`: the first 20 - the summary's own
+  `knownIds`, read by `rowsByIds()`, so the heavy statement of the ready rows is not run again - then "And N
+  more"; no tick boxes). The same partial, under the same number, is the review's fold. An "Add" still takes those
+  rows with the others and settles them - the engine is untouched (`ImportAddListTest` compares list + fold with
+  what an "Add" queues).
+- **One number**: `ImportAddSummary::onProfileAlready()` is a count of its own (`on_profile`) with exactly the
+  predicate of the rows the list leaves out - taken, not kept just for the player, **not a repeat of another row**,
+  and nothing new. The status sentence, the two folds' titles, "See all N" and the list's "All" tab all come from
+  it. (`alreadyYours - equalRows` was wrong: `equal_rows` also counts repeats that are kept just for the player.)
+- **No "Add" when it would make nothing** (`ImportAddSummary::nothingLeftToAdd()`: rows are ready, none makes
+  anything, nothing waits for tomorrow, no step holds rows back): "Nothing to add - everything in this file is
+  already on your profile." **only when every taken row is on the profile** (`everythingIsOnProfile()`); else the
+  neutral "Nothing to add right now." naming why - on your profile already: N · rows that repeat another row: N ·
+  rows you chose not to import: N. Below it the way to finish - "I'm done with this import" when the import added
+  something before, else "Discard this import". While a step still holds rows back, the footer leads to that step
+  as before. The old "Go through these rows (N)" and its text are gone.
+- **`…/add/already-on` opened by itself** lists them, unfolded (the review's frame of that address - "your file
+  says these are on MySpeedPuzzling already" - is unchanged: the list is added only outside a frame request).
+
+Not changed: the batch page of an "Add" that took new rows and already-yours rows together still counts the latter
+under its fold (`docs/TODO.md`).
+
+### After the browser walk of this change (2026-11-16)
+
+- **Repeats are not "what will be added" either.** A row that repeats another row of the file is counted once, so
+  it adds nothing of its own: it leaves the list like the rows on the profile, into a second folded list under it -
+  **"Repeated rows (N) - counted once"**, no tick boxes (`repeats`, `repeatIds`). The rows an "Add" takes are
+  exactly three sets, each one SQL count with its own predicate: `rows_that_add` (the list, "See all N", the "All"
+  tab) + `on_profile` + `repeats`. `ImportAddListTest` checks list + both folds against what an "Add" queues.
+  Imports home's card still counts the rows an Add *takes* ("9 rows ready to add") - its statement covers all of a
+  player's imports at once and does not judge what each row would make (`docs/TODO.md`).
+- **A file that is on the profile already can be finished**: "I'm done with this import" is the primary of
+  "Nothing to add…" and is offered on "Where you are" too (`ImportFlow::$canFinish`, `FinishImport` always took an
+  import that added nothing) - with a sentence of its own ("Nothing is added from this file - what it holds is on
+  your profile already…"). Discard stays where it was.
+- **Keep-only Adds, the rest**: the finished page drops "Statistics, XP and achievements follow…", "I'm done" on
+  the overview says "What it kept stays just for you", and "What adding does" says what keeping does.
+- **The link to Unlisted puzzles** on an import's overview only while THIS import has rows kept right now
+  (`keptNow`: added, not undone) - not for rows that will be kept, not after "Undo everything", not because another
+  import kept something.
+- **"Check and add" in its other states**: everything added → "Everything of this file is added." with "See what
+  was added" (no "Nothing is ready yet", no empty "What adding does"); nothing to add → the heading is "The rows of
+  this file", no talk of the button, no "added as" examples; "Your rows are being read" (it said "A sheet is being
+  read again" on a first read too); the "Not added this time" card is not shown while its only line would be a
+  sheet that is being read; `…/add/already-on` opened by itself is titled "Already on your profile".
+- **A row the player unticked is said on "Where you are"**: "1 row you chose not to import." in step 5.
+- **The page's own reload never wins against the player** (`assets/data_import_reload_guard.js`,
+  `ImportReloadGuardScriptTest`): once they are leaving - a link clicked, a Turbo visit or form, the window
+  unloading - the poll on its way is aborted and nothing is loaded again (a click 10 ms after a poll began was
+  answered by a reload of the page just left); under a form they touched, a "Refresh" link instead.
+
+### Wording found on the sandbox with it (2026-11-16)
+
+- **Rows that will be kept just for the player are said as that**: before an Add - and again after an "Undo
+  everything", when they are ready once more - the overview says "Rows that **will be** kept just for you: 3 - only
+  you will see them.", and the link "Puzzles kept just for you are on the page Unlisted puzzles" is shown only
+  while the player has something kept there (it was shown for rows that were merely ready, beside an empty page).
+- **"N results have no time"** counts the very results the lines above it count - the ready ones this Add takes
+  (`counts` of `GetImportAddScreen::summary()`), never a row that is not ready ("7 results" / "8 have no time").
+- **An Add that only keeps rows just for the player** says so: the button is "Keep 3 just for me" (not "Add 3 to
+  my profile"), its running page is titled "Keeping them just for you" (`batch.onlyKeeps`: every row of the batch
+  belongs to a puzzle kept just for the player), and the finish sentence under it says "What it kept stays just for
+  you" instead of "…stays on your profile". The statistics sentence is on the done page of an Add with results
+  only, as before. A mixed Add keeps its texts.
+- **"Times are read as"** is one phrase: the reading nobody was asked about ("30:20.23" is minutes and seconds) is
+  not listed beside the column's own (`ImportSheetReadings`).
+- **No "Matching your puzzles…" on "Where you are" while every puzzle waits for the columns check**: the live line
+  does not follow a pairing that has nothing to pair (`ImportDetailController`: sheets held and no puzzle yet).
+- **"Check and add" follows by itself, with or without the live channel**: while rows are read or puzzles matched -
+  and, while nothing is ready, for two minutes after the page was opened (a save whose reading has not begun) - the
+  page asks the progress endpoint every 4 s and is loaded again when a sheet's or the matching's state changed
+  (`_setup_live.html.twig` with `reload_page` + `watch`; the polling never needed Mercure, but the page did not
+  carry the line when the reading was over and only the matching still ran). No statement more on the page: whether
+  the matching still runs is what the first answer says. "Working" comes from `sheetsBeingRead` only - a sheet whose set-up
+  failed is not being read, and must never make the page load itself again. The page is **not loaded again under
+  the player's hands**: after they typed, ticked or chose something in a form of the page, or while they stand in a
+  field, a small "Refresh" link is shown instead; and an answer that arrives after Turbo went on to another page
+  does nothing (`reloadPage()`).
 
 ## Progress and done
 

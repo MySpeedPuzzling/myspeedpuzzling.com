@@ -109,7 +109,7 @@ final class ImportAddScreensTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertCount(0, $crawler->filter('[data-testid="not-ready-unlisted"]'));
         self::assertSame('1', $crawler->filter('[data-testid="import-ready-unlisted"]')->attr('data-rows'));
-        self::assertStringContainsString('Rows kept just for you: 1 - only you see them.', self::spaced($crawler->filter('[data-testid="import-ready-unlisted"]')->text()));
+        self::assertStringContainsString('Rows that will be kept just for you: 1 - only you will see them.', self::spaced($crawler->filter('[data-testid="import-ready-unlisted"]')->text()));
         self::assertSame('done', $crawler->filter('[data-testid="import-flow-line"][data-step="puzzles"]')->attr('data-state'));
     }
 
@@ -159,8 +159,8 @@ final class ImportAddScreensTest extends WebTestCase
             ['4 results', '2 puzzles for your collection', '1 puzzle for your wish list'],
             $counts->filter('[data-testid="import-add-lines"] li')->each(static fn (Crawler $line): string => self::spaced($line->text())),
         );
-        self::assertSame(['/en/import/' . $importId . '/add/list', 'See all 9 and untick any'], [$counts->filter('[data-testid="import-add-see-all"]')->attr('href'), self::spaced($counts->filter('[data-testid="import-add-see-all"]')->text())]);
-        self::assertSame('1 row is on your profile already - not added twice.', self::spaced($counts->filter('[data-testid="import-add-line-already-yours"]')->text()));
+        self::assertSame(['/en/import/' . $importId . '/add/list', 'See all 6 and untick any'], [$counts->filter('[data-testid="import-add-see-all"]')->attr('href'), self::spaced($counts->filter('[data-testid="import-add-see-all"]')->text())]);
+        self::assertSame('1 row is already on your profile - it is not added twice.', self::spaced($counts->filter('[data-testid="import-add-line-already-yours"]')->text()));
         self::assertStringContainsString('2 rows repeat another row - counted once.', self::spaced($counts->filter('[data-testid="import-add-line-equal-rows"]')->text()));
         self::assertStringContainsString('These results are on MySpeedPuzzling already - the same puzzle, day and time.', $counts->filter('[data-testid="import-explain-on-profile"]')->text());
         self::assertStringContainsString('We count them as one result - say so if they are separate solves.', $counts->filter('[data-testid="import-explain-repeat"]')->text());
@@ -195,7 +195,8 @@ final class ImportAddScreensTest extends WebTestCase
 
         // Already on the profile: a count and a folded list, nothing to do
         $known = $crawler->filter('details[data-testid="import-add-known"]');
-        self::assertSame('3', $known->attr('data-rows'));
+        // One number everywhere: the row that is on the profile - the two that repeat a row are not counted here
+        self::assertSame('1', $known->attr('data-rows'));
         self::assertNull($known->attr('open'));
         self::assertCount(1, $known->filter('[data-testid="add-row"]'), 'The row typed before; the two that repeat a row are in their own group');
 
@@ -292,10 +293,15 @@ final class ImportAddScreensTest extends WebTestCase
         $this->browser->request('GET', '/en/import/' . $importId . '/batches/' . $batchId . '/progress');
         self::assertStringContainsString('"running":false', (string) $this->browser->getResponse()->getContent());
 
-        // Nothing is left to add: the review says so and shows no button
+        // Everything is added: the review says that - not "nothing is ready yet" - with the way to it, and no button
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add');
-        self::assertCount(1, $crawler->filter('[data-testid="import-add-nothing"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-add-nothing"]'));
+        self::assertStringContainsString('Everything of this file is added.', $crawler->filter('[data-testid="import-add-all-added"]')->text());
+        self::assertSame('/en/import/' . $importId . '/added', $crawler->filter('[data-testid="import-add-see-added"]')->attr('href'));
         self::assertCount(0, $crawler->filter('[data-testid="import-add-form"]'));
+        // No "What adding does" over nothing to add, and no talk of the button
+        self::assertCount(0, $crawler->filter('[data-testid="import-add-what"]'));
+        self::assertStringNotContainsString('until you press the button', $crawler->filter('[data-testid="import-add-page"]')->text());
     }
 
     public function testAResentAddFormAnswersTheSameBatch(): void

@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Results\ImportAddListRow;
+use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -94,11 +95,21 @@ final class ImportAddListController extends AbstractController
             $comingBack = $comingBack !== null && $comingBack->state === 'waiting' && $comingBack->solvingTimeId === null ? $comingBack : null;
         }
 
+        // Rows that are on the profile already are not "what will be added": listed apart, folded, without tick boxes -
+        // the first of them, named by the summary (no further run of the ready rows' statement)
+        // ... and so are the rows that repeat another row (counted once). One light statement for both
+        $folded = [...$add->knownIds, ...$add->repeatIds];
+        $known = $folded === [] ? [] : $this->getImportAddScreen->rowsByIds($importId, $player->playerId, $folded);
+        $onProfile = array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $known[$id] ?? null, $add->knownIds)));
+        $repeats = array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $known[$id] ?? null, $add->repeatIds)));
+
         return $this->render('data_import/add_list.html.twig', [
             'coming_back' => $comingBack,
             'back' => $comingBack !== null ? $back : null,
             'import' => $import,
             'add' => $add,
+            'on_profile' => $onProfile,
+            'repeats' => $repeats,
             'sheets' => $add->sheets,
             'rows' => $list['rows'],
             'total' => $list['total'],

@@ -72,6 +72,18 @@ readonly final class ImportAddSummary
         public int $sheetsBeingRead = 0,
         /** Results of the file's read sheets that have no time (a sheet without a time column) - said before an Add */
         public int $resultsWithoutTime = 0,
+        /** Rows taken that add nothing because they are on the profile already (onProfileAlready()) */
+        public int $onProfile = 0,
+        /** Rows the player said "Don't import" about */
+        public int $notImported = 0,
+        /** Rows taken that repeat another row of the file and make nothing of their own - counted once */
+        public int $repeats = 0,
+        /** Rows taken that make something: what "What will be added" lists */
+        public int $rowsThatAdd = 0,
+        /** @var list<string> the first rows that repeat another row */
+        public array $repeatIds = [],
+        /** Rows of this import that are kept just for the player right now (added, not undone) */
+        public int $keptNow = 0,
     ) {
     }
 
@@ -85,6 +97,45 @@ readonly final class ImportAddSummary
     public function rowsToTake(): int
     {
         return $this->rowsTaken;
+    }
+
+    /**
+     * Rows an "Add" would take that add nothing because everything they say is on the profile already - not a row
+     * kept just for the player, not a repeat of another row of the file. Its own count, with the very predicate of
+     * the rows "What will be added" leaves out (GetImportAddScreen): the status sentence, the fold's title and the
+     * list's numbers are one number.
+     */
+    public function onProfileAlready(): int
+    {
+        return $this->onProfile;
+    }
+
+    /** Every row an "Add" would take is on the profile already - nothing else is why there is nothing to add */
+    public function everythingIsOnProfile(): bool
+    {
+        return $this->onProfile > 0 && $this->onProfile === $this->rowsTaken && $this->notImported === 0;
+    }
+
+    /** The import kept rows just for the player and put nothing on the profile */
+    public function onlyKept(): bool
+    {
+        return $this->rowsAdded > 0 && $this->resultsAdded + $this->collectionItemsAdded + $this->wishListItemsAdded === 0;
+    }
+
+    /** This tap would only keep rows just for the player */
+    public function onlyKeeps(): bool
+    {
+        return $this->toAdd() > 0 && $this->unlisted === $this->toAdd();
+    }
+
+    /**
+     * Nothing of the file is left to add: the rows that are ready are all on the profile already (or repeat one
+     * another), nothing waits for tomorrow and nothing is held back by a step. No "Add" is offered then - there is
+     * nothing to press for.
+     */
+    public function nothingLeftToAdd(): bool
+    {
+        return $this->rowsTaken > 0 && $this->toAdd() === 0 && $this->later === 0 && $this->hasNotReady() === false;
     }
 
     /** What the button's number is: the things this "Add" would make */

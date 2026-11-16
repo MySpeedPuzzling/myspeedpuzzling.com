@@ -296,8 +296,18 @@ readonly final class ImportFlow
             $addLines[] = new ImportFlowText('data_import.flow.add.ready', $ready);
         }
 
+        if ($open && $add->canAdd && $add->runningBatchId === null && $add->onProfileAlready() > 0) {
+            // Said as the status, not hidden in a fold: these rows are why "nothing is ready" - and it is good news
+            $addLines[] = new ImportFlowText('data_import.flow.add.already_yours', $add->onProfileAlready());
+        }
+
         if ($add->notAdded > 0) {
             $addLines[] = new ImportFlowText('data_import.flow.add.rows_wait', $add->notAdded);
+        }
+
+        if ($open && $add->canAdd && $add->notImported > 0) {
+            // "All five steps are done" must not hide a row the player unticked
+            $addLines[] = new ImportFlowText('data_import.flow.add.not_imported', $add->notImported);
         }
 
         if ($open && $add->paused) {
@@ -317,7 +327,8 @@ readonly final class ImportFlow
             match (true) {
                 $add->runningBatchId !== null => ImportFlowStep::WORKING,
                 $ready > 0 || $add->notAdded > 0 => ImportFlowStep::OPEN,
-                $add->hasAdded() => ImportFlowStep::DONE,
+                // Everything of the file is on the profile already: nothing is left to do here
+                $add->hasAdded(), $open && $add->canAdd && $add->nothingLeftToAdd() => ImportFlowStep::DONE,
                 default => ImportFlowStep::AHEAD,
             },
             $addLines !== [] ? $addLines : [match (true) {
@@ -367,7 +378,8 @@ readonly final class ImportFlow
             $primary,
             $secondary,
             $add->hasAdded(),
-            $open && $add->latestBatchId !== null && $add->runningBatchId === null,
+            // ... also an import nothing was added from because everything of it is on the profile already
+            $open && $add->runningBatchId === null && ($add->latestBatchId !== null || ($add->canAdd && $add->nothingLeftToAdd())),
             $add->latestBatchId === null,
             $import->importId,
             $look,

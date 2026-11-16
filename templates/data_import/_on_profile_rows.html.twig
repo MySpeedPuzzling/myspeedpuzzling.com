@@ -1,0 +1,26 @@
+{#
+    "On your profile already (N)" - the rows of a file an "Add" would take although everything they say is on the
+    profile already: they are never added twice, so they are not part of "What will be added" - listed apart,
+    without tick boxes, folded unless `open`. The first of them (ImportAddSummary::$knownIds), then "And N more";
+    `total` is ImportAddSummary::onProfileAlready() - the one number of the status sentence and the list.
+    The same list shows the rows that repeat another row of the file ("Repeated rows (N) - counted once"): `title`
+    and `hint` say which.
+    Variables: rows (list<ImportAddRow>), total, open (optional), testid (optional), title (optional), hint (optional).
+#}
+<details class="card card-body shadow-sm mb-3 py-0" data-testid="{{ testid|default('import-on-profile') }}" data-rows="{{ total }}"{% if open|default(false) %} open{% endif %}>
+    <summary class="d-flex align-items-center gap-2 py-3" style="min-height: 56px; cursor: pointer;">
+        <i class="bi bi-person-check text-muted" aria-hidden="true"></i>
+        <span class="fw-semibold">{{ title|default('data_import.add.known.title'|trans({'%number%': total|format_number})) }}</span>
+    </summary>
+    <p class="fs-sm text-muted">{{ hint|default('data_import.add.known.hint'|trans) }}</p>
+    <div class="d-flex flex-column gap-3 pb-3">
+        {% for row in rows %}
+            <div data-testid="import-on-profile-row" data-row-id="{{ row.rowId }}">
+                {{ include('data_import/_add_row.html.twig', {row: row}) }}
+            </div>
+        {% endfor %}
+    </div>
+    {% if total - rows|length > 0 %}
+        <p class="fs-sm text-muted">{{ 'data_import.add.known.more'|trans({'%number%': (total - rows|length)|format_number}) }}</p>
+    {% endif %}
+</details>

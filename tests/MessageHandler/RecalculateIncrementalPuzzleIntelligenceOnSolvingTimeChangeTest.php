@@ -68,6 +68,25 @@ final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChangeTest exte
         self::assertGreaterThanOrEqual(5, (int) $baseline['qualifying_solves_count']);
     }
 
+    /**
+     * A baseline the handler inserts gets a time-ordered id (gen_uuid_v7()), as the batch's rows do
+     */
+    public function testANewBaselineGetsATimeOrderedId(): void
+    {
+        $key = ['playerId' => PlayerFixture::PLAYER_REGULAR, 'piecesCount' => 500];
+        $this->connection->executeStatement('DELETE FROM player_baseline WHERE player_id = :playerId AND pieces_count = :piecesCount', $key);
+
+        ($this->handler)(new PuzzleSolved(
+            Uuid::fromString(PuzzleIntelligenceFixture::INTEL_TIME_13),
+            Uuid::fromString(PuzzleIntelligenceFixture::INTEL_PUZZLE_A),
+        ));
+
+        $id = $this->connection->fetchOne('SELECT id FROM player_baseline WHERE player_id = :playerId AND pieces_count = :piecesCount', $key);
+
+        self::assertIsString($id);
+        self::assertSame('7', $id[14], 'The version of a UUID is the first digit of its third group');
+    }
+
     public function testUpdatesDifficultyOnPuzzleSolved(): void
     {
         $event = new PuzzleSolved(

@@ -586,7 +586,7 @@ readonly final class PuzzleIntelligenceRecalculator
         $this->connection->executeStatement("
             INSERT INTO player_skill_history (id, player_id, pieces_count, month, baseline_seconds, skill_tier, skill_percentile)
             SELECT
-                gen_random_uuid(),
+                gen_uuid_v7(),
                 pb.player_id,
                 pb.pieces_count,
                 CAST(:month AS timestamp),
@@ -635,7 +635,7 @@ readonly final class PuzzleIntelligenceRecalculator
         $this->connection->executeStatement("
             INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
             SELECT
-                gen_random_uuid(),
+                gen_uuid_v7(),
                 fresh.player_id,
                 fresh.pieces_count,
                 fresh.snapshot_date,
@@ -905,6 +905,9 @@ readonly final class PuzzleIntelligenceRecalculator
      * ON CONFLICT stays for a row inserted after the SELECT's snapshot (the incremental handler,
      * concurrently): it is overwritten, as before.
      *
+     * A new row's id is gen_uuid_v7() (Version20261116160000): time-ordered like Uuid::uuid7(), so the
+     * rows of one run sit together in the primary key index. A row that is updated keeps its id.
+     *
      * @param array<string, string> $keyColumns the unique key, column => SQL type
      * @param array<string, string> $valueColumns column => SQL type; compared, and written together with computed_at
      * @param list<array<string, mixed>> $rows every key and value column plus computed_at
@@ -935,7 +938,7 @@ readonly final class PuzzleIntelligenceRecalculator
         }
 
         $insertColumns = implode(', ', $generateId ? ['id', ...$columns] : $columns);
-        $selectColumns = ($generateId ? 'gen_random_uuid(), ' : '') . self::qualifiedColumns('fresh', $columns);
+        $selectColumns = ($generateId ? 'gen_uuid_v7(), ' : '') . self::qualifiedColumns('fresh', $columns);
         $values = implode(', ', $valuesClauses);
         $valueAliases = implode(', ', $columns);
         $keyMatch = implode(' AND ', array_map(static fn (string $key): string => "stored.{$key} = fresh.{$key}", $keys));

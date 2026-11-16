@@ -106,7 +106,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
     {
         $this->connection->executeStatement("
             INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, 'direct', :now)
+            VALUES (gen_uuid_v7(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, 'direct', :now)
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 qualifying_solves_count = EXCLUDED.qualifying_solves_count,
@@ -146,7 +146,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         foreach ($ratios as $ratio) {
             $this->connection->executeStatement("
                 INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at)
-                VALUES (gen_random_uuid(), :playerId, :fromAttempt, :medianRatio, :sampleSize, :now)
+                VALUES (gen_uuid_v7(), :playerId, :fromAttempt, :medianRatio, :sampleSize, :now)
                 ON CONFLICT (player_id, from_attempt) DO UPDATE SET
                     median_ratio = EXCLUDED.median_ratio,
                     sample_size = EXCLUDED.sample_size,

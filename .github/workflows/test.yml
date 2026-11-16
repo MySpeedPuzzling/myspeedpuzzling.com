@@ -15,32 +15,25 @@ on:
     pull_request:
 
 env:
-    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=16&charset=utf8
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=18&charset=utf8
 
 jobs:
   # The suite runs as 3 parallel jobs (ParaTest shards, test classes dealt out
   # round-robin), each with one worker per CPU. ~60s of every job is fixed cost
   # (containers, checkout, caches, database build), so a 4th shard bought nothing.
   #
-  # Two Postgres versions: 18.7 is what development runs (compose.yml), 16.14 is what PRODUCTION runs until its
-  # upgrade window. Every leg gates the deploy as before (`needs: tests`), so nothing that fails on production's
-  # version ships - and nothing that fails on 18 either.
-  # TEMPORARY - after the production upgrade to 18: delete the '16.14' entry here and in `migrations-up-to-date`.
+  # Postgres 18.7 (Debian), the same as production (since 2026-11-16) and development (compose.yml).
   tests:
-    name: tests (${{ matrix.shard }}/3, postgres ${{ matrix.postgres }})
+    name: tests (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     container: ghcr.io/myspeedpuzzling/web-base-php85:main
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
-        postgres: ['18.7', '16.14']
-    env:
-      # The workflow's DATABASE_URL with this leg's server version (DBAL picks its platform class by it - one class from 12 up)
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=${{ matrix.postgres }}&charset=utf8
     services:
       postgres:
-          image: postgres:${{ matrix.postgres }}
+          image: postgres:18.7
           env:
               POSTGRES_PASSWORD: postgres
           options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
@@ -217,21 +210,12 @@ jobs:
         -   run: mkdir -p var && composer run cs
 
 
-  # On both Postgres versions, like `tests` (TEMPORARY: delete the '16.14' entry after the production upgrade to 18).
-  # The 16.14 leg is the one that runs every migration on production's version before a deploy does.
   migrations-up-to-date:
-      name: migrations-up-to-date (postgres ${{ matrix.postgres }})
       runs-on: ubuntu-latest
       container: ghcr.io/myspeedpuzzling/web-base-php85:main
-      strategy:
-          fail-fast: false
-          matrix:
-              postgres: ['18.7', '16.14']
-      env:
-          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=${{ matrix.postgres }}&charset=utf8
       services:
           postgres:
-              image: postgres:${{ matrix.postgres }}
+              image: postgres:18.7
               env:
                   POSTGRES_PASSWORD: postgres
                   POSTGRES_DB: speedpuzzling_test

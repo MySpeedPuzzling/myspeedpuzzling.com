@@ -94,8 +94,8 @@ Jan's calls (2026-10-28), each ladder chosen against the holder shares of the ex
   teammate's moment). Shares of the 973 puzzlers with a time zone: 44 / 24.5 / 8.6 / 2.9 / 0.8 % - on the catalogue
   (all puzzlers) it looks rarer until more players set one. **Every zone `TimezoneIdentifier` lists must be known to
   Postgres** (`AT TIME ZONE` fails the whole snapshot otherwise): `testPostgresKnowsEveryTimeZoneAPlayerCanHave` guards
-  it - dev's formerly pinned `postgres:16.0` lacked `America/Coyhaique` (tzdata 2025b); dev and CI (`postgres:18.7`) and
-  production (16.14) have it.
+  it - dev's formerly pinned `postgres:16.0` lacked `America/Coyhaique` (tzdata 2025b); dev, CI and production
+  (`postgres:18.7`) have it.
 - **Competitor** (GitHub #148) - public in-person competitions (`IsCompetitionPubliclyVisible`, drafts never) that
   **have ended** (the day after `COALESCE(date_to, date_from)`, UTC) and that the player took part in: connected as a
   participant ("I'm going", an organiser's import or a manual entry) **or** in a result linked to it (own or pair/team)

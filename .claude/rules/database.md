@@ -12,9 +12,7 @@ paths:
 
 ## Database
 - Database runs in Docker on port 5432 (postgres/postgres): **Postgres 18.7** (`postgres:18.7`, Debian) in development
-  (`compose.yml`) and in CI. **Production runs 16.14 until its upgrade window** - until then CI runs the suite and every
-  migration on both versions (the `postgres` matrix of `tests` and `migrations-up-to-date`), so SQL that only 18 knows
-  (`uuidv7()`, ...) fails a gate instead of production. After the production upgrade the `'16.14'` entries go.
+  (`compose.yml`), in CI and on production (upgraded from 16.14 on 2026-11-16, data checksums on).
 - The data lives in the volume `postgres18-data`, mounted at `/var/lib/postgresql` (the 18 image refuses a mount at the
   old `/var/lib/postgresql/data`). One volume per major version: the Postgres 16 volume `postgres-data` of a checkout
   stays on disk untouched, and `tools/migrate-local-postgres-to-18.sh` copies its databases over (roles + every

@@ -309,6 +309,8 @@ say "Roles: $roles"
 say
 say "The \`postgres\` service runs on Postgres 18 now. Start the rest with: docker compose up -d"
 say "The old volume $OLD_VOLUME was left as it was."
+say "Anything that connected while this ran (another worktree's tests via \`docker run\` on this project's network,"
+say "Adminer, a psql session) lost its connection: run it again. Host \`postgres\`, port 5432 and the network are unchanged."
 rm -rf "$workdir"
 
 if [ "${#failed[@]}" -gt 0 ]; then

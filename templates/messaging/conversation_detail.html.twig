@@ -15,7 +15,7 @@
 {% set back_title = app.request.query.get('return_title') ?? 'messaging.back_to_messages'|trans %}
 
 <div class="card shadow-custom conversation-card" data-controller="messaging conversation-realtime"
-     data-messaging-today-value="{{ 'now'|date('Y-m-d') }}"
+     data-messaging-today-value="{{ now()|date('Y-m-d') }}"
      data-messaging-today-label-value="{{ 'messaging.day.today'|trans }}"
      data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
      data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"

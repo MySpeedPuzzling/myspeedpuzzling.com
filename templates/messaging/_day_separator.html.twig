@@ -1,9 +1,9 @@
 {# day: Y-m-d in the zone the message times are shown in #}
-{% if day == 'now'|date('Y-m-d') %}
+{% if day == now()|date('Y-m-d') %}
     {% set label = 'messaging.day.today'|trans %}
-{% elseif day == '-1 day'|date('Y-m-d') %}
+{% elseif day == now()|date_modify('-1 day')|date('Y-m-d') %}
     {% set label = 'messaging.day.yesterday'|trans %}
 {% else %}
-    {% set label = date(day)|events_date(day|slice(0, 4) == 'now'|date('Y') ? 'EEEEMMMMd' : 'yMMMMd') %}
+    {% set label = date(day)|events_date(day|slice(0, 4) == now()|date('Y') ? 'EEEEMMMMd' : 'yMMMMd') %}
 {% endif %}
 <div class="chat-day" data-day="{{ day }}" role="separator"><span>{{ label }}</span></div>

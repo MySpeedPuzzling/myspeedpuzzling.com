@@ -18,7 +18,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card" data-controller="messaging conversation-realtime"
-             data-messaging-today-value="{{ 'now'|date('Y-m-d') }}"
+             data-messaging-today-value="{{ now()|date('Y-m-d') }}"
              data-messaging-today-label-value="{{ 'messaging.day.today'|trans }}"
                  data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
                  data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"

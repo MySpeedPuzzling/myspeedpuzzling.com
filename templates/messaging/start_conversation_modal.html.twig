@@ -13,7 +13,7 @@
     {% if conversation is defined and conversation is not null %}
         {# Existing conversation - show chat history #}
         <div class="modal-body p-0" data-controller="messaging conversation-realtime"
-             data-messaging-today-value="{{ 'now'|date('Y-m-d') }}"
+             data-messaging-today-value="{{ now()|date('Y-m-d') }}"
              data-messaging-today-label-value="{{ 'messaging.day.today'|trans }}"
              data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
              data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"

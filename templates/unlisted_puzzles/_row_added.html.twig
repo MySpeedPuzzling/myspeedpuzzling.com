@@ -1,0 +1,15 @@
+{#
+    The row of an unlisted puzzle right after "Add to the catalogue" went through - what the form's Turbo Stream puts
+    in its place, without a reload: where it is now, and a link to the new puzzle.
+#}
+<div id="unlisted-puzzle-{{ puzzle.id }}" class="card card-body shadow-sm p-3" data-testid="unlisted-puzzle-added" data-unlisted-puzzle-id="{{ puzzle.id }}" data-catalogue-puzzle-id="{{ catalogue_puzzle_id }}">
+    <span class="d-block fw-semibold text-break">{{ puzzle.name }}</span>
+    <span class="d-flex gap-2 fs-sm text-success mt-1">
+        <i class="bi bi-check-circle flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ 'unlisted_puzzles.catalogue.row_added'|trans }}</span>
+    </span>
+    <span class="d-flex flex-wrap gap-3 mt-1">
+        <a href="{{ path('puzzle_detail', {puzzleId: catalogue_puzzle_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="unlisted-puzzle-added-link">{{ 'unlisted_puzzles.catalogue.see_puzzle'|trans }}</a>
+        <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="d-inline-flex align-items-center text-muted" style="min-height: 44px;">{{ 'unlisted_puzzles.catalogue.see_results'|trans }}</a>
+    </span>
+</div>

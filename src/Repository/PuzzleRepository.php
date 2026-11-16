@@ -34,6 +34,11 @@ readonly final class PuzzleRepository
         return $puzzle ?? throw new PuzzleNotFound();
     }
 
+    public function save(Puzzle $puzzle): void
+    {
+        $this->entityManager->persist($puzzle);
+    }
+
     public function findById(UuidInterface $puzzleId): null|Puzzle
     {
         return $this->entityManager->find(Puzzle::class, $puzzleId);

@@ -872,6 +872,19 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->forgetPrediction();
     }
 
+    /**
+     * A merge was undone (RevertPuzzleMergeRequestHandler): the result goes back to the puzzle it was logged for. The
+     * survivor is told like a deletion (moveToPuzzle()), the restored puzzle like an edit - its statistics are new.
+     */
+    public function returnAfterMergeRevert(Puzzle $restoredPuzzle): void
+    {
+        $this->moveToPuzzle($restoredPuzzle);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $restoredPuzzle->id),
+        );
+    }
+
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;

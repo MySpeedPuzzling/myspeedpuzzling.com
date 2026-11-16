@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ final class ImportUndoConfirmController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
         readonly private GetImportAddScreen $getImportAddScreen,
+        readonly private GetUnlistedPuzzles $getUnlistedPuzzles,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -85,7 +87,13 @@ final class ImportUndoConfirmController extends AbstractController
             $counts = $this->getImportAddScreen->counts($importId, $player->playerId);
         }
 
+        // Of the rows kept just for the player, the ones matched since stay (the match's own Undo is first) - said
+        // apart, so "removed" counts only what really goes. The player's own rows, read by their own reader
+        $keptStaying = count($this->getUnlistedPuzzles->matchedImportRows($player->playerId, $counts['keptJustForYouRowIds']));
+
         return $this->render('data_import/undo_confirm.html.twig', [
+            'kept_just_for_you_removed' => max(0, $counts['keptJustForYou'] - $keptStaying),
+            'kept_just_for_you_staying' => $keptStaying,
             'import' => $import,
             'scope' => $scope->value,
             'row' => $row,

@@ -76,6 +76,8 @@ karma_merges AS (
     FROM puzzle_merge_audit a
     CROSS JOIN LATERAL jsonb_array_elements(a.snapshot_before::jsonb -> 'mergedPuzzles') m
     LEFT JOIN puzzle_redirect rd ON rd.old_puzzle_id = (m->>'id')::uuid
+    -- a reverted merge's puzzles exist again, each with its own credit
+    WHERE NOT EXISTS (SELECT 1 FROM puzzle_merge_request rq WHERE rq.id = a.merge_request_id AND rq.status = 'reverted')
 ),
 {$scopePuzzles}
 -- who could hold the credit of each puzzle: the puzzle itself and every copy merged into it

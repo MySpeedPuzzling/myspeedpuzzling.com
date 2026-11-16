@@ -1,0 +1,5 @@
+{# The numbers above the reader's list - a part of its own: the stream of "Add to the catalogue" replaces it with the row #}
+<p class="fw-medium mb-2" id="unlisted-summary" data-testid="unlisted-summary" data-puzzles="{{ summary.puzzles }}" data-results="{{ summary.results }}">
+    {{ 'unlisted_puzzles.summary.puzzles'|trans({'%number%': summary.puzzles|format_number}) }}
+    · {{ 'unlisted_puzzles.summary.results'|trans({'%number%': summary.results|format_number}) }}
+</p>

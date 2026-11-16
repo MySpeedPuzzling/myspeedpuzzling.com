@@ -16,6 +16,7 @@ use ReflectionNamedType;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
+use SpeedPuzzling\Web\Events\PuzzleMergeReverted;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddImportRows;
@@ -30,6 +31,7 @@ use SpeedPuzzling\Web\Message\ApplyParticipantSheetChanges;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\RevertPuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
@@ -312,6 +314,7 @@ final class SerializedByLockMessagesTest extends TestCase
         // Players' own times and the round they belong to (round-results.md) - puzzle_solving_time only
         CompetitionRoundsChanged::class => 're-links players\' own times to rounds (puzzle_solving_time) - never entries or official results',
         PuzzleMergeApproved::class => 're-links players\' own times to rounds (puzzle_solving_time) - never entries or official results',
+        PuzzleMergeReverted::class => 're-links players\' own times to rounds (puzzle_solving_time) - never entries or official results',
         ReconcileRoundResults::class => 'console reconcile of players\' own times and their rounds (puzzle_solving_time) - never entries or official results',
         SeriesEditionsChanged::class => 're-matches players\' series picks to editions and their rounds (puzzle_solving_time) - never entries or official results',
         EditPuzzleSolvingTime::class => 'a player\'s own time - reads the rounds to link it, never writes entries or official results',
@@ -319,6 +322,7 @@ final class SerializedByLockMessagesTest extends TestCase
         UndoAutoRemoval::class => 'a player\'s own time restored (duplicate results) - reads the rounds to link it, never writes entries or official results',
         RemovePuzzleFromCompetitionRound::class => 'removes a puzzle from a round - entries and results are not touched',
         ApprovePuzzleMergeRequest::class => 'merges puzzles - moves round puzzles and players\' own times between puzzles of any event (no single event to lock); never entries, teams or official results',
+        RevertPuzzleMergeRequest::class => 'undoes a merge - moves the round puzzles and times it moved back to the restored puzzle (no single event to lock); never entries, teams or official results',
         BackfillRoundPuzzleReveals::class => 'console backfill of round puzzles\' reveal - SecretPuzzleHides takes its own row locks; no entry, no result',
         ChangeRoundPuzzleReveal::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         KeepRoundPuzzleHiddenEverywhere::class => 'a round puzzle\' site-wide hide - SecretPuzzleHides takes its own row locks; entries and results are not touched',

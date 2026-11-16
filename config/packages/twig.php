@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Services\Email\EmailHtmlToTextConverter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
+use SpeedPuzzling\Web\Services\Unlisted\ViewerUnlistedPuzzles;
 
 return App::config([
     'twig' => [
@@ -36,6 +37,8 @@ return App::config([
             // The sandbox (docs/features/sandbox/README.md): its banner + noindex meta, and where it is for developers
             'sandbox' => '%sandbox%',
             'sandbox_url' => '%env(trim:string:SANDBOX_URL)%',
+            // Whether the menu shows "Unlisted puzzles" - remembered in the session, never a statement per page
+            'viewer_unlisted' => '@' . ViewerUnlistedPuzzles::class,
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

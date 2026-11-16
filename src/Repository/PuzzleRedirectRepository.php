@@ -21,6 +21,11 @@ readonly final class PuzzleRedirectRepository
         $this->entityManager->persist($puzzleRedirect);
     }
 
+    public function delete(PuzzleRedirect $puzzleRedirect): void
+    {
+        $this->entityManager->remove($puzzleRedirect);
+    }
+
     public function findByOldPuzzleId(string $oldPuzzleId): null|PuzzleRedirect
     {
         return $this->entityManager->getRepository(PuzzleRedirect::class)

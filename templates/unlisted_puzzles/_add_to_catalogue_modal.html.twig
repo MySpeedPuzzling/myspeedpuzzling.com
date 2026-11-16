@@ -1,0 +1,13 @@
+{# "Add to the catalogue" opened from the list: the site's modal (docs/features/data-import/unlisted-puzzles.md) #}
+<turbo-frame id="modal-frame">
+    <div data-modal-scrollable data-modal-sheet>
+        <div class="modal-header">
+            <h5 class="modal-title text-break">{{ 'unlisted_puzzles.catalogue.title'|trans }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+        <div class="modal-body" data-testid="catalogue-modal">
+            <p class="fw-semibold text-break mb-1">{{ puzzle.name }}</p>
+            {{ include('unlisted_puzzles/_add_to_catalogue_form.html.twig') }}
+        </div>
+    </div>
+</turbo-frame>

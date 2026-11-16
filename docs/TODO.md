@@ -20,15 +20,24 @@ and on logout - but expiring only reaches honest browsers. A copied cookie value
 Step 1 made an unfinished result (pieces placed, no time) no solve on the read side (`CountsAsSolve`). Readers that
 list or show results were left for step 2 (display), the write-side ones for steps 3-4:
 
-- [ ] Step 2: the profile list's tab counts (`PlayerSolvedPuzzles::tabRows()` / unique puzzles), its "only relax" filter
-      (`time === null` would show an unfinished result) and "Solved 0×" for a puzzle with only an unfinished result
-      (`SolvedPuzzle::$solvedTimes`, now 0 there).
-- [ ] Step 2: the digest's highlight lines (`PlayerPeriodActivity::highlights()`) list an unfinished result like a relax
-      one - label it; its numbers already count it as pieces + time spent only. A period with only unfinished results
-      now has activity (`hadActivity()`: pieces without a puzzle) and a "0 puzzles · N pieces" split line - word it.
-- [ ] Step 2: a pieces milestone moment of the Players page can now be crossed by an unfinished result
-      (`PlayerMomentDetector`: pieces running total) - its moment chip must not call it a solve.
-- [ ] Step 2: API v0/v1 results and the export (`is_relax_mode`, `ExportableSolvingTime`) read a null time as relax.
+- [x] Step 2 (#397): the profile list's "only relax" filter is `SolvedPuzzle::isRelax()`; its tab counts stay the listed
+      puzzles (a puzzle with only an unfinished result is a row of the list - the count says what the list shows);
+      `SolvedPuzzle::$solvedTimes` is rendered nowhere, so "Solved 0×" never shows.
+- [x] Step 2 (#397): the digest and "Your week" label an unfinished highlight (pieces placed + "Didn't finish within the
+      time limit"); a part with no solve reads "N pieces", never "0 puzzles".
+- [x] Step 2 (#397): the Players page's pieces milestone chip says "N pieces placed" - never a solve; no change needed.
+- [x] Step 2 (#397): API v1/v0 results and the export carry `pieces_placed` + `finished_later_seconds`; v0
+      `is_relax_mode` is false for an unfinished result.
+- [ ] Steps 3-4: every edit button on an unfinished result (puzzle page "My attempts", bottom rows' result detail,
+      profile, calendar, feed) opens today's edit form, which knows no pieces placed - a save there would make it a relax
+      solve. The edit form must keep `pieces_placed` before the first row can exist (plan "Edit form / modal").
+- [ ] Steps 3-4: My data (`GetMyDataResults`, `my_data/_results.html.twig`, the row form via `SolvedPuzzleDetail`) shows an
+      unfinished result as "no time" and its in-place editing treats it like a relax row - show the pieces and keep them
+      on a save.
+- [ ] Steps 3-4: re-importing our own results export (`KnownExportLayout`) ignores the new `pieces_placed` column - an
+      unfinished row would come back as a result without a time.
+- [ ] Steps 3-4: the claim screens of an imported unfinished team (`event_result_claim/_result_summary`, `_claim_body`)
+      show the team and date only - add the pieces placed once the import writes such rows (step 4 / D2-D3).
 - [ ] Steps 3-4: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen`
       `can_wish`) still takes any result of the puzzle - decide whether an unfinished one counts there (both together).
 - [ ] Steps 3-4: an unfinished result's finished-puzzle photo is not of a finished puzzle - keep it out of the image

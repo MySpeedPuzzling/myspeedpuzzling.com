@@ -18,6 +18,7 @@ use Symfony\Component\Mercure\Jwt\LcobucciFactory;
 use Symfony\Component\Mercure\Jwt\StaticTokenProvider;
 use Symfony\Component\Mercure\Jwt\TokenFactoryInterface;
 use Symfony\Component\Mercure\MockHub;
+use Symfony\Component\Mercure\ProtocolVersion;
 use Symfony\Component\Mercure\Update;
 
 /**
@@ -32,7 +33,7 @@ final class OfficialResultsSubscriptionTest extends TestCase
 
     public function testARoundsSubscriptionCoversItsPrivateTopicAndItsStopwatchForAnHour(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET))->forRound(self::ROUND);
+        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRound(self::ROUND);
 
         self::assertNotNull($subscription);
         self::assertSame('https://myspeedpuzzling.test/.well-known/mercure', $subscription['url']);
@@ -41,18 +42,18 @@ final class OfficialResultsSubscriptionTest extends TestCase
         self::assertSame(3600, $subscription['expiresIn']);
 
         $token = self::verified($subscription['token']);
-        self::assertSame(['publish' => [], 'subscribe' => $subscription['topics']], $token->claims()->get('mercure'));
+        self::assertSame(['subscribe' => $subscription['topics']], $token->claims()->get('mercure'));
         self::assertEquals(new \DateTimeImmutable('2026-10-07 11:30:00 UTC'), $token->claims()->get('exp'));
         self::assertStringNotContainsString('{', implode(' ', $subscription['topics']), 'never a URI template granting every round');
     }
 
     public function testTheOverviewsSubscriptionListsEveryRoundOnce(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET))->forRounds([self::OTHER_ROUND, strtolower(self::ROUND), self::OTHER_ROUND]);
+        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRounds([self::OTHER_ROUND, strtolower(self::ROUND), self::OTHER_ROUND]);
 
         self::assertNotNull($subscription);
         self::assertSame(['/round-results/' . self::OTHER_ROUND, '/round-results/' . strtolower(self::ROUND)], $subscription['topics']);
-        self::assertSame(['publish' => [], 'subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
+        self::assertSame(['subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
     }
 
     /**
@@ -61,22 +62,22 @@ final class OfficialResultsSubscriptionTest extends TestCase
      */
     public function testAnOnlineParticipantFollowsTheRoundsStopwatchOnly(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET))->forOnlineParticipant(self::ROUND);
+        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forOnlineParticipant(self::ROUND);
 
         self::assertNotNull($subscription);
         self::assertSame(['/round-stopwatch/' . strtolower(self::ROUND)], $subscription['topics']);
-        self::assertSame(['publish' => [], 'subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
+        self::assertSame(['subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
         self::assertSame(3600, $subscription['expiresIn']);
     }
 
     public function testNoRoundsNoSubscription(): void
     {
-        self::assertNull($this->subscription(new LcobucciFactory(self::SECRET))->forRounds([]));
+        self::assertNull($this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRounds([]));
     }
 
     public function testATokenSignedWithAnotherKeyDoesNotVerify(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory('some-other-key-the-hub-does-not-know'))->forRound(self::ROUND);
+        $subscription = $this->subscription(new LcobucciFactory('some-other-key-the-hub-does-not-know', protocolVersion: ProtocolVersion::Legacy))->forRound(self::ROUND);
 
         self::assertNotNull($subscription);
 
@@ -104,7 +105,7 @@ final class OfficialResultsSubscriptionTest extends TestCase
         self::assertNull($withoutFactory->forRound(self::ROUND));
 
         $failing = new OfficialResultsSubscription(self::registry(new class () implements TokenFactoryInterface {
-            public function create(null|array $subscribe = [], null|array $publish = [], array $additionalClaims = []): string
+            public function create(array $grants = [], array $additionalClaims = []): string
             {
                 throw new \RuntimeException('no key');
             }
@@ -129,6 +130,7 @@ final class OfficialResultsSubscriptionTest extends TestCase
             static fn (Update $update): string => 'id',
             $factory,
             'https://myspeedpuzzling.test/.well-known/mercure',
+            protocolVersion: ProtocolVersion::Legacy,
         ));
     }
 

@@ -129,7 +129,7 @@ final class CustomFieldsPageTest extends WebTestCase
         $scenario = new CustomFieldsScenario(self::getContainer());
         $scenario->field(self::PLAYER, 'Mood');
 
-        $crawler = $this->addOwnField($browser, ['name' => '', 'type' => 'text', 'forResults' => '1']);
+        $this->addOwnField($browser, ['name' => '', 'type' => 'text', 'forResults' => '1']);
         self::assertResponseStatusCodeSame(422);
 
         $crawler = $this->addOwnField($browser, ['name' => 'mood', 'type' => 'text', 'forResults' => '1']);

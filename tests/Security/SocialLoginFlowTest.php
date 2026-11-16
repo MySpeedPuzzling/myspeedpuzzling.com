@@ -422,7 +422,7 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertResponseRedirects();
         self::assertStringNotContainsString('social_link_result', (string) $browser->getResponse()->headers->get('Location'));
 
-        $crawler = $browser->followRedirect();
+        $browser->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main > .container .alert-success', 'Google is connected. You can now use it to sign in.');
         // ... and the card marks the freshly connected row quietly, no alert box

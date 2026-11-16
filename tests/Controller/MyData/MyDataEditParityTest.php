@@ -203,7 +203,7 @@ final class MyDataEditParityTest extends WebTestCase
 
         $crawler = $this->submit($path, $browser, $edited, ['day' => '31.02.2024']);
         self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Please enter a valid date.', $crawler->text());
+        self::assertStringContainsString('This value is not a valid date.', $crawler->text());
 
         self::assertSame($before, $this->stored($edited));
     }

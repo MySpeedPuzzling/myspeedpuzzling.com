@@ -16,7 +16,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\RoundCategory;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class RoundResultsControllerTest extends WebTestCase
@@ -37,7 +36,7 @@ final class RoundResultsControllerTest extends WebTestCase
     public function testStartedRoundRanksItsResults(): void
     {
         $browser = self::createClient();
-        $this->startQualificationRound($browser);
+        $this->startQualificationRound();
 
         $crawler = $browser->request('GET', self::QUALIFICATION_URL);
 
@@ -99,7 +98,7 @@ final class RoundResultsControllerTest extends WebTestCase
     public function testAddMyTimeOnlyForSignedInPlayersOnceTheRoundStarted(): void
     {
         $browser = self::createClient();
-        $this->startQualificationRound($browser);
+        $this->startQualificationRound();
         $addTimeLink = sprintf('a[href$="/%s?competition=%s"]', PuzzleFixture::PUZZLE_500_01, CompetitionFixture::COMPETITION_WJPC_2024);
 
         $browser->request('GET', self::QUALIFICATION_URL);
@@ -236,7 +235,7 @@ final class RoundResultsControllerTest extends WebTestCase
         );
     }
 
-    private function startQualificationRound(KernelBrowser $browser): void
+    private function startQualificationRound(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
             "UPDATE competition_round SET starts_at = " . TestClock::SQL_NOW . " - INTERVAL '2 days' WHERE id = :id",

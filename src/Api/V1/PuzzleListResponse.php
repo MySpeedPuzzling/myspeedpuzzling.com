@@ -107,6 +107,8 @@ use Symfony\Component\Validator\Constraints\Type;
                     constraints: [new All(constraints: [new Choice(choices: DifficultyTier::API_VALUES)])],
                     castToNativeType: true,
                     castFn: [QueryParameterCaster::class, 'commaSeparatedList'],
+                    // One comma-separated "difficulty", never a "difficulty[]" twin in the OpenAPI document (API Platform 5)
+                    castToArray: false,
                 ),
                 'page' => new QueryParameter(
                     key: 'page',

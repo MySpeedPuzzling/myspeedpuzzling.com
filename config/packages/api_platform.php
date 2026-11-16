@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use ApiPlatform\Metadata\Exception\InvalidArgumentException as ApiPlatformInvalidArgumentException;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\Serializer\Exception\ExceptionInterface as SerializerExceptionInterface;
 
 return static function (ContainerConfigurator $configurator): void {
     $configurator->extension('api_platform', [
@@ -33,6 +36,13 @@ return static function (ContainerConfigurator $configurator): void {
             'normalization_context' => [
                 'skip_null_values' => false,
             ],
+        ],
+        // API Platform 5 maps Doctrine's UniqueConstraintViolationException to a 422 whose detail is the raw database
+        // error (SQL, constraint names). The public API keeps answering it with a plain 500 - the list is 4.x's default
+        'exception_to_status' => [
+            SerializerExceptionInterface::class => 400,
+            ApiPlatformInvalidArgumentException::class => 400,
+            OptimisticLockException::class => 409,
         ],
         'enable_docs' => true,
         'enable_entrypoint' => false,

@@ -320,7 +320,7 @@ final class MyDataEditRowTest extends WebTestCase
         self::assertSame($timeId, $form->attr('data-first-try-check-time-value'));
 
         $day = TestClock::now()->modify('-40 days');
-        $crawler = $this->saveSheet($browser, $timeId, [
+        $this->saveSheet($browser, $timeId, [
             ...$this->sheetFields($crawler),
             'hours' => '4',
             'minutes' => '59',
@@ -378,7 +378,7 @@ final class MyDataEditRowTest extends WebTestCase
 
         $crawler = $browser->request('POST', '/en/my-data/result/' . $timeId, [...$fields, 'day' => '31.02.2024'], [], self::SAME_ORIGIN);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('Please enter a valid date.', trim($crawler->filter('[data-testid="my-data-row-date-error"]')->text()));
+        self::assertSame('This value is not a valid date.', trim($crawler->filter('[data-testid="my-data-row-date-error"]')->text()));
 
         // A value of an own field that can not be stored refuses the save as a whole - the result's fields too
         $crawler = $browser->request('POST', '/en/my-data/result/' . $timeId, [...$fields, 'my_fields' => [$price => 'a lot']], [], self::SAME_ORIGIN);
@@ -675,7 +675,7 @@ final class MyDataEditRowTest extends WebTestCase
                 [['column' => 'time', 'from' => '5:00:00', 'value' => '4:75:00'], 'Enter the time as hours, minutes (0-59) and seconds (0-59).'],
                 [['column' => 'time', 'from' => '5:00:00', 'value' => '0:00:00'], self::trans('forms.time_required')],
                 [['column' => 'date', 'from' => $day, 'value' => ''], 'Date completed is required for speed puzzling.'],
-                [['column' => 'date', 'from' => $day, 'value' => '2024-02-31'], 'Please enter a valid date.'],
+                [['column' => 'date', 'from' => $day, 'value' => '2024-02-31'], 'This value is not a valid date.'],
                 [['column' => 'first_try', 'from' => '0', 'value' => 'yes'], 'This could not be saved - please try again.'],
                 // Not a column that is edited
                 [['column' => 'pieces', 'from' => '3000', 'value' => '500'], 'This could not be saved - please try again.'],

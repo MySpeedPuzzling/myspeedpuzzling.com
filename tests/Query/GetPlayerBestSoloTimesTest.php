@@ -69,7 +69,6 @@ final class GetPlayerBestSoloTimesTest extends KernelTestCase
         self::assertGreaterThan(1, count($all));
 
         $firstPuzzleId = array_key_first($all);
-        self::assertIsString($firstPuzzleId);
         self::assertSame([$firstPuzzleId => $all[$firstPuzzleId]], $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [$firstPuzzleId]));
         self::assertSame([], $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, []));
     }

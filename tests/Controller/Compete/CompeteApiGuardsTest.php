@@ -121,7 +121,8 @@ final class CompeteApiGuardsTest extends WebTestCase
         $retryAfter = $this->browser->getResponse()->headers->get('Retry-After');
         self::assertIsString($retryAfter);
         self::assertGreaterThanOrEqual(1, (int) $retryAfter);
-        self::assertLessThanOrEqual(60, (int) $retryAfter);
+        // The limiter rounds the moment of the next free request up to a whole second
+        self::assertLessThanOrEqual(61, (int) $retryAfter);
 
         self::postJson($this->browser, self::api($token, 'heartbeat'), ['deviceId' => 'phone-a']);
         self::assertRefused($this->browser, 429, 'rate_limited');

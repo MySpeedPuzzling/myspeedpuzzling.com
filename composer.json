@@ -12,12 +12,6 @@
             "email": "s.mikesova@icloud.com"
         }
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/JanMikes/sentry-symfony"
-        }
-    ],
     "require": {
         "php": ">=8.5",
         "ext-ctype": "*",
@@ -29,13 +23,13 @@
         "ext-redis": "*",
         "ext-simplexml": "*",
         "ext-uuid": "*",
-        "api-platform/core": "^4.2",
+        "api-platform/core": "^5.0",
         "bacon/bacon-qr-code": "^3.0",
         "doctrine/doctrine-bundle": "^3.1",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.0",
         "firebase/php-jwt": "^7.1",
-        "guzzlehttp/guzzle": "^7.15.1",
+        "guzzlehttp/guzzle": "^8.5",
         "intervention/image-symfony": "^4.0",
         "jetbrains/phpstorm-attributes": "^1.0",
         "league/flysystem": "^3.10",
@@ -54,8 +48,8 @@
         "phpoffice/phpspreadsheet": "^5.0",
         "ramsey/uuid": "^4.2",
         "ramsey/uuid-doctrine": "^2.0",
-        "sentry/sentry-symfony": "dev-fix/start-runtime-context-before-firewall as 5.10.0",
-        "stripe/stripe-php": "^20.0",
+        "sentry/sentry-symfony": "^5.16",
+        "stripe/stripe-php": "^23.0",
         "symfony/amazon-mailer": "^8.0",
         "symfony/asset": "^8.0",
         "symfony/config": "^8.0",
@@ -74,7 +68,7 @@
         "symfony/intl": "^8.0",
         "symfony/lock": "8.*",
         "symfony/mailer": "^8.0",
-        "symfony/mercure-bundle": "^0.4.2",
+        "symfony/mercure-bundle": "^0.7",
         "symfony/messenger": "^8.0",
         "symfony/mime": "^8.0",
         "symfony/monolog-bundle": "^4.0",

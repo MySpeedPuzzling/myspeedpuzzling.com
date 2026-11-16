@@ -499,7 +499,7 @@ final class XlsxTimeBoundTest extends TestCase
         $started = hrtime(true);
         $rows = 0;
 
-        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+        for ($sheetRows = $workbook->rows($workbook->sheets()[0]); $sheetRows->valid(); $sheetRows->next()) {
             // The job writes the row to the database
             usleep(100_000);
             $rows++;
@@ -747,7 +747,7 @@ final class XlsxTimeBoundTest extends TestCase
         $workbook = $this->open($this->saved((new RawXlsx())->sharedStrings($strings)->sheet('Sheet', RawXlsx::worksheet($rows))));
         $read = 0;
 
-        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+        for ($sheetRows = $workbook->rows($workbook->sheets()[0]); $sheetRows->valid(); $sheetRows->next()) {
             if (++$read === 10) {
                 // The shared strings are in the temporary folder by now
                 self::assertNotSame([], glob($this->folder . '/tmp/*'));

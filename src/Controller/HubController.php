@@ -61,7 +61,7 @@ final class HubController extends AbstractController
             'getting_started_folded' => $gettingStarted !== null && $gettingStarted->hasLoggedPuzzle,
         ]);
 
-        if ($gettingStarted !== null && $profile !== null && $gettingStarted->isComplete()) {
+        if ($gettingStarted !== null && $gettingStarted->isComplete()) {
             // Everything ticked: this render shows the "all set" state, and it is the last one
             $this->messageBus->dispatch(new DismissHint($profile->playerId, HintType::GettingStartedChecklist));
         }

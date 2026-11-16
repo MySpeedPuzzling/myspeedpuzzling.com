@@ -913,7 +913,6 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame([], array_intersect(self::ids($slower), self::ids($faster)));
 
         // "by at least N min" tightens the threshold
-        self::assertNotSame([], $expectedGaps);
         $gapMin = 1 + intdiv(max($expectedGaps), 60);
         self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'gap' => 'slower', 'gap_min' => (string) ($gapMin + 60)], $playerId, member: true)->isEmpty());
         $tight = $this->pickAll(['source' => 'any', 'lent' => '1', 'gap' => 'slower', 'gap_min' => '2'], $playerId, member: true);

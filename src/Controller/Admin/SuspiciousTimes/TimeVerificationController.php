@@ -47,7 +47,7 @@ final class TimeVerificationController extends AbstractController
         $puzzleCardCases = [];
         $caseIds = [];
         $total = 0;
-        $perPage = GetSuspiciousTimeQueue::PER_PAGE;
+        $perPage = $tab === SuspiciousTimeQueueTab::Log ? GetSuspiciousTimesOverview::LOG_PER_PAGE : GetSuspiciousTimeQueue::PER_PAGE;
 
         if ($direction !== null) {
             $pending = $this->getSuspiciousTimeQueue->pending($direction, $page, $onlyImportBatch);
@@ -76,7 +76,6 @@ final class TimeVerificationController extends AbstractController
             $total = $counts->of($tab) ?? 0;
         } elseif ($tab === SuspiciousTimeQueueTab::Log) {
             $total = $counts->decisions;
-            $perPage = GetSuspiciousTimesOverview::LOG_PER_PAGE;
         }
 
         return $this->render('admin/suspicious_times/queue.html.twig', [

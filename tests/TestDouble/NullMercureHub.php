@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\TestDouble;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Jwt\TokenFactoryInterface;
 use Symfony\Component\Mercure\Jwt\TokenProviderInterface;
+use Symfony\Component\Mercure\ProtocolVersion;
 use Symfony\Component\Mercure\Update;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -48,6 +49,16 @@ final class NullMercureHub implements HubInterface, ResetInterface
     public function getFactory(): TokenFactoryInterface
     {
         return new NullTokenFactory();
+    }
+
+    public function getProtocolVersion(): ProtocolVersion
+    {
+        return ProtocolVersion::Legacy;
+    }
+
+    public function getCookieName(): string
+    {
+        return ProtocolVersion::Legacy->getDefaultCookieName();
     }
 
     /** @return Update[] */

@@ -24,7 +24,6 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
     public function testActiveDaysInMonthReturnsUniqueSortedDays(): void
     {
         $days = $this->scanYearsOfMonths(
-            PlayerFixture::PLAYER_REGULAR,
             fn (int $y, int $m): array => $this->query->activeDaysInMonth(PlayerFixture::PLAYER_REGULAR, $y, $m),
         );
 
@@ -59,7 +58,6 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         // PLAYER_PRIVATE appears in team puzzlers for TIME_12 (team-001) and TIME_41 (team-002),
         // but player_id on those rows is PLAYER_REGULAR. The query must detect JSON membership.
         $days = $this->scanYearsOfMonths(
-            PlayerFixture::PLAYER_PRIVATE,
             fn (int $y, int $m): array => $this->query->activeDaysInMonth(PlayerFixture::PLAYER_PRIVATE, $y, $m),
         );
 
@@ -207,9 +205,8 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
      * @param callable(int, int): list<string> $queryForMonth
      * @return list<string>
      */
-    private function scanYearsOfMonths(string $playerId, callable $queryForMonth): array
+    private function scanYearsOfMonths(callable $queryForMonth): array
     {
-        unset($playerId); // callable closes over it
         $now = TestClock::now();
         $all = [];
 

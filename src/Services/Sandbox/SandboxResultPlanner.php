@@ -234,7 +234,6 @@ final readonly class SandboxResultPlanner
         $codes = [];
 
         foreach (array_slice($randomizer->shuffleArray($candidates), 0, $count) as $other) {
-            assert($other instanceof SandboxPlayer);
             $codes[] = '#' . $other->code;
         }
 

@@ -78,7 +78,6 @@ SQL;
         null|DateTimeImmutable $karmaSince = null,
     ): ProgressBoard {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $prelude = '';
         $secondary = 'NULL::int';
 
         if ($tab === ProgressLeaderboardTab::Karma) {

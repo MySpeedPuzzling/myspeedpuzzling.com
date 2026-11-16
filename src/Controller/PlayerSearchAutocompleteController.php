@@ -48,7 +48,6 @@ final class PlayerSearchAutocompleteController extends AbstractController
             $name = htmlspecialchars($player->playerName ?? $player->playerCode);
             $code = htmlspecialchars($player->playerCode);
 
-            $avatar = '';
             if ($player->playerAvatar !== null) {
                 $avatarUrl = htmlspecialchars($this->imageThumbnail->thumbnailUrl($player->playerAvatar, 'puzzle_small'));
                 $avatar = <<<HTML

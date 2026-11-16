@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Services\PuzzleTimeGuides;
 use SpeedPuzzling\Web\Services\SolveTimeDistributionProvider;
 use SpeedPuzzling\Web\Tests\PinsSolveTimeDistributions;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Routing\RouterInterface;
 
 final class PuzzleTimeGuidesTest extends KernelTestCase
 {
@@ -15,7 +16,9 @@ final class PuzzleTimeGuidesTest extends KernelTestCase
 
     public function testRouteRequirementListsExactlyTheGenericSizes(): void
     {
-        $requirement = array_map('intval', explode('|', PuzzleTimeGuides::GENERIC_GUIDE_PIECES_REQUIREMENT));
+        $route = self::getContainer()->get(RouterInterface::class)->getRouteCollection()->get('guide_puzzle_time_for_pieces');
+        self::assertNotNull($route);
+        $requirement = array_map('intval', explode('|', (string) $route->getRequirement('pieces')));
 
         self::assertSame(PuzzleTimeGuides::GENERIC_GUIDE_PIECES, $requirement);
         self::assertNotContains(PuzzleTimeGuides::ORIGINAL_GUIDE_PIECES, PuzzleTimeGuides::GENERIC_GUIDE_PIECES);

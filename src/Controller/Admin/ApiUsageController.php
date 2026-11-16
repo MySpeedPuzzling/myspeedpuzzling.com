@@ -50,7 +50,7 @@ final class ApiUsageController extends AbstractController
             try {
                 $caller = ApiCaller::fromKey($callerKey);
             } catch (InvalidArgumentException) {
-                $caller = null;
+                // An unknown caller key filters nothing
             }
         }
 

@@ -483,7 +483,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $dana = self::getContainer()->get(PlayerRepository::class)->get(self::DANA);
         $caseId = $this->caseId(self::DANA, DuplicateResultsFixture::TIME_STRONG_A);
 
-        foreach (range(1, $count) as $ignored) {
+        for ($i = 0; $i < $count; $i++) {
             $this->entityManager->persist(new ResultReviewContact(
                 id: Uuid::uuid7(),
                 player: $dana,

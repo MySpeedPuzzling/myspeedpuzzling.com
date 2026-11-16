@@ -313,7 +313,7 @@ final class DirectPhotoUploadTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         self::assertSame('type', $answer['error'] ?? null);
 
-        $answer = $this->start($browser, ['type' => 'image/jpeg']);
+        $this->start($browser, ['type' => 'image/jpeg']);
         $this->assertResponseStatusCodeSame(400);
     }
 

@@ -278,10 +278,6 @@ SQL;
             );
         }
 
-        if ($attempts === []) {
-            throw new PuzzleResultNotFound();
-        }
-
         [$attempts, $bestAttempt] = self::compareAttempts($attempts);
 
         $detail = new PuzzleResultDetail(

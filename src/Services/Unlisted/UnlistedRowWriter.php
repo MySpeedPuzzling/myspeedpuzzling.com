@@ -150,7 +150,7 @@ readonly final class UnlistedRowWriter
             'ownershipId' => null,
         ];
 
-        if ($newResult && $said !== null) {
+        if ($newResult) {
             $result = new UnlistedResult(
                 id: Uuid::uuid7(),
                 unlistedPuzzle: $unlistedPuzzle,

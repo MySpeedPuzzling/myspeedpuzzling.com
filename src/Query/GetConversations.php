@@ -23,7 +23,6 @@ readonly final class GetConversations
      */
     public function forPlayer(string $playerId, null|ConversationStatus $status = null): array
     {
-        $statusFilter = '';
         $params = ['playerId' => $playerId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')];
 
         if ($status !== null) {

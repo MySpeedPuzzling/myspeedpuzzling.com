@@ -349,7 +349,7 @@ final class PlayerSolvedPuzzles
             $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles), firstTries: $this->onlyFirstTries, unboxed: $this->onlyUnboxed);
         }
 
-        if ($placing !== null && $this->allRanks !== null) {
+        if ($placing !== null) {
             $allRanks = $this->allRanks;
             $soloSolvedPuzzlesGrouped = array_filter(
                 $soloSolvedPuzzlesGrouped,

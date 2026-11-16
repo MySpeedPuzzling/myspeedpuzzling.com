@@ -303,7 +303,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->post($browser, ['puzzle_id' => PuzzleFixture::PUZZLE_500_01, 'time' => '25:10']);
 
         $this->assertResponseIsSuccessful();
-        $response = $this->decode($browser);
+        $this->decode($browser);
 
         $prediction = $this->prediction($browser);
         $this->assertNotNull($prediction);

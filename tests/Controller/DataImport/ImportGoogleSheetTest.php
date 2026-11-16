@@ -347,7 +347,7 @@ final class ImportGoogleSheetTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $token = $this->token();
 
-        foreach ([1, 2, 3] as $ignored) {
+        for ($i = 0; $i < 3; $i++) {
             $this->browser->request('POST', '/en/import/new', ['_token' => $token, 'google_link' => self::LINK]);
             $this->assertResponseStatusCodeSame(302);
         }

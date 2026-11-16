@@ -34,7 +34,6 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
     {
         $player1 = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
         $player2 = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
-        $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);

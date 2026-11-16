@@ -88,7 +88,6 @@ final class EditCollectionItemCommentController extends AbstractController
 
         // The signed-in owner's fields for collection puzzles and what this item holds in them - both statements are
         // bound to the signed-in player's id. Failing open: the comment form works without them
-        $fields = [];
         $stored = new CustomValues();
 
         try {

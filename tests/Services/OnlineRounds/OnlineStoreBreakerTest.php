@@ -125,7 +125,7 @@ final class OnlineStoreBreakerTest extends TestCase
     {
         $breaker = $this->breaker();
 
-        foreach (range(1, 10) as $attempt) {
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
             $breaker->recordFailure(OnlineMediaStore::Primary, 'participant-1');
             $this->clock->sleep(1);
         }

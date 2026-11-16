@@ -199,7 +199,8 @@ final class OnlineWatchTokenControllerTest extends WebTestCase
             $retryAfter = $browser->getResponse()->headers->get('Retry-After');
             self::assertIsString($retryAfter);
             self::assertGreaterThanOrEqual(1, (int) $retryAfter);
-            self::assertLessThanOrEqual(60, (int) $retryAfter);
+            // The limiter rounds the moment of the next free request up to a whole second
+            self::assertLessThanOrEqual(61, (int) $retryAfter);
             // Refused before anything was read - LiveKit included
             self::assertSame([], LiveKitHttpMock::requests());
 

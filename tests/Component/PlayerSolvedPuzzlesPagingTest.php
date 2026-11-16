@@ -58,30 +58,37 @@ final class PlayerSolvedPuzzlesPagingTest extends WebTestCase
     {
         $component = $this->results();
         $component->call('showMore');
-        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         // The brand select sends "" for "All brands" while the prop is null - the same list, the rows stay
         $component->set('manufacturer', '');
-        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         // Another sort is another list
         $component->call('changeSortBy', ['sort' => 'newest']);
-        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         $component->call('showMore');
-        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         // A filter too
         $component->set('searchQuery', 'paging');
-        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         $component->set('searchQuery', null);
         $component->call('showMore');
-        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(2 * PlayerSolvedPuzzles::PAGE_SIZE, $limit);
 
         // And another tab
         $component->call('changeResultsCategory', ['category' => 'duo']);
-        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $this->resultsOf($component)->limit);
+        $limit = $this->resultsOf($component)->limit;
+        self::assertSame(PlayerSolvedPuzzles::PAGE_SIZE, $limit);
     }
 
     public function testAFilterNarrowsTheWholeHistoryNotTheShownRows(): void

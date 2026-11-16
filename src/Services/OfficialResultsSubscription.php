@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubRegistry;
+use Symfony\Component\Mercure\Jwt\Grant;
 
 /**
  * The live updates subscription of one organiser page (docs/features/competitions-management/official-results.md
@@ -117,7 +118,7 @@ final readonly class OfficialResultsSubscription
             return [
                 'url' => $hub->getPublicUrl(),
                 'topics' => $topics,
-                'token' => $factory->create(subscribe: $topics, publish: [], additionalClaims: ['exp' => $expiresAt]),
+                'token' => $factory->create([new Grant([Grant::ACTION_SUBSCRIBE], $topics)], ['exp' => $expiresAt]),
                 'expiresAt' => $expiresAt->format(\DateTimeInterface::ATOM),
                 // The page counts from when it got the token - a device's clock may be off, the lifetime is not
                 'expiresIn' => self::LIFETIME_SECONDS,

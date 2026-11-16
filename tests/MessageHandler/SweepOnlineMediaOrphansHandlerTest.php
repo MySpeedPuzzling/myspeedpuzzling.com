@@ -99,7 +99,7 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
     {
         $old = TestClock::now()->modify('-3 days');
 
-        foreach (range(0, SweepOnlineMediaOrphansHandler::PAGE_SIZE) as $ignored) {
+        for ($i = 0; $i <= SweepOnlineMediaOrphansHandler::PAGE_SIZE; $i++) {
             $this->storage->put(OnlineMediaStore::Primary, self::key(), 1_000, modifiedAt: $old);
         }
 

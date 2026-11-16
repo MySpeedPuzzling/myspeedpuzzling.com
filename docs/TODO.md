@@ -4,6 +4,29 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Dependency upgrade leftovers (composer upgrade, 2026-11-16)
+
+Majors and deprecations the upgrade left on purpose - each is its own change:
+
+- [ ] `league/oauth2-server-bundle` 2.0: it verifies client secrets only as hashes, ours are plaintext. First hash
+  secrets on save (approve/reset handlers, `OAuth2CreateClientConsoleCommand`, `OAuth2ClientFixture`), deploy, run
+  `league:oauth2-server:rehash-client-secrets` on production, set `client.allow_plaintext_secrets: false`, then bump
+  to ^2.0 ([api/README.md](features/api/README.md#client-secrets-are-stored-in-plaintext-follow-up-raised-2026-08-01))
+- [ ] Mercure protocol 1.0: `config/packages/mercure.php` pins `protocol_version: 0.x` (mercure-bundle 0.7 defaults
+  to 1.0). Moving needs a Mercure 1.x hub, `match=` instead of `topic=` in the JS subscribers, the new cookie name
+  and `turbo_stream_from()` instead of the deprecated `turbo_stream_listen()` (messaging modals)
+- [ ] Doctrine ORM 3.8 / DBAL 4.6 deprecations: `orderBy()`/`addOrderBy()` with string directions (~50 calls) and
+  `#[OrderBy(['position' => 'ASC'])]` on `TableRow`/`RoundTable` → `SortDirection`; `options: ['jsonb' => true]`
+  (~37 columns) → `type: Types::JSONB` (same SQL - `migrations:diff` must stay empty; phpstan-doctrine needs a
+  descriptor for `JsonbType`); schema editor API (`use_schema_editor_api`) only if a scratch-DB diff stays empty
+- [ ] intervention/image: the Imagick `decodeAnimation: false` bug was fixed in 4.2.1 - decide whether to go back to
+  `false` (`config/packages/intervention_image.php`), with a check of uploads on the sandbox
+- [ ] Stripe webhook endpoint API version: move it from `2026-06-24.dahlia` to `2026-10-28.endive` (stripe-php 23's
+  pin) in the dashboard, then send a test `customer.subscription.updated` and `invoice.payment_succeeded`
+- [ ] Check `TerminateMembershipDueToDisputeHandler`: it reads `Charge.invoice`, which Stripe removed in API
+  `2025-03-31.basil` - a lost dispute may never be traced to its subscription (look the invoice up through
+  Invoice Payments by `payment_intent`)
+
 ## Ideas from players' spreadsheets (`docs/features/data-import/research.md` "What players track that MySpeedPuzzling does not", 2026-11-14)
 
 Candidates for work of their own - none is part of the import. What each is and where it was seen:

@@ -273,7 +273,7 @@ final readonly class ColumnRecogniser
      */
     private function profile(array $values): array
     {
-        $profile = ['count' => count($values), 'formulas' => 0, 'texts' => 0, 'numbers' => 0, 'dateCells' => 0, 'durationCells' => 0, 'pieces' => 0, 'usualPieces' => 0, 'durations' => 0, 'dates' => 0, 'yesNo' => 0, 'barcodes' => 0, 'smallNumbers' => 0, 'distinct' => 0, 'length' => 0];
+        $profile = ['count' => count($values), 'formulas' => 0, 'texts' => 0, 'numbers' => 0, 'dateCells' => 0, 'durationCells' => 0, 'pieces' => 0, 'usualPieces' => 0, 'durations' => 0, 'dates' => 0, 'yesNo' => 0, 'barcodes' => 0, 'smallNumbers' => 0, 'length' => 0];
         $seen = [];
 
         foreach ($values as $cell) {

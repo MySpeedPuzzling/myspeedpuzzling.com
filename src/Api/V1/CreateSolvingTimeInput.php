@@ -10,6 +10,7 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\Response as OpenApiResponse;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
     shortName: 'CreateSolvingTime',
@@ -32,6 +33,10 @@ use Symfony\Component\Validator\Constraints as Assert;
                     . 'result (puzzle_id, time and finish day); a key reused for a different result is refused with 422 '
                     . 'application/problem+json, type "/errors/idempotency_key_reused", and nothing is saved. '
                     . 'Without the key, an identical request sent again within 10 seconds is answered the same way. '
+                    . 'pieces_placed (optional, since 2026-11): the competition round\'s time ran out with this many pieces placed - an unfinished result. '
+                    . 'It needs a round with a time limit for the puzzle and solo/duo/team (round_id, competition_id or a series_id whose edition is found by the puzzle); '
+                    . '1 to the puzzle\'s pieces - 1. With pieces_placed, time is optional and is the total time when they finished afterwards (over the limit); '
+                    . 'the response\'s time_seconds is null. Never ranked. A refused one is a 422 violation on pieces_placed or time. '
                     . 'Linking the time to an event (all optional): round_id - that competition round, and its competition; '
                     . 'competition_id - a one-time event or an edition of a series (GET /api/v1/competitions, the competition detail); '
                     . 'series_id - a series (GET /api/v1/series): MySpeedPuzzling finds the edition by the puzzle (an edition with a round '
@@ -69,9 +74,13 @@ final class CreateSolvingTimeInput
     #[Assert\NotBlank]
     public string $puzzleId = '';
 
-    #[Assert\NotBlank]
+    // Required - except with piecesPlaced, where it is the optional total time (validateTime())
     #[Assert\Regex(pattern: '/^\d{1,2}:\d{2}(:\d{2})?$/', message: 'Time must be in format HH:MM:SS or MM:SS')]
     public string $time = '';
+
+    // An unfinished competition result: the pieces placed when the round's time ran out
+    #[Assert\Positive]
+    public null|int $piecesPlaced = null;
 
     public null|string $comment = null;
 
@@ -91,4 +100,15 @@ final class CreateSolvingTimeInput
 
     /** @var array<string> */
     public array $groupPlayers = [];
+
+    #[Assert\Callback]
+    public function validateTime(ExecutionContextInterface $context): void
+    {
+        if ($this->piecesPlaced === null && trim($this->time) === '') {
+            $context->buildViolation('This value should not be blank.')
+                ->atPath('time')
+                ->setCode(Assert\NotBlank::IS_BLANK_ERROR)
+                ->addViolation();
+        }
+    }
 }

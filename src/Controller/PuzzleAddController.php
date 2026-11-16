@@ -25,10 +25,12 @@ use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\FormType\PuzzleAddFormType;
+use SpeedPuzzling\Web\FormType\UnfinishedResultFields;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
+use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
@@ -39,6 +41,7 @@ use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
+use SpeedPuzzling\Web\Services\UnfinishedResults\UnfinishedResultForm;
 use SpeedPuzzling\Web\Services\CustomFields\AddFormCustomFields;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
@@ -97,6 +100,7 @@ final class PuzzleAddController extends AbstractController
         readonly private OfficialEntryTimePrefill $officialEntryTimePrefill,
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
         readonly private AddFormCustomFields $addFormCustomFields,
+        readonly private UnfinishedResultForm $unfinishedResultForm,
     ) {
     }
 
@@ -278,6 +282,13 @@ final class PuzzleAddController extends AbstractController
             $data->timeMinutes = $officialEntry->minutes();
             $data->timeSeconds = $officialEntry->secondsPart();
             $data->finishedAt = $officialEntry->finishedAt;
+
+            // An official result that did not finish within the round's time limit: the switch on, its pieces filled in
+            // (with the kill switch off the form cannot ask it - the entry then fills in its puzzle, day and people only)
+            if ($officialEntry->piecesPlaced !== null && $this->unfinishedResultForm->isEnabled()) {
+                $data->unfinished = true;
+                $data->piecesPlaced = (string) $officialEntry->piecesPlaced;
+            }
         }
 
         // Get player collections for form options (include system collection)
@@ -330,6 +341,7 @@ final class PuzzleAddController extends AbstractController
             'has_active_membership' => $hasActiveMembership,
             'current_competition_pick' => $deepLinkPick,
             'submitted_competition_pick' => $this->submittedCompetitionPick($request),
+            'unfinished_enabled' => $this->unfinishedResultForm->isEnabled(),
         ]);
         // A photo part without a single byte counts as no photo at all - never throws (EmptyPhotoParts)
         $this->emptyPhotoParts->leaveOut($request, $addTimeForm);
@@ -431,6 +443,25 @@ final class PuzzleAddController extends AbstractController
             }
         }
 
+        // "I didn't finish within the time limit" (docs/features/competitions-management/unfinished-results-plan.md): the
+        // round with a limit the form's competition + puzzle + solo/pair/team resolve to, by the save's rule - the
+        // switch is offered only then. An unfinished submit is checked here before anything is dispatched (a refused
+        // save must not leave a new puzzle behind - a new puzzle is in no round, so it never resolves one)
+        $typedSeconds = SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds;
+        $unfinishedState = $this->unfinishedResultForm->state(
+            $data->mode,
+            $data->competition,
+            $chosenPuzzleId,
+            $groupPlayers,
+            $data->finishedAt,
+            $data->isUnfinished(),
+            $typedSeconds,
+        );
+
+        if ($addTimeForm->isSubmitted() && $data->isUnfinished()) {
+            $this->unfinishedResultForm->check($addTimeForm, $unfinishedState, $data->piecesPlacedCount(), $typedSeconds);
+        }
+
         // Checked before anything is dispatched - a refused save must not leave a new puzzle behind. A new puzzle
         // has no history yet (docs/features/first-try-integrity.md, docs/features/duplicate-results.md Layer 2)
         $firstTryResolution = FirstTryResolution::tryFrom($request->request->getString('first_try_resolution')) ?? FirstTryResolution::None;
@@ -449,7 +480,8 @@ final class PuzzleAddController extends AbstractController
                 $groupPlayers,
                 $data->finishedAt,
                 $data->firstAttempt,
-                SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
+                // An unfinished result has no time to compare - its total is never ranked
+                $data->isUnfinished() ? null : SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
                 $timeId->toString(),
             );
 
@@ -481,6 +513,8 @@ final class PuzzleAddController extends AbstractController
             $addTimeForm->isSubmitted()
             && $stopwatchId === null
             && $data->mode === PuzzleAddMode::SpeedPuzzling
+            // An unfinished result's total is no solving time - nothing to judge
+            && $data->isUnfinished() === false
             && is_string($data->puzzle)
             && Uuid::isValid($data->puzzle)
         ) {
@@ -654,6 +688,8 @@ final class PuzzleAddController extends AbstractController
             'new_puzzle_id' => $newPuzzleId->toString(),
             // Null for a player without custom fields - the form is then rendered without a byte of them
             'my_fields' => $this->addFormCustomFields->forForm($request),
+            // "I didn't finish within the time limit" - null when the form never asks it (unfinished-results-plan.md)
+            'unfinished' => $unfinishedState,
         ]);
     }
 
@@ -668,6 +704,13 @@ final class PuzzleAddController extends AbstractController
             $finishedAt = $request->request->has('no_remember_date') ? null : $data->finishedAt;
 
             return $saved->isSameEntryAs($puzzleId, null, $finishedAt, $this->clock->now());
+        }
+
+        // An unfinished result has no time to solve - the same pieces placed of the same puzzle and day (as its handler
+        // compares a resend)
+        if ($data->isUnfinished()) {
+            return $saved->piecesPlaced === $data->piecesPlacedCount()
+                && $saved->isSameEntryAs($puzzleId, null, $this->mistypedYearNormalizer->normalizeFinishedAt($data->finishedAt), $this->clock->now());
         }
 
         return $saved->isSameEntryAs(
@@ -777,12 +820,45 @@ final class PuzzleAddController extends AbstractController
     ): Response {
         assert($data->puzzle !== null);
 
-        $timeString = $data->getTimeAsString();
-        assert($timeString !== null);
-
         // `<uuid>` / `edition:<uuid>` link the competition explicitly, `series:<uuid>` is a series pick - the handler
         // finds its edition (docs/features/events-page/high-frequency-series.md "The field")
         $competitionPick = CompetitionPick::tryFrom($data->competition);
+
+        // Didn't finish within the time limit: its own message beside this path (unfinished-results-plan.md) - the time
+        // fields hold the total, when they finished afterwards
+        if ($data->isUnfinished()) {
+            $piecesPlaced = $data->piecesPlacedCount();
+            // The form refuses an unfinished submit without pieces placed (UnfinishedResultFields::validate())
+            assert($piecesPlaced !== null);
+
+            $this->messageBus->dispatch(
+                new AddUnfinishedPuzzleSolvingTime(
+                    timeId: $timeId,
+                    userId: $userId,
+                    puzzleId: $data->puzzle,
+                    competitionId: $competitionPick?->competitionId(),
+                    piecesPlaced: $piecesPlaced,
+                    totalTime: $data->getTimeAsString(),
+                    comment: $data->comment,
+                    finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
+                    groupPlayers: $groupPlayers,
+                    finishedAt: $data->finishedAt,
+                    firstAttempt: $data->firstAttempt,
+                    unboxed: $data->unboxed,
+                    teamName: $teamName,
+                    firstTryResolution: $firstTryResolution,
+                    createdVia: $stopwatchId !== null ? SolvingTimeSource::Stopwatch : SolvingTimeSource::Form,
+                    stopwatchId: $stopwatchId,
+                    seriesId: $competitionPick?->seriesId(),
+                    finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
+                ),
+            );
+
+            return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
+        }
+
+        $timeString = $data->getTimeAsString();
+        assert($timeString !== null);
 
         $this->messageBus->dispatch(
             new AddPuzzleSolvingTime(
@@ -915,6 +991,11 @@ final class PuzzleAddController extends AbstractController
             $form->addError(new FormError($this->translator->trans('first_try.form_error')));
 
             return $realException->assessment;
+        }
+
+        // Didn't finish within the time limit: a refusal of the unfinished result goes on its field
+        if ($realException !== null && UnfinishedResultFields::refused($realException, $form, $this->translator)) {
+            return null;
         }
 
         if ($realException instanceof CanNotAssembleEmptyGroup) {

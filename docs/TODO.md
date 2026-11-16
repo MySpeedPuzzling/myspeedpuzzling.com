@@ -28,11 +28,18 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [x] Step 2 (#397): the Players page's pieces milestone chip says "N pieces placed" - never a solve; no change needed.
 - [x] Step 2 (#397): API v1/v0 results and the export carry `pieces_placed` + `finished_later_seconds`; v0
       `is_relax_mode` is false for an unfinished result.
-- [x] Step 3: no edit surface destroys an unfinished result any more - the edit page shows it ("coming soon", Delete) and
-      saves nothing (POST 422), API v1 `PUT` answers 422, `EditPuzzleSolvingTimeHandler` refuses it without
-      `endsUnfinishedResult`. **Step 4:** the edit form edits it through `EditUnfinishedPuzzleSolvingTime` (and ends it
-      through `EditPuzzleSolvingTime(endsUnfinishedResult: true)`), API v1 write fields `piecesPlaced` - then the edit page's
-      "coming soon" and the PUT refusal go.
+- [x] Step 3: no edit surface destroys an unfinished result any more - `EditPuzzleSolvingTimeHandler` refuses it without
+      `endsUnfinishedResult`. Step 4 (#400): the edit form edits it through `EditUnfinishedPuzzleSolvingTime` and ends it
+      through `EditPuzzleSolvingTime(endsUnfinishedResult: true)`; API v1 `piecesPlaced` on create/update - the edit
+      page's "coming soon" and the PUT refusal are gone.
+- [ ] Step 4: My data's row sheet and cells still never ask for pieces placed (they keep the stored pieces and total) -
+      decide with Jan whether My data edits them or links to the edit form.
+- [ ] Step 4: the round hint uses the add form's rule for the edit form too - an edited result whose event is no longer
+      publicly visible (or a series no longer public) shows no switch unless the result is unfinished already (then the
+      switch stays, the save follows `forEditedResult()`). Revisit if an organiser hides an event with results.
+- [ ] Step 4: the form tells nothing live when the switch is on and the typed total is within the limit - the save refuses
+      it on the time field (422, "0:50:00 is within the 60 min limit"). An inline hint before saving is cheap if players
+      trip over it.
 - [x] Step 3: My data's row sheet and in-place cells save an unfinished result through `EditUnfinishedPuzzleSolvingTime`
       with its stored pieces and total - the pieces stay. Its time cells stay empty (a time typed there is ignored, as for
       a relax row) until step 4 decides whether My data edits pieces placed.

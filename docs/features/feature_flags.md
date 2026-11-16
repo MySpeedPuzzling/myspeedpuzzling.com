@@ -183,6 +183,24 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   fields dialog, `_add_form_area.html.twig`) and `src/Controller/CustomFields/AddFormMyFieldsBlockController.php` (404)
 - **Remove when:** never - it is the off switch of an optional part of the app's most important form.
 
+## "I didn't finish within the time limit" in the add/edit-time form (`UNFINISHED_RESULTS_FORM`)
+
+- **Feature:** the switch, pieces placed and the round hint of the add/edit-time form
+  (`docs/features/competitions-management/unfinished-results-plan.md`, step 4)
+- **Flag:** env var `UNFINISHED_RESULTS_FORM` → parameter `unfinishedResultsForm` (`config/services.php`, with the
+  default `1` as the parameter `env(UNFINISHED_RESULTS_FORM)` - no `.env` line needed), injected into
+  `Services\UnfinishedResults\UnfinishedResultHint`. Not a Twig global.
+- **Default:** **ON** (`1`). It is the kill switch: `0` = the form never asks it - no switch, no `unfinished-result`
+  controller, the hint endpoint answers `{"round": null}`, and the add form ignores a posted switch (a page opened
+  before the flip saves a finished result as before). An unfinished result **being edited** keeps its switch (on) and
+  saves through its own message, so it is never turned into a relax solve; the API (`pieces_placed`), the event results
+  import and My data are not affected.
+- **Gated files:** `src/Services/UnfinishedResults/UnfinishedResultHint.php` (`forPick()` null),
+  `src/Services/UnfinishedResults/UnfinishedResultForm.php` (`state()` null unless the result is unfinished, `check()`
+  leaves an edit to its handler), `src/Controller/PuzzleAddController.php` (posted switch dropped),
+  `templates/_solving_time_form.html.twig` / `templates/_unfinished_result_fields.html.twig` (nothing rendered)
+- **Remove when:** never - it is the off switch of a new part of the app's most important form.
+
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 
 - **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)

@@ -91,7 +91,7 @@ the pieces and "Didn't finish within the time limit"; the Players page's pieces 
 and solving-time answers + v0 results gain `pieces_placed`, `finished_later_seconds` (v0 `is_relax_mode` false for
 one), the export two last columns. Left for steps 3-4: below in `docs/TODO.md`.
 
-**Status step 3 (write path backend + import), 2026-11-16 - PR open, not merged:** no form yet, so nobody can type an
+**Status step 3 (write path backend + import), 2026-11-16 - merged (#399):** no form yet, so nobody can type an
 unfinished result - but the **event results import writes them** (Sarah's sheet), so after this step real rows can exist
 (imported teams, never editable by a person). *Domain:* `Value\UnfinishedResult::fromInput(piecesPlaced, totalSeconds,
 puzzlePiecesCount, roundMinutesLimit)` - the one rule for every writer: no limit → `UnfinishedResultNeedsTimeLimit`,
@@ -124,7 +124,46 @@ relabelled time, mapping the three exceptions to field errors), `EditTimeControl
 the "coming soon" page), the hint endpoint on `resolveFor()`, API v1 write fields (`piecesPlaced` on create/update - the
 PUT refusal goes then), "Add to my profile" from an official unfinished result.
 
-**Status:** plan, 2026-09-18, refined 2026-11-16. Steps 1-2 merged, step 3 in review (above). Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
+**Status step 4 (the form - the release), 2026-11-16 - PR #400, draft:** *Hint:* `Services\UnfinishedResults\UnfinishedResultHint::forPick(pick, puzzle, puzzlers, day)`
+= `UnfinishedResultRound::forNewResult()` (the save's rule, series picks found by their puzzle) behind three more gates: the
+pick's event publicly visible (a draft's round names nobody may see - `DraftCanaryTest` has the endpoint), the puzzle
+writable by the viewer (`SecretPuzzleAccess`) and **not hidden entirely by the round itself** until it reveals (a public
+catalogue puzzle can be a coming round's secret - the answer would say which round holds it; picture-only hiding answers).
+`GET /{_locale}/solving-time-round-hint?competition=&puzzle=&puzzlers=&date=` (`SolvingTimeRoundHintController`,
+signed-in, `{"round": {name, minutesLimit, category}}` or `{"round": null}` for anything else, `private, no-store`).
+*Form:* `UnfinishedResultFields` adds `unfinished` (checkbox) + `piecesPlaced` (a text input, no constraint - neither can
+invalidate a form) to both form types and maps `InvalidPiecesPlaced` / `UnfinishedTotalTimeWithinLimit` /
+`UnfinishedResultNeedsTimeLimit` to their fields; the FormData read them only through `isUnfinished()` (Speed Puzzling +
+switch on) / `piecesPlacedCount()`; the only change to the finished rule: "time required" skips an unfinished submit.
+`UnfinishedResultForm::state()` (`Results\UnfinishedFormState`: round, on, typed time, piece count - no statement without a
+competition) renders the state without JavaScript (deep link, edit, 422) and `check()` refuses an unfinished submit before
+anything is dispatched (no round = `needs_round` on the switch - a new puzzle is in no round, so it never leaves a puzzle
+behind). Shown: always while on, else when a round with a limit is known and the time is empty or over it; over the limit
+with the switch off = the non-blocking nudge; on = pieces with "/ 500 · 21 pieces left", the time relabelled "Total time, if
+you finished it afterwards (optional)"; hidden inputs are disabled (never posted). `unfinished_result_controller.js` (on the
+`<form>`, lazy, the other controllers untouched) takes over: hint debounced 300 ms on any change/input of the form + the mode
+buttons, `AbortController`, fail-open (a failed hint = no round, except for what the page was rendered with). The one hook
+in another controller: `first_try_check_controller.js` sends no seconds while the switch is on (no same-time or pace
+question about a total - the server asks none either). The kill switch is applied inside the add form's `POST_SUBMIT`
+before its rules (option `unfinished_enabled`), so a switch posted by an old page is a finished submit (time required).
+*Add:* `PuzzleAddController` dispatches `AddUnfinishedPuzzleSolvingTime` when `isUnfinished()` (stopwatch: its time is the
+total, `created_via = stopwatch`), else exactly the old path; no pace check and no duplicate-time check for it (first-try
+check with no seconds); a resend = same pieces + puzzle + day (`isSameEntry()`); recap as before. *Edit:* the "coming soon"
+page and its templates are gone - `EditTimeController` opens an unfinished result in Speed mode, switch on, pieces + total
+filled; on = `EditUnfinishedPuzzleSolvingTime`, off = `EditPuzzleSolvingTime(endsUnfinishedResult: <the stored row is
+unfinished>)` (relax included). *API v1:* `piecesPlaced` on create/update (`time` required only without it; refusals = 422
+violations, `UnfinishedResultViolation`); a `PUT` of an unfinished result without `pieces_placed` and `time` keeps it
+unfinished (an older client never turns it into a relax solve), with a `time` it becomes finished; the PUT refusal is gone.
+*Official results:* "Add to my profile" is offered for an unfinished entry of a round **with a limit**
+(`GetPublishedRoundResults::withProfileStates()`), `OfficialEntryTime::$piecesPlaced` opens the form with the switch on and
+the pieces filled. Kill switch `UNFINISHED_RESULTS_FORM` (`docs/features/feature_flags.md`). Tests:
+`SolvingTimeRoundHintControllerTest`, `PuzzleAddUnfinishedResultTest`, `EditTimeUnfinishedResultTest`,
+`UnfinishedSolvingTimeEndpointTest`, `PuzzleAddOfficialUnfinishedEntryTest`; every existing form test untouched. *Browser walk (Selenium, a fixtures clone):* found
+two bugs the PHP tests could not see - the controller did not connect where no round was known yet (Stimulus refuses
+`null` for an Object value - now `{}`, pinned), and step 2's recap panel never showed (`.recap-card` hides a card without
+`.recap-row`, and it shared the progress card's grid cell - `recap-card-content`, `recap-layout-unfinished`).
+
+**Status:** plan, 2026-09-18, refined 2026-11-16. Steps 1-3 merged, step 4 in review (above). Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal
 

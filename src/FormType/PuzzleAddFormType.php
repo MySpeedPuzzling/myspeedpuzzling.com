@@ -211,6 +211,8 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
+        UnfinishedResultFields::add($builder);
+
         $builder->add('firstAttempt', CheckboxType::class, [
             'label' => 'forms.first_attempt',
             'required' => false,
@@ -317,10 +319,19 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices): void {
+        /** @var bool $unfinishedEnabled */
+        $unfinishedEnabled = $options['unfinished_enabled'] ?? true;
+
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($competitionChoices, $unfinishedEnabled): void {
             $form = $event->getForm();
             $data = $event->getData();
             assert($data instanceof PuzzleAddFormData);
+
+            // The kill switch UNFINISHED_RESULTS_FORM off: a switch posted by a page rendered before means nothing - before
+            // the rules, so "time required" applies as to any finished result (docs/features/feature_flags.md)
+            if ($unfinishedEnabled === false) {
+                $data->unfinished = false;
+            }
 
             $this->applyDynamicRules($form, $data, $competitionChoices);
         });
@@ -337,12 +348,15 @@ final class PuzzleAddFormType extends AbstractType
             // What a refused submit held (PuzzleAddController reads it before the form is built) — an edition picked by
             // typing or from the short list is offered again while it is publicly visible
             'submitted_competition_pick' => null,
+            // "I didn't finish within the time limit" (UNFINISHED_RESULTS_FORM) - off: a posted switch is ignored
+            'unfinished_enabled' => true,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');
         $resolver->setAllowedTypes('has_active_membership', 'bool');
         $resolver->setAllowedTypes('current_competition_pick', ['null', CompetitionPick::class]);
         $resolver->setAllowedTypes('submitted_competition_pick', ['null', CompetitionPick::class]);
+        $resolver->setAllowedTypes('unfinished_enabled', 'bool');
     }
 
     /**
@@ -383,9 +397,14 @@ final class PuzzleAddFormType extends AbstractType
             }
         }
 
-        // Speed Puzzling: time required
-        if ($mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false) {
+        // Speed Puzzling: time required - except for a result that did not finish within the time limit, whose time is
+        // the optional total (docs/features/competitions-management/unfinished-results-plan.md)
+        if ($mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false && $data->isUnfinished() === false) {
             $form->get('timeMinutes')->addError(new FormError($this->translator->trans('forms.time_required')));
+        }
+
+        if ($data->isUnfinished()) {
+            UnfinishedResultFields::validate($form, $data->piecesPlacedCount(), $this->translator);
         }
 
         // Collection: collection required

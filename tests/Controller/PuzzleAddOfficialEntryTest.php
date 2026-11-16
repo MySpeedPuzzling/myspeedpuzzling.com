@@ -91,7 +91,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         yield 'somebody else\'s entry' => [PlayerFixture::PLAYER_REGULAR, $anna, null];
         yield 'an entry nobody is linked to, for a player the organiser linked to their own' => [PlayerFixture::PLAYER_ADMIN, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, null];
         yield 'an entry nobody is linked to, of somebody else\'s name' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, null];
-        yield 'unfinished' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, null];
+        yield 'an unfinished entry of somebody else\'s name' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, null];
         yield 'did not start' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, null];
         yield 'no result yet' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, null];
         yield 'round not published' => [PlayerFixture::PLAYER_REGULAR, 'participant_round:' . OfficialResultsFixture::ENTRY_B_HUGO, null];

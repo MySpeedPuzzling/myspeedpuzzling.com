@@ -28,6 +28,19 @@
   grid-area: card;
 }
 
+// An unfinished result's panel (pieces placed, the later total) comes first - its own cell, never under the progress card
+.recap-layout-unfinished {
+  grid-template-areas: "unfinished" "card" "share" "more";
+
+  @media (min-width: 768px) {
+    grid-template-areas: "unfinished share" "card share" "more share";
+  }
+}
+
+.recap-layout-unfinished-card {
+  grid-area: unfinished;
+}
+
 .recap-layout-share {
   grid-area: share;
 }
@@ -46,8 +59,9 @@
   box-shadow: $box-shadow-sm;
   overflow: visible clip;                // the first separator is hidden under the top edge; pieces may fly sideways
 
-  // nothing moved (XP opted out, not a participant, no place): no empty frame
-  &:not(:has(.recap-row, .recap-achievement)) {
+  // nothing moved (XP opted out, not a participant, no place): no empty frame - a card with content of its own (the
+  // unfinished result's panel) is never empty
+  &:not(:has(.recap-row, .recap-achievement)):not(.recap-card-content) {
     display: none;
   }
 

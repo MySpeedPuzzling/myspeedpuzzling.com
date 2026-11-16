@@ -24,6 +24,9 @@ use Symfony\Component\Validator\Constraints as Assert;
                     . 'The time\'s current competition or series is accepted even when it is no longer publicly visible. '
                     . 'An event link cannot be removed through the API. The round always follows the competition. '
                     . 'The response carries the link as saved: round_id, competition_id and series_id (the series picked, else the series of the linked edition). '
+                    . 'pieces_placed (optional, since 2026-11) saves it as an unfinished competition result - the round\'s time ran out with this many pieces placed '
+                    . '(same rules as on POST: a round with a time limit, time = the optional total over the limit). An unfinished result sent without pieces_placed '
+                    . 'and without time stays unfinished with its pieces (a client that does not know the field never changes it); with a time it becomes a finished result. '
                     . 'An unknown, malformed or not publicly visible competition_id / series_id is a 404, a series_id that disagrees with competition_id a 422 '
                     . '(application/problem+json, a violation on series_id) - nothing is saved.',
             ),
@@ -57,4 +60,8 @@ final class UpdateSolvingTimeInput
     public null|string $competitionId = null;
 
     public null|string $seriesId = null;
+
+    // An unfinished competition result: the pieces placed when the round's time ran out - time is then the optional total
+    #[Assert\Positive]
+    public null|int $piecesPlaced = null;
 }

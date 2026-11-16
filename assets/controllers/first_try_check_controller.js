@@ -175,6 +175,12 @@ export default class extends Controller {
             return 0;
         }
 
+        // "I didn't finish within the time limit" on: the time is the total, no solving time - no same-time or pace
+        // question, as on the server (docs/features/competitions-management/unfinished-results-plan.md)
+        if (this.element.querySelector('input[name$="[unfinished]"]:checked:not(:disabled)') !== null) {
+            return 0;
+        }
+
         return value(this.hoursTarget) * 3600 + value(this.minutesTarget) * 60 + value(this.secondsTarget);
     }
 

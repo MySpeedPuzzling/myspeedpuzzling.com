@@ -88,7 +88,15 @@ readonly final class OfficialEntryTimePrefill
         $results = $this->getPublishedRoundResults->forRound($round, $viewerPlayerId);
         $entry = $results?->entry($ref->toString());
 
-        if ($results === null || $results->profilePuzzleId === null || $entry === null || $entry->result->seconds === null || $entry->profileState !== OfficialEntryProfileState::Offer) {
+        if ($results === null || $results->profilePuzzleId === null || $entry === null || $entry->profileState !== OfficialEntryProfileState::Offer) {
+            return null;
+        }
+
+        // A time, or the pieces placed when the round's time ran out (a round with a limit - the form opens with "I didn't
+        // finish within the time limit" on, docs/features/competitions-management/unfinished-results-plan.md)
+        $unfinished = $entry->result->seconds === null && $entry->result->piecesPlaced !== null && $round->minutesLimit !== null;
+
+        if ($entry->result->seconds === null && $unfinished === false) {
             return null;
         }
 
@@ -100,6 +108,7 @@ readonly final class OfficialEntryTimePrefill
         return new OfficialEntryTime(
             puzzleId: $results->profilePuzzleId,
             seconds: $entry->result->seconds,
+            piecesPlaced: $unfinished ? $entry->result->piecesPlaced : null,
             finishedAt: self::roundDay($round),
             groupPlayers: $groupPlayers,
             teamName: $entry->isTeam ? $this->teamNameTheFormMaySet($entry, $groupPlayers, $viewerPlayerId) : null,

@@ -152,7 +152,7 @@ SQL;
         $profilePuzzleId = $onlyPuzzle !== null && $onlyPuzzle->imageHidden === false ? $onlyPuzzle->puzzleId : null;
 
         if ($viewerPlayerId !== null && $profilePuzzleId !== null) {
-            $entries = $this->withProfileStates($entries, $round->id, $viewerPlayerId, $viewer);
+            $entries = $this->withProfileStates($entries, $round->id, $viewerPlayerId, $viewer, $round->minutesLimit !== null);
         }
 
         return new PublishedRoundResults(
@@ -201,14 +201,17 @@ SQL,
      * @param array{has_entry: bool, name: null|string, country: null|string} $viewer
      * @return list<PublishedRoundEntry>
      */
-    private function withProfileStates(array $entries, string $roundId, string $viewerPlayerId, array $viewer): array
+    private function withProfileStates(array $entries, string $roundId, string $viewerPlayerId, array $viewer, bool $roundHasTimeLimit): array
     {
         // The organiser linked the viewer to an entry of the round (ranked or not): that one is theirs. Otherwise an
         // entry nobody is linked to with a person of the viewer's name may be - and a pair/team the organiser typed by
-        // its name only (no member names to tell whose it is) - never everybody's unlinked row for every visitor
+        // its name only (no member names to tell whose it is) - never everybody's unlinked row for every visitor.
+        // A finished entry, or one that did not finish within the round's time limit - a round with a limit only, the
+        // only one an unfinished result can be recorded against (docs/features/competitions-management/
+        // unfinished-results-plan.md "Refined 2026-11-16" rule 8)
         $candidates = array_filter(
             $entries,
-            static fn (PublishedRoundEntry $entry): bool => $entry->result->isFinished()
+            static fn (PublishedRoundEntry $entry): bool => ($entry->result->isFinished() || ($roundHasTimeLimit && $entry->result->isUnfinished()))
                 && ($entry->isViewers || (
                     $viewer['has_entry'] === false
                     && $entry->hasLinkedPlayer() === false

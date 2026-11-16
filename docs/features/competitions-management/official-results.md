@@ -348,7 +348,12 @@ Table numbers before each in-person round - the seating page (`round_seating`: t
 "this round doesn't use table numbers"), auto-assign as a proposal first (earlier rounds through `AdvancementSeeding`,
 MySpeedPuzzling times, a draw, by name), the printed lists and the readiness line: [seating.md](seating.md).
 
+**Unfinished entries (2026-11-16, unfinished-results-plan.md step 4):** "Add to my profile" is offered for an entry that did
+not finish within the time limit too - only in a round with a time limit (the only kind an unfinished result can be
+recorded against); the form opens with "I didn't finish within the time limit" on and the pieces filled in
+(`OfficialEntryTime::$piecesPlaced`). An unfinished result the viewer has in the round makes it "On your profile".
+
 ## Not built yet (follow-ups in docs/TODO.md)
 
-Unfinished results onto profiles (after unfinished-results phase 1b), several puzzles per round, deriving table numbers
+Several puzzles per round, deriving table numbers
 from the table layout tool, results from stopwatch-less timing devices.

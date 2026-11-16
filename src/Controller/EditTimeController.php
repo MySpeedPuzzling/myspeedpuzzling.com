@@ -14,7 +14,9 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\FormType\UnfinishedResultFields;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
@@ -30,6 +32,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
+use SpeedPuzzling\Web\Services\UnfinishedResults\UnfinishedResultForm;
 use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
@@ -72,6 +75,7 @@ final class EditTimeController extends AbstractController
         readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private ClockInterface $clock,
+        readonly private UnfinishedResultForm $unfinishedResultForm,
     ) {
     }
 
@@ -112,28 +116,26 @@ final class EditTimeController extends AbstractController
             : $request->query->getString('context');
         $context = EditTimeReturnContext::tryFrom($contextValue) ?? EditTimeReturnContext::Profile;
 
-        // An unfinished result (docs/features/competitions-management/unfinished-results-plan.md): this form knows no
-        // pieces placed - it would open it as a relax solve. Until the form asks for them (step 4) the result is shown
-        // and nothing is saved; a POST is answered 422 (Turbo drops a 200), the handler refuses it too
-        if ($solvedPuzzle->isUnfinished()) {
-            return $this->render(
-                $isModalRequest ? 'edit-time_unfinished_modal.html.twig' : 'edit-time_unfinished.html.twig',
-                [
-                    'solved_puzzle' => $solvedPuzzle,
-                    'return_context' => $context->value,
-                ],
-                new Response(status: $request->isMethod('POST') ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK),
-            );
-        }
-
         $data = new EditPuzzleSolvingTimeFormData($this->clock->now());
 
-        // Detect initial mode based on whether time exists
-        $initialMode = $solvedPuzzle->time !== null ? 'speed_puzzling' : 'relax';
-        $data->mode = $solvedPuzzle->time !== null ? PuzzleAddMode::SpeedPuzzling : PuzzleAddMode::Relax;
+        // Detect initial mode based on whether time exists - an unfinished result (no time, pieces placed -
+        // docs/features/competitions-management/unfinished-results-plan.md) is a speed puzzling one with its switch on,
+        // its pieces and its total (when they finished afterwards) filled in: never a relax solve
+        $isSpeed = $solvedPuzzle->time !== null || $solvedPuzzle->isUnfinished();
+        $initialMode = $isSpeed ? 'speed_puzzling' : 'relax';
+        $data->mode = $isSpeed ? PuzzleAddMode::SpeedPuzzling : PuzzleAddMode::Relax;
 
         if ($solvedPuzzle->time !== null) {
             $data->setTimeFromSeconds($solvedPuzzle->time);
+        }
+
+        if ($solvedPuzzle->isUnfinished()) {
+            $data->unfinished = true;
+            $data->piecesPlaced = (string) $solvedPuzzle->piecesPlaced;
+
+            if ($solvedPuzzle->finishedLaterSeconds !== null) {
+                $data->setTimeFromSeconds($solvedPuzzle->finishedLaterSeconds);
+            }
         }
 
         // "Fix the time" of a result awaiting verification brings the time its reason suggests - shown on opening only,
@@ -214,6 +216,24 @@ final class EditTimeController extends AbstractController
             }
         }
 
+        // "I didn't finish within the time limit" (docs/features/competitions-management/unfinished-results-plan.md): the
+        // round with a limit of the form's competition + puzzle + solo/pair/team - the switch is offered only then (an
+        // unfinished result always shows it). An unfinished submit is checked here first, errors on their fields
+        $typedSeconds = SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds;
+        $unfinishedState = $this->unfinishedResultForm->state(
+            $data->mode,
+            $data->competition,
+            $activePuzzle->puzzleId,
+            $groupPlayers,
+            $data->finishedAt,
+            $data->isUnfinished(),
+            $typedSeconds,
+        );
+
+        if ($editTimeForm->isSubmitted() && $data->isUnfinished()) {
+            $this->unfinishedResultForm->check($editTimeForm, $unfinishedState, $data->piecesPlacedCount(), $typedSeconds);
+        }
+
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422 instead of a 200 Turbo Drive discards
         if ($isGroupPuzzlersValid === false && $editTimeForm->isSubmitted()) {
@@ -233,8 +253,8 @@ final class EditTimeController extends AbstractController
                 $groupPlayers,
                 $data->finishedAt,
                 $data->firstAttempt,
-                // Relax has no time to compare
-                $data->mode === PuzzleAddMode::SpeedPuzzling
+                // Relax has no time to compare, nor an unfinished result (its total is never ranked)
+                $data->mode === PuzzleAddMode::SpeedPuzzling && $data->isUnfinished() === false
                     ? SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds
                     : null,
                 $activePuzzle->puzzleId,
@@ -263,7 +283,7 @@ final class EditTimeController extends AbstractController
         $paceConfirmed = false;
         $paceCheck = null;
 
-        if ($editTimeForm->isSubmitted() && $data->mode === PuzzleAddMode::SpeedPuzzling) {
+        if ($editTimeForm->isSubmitted() && $data->mode === PuzzleAddMode::SpeedPuzzling && $data->isUnfinished() === false) {
             $paceCheck = $this->suspiciousTimeFormCheck->forEditedResult(
                 $player->playerId,
                 $player->code,
@@ -289,8 +309,12 @@ final class EditTimeController extends AbstractController
             }
 
             try {
-                $this->messageBus->dispatch(
-                    EditPuzzleSolvingTime::fromFormData(
+                // Didn't finish within the time limit: saved (or turned) unfinished through its own message; an
+                // unfinished result switched off becomes a finished (or relax) one - the stored row says which, never
+                // the request (docs/features/competitions-management/unfinished-results-plan.md, step 3 transitions)
+                $this->messageBus->dispatch($data->isUnfinished()
+                    ? $this->unfinishedEdit($user->getUserIdentifier(), $timeId, $groupPlayers, $data, $request->request->getString('team_name'), $firstTryResolution)
+                    : EditPuzzleSolvingTime::fromFormData(
                         $user->getUserIdentifier(),
                         $timeId,
                         $groupPlayers,
@@ -301,8 +325,8 @@ final class EditTimeController extends AbstractController
                         $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
                         // Only an answer to a time the check raised is a confirmation
                         $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
-                    ),
-                );
+                        endsUnfinishedResult: $solvedPuzzle->isUnfinished(),
+                    ),);
 
                 // The photos stay until they expire: the same form sent again (the answer got lost) must find them
                 // (docs/features/photo-uploads/README.md)
@@ -319,7 +343,9 @@ final class EditTimeController extends AbstractController
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
-                if ($realException instanceof FirstTryAlreadyTaken) {
+                if ($realException !== null && UnfinishedResultFields::refused($realException, $editTimeForm, $this->translator)) {
+                    // Didn't finish within the time limit: a refusal of the unfinished result is on its field
+                } elseif ($realException instanceof FirstTryAlreadyTaken) {
                     // Somebody saved a first try in the meantime - the notice explains what the handler saw
                     $editTimeForm->addError(new FormError($this->translator->trans('first_try.form_error')));
                     $firstTry = $realException->assessment;
@@ -374,6 +400,8 @@ final class EditTimeController extends AbstractController
             'xp_delete_warning' => $solvedPuzzle->playerId === $player->playerId && $this->xpFeatureGate->isVisibleFor($player)
                 ? max($this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($player->playerId, $timeId), 0)
                 : 0,
+            // "I didn't finish within the time limit" - null when the form never asks it (unfinished-results-plan.md)
+            'unfinished' => $unfinishedState,
         ];
 
         if ($isModalRequest) {
@@ -381,6 +409,44 @@ final class EditTimeController extends AbstractController
         }
 
         return $this->render('edit-time.html.twig', $templateParams);
+    }
+
+    /**
+     * @param array<string> $groupPlayers
+     */
+    private function unfinishedEdit(
+        string $userId,
+        string $timeId,
+        array $groupPlayers,
+        EditPuzzleSolvingTimeFormData $data,
+        string $teamName,
+        FirstTryResolution $firstTryResolution,
+    ): EditUnfinishedPuzzleSolvingTime {
+        $piecesPlaced = $data->piecesPlacedCount();
+        // The form refuses an unfinished submit without pieces placed (UnfinishedResultFields::validate())
+        assert($piecesPlaced !== null);
+
+        // `<uuid>` / `edition:<uuid>` link the competition explicitly, `series:<uuid>` is a series pick
+        $competitionPick = CompetitionPick::tryFrom($data->competition);
+
+        return new EditUnfinishedPuzzleSolvingTime(
+            currentUserId: $userId,
+            puzzleSolvingTimeId: $timeId,
+            competitionId: $competitionPick?->competitionId(),
+            piecesPlaced: $piecesPlaced,
+            totalTime: $data->getTimeAsString(),
+            comment: $data->comment,
+            groupPlayers: $groupPlayers,
+            finishedAt: $data->finishedAt,
+            finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
+            firstAttempt: $data->firstAttempt,
+            unboxed: $data->unboxed,
+            teamName: $teamName,
+            firstTryResolution: $firstTryResolution,
+            puzzleId: $data->puzzle,
+            seriesId: $competitionPick?->seriesId(),
+            finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
+        );
     }
 
     /**

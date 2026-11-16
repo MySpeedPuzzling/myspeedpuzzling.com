@@ -142,6 +142,12 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('env(CUSTOM_FIELDS_IN_ADD_FORM)', '1');
     $parameters->set('customFieldsInAddForm', '%env(bool:CUSTOM_FIELDS_IN_ADD_FORM)%');
 
+    // "I didn't finish within the time limit" in the add/edit-time form (docs/features/feature_flags.md): the kill switch,
+    // on by default - 0 = the form never asks it and the round hint answers null (an unfinished result being edited
+    // still shows its switch; the API and the import are not affected)
+    $parameters->set('env(UNFINISHED_RESULTS_FORM)', '1');
+    $parameters->set('unfinishedResultsForm', '%env(bool:UNFINISHED_RESULTS_FORM)%');
+
     // Insights (docs/features/feature_flags.md): the page and its links only while 1, admins always.
     $parameters->set('insightsPublic', '%env(bool:INSIGHTS_PUBLIC)%');
 

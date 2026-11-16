@@ -97,3 +97,42 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   `sarah_does_puzzles`, unknown = 400), every answer carries `format`.
 - **Guide**: `templates/results_import/format_guide/sarah_does_puzzles.html.twig` (`results_import.format_guide.*` in all
   6 locales, rendered by `ResultsFormatsTest`), not linked anywhere until PR 2.
+
+## As built: PR 2 - the read-only page (2026-11-16)
+
+- **Routes** (single-action controllers in `src/Controller/ResultsImport/`, all `noindex`, `Cache-Control: private,
+  no-store`): `results_import_sources` `GET /{_locale}/organizations/{slug}/results-import` (one source → 302 to it, none
+  → 404, several → a list), `results_import` `GET …/results-import/{sourceId}` (the flow), `results_import_event`
+  `GET …/results-import/{sourceId}/events/{eventKey}?check=<id>` (the preview; without `check` the latest),
+  `results_import_check` `POST …/results-import/{sourceId}/check` (session CSRF `results_import_check_<sourceId>`;
+  always a redirect - a stale token too, with a flash).
+- **Access**: `ResultsImportPage::organization()` - the kill switch (404), the organization by slug (404),
+  `ORGANIZATION_EDIT` (its creator, maintainers and admins - the organization legs of `GetCompetitionPermissions`):
+  another player 403, a guest is sent to sign in, like the organization's edit page. `sourceOf()` = 404 for a source of
+  another organization. Linked from the organization's ⋯ menu and "You organize" (`events/_manage_items.html.twig`,
+  "Results import") only when `OrganizedEvent::$resultsSourceCount > 0` - a subquery of the existing statement, no
+  statement more.
+- **Check**: `CheckResultsSource` (`HandledOutsideTransaction`) reads `GoogleSheetReader::snapshot()` - never parses -
+  and writes through `RecordResultsImportCheck`: `results_import_check` (`source_id` CASCADE, `checked_by_id` SET NULL,
+  `checked_at`, `snapshot` jsonb `{tabs: [{gid, title, csv}], unreadable: [{gid, title, reason}]}`, `read_error`). A
+  failed read is a check too (the page says it, logged at `info` - the organizer fixes the sharing). The source keeps its
+  newest 10 checks (`RecordResultsImportCheckHandler::KEEP`). The stored CSV round-trips byte for byte, so a stored check
+  parses to the same events and content hashes as the sheet (`ResultsImportComparisonTest`).
+- **Statuses** (`ResultsImportComparison`, three statements for any number of events: stored tabs + their results,
+  puzzles with merge redirects): decided **in `ApplyEventResultsTabHandler`'s order** - Unchanged (imported, same hash),
+  Event deleted (detached), Needs fixing (a tab problem), Waiting for puzzle (no link / puzzle not found), Needs fixing
+  (pieces placed ≥ the puzzle's, round category or puzzle changed after import), else Changed (imported) or New.
+  `ResultsImportComparisonTest` imports every predicted event and compares what the import recorded. Row-level problems
+  (a team twice, an unreadable time…) and the soft warnings (puzzle not approved, times out of order, a time over the
+  limit without pieces) never block; every note is a sentence (`results_import.note.<code>`, the cell value and the
+  row).
+- **Preview**: the event card (the sheet's wall clock shown as written), the puzzle with its picture and approval, links
+  to the stored event and its results; the differences against what is stored - the event's fields, then team by team:
+  added, removed ("No longer in the sheet - removed (nobody claimed it)"), kept ("No longer in the sheet - kept,
+  claimed", P4), time / pieces / size changed (a claimed team's size stays) - also for an Unchanged event that keeps a
+  claimed team; the teams ranked by `ResultsImportComparison::rankedRows()` = `GetRoundResults::order()` for the
+  organizer's results (pinned against it). "Claimed" = tracker or a registered member in the group snapshot =
+  `isClaimedByAnybody()` (pinned, also after the first claimer left). Claimers are never named - the only name on the
+  page is the team member (or admin) who pressed "Check sheet".
+- **Guide**: the format's `guideTemplate()` in a `<details>` help box. Kill switch `RESULTS_IMPORT_PAGE`
+  (`docs/features/feature_flags.md`).

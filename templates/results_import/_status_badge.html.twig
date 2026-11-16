@@ -1,0 +1,12 @@
+{#
+    An event's status on the results import page. Variables: status (ResultsImportStatus)
+#}
+{%- set badge_class = {
+    new: 'text-bg-primary',
+    changed: 'text-bg-info',
+    unchanged: 'text-bg-light border',
+    waiting_for_puzzle: 'text-bg-warning',
+    needs_fixing: 'text-bg-danger',
+    event_deleted: 'text-bg-secondary',
+}[status.value] -%}
+<span class="badge {{ badge_class }} text-wrap" data-results-import-status="{{ status.value }}">{{ ('results_import.status.' ~ status.value)|trans }}</span>

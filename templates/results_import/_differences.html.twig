@@ -1,0 +1,76 @@
+{#
+    What importing the event changes against what is stored: the event's own fields, then team by team - added,
+    removed (nobody claimed it), kept because claimed (P4), its time / pieces / size changed (a claimed team keeps its
+    people). Variables: item (ResultsImportEvent), event (ParsedEvent)
+#}
+{% set pieces_count = item.puzzle ? item.puzzle.piecesCount : null %}
+<section class="mb-4" data-results-import-differences>
+    <h2 class="h5 mb-2">{{ 'results_import.differences.heading'|trans }}</h2>
+
+    {% if item.eventChanges is not empty %}
+        <ul class="list-unstyled small mb-3" data-results-import-event-changes>
+            {% for change in item.eventChanges %}
+                <li class="mb-1" data-results-import-event-change="{{ change.field }}">
+                    <span class="fw-medium">{{ ('results_import.differences.field.' ~ change.field)|trans }}:</span>
+                    {% for value in [change.before, change.after] %}
+                        {%- if not loop.first %} <i class="bi bi-arrow-right mx-1" aria-hidden="true"></i><span class="visually-hidden">→</span> {% endif -%}
+                        <span class="{{ loop.first ? 'text-muted text-decoration-line-through' : 'fw-medium' }} text-break">
+                            {%- if value is null -%}
+                                {{ ('results_import.differences.none.' ~ change.field)|trans }}
+                            {%- elseif change.field == 'date' -%}
+                                {{ value|events_date('yMMMd') }}
+                            {%- elseif change.field == 'time_limit' -%}
+                                {{ 'round_results.time_limit'|trans({'%minutes%': value}) }}
+                            {%- else -%}
+                                {{ value }}
+                            {%- endif -%}
+                        </span>
+                    {% endfor %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if item.teamChanges is not empty %}
+        <ul class="list-group small" data-results-import-team-changes>
+            {% for change in item.teamChanges %}
+                <li class="list-group-item d-flex flex-wrap justify-content-between gap-2" data-results-import-team-change="{{ change.kind }}">
+                    <div class="min-w-0">
+                        <span class="fw-medium text-break">{{ change.teamName }}</span>
+                        {% if change.claimed %}<span class="badge text-bg-light border ms-1" data-results-import-claimed>{{ 'results_import.differences.claimed'|trans }}</span>{% endif %}
+                        <div class="text-muted">
+                            {%- if change.kind == 'added' -%}
+                                {{ 'results_import.differences.added'|trans }}
+                            {%- elseif change.kind == 'removed' -%}
+                                {{ 'results_import.differences.removed'|trans }}
+                            {%- elseif change.kind == 'kept_claimed' -%}
+                                {{ 'results_import.differences.kept_claimed'|trans }}
+                            {%- else -%}
+                                {%- set parts = [] -%}
+                                {%- if change.nameBefore -%}{%- set parts = parts|merge(['results_import.differences.renamed'|trans({'%name%': change.nameBefore})]) -%}{%- endif -%}
+                                {%- if change.sizeKept -%}
+                                    {%- set parts = parts|merge(['results_import.differences.size_kept'|trans({'%before%': change.sizeBefore, '%after%': change.sizeAfter})]) -%}
+                                {%- elseif change.sizeChanged -%}
+                                    {%- set parts = parts|merge(['results_import.differences.size_changed'|trans({'%before%': change.sizeBefore, '%after%': change.sizeAfter})]) -%}
+                                {%- endif -%}
+                                {%- if change.resultChanged -%}{%- set parts = parts|merge(['results_import.differences.result_changed'|trans]) -%}{%- endif -%}
+                                {{ parts|join(' · ') }}
+                            {%- endif -%}
+                        </div>
+                    </div>
+                    <div class="text-end text-nowrap">
+                        {%- if change.kind == 'changed' and change.resultChanged -%}
+                            <span class="text-muted text-decoration-line-through">{{ include('results_import/_result.html.twig', {seconds: change.secondsBefore, pieces: change.piecesBefore, pieces_count: pieces_count}) }}</span>
+                            <i class="bi bi-arrow-right mx-1" aria-hidden="true"></i>
+                            {{ include('results_import/_result.html.twig', {seconds: change.secondsAfter, pieces: change.piecesAfter, pieces_count: pieces_count}) }}
+                        {%- elseif change.kind == 'added' -%}
+                            {{ include('results_import/_result.html.twig', {seconds: change.secondsAfter, pieces: change.piecesAfter, pieces_count: pieces_count}) }}
+                        {%- elseif change.kind != 'changed' -%}
+                            <span class="{{ change.kind == 'removed' ? 'text-decoration-line-through' }} text-muted">{{ include('results_import/_result.html.twig', {seconds: change.secondsBefore, pieces: change.piecesBefore, pieces_count: pieces_count}) }}</span>
+                        {%- endif -%}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

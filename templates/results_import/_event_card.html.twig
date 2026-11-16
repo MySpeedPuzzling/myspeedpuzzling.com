@@ -1,0 +1,60 @@
+{#
+    The event as the import creates or updates it: name, venue, city, day, start time, pairs/teams, time limit and the
+    puzzle (picture, approved or not). The wall clock of the sheet is shown as written (localStartsAt holds it in UTC -
+    never converted). For an imported event, links to it and to its results.
+    Variables: item (ResultsImportEvent), event (ParsedEvent)
+#}
+<div class="card shadow-sm" data-results-import-event-card>
+    <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted mb-3">{{ 'results_import.preview.event'|trans }}</h2>
+        <dl class="row small mb-0">
+            <dt class="col-5">{{ 'results_import.preview.name'|trans }}</dt>
+            <dd class="col-7 text-break">{{ event.eventName ?? '-' }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.venue'|trans }}</dt>
+            <dd class="col-7 text-break">{{ event.location ?? '-' }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.city'|trans }}</dt>
+            <dd class="col-7 text-break">{{ event.cityAndState ?? '-' }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.date'|trans }}</dt>
+            <dd class="col-7" data-results-import-date>{{ event.localStartsAt ? event.localStartsAt|events_date('yMMMd') : '-' }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.start_time'|trans }}</dt>
+            <dd class="col-7" data-results-import-start>{{ event.localStartsAt and event.startTimeKnown ? event.localStartsAt|date('H:i', false) : 'results_import.preview.no_start_time'|trans }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.category'|trans }}</dt>
+            <dd class="col-7">{{ event.category ? ('competition.round.category.' ~ event.category.value)|trans : '-' }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.time_limit'|trans }}</dt>
+            <dd class="col-7" data-results-import-limit>{{ event.timeLimitMinutes is not null ? 'round_results.time_limit'|trans({'%minutes%': event.timeLimitMinutes}) : 'results_import.preview.no_time_limit'|trans }}</dd>
+            <dt class="col-5">{{ 'results_import.preview.teams'|trans }}</dt>
+            <dd class="col-7">{{ item.teamCount }}</dd>
+        </dl>
+    </div>
+
+    <div class="card-body border-top" data-results-import-puzzle>
+        {% if item.puzzle %}
+            {% set puzzle = item.puzzle %}
+            <div class="d-flex align-items-center">
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="flex-shrink-0" style="width: 90px;">
+                    {{ include('_puzzle_row_image.html.twig', {image: puzzle.image, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.name}), position: 1, ratio: puzzle.imageRatio}) }}
+                </a>
+                <div class="ps-3 min-w-0">
+                    <a class="text-decoration-underline text-break" href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}">{{ puzzle.name }}</a>
+                    <div class="small text-muted">
+                        {% if puzzle.manufacturerName %}{{ puzzle.manufacturerName }} &middot; {% endif %}{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
+                    </div>
+                    {% if not puzzle.approved %}
+                        <span class="badge text-bg-warning mt-1" data-results-import-puzzle-not-approved>{{ 'results_import.preview.puzzle_not_approved'|trans }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p class="small text-muted mb-0">{{ 'results_import.preview.no_puzzle'|trans }}</p>
+        {% endif %}
+    </div>
+
+    {% if item.stored is not null and item.stored.competitionSlug %}
+        <div class="card-body border-top small" data-results-import-stored-links>
+            <a href="{{ path('event_detail', {slug: item.stored.competitionSlug}) }}" class="me-3">{{ 'results_import.preview.open_event'|trans }}</a>
+            {% if item.stored.roundSlug %}
+                <a href="{{ path('event_round_results', {slug: item.stored.competitionSlug, roundSlug: item.stored.roundSlug}) }}">{{ 'results_import.preview.open_results'|trans }}</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

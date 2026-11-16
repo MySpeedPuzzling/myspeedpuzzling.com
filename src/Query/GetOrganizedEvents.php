@@ -65,7 +65,8 @@ readonly final class GetOrganizedEvents
 SELECT o.id, o.name, o.slug, o.country_code, o.is_draft,
     (o.approved_at IS NOT NULL) AS is_approved, (o.rejected_at IS NOT NULL) AS is_rejected, o.rejection_reason,
     (SELECT COUNT(*) FROM competition_series cs WHERE cs.organization_id = o.id) AS series_count,
-    (SELECT COUNT(*) FROM competition c WHERE c.organization_id = o.id AND c.series_id IS NULL) AS event_count
+    (SELECT COUNT(*) FROM competition c WHERE c.organization_id = o.id AND c.series_id IS NULL) AS event_count,
+    (SELECT COUNT(*) FROM event_results_sheet ers WHERE ers.organization_id = o.id) AS results_source_count
 FROM organization o
 WHERE o.id IN (:ids)
 SQL;
@@ -88,6 +89,7 @@ SQL;
                 seriesCount: is_numeric($row['series_count']) ? (int) $row['series_count'] : 0,
                 eventCount: is_numeric($row['event_count']) ? (int) $row['event_count'] : 0,
                 ownDraft: (bool) $row['is_draft'],
+                resultsSourceCount: is_numeric($row['results_source_count']) ? (int) $row['results_source_count'] : 0,
             );
         }
 

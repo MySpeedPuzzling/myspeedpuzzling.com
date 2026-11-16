@@ -43,6 +43,9 @@ The xlsx export is not used: it has no gids.
 
 ### Format (one tab)
 
+A tab named `Template` (any case) is the organizer's blank copy for the next event and is never read as an event
+(2026-11-16).
+
 Header row, matched case-insensitively and trimmed (`Team Size` = `team Size`). Row 2 carries the event's fields and
 its own team; every further row is one team.
 

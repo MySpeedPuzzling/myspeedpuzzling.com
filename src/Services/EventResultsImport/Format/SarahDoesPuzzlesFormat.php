@@ -81,7 +81,18 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
      */
     public function parse(SheetSnapshot $sheet): array
     {
-        return array_map($this->parseTab(...), $sheet->tabs);
+        // A tab named "Template" is the organizer's blank copy for the next event - never an event itself
+        $events = array_filter(
+            $sheet->tabs,
+            static fn (SheetSnapshotTab $tab): bool => self::isTemplate($tab->title) === false,
+        );
+
+        return array_values(array_map($this->parseTab(...), $events));
+    }
+
+    private static function isTemplate(string $title): bool
+    {
+        return mb_strtolower(trim($title)) === 'template';
     }
 
     public function parseTab(SheetSnapshotTab $sheetTab): ParsedEvent

@@ -404,6 +404,20 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
         self::assertSame(EventTabProblemCode::MissingColumn, $events[1]->problems[0]->code);
     }
 
+    public function testATabNamedTemplateIsTheOrganizersBlankCopyNotAnEvent(): void
+    {
+        $tab = implode("\n", [self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4')]);
+
+        $events = new SarahDoesPuzzlesFormat()->parse(new SheetSnapshot([
+            new SheetSnapshotTab('31', ' TEMPLATE ', self::HEADER),
+            new SheetSnapshotTab('2001', 'Maple 10/5', $tab),
+            new SheetSnapshotTab('32', 'Template', ''),
+        ]));
+
+        self::assertCount(1, $events);
+        self::assertSame('2001', $events[0]->key);
+    }
+
     public function testTheKeyAndTheTitleAreNotPartOfTheContentHash(): void
     {
         $csv = implode("\n", [self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4')]);

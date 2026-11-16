@@ -192,7 +192,7 @@ SQL;
 
         // Same rule as the teams above
         $recent = static function (array $person) use ($recentSince): string {
-            $last = $person['last'] ?? null;
+            $last = $person['last'];
 
             return is_string($last) && $last >= $recentSince ? $last : '';
         };

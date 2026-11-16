@@ -83,7 +83,6 @@ final class AddPuzzleToCollectionController extends AbstractController
         $collectionChoices = $this->buildAvailableCollectionChoices(
             $collections,
             $existingCollectionIds,
-            $loggedPlayer->puzzleCollectionVisibility->value,
         );
 
         $hasAvailableCollections = count($collectionChoices) > 0;
@@ -249,7 +248,6 @@ final class AddPuzzleToCollectionController extends AbstractController
     private function buildAvailableCollectionChoices(
         array $collections,
         array $existingCollectionIds,
-        string $systemCollectionVisibility,
     ): array {
         $choices = [];
 

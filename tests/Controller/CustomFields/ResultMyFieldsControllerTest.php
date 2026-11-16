@@ -291,7 +291,7 @@ final class ResultMyFieldsControllerTest extends WebTestCase
 
         foreach (['/en/result/' . $timeId, '/en/custom-fields/result/' . $timeId, '/en/custom-fields', '/en/puzzle-add'] as $url) {
             foreach ([[], self::FRAME] as $server) {
-                $crawler = $browser->request('GET', $url, server: $server);
+                $browser->request('GET', $url, server: $server);
 
                 self::assertResponseIsSuccessful($url);
                 $content = (string) $browser->getResponse()->getContent();

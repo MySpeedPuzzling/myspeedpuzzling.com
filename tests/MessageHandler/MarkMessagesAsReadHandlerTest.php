@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetMessages;
+use SpeedPuzzling\Web\Results\MessageView;
+use SpeedPuzzling\Web\Tests\DataFixtures\ChatMessageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -66,6 +68,12 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
             ConversationFixture::CONVERSATION_ACCEPTED,
             PlayerFixture::PLAYER_REGULAR,
         )->messages;
+        $adminMessages = array_values(array_filter(
+            $messages,
+            static fn (MessageView $message): bool => $message->messageId === ChatMessageFixture::MESSAGE_04,
+        ));
+        self::assertCount(1, $adminMessages);
+        self::assertNull($adminMessages[0]->readAt, 'Marking as read by its sender leaves the message unread');
 
         // Messages from REGULAR (msg01, msg03) were already read in fixtures
         // Message from ADMIN (msg04) was not read - marking as ADMIN should not affect it

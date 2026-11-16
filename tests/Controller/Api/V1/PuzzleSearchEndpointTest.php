@@ -966,7 +966,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
     private function assertUnprocessableWithViolationOn(KernelBrowser $browser, string $propertyPath): void
     {
         $this->assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json');
 
         $response = $this->decodeProblem($browser);
         $this->assertArrayHasKey('violations', $response, 'A 422 must carry violations');

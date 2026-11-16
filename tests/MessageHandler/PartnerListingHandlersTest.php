@@ -270,7 +270,7 @@ final class PartnerListingHandlersTest extends KernelTestCase
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        foreach ([1, 2] as $click) {
+        for ($click = 1; $click <= 2; $click++) {
             $this->messageBus->dispatch(new ClosePartnerListing(
                 PartnerFinderFixture::LISTING_FAVORITES_TEAM,
                 PlayerFixture::PLAYER_WITH_FAVORITES,
@@ -336,7 +336,8 @@ final class PartnerListingHandlersTest extends KernelTestCase
         $listingId = Uuid::uuid7()->toString();
 
         $this->messageBus->dispatch($this->listMe($listingId, PlayerFixture::PLAYER_ADMIN, kinds: [PartnerKind::Team], groupSize: 3, needed: 1, coMembers: [PlayerFixture::PLAYER_REGULAR]));
-        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->notified(NotificationType::PartnerGroupMember, PlayerFixture::PLAYER_ADMIN));
+        $told = $this->notified(NotificationType::PartnerGroupMember, PlayerFixture::PLAYER_ADMIN);
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $told);
 
         // An edit keeping John and adding Stripe tells only Stripe
         $edit = new EditPartnerListing(

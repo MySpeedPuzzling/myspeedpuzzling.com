@@ -56,7 +56,6 @@ final class MyDataController extends AbstractController
 
         $criteria = MyDataCriteria::fromUserInput($request->query->all());
         $tab = $criteria->tab;
-        $parameters = [];
 
         if ($tab === MyDataTab::Results) {
             $facts = $this->getMyDataResults->facts($player->playerId);

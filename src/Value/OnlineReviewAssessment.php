@@ -251,7 +251,7 @@ final readonly class OnlineReviewAssessment
             status: $status,
             flags: self::flags($clock, $nowMs, $events, $runTaps, $counting, $storedFlags),
             adjustedTap: $adjustedTap,
-            adjustmentMs: $adjustedTap === null || $confirmedMomentMs === null ? null : $confirmedMomentMs - $adjustedTap->momentMs,
+            adjustmentMs: $adjustedTap === null ? null : $confirmedMomentMs - $adjustedTap->momentMs,
             candidates: $candidates,
             referenceTap: $referenceTap,
             detectedCandidate: $detectedCandidate,

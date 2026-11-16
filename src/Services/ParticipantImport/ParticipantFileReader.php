@@ -710,7 +710,7 @@ final class ParticipantFileReader
         $map = [];
 
         for ($byte = 0x80; $byte <= 0xFF; $byte++) {
-            $map[chr($byte)] = mb_chr((int) hexdec($codePoints[$byte - 0x80] ?? 'FFFD'), 'UTF-8');
+            $map[chr($byte)] = mb_chr((int) hexdec($codePoints[$byte - 0x80]), 'UTF-8');
         }
 
         return strtr($bytes, $map);

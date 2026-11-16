@@ -31,7 +31,6 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         $wjpcTag = $this->getReference(TagFixture::TAG_WJPC, Tag::class);
         $nationalTag = $this->getReference(TagFixture::TAG_NATIONAL, Tag::class);
         $regularPlayer = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
-        $adminPlayer = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
 
         $wjpcCompetition = $this->createCompetition(
             id: self::COMPETITION_WJPC_2024,

@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Services\Insights;
 use DateTimeImmutable;
 use DateTimeZone;
 use IntlDateFormatter;
-use SpeedPuzzling\Web\Results\Insights\InsightsLearningPoint;
 use SpeedPuzzling\Web\Results\Insights\InsightsReport;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -347,7 +346,6 @@ readonly final class InsightsChartsFactory
             $tooltips = array_fill(0, 4, null);
 
             foreach ($points as $point) {
-                assert($point instanceof InsightsLearningPoint);
                 $index = $point->attempt - 1;
 
                 if ($index < 0 || $index > 3 || $point->factor === null) {

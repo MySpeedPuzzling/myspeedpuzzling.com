@@ -198,9 +198,9 @@ final class SeriesPageBuilderTest extends TestCase
     {
         $page = $this->build($this->sessions('Season One', ['2026-04-15', '2026-05-13', '2026-06-17', '2026-07-15']));
 
+        // Four sessions, fewer than SeriesPageBuilder::FILTER_FROM_SESSIONS
         self::assertNull($page->filter);
         self::assertSame([], $page->monthsOf(2026));
-        self::assertLessThan(SeriesPageBuilder::FILTER_FROM_SESSIONS, 4);
         // Its rows still name their rounds' puzzles (none here) - and one category says nothing
         self::assertNotNull($page->next);
         self::assertSame([], $page->detailsOf($page->next->row->indexIds)?->puzzleNames);

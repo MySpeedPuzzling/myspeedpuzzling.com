@@ -57,7 +57,8 @@ final class MicrosoftClientSecretExpiryCheckTest extends TestCase
             $check->check();
         }
 
-        self::assertCount(1, $this->logger->records);
+        $records = $this->logger->records;
+        self::assertCount(1, $records);
         self::assertTrue($this->logger->hasRecord('warning', 'Microsoft client secret expires in 20 days'));
 
         // The next day reminds again
@@ -65,7 +66,9 @@ final class MicrosoftClientSecretExpiryCheckTest extends TestCase
         $check->check();
         $check->check();
 
-        self::assertCount(2, $this->logger->records);
+        // Read again: the check logs into the same logger, which PHPStan can not see
+        $records = $this->logger->records;
+        self::assertCount(2, $records);
         self::assertTrue($this->logger->hasRecord('warning', 'expires in 19 days'));
     }
 

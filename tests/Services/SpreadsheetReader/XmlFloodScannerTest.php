@@ -230,9 +230,7 @@ final class XmlFloodScannerTest extends TestCase
     private static function document(Randomizer $random): string
     {
         $pick = static function (array $from) use ($random): string {
-            $picked = $from[$random->getInt(0, count($from) - 1)] ?? '';
-
-            return is_string($picked) ? $picked : '';
+            return $from[$random->getInt(0, count($from) - 1)] ?? '';
         };
         $chance = static fn (int $in): bool => $random->getInt(1, $in) === 1;
         $values = ['1', 'A1', 'a > b', 'x', '', '-->', '?>', ']]>', '>', 'http://made-up.test/?a=1&amp;b=2', '&lt;c a=&quot;1&quot;&gt;', '&#60;!--', '<!--', '<?', '<![CDATA[', 'a <b'];

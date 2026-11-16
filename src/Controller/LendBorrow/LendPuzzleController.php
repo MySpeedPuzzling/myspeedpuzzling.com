@@ -107,7 +107,6 @@ final class LendPuzzleController extends AbstractController
 
             $borrowerPlayerId = $borrower->playerId;
             $borrowerName = $borrower->playerName;
-            $borrowerDisplayName = $borrower->displayName;
 
             $this->messageBus->dispatch(new LendPuzzleToPlayer(
                 ownerPlayerId: $loggedPlayer->playerId,

@@ -154,7 +154,7 @@ final class TasteFactorTest extends TestCase
         self::assertLessThan(0.8 * $before / $late, $after / $late, 'the taste explains the planted part');
 
         // A state is written after every first try, in time order: 1, 2, … per player
-        foreach ($states as $player => $written) {
+        foreach ($states as $written) {
             self::assertSame(range(1, count($written)), array_column($written, 1));
             self::assertCount(45, $written);
         }

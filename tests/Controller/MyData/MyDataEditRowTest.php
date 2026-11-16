@@ -320,7 +320,7 @@ final class MyDataEditRowTest extends WebTestCase
         self::assertSame($timeId, $form->attr('data-first-try-check-time-value'));
 
         $day = TestClock::now()->modify('-40 days');
-        $crawler = $this->saveSheet($browser, $timeId, [
+        $this->saveSheet($browser, $timeId, [
             ...$this->sheetFields($crawler),
             'hours' => '4',
             'minutes' => '59',

@@ -219,7 +219,8 @@ final class ImportedResultWriterTest extends KernelTestCase
         self::assertSame('2026-06-01 12:00:11', $at(1));
         self::assertSame('2026-06-01 12:59:46', $at(ImportedResult::STEPS - 1));
         self::assertSame('2026-06-01 12:00:00', $at(ImportedResult::STEPS));
-        self::assertGreaterThan(DuplicateClassifier::CERTAIN_MAX_GAP_SECONDS, ImportedResult::STEP_SECONDS);
+        // Two neighbouring rows are never close enough to be taken for the same solve
+        self::assertGreaterThan(DuplicateClassifier::CERTAIN_MAX_GAP_SECONDS, new DateTimeImmutable($at(1))->getTimestamp() - new DateTimeImmutable($at(0))->getTimestamp());
     }
 
     /**

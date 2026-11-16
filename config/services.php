@@ -369,6 +369,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(ApiDtoNormalizer::class)
         ->arg('$nameConverter', service('serializer.name_converter.camel_case_to_snake_case'));
 
+    // A wrongly typed request field stays a 400 (API Platform 5 would answer 422) - see the class
+    $services->set(\SpeedPuzzling\Web\Services\Api\TypeMismatchStaysBadRequest::class)
+        ->decorate('api_platform.state.denormalization_violation_factory');
+
     // Components
     $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');
 

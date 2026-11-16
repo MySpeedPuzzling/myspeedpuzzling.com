@@ -944,7 +944,9 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertStringContainsString("No time - I didn't time this one", $editor->filter('[data-testid="import-row-no-time-label"]')->text());
         self::assertCount(0, $editor->filter('[data-field="pieces"] [data-testid="import-row-no-time"]'));
         self::assertSame('result', $state($row2)[0]);
-        self::assertStringContainsString('time_unreadable', self::spaced(is_string($state($row2)[2]) ? $state($row2)[2] : ''));
+        $problems = $state($row2)[2];
+        self::assertIsString($problems);
+        self::assertStringContainsString('time_unreadable', self::spaced($problems));
 
         // Ticked (the input is switched off, so no time is sent): a result without a time, nothing unclear
         $save($row2, ['no_time' => '1']);

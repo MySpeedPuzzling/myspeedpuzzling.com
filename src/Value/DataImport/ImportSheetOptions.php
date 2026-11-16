@@ -244,7 +244,7 @@ final readonly class ImportSheetOptions
             $dateOrder === null ? null : ['order' => StoredShape::enum($dateOrder, 'order', DateOrder::class), 'by' => self::by($dateOrder)],
             $shortDates === null ? null : ['meaning' => StoredShape::enum($shortDates, 'meaning', ShortDateMeaning::class), 'by' => self::by($shortDates)],
             $typedDatesSwapped,
-            $year === null ? null : ['year' => $yearValue, 'by' => self::by($year)],
+            $year === null ? null : ['year' => is_int($yearValue) ? $yearValue : ImportQuestion::YEAR_AS_STORED, 'by' => self::by($year)],
             StoredShape::nullableEnum($data, 'solvingType', PuzzlingType::class),
             $lookupSheetId,
             StoredShape::nullableString($data, 'collectionLabel', 200),

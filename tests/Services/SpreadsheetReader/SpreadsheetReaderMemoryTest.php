@@ -73,11 +73,7 @@ final class SpreadsheetReaderMemoryTest extends TestCase
         memory_reset_peak_usage();
         $before = memory_get_usage();
         $workbook = $this->open($path, SpreadsheetFormat::Csv);
-        $rows = 0;
-
-        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
-            $rows++;
-        }
+        $rows = iterator_count($workbook->rows($workbook->sheets()[0]));
 
         $growth = memory_get_peak_usage() - $before;
 

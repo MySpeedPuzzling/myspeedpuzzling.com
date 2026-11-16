@@ -257,8 +257,9 @@ final readonly class ImportRowParser
             'from' => $row->from,
         ], static fn (mixed $value): bool => $value !== null && $value !== []);
 
-        // What tells two rows with the same key apart in a stable way (ImportEqualRows) - never their place on the sheet
-        $parsed['content'] = hash('sha256', json_encode($parsed, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR));
+        // What tells two rows with the same key apart in a stable way (ImportEqualRows) - never their place on the sheet.
+        // Partial output never throws (a value json can not hold becomes null), so the hash is always made
+        $parsed['content'] = hash('sha256', (string) json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR));
         $parsed['keys'] = $keys;
 
         return new ParsedImportRow(

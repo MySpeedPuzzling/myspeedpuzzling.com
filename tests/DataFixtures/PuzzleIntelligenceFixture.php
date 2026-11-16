@@ -82,7 +82,6 @@ final class PuzzleIntelligenceFixture extends Fixture implements DependentFixtur
         $manager->persist($puzzleB);
 
         // Existing 500pc puzzles safe to use
-        $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
 

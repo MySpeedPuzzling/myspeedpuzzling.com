@@ -35,8 +35,6 @@ readonly final class SuspiciousTimeScan
 
     public function run(bool $dryRun = false, bool $existingMarksToldByHand = false): SuspiciousTimeScanResult
     {
-        $detection = null;
-
         try {
             $detection = $this->messageBus->dispatch(new DetectSuspiciousTimes($dryRun))->last(HandledStamp::class)?->getResult();
             assert($detection instanceof SuspiciousTimeScanSummary);

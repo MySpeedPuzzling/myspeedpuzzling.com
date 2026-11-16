@@ -671,7 +671,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         $player = $this->seedPairingPlayer('reasons');
         $brand = $this->seedBrand('Zqreasons');
         $puzzle = $this->seedCataloguePuzzle('Zq Reasons Puzzle', 500, $brand);
-        $other = $this->seedCataloguePuzzle('Zq Reasons Other', 500, $brand);
+        $this->seedCataloguePuzzle('Zq Reasons Other', 500, $brand);
         // The profile has this time on another day: the row may be the same solve written differently
         $this->typedResult($player, $puzzle, '2024-01-05', 1800);
 
@@ -1283,7 +1283,6 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
     {
         $player = $this->seedPairingPlayer('titlecolumn');
         $this->seedCataloguePuzzle('Zq Title Puzzle', 500, $this->seedBrand('Zqtitle'));
-        $playerId = $player->id->toString();
 
         // A column names the people: the rows say it themselves, the title is not asked about
         $withColumn = $this->importedWorkbook($player, [

@@ -123,7 +123,6 @@ readonly final class GetPersonalEstimates
             [$tier, $tierEstimated, $difficulty] = $this->tierOf($row, $inputs, $pictureEstimate, $parameters);
 
             $times = self::times($row['times'] ?? null);
-            $prediction = null;
             $basis = null;
 
             if ($times !== [] && is_string($row['last_solved_at'] ?? null)) {

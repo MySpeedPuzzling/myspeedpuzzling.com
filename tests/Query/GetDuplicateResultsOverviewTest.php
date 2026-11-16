@@ -53,8 +53,8 @@ final class GetDuplicateResultsOverviewTest extends KernelTestCase
 
     public function testShareConfirmedRealPerTier(): void
     {
-        $this->setStatus(DuplicateResultsFixture::TIME_STRONG_A, 'both_real');
-        $this->setStatus(DuplicateResultsFixture::TIME_TEAMMATE_A, 'copy_deleted');
+        $this->setReviewStatus(DuplicateResultsFixture::TIME_STRONG_A, 'both_real');
+        $this->setReviewStatus(DuplicateResultsFixture::TIME_TEAMMATE_A, 'copy_deleted');
 
         $now = self::getContainer()->get(ClockInterface::class)->now();
         $shares = $this->overview->confirmedRealShareByTier();
@@ -93,7 +93,7 @@ final class GetDuplicateResultsOverviewTest extends KernelTestCase
         self::assertNull($removals[0]->undoneAt);
     }
 
-    private function setStatus(string $timeAId, string $status): void
+    private function setReviewStatus(string $timeAId, string $status): void
     {
         $this->database->executeStatement(
             'UPDATE result_duplicate_case SET status = :status, resolved_at = ' . TestClock::SQL_NOW . ' WHERE time_a_id = :id',

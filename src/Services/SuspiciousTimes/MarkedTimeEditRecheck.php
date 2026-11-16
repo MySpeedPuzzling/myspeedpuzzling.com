@@ -146,8 +146,8 @@ readonly final class MarkedTimeEditRecheck
             $byEditor = $notice->player->id->equals($editor->id);
             $editorWasTold = $editorWasTold || $byEditor;
 
-            // Corrected: every notice of the mark is answered; still marked: the editor's only
-            if ($byEditor || ($unmarked && $notice->response === null)) {
+            // A player's edit always unmarks: every notice of the mark is answered, the editor's in any case
+            if ($byEditor || $notice->response === null) {
                 $notice->respond(SuspiciousTimeResponse::Fixed, null, $now);
             }
         }

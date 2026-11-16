@@ -178,7 +178,6 @@ final class CsvReaderTest extends TestCase
         }
 
         self::assertSame($lines + 1, $count);
-        self::assertNotNull($last);
         self::assertSame(['x' . str_repeat('ž', 60), str_repeat('ů', 60)], self::texts($last));
     }
 
@@ -406,7 +405,7 @@ final class CsvReaderTest extends TestCase
         $workbook = $this->open($this->file("\xFF\xFE" . mb_convert_encoding("Name;Pieces\n" . str_repeat("Meadow;500\n", 100), 'UTF-16LE', 'UTF-8')), SpreadsheetFormat::Csv);
         $read = 0;
 
-        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+        for ($sheetRows = $workbook->rows($workbook->sheets()[0]); $sheetRows->valid(); $sheetRows->next()) {
             if (++$read === 10) {
                 $workbook->close();
             }

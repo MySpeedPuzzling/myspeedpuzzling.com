@@ -135,14 +135,9 @@ final class PuzzlesSorterPlacingTest extends TestCase
             self::solved('a-best', 'a', time: 1000, predicted: null, finishedAt: '2026-02-01', teamId: 'pair-1'),
         ];
 
-        $timeIds = static fn (array $sorted): array => array_map(
-            static fn (SolvedPuzzle $solved): string => $solved->timeId,
-            array_values(array_filter($sorted, static fn (mixed $solved): bool => $solved instanceof SolvedPuzzle)),
-        );
-
-        self::assertSame(['b-first', 'a-best', 'a-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: false, onlyUnboxed: false)));
-        self::assertSame(['b-first', 'a-best', 'a-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: true, onlyFirstTries: false, onlyUnboxed: false)));
-        self::assertSame(['a-first', 'a-best', 'b-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: true, onlyUnboxed: false)));
+        self::assertSame(['b-first', 'a-best', 'a-first'], self::timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: false, onlyUnboxed: false)));
+        self::assertSame(['b-first', 'a-best', 'a-first'], self::timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: true, onlyFirstTries: false, onlyUnboxed: false)));
+        self::assertSame(['a-first', 'a-best', 'b-first'], self::timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: true, onlyUnboxed: false)));
     }
 
     /**
@@ -173,6 +168,15 @@ final class PuzzlesSorterPlacingTest extends TestCase
         }
 
         return $ranking;
+    }
+
+    /**
+     * @param list<SolvedPuzzle> $sorted
+     * @return list<string>
+     */
+    private static function timeIds(array $sorted): array
+    {
+        return array_map(static fn (SolvedPuzzle $solved): string => $solved->timeId, $sorted);
     }
 
     /**

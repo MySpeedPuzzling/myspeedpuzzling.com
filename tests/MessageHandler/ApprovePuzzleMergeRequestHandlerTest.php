@@ -1041,7 +1041,6 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
      */
     public function testMergeMovesCompetitionRoundsConversationsStopwatchesAndTags(): void
     {
-        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
         $round = $this->entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL);
         self::assertNotNull($round);

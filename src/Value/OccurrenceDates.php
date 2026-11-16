@@ -256,6 +256,6 @@ readonly final class OccurrenceDates
             $previousInside = $inside;
         }
 
-        return array_values($merged);
+        return $merged;
     }
 }

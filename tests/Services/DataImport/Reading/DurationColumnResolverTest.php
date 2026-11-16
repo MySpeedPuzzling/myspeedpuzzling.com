@@ -697,8 +697,7 @@ final class DurationColumnResolverTest extends TestCase
     {
         // The add form refuses 100 pieces a minute and more (AddPuzzleSolvingTimeHandler)
         self::assertLessThanOrEqual(100.0, DurationColumnResolver::FAR_TOO_FAST_PIECES_PER_MINUTE);
-        self::assertLessThan(DurationColumnResolver::FASTEST_PIECES_PER_MINUTE, DurationColumnResolver::ORDINARY_FASTEST_PIECES_PER_MINUTE);
-        self::assertLessThan(DurationColumnResolver::SLOWEST_PIECES_PER_MINUTE, DurationColumnResolver::FAR_TOO_SLOW_PIECES_PER_MINUTE);
+        // The order of the other limits is pinned by paces(): 15 and 60 a minute, one piece in five and in twenty minutes
     }
 
     /**

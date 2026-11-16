@@ -366,7 +366,6 @@ final readonly class TasteFitter
 
             if ($model === null) {
                 $term = 0.0;
-                $vector = null;
             } else {
                 $player = (int) $rows->player[$r];
                 $vector = $model->vector($rows->picture($r), (int) $rows->pieces[$r]);

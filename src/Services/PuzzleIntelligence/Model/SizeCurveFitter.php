@@ -131,7 +131,7 @@ final readonly class SizeCurveFitter
         // The knot part of a pair's row is sparse (two hat functions) and the same for every pair of the same two sizes:
         // one sparse row per size combination, the speed column apart
         $sparse = [];
-        /** @var \Closure(int): array<int, float> $rowsOf */
+        /** @var \Closure(int): array<int<0, max>, float> $rowsOf */
         $rowsOf = function (int $pair) use (&$sparse, $code, $speed, $knots, $reference, $columns): array {
             $key = intdiv((int) $code[$pair], self::CODE_FACTOR);
 

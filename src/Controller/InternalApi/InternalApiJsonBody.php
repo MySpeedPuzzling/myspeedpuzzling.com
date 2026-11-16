@@ -283,7 +283,6 @@ final class InternalApiJsonBody
                 throw new BadRequestHttpException(sprintf('A name in "%s" can be at most %d characters long.', $key, PuzzleNames::MAX_NAME_LENGTH));
             }
 
-            assert(is_array($value));
             $language = self::optionalLanguageTag($value, 'language');
 
             $names[] = new PuzzleName($name, $language === false ? null : $language);

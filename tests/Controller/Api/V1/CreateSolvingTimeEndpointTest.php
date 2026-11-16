@@ -396,7 +396,7 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
         $send('1:05:00');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        $this->assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+        $this->assertResponseHeaderSame('content-type', 'application/problem+json');
 
         /** @var array{type: string, title: string, detail: string, status: int} $problem */
         $problem = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -556,7 +556,7 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
             $this->postTime($browser, ['puzzle_id' => $puzzle, 'time' => '1:05:00', 'finished_at' => '2026-03-02T20:30:00+00:00', ...$ids]);
 
             self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY, $case);
-            self::assertResponseHeaderSame('content-type', 'application/problem+json; charset=utf-8');
+            self::assertResponseHeaderSame('content-type', 'application/problem+json');
             /** @var array{violations: list<array{propertyPath: string, message: string}>} $problem */
             $problem = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
             self::assertSame([$field], array_column($problem['violations'], 'propertyPath'), $case);

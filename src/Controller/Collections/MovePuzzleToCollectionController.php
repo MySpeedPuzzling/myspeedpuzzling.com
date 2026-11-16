@@ -100,7 +100,6 @@ final class MovePuzzleToCollectionController extends AbstractController
             $collections,
             $existingCollectionIds,
             $sourceCollectionId,
-            $loggedPlayer->puzzleCollectionVisibility->value,
         );
 
         $hasAvailableCollections = count($collectionChoices) > 0;
@@ -262,7 +261,6 @@ final class MovePuzzleToCollectionController extends AbstractController
         array $collections,
         array $existingCollectionIds,
         null|string $sourceCollectionId,
-        string $systemCollectionVisibility,
     ): array {
         $choices = [];
 

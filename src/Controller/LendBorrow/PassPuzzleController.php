@@ -105,9 +105,6 @@ final class PassPuzzleController extends AbstractController
                 $wasPassedToOwner = $lentPuzzle->ownerPlayer->id->toString() === $newHolderPlayerId;
             }
 
-            // Display name for the UPDATE stream
-            $newHolderDisplayName = $newHolder->displayName;
-
             try {
                 $this->messageBus->dispatch(new PassLentPuzzle(
                     lentPuzzleId: $lentPuzzleId,

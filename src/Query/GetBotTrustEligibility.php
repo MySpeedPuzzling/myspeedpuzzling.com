@@ -13,8 +13,9 @@ use Psr\Clock\ClockInterface;
  * so a bare account is not enough: one throwaway account would be a months-long bypass for a scraper.
  *
  * Eligible is an account with ANY of: a verified e-mail, a social login, a solving time of its player, or an age of
- * at least TRUSTED_ACCOUNT_AGE_DAYS. On production (2026-11-16) 43 of the 3,986 accounts active in the last 30 days
- * had none of the four.
+ * at least TRUSTED_ACCOUNT_AGE_DAYS. On production (2026-11-16) 43 of the 3,986 accounts active in the last 30 days had
+ * no verified e-mail, no social login and no solving time (12 of them registered in the last 7 days) - the age rule
+ * trusts those once they are 14 days old.
  *
  * Asked only when the cookie has to be minted or refreshed, never on every request. Not final: unit tests stub it.
  */

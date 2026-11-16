@@ -12013,11 +12013,13 @@ data_import:
             added_today: "今日 %number% 件追加"
             tomorrow: "あと %number% 件は明日追加できます"
             kept_until: "ファイルは %date% まで保管します。"
+            kept_just_for_you: "%number% 行が自分専用に保持されています。"
         done:
             made:
                 collection: "コレクションにパズル %number% 個"
                 wish_list: "ほしい物リストにパズル %number% 個"
             nothing_new: "今回は新しく追加されたものはありません。"
+            only_kept: "%number% 行が自分専用に保持されています。公開プロフィールには何も追加されていません。"
             card:
                 people: "%number% 行がペアまたはチームとなっていますが、相手の名前がありません。"
                 people_button: "一緒に解いた人を伝える"
@@ -12136,6 +12138,7 @@ data_import:
             this_row: "これらの行が以前に追加した記録: %number%"
         title: "プロフィールに追加中"
         title_done: "プロフィールに追加しました"
+        title_kept: "自分専用に保持しました"
         line: "追加中… %done% / %total%"
         finishing: "仕上げ中…"
         leave: "このページを離れても大丈夫です。処理はバックグラウンドで続きます。"
@@ -12229,6 +12232,7 @@ data_import:
             collection: "コレクションから削除したパズル"
             wish_list: "ほしい物リストから削除したパズル"
             kept_edited: "残した記録 - インポート後に変更されています"
+            kept_removed: "自分専用に保持、削除済み"
             kept_matched: "残された行 - カタログのパズルに移動済み"
             kept_moved: "残したパズル - 別のコレクションに移動されています"
             failed: "元に戻せなかった行 - もう一度お試しください"

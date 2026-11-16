@@ -53,7 +53,7 @@ readonly final class ImportHomeCard
     }
 
     /**
-     * @param null|array{results: int, collectionItems: int, wishListItems: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
+     * @param null|array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
      *        what GetImportAddScreen::addedByImports() says about the import - null: nothing
      * @param int $resultsToday the results all of the player's imports added today (the daily limit is the player's)
      */
@@ -67,6 +67,10 @@ readonly final class ImportHomeCard
                 ? new ImportFlowText('data_import.flow.add.added', $added)
                 : new ImportFlowText('data_import.flow.add.added_on', $added, [], $standing['lastAddedAt']));
         $open = new ImportFlowText('data_import.after.home.open');
+        // Rows kept just for the player (their puzzle is not in the database): not on the profile, yet there - an
+        // import that only kept rows added something, and what it added can be seen and undone like any other
+        $kept = $standing['keptJustForYou'] ?? 0;
+        $keptLine = $kept > 0 ? new ImportFlowText('data_import.after.home.kept_just_for_you', $kept) : null;
         $continue = new ImportFlowText('data_import.flow.continue');
         $keptUntil = $import->fileKeptUntil !== null
             && $import->status !== DataImportStatus::Done
@@ -89,9 +93,9 @@ readonly final class ImportHomeCard
                 return $card([new ImportFlowText('data_import.flow.file.being_read')], $open, 'data_import_detail', quiet: true);
             case DataImportStatus::Done:
             case DataImportStatus::Discarded:
-                return $addedLine === null
+                return $addedLine === null && $keptLine === null
                     ? $card([new ImportFlowText('data_import.home.nothing_added_now')], $open, 'data_import_detail', quiet: true, finished: true)
-                    : $card([$addedLine], new ImportFlowText('data_import.flow.primary.see_added'), 'data_import_added', quiet: true, finished: true);
+                    : $card([$addedLine, $keptLine], new ImportFlowText('data_import.flow.primary.see_added'), 'data_import_added', quiet: true, finished: true);
             default:
                 break;
         }
@@ -146,8 +150,8 @@ readonly final class ImportHomeCard
             return $card([new ImportFlowText('data_import.flow.file.being_read')], $open, 'data_import_detail', quiet: true);
         }
 
-        if ($addedLine !== null) {
-            return $card([$addedLine], new ImportFlowText('data_import.flow.primary.see_added'), 'data_import_added', quiet: true);
+        if ($addedLine !== null || $keptLine !== null) {
+            return $card([$addedLine, $keptLine], new ImportFlowText('data_import.flow.primary.see_added'), 'data_import_added', quiet: true);
         }
 
         return $card(

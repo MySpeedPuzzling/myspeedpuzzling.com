@@ -35,7 +35,9 @@
         <div class="card card-body shadow-sm mb-3" data-testid="import-undo-outcome"
              data-rows="{{ undo.rowsUndone }}" data-results="{{ undo.resultsDeleted }}" data-kept="{{ undo.resultsKeptEdited }}">
             <ul class="list-unstyled mb-0">
-                <li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.results'|trans }}</span><strong>{{ undo.resultsDeleted|format_number }}</strong></li>
+                {# "Results removed 0" next to rows that were only kept just for the player would say nothing was removed #}
+                {% if undo.resultsDeleted > 0 or undo.keptRowsRemoved == 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.results'|trans }}</span><strong>{{ undo.resultsDeleted|format_number }}</strong></li>{% endif %}
+                {% if undo.keptRowsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1" data-testid="import-undo-kept-removed" data-rows="{{ undo.keptRowsRemoved }}"><span>{{ 'data_import.undo.outcome.kept_removed'|trans }}</span><strong>{{ undo.keptRowsRemoved|format_number }}</strong></li>{% endif %}
                 {% if undo.collectionItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.collection'|trans }}</span><strong>{{ undo.collectionItemsRemoved|format_number }}</strong></li>{% endif %}
                 {% if undo.wishListItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.wish_list'|trans }}</span><strong>{{ undo.wishListItemsRemoved|format_number }}</strong></li>{% endif %}
                 {% if undo.wishListItemsRestored > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.confirm.restores'|trans }}</span><span>{{ undo.wishListItemsRestored|format_number }}</span></li>{% endif %}

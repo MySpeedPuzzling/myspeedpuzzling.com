@@ -12026,11 +12026,13 @@ data_import:
             added_today: "Dnes přidáno: %number%"
             tomorrow: "{1}Zítra lze přidat 1 další|[2,4]Zítra lze přidat další %number%|[0,Inf[Zítra lze přidat dalších %number%"
             kept_until: "Soubor uchováme do %date%."
+            kept_just_for_you: "{1}1 řádek je ponechaný jen pro vás.|[2,4]%number% řádky jsou ponechané jen pro vás.|[0,Inf[%number% řádků je ponechaných jen pro vás."
         done:
             made:
                 collection: "{1}1 puzzle ve vaší sbírce|[0,Inf[%number% puzzle ve vaší sbírce"
                 wish_list: "{1}1 puzzle na vašem seznamu přání|[0,Inf[%number% puzzle na vašem seznamu přání"
             nothing_new: "Tentokrát se nepřidalo nic nového."
+            only_kept: "{1}1 řádek je ponechaný jen pro vás - na váš veřejný profil se nic nepřidalo.|[2,4]%number% řádky jsou ponechané jen pro vás - na váš veřejný profil se nic nepřidalo.|[0,Inf[%number% řádků je ponechaných jen pro vás - na váš veřejný profil se nic nepřidalo."
             card:
                 people: "{1}1 řádek říká dvojice nebo tým a nikoho nejmenuje.|[2,4]%number% řádky říkají dvojice nebo tým a nikoho nejmenují.|[0,Inf[%number% řádků říká dvojice nebo tým a nikoho nejmenuje."
                 people_button: "Říct, s kým jste skládali"
@@ -12149,6 +12151,7 @@ data_import:
             this_row: "Výsledky, které tyto řádky přidaly už dříve: %number%"
         title: "Přidávání na váš profil"
         title_done: "Přidáno na váš profil"
+        title_kept: "Ponecháno jen pro vás"
         line: "Přidáváme… %done% z %total%"
         finishing: "Dokončujeme…"
         leave: "Tuto stránku můžete opustit - práce pokračuje na pozadí."
@@ -12242,6 +12245,7 @@ data_import:
             collection: "Puzzle odstraněná z vaší sbírky"
             wish_list: "Puzzle odstraněná ze seznamu přání"
             kept_edited: "Ponechané výsledky - po importu jste je změnili"
+            kept_removed: "Ponechané jen pro vás, odebráno"
             kept_matched: "Ponechané řádky - přesunuté k puzzle z databáze"
             kept_moved: "Ponechaná puzzle - přesunuli jste je do jiné sbírky"
             failed: "Řádky, které se nepodařilo vrátit zpět - zkuste to znovu"

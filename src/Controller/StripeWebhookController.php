@@ -17,7 +17,7 @@ final class StripeWebhookController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/webhook/stripe', name: 'stripe_webhook')]
+    #[Route(path: '/webhook/stripe', name: 'stripe_webhook', methods: ['POST'])]
     public function __invoke(Request $request): Response
     {
         $signHeader = $request->headers->get('Stripe-Signature');

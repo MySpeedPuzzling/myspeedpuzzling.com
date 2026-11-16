@@ -62,6 +62,9 @@ flock($databaseLock, LOCK_EX);
 
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
+    // The cache file knows what the database was built from, not whether the server still has it: another server or
+    // an empty volume (the move to Postgres 18) left it "up to date" with no database behind it
+    || testDatabaseIsMissing()
 ) {
     buildDatabaseInItsOwnProcess();
     file_put_contents($cacheFilePath, $currentDatabaseHash);
@@ -96,6 +99,31 @@ function buildDatabaseInItsOwnProcess(): void
 
     if ($exitCode !== 0) {
         throw new LogicException(sprintf('Building the test database failed (exit code %d).', $exitCode));
+    }
+}
+
+/**
+ * True only when the server answers and does not have the test database. A server that cannot be reached says
+ * nothing: tests that need no database keep running without one, as before.
+ */
+function testDatabaseIsMissing(): bool
+{
+    $dbConfig = parseDatabaseUrl();
+
+    try {
+        $pdo = new PDO(
+            sprintf('pgsql:host=%s;port=%d;dbname=postgres', $dbConfig['host'], $dbConfig['port']),
+            $dbConfig['user'],
+            $dbConfig['password'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3],
+        );
+
+        $statement = $pdo->prepare('SELECT 1 FROM pg_database WHERE datname = :name');
+        $statement->execute(['name' => $dbConfig['dbname']]);
+
+        return $statement->fetchColumn() === false;
+    } catch (PDOException) {
+        return false;
     }
 }
 

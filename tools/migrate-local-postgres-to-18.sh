@@ -22,17 +22,27 @@
 # down cleanly, never deleted and never written by this script - going back is checking out a commit before the
 # switch and `docker compose up -d postgres`.
 #
-# Test databases (*_test, *_test_<n>, *_test_template) are skipped unless --include-test-databases: the test
-# bootstrap rebuilds them (tests/bootstrap.php), and one built by an older checkout does not restore at all (its
-# immutable_unaccent() is the unqualified one). Template databases are always skipped.
+# Test databases (*_test, *_test_<anything> such as _test_3, _test_template, _test_load, and Panther's
+# *_panther_<hash>) are skipped unless --include-test-databases: the test bootstrap rebuilds them (tests/bootstrap.php),
+# and one built by an older checkout does not restore at all (its immutable_unaccent() is the unqualified one).
+# Template databases are always skipped.
+#
+# A database that does not restore: named on the command line, the script stops there (and leaves `postgres` stopped).
+# Otherwise what was copied of it is removed again, the others are copied, it is listed at the end and the script
+# ends with an error - it is still in the old volume.
+#
+# While this runs, nobody may start the stack of this project (`docker compose up`): the `postgres` service would open
+# the data directory the copy is being written into. Stop the stack first and wait for the summary.
 #
 # LOCAL ONLY. It talks to the Docker daemon on this machine (a remote daemon or context is refused), to the compose
-# project of the compose.yml next to it, with the development password. It takes no host, no URL and no credentials.
+# project of the checkout it lies in, with the development password. It takes no host, no URL and no credentials.
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE=(docker compose -f "$ROOT/compose.yml" --project-directory "$ROOT")
+# The compose project of this checkout, the way `docker compose` resolves it there (compose.override.yml included)
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+ROOT="$(pwd)"
+COMPOSE=(docker compose)
 OLD_IMAGE="${OLD_IMAGE:-postgres:16.0}"   # what compose.yml pinned before the switch; any 16.x opens the same data
 SUPERUSER=postgres
 PASSWORD=postgres                         # the development password of compose.yml - nothing else is ever tried
@@ -166,7 +176,8 @@ say "Old server: $(old_sql postgres 'show server_version')   new server: $(new_s
     || die "The compose service's Postgres is not newer than the old data ($old_major) - is this checkout on the Postgres 18 compose.yml?"
 
 # ---- which databases ------------------------------------------------------------------------------------------------
-is_test_database() { [[ "$1" =~ _test(_[0-9]+|_template)?$ ]]; }
+TEST_DATABASE='(_test(_[A-Za-z0-9_]+)?|_panther_[0-9a-f]+)$'
+is_test_database() { [[ "$1" =~ $TEST_DATABASE ]]; }
 
 selected=()
 skipped=()
@@ -182,7 +193,7 @@ while IFS= read -r database; do
     else
         selected+=("$database")
     fi
-done < <(old_sql postgres "select datname from pg_database where not datistemplate and datname <> 'postgres' order by (datname ~ '_test(_[0-9]+|_template)?\$'), datname")
+done < <(old_sql postgres "select datname from pg_database where not datistemplate and datname <> 'postgres' order by (datname ~ '$TEST_DATABASE'), datname")
 
 if [ "${#ONLY[@]}" -gt 0 ]; then
     for name in "${ONLY[@]}"; do
@@ -232,6 +243,7 @@ COUNTS="select format('%I.%I', n.nspname, c.relname) || E'\\t' || (xpath('/row/c
 
 summary="$workdir/summary"
 failed_tests=()
+failed=()
 
 for database in "${selected[@]}"; do
     started=$SECONDS
@@ -243,15 +255,23 @@ for database in "${selected[@]}"; do
 
     if ! docker exec -e PGPASSWORD="$PASSWORD" -e DATABASE="$database" -e OLD="$OLD_SERVER" -e SUPERUSER="$SUPERUSER" "$NEW_SERVER" \
         bash -o pipefail -c 'pg_dump --host "$OLD" --username "$SUPERUSER" --format custom "$DATABASE" | pg_restore --username "$SUPERUSER" --dbname postgres --create --exit-on-error' 2>"$workdir/error"; then
+        if [ "${#ONLY[@]}" -gt 0 ]; then
+            cat "$workdir/error" >&2
+            die "Copying $database failed."
+        fi
+
+        # Not asked for by name: the others still get copied. What is left of this one on 18 would only be in the way
+        exists_on_new "$database" && new_sql postgres "drop database \"$database\"" >/dev/null
+
         if is_test_database "$database"; then
-            # Rebuilt by the test bootstrap anyway; what is left of it on 18 would only be in the way
-            exists_on_new "$database" && new_sql postgres "drop database \"$database\"" >/dev/null
             failed_tests+=("$database")
             say "  could not be restored (a test database - the test bootstrap rebuilds it): $(head -n 1 "$workdir/error")"
-            continue
+        else
+            failed+=("$database")
+            say "  COULD NOT BE RESTORED - it stays in the old volume only: $(head -n 1 "$workdir/error")"
         fi
-        cat "$workdir/error" >&2
-        die "Copying $database failed."
+
+        continue
     fi
 
     new_sql "$database" 'analyze' >/dev/null
@@ -290,3 +310,8 @@ say
 say "The \`postgres\` service runs on Postgres 18 now. Start the rest with: docker compose up -d"
 say "The old volume $OLD_VOLUME was left as it was."
 rm -rf "$workdir"
+
+if [ "${#failed[@]}" -gt 0 ]; then
+    printf '\nERROR: NOT copied, because they did not restore (see above): %s\nThey are still in the old volume. Run this again with their names to see the full error.\n' "${failed[*]}" >&2
+    exit 1
+fi

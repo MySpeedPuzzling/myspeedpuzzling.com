@@ -10,6 +10,8 @@
         {{ context.teamName ?? 'event_result_claim.unnamed_team'|trans }}
         {% if context.seconds is not null %}
             · <span class="tabular-nums">{{ context.seconds|puzzlingTime }}</span>
+        {% elseif context.piecesPlaced is not null %}
+            · {{ include('_unfinished_result_badge.html.twig', {placed: context.piecesPlaced, total: context.piecesCount}) }}
         {% endif %}
     </div>
     {% if context.competitionName is not null %}

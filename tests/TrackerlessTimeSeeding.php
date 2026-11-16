@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\TeamComposition;
+use SpeedPuzzling\Web\Value\UnfinishedResult;
 
 /**
  * Imported event results nobody has claimed yet (docs/features/event-results-import/README.md "Anonymous slots"): a
@@ -82,7 +83,11 @@ trait TrackerlessTimeSeeding
     /**
      * One team of $size anonymous slots, named $teamName, with its time in the round.
      */
-    protected function seedTrackerlessTime(CompetitionRound $round, string $puzzleId, string $teamName, int $seconds, int $size = 4): PuzzleSolvingTime
+    /**
+     * $piecesPlaced: an unfinished team instead (the round's time ran out, $seconds is ignored) - its time spent is the
+     * round's limit, as the import writes it
+     */
+    protected function seedTrackerlessTime(CompetitionRound $round, string $puzzleId, string $teamName, int $seconds, int $size = 4, null|int $piecesPlaced = null): PuzzleSolvingTime
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
@@ -111,8 +116,9 @@ trait TrackerlessTimeSeeding
             competitionRound: $round,
             anonymousGroup: $group,
             puzzlingTeam: $team,
-            secondsToSolve: $seconds,
+            secondsToSolve: $piecesPlaced === null ? $seconds : null,
             solvedAt: $round->startsAt,
+            unfinished: $piecesPlaced === null ? null : UnfinishedResult::fromInput($piecesPlaced, null, $puzzle->piecesCount, $round->minutesLimit),
         );
         $entityManager->persist($time);
         $entityManager->flush();

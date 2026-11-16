@@ -94,6 +94,7 @@ SELECT
     pst.id AS time_id,
     pst.puzzle_id,
     pst.seconds_to_solve,
+    pst.pieces_placed,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
     (pst.created_via = :source) AS imported_from_event,
     pst.first_attempt,
@@ -137,6 +138,7 @@ SQL;
          *     time_id: string,
          *     puzzle_id: string,
          *     seconds_to_solve: null|int,
+         *     pieces_placed: null|int,
          *     solved_at: string,
          *     imported_from_event: null|bool,
          *     first_attempt: bool,
@@ -179,6 +181,7 @@ SQL;
             anonymousCount: $row['anonymous_count'],
             claimers: $row['claimers'] !== null ? array_values(Puzzler::createPuzzlersFromJson($row['claimers'])) : [],
             sameResultCandidates: $viewerId !== null ? $this->sameResultCandidates($viewerId, $row['puzzle_id'], $timeId, $solvedAt) : [],
+            piecesPlaced: $row['pieces_placed'],
         );
     }
 

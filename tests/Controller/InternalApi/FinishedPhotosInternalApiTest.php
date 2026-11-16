@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\PruneFinishedPhotoAnalyses;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FinishedPhotoHttpMock;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -104,6 +105,30 @@ final class FinishedPhotosInternalApiTest extends WebTestCase
         $hidden = self::callInternalApi($browser, 'GET', '/internal-api/finished-photos?limit=1000');
         self::assertIsArray($hidden['puzzles']);
         self::assertNotContains(self::PUZZLE, array_column($hidden['puzzles'], 'puzzleId'));
+    }
+
+    public function testAnUnfinishedResultsPhotoIsNotOfAFinishedPuzzle(): void
+    {
+        $browser = self::createClient();
+        $this->givePhotos();
+
+        // The first photo's result did not finish within a round's limit (docs/features/competitions-management/
+        // unfinished-results-plan.md, step 3) - its photo shows pieces placed, not the assembled puzzle
+        $this->database()->executeStatement(
+            'UPDATE puzzle_solving_time SET seconds_to_solve = NULL, pieces_placed = 400, seconds_spent = 3600 WHERE id = ?',
+            [$this->photos[0]['id']],
+        );
+
+        $puzzle = self::puzzleOf(self::callInternalApi($browser, 'GET', '/internal-api/finished-photos?limit=1000'), self::PUZZLE);
+        self::assertIsArray($puzzle['photos']);
+        self::assertSame([PuzzleImageFingerprint::of($this->photos[1]['path'])], array_column($puzzle['photos'], 'photoFingerprint'));
+
+        self::callInternalApi($browser, 'GET', '/internal-api/puzzles/' . self::PUZZLE . '/finished-photos/' . PuzzleImageFingerprint::of($this->photos[0]['path']));
+        self::assertResponseStatusCodeSame(404);
+
+        $times = self::getContainer()->get(PuzzleSolvingTimeRepository::class)->findWithFinishedPhotoOfPuzzles([self::PUZZLE]);
+        self::assertNotContains($this->photos[0]['id'], array_map(static fn ($time): string => $time->id->toString(), $times));
+        self::assertContains($this->photos[1]['id'], array_map(static fn ($time): string => $time->id->toString(), $times));
     }
 
     public function testPagesFollowTheCursor(): void

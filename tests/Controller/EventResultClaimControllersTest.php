@@ -88,6 +88,18 @@ final class EventResultClaimControllersTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-testid="event-result-same-result"]'), 'No own result near the event day - no question');
     }
 
+    public function testTheClaimModalOfAnUnfinishedTeamShowsItsPiecesPlaced(): void
+    {
+        $round = $this->seedTrackerlessEvent(PuzzleFixture::PUZZLE_500_02);
+        $outOfTime = $this->seedTrackerlessTime($round, PuzzleFixture::PUZZLE_500_02, 'Out of Time', 0, piecesPlaced: 412);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $this->browser->request('GET', '/en/event-result/' . $outOfTime->id->toString() . '/claim', server: self::MODAL);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('412 / 500 pcs', $crawler->filter('[data-testid="event-result-summary"] [data-testid="unfinished-result"]')->text());
+    }
+
     public function testAClaimFromTheModalClosesItAndRefreshesThePage(): void
     {
         [$pals] = $this->seed();

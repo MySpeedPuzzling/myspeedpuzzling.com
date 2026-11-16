@@ -6,7 +6,9 @@ visible: no unfinished and no trackerless row exists before phase 3.
 ## Status (2026-11-16)
 
 - **Live since 2026-11-13** (PR #342), run on demand only. Unfinished results are being built as their own stream:
-  [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) "Refined 2026-11-16".
+  [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) "Refined 2026-11-16". Its step 3
+  (2026-11-16) makes the import write unfinished teams ("Pieces placed" with a `Time limit`) - `unfinished_not_supported_yet`
+  is gone; README "Unfinished results (D9)".
 - History below as of 2026-11-12.
 
 - **Order changed:** trackerless times (phase 2) and the import (phase 3) first; unfinished results (phases 1 + 5) become

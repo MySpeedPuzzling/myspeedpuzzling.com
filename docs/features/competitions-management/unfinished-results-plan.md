@@ -43,7 +43,7 @@ not make sense, the system should be smart".
 
 Delivery: the five steps below, one PR each; step 4 (the form) is walked in a real browser before merge.
 
-**Status step 1 (isolation), 2026-11-16 - PR open, not merged:** `puzzle_solving_time.seconds_spent` (generated
+**Status step 1 (isolation), 2026-11-16 - merged (#394):** `puzzle_solving_time.seconds_spent` (generated
 migration `Version20261116151500`), the entity invariant (`PuzzleSolvingTime::assertUnfinishedResultIsConsistent()`,
 checked before anything changes; `RemovedResultSnapshot` carries `seconds_spent`), `Query\CountsAsSolve` (`condition()`
 / `SQL_CONDITION`, `piecesPuzzled()`, `secondsPuzzled()`) in every count of solves and every pieces / time sum. All 174
@@ -63,7 +63,7 @@ its per-day solve pills and the weekday / hour "solves" histograms count solves 
 the streak and quarter achievements (Steady Hands) count solves only - "no achievement progress" read strictly
 (Jan's call if the streak achievements should follow the calendar instead). Loose ends: `docs/TODO.md` "Unfinished results - after step 1".
 
-**Status step 2 (display), 2026-11-16 - PR #397 open, not merged:** still nothing visible on production (no row can be
+**Status step 2 (display), 2026-11-16 - merged (#397):** still nothing visible on production (no row can be
 written before step 4); verified with rows added inside the tests (`tests/UnfinishedResultSeeding.php` - never global
 fixtures: step 1 put their pieces and time spent into every sum). One partial `_unfinished_result_badge.html.twig`
 ("479 / 500 pcs", titled "Didn't finish within the time limit", "finished in 1:48:12"), texts under
@@ -91,7 +91,40 @@ the pieces and "Didn't finish within the time limit"; the Players page's pieces 
 and solving-time answers + v0 results gain `pieces_placed`, `finished_later_seconds` (v0 `is_relax_mode` false for
 one), the export two last columns. Left for steps 3-4: below in `docs/TODO.md`.
 
-**Status:** plan, 2026-09-18, refined 2026-11-16. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
+**Status step 3 (write path backend + import), 2026-11-16 - PR open, not merged:** no form yet, so nobody can type an
+unfinished result - but the **event results import writes them** (Sarah's sheet), so after this step real rows can exist
+(imported teams, never editable by a person). *Domain:* `Value\UnfinishedResult::fromInput(piecesPlaced, totalSeconds,
+puzzlePiecesCount, roundMinutesLimit)` - the one rule for every writer: no limit → `UnfinishedResultNeedsTimeLimit`,
+`1 ≤ pieces < puzzle's pieces` else `InvalidPiecesPlaced` (`allPlaced()` tells "all of them" apart), a total `≤ limit × 60`
+→ `UnfinishedTotalTimeWithinLimit`; `secondsSpent` = total ?? limit × 60. `SolvingTimeRoundResolver::resolveFor(competitionId,
+puzzleId, PuzzlingType)` (`resolve()` delegates - one SQL) and `SeriesEditionResolver::resolveFor()` (scalar twin of
+`resolve()`). `Services\UnfinishedResults\UnfinishedResultRound` settles event + round before any entity exists or changes:
+round id (API, visibility checked) > competition > series pick; where the finished path saves without the link (unknown
+competition, series not public) the unfinished one is refused, and **a series pick counts only when its edition is found by
+its puzzle** (`SeriesEditionMatchKind::Puzzle` - a day match names no round). *Write path, beside the finished one:*
+`AddUnfinishedPuzzleSolvingTime` / `EditUnfinishedPuzzleSolvingTime` + handlers (same steps, same services, same
+follow-ups - `UnfinishedWritePathParityTest` compares the stored rows and queued messages of both paths; no duplicate-time
+/ pace questions: there is no time). Transitions: finished/relax → unfinished and unfinished → unfinished through
+`EditUnfinishedPuzzleSolvingTime` (entity `modify(null, …)` then `unfinishedWith()`), unfinished → finished/relax through
+`EditPuzzleSolvingTime(endsUnfinishedResult: true)` (`endUnfinishedResult()` right before `modify()`); **without that flag
+`EditPuzzleSolvingTimeHandler` refuses an unfinished result** (`UnfinishedResultNeedsItsOwnEdit`, before anything changes -
+the only change to the finished handler; every existing case is unchanged and its tests untouched). An unfinished first try
+is the puzzle's first try (first-try integrity keeps it, step 1). XP / achievements: the same `AwardXpForSolvingTime` /
+`RecalculateBadgesForPlayer` / `RecalculateXpChainForSolve` are queued and award nothing (a finished result turned unfinished
+loses its XP - tested). *Edit surfaces until step 4:* the edit page shows the result ("479 / 500 pcs") with "coming soon"
+and Delete, saves nothing (a POST = 422); API v1 `PUT /me/solving-times/{id}` answers 422 `unfinished_result_not_editable`;
+My data's row sheet and cells save through `EditUnfinishedPuzzleSolvingTime` with the stored pieces and total (a round that
+changed since = `unfinished_result.round_changed`). *Import:* see [event-results-import](../event-results-import/README.md)
+"Unfinished results (D9)". *Step 1/2 leftovers decided:* an unfinished result's photo is out of the image pipeline
+(`GetFinishedPhotosForAnalysis`, `findWithFinishedPhotoOfPuzzles()`); the data import's "nothing to wish for"
+(`ImportNeverTwice::hasSolved()`, `GetImportAddScreen` `can_wish`) no longer counts it; the claim screens show the pieces;
+re-importing our own export still ignores `pieces_placed` (docs/TODO.md). **Step 4 wires:** the form (switch, pieces, the
+relabelled time, mapping the three exceptions to field errors), `EditTimeController` routing an unfinished result to
+`EditUnfinishedPuzzleSolvingTime` and a switched-off one to `EditPuzzleSolvingTime(endsUnfinishedResult: true)` (replacing
+the "coming soon" page), the hint endpoint on `resolveFor()`, API v1 write fields (`piecesPlaced` on create/update - the
+PUT refusal goes then), "Add to my profile" from an official unfinished result.
+
+**Status:** plan, 2026-09-18, refined 2026-11-16. Steps 1-2 merged, step 3 in review (above). Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal
 

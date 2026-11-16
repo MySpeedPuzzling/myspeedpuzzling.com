@@ -1,6 +1,7 @@
 # Event results import (an organizer's results spreadsheet)
 
-**Status:** live since 2026-11-13 (PR #342), run on demand (no cron); unfinished results being built (2026-11-16). Progress in [implementation-plan.md](implementation-plan.md) "Status".
+**Status:** live since 2026-11-13 (PR #342), run on demand (no cron); unfinished teams imported since step 3 of the
+unfinished results (2026-11-16, see "Unfinished results (D9)"). Progress in [implementation-plan.md](implementation-plan.md) "Status".
 
 An organizer who runs many casual events keeps the results in a Google Sheet: one tab per event, one row per team -
 the team's name, its time and how many people it had. Nobody's MySpeedPuzzling account is known. MySpeedPuzzling reads
@@ -49,7 +50,7 @@ its own team; every further row is one team.
 |---|---|---|---|
 | Name | every | yes | the team's name |
 | Time | every | one of Time / Pieces placed | `h:mm:ss` or `m:ss` |
-| Pieces placed | every | | **new** - the team did not finish: pieces placed when the time ran out (Time empty) |
+| Pieces placed | every | | the team did not finish: pieces placed when the time ran out (Time empty) - a whole number, fewer than the puzzle has; needs the tab's `Time limit` |
 | Team Size | every | yes | people in this team (1-10) - a 3-person team at a 4-person event is normal |
 | Contest Name | 2 | yes | the event's name |
 | Location | 2 | yes | venue |
@@ -74,14 +75,16 @@ Tolerated without a warning: row order (the ranking is computed from the times),
 |---|---|---|
 | `imported` | every check passed, the event and its results match the tab | - |
 | `waiting_for_puzzle` | no link, or the link's puzzle does not exist (deleted puzzles follow `puzzle_redirect`) | yes |
-| `problem` | a missing header or required event field, an unreadable time/date, a pairs row with size ≠ 2, a team name twice in the tab, a row with neither Time nor Pieces placed - each listed | yes |
+| `problem` | a missing header or required event field, an unreadable time/date, a pairs row with size ≠ 2, a team name twice in the tab, a row with neither Time nor Pieces placed, unfinished teams without a `Time limit` (`unfinished_without_time_limit`), unreadable pieces placed (`unreadable_pieces_placed`), pieces placed not fewer than the puzzle has (`pieces_placed_out_of_range`, found while applying) - each listed | yes |
 | `detached` | the event made from this tab was deleted on MySpeedPuzzling - it is never re-created | yes |
 
 A tab with a `problem` is not imported at all, so a half-fixed tab never shows half its results. The exceptions: a
 team name twice and a row with neither value skip **those rows only** (listed as problems, rest imported).
 
 **A warning is logged when a tab's status or its list of problems changes** - not on every run - so Sentry
-gets one issue per thing to fix. The console command prints every tab's status on every run.
+gets one issue per thing to fix (the stored problems are compared key by key: jsonb gives them back in its own key
+order, which made every run of a tab with a problem warn again until 2026-11-16). The console command prints every tab's
+status on every run; `--dry-run` counts unfinished teams ("5 (2 unfinished)").
 
 ## Data model
 
@@ -203,9 +206,29 @@ its tier 2 said an unfinished result counts nowhere. Jan's decision splits the c
 | Leaderboards, ranks, medians, difficulty, skill, MSP rating, predictions | yes | never (`seconds_to_solve` is NULL) |
 | Puzzle page | ranked rows | after every ranked row, by pieces placed (most first), no rank |
 
-`seconds_spent` is stored on the row so the statistics stay one scan without a join: the round's limit for an import;
-in the form the round's limit when the round is known, otherwise the player's answer to "How long did you puzzle?";
-the later finish time (`finished_later_seconds`) when they finished afterwards.
+`seconds_spent` is stored on the row so the statistics stay one scan without a join: the round's limit (an unfinished
+result needs a round with a limit - the import's tab, the form's resolved round), or the later finish time
+(`finished_later_seconds`) when they finished afterwards (the form only - the sheet has no such column).
+
+### How the import writes them (step 3, 2026-11-16)
+
+- A row with `Pieces placed` and no `Time` is an unfinished team: `PuzzleSolvingTime::importedFromEvent(…, unfinished:)`
+  with `Value\UnfinishedResult` - `pieces_placed`, `seconds_spent` = the tab's `Time limit` × 60, no `seconds_to_solve`,
+  no later total. The same rule as the form's (`UnfinishedResult::fromInput()`).
+- **A tab with unfinished teams and no `Time limit`** is a `problem` (`unfinished_without_time_limit`, naming the first
+  such team): nothing of it is imported - an already imported tab keeps its results as they are, the warning is logged
+  once. Unreadable pieces (`0`, `412.5`, words) are `unreadable_pieces_placed`, also for the whole tab.
+- **Pieces placed must be fewer than the puzzle has** - checked once the puzzle is known, *before* the event is created
+  or anything changes (`pieces_placed_out_of_range`, "Out of Time: 500 / 500"): a new tab leaves no event behind, an
+  imported tab changes nothing (not even another team's corrected time - half a tab is never applied).
+- **The upsert keeps the row**: a team that goes from a time to pieces placed or back is the same result, changed in
+  place (`correctImportedTime()` / `correctImportedUnfinishedResult()`); a changed `Time limit` changes the time spent of
+  the tab's unfinished teams. As for a corrected time, the result follows the sheet also once somebody claimed it - its
+  people never do. A claimed result that changed has its claimers' achievements and XP recalculated
+  (`RecalculateBadgesForPlayer`, `RecalculateXpChainForSolve` - an unfinished team earns nothing).
+- The tab's content hash takes the pieces placed only of unfinished rows, so the hash of every tab without them is
+  unchanged (no needless re-apply after the deploy).
+- The claim screens show "412 / 500 pcs" instead of a time.
 
 ## Not in scope
 

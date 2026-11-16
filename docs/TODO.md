@@ -28,19 +28,31 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [x] Step 2 (#397): the Players page's pieces milestone chip says "N pieces placed" - never a solve; no change needed.
 - [x] Step 2 (#397): API v1/v0 results and the export carry `pieces_placed` + `finished_later_seconds`; v0
       `is_relax_mode` is false for an unfinished result.
-- [ ] Steps 3-4: every edit button on an unfinished result (puzzle page "My attempts", bottom rows' result detail,
-      profile, calendar, feed) opens today's edit form, which knows no pieces placed - a save there would make it a relax
-      solve. The edit form must keep `pieces_placed` before the first row can exist (plan "Edit form / modal").
-- [ ] Steps 3-4: My data's list shows the pieces placed (step 2), but its row form (`my_data/_result_row_form.html.twig`
-      via `SolvedPuzzleDetail`) and in-place editing treat an unfinished result like a relax row - keep the pieces on a save.
-- [ ] Steps 3-4: re-importing our own results export (`KnownExportLayout`: a header it does not list is not imported)
-      ignores the new `pieces_placed` column - an unfinished row would come back as a result without a time.
-- [ ] Steps 3-4: the claim screens of an imported unfinished team (`event_result_claim/_result_summary`, `_claim_body`)
-      show the team and date only - add the pieces placed once the import writes such rows (step 4 / D2-D3).
-- [ ] Steps 3-4: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen`
-      `can_wish`) still takes any result of the puzzle - decide whether an unfinished one counts there (both together).
-- [ ] Steps 3-4: an unfinished result's finished-puzzle photo is not of a finished puzzle - keep it out of the image
-      pipeline (`GetFinishedPhotosForAnalysis`) and the puzzle page's photos (`PuzzleSolvingTimeRepository::findWithFinishedPhotoOfPuzzles()`)?
+- [x] Step 3: no edit surface destroys an unfinished result any more - the edit page shows it ("coming soon", Delete) and
+      saves nothing (POST 422), API v1 `PUT` answers 422, `EditPuzzleSolvingTimeHandler` refuses it without
+      `endsUnfinishedResult`. **Step 4:** the edit form edits it through `EditUnfinishedPuzzleSolvingTime` (and ends it
+      through `EditPuzzleSolvingTime(endsUnfinishedResult: true)`), API v1 write fields `piecesPlaced` - then the edit page's
+      "coming soon" and the PUT refusal go.
+- [x] Step 3: My data's row sheet and in-place cells save an unfinished result through `EditUnfinishedPuzzleSolvingTime`
+      with its stored pieces and total - the pieces stay. Its time cells stay empty (a time typed there is ignored, as for
+      a relax row) until step 4 decides whether My data edits pieces placed.
+- [ ] Re-importing our own results export (`KnownExportLayout`: a header it does not list is not imported) ignores the
+      `pieces_placed` column - an unfinished row of a file comes back as a result without a time (into the same
+      profile it should be recognised as the result that is there - `ImportNeverTwice::equal()` with no time on either
+      side - not tested for this case). Writing an
+      unfinished result needs its round with a limit, which a file does not name: decide with Jan whether such a row is
+      left out with a reason or kept as a relax result.
+- [x] Step 3: the claim screens (`event_result_claim/_result_summary`) show "412 / 500 pcs" for an imported unfinished
+      team.
+- [x] Step 3: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen` `can_wish`)
+      counts solves only - a puzzle with only an unfinished result is still something to wish for.
+- [x] Step 3: an unfinished result's finished-puzzle photo is out of the image pipeline (`GetFinishedPhotosForAnalysis`,
+      `PuzzleSolvingTimeRepository::findWithFinishedPhotoOfPuzzles()`, which stores the analyses). Lists that show a
+      result's own photo (its row, the result detail) keep showing it - it is the player's photo of that result.
+- [ ] An organiser changing a round after unfinished results were recorded (its limit removed, the puzzle taken out, a
+      series edition re-matched by `SeriesEditionReconciler`): the stored rows keep their pieces and time spent, the round
+      link follows `RoundResultsReconciler` as for any time. Nothing re-validates them; a My data save of such a result is
+      refused with `unfinished_result.round_changed`. Revisit if it ever happens.
 
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
 

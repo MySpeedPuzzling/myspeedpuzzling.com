@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\UnlistedPuzzleNotFound;
@@ -99,6 +100,41 @@ SELECT EXISTS (
         AND ({$listed} OR unlisted_puzzle.paired_at >= :matchedSince)
 )
 SQL, ['ownerPlayerId' => $ownerPlayerId, 'matchedSince' => $matchedSince->format('Y-m-d H:i:s')])->fetchOne();
+    }
+
+    /**
+     * Of these rows of the player's imports, the ones whose unlisted result or mark was matched since - it is a
+     * real result or puzzle of the profile now, so an Undo of the import leaves the row (the match's own Undo is
+     * first). One statement.
+     *
+     * @param list<string> $importRowIds
+     *
+     * @return list<string> row ids
+     */
+    public function matchedImportRows(string $ownerPlayerId, array $importRowIds): array
+    {
+        $importRowIds = array_values(array_unique(array_map(strtolower(...), array_filter($importRowIds, Uuid::isValid(...)))));
+
+        if (Uuid::isValid($ownerPlayerId) === false || $importRowIds === []) {
+            return [];
+        }
+
+        /** @var list<string> $rows */
+        $rows = $this->database->executeQuery(<<<SQL
+SELECT result.import_row_id
+FROM unlisted_result result
+WHERE result.player_id = :ownerPlayerId
+    AND result.import_row_id IN (:importRowIds)
+    AND result.converted_at IS NOT NULL
+UNION
+SELECT mark.import_row_id
+FROM unlisted_ownership mark
+WHERE mark.player_id = :ownerPlayerId
+    AND mark.import_row_id IN (:importRowIds)
+    AND mark.converted_at IS NOT NULL
+SQL, ['ownerPlayerId' => $ownerPlayerId, 'importRowIds' => $importRowIds], ['importRowIds' => ArrayParameterType::STRING])->fetchFirstColumn();
+
+        return $rows;
     }
 
     /**

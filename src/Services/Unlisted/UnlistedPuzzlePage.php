@@ -86,7 +86,9 @@ readonly final class UnlistedPuzzlePage
             }
         }
 
-        $paired = $puzzle['pairedPuzzleId'] === null ? null : $this->offered($playerId, $puzzle['pairedPuzzleId'], $puzzle['piecesCount'], null, 'chosen');
+        // Matched with a puzzle the reader added to the catalogue themselves ("Add to the catalogue"): said as such
+        $pairedIsOwn = $puzzle['pairedPuzzleId'] !== null && $this->getPuzzleRecord->byId($puzzle['pairedPuzzleId'])?->addedById === $playerId;
+        $paired = $puzzle['pairedPuzzleId'] === null ? null : $this->offered($playerId, $puzzle['pairedPuzzleId'], $puzzle['piecesCount'], null, $pairedIsOwn ? 'own_added' : 'chosen');
         $suggested = null;
         $candidates = [];
         $manufacturerId = null;

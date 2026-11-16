@@ -40,7 +40,7 @@
                 {% if counts.collectionItems > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.add.kind.owned'|trans }}</span><strong>{{ counts.collectionItems|format_number }}</strong></li>{% endif %}
                 {% if counts.wishListItems > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.add.kind.wish_list'|trans }}</span><strong>{{ counts.wishListItems|format_number }}</strong></li>{% endif %}
                 {% if counts.wishListItemsToRestore > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.confirm.restores'|trans }}</span><span>{{ counts.wishListItemsToRestore|format_number }}</span></li>{% endif %}
-                {% if counts.keptJustForYou > 0 %}<li class="d-flex justify-content-between gap-2 py-1" data-testid="import-undo-removes-kept" data-rows="{{ counts.keptJustForYou }}"><span>{{ 'data_import.undo.confirm.removes_kept'|trans }}</span><strong>{{ counts.keptJustForYou|format_number }}</strong></li>{% endif %}
+                {% if kept_just_for_you_removed > 0 %}<li class="d-flex justify-content-between gap-2 py-1" data-testid="import-undo-removes-kept" data-rows="{{ kept_just_for_you_removed }}"><span>{{ 'data_import.undo.confirm.removes_kept'|trans }}</span><strong>{{ kept_just_for_you_removed|format_number }}</strong></li>{% endif %}
             </ul>
         </div>
 
@@ -48,7 +48,7 @@
             <h2 class="h6 mb-2">{{ 'data_import.undo.confirm.keeps'|trans }}</h2>
             <p class="mb-1"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_edited'|trans }}</p>
             <p class="mb-1"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_moved'|trans }}</p>
-            {% if counts.keptJustForYou > 0 %}<p class="mb-1" data-testid="import-undo-keeps-matched"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_matched'|trans }}</p>{% endif %}
+            {% if kept_just_for_you_staying > 0 %}<p class="mb-1" data-testid="import-undo-keeps-matched" data-rows="{{ kept_just_for_you_staying }}"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_matched'|trans({'%number%': kept_just_for_you_staying|format_number}) }}</p>{% endif %}
             <p class="mb-0"><i class="bi bi-arrow-repeat me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.undo.confirm.ready_again'|trans }}</p>
         </div>
 

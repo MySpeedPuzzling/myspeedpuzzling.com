@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\FormType\UnlistedCatalogueProposalFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\PairUnlistedPuzzle;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
+use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Results\ImportCataloguePuzzle;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Unlisted\UnlistedPuzzlePage;
@@ -68,6 +69,7 @@ final class AddUnlistedPuzzleToCatalogueController extends AbstractController
         readonly private UnlistedPuzzlePage $page,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPuzzleRecord $getPuzzleRecord,
+        readonly private GetUnlistedPuzzles $getUnlistedPuzzles,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private LoggerInterface $logger,
@@ -348,16 +350,26 @@ final class AddUnlistedPuzzleToCatalogueController extends AbstractController
     }
 
     /**
-     * @param array{id: string, name: string, ...} $unlisted
+     * @param array{id: string, name: string, unlistedLeft?: int, results?: list<array{unlisted: bool, ...}>, ...} $unlisted
      */
     private function added(Request $request, bool $isModal, array $unlisted, string $puzzleId): Response
     {
         if ($isModal && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            // The list's own numbers, without this puzzle: its row just changed, the line above must not stay behind.
+            // (It is on the list until the worker moved everything - what was read before the match says how much)
+            $summary = $this->getUnlistedPuzzles->summary($this->page->ownerPlayerId());
+            $stillListed = ($unlisted['unlistedLeft'] ?? 0) > 0;
+            $unlistedResults = count(array_filter($unlisted['results'] ?? [], static fn (array $result): bool => $result['unlisted']));
+
             $response = $this->render('unlisted_puzzles/_add_to_catalogue_stream.html.twig', [
                 'puzzle' => $unlisted,
                 'catalogue_puzzle_id' => $puzzleId,
+                'summary' => [
+                    'puzzles' => max(0, $summary['puzzles'] - ($stillListed ? 1 : 0)),
+                    'results' => max(0, $summary['results'] - ($stillListed ? $unlistedResults : 0)),
+                ],
             ]);
             $response->headers->set('Cache-Control', 'private, no-store');
 

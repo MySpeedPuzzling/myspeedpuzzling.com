@@ -829,11 +829,11 @@ SQL, [...$parameters, 'importId' => $importId, 'playerId' => $playerId, 'batchId
      * `keptJustForYou`: of the added rows, those kept just for the player (their puzzle is not in the database) - an
      * Undo removes what they made there, unless it was matched with a puzzle of the database since.
      *
-     * @return array{added: int, results: int, collectionItems: int, wishListItems: int, wishListItemsToRestore: int, notAdded: int, keptJustForYou: int}
+     * @return array{added: int, results: int, collectionItems: int, wishListItems: int, wishListItemsToRestore: int, notAdded: int, keptJustForYou: int, keptJustForYouRowIds: list<string>}
      */
     public function counts(string $importId, string $playerId, null|string $batchId = null, null|string $rowId = null, null|array $rowIds = null): array
     {
-        $none = ['added' => 0, 'results' => 0, 'collectionItems' => 0, 'wishListItems' => 0, 'wishListItemsToRestore' => 0, 'notAdded' => 0, 'keptJustForYou' => 0];
+        $none = ['added' => 0, 'results' => 0, 'collectionItems' => 0, 'wishListItems' => 0, 'wishListItemsToRestore' => 0, 'notAdded' => 0, 'keptJustForYou' => 0, 'keptJustForYouRowIds' => []];
 
         if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false) || ($rowId !== null && Uuid::isValid($rowId) === false)) {
             return $none;
@@ -858,7 +858,7 @@ SQL, [...$parameters, 'importId' => $importId, 'playerId' => $playerId, 'batchId
 
         $notAdded = self::NOT_ADDED;
 
-        /** @var false|array{added: int, results: int, collection_items: int, wish_list_items: int, wish_list_items_to_restore: int|string, not_added: int, kept_just_for_you: int} $row */
+        /** @var false|array{added: int, results: int, collection_items: int, wish_list_items: int, wish_list_items_to_restore: int|string, not_added: int, kept_just_for_you: int, kept_just_for_you_row_ids: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     COUNT(*) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL) AS added,
@@ -867,7 +867,8 @@ SELECT
     COUNT(*) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL AND r.wish_list_item_id IS NOT NULL) AS wish_list_items,
     COALESCE(SUM(jsonb_array_length(COALESCE(r.made -> 'removedWishListItems', '[]'::jsonb))) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL), 0) AS wish_list_items_to_restore,
     COUNT(*) FILTER (WHERE {$notAdded}) AS not_added,
-    COUNT(*) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL AND r.made -> 'unlisted' IS NOT NULL) AS kept_just_for_you
+    COUNT(*) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL AND r.made -> 'unlisted' IS NOT NULL) AS kept_just_for_you,
+    json_agg(r.id) FILTER (WHERE r.state = 'added' AND r.undo_id IS NULL AND r.made -> 'unlisted' IS NOT NULL) AS kept_just_for_you_row_ids
 FROM data_import_row r
 INNER JOIN data_import ON data_import.id = r.import_id
 WHERE r.import_id = :importId
@@ -890,6 +891,7 @@ SQL, [...$parameters, 'importId' => $importId, 'playerId' => $playerId, 'batchId
             'wishListItemsToRestore' => (int) $row['wish_list_items_to_restore'],
             'notAdded' => $row['not_added'],
             'keptJustForYou' => $row['kept_just_for_you'],
+            'keptJustForYouRowIds' => array_values(array_filter((array) json_decode($row['kept_just_for_you_row_ids'] ?? '[]', true), is_string(...))),
         ];
     }
 

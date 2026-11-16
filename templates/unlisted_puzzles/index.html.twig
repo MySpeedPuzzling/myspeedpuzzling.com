@@ -29,10 +29,7 @@
             <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'data_import.home.title'|trans }}
         </a>
     {% else %}
-        <p class="fw-medium mb-2" data-testid="unlisted-summary">
-            {{ 'unlisted_puzzles.summary.puzzles'|trans({'%number%': summary.puzzles|format_number}) }}
-            · {{ 'unlisted_puzzles.summary.results'|trans({'%number%': summary.results|format_number}) }}
-        </p>
+        {{ include('unlisted_puzzles/_summary.html.twig', {summary: summary}, with_context = false) }}
         {% if summary.suggested > 0 %}
             <p class="fs-sm d-flex gap-2 p-2 rounded-2 bg-faded-primary" data-testid="unlisted-suggested-line" data-suggested="{{ summary.suggested }}">
                 <i class="bi bi-bookmark-check text-primary flex-shrink-0" aria-hidden="true"></i>
@@ -52,7 +49,7 @@
     {# Matched ones left the list - while the match can be taken back (30 days) their page stays one tap away #}
     {% if summary.matched is not empty %}
         <details class="mb-3" data-testid="unlisted-matched" data-puzzles="{{ summary.matched|length }}">
-            <summary class="py-2 fw-medium" style="cursor: pointer;">{{ 'unlisted_puzzles.matched.title'|trans({'%number%': summary.matched|length|format_number}) }}</summary>
+            <summary class="fw-medium" style="cursor: pointer; padding: 10px 0; min-height: 44px;">{{ 'unlisted_puzzles.matched.title'|trans({'%number%': summary.matched|length|format_number}) }}</summary>
             <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.matched.hint'|trans }}</p>
             <ul class="list-unstyled mb-0">
                 {% for matched in summary.matched %}

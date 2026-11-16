@@ -39,28 +39,23 @@
                 {% if undo.collectionItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.collection'|trans }}</span><strong>{{ undo.collectionItemsRemoved|format_number }}</strong></li>{% endif %}
                 {% if undo.wishListItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.wish_list'|trans }}</span><strong>{{ undo.wishListItemsRemoved|format_number }}</strong></li>{% endif %}
                 {% if undo.wishListItemsRestored > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.confirm.restores'|trans }}</span><span>{{ undo.wishListItemsRestored|format_number }}</span></li>{% endif %}
-                {% if undo.resultsKeptEdited > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.kept_edited'|trans }}</span><strong>{{ undo.resultsKeptEdited|format_number }}</strong></li>{% endif %}
+                {% if undo.resultsKeptEdited > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ (kept is not empty and kept_matched|length == kept|length and kept|length == undo.resultsKeptEdited ? 'data_import.undo.outcome.kept_matched' : 'data_import.undo.outcome.kept_edited')|trans }}</span><strong>{{ undo.resultsKeptEdited|format_number }}</strong></li>{% endif %}
                 {% if undo.collectionItemsKept > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.outcome.kept_moved'|trans }}</span><span>{{ undo.collectionItemsKept|format_number }}</span></li>{% endif %}
                 {% if undo.rowsFailed > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.outcome.failed'|trans }}</span><span>{{ undo.rowsFailed|format_number }}</span></li>{% endif %}
             </ul>
             <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.undo.outcome.ready_again'|trans({'%number%': undo.rowsUndone|format_number}) }}</p>
         </div>
 
-        {% if kept is not empty %}
+        {% set kept_edited = kept|filter(row => kept_matched[row.rowId] is not defined) %}
+        {% set kept_moved = kept|filter(row => kept_matched[row.rowId] is defined) %}
+        {% if kept_edited is not empty %}
             <div class="card card-body shadow-sm mb-3" data-testid="import-undo-kept">
                 <h2 class="h6 mb-1">{{ 'data_import.undo.kept.title'|trans }}</h2>
                 <p class="fs-sm text-muted mb-2">{{ 'data_import.undo.kept.hint'|trans }}</p>
                 <div class="d-flex flex-column gap-3">
-                    {% for row in kept %}
+                    {% for row in kept_edited %}
                         <div class="border rounded-3 p-2" data-testid="import-undo-kept-row" data-row-id="{{ row.rowId }}">
                             {{ include('data_import/_add_row.html.twig', {row: row}) }}
-                            {% if kept_matched[row.rowId] is defined %}
-                                {# Kept just for the player and matched since: nothing here can remove it - the match's own Undo can #}
-                                <p class="fs-sm mt-2 mb-1" data-testid="import-undo-kept-matched">{{ 'data_import.undo.kept.matched'|trans }}</p>
-                                <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: kept_matched[row.rowId]}) }}" class="btn btn-outline-primary btn-sm text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-undo-kept-matched-link">
-                                    {{ 'data_import.undo.kept.matched_link'|trans }}
-                                </a>
-                            {% else %}
                             <div class="d-flex flex-wrap gap-2 mt-2">
                                 {% if row.solvingTimeId is not null %}
                                     <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;">
@@ -78,7 +73,25 @@
                                     </button>
                                 </form>
                             </div>
-                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {# Kept for another reason: kept just for the player and matched since. Nothing was edited and nothing here can
+           remove it - the match's own Undo can (docs/features/data-import/unlisted-puzzles.md) #}
+        {% if kept_moved is not empty %}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-undo-kept-moved">
+                <h2 class="h6 mb-1">{{ 'data_import.undo.kept.matched_title'|trans }}</h2>
+                <p class="fs-sm text-muted mb-2" data-testid="import-undo-kept-matched">{{ 'data_import.undo.kept.matched'|trans }}</p>
+                <div class="d-flex flex-column gap-3">
+                    {% for row in kept_moved %}
+                        <div class="border rounded-3 p-2" data-testid="import-undo-kept-row" data-row-id="{{ row.rowId }}">
+                            {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                            <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: kept_matched[row.rowId]}) }}" class="btn btn-outline-primary btn-sm text-wrap d-inline-flex align-items-center mt-2" style="min-height: 44px;" data-testid="import-undo-kept-matched-link">
+                                {{ 'data_import.undo.kept.matched_link'|trans }}
+                            </a>
                         </div>
                     {% endfor %}
                 </div>

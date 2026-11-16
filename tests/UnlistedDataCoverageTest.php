@@ -58,6 +58,7 @@ final class UnlistedDataCoverageTest extends TestCase
         'Controller/Unlisted/RemoveUnlistedPuzzleController.php' => self::OWNER_PAGE,
         'Controller/Unlisted/RefuseUnlistedSuggestionController.php' => self::OWNER_PAGE,
         'Controller/Unlisted/AddUnlistedPuzzleToCatalogueController.php' => self::OWNER_PAGE,
+        'Controller/DataImport/ImportUndoConfirmController.php' => 'The signed-in player\'s own import, before its Undo: asks the one reader - with their own id - how many of the rows kept just for them were matched since (a count only), to say what the Undo removes and what stays.',
 
         // The handlers
         'MessageHandler/PairUnlistedPuzzleHandler.php' => self::OWNER_WRITE,

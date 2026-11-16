@@ -3,3 +3,6 @@
 <turbo-stream action="replace" target="unlisted-puzzle-{{ puzzle.id }}">
     <template>{{ include('unlisted_puzzles/_row_added.html.twig', {puzzle: puzzle, catalogue_puzzle_id: catalogue_puzzle_id}, with_context = false) }}</template>
 </turbo-stream>
+<turbo-stream action="replace" target="unlisted-summary">
+    <template>{{ include('unlisted_puzzles/_summary.html.twig', {summary: summary}, with_context = false) }}</template>
+</turbo-stream>

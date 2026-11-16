@@ -17,6 +17,9 @@
     </p>
 {% endif %}
 
+{# Today's ten are used up: the form is not offered - one that is refused after it was filled, photo and all, helps nobody #}
+{% set limit_instead_of_form = limit_reached and not form_open %}
+
 {# The reader already added this very puzzle (a match they took back, or one that could not start): that puzzle first -
    moving the results onto it needs no second puzzle and no photo #}
 {% if own_puzzle is not null %}
@@ -34,13 +37,14 @@
             </button>
         </form>
     </div>
+    {% if not limit_instead_of_form %}
     <details class="mb-2" data-testid="catalogue-form-fold"{% if form_open %} open{% endif %}>
         {# No flex on the summary: it would take the disclosure triangle away, and the line would read as plain text #}
-        <summary class="py-2 text-primary fw-medium" style="cursor: pointer;">{{ 'unlisted_puzzles.catalogue.own_change'|trans }}</summary>
+        <summary class="text-primary fw-medium" style="cursor: pointer; padding: 10px 0; min-height: 44px;">{{ 'unlisted_puzzles.catalogue.own_change'|trans }}</summary>
+    {% endif %}
 {% endif %}
 
-{# Today's ten are used up: said instead of the form - a form that is refused after it was filled, photo and all, helps nobody. Matching stays open #}
-{% set limit_instead_of_form = limit_reached and own_puzzle is null and not form_open %}
+{# … said instead of the form (under the reader's own puzzle too - "It is this one" above needs no new puzzle). Matching stays open #}
 {% if limit_instead_of_form %}
     <div class="p-2 rounded-2 bg-secondary mb-3" data-testid="catalogue-limit-reached">
         <p class="mb-2"><i class="bi bi-calendar-day me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.limit_reached'|trans({'%limit%': limit}) }}</p>
@@ -114,6 +118,6 @@
     <p class="fs-sm text-muted mt-2 mb-0">{{ 'unlisted_puzzles.catalogue.limit'|trans({'%limit%': limit}) }}</p>
 {{ form_end(form) }}
 {% endif %}
-{% if own_puzzle is not null %}
+{% if own_puzzle is not null and not limit_instead_of_form %}
     </details>
 {% endif %}

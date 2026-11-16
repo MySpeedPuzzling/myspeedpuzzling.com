@@ -350,6 +350,8 @@ SQL;
 
         $borrowed = 'SELECT lp.puzzle_id FROM lent_puzzle lp WHERE lp.current_holder_player_id = :listPlayerId AND (lp.owner_player_id IS NULL OR lp.owner_player_id <> :listPlayerId)';
         $teamSolved = "pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:listPlayerId AS UUID)))";
+        // Solved / unsolved: an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
 
         $subquery = match ($list->kind) {
             PuzzleSearchListKind::Library => 'SELECT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :listPlayerId AND ci.collection_id IS NULL',
@@ -358,9 +360,9 @@ SQL;
             PuzzleSearchListKind::SellSwap => 'SELECT ssli.puzzle_id FROM sell_swap_list_item ssli WHERE ssli.player_id = :listPlayerId',
             PuzzleSearchListKind::Borrowed => $borrowed,
             PuzzleSearchListKind::Lent => 'SELECT lp.puzzle_id FROM lent_puzzle lp WHERE lp.owner_player_id = :listPlayerId',
-            PuzzleSearchListKind::Solved => "SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE pst.player_id = :listPlayerId
+            PuzzleSearchListKind::Solved => "SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE pst.player_id = :listPlayerId AND {$countsAsSolve}
                 UNION ALL
-                SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE {$teamSolved}",
+                SELECT pst.puzzle_id FROM puzzle_solving_time pst WHERE {$teamSolved} AND {$countsAsSolve}",
             PuzzleSearchListKind::Unsolved => "SELECT owned.puzzle_id FROM (
                     SELECT ci.puzzle_id FROM collection_item ci WHERE ci.player_id = :listPlayerId
                     UNION
@@ -369,6 +371,7 @@ SQL;
                 WHERE NOT EXISTS (
                     SELECT 1 FROM puzzle_solving_time pst
                     WHERE pst.puzzle_id = owned.puzzle_id
+                      AND {$countsAsSolve}
                       AND (pst.player_id = :listPlayerId OR ({$teamSolved}))
                 )",
         };

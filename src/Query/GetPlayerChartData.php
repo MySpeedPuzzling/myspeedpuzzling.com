@@ -32,6 +32,8 @@ readonly final class GetPlayerChartData
         }
 
         $firstTries = $onlyFirstTries === true ? 'AND pst.first_attempt = true' : '';
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
 
         $query = <<<SQL
 SELECT
@@ -46,6 +48,7 @@ WHERE
     pst.player_id = :playerId
     AND pst.puzzling_type = 'solo'
     AND pst.suspicious = false
+    AND {$countsAsSolve}
     {$firstTries}
 GROUP BY p.pieces_count, m.id
 SQL;

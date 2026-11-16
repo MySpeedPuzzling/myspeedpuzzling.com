@@ -96,6 +96,9 @@ SQL;
         // A page of blocks, each with the context of its solve: the puzzle, relax or timed, and how many solves of
         // that puzzle the player had before (the base line says "repeat solve") - suspicious times are not counted,
         // like the XP calculation (GetSolveXpDisplayInfo)
+        // Earlier solves of the puzzle number the occurrence - an unfinished result is none (CountsAsSolve)
+        $earlierCountsAsSolve = CountsAsSolve::condition('earlier');
+
         $blocksSql = <<<SQL
 SELECT
     blocks.solving_time_id,
@@ -110,6 +113,7 @@ SELECT
         SELECT COUNT(*)
         FROM puzzle_solving_time earlier
         WHERE earlier.suspicious = false
+          AND {$earlierCountsAsSolve}
           AND earlier.puzzle_id = pst.puzzle_id
           AND (
             earlier.player_id = :playerId

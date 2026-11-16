@@ -9,6 +9,7 @@ use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\AchievementSqlRules;
+use SpeedPuzzling\Web\Query\CountsAsSolve;
 use SpeedPuzzling\Web\BadgeConditions\BadgeConditionInterface;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -97,7 +98,7 @@ readonly class AchievementFirstMetDates
 
     /**
      * The same rows as GetPlayerStatsSnapshot: the player's results and the pair/team results they were in, never a
-     * suspicious one.
+     * suspicious one and never an unfinished result (CountsAsSolve - no achievement progress).
      *
      * @return list<ReplayEvent>
      */
@@ -106,6 +107,7 @@ readonly class AchievementFirstMetDates
         $competitionJoins = AchievementSqlRules::RESULT_COMPETITION_JOINS;
         $nightOwl = AchievementSqlRules::IS_NIGHT_OWL_RESULT;
         $onlineCompetition = AchievementSqlRules::IS_ONLINE_COMPETITION_RESULT;
+        $countsAsSolve = CountsAsSolve::condition('pst');
 
         $sql = <<<SQL
 SELECT
@@ -141,6 +143,7 @@ JOIN puzzle p ON p.id = pst.puzzle_id
 LEFT JOIN player owning_player ON owning_player.id = CAST(:playerId AS UUID)
 {$competitionJoins}
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND (
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

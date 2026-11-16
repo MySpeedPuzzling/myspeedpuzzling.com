@@ -31,12 +31,40 @@ readonly final class PeriodResult
         /** The player's current place on the puzzle's solo leaderboard (the "Your week" page only) */
         public null|int $rank = null,
         public null|int $rankTotal = null,
+        /** An unfinished competition result: pieces placed when the round's time ran out - not a solve (CountsAsSolve) */
+        public null|int $piecesPlaced = null,
+        /** The time spent on an unfinished result */
+        public null|int $secondsSpent = null,
     ) {
     }
 
     public function isSolo(): bool
     {
         return $this->puzzlingType === 'solo';
+    }
+
+    /**
+     * An unfinished result is not a solve - no puzzle in the counts (Query\CountsAsSolve).
+     */
+    public function isSolve(): bool
+    {
+        return $this->piecesPlaced === null;
+    }
+
+    /**
+     * Pieces puzzled: the puzzle's pieces, or the pieces placed of an unfinished result.
+     */
+    public function piecesPuzzled(): int
+    {
+        return $this->piecesPlaced ?? $this->piecesCount;
+    }
+
+    /**
+     * Seconds puzzled: the time to solve, or the time spent on an unfinished result - null for a relax solve.
+     */
+    public function secondsPuzzled(): null|int
+    {
+        return $this->secondsToSolve ?? $this->secondsSpent;
     }
 
     public function withRank(null|int $rank, null|int $rankTotal): self
@@ -58,6 +86,8 @@ readonly final class PeriodResult
             xp: $this->xp,
             rank: $rank,
             rankTotal: $rankTotal,
+            piecesPlaced: $this->piecesPlaced,
+            secondsSpent: $this->secondsSpent,
         );
     }
 }

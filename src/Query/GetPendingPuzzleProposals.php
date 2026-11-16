@@ -190,6 +190,8 @@ SQL;
     {
         // Never a secret competition puzzle (its request is filtered above too - this keeps it so for any caller)
         $notSecret = PuzzleSecrecy::sqlNotSecret('p');
+        // Solved N times - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
         $query = <<<SQL
 SELECT
     p.id,
@@ -198,7 +200,7 @@ SELECT
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name,
-    (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
+    (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id AND {$countsAsSolve}) as times_count
 FROM puzzle p
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE p.id IN (:puzzleIds)

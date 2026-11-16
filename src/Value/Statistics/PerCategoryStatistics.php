@@ -49,7 +49,8 @@ readonly final class PerCategoryStatistics
             $manufacturerName = $result->manufacturerName;
             $finishedDate = ($result->finishedAt ?? $result->trackedAt)->format('Y-m-d');
 
-            $totalPieces += $piecesCount;
+            // An unfinished result (Query\CountsAsSolve) puzzled its pieces placed, and is no solve
+            $totalPieces += $result->piecesPlaced ?? $piecesCount;
 
             // A result known to its month or year only is on no day: it counts in every total below, and neither as an
             // active day (the streak) nor in the time spent per day (docs/features/data-import/date-precision.md)
@@ -59,6 +60,15 @@ readonly final class PerCategoryStatistics
             // even though it contributes nothing to the time-spent-per-day totals below.
             if ($hasDay) {
                 $activeDays[$finishedDate] = true;
+            }
+
+            // An unfinished result has no time to solve, only its time spent - time spent puzzling, never a time
+            if ($time === null && $result->secondsSpent !== null && $hasDay) {
+                $timePerDay[$finishedDate] = ($timePerDay[$finishedDate] ?? 0) + $result->secondsSpent;
+            }
+
+            if ($result->isSolve() === false) {
+                continue;
             }
 
             if ($time !== null) {
@@ -111,6 +121,9 @@ readonly final class PerCategoryStatistics
         $this->totalPieces = $totalPieces;
         $this->activeDays = array_keys($activeDays);
         $this->timeSpentSolving = new TimeSpentSolvingStatistics($timePerDay);
-        $this->solvedPuzzle = new SolvedPuzzleStatistics(count($counted), $countPerManufacturer);
+        $this->solvedPuzzle = new SolvedPuzzleStatistics(
+            count(array_filter($counted, static fn (SolvedPuzzle $result): bool => $result->isSolve())),
+            $countPerManufacturer,
+        );
     }
 }

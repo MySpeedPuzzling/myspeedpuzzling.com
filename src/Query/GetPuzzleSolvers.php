@@ -345,6 +345,9 @@ SQL;
             throw new PuzzleNotFound();
         }
 
+        // A relax solve has no time - and is not an unfinished result, which is no solve at all (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT
     COUNT(*) FILTER (WHERE puzzling_type = 'solo') AS solo_count,
@@ -354,6 +357,7 @@ FROM puzzle_solving_time
 WHERE puzzle_id = :puzzleId
     AND seconds_to_solve IS NULL
     AND suspicious = false
+    AND {$countsAsSolve}
 SQL;
 
         /** @var array{solo_count: int, duo_count: int, team_count: int} $row */

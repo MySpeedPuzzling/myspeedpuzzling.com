@@ -22,11 +22,14 @@ readonly final class GetUserSolvedPuzzles
             return [];
         }
 
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT
     puzzle_solving_time.puzzle_id AS puzzle_id
 FROM player
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND {$countsAsSolve}
 WHERE player.user_id = :userId
 GROUP BY puzzle_solving_time.puzzle_id
 SQL;

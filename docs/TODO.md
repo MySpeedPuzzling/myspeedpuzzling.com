@@ -15,6 +15,25 @@ and on logout - but expiring only reaches honest browsers. A copied cookie value
   (`1794828600000`, 2026-11-16T11:30:00Z) - or rotate the trust secret on both sides at once - so cookies minted for
   throwaway accounts before the eligibility rule stop working
 
+## Unfinished results - after step 1, isolation (`docs/features/competitions-management/unfinished-results-plan.md`, 2026-11-16)
+
+Step 1 made an unfinished result (pieces placed, no time) no solve on the read side (`CountsAsSolve`). Readers that
+list or show results were left for step 2 (display), the write-side ones for steps 3-4:
+
+- [ ] Step 2: the profile list's tab counts (`PlayerSolvedPuzzles::tabRows()` / unique puzzles), its "only relax" filter
+      (`time === null` would show an unfinished result) and "Solved 0×" for a puzzle with only an unfinished result
+      (`SolvedPuzzle::$solvedTimes`, now 0 there).
+- [ ] Step 2: the digest's highlight lines (`PlayerPeriodActivity::highlights()`) list an unfinished result like a relax
+      one - label it; its numbers already count it as pieces + time spent only. A period with only unfinished results
+      now has activity (`hadActivity()`: pieces without a puzzle) and a "0 puzzles · N pieces" split line - word it.
+- [ ] Step 2: a pieces milestone moment of the Players page can now be crossed by an unfinished result
+      (`PlayerMomentDetector`: pieces running total) - its moment chip must not call it a solve.
+- [ ] Step 2: API v0/v1 results and the export (`is_relax_mode`, `ExportableSolvingTime`) read a null time as relax.
+- [ ] Steps 3-4: the data import's "nothing to wish for" (`ImportNeverTwice::hasSolved()` + `GetImportAddScreen`
+      `can_wish`) still takes any result of the puzzle - decide whether an unfinished one counts there (both together).
+- [ ] Steps 3-4: an unfinished result's finished-puzzle photo is not of a finished puzzle - keep it out of the image
+      pipeline (`GetFinishedPhotosForAnalysis`) and the puzzle page's photos (`PuzzleSolvingTimeRepository::findWithFinishedPhotoOfPuzzles()`)?
+
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
 
 - [ ] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)

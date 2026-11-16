@@ -130,8 +130,8 @@ readonly final class PlayerPeriodActivity
             };
 
             $split[$type] ??= ['type' => $type, 'puzzles' => 0, 'pieces' => 0];
-            $split[$type]['puzzles']++;
-            $split[$type]['pieces'] += $result->piecesCount;
+            $split[$type]['puzzles'] += $result->isSolve() ? 1 : 0;
+            $split[$type]['pieces'] += $result->piecesPuzzled();
         }
 
         if (array_keys($split) === ['solo'] || $split === []) {
@@ -163,8 +163,8 @@ readonly final class PlayerPeriodActivity
             $key = $result->solvedAt->setTimezone(DigestPeriod::zone())->format('Y-m-d');
 
             if (isset($days[$key])) {
-                $days[$key]['puzzles']++;
-                $days[$key]['pieces'] += $result->piecesCount;
+                $days[$key]['puzzles'] += $result->isSolve() ? 1 : 0;
+                $days[$key]['pieces'] += $result->piecesPuzzled();
             }
         }
 
@@ -183,7 +183,8 @@ readonly final class PlayerPeriodActivity
 
     public function hadActivity(): bool
     {
-        return $this->puzzlesCount > 0;
+        // Pieces without a puzzle: unfinished results only (CountsAsSolve) - still a period with puzzling in it
+        return $this->puzzlesCount > 0 || $this->piecesCount > 0;
     }
 
     public function levelledUp(): bool

@@ -83,6 +83,8 @@ final class ImportWritePathParityTest extends KernelTestCase
         'pieces_placed',
         'qualified',
         'finished_later_seconds',
+        // Time spent on an unfinished result - neither path writes one yet (unfinished-results-plan.md)
+        'seconds_spent',
     ];
 
     /** Differ only because the twins are two people: compared after the twin's own id is taken out */

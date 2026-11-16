@@ -30,6 +30,9 @@ readonly final class GetExportablePuzzleSolveSummary
             return [];
         }
 
+        // An unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 WITH mine AS (
     SELECT pst.id
@@ -37,12 +40,14 @@ WITH mine AS (
     WHERE pst.player_id = :playerId
         AND pst.puzzling_team_id IS NULL
         AND pst.puzzle_id = ANY(:puzzleIds)
+        AND {$countsAsSolve}
     UNION
     SELECT pst.id
     FROM puzzling_team_member member
     INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = member.team_id
     WHERE member.player_id = :playerId
         AND pst.puzzle_id = ANY(:puzzleIds)
+        AND {$countsAsSolve}
 )
 SELECT
     pst.puzzle_id,

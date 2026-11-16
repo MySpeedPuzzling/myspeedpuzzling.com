@@ -17,12 +17,16 @@ readonly final class GetAccountDeletionSummary
     public function byPlayerId(string $playerId): AccountDeletionSummary
     {
         // Every result the player owns, whatever the puzzling type - solo, duo and
-        // team times all vanish (or lose this player) with the account
+        // team times all vanish (or lose this player) with the account; an unfinished
+        // result is one of them too, puzzled with its pieces placed and its time spent (CountsAsSolve)
+        $piecesPuzzled = CountsAsSolve::piecesPuzzled('puzzle_solving_time', 'puzzle.pieces_count');
+        $secondsPuzzled = CountsAsSolve::secondsPuzzled('puzzle_solving_time');
+
         $timesQuery = <<<SQL
 SELECT
     COUNT(puzzle_solving_time.id) AS solving_times_count,
-    COALESCE(SUM(puzzle.pieces_count), 0) AS total_pieces,
-    COALESCE(SUM(puzzle_solving_time.seconds_to_solve), 0) AS total_seconds
+    COALESCE(SUM({$piecesPuzzled}), 0) AS total_pieces,
+    COALESCE(SUM({$secondsPuzzled}), 0) AS total_seconds
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE puzzle_solving_time.player_id = :playerId

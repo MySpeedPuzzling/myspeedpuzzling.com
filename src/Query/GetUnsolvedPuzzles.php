@@ -31,6 +31,9 @@ readonly final class GetUnsolvedPuzzles
      */
     public function byPlayerId(string $playerId): array
     {
+        // Unsolved = no solve of it - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 SELECT
     p.id as puzzle_id,
@@ -50,6 +53,7 @@ WHERE ci.player_id = :playerId
   AND NOT EXISTS (
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
+      AND {$countsAsSolve}
       AND (
         pst.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
@@ -99,6 +103,9 @@ SQL;
     public function countByPlayerId(string $playerId): int
     {
         // Count unique puzzles (not collection items) that haven't been solved
+        // Unsolved = no solve of it - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 SELECT COUNT(DISTINCT ci.puzzle_id) as item_count
 FROM collection_item ci
@@ -106,6 +113,7 @@ WHERE ci.player_id = :playerId
   AND NOT EXISTS (
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
+      AND {$countsAsSolve}
       AND (
         pst.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
@@ -122,6 +130,9 @@ SQL;
 
     public function byPuzzleIdAndPlayerId(string $puzzleId, string $playerId): null|UnsolvedPuzzleItem
     {
+        // Unsolved = no solve of it - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $query = <<<SQL
 SELECT
     p.id as puzzle_id,
@@ -142,6 +153,7 @@ WHERE ci.player_id = :playerId
   AND NOT EXISTS (
     SELECT 1 FROM puzzle_solving_time pst
     WHERE pst.puzzle_id = ci.puzzle_id
+      AND {$countsAsSolve}
       AND (
         pst.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))

@@ -91,6 +91,9 @@ readonly class GetPlayerStatsSnapshot
         $nightOwl = AchievementSqlRules::IS_NIGHT_OWL_RESULT;
         $onlineCompetition = AchievementSqlRules::IS_ONLINE_COMPETITION_RESULT;
         $competitorEvents = AchievementSqlRules::COMPETITOR_EVENTS;
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+        $soloCountsAsSolve = CountsAsSolve::condition('solo');
 
         $sql = <<<SQL
 WITH competitor_events AS (
@@ -105,6 +108,7 @@ solo_500_per_puzzle AS (
     WHERE solo.player_id = :playerId
       AND solo.puzzling_type = 'solo'
       AND solo.suspicious = false
+      AND {$soloCountsAsSolve}
       AND solo_puzzle.pieces_count = 500
     GROUP BY solo.puzzle_id
 )
@@ -136,6 +140,7 @@ JOIN puzzle p ON p.id = pst.puzzle_id
 LEFT JOIN player owning_player ON owning_player.id = CAST(:playerId AS UUID)
 {$competitionJoins}
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND (
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -215,12 +220,16 @@ SQL;
      */
     private function steadyHandsQuarters(string $playerId): int
     {
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $sql = <<<SQL
 SELECT DISTINCT
     CAST(EXTRACT(YEAR FROM COALESCE(finished_at, tracked_at)) AS INTEGER) AS solve_year,
     CAST(EXTRACT(QUARTER FROM COALESCE(finished_at, tracked_at)) AS INTEGER) AS solve_quarter
 FROM puzzle_solving_time
 WHERE suspicious = false
+  AND {$countsAsSolve}
   AND COALESCE(finished_at, tracked_at) >= '2000-01-01'
   -- A result known to its year only is in no quarter (one known to its month is) - date-precision.md
   AND finished_at_precision IS DISTINCT FROM 'year'
@@ -282,10 +291,14 @@ SQL;
 
     private function distinctPuzzlesSolved(string $playerId): int
     {
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $sql = <<<SQL
 SELECT COUNT(DISTINCT puzzle_id)
 FROM puzzle_solving_time
 WHERE suspicious = false
+  AND {$countsAsSolve}
   AND (
     player_id = :playerId
     OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -299,11 +312,15 @@ SQL;
 
     private function totalPiecesSolved(string $playerId): int
     {
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('pst');
+
         $sql = <<<SQL
 SELECT COALESCE(SUM(p.pieces_count), 0)
 FROM puzzle_solving_time pst
 JOIN puzzle p ON p.id = pst.puzzle_id
 WHERE pst.suspicious = false
+  AND {$countsAsSolve}
   AND (
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -335,10 +352,14 @@ SQL;
 
     private function allTimeLongestStreakDays(string $playerId): int
     {
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $sql = <<<SQL
 SELECT DISTINCT TO_CHAR(COALESCE(finished_at, tracked_at), 'YYYY-MM-DD') AS solve_day
 FROM puzzle_solving_time
 WHERE suspicious = false
+  AND {$countsAsSolve}
   -- A streak is made of days: a result known to its month or year only is on none (date-precision.md)
   AND finished_at_precision IS NULL
   AND (
@@ -358,10 +379,14 @@ SQL;
 
     private function teamSolvesCount(string $playerId): int
     {
+        // An unfinished result is not a solve and earns no achievement progress (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $sql = <<<SQL
 SELECT COUNT(*)
 FROM puzzle_solving_time
 WHERE suspicious = false
+  AND {$countsAsSolve}
   AND puzzling_type IN ('duo', 'team')
   AND (
     player_id = :playerId

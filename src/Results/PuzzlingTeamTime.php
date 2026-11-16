@@ -25,6 +25,8 @@ readonly final class PuzzlingTeamTime
         public bool $suspicious = false,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished competition result: pieces placed when the round's time ran out - not a solve (CountsAsSolve)
+        public null|int $piecesPlaced = null,
     ) {
     }
 }

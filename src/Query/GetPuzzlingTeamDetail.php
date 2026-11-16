@@ -75,6 +75,7 @@ readonly final class GetPuzzlingTeamDetail
 SELECT
     time.id AS time_id,
     time.seconds_to_solve,
+    time.pieces_placed,
     COALESCE(time.finished_at, time.tracked_at) AS solved_at,
     time.finished_at_precision,
     time.first_attempt,
@@ -98,6 +99,7 @@ SQL;
          * @var list<array{
          *     time_id: string,
          *     seconds_to_solve: null|int,
+         *     pieces_placed: null|int,
          *     solved_at: string,
          *     finished_at_precision: null|string,
          *     first_attempt: bool,
@@ -129,6 +131,7 @@ SQL;
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
             suspicious: $row['suspicious'],
+            piecesPlaced: $row['pieces_placed'],
         ), $rows);
     }
 
@@ -150,12 +153,13 @@ SQL;
         }
 
         // Candidates share a registered member (index on player_id); every pair/team has at least one,
-        // so no sub- or superset can be missed
+        // so no sub- or superset can be missed. Counted are solves - an unfinished result is none (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
         $query = <<<SQL
 SELECT other.id, other.name, other.size, stats.times_count
 FROM puzzling_team other
 INNER JOIN LATERAL (
-    SELECT COUNT(*) AS times_count FROM puzzle_solving_time WHERE puzzling_team_id = other.id AND suspicious = false
+    SELECT COUNT(*) AS times_count FROM puzzle_solving_time WHERE puzzling_team_id = other.id AND suspicious = false AND {$countsAsSolve}
 ) stats ON TRUE
 WHERE other.id IN (SELECT team_id FROM puzzling_team_member WHERE player_id IN (:memberPlayerIds))
     AND other.id <> :teamId

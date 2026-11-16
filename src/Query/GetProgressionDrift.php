@@ -38,6 +38,9 @@ participation AS (
     SELECT pst.id AS solve_id, pst.player_id
     FROM puzzle_solving_time pst
     WHERE pst.suspicious = false
+      AND
+SQL . ' ' . CountsAsSolve::SQL_CONDITION . <<<SQL
+
     UNION
     SELECT pst.id, CAST(puzzler ->> 'player_id' AS UUID)
     FROM puzzle_solving_time pst
@@ -45,6 +48,9 @@ participation AS (
         CASE WHEN jsonb_typeof(pst.team::jsonb -> 'puzzlers') = 'array' THEN pst.team::jsonb -> 'puzzlers' ELSE '[]'::jsonb END
     ) AS puzzler
     WHERE pst.suspicious = false
+      AND
+SQL . ' ' . CountsAsSolve::SQL_CONDITION . <<<SQL
+
       AND pst.team IS NOT NULL
       AND puzzler ->> 'player_id' ~ '^[0-9a-fA-F-]{36}$'
 ),

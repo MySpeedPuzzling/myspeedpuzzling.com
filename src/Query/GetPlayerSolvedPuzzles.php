@@ -99,6 +99,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     (puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp) AS puzzle_image_hidden,
     puzzle_solving_time.seconds_to_solve AS time,
+    puzzle_solving_time.pieces_placed,
+    puzzle_solving_time.seconds_spent,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -199,6 +201,8 @@ SQL;
         $this->assertPlayerExists($playerId);
 
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        // "Solved N×" - an unfinished result is listed, but is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
 
         $query = <<<SQL
 WITH solved_counts AS (
@@ -208,6 +212,7 @@ WITH solved_counts AS (
     FROM puzzle_solving_time
     WHERE puzzling_type = 'solo'
       AND player_id = :playerId
+      AND {$countsAsSolve}
     GROUP BY puzzle_id
 )
 SELECT
@@ -218,6 +223,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
+    puzzle_solving_time.pieces_placed,
+    puzzle_solving_time.seconds_spent,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -232,7 +239,7 @@ SELECT
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
     puzzle_solving_time.unboxed,
-    solved_counts.solved_times AS solved_times,
+    COALESCE(solved_counts.solved_times, 0) AS solved_times,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -345,6 +352,8 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        // "Solved N×" - an unfinished result is listed, but is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
 
         $query = <<<SQL
 WITH solved_counts AS (
@@ -354,6 +363,7 @@ WITH solved_counts AS (
     FROM puzzle_solving_time
     WHERE puzzling_type = 'solo'
       AND player_id = :playerId
+      AND {$countsAsSolve}
       AND puzzle_id = :puzzleId
     GROUP BY puzzle_id
 )
@@ -365,6 +375,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
+    puzzle_solving_time.pieces_placed,
+    puzzle_solving_time.seconds_spent,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -379,7 +391,7 @@ SELECT
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
     puzzle_solving_time.unboxed,
-    solved_counts.solved_times AS solved_times,
+    COALESCE(solved_counts.solved_times, 0) AS solved_times,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -561,6 +573,8 @@ SELECT
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     pst.seconds_to_solve AS time,
+    pst.pieces_placed,
+    pst.seconds_spent,
     pst.player_id AS player_id,
     pieces_count,
     finished_puzzle_photo,
@@ -663,7 +677,7 @@ SQL;
     }
 
     /**
-     * Count distinct puzzles solved by player (solo or in team)
+     * Count distinct puzzles solved by player (solo or in team) - an unfinished result is not a solve (CountsAsSolve)
      *
      * @throws PlayerNotFound
      */
@@ -673,12 +687,17 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT COUNT(DISTINCT puzzle_id)
 FROM puzzle_solving_time
 WHERE
-    player_id = :playerId
-    OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+    (
+        player_id = :playerId
+        OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+    )
+    AND {$countsAsSolve}
 SQL;
 
         /** @var int|false $result */
@@ -702,6 +721,9 @@ SQL;
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
 
+        // The "Solved puzzles" card - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -723,6 +745,7 @@ WHERE puzzle.id = :puzzleId
     puzzle_solving_time.player_id = :playerId
     OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
   )
+  AND {$countsAsSolve}
   {$notHidden}
 ORDER BY COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 LIMIT 1
@@ -784,6 +807,8 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+        // The "Solved puzzles" list - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT DISTINCT ON (puzzle.name, puzzle.id)
@@ -802,8 +827,11 @@ FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
-    puzzle_solving_time.player_id = :playerId{$notHidden}
-    OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))){$notHidden}
+    (
+        puzzle_solving_time.player_id = :playerId{$notHidden}
+        OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))){$notHidden}
+    )
+    AND {$countsAsSolve}
 ORDER BY puzzle.name ASC, puzzle.id, COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 SQL;
 

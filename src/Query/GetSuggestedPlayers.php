@@ -78,6 +78,9 @@ readonly final class GetSuggestedPlayers
         $participantGoing = CompetitionParticipantGoing::sql('participant');
         $hiddenCoPuzzler = $this->hiddenPlayers->sqlExclude('co_player.id');
         $hidden = $this->hiddenPlayers->sqlExclude('player.id');
+        // Puzzles in common = puzzles both solved - an unfinished result is not a solve (CountsAsSolve)
+        $mineCountsAsSolve = CountsAsSolve::condition('mine');
+        $theirsCountsAsSolve = CountsAsSolve::condition('theirs');
 
         $query = <<<SQL
 WITH viewer AS MATERIALIZED (
@@ -159,7 +162,7 @@ similar_time AS (
 my_puzzles AS MATERIALIZED (
     SELECT DISTINCT mine.puzzle_id
     FROM viewer
-    INNER JOIN puzzle_solving_time mine ON mine.player_id = viewer.id
+    INNER JOIN puzzle_solving_time mine ON mine.player_id = viewer.id AND {$mineCountsAsSolve}
     WHERE viewer.solved_total >= :minShared
 ),
 pool AS MATERIALIZED (
@@ -181,6 +184,7 @@ in_common AS (
         SELECT COUNT(DISTINCT theirs.puzzle_id) AS puzzles
         FROM puzzle_solving_time theirs
         WHERE theirs.player_id = pool.player_id
+            AND {$theirsCountsAsSolve}
             AND theirs.puzzle_id IN (SELECT my_puzzles.puzzle_id FROM my_puzzles)
     ) shared
     WHERE shared.puzzles >= :minShared

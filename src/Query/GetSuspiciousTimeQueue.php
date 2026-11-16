@@ -219,6 +219,8 @@ SQL;
         $factor = $direction === SuspicionDirection::Fast
             ? 'CAST(ap.expected_seconds AS double precision) / NULLIF(ap.seconds_to_solve, 0)'
             : 'CAST(ap.seconds_to_solve AS double precision) / NULLIF(ap.expected_seconds, 0)';
+        // As the profile counts them - an unfinished result is not a solve (CountsAsSolve)
+        $countsAsSolve = CountsAsSolve::condition('t');
 
         $query = $this->pendingWithCardsSql($direction) . <<<SQL
 SELECT
@@ -233,8 +235,8 @@ SELECT
     pl.is_private AS player_private,
     pl.registered_at,
     -- The player's results as the profile counts them (a result waiting for verification is not marked: it counts)
-    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.player_id = pl.id AND t.suspicious = false) AS results_total,
-    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.player_id = pl.id AND t.suspicious = false AND t.created_via = 'spreadsheet_import') AS results_imported,
+    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.player_id = pl.id AND t.suspicious = false AND {$countsAsSolve}) AS results_total,
+    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.player_id = pl.id AND t.suspicious = false AND {$countsAsSolve} AND t.created_via = 'spreadsheet_import') AS results_imported,
     (
         SELECT COUNT(*)
         FROM suspicious_time_case other

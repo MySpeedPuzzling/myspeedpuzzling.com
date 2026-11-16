@@ -43,6 +43,26 @@ not make sense, the system should be smart".
 
 Delivery: the five steps below, one PR each; step 4 (the form) is walked in a real browser before merge.
 
+**Status step 1 (isolation), 2026-11-16 - PR open, not merged:** `puzzle_solving_time.seconds_spent` (generated
+migration `Version20261116151500`), the entity invariant (`PuzzleSolvingTime::assertUnfinishedResultIsConsistent()`,
+checked before anything changes; `RemovedResultSnapshot` carries `seconds_spent`), `Query\CountsAsSolve` (`condition()`
+/ `SQL_CONDITION`, `piecesPuzzled()`, `secondsPuzzled()`) in every count of solves and every pieces / time sum. All 174
+readers of `puzzle_solving_time` (SQL, DQL, PuzzleSolved handlers) are classified: 40 use `CountsAsSolve`, the rest are
+listed with their reason in `tests/SolvingTimeReadersAreClassifiedTest.php` (performance, history, neutral, activity,
+predictions, data import...); `tests/UnfinishedResultsAreInvisibleTest.php` is the differential test (+ a relax-results
+control), `tests/Entity/PuzzleSolvingTimeUnfinishedTest.php` the invariant. Beside the SQL readers three PHP aggregators
+of result lists split too: `PerCategoryStatistics` (profile statistics, via `SolvedPuzzle::$piecesPlaced` /
+`$secondsSpent`), the digest (`PeriodResult`, `PlayerPeriodActivity`) and the team page (`PuzzlingTeamDetailController`).
+Decisions taken in this step: achievements get no progress from an unfinished result at all (Night Owl, Online
+Competitor and Competitor included - a participant row still counts as taking part); the Players page counts carry its
+pieces placed (`CommunityStatsCalculator::resultsSql()` keeps the row, every count filters - it had excluded it entirely,
+so pieces never reached the pieces totals); "N results" of an event / round, "puzzled together N times", first-try
+integrity, the onboarding "logged a puzzle" and the model features of PuzzleIntelligence keep an unfinished result
+(listed as history / activity). The activity calendar keeps its day active (the day's cell and the streak), while
+its per-day solve pills and the weekday / hour "solves" histograms count solves only and its time sums `seconds_spent`;
+the streak and quarter achievements (Steady Hands) count solves only - "no achievement progress" read strictly
+(Jan's call if the streak achievements should follow the calendar instead). Loose ends: `docs/TODO.md` "Unfinished results - after step 1".
+
 **Status:** plan, 2026-09-18, refined 2026-11-16. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal

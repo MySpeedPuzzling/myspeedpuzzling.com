@@ -13540,7 +13540,7 @@ unfinished_result:
 results_import:
     format_guide:
         sarah_does_puzzles:
-            intro: "Každá záložka vaší tabulky je jedna akce. Řádek 1 obsahuje názvy sloupců, řádek 2 akci a její první tým, každý další řádek další tým."
-            event_columns: "Akce, na řádku 2: Contest Name, Location, City and State, Date a Competition Type (Pairs nebo Teams) a stránka puzzle na MySpeedPuzzling ve sloupci Link to MySpeedPuzzling. Start time a Time limit jsou nepovinné."
+            intro: "Každá záložka vaší tabulky je jedna událost. Řádek 1 obsahuje názvy sloupců, řádek 2 událost a její první tým, každý další řádek další tým."
+            event_columns: "Událost, na řádku 2: Contest Name, Location, City and State, Date a Competition Type (Pairs nebo Teams) a stránka puzzle na MySpeedPuzzling ve sloupci Link to MySpeedPuzzling. Start time a Time limit jsou nepovinné."
             team_columns: "Každý tým: Name, Team Size a Time (h:mm:ss). Tým, který nedoskládal v časovém limitu, má místo času Pieces placed - záložka pak potřebuje Time limit."
             example: "Příklad"

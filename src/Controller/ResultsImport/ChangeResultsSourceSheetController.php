@@ -57,7 +57,6 @@ final class ChangeResultsSourceSheetController extends AbstractController
         }
 
         $pasted = trim($request->request->getString('spreadsheet'));
-        $spreadsheetId = null;
 
         if (GoogleSheetLink::isSpreadsheetId($pasted)) {
             $spreadsheetId = $pasted;

@@ -185,7 +185,9 @@ final class PreviousSheetEventsImportTest extends KernelTestCase
         // Uncertain: not applied, said in the source's fetch error
         self::assertEquals(2, $connection->fetchOne("SELECT COUNT(*) FROM competition WHERE name = 'Fir Night'"));
         self::assertFalse($this->storedItemExists('952'));
-        self::assertStringContainsString('Fir 10/16', (string) $connection->fetchOne('SELECT last_fetch_error FROM event_results_sheet WHERE id = :id', ['id' => $this->source->id->toString()]));
+        $fetchError = $connection->fetchOne('SELECT last_fetch_error FROM event_results_sheet WHERE id = :id', ['id' => $this->source->id->toString()]);
+        self::assertIsString($fetchError);
+        self::assertStringContainsString('Fir 10/16', $fetchError);
     }
 
     private static function tab(string $name, string $date, string $time, bool $withPuzzle = true): string

@@ -579,3 +579,7 @@ import_added:
     open: "Ouvrir l'import"
     undo_hint: "Quelque chose ne va pas ? Sur la page de l'import, vous pouvez annuler ce qui a été ajouté."
     opt_out: "Vous recevez cet e-mail parce que vous avez ajouté des lignes d'un import de feuille de calcul. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Arrêter ces e-mails</a>"
+unfinished_result:
+    pieces: "%placed% / %total% pièces"
+    title: "Pas terminé dans le temps imparti"
+    split_pieces: "%pieces% pièces"

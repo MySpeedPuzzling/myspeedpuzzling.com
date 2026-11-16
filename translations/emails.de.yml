@@ -579,3 +579,7 @@ import_added:
     open: "Import öffnen"
     undo_hint: "Etwas stimmt nicht? Auf der Seite des Imports kannst du das Hinzugefügte zurücknehmen."
     opt_out: "Du bekommst diese E-Mail, weil du Zeilen aus einem Tabellen-Import hinzugefügt hast. <a href=\"%settingsUrl%\">E-Mail-Einstellungen</a> · <a href=\"%unsubscribeUrl%\">Diese E-Mails beenden</a>"
+unfinished_result:
+    pieces: "%placed% / %total% Teile"
+    title: "Nicht innerhalb des Zeitlimits fertig geworden"
+    split_pieces: "%pieces% Teile"

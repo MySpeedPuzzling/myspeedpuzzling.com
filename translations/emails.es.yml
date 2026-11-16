@@ -579,3 +579,7 @@ import_added:
     open: "Abrir la importación"
     undo_hint: "¿Algo no cuadra? En la página de la importación puedes deshacer lo añadido."
     opt_out: "Recibes este correo porque añadiste filas de una importación de hoja de cálculo. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">Dejar de recibir estos correos</a>"
+unfinished_result:
+    pieces: "%placed% / %total% piezas"
+    title: "No terminado dentro del límite de tiempo"
+    split_pieces: "%pieces% piezas"

@@ -37,6 +37,14 @@ final class PlayerResultResponse
          * first day of that month or year and must not be read as a day. Additive (2026-11).
          */
         public string $datePrecision = 'day',
+        /**
+         * An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): the pieces
+         * placed when the round's time ran out. `time_seconds` is then null - and it is no relax solve: a null time
+         * is a relax solve only while `pieces_placed` is null too. Null on every other result. Additive (2026-11).
+         */
+        public null|int $piecesPlaced = null,
+        // An unfinished result's total time when the puzzlers finished it after the time ran out, else null. Additive (2026-11)
+        public null|int $finishedLaterSeconds = null,
     ) {
     }
 }

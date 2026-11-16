@@ -49,12 +49,21 @@ readonly final class RecentActivityItem
         public bool $suspicious = false,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): the
+        // pieces placed when the round's time ran out - no time, and no relax solve
+        public null|int $piecesPlaced = null,
+        public null|int $finishedLaterSeconds = null,
     ) {
     }
 
     public function isRelaxMode(): bool
     {
-        return $this->time === null;
+        return $this->time === null && $this->piecesPlaced === null;
+    }
+
+    public function isUnfinished(): bool
+    {
+        return $this->piecesPlaced !== null;
     }
 
     public function isSpeedMode(): bool
@@ -98,6 +107,8 @@ readonly final class RecentActivityItem
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
      *     suspicious?: bool,
+     *     pieces_placed?: null|int,
+     *     finished_later_seconds?: null|int,
      *     ...
      * } $row
      */
@@ -148,6 +159,8 @@ readonly final class RecentActivityItem
             playerAvatar: $row['player_avatar'] ?? null,
             suspicious: $row['suspicious'] ?? false,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
+            piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
+            finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
         );
     }
 

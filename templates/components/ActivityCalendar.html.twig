@@ -82,6 +82,10 @@
                                             {% if day.teamCount > 0 %}
                                                 <span class="activity-calendar-pill" style="background-color: {{ categoryColors.team }};" title="{{ 'activity_calendar.team_count'|trans({'%count%': day.teamCount}) }}">{{ day.teamCount }}</span>
                                             {% endif %}
+                                            {# Unfinished competition results: an active day without a solve - never a "0" pill #}
+                                            {% if day.unfinishedCount > 0 %}
+                                                <span class="activity-calendar-pill bg-light text-dark border" title="{{ 'unfinished_result.day_count'|trans({'%count%': day.unfinishedCount}) }}" data-testid="calendar-unfinished-pill"><i class="bi bi-hourglass-bottom" aria-hidden="true"></i>{% if day.unfinishedCount > 1 %} {{ day.unfinishedCount }}{% endif %}</span>
+                                            {% endif %}
                                             {% if day.firstAttemptCount > 0 %}
                                                 <span class="activity-calendar-pill activity-calendar-pill--first-attempt" title="{{ 'activity_calendar.first_attempt_marker'|trans }}">★{% if day.firstAttemptCount > 1 %} {{ day.firstAttemptCount }}{% endif %}</span>
                                             {% endif %}
@@ -167,6 +171,8 @@
 
                                                 {% if solve.time is not null %}
                                                     <span class="text-muted"><i class="bi bi-stopwatch"></i> {{ solve.time|puzzlingTime }}</span>
+                                                {% elseif solve.isUnfinished %}
+                                                    {{ include('_unfinished_result_badge.html.twig', {placed: solve.piecesPlaced, total: solve.piecesCount, finished_later: solve.finishedLaterSeconds}) }}
                                                 {% endif %}
                                             </div>
                                         </div>

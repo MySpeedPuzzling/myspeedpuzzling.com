@@ -78,7 +78,7 @@
             <p class="my-activity-split fs-sm text-body-secondary text-center mt-n2 mb-4" data-testid="my-activity-split">
                 {%- for part in split -%}
                     {%- if not loop.first %} · {% endif -%}
-                    <span class="text-nowrap"><strong class="text-body">{{ ('my_activity.split.' ~ part.type)|trans }}:</strong> {{ 'my_activity.split.numbers'|trans({'%count%': part.puzzles, '%pieces%': part.pieces|plain_number}) }}</span>
+                    <span class="text-nowrap"><strong class="text-body">{{ ('my_activity.split.' ~ part.type)|trans }}:</strong> {{ part.puzzles == 0 ? 'unfinished_result.split_pieces'|trans({'%pieces%': part.pieces|plain_number}) : 'my_activity.split.numbers'|trans({'%count%': part.puzzles, '%pieces%': part.pieces|plain_number}) }}</span>
                 {%- endfor -%}
             </p>
         {% endif %}
@@ -241,6 +241,8 @@
                             <div class="text-end flex-shrink-0">
                                 {% if result.secondsToSolve is not null %}
                                     <span class="d-block fw-semibold">{{ result.secondsToSolve|puzzlingTime }}</span>
+                                {% elseif result.piecesPlaced is not null %}
+                                    {{ include('_unfinished_result_badge.html.twig', {placed: result.piecesPlaced, total: result.piecesCount}) }}
                                 {% endif %}
                                 {% if result.rank is not null %}
                                     <span class="d-block fs-sm text-body-secondary">{{ 'my_activity.place'|trans({'%rank%': result.rank, '%total%': result.rankTotal}) }}</span>

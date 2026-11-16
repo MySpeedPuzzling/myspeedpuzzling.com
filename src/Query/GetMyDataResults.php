@@ -196,6 +196,7 @@ WITH {$mine}
 SELECT
     pst.id AS time_id,
     pst.seconds_to_solve,
+    pst.pieces_placed,
     pst.finished_at,
     pst.finished_at_precision,
     pst.tracked_at,

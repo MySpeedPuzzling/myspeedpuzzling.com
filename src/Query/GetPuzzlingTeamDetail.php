@@ -76,6 +76,7 @@ SELECT
     time.id AS time_id,
     time.seconds_to_solve,
     time.pieces_placed,
+    time.finished_later_seconds,
     COALESCE(time.finished_at, time.tracked_at) AS solved_at,
     time.finished_at_precision,
     time.first_attempt,
@@ -100,6 +101,7 @@ SQL;
          *     time_id: string,
          *     seconds_to_solve: null|int,
          *     pieces_placed: null|int,
+         *     finished_later_seconds: null|int,
          *     solved_at: string,
          *     finished_at_precision: null|string,
          *     first_attempt: bool,
@@ -132,6 +134,7 @@ SQL;
             unboxed: $row['unboxed'],
             suspicious: $row['suspicious'],
             piecesPlaced: $row['pieces_placed'],
+            finishedLaterSeconds: $row['finished_later_seconds'],
         ), $rows);
     }
 

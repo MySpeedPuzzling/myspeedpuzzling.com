@@ -79,7 +79,7 @@
                                 <td data-column="pieces" class="text-end text-nowrap">{{ row.puzzle.piecesCount|format_number }}</td>
                             {% elseif column == 'time' %}
                                 <td data-column="time" class="text-end text-nowrap fw-medium"{% if row.editableInPlace and row.seconds is not null %}{{ _self.edit('time', row.editValue('time')) }}{% endif %}>
-                                    {%- if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif -%}
+                                    {%- if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% elseif row.piecesPlaced is not null %}{{ include('_unfinished_result_badge.html.twig', {placed: row.piecesPlaced, total: row.puzzle.piecesCount}) }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif -%}
                                     {%- if row.suspicious %} <span class="badge bg-warning text-dark fw-normal">{{ 'my_data.cell.needs_verification'|trans }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'date' %}
@@ -134,7 +134,7 @@
                     {% if own_line is not empty %}<span class="d-block fs-xs text-muted text-truncate" data-own-field>{{ own_line|join(' · ') }}</span>{% endif %}
                 </span>
                 <span class="my-data-item-side">
-                    <span class="d-block fw-medium">{% if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif %}</span>
+                    <span class="d-block fw-medium">{% if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% elseif row.piecesPlaced is not null %}{{ include('_unfinished_result_badge.html.twig', {placed: row.piecesPlaced, total: row.puzzle.piecesCount}) }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif %}</span>
                     <time class="d-block fs-xs text-muted" datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time>
                 </span>
             </a>

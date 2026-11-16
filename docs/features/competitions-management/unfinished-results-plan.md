@@ -63,6 +63,34 @@ its per-day solve pills and the weekday / hour "solves" histograms count solves 
 the streak and quarter achievements (Steady Hands) count solves only - "no achievement progress" read strictly
 (Jan's call if the streak achievements should follow the calendar instead). Loose ends: `docs/TODO.md` "Unfinished results - after step 1".
 
+**Status step 2 (display), 2026-11-16 - PR #397 open, not merged:** still nothing visible on production (no row can be
+written before step 4); verified with rows added inside the tests (`tests/UnfinishedResultSeeding.php` - never global
+fixtures: step 1 put their pieces and time spent into every sum). One partial `_unfinished_result_badge.html.twig`
+("479 / 500 pcs", titled "Didn't finish within the time limit", "finished in 1:48:12"), texts under
+`unfinished_result.*` (messages + emails, 6 locales). **Puzzle page:** `GetPuzzleSolvers::unfinishedByPuzzleId()` (one
+statement for solo/pairs/teams, the ranked statements' blocklist / private / suspicious rules, an imported team without
+a tracker through its anonymous slots) is loaded only when `untimedCountsByPuzzleId()` - the relax count's statement,
+now also counting unfinished rows - counts one, so the page's statement budget is unchanged. Its own type
+`UnfinishedPuzzleResult`, never in `$times`; `UnfinishedResultsBoard` keeps one row per player / exact pair-team
+(`PuzzlesSorter::puzzlersIdentification()`, the ranked rows' key) **without a ranked row** (decided against the unfiltered
+ranked rows of the tab), most pieces first, with the page's filters (first try / unboxed lead the row, country,
+favourites, my teams, private). Rendered after every ranked row under "Didn't finish within the time limit", rank "–" -
+**only once no ranked row is left below** ("Show more" / "Show all" reach them like any further row). Tab counts and
+"disabled" count the bottom rows too (a tab with only unfinished results is open). "My attempts" merges the viewer's
+unfinished results (`myUnfinishedAttempts`, `kind: unfinished`) - best / latest / PB / deltas / the chart from times
+only; with no time the line says "Your result 479 / 1000 pcs". Whoever has a time keeps their ranked row; their
+unfinished result is in the result detail (`PuzzleResultAttempt::$piecesPlaced`). Canaries: blocklist, private profile,
+trackerless (an unclaimed imported team keeps "This was my team"). **Tier 3:** profile results (`SolvedPuzzle::isRelax()`
+for the relax filter; tab counts = listed puzzles, unchanged), player feed + Hub feed (`GetRecentActivity` selects the
+columns through `listed`), activity calendar (`ActivityCalendarDay::$unfinishedCount` = an hourglass pill on an active
+day without solves, drill-down badge), notifications ("competed with puzzle" + badge - never "solved"), team page,
+result detail, recap (panel: pieces, pieces left, the later total, "See round results" while the event is public),
+share card ("479/500", "pieces placed in the time limit"; its version changes only for an unfinished result). My data's list shows the pieces (its row form is steps 3-4). Digest + "Your week": a part,
+the busiest day or (the e-mail's preheader) a week with no solve reads "N pieces", never "0 puzzles"; a highlight shows
+the pieces and "Didn't finish within the time limit"; the Players page's pieces milestone chip already says "N pieces placed" (no change). **API/export:** v1 results
+and solving-time answers + v0 results gain `pieces_placed`, `finished_later_seconds` (v0 `is_relax_mode` false for
+one), the export two last columns. Left for steps 3-4: below in `docs/TODO.md`.
+
 **Status:** plan, 2026-09-18, refined 2026-11-16. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal

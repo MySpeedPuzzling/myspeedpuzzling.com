@@ -53,7 +53,6 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetParticipantsSheetState.php' => self::ORGANISER,
         'Query/GetParticipantsSheetVersion.php' => self::ORGANISER,
         'Query/GetPlayerDuplicateCases.php' => self::VIA_SOLVING_TIMES,
-        'Query/GetPlayerSolvedPuzzles.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPublishedRoundResults.php' => 'Round results pages answer 404 for an event that is not public (RoundResultsPageBuilder), the sitemap and the counts embed IsCompetitionPubliclyVisible.',
         'Query/GetPuzzleResultDetail.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPuzzleSolvers.php' => self::VIA_SOLVING_TIMES,

@@ -66,6 +66,8 @@
                                 <i class="bi bi-star-fill text-warning me-1" title="{{ 'puzzle_result.personal_best'|trans }}"></i>
                             {% endif %}
                             <span class="pr-attempt-time">{{ attempt.time|puzzlingTime }}</span>
+                        {% elseif attempt.isUnfinished %}
+                            {{ include('_unfinished_result_badge.html.twig', {placed: attempt.piecesPlaced, total: result.piecesCount, finished_later: attempt.finishedLaterSeconds}) }}
                         {% else %}
                             <span class="badge rounded-pill bg-secondary text-dark">
                                 <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}

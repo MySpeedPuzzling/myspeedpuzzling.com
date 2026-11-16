@@ -2,33 +2,33 @@
     {# data-nosnippet keeps UI chrome out of search snippets - Google honours it only on div, span and section #}
     <div class="puzzle-category-types mt-3 my-2" data-nosnippet>
         <button
-            class="btn {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount == 0 ? 'disabled'}}"
+            class="btn {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount + this.soloUnfinishedCount == 0 ? 'disabled'}}"
             data-action="live#action"
             data-live-action-param="changeResultsCategory"
             data-live-category-param="solo"
         >
             <span class="users-icons"><i class="ci-user"></i></span>
-            {{ 'ladder.solo'|trans }} ({{ this.soloTimesCount }})
+            {{ 'ladder.solo'|trans }} ({{ this.soloTimesCount + this.soloUnfinishedCount }})
         </button>
 
         <button
-            class="btn {{ this.category == 'duo' ? 'active' }} {{ this.duoTimesCount == 0 ? 'disabled'}}"
+            class="btn {{ this.category == 'duo' ? 'active' }} {{ this.duoTimesCount + this.duoUnfinishedCount == 0 ? 'disabled'}}"
             data-action="live#action"
             data-live-action-param="changeResultsCategory"
             data-live-category-param="duo"
         >
             <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.duo'|trans }} ({{ this.duoTimesCount }})
+            {{ 'ladder.duo'|trans }} ({{ this.duoTimesCount + this.duoUnfinishedCount }})
         </button>
 
         <button
-            class="btn {{ this.category == 'group' ? 'active' }} {{ this.groupTimesCount == 0 ? 'disabled'}}"
+            class="btn {{ this.category == 'group' ? 'active' }} {{ this.groupTimesCount + this.groupUnfinishedCount == 0 ? 'disabled'}}"
             data-action="live#action"
             data-live-action-param="changeResultsCategory"
             data-live-category-param="group"
         >
             <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.team'|trans }} ({{ this.groupTimesCount }})
+            {{ 'ladder.team'|trans }} ({{ this.groupTimesCount + this.groupUnfinishedCount }})
         </button>
     </div>
 
@@ -80,11 +80,14 @@
 
     {# The viewer's own attempts in one slim block under the numbers: how they stand, their latest time, and every
        attempt with its chart behind a toggle #}
-    {% if logged_user.profile is not null and this.myAttempts|length > 0 %}
+    {#~ Unfinished results (docs/features/competitions-management/unfinished-results-plan.md) count as attempts here, but
+        the latest / best / new PB lines are about times only #}
+    {% if logged_user.profile is not null and (this.myAttempts|length > 0 or this.myUnfinishedAttempts|length > 0) %}
         {% set myLast = this.myLastAttempt %}
         {% set myBest = this.myFastestAttempt %}
-        {% set attemptsCount = this.myAttempts|length %}
-        {% set isNewPb = attemptsCount > 1 and myLast.time == myBest.time %}
+        {% set timedCount = this.myAttempts|length %}
+        {% set attemptsCount = timedCount + this.myUnfinishedAttempts|length %}
+        {% set isNewPb = timedCount > 1 and myLast.time == myBest.time %}
         {% set collapseId = 'my-attempts-collapse-' ~ this.category %}
 
         <div class="lb-mine fs-sm" data-nosnippet>
@@ -94,7 +97,15 @@
                 <div class="lb-parts">
                     <div class="lb-parts-inner" data-testid="my-position">
                         <span>
-                            {%- if attemptsCount == 1 -%}
+                            {%- if timedCount == 0 -%}
+                                {%- set myUnfinished = this.myUnfinishedAttempts|first -%}
+                                <span class="text-muted">{{ 'unfinished_result.your_result'|trans }}</span>
+                                {{ include('_unfinished_result_badge.html.twig', {placed: myUnfinished.piecesPlaced, total: this.piecesCount, finished_later: myUnfinished.finishedLaterSeconds}) }}
+                                {%- if myUnfinished.finishedAt is not null %} <span class="text-muted">({{ result_date(myUnfinished.finishedAt, myUnfinished.datePrecision) }})</span>{% endif -%}
+                                {%- if myUnfinished.isEditableBy(logged_user.profile.playerId) %}
+                                    {{ include('_edit_time_button.html.twig', {timeId: myUnfinished.timeId, context: 'puzzle-detail'}) }}
+                                {%- endif -%}
+                            {%- elseif timedCount == 1 -%}
                                 <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                                 <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
                                 {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ result_date(myLast.finishedAt, myLast.datePrecision) }})</span>{% endif -%}
@@ -105,7 +116,7 @@
                                 <span class="tabular-nums">{{ myLast.time|puzzlingTime }}</span>
                                 {%- if myLast.finishedAt is not null %} <span class="text-muted">({{ result_date(myLast.finishedAt, myLast.datePrecision) }})</span>{% endif -%}
                             {%- endif -%}
-                            {%- if myLast.isEditableBy(logged_user.profile.playerId) %}
+                            {%- if timedCount > 0 and myLast.isEditableBy(logged_user.profile.playerId) %}
                                 {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
                             {%- endif -%}
                         </span>
@@ -140,7 +151,7 @@
             <div class="collapse mt-2" id="{{ collapseId }}">
                 <div class="attempts-history-list">
                     {% for row in this.myAttemptsWithContext %}
-                        <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}">
+                        <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}"{% if row.kind == 'unfinished' %} data-testid="my-unfinished-attempt"{% endif %}>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span>
                                     <i class="bi bi-calendar3 text-muted me-1"></i>
@@ -150,6 +161,15 @@
                                         <span class="text-muted">&mdash;</span>
                                     {% endif %}
                                 </span>
+                                {# An unfinished result has no time: no stopwatch, no change against the previous time #}
+                                {% if row.kind == 'unfinished' %}
+                                <span>
+                                    {{ include('_unfinished_result_badge.html.twig', {placed: row.attempt.piecesPlaced, total: this.piecesCount, finished_later: row.attempt.finishedLaterSeconds}) }}
+                                    {% if row.attempt.isEditableBy(logged_user.profile.playerId) %}
+                                        {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
+                                    {% endif %}
+                                </span>
+                                {% else %}
                                 <span>
                                     {% if row.isBest %}
                                         <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
@@ -160,10 +180,11 @@
                                         {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
                                     {% endif %}
                                 </span>
+                                {% endif %}
                             </div>
 
-                            {% set showPrevDelta = row.prevTime is not null %}
-                            {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
+                            {% set showPrevDelta = row.kind == 'timed' and row.prevTime is not null %}
+                            {% set showBestDelta = row.kind == 'timed' and not row.isBest and myBest is not null and myBest.time is not null and row.attempt.time is not null %}
 
                             {% if showPrevDelta or showBestDelta %}
                                 <div class="fs-xs text-end" style="padding-right: 30px;">
@@ -194,7 +215,9 @@
                     {% endfor %}
                 </div>
 
-                {% if logged_user.profile.activeMembership %}
+                {% if timedCount == 0 %}
+                    {# Nothing to chart: unfinished results have no time #}
+                {% elseif logged_user.profile.activeMembership %}
                     <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" bare="true" />
                 {% else %}
                     <div class="player-chart-placeholder text-center mt-3">
@@ -449,6 +472,57 @@
                         <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
                     </tr>
                 {% endif %}
+
+                {#~ Unfinished results (docs/features/competitions-management/unfinished-results-plan.md "Puzzle detail page"):
+                    after every ranked row, most pieces first, no rank. They are the end of the list, so they show once no
+                    ranked row is left below - "Show more" / "Show all" reach them like any further row. #}
+                {%~ if this.unfinishedRows|length > 0 and rowsBelowCount == 0 %}
+                    <tr class="lb-section-row" data-testid="unfinished-section">
+                        <td colspan="3" class="fs-sm fw-medium text-muted pt-3"><i class="bi bi-hourglass-bottom me-1" aria-hidden="true"></i>{{ 'unfinished_result.section'|trans }}</td>
+                    </tr>
+                    {%~ for unfinished_row in this.unfinishedRows %}
+                        {%~ set lead = unfinished_row[0] %}
+                        {%~ set is_own_row = logged_user.profile is not null and lead.containsPlayer(logged_user.profile.playerId) %}
+                        {%~ set pieces_text = 'unfinished_result.pieces'|trans({'%placed%': lead.piecesPlaced|plain_number, '%total%': this.piecesCount|plain_number}) %}
+                        <tr
+                            id="unfinished-row-{{ lead.timeId }}"
+                            class="lb-row lb-unfinished-row {{ is_own_row ? 'table-active-player' }}"
+                            data-controller="row-link"
+                            data-action="click->row-link#open"
+                            data-testid="unfinished-row"
+                        >
+                            <td class="rank"><span class="lb-rank" title="{{ 'unfinished_result.no_rank'|trans }}">–</span></td>
+
+                            <td class="lb-solver">
+                                {%~ if lead.isSolo %}
+                                    {{~ include('_leaderboard_player.html.twig', {player: lead.players|first}) }}
+                                {%~ else %}
+                                    {%~ for puzzle_solver in lead.players|filter(p => p.anonymousSlot is null) %}
+                                        {{~ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
+                                    {%~ endfor %}
+                                    {%~ if lead.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: lead.players, team_name: lead.teamName}) }}{{ include('event_result_claim/_claim_button.html.twig', {time_id: lead.timeId, players: lead.players, competition_id: lead.competitionId}) }}{% endif %}
+                                {%~ endif %}
+                                {{~ include('_leaderboard_time_badges.html.twig', {
+                                    time: lead,
+                                    attempts: unfinished_row|length,
+                                    skip_first_try: true,
+                                }|merge(lead.isSolo or lead.nobodyClaimed ? {} : {team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans})) }}
+                            </td>
+
+                            <td class="lb-time">
+                                <a
+                                    class="lb-detail-link text-decoration-none"
+                                    href="{{ path('puzzle_result_detail', {timeId: lead.timeId}) }}"
+                                    data-row-link-target="link"
+                                    data-turbo-frame="modal-frame"
+                                    rel="nofollow"
+                                    aria-label="{{ 'puzzle_times.leaderboard.result_detail'|trans({'%time%': pieces_text}) }}"
+                                >{{ include('_unfinished_result_badge.html.twig', {placed: lead.piecesPlaced, total: this.piecesCount, finished_later: lead.finishedLaterSeconds, stacked: true}) }}</a>
+                                {{~ include('_time_date_line.html.twig', {time: lead}) }}
+                            </td>
+                        </tr>
+                    {%~ endfor %}
+                {%~ endif %}
                 </tbody>
             </table>
         </div>

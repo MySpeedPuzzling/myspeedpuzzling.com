@@ -579,3 +579,9 @@ import_added:
     open: "Otevřít import"
     undo_hint: "Něco nesedí? Na stránce importu můžete přidané řádky vzít zpět."
     opt_out: "Tento e-mail dostáváte, protože jste přidali řádky z importu tabulky. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Zastavit tyto e-maily</a>"
+unfinished_result:
+    pieces: "%placed% / %total% dílků"
+    title: "Nedokončeno v časovém limitu"
+    split_pieces: "%pieces% dílků"
+    preheader: "Položené dílky: %pieces% – tvůj týden v jednom krátkém e-mailu."
+    busiest_day: "Nejrušnější den: %day%, %pieces% dílků"

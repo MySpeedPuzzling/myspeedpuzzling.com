@@ -87,6 +87,7 @@ SQL;
         // time stays even when a hidden player tracked it
         $notHidden = $this->hiddenPlayers->sqlExclude('(CASE WHEN puzzle_solving_time.team IS NULL THEN puzzle_solving_time.player_id END)')
             . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+        $publicCompetition = IsCompetitionPubliclyVisible::SQL_CONDITION;
 
         $query = <<<SQL
 SELECT
@@ -101,6 +102,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.pieces_placed,
     puzzle_solving_time.seconds_spent,
+    puzzle_solving_time.finished_later_seconds,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -117,6 +119,11 @@ SELECT
     puzzle_solving_time.competition_series_id AS series_pick_id,
     (competition.series_id IS NOT NULL) AS competition_is_edition,
     (puzzle_solving_time.created_via = 'event_import') AS imported_from_event,
+    -- Its round, while its event is public: the recap of an unfinished result links the round's results
+    CASE WHEN {$publicCompetition} THEN round.name END AS round_name,
+    CASE WHEN {$publicCompetition} THEN round.slug END AS round_slug,
+    CASE WHEN {$publicCompetition} THEN c.slug END AS round_competition_slug,
+    CASE WHEN {$publicCompetition} THEN cs.slug END AS round_series_slug,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -137,9 +144,12 @@ FROM puzzle_solving_time
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
+    LEFT JOIN competition_round round ON round.id = puzzle_solving_time.competition_round_id
+    LEFT JOIN competition c ON c.id = round.competition_id
+    LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE puzzle_solving_time.id = :timeId
     {$notHidden}
-GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id, competition.id
+GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id, competition.id, round.id, c.id, cs.id
 SQL;
 
         /**
@@ -225,6 +235,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.pieces_placed,
     puzzle_solving_time.seconds_spent,
+    puzzle_solving_time.finished_later_seconds,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -377,6 +388,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.pieces_placed,
     puzzle_solving_time.seconds_spent,
+    puzzle_solving_time.finished_later_seconds,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
@@ -575,6 +587,7 @@ SELECT
     pst.seconds_to_solve AS time,
     pst.pieces_placed,
     pst.seconds_spent,
+    pst.finished_later_seconds,
     pst.player_id AS player_id,
     pieces_count,
     finished_puzzle_photo,

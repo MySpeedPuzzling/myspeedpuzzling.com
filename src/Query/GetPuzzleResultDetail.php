@@ -125,6 +125,8 @@ SELECT
     pst.id AS time_id,
     pst.player_id AS tracked_by_id,
     pst.seconds_to_solve AS time,
+    pst.pieces_placed,
+    pst.finished_later_seconds,
     pst.finished_at,
     pst.finished_at_precision,
     pst.tracked_at,
@@ -182,6 +184,8 @@ SQL;
          *     time_id: string,
          *     tracked_by_id: null|string,
          *     time: null|int,
+         *     pieces_placed: null|int,
+         *     finished_later_seconds: null|int,
          *     finished_at: null|string,
          *     finished_at_precision: null|string,
          *     tracked_at: string,
@@ -275,6 +279,8 @@ SQL;
                 competitionSeriesSlug: $row['competition_series_slug'],
                 memberPlayerIds: $memberPlayerIds,
                 importedFromEvent: $row['imported_from_event'] === true,
+                piecesPlaced: $row['pieces_placed'],
+                finishedLaterSeconds: $row['finished_later_seconds'],
             );
         }
 

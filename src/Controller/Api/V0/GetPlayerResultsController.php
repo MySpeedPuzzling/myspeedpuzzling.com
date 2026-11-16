@@ -89,7 +89,10 @@ final class GetPlayerResultsController extends AbstractController
             'time_seconds' => $result->time,
             'time' => $result->time !== null ? $this->puzzlingTimeFormatter->formatTime($result->time) : null,
             'ppm' => $result->time !== null ? $ppm : null,
-            'is_relax_mode' => $result->time === null,
+            // An unfinished competition result has no time and is no relax solve (unfinished-results-plan.md); additive keys
+            'is_relax_mode' => $result->isRelax(),
+            'pieces_placed' => $result->piecesPlaced,
+            'finished_later_seconds' => $result->finishedLaterSeconds,
             'first_attempt' => $result->firstAttempt,
             'puzzle_id' => $result->puzzleId,
             'puzzle_name' => $result->puzzleName,

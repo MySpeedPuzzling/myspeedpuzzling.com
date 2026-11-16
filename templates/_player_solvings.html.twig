@@ -99,6 +99,8 @@
                         >
                             {%- if puzzle.time is not null -%}
                                 {{ puzzle.time|puzzlingTime }}
+                            {%- elseif puzzle.isUnfinished -%}
+                                {{ include('_unfinished_result_badge.html.twig', {placed: puzzle.piecesPlaced, total: puzzle.piecesCount, finished_later: puzzle.finishedLaterSeconds, stacked: true}) }}
                             {%- else -%}
                                 <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
                             {%- endif -%}

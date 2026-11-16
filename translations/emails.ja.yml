@@ -579,3 +579,9 @@ import_added:
     open: "インポートを開く"
     undo_hint: "内容に問題がありますか？ インポートのページで、追加した内容を取り消せます。"
     opt_out: "このメールは、スプレッドシートのインポートの行を追加したためお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">このメールを停止する</a>"
+unfinished_result:
+    pieces: "%placed% / %total% ピース"
+    title: "制限時間内に完成できなかった"
+    split_pieces: "%pieces% ピース"
+    preheader: "%pieces%ピースを配置 – 1週間を短いメールで。"
+    busiest_day: "いちばん頑張った日：%day%（%pieces%ピース）"

@@ -38,6 +38,7 @@ SELECT
     puzzling_type,
     COUNT(*) FILTER (WHERE {$countsAsSolve}) AS solve_count,
     COUNT(*) FILTER (WHERE first_attempt = true AND {$countsAsSolve}) AS first_attempt_count,
+    COUNT(*) FILTER (WHERE NOT {$countsAsSolve}) AS unfinished_count,
     COALESCE(SUM({$secondsPuzzled}), 0) AS total_seconds
 FROM puzzle_solving_time
 WHERE
@@ -54,22 +55,24 @@ WHERE
 GROUP BY day, puzzling_type
 SQL;
 
-        /** @var list<array{day: string, puzzling_type: string, solve_count: int|string, first_attempt_count: int|string, total_seconds: int|string}> $rows */
+        /** @var list<array{day: string, puzzling_type: string, solve_count: int|string, first_attempt_count: int|string, unfinished_count: int|string, total_seconds: int|string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'playerId' => $playerId,
             'dateFrom' => $monthStart->format('Y-m-d H:i:s'),
             'dateTo' => $monthEnd->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
-        /** @var array<string, array{solo: int, duo: int, team: int, firstAttempt: int, seconds: int}> $byDay */
+        /** @var array<string, array{solo: int, duo: int, team: int, firstAttempt: int, seconds: int, unfinished: int}> $byDay */
         $byDay = [];
 
         foreach ($rows as $row) {
             $day = $row['day'];
 
             if (isset($byDay[$day]) === false) {
-                $byDay[$day] = ['solo' => 0, 'duo' => 0, 'team' => 0, 'firstAttempt' => 0, 'seconds' => 0];
+                $byDay[$day] = ['solo' => 0, 'duo' => 0, 'team' => 0, 'firstAttempt' => 0, 'seconds' => 0, 'unfinished' => 0];
             }
+
+            $byDay[$day]['unfinished'] += (int) $row['unfinished_count'];
 
             $count = (int) $row['solve_count'];
             $byDay[$day][$row['puzzling_type']] = ($byDay[$day][$row['puzzling_type']] ?? 0) + $count;
@@ -87,6 +90,7 @@ SQL;
                 teamCount: $counts['team'],
                 firstAttemptCount: $counts['firstAttempt'],
                 totalSeconds: $counts['seconds'],
+                unfinishedCount: $counts['unfinished'],
             );
         }
 

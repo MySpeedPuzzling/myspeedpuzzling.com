@@ -588,3 +588,9 @@ import_added:
     open: "Open the import"
     undo_hint: "Something looks wrong? You can take back what was added on the import's page."
     opt_out: "You get this e-mail because you added rows of a spreadsheet import. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop these e-mails</a>"
+unfinished_result:
+    pieces: "%placed% / %total% pcs"
+    title: "Didn't finish within the time limit"
+    split_pieces: "%pieces% pieces"
+    preheader: "%pieces% pieces placed – your week in one short e-mail."
+    busiest_day: "Busiest day: %day%, %pieces% pieces"

@@ -447,6 +447,14 @@ Cup (PLAYER_WITH_STRIPE) with `ONLINE_ROUNDS_FOR_ORGANISERS` on.
 - Most times are verified
 - Unverified: TIME_15, TIME_23, TIME_30, TIME_31
 
+### Unfinished results (pieces placed, no time) - none in the fixtures
+Deliberately no global fixture row: their pieces and time spent count in every pieces / time sum, so one would move the
+numbers of unrelated tests. A test adds them with `tests/UnfinishedResultSeeding.php` (`seedUnfinishedResult()` - solo or
+a pair/team of player ids and guest names, on WJPC 2024 by default; `seedUnfinishedImportedTeam()` - an unclaimed imported
+team, with `TrackerlessTimeSeeding::seedTrackerlessEvent()`). Handy: PUZZLE_1000_02 has solo times of PLAYER_REGULAR,
+PLAYER_PRIVATE and PLAYER_WITH_STRIPE only and no pair/team time; PUZZLE_500_05 none of PLAYER_REGULAR /
+PLAYER_WITH_STRIPE.
+
 ## Quick Reference: Who Has What
 
 | Feature | Player |

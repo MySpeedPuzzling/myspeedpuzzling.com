@@ -53,6 +53,13 @@ readonly final class ResultImageVersion
             $player->code,
         ];
 
+        // An unfinished result's card shows its pieces and later total (docs/features/competitions-management/unfinished-results-plan.md);
+        // added only for one, so the version of every other card stays as it was - no card is drawn again for it
+        if ($time->piecesPlaced !== null) {
+            $shown[] = $time->piecesPlaced;
+            $shown[] = $time->finishedLaterSeconds;
+        }
+
         return substr(hash('xxh128', json_encode($shown, JSON_THROW_ON_ERROR)), 0, 16);
     }
 }

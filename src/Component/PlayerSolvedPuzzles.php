@@ -560,8 +560,9 @@ final class PlayerSolvedPuzzles
 
             // MEMBERS EXCLUSIVE FILTERS - only apply if user has membership
             if ($isMember) {
-                // Relax filter (time === null means relax puzzle)
-                if ($this->onlyRelax === true && $puzzle->time !== null) {
+                // Relax filter: no time, and no unfinished result either (an unfinished result has no time but is no
+                // relax solve - docs/features/competitions-management/unfinished-results-plan.md)
+                if ($this->onlyRelax === true && $puzzle->isRelax() === false) {
                     return false;
                 }
 

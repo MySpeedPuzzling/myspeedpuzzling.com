@@ -63,7 +63,25 @@ readonly final class SolvedPuzzle
         // solve (Query\CountsAsSolve), shown from step 2 of docs/features/competitions-management/unfinished-results-plan.md
         public null|int $piecesPlaced = null,
         public null|int $secondsSpent = null,
+        // An unfinished result's total when they finished it afterwards - display only
+        public null|int $finishedLaterSeconds = null,
     ) {
+    }
+
+    /**
+     * Pieces placed when a competition round's time ran out - shown with _unfinished_result_badge, never as relax
+     */
+    public function isUnfinished(): bool
+    {
+        return $this->piecesPlaced !== null;
+    }
+
+    /**
+     * A relax solve: no time, and no unfinished result either
+     */
+    public function isRelax(): bool
+    {
+        return $this->time === null && $this->piecesPlaced === null;
     }
 
     /**
@@ -117,6 +135,7 @@ readonly final class SolvedPuzzle
      *     imported_from_event?: null|bool,
      *     pieces_placed?: null|int,
      *     seconds_spent?: null|int,
+     *     finished_later_seconds?: null|int,
      *     ...
      * } $row
      */
@@ -174,6 +193,7 @@ readonly final class SolvedPuzzle
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
             piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
             secondsSpent: isset($row['seconds_spent']) ? (int) $row['seconds_spent'] : null,
+            finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
         );
     }
 

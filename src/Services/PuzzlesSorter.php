@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\RankShare;
 
 readonly final class PuzzlesSorter
@@ -734,9 +735,19 @@ readonly final class PuzzlesSorter
 
     private function calculatePlayersIdentification(PuzzleSolversGroup $puzzleSolversGroup): string
     {
+        return self::puzzlersIdentification($puzzleSolversGroup->players);
+    }
+
+    /**
+     * The key of a pair/team row (groupPlayers()) - shared with the unfinished results' bottom rows (UnfinishedResultsBoard)
+     *
+     * @param array<Puzzler> $puzzlers
+     */
+    public static function puzzlersIdentification(array $puzzlers): string
+    {
         $players = [];
 
-        foreach ($puzzleSolversGroup->players as $player) {
+        foreach ($puzzlers as $player) {
             // An anonymous slot of an imported event result is unique to its team - nameless, every anonymous team
             // would read the same (docs/features/event-results-import/README.md)
             $players[] = $player->anonymousSlot ?? $player->playerId ?? $player->playerCode ?? $player->playerName ?? '';

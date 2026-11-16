@@ -55,7 +55,12 @@ Still the one statement. The progress towards a first rating (profile card, ladd
 on those counting puzzles only since the same day (`MspRatingCalculator::qualificationProgress()`), with the others shown
 apart as "+N first attempts on puzzles that don't count yet".
 
-**`date_precision`** (last column, since 2026-11): how exactly `finished_at` is known - `day`, or `month` / `year` for a
+**`pieces_placed`, `finished_later_seconds`** (the last two columns, since 2026-11-16): an unfinished competition
+result - the round's time ran out - has the pieces placed and an empty `seconds_to_solve` (it is no relax solve), plus
+its total time when the puzzlers finished it afterwards (`docs/features/competitions-management/unfinished-results-plan.md`).
+Empty on every other result.
+
+**`date_precision`** (since 2026-11): how exactly `finished_at` is known - `day`, or `month` / `year` for a
 result imported from a spreadsheet that knew no more; `finished_at` is then the first day of that month or year and
 keeps its value (`docs/features/data-import/date-precision.md`). Empty for a result without a `finished_at`.
 

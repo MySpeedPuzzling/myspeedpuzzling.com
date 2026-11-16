@@ -221,10 +221,13 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
                 'soloCount' => 0,
                 'teamCount' => 0,
                 'totalSeconds' => 0,
+                'unfinishedCount' => 0,
             ], 'activityCalendar', self::REGULAR, $yesterday);
         }
 
         self::add($expected, $everybody[self::REGULAR][1], 'activityCalendar', self::REGULAR, $yesterday, 'totalSeconds');
+        // Step 2 (display): the day's cell marks its unfinished results apart from the solves - REGULAR is in four
+        self::add($expected, 4, 'activityCalendar', self::REGULAR, $yesterday, 'unfinishedCount');
 
         self::assertSame(self::normalize($expected), $after);
     }

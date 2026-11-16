@@ -108,7 +108,7 @@
                             <span class="text-muted">{{ 'pieces_count'|trans({'%count%': time.piecesCount})|raw }}</span>
                         </td>
                         <td class="text-end text-nowrap">
-                            {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
+                            {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% elseif time.piecesPlaced is not null %}{{ include('_unfinished_result_badge.html.twig', {placed: time.piecesPlaced, total: time.piecesCount, finished_later: time.finishedLaterSeconds, stacked: true}) }}{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
                             {% if time.suspicious %}
                                 <span class="badge rounded-pill bg-warning" data-testid="suspicious-badge"><i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}</span><br>
                             {% endif %}

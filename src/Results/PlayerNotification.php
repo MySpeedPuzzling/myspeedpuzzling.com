@@ -120,6 +120,10 @@ readonly final class PlayerNotification
         // ImportRowsTakenBack: how many results the admin's Undo deleted, and why
         public int $importResultsTakenBack = 0,
         public null|string $importTakenBackReason = null,
+        // SubscribedPlayerAddedTime of an unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md):
+        // the pieces placed when the round's time ran out - $time is null, and it is no relax solve
+        public null|int $piecesPlaced = null,
+        public null|int $finishedLaterSeconds = null,
     ) {
     }
 
@@ -263,6 +267,8 @@ readonly final class PlayerNotification
             importRowsNotAdded: is_int($row['import_rows_not_added'] ?? null) ? $row['import_rows_not_added'] : 0,
             importResultsTakenBack: is_int($row['import_results_taken_back'] ?? null) ? $row['import_results_taken_back'] : 0,
             importTakenBackReason: is_string($row['import_taken_back_reason'] ?? null) ? $row['import_taken_back_reason'] : null,
+            piecesPlaced: is_numeric($row['pieces_placed'] ?? null) ? (int) $row['pieces_placed'] : null,
+            finishedLaterSeconds: is_numeric($row['finished_later_seconds'] ?? null) ? (int) $row['finished_later_seconds'] : null,
         );
     }
 

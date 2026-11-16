@@ -63,6 +63,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetAllPlayerIdsWithSolveTimes.php' => 'neutral: candidate players for the XP / badge recalculations - an extra one costs nothing, the recalculation itself leaves unfinished results out.',
+        'Query/GetBotTrustEligibility.php' => 'neutral: the bot-blocker trust cookie - "has logged a result" is evidence of a real person, an unfinished result too.',
         'Query/GetBrandDirectory.php' => self::PERFORMANCE,
         'Query/GetBrandHub.php' => self::PERFORMANCE,
         'Query/GetCandidatePrediction.php' => self::PREDICTIONS,

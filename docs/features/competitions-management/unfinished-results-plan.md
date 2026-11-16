@@ -44,7 +44,7 @@ not make sense, the system should be smart".
 Delivery: the five steps below, one PR each; step 4 (the form) is walked in a real browser before merge.
 
 **Status step 1 (isolation), 2026-11-16 - PR open, not merged:** `puzzle_solving_time.seconds_spent` (generated
-migration `Version20261116103919`), the entity invariant (`PuzzleSolvingTime::assertUnfinishedResultIsConsistent()`,
+migration `Version20261116151500`), the entity invariant (`PuzzleSolvingTime::assertUnfinishedResultIsConsistent()`,
 checked before anything changes; `RemovedResultSnapshot` carries `seconds_spent`), `Query\CountsAsSolve` (`condition()`
 / `SQL_CONDITION`, `piecesPuzzled()`, `secondsPuzzled()`) in every count of solves and every pieces / time sum. All 174
 readers of `puzzle_solving_time` (SQL, DQL, PuzzleSolved handlers) are classified: 40 use `CountsAsSolve`, the rest are

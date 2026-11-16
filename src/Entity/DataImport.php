@@ -569,11 +569,14 @@ class DataImport
     /**
      * The safety net asks for the pairing once more (RequestImportPairing).
      *
+     * @param bool $puzzlesWaitForTheRules a puzzle of the import is undecided and was never looked at: then a run is
+     *        waited for although the last one came to rest ("still looking" must never stand without a run)
+     *
      * @return bool false: it is not waited for, or it was asked for often enough
      */
-    public function pairingRequestedAgain(DateTimeImmutable $now): bool
+    public function pairingRequestedAgain(DateTimeImmutable $now, bool $puzzlesWaitForTheRules = false): bool
     {
-        if ($this->isBeingSetUp() === false || $this->pairedAt !== null || $this->cellsWipedAt !== null || $this->pairingRequeues >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
+        if ($this->isBeingSetUp() === false || ($this->pairedAt !== null && $puzzlesWaitForTheRules === false) || $this->cellsWipedAt !== null || $this->pairingRequeues >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
             return false;
         }
 

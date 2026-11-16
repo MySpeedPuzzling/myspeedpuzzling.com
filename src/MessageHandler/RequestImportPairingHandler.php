@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\RequestImportPairing;
+use SpeedPuzzling\Web\Repository\DataImportPuzzleRepository;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -22,6 +23,7 @@ readonly final class RequestImportPairingHandler
 {
     public function __construct(
         private DataImportRepository $dataImportRepository,
+        private DataImportPuzzleRepository $dataImportPuzzleRepository,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -37,7 +39,7 @@ readonly final class RequestImportPairingHandler
         $this->idLock->lockUntilCommit(Uuid::fromString($message->importId));
         $import = $this->dataImportRepository->find($message->importId);
 
-        if ($import === null || $import->pairingRequestedAgain($this->clock->now()) === false) {
+        if ($import === null || $import->pairingRequestedAgain($this->clock->now(), $this->dataImportPuzzleRepository->hasUndecidedNobodyLookedAt($import)) === false) {
             return false;
         }
 

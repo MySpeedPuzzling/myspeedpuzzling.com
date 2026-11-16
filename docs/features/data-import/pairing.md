@@ -165,6 +165,30 @@ decision was made. A remembered catalogue puzzle that may not be a candidate any
 `remembered` decision whose source went is taken off again. A puzzle that leaves the file is deleted, decided or
 not - the decision is remembered, so the key arrives decided when it comes back.
 
+### A remembered decision taken back
+
+A puzzle that arrives decided as in an earlier file ("Matched like last time") was never looked at by the rules: its
+`tier` is null. Taking that decision back ("Untick", "Undo" on the remembered list) used to mark the puzzle as
+*the player's* undecided one - and every run skips a puzzle decided by the player. It was then in no pile (the
+remembered list holds decided puzzles only), counted as "still looking", and nothing ever looked at it: the
+overview said "Still looking for N of them…" for ever, and reading the rows again did not help (found on the
+deployed version, 2026-11; the behaviour is as old as the handler - stage 5a, #356 - and became visible with the
+remembered list of stage 5b, #358).
+
+Now (`DecideImportPuzzlesHandler`): a decision taken back on a puzzle with `tier` null makes the puzzle **nobody's**
+(`DataImportPuzzle::decisionTakenBackBeforeTheRulesLooked()`: undecided, `decided_how` and `decided_at` null), the
+import's pairing is **due** (`pairingDue()` - "not paired", so its pages follow it) and `BuildImportPuzzles` is
+queued after the commit. The run looks at it like at any new puzzle and puts it in the pile its own look-up gives -
+"Looks like a match", "Pick the right one" or "Not in our database". The player's remembered decision is handled as
+before (a match taken back is remembered as "not this puzzle", so the run does not make it again; anything else is
+forgotten). A puzzle the rules did look at (`tier` set) is taken back as before: it stays in its pile.
+
+**"Still looking" never stands without a run.** Two guards: every run starts by releasing puzzles left the old way
+(`DataImportPuzzleRepository::releaseUndecidedNobodyLookedAt()` - undecided, `tier` null, marked as decided), so an
+import that was stuck is healed by its next run; and the safety net (`idsPairingStandingSince()`,
+`RequestImportPairing`) also takes an import whose last run came to rest while a puzzle of it is undecided and was
+never looked at - bounded by the same number of tries.
+
 ## Decisions
 
 `DecideImportPuzzles(importId, playerId, list<ImportPuzzleDecisionChange>)`, each change

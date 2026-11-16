@@ -9,6 +9,10 @@ use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleChoiceRefused;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleDecidedMeanwhile;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Component\Messenger\MessageBusInterface;
+use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
+use SpeedPuzzling\Web\Message\RequestImportPairing;
 use SpeedPuzzling\Web\MessageHandler\DecideImportPuzzlesHandler;
 use SpeedPuzzling\Web\Tests\Services\DataImport\ImportPairingScenario;
 use SpeedPuzzling\Web\Tests\TestClock;
@@ -72,14 +76,33 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         self::assertSame(['unlisted', 'remembered'], [$this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['choice'], $this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['decided_how']]);
         self::assertSame(['probably', 'undecided', null], [$this->importPuzzle($theirs, 'Zq Remembered Harbour')['tier'], $this->importPuzzle($theirs, 'Zq Remembered Harbour')['choice'], $this->importPuzzle($theirs, 'Zq Remembered Harbour')['decided_how']]);
 
-        // Taken back: undecided by the player's own word, forgotten for the next file, and no run ticks it again
+        // It arrived decided: the rules never looked at it - it is in no pile of its own, only "Matched like last time"
+        self::assertNull($remembered['tier']);
+        $screen = self::getContainer()->get(GetImportPuzzleScreen::class);
+        $nextId = $next->id->toString();
+        self::assertSame([2, 0], [$screen->overview($nextId, $player->id->toString())->groups['remembered']['total'], $screen->overview($nextId, $player->id->toString())->searching]);
+
+        // Taken back: it is nobody's decision any more - the pairing is due, so the import says "not paired" and
+        // its run is asked for (a puzzle marked as the player's would be skipped by every run and wait for ever)
         $this->decide($next, $player->id->toString(), [
             new ImportPuzzleDecisionChange($remembered['id'], ImportPuzzleChoice::Undecided, null, $remembered['decision_version']),
         ]);
+        $between = $this->importPuzzle($next, 'zq remembered  HARBOUR');
+        self::assertSame(['undecided', null, null, null, $remembered['decision_version'] + 1], [$between['choice'], $between['puzzle_id'], $between['decided_how'], $between['tier'], $between['decision_version']]);
+        self::assertNull($this->pairingDatabase()->fetchOne('SELECT paired_at FROM data_import WHERE id = :id', ['id' => $nextId]));
+        self::assertSame(1, $screen->overview($nextId, $player->id->toString())->searching);
+
+        // The run: the puzzle is in the pile its own look-up gives - undecided, no run ticks it again - and nothing
+        // is "still looked for"
         $this->pair($next);
 
         $takenBack = $this->importPuzzle($next, 'zq remembered  HARBOUR');
-        self::assertSame(['undecided', null, 'player'], [$takenBack['choice'], $takenBack['puzzle_id'], $takenBack['decided_how']]);
+        self::assertSame(['undecided', null, null], [$takenBack['choice'], $takenBack['puzzle_id'], $takenBack['decided_how']]);
+        self::assertContains($takenBack['tier'], ['probably', 'choose']);
+        $overview = $screen->overview($nextId, $player->id->toString());
+        self::assertSame([0, 1, 1], [$overview->searching, $overview->groups['remembered']['total'], $overview->groups['probably']['open'] + $overview->groups['choose']['open']]);
+        self::assertNotNull($this->pairingDatabase()->fetchOne('SELECT paired_at FROM data_import WHERE id = :id', ['id' => $nextId]));
+        self::assertSame(0, $this->pairingCount("SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id AND tier IS NULL AND choice = 'undecided'", ['id' => $nextId]));
         // ... and what is remembered now is "not this puzzle"
         self::assertSame(
             [['choice' => 'not_this_puzzle', 'puzzle_id' => $puzzle], ['choice' => 'unlisted', 'puzzle_id' => null]],
@@ -90,6 +113,24 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         $unlisted = $this->importPuzzle($next, 'Zq Nothing Like It Anywhere');
         $this->decide($next, $player->id->toString(), [new ImportPuzzleDecisionChange($unlisted['id'], ImportPuzzleChoice::Undecided, null, $unlisted['decision_version'])]);
         self::assertSame(['not_this_puzzle'], $this->pairingDatabase()->fetchFirstColumn('SELECT choice FROM import_puzzle_decision WHERE player_id = :id', ['id' => $player->id->toString()]));
+        // ... and that one too goes to its own pile with the next run: "Not in our database"
+        $this->pair($next);
+        // (asked anew: the numbers moved)
+        $screen = self::getContainer()->get(GetImportPuzzleScreen::class);
+        self::assertSame(['none', 'undecided', null], [$this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['tier'], $this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['choice'], $this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['decided_how']]);
+        self::assertSame([0, 0, 1], [$screen->overview($nextId, $player->id->toString())->searching, $screen->overview($nextId, $player->id->toString())->groups['remembered']['total'], $screen->overview($nextId, $player->id->toString())->groups['not-found']['open']]);
+
+        // A puzzle left the old way (undecided, never looked at, marked as the player's - no run would take it, the
+        // import "paired"): the safety net asks for a run although the last one came to rest, and the run takes it
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_puzzle SET tier = NULL, searched_at = NULL, candidates = '[]', decided_how = 'player', decided_at = NOW() WHERE id = :id", ['id' => $unlisted['id']]);
+        self::assertSame(1, $screen->overview($nextId, $player->id->toString())->searching);
+        self::assertTrue($this->handledWithResult(new RequestImportPairing($nextId)));
+        $this->pair($next);
+        $screen = self::getContainer()->get(GetImportPuzzleScreen::class);
+        self::assertSame(['none', null], [$this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['tier'], $this->importPuzzle($next, 'Zq Nothing Like It Anywhere')['decided_how']]);
+        self::assertSame(0, $screen->overview($nextId, $player->id->toString())->searching);
+        // ... and an import with nothing waiting is not asked about
+        self::assertFalse($this->handledWithResult(new RequestImportPairing($nextId)));
     }
 
     public function testAPairingTakenBackIsNotMadeAgainWhenThePuzzleIsBuiltAnew(): void
@@ -308,6 +349,14 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         self::assertSame('undecided', $this->importPuzzle($import, 'Zq my five hundred')['choice']);
         $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0, confirmedOtherPieces: true)]);
         self::assertSame(['catalogue', $thousand], [$this->importPuzzle($import, 'Zq my five hundred')['choice'], $this->importPuzzle($import, 'Zq my five hundred')['puzzle_id']]);
+    }
+
+    private function handledWithResult(RequestImportPairing $message): bool
+    {
+        $queued = self::getContainer()->get(MessageBusInterface::class)->dispatch($message)->last(HandledStamp::class)?->getResult();
+        $this->pairingEntityManager()->clear();
+
+        return $queued === true;
     }
 
     /**

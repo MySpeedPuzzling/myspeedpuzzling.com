@@ -341,6 +341,36 @@ SQL, [
     }
 
     /**
+     * Puzzles of the import that wait in no pile and that no run would look at: undecided, never looked at by the
+     * rules (`tier` null), yet marked as decided by the player - what taking back a "Matched like last time" answer
+     * left before DecideImportPuzzlesHandler learnt to hand such a puzzle back to the rules. They are nobody's
+     * decision: released at the start of every run, so the run looks at them. One statement over the import's
+     * puzzles that must not be loaded one by one (an import has thousands).
+     */
+    public function releaseUndecidedNobodyLookedAt(DataImport $import): void
+    {
+        $this->entityManager->getConnection()->executeStatement(<<<SQL
+UPDATE data_import_puzzle
+SET decided_how = NULL, decided_at = NULL
+WHERE import_id = :importId
+    AND tier IS NULL
+    AND choice = :undecided
+    AND decided_how IS NOT NULL
+SQL, ['importId' => $import->id->toString(), 'undecided' => ImportPuzzleChoice::Undecided->value]);
+    }
+
+    /**
+     * Whether a puzzle of the import waits for the rules' look-up: undecided, and never looked at.
+     */
+    public function hasUndecidedNobodyLookedAt(DataImport $import): bool
+    {
+        return $this->entityManager->getConnection()->executeQuery(
+            'SELECT 1 FROM data_import_puzzle WHERE import_id = :importId AND tier IS NULL AND choice = :undecided LIMIT 1',
+            ['importId' => $import->id->toString(), 'undecided' => ImportPuzzleChoice::Undecided->value],
+        )->fetchOne() !== false;
+    }
+
+    /**
      * The next puzzles of the import that wait for the similar-name search: nothing exact was found, nobody decided.
      *
      * @return list<array{id: string, name: string, pieces: null|int, manufacturerId: null|string}>

@@ -49,8 +49,6 @@ final class ChangeImportAddListController extends AbstractController
 {
     /** Said inside the list's own frame (add_list.html.twig) - so it is there after a frame swap too */
     public const string FLASH = 'import_add_list';
-    /** The sheet that was just set to "not imported" and what it was before ({sheet, kind}): "Put back" in the same bar */
-    public const string FLASH_SHEET = 'import_add_list_sheet';
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -135,6 +133,13 @@ final class ChangeImportAddListController extends AbstractController
 
         if ($flash === null) {
             $this->addFlash(self::FLASH, $this->translator->trans('data_import.add_list.flash.changed_meanwhile'));
+        } elseif ($action === 'leave_out_sheet') {
+            // Said by the list itself, with "Put back", for as long as its address names the sheet
+            return $this->redirectToRoute(
+                'data_import_add_list',
+                ['importId' => $importId, ...$filters, 'page' => 1, 'left' => strtolower($form->getString('sheet')), ...($flash === '' ? [] : ['was' => $flash])],
+                Response::HTTP_SEE_OTHER,
+            );
         } else {
             $this->addFlash(self::FLASH, $flash);
         }
@@ -198,15 +203,9 @@ final class ChangeImportAddListController extends AbstractController
             sheetWide: $submission['sheetWide'],
         ));
 
-        if ($sheet->kind !== null && $sheet->kind !== DataImportSheetKind::NotPuzzles) {
-            // What it was: "Put back" in the list's bar sets it to that again
-            $this->addFlash(self::FLASH_SHEET, ['sheet' => $sheetId, 'kind' => $sheet->kind->value]);
-        }
-
-        // A file without sheets (a CSV) has one sheet without a name: "the whole file"
-        return trim($sheet->title) === ''
-            ? $this->translator->trans('data_import.add_list.flash.left_out_file')
-            : $this->translator->trans('data_import.add_list.flash.left_out_sheet', ['%title%' => $sheet->title]);
+        // What it was: the list's address names the sheet and its kind (`left`, `was`), so the list says what was
+        // done and offers "Put back" on every render - the first answer and every time the page asks again
+        return $sheet->kind !== null && $sheet->kind !== DataImportSheetKind::NotPuzzles ? $sheet->kind->value : '';
     }
 
     /**

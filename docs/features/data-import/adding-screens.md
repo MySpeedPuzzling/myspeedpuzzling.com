@@ -403,9 +403,14 @@ all along. Only a waiting row of the import is ever shown by `back`.
 
 The list's bar ("N will be added", the notice) is **fixed to the bottom of the window**; the frame keeps the bar's
 real height free under the list (the script measures it; 10 rem without a script). A file without sheets has one sheet
-without a name: "The rows of the whole file are not imported." / "Yes, don't import this file". Right after a
-sheet was set to "not imported" the bar offers **Put back** (`put_back_sheet`: the same one-tap change, back to the
-kind the sheet had - carried in a flash of its own, `FLASH_SHEET`; the sheet's rows are read again).
+without a name: "The rows of the whole file are not imported." / "Yes, don't import this file". After a sheet was
+set to "not imported" the bar says so and offers **Put back** (`put_back_sheet`: the same one-tap change, back to
+the kind the sheet had; its rows are read again). The answer's redirect **names the sheet in the list's address**
+(`?left=<sheet id>&was=<kind>`), and the list renders the sentence and the offer from it on every render while that
+sheet is left out - so the page's own re-check (it asks for the same address again while the file is "being read
+again") keeps them; as a one-time notice they were gone with the first re-check, 1.6 s after they appeared. The
+"being read again" notice stands in the bar too: above the list it moved the list under the finger when it came and
+went. A sheet of another import in `left` is a 404; a sheet that is not left out is not offered.
 
 ### Who did you solve these with?
 

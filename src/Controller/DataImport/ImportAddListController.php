@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Query\GetImportSheetScreen;
 use SpeedPuzzling\Web\Results\ImportAddListRow;
 use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImportSheetKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +37,7 @@ final class ImportAddListController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
         readonly private GetImportAddScreen $getImportAddScreen,
+        readonly private GetImportSheetScreen $getImportSheetScreen,
     ) {
     }
 
@@ -54,7 +57,23 @@ final class ImportAddListController extends AbstractController
         // What an "Add" would do now, and the sheets that have something ready - one statement
         $add = $this->getImportAddScreen->summary($importId, $player->playerId, forReview: true);
 
-        if ($add->canAdd === false) {
+        // A sheet that was just set to "not imported" (ChangeImportAddListController): named by the address, so
+        // the list says so and offers "Put back" on every render - also when the page asks again by itself while
+        // the file is read again. Only while the sheet IS left out, and only as a kind a sheet of puzzles has.
+        $leftOutSheet = null;
+        $left = strtolower($request->query->getString('left'));
+        $was = DataImportSheetKind::tryFrom($request->query->getString('was'));
+
+        if (Uuid::isValid($left)) {
+            // Another import's sheet, or none: a 404
+            $sheet = $this->getImportSheetScreen->sheet($importId, $left, $player->playerId);
+
+            if ($sheet->kind === DataImportSheetKind::NotPuzzles && $sheet->beingSetUp) {
+                $leftOutSheet = ['sheet' => $left, 'kind' => $was !== null && $was !== DataImportSheetKind::NotPuzzles ? $was->value : DataImportSheetKind::Results->value, 'title' => trim($sheet->title)];
+            }
+        }
+
+        if ($add->canAdd === false && $leftOutSheet === null) {
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
         }
 
@@ -104,6 +123,7 @@ final class ImportAddListController extends AbstractController
         $repeats = array_values(array_filter(array_map(static fn (string $id): null|ImportAddRow => $known[$id] ?? null, $add->repeatIds)));
 
         return $this->render('data_import/add_list.html.twig', [
+            'left_out_sheet' => $leftOutSheet,
             'coming_back' => $comingBack,
             'back' => $comingBack !== null ? $back : null,
             'import' => $import,

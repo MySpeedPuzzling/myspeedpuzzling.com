@@ -167,6 +167,8 @@ final class ImportAnswersScriptTest extends TestCase
         // stood at 59 px; header 101 + 20), and the frame is asked for again - twelve times, not one more
         self::assertSame(['focused' => 'import-add-list div Your file is being read again', 'scrolledBy' => [-62]], self::at($again, 'first'));
         self::assertSame(12, $again['reloads']);
+        // ... at the address the answer gave (it names the sheet that was left out: "Put back" is offered each time)
+        self::assertTrue($again['sameAddress']);
         // Then nothing turns any more, and the row that is still coming back says so - focus on its "Refresh"
         self::assertSame([0, false, true], [$again['spinners'], $again['longer'], $again['atOnce']]);
         self::assertSame('row-x a Refresh', $again['focused']);

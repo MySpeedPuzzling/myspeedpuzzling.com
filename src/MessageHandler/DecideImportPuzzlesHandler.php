@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\ImportPuzzleDecision;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleChoiceRefused;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleDecidedMeanwhile;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
 use SpeedPuzzling\Web\Query\GetImportPuzzleCandidates;
 use SpeedPuzzling\Web\Repository\DataImportPuzzleRepository;
@@ -23,6 +24,8 @@ use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use SpeedPuzzling\Web\Value\ImportPuzzleDecidedHow;
 use SpeedPuzzling\Web\Value\ImportPuzzleTier;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
  * Under the import's lock (docs/features/data-import/pairing.md "Decisions"). **Everything is checked before anything
@@ -40,6 +43,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *   never said a word against it (a match taken off, a remembered "not this puzzle"). Anything else
  *   in the set refuses the whole message - it is confirmed on its own, after a look (guided-flow.md §6.1).
  *
+ * A decision taken back on a puzzle the rules never looked at (it arrived decided as in an earlier file) makes it
+ * nobody's and asks for the pairing's run: it goes to the pile its own look-up gives.
+ *
  * Then each puzzle takes the decision as the player's, and the player's remembered decision for its key is written
  * (a pairing taken back is remembered as "not this puzzle"; anything else taken back is forgotten). The counters of "where the rules end" move by what changed - the
  * next run of the pairing counts them afresh (GetImportPairing::counters() is the same rule in SQL).
@@ -55,6 +61,7 @@ readonly final class DecideImportPuzzlesHandler
         private GetImportPuzzleCandidates $candidates,
         private IdLock $idLock,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -163,6 +170,7 @@ readonly final class DecideImportPuzzlesHandler
         }
 
         // Checked - from here on nothing refuses
+        $lookUp = false;
         $moved = [];
 
         foreach ($importPuzzles as $importPuzzle) {
@@ -179,7 +187,14 @@ readonly final class DecideImportPuzzlesHandler
                 // A pairing taken back is remembered as "not this puzzle": the import's puzzle may be built anew (a
                 // sheet left out and taken in again), and the rules must not make the same pairing again
                 $takenBack = $importPuzzle->choice === ImportPuzzleChoice::Catalogue ? $importPuzzle->puzzle : null;
-                $importPuzzle->decisionTakenBack($now);
+
+                if ($importPuzzle->tier === null) {
+                    // "Matched like last time", taken back: the rules never looked at this puzzle - they do now
+                    $importPuzzle->decisionTakenBackBeforeTheRulesLooked();
+                    $lookUp = true;
+                } else {
+                    $importPuzzle->decisionTakenBack($now);
+                }
 
                 if ($takenBack !== null && isset($remembered[$key])) {
                     $remembered[$key]->decide(ImportPuzzleChoice::NotThisPuzzle, $takenBack, $now);
@@ -213,6 +228,14 @@ readonly final class DecideImportPuzzlesHandler
 
         $import->pairingCountersMoved($moved);
         $import->workedOn($now);
+
+        if ($lookUp) {
+            // The pairing is due for the puzzle nobody looked at: its run is queued after this is committed, and
+            // until it comes to rest the import says "not paired" - so its pages follow it and the safety net asks
+            // again if the message is lost (docs/features/data-import/pairing.md "A remembered decision taken back")
+            $import->pairingDue($now);
+            $this->messageBus->dispatch(new BuildImportPuzzles($message->importId), [new DispatchAfterCurrentBusStamp()]);
+        }
     }
 
     /**

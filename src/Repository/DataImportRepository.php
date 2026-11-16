@@ -207,7 +207,14 @@ SQL, [
 SELECT data_import.id
 FROM data_import
 WHERE data_import.status = :status
-    AND data_import.paired_at IS NULL
+    -- ... or it did, but a puzzle is undecided and was never looked at: "still looking" without a run
+    AND (data_import.paired_at IS NULL OR EXISTS (
+        SELECT 1
+        FROM data_import_puzzle unlooked
+        WHERE unlooked.import_id = data_import.id
+            AND unlooked.tier IS NULL
+            AND unlooked.choice = 'undecided'
+    ))
     AND data_import.cells_wiped_at IS NULL
     AND data_import.pairing_requeues < :maxRequeues
     -- The pairing's own sign of life - the player's decisions and answers move last_activity_at, not this

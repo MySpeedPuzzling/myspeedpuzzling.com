@@ -165,6 +165,21 @@ class DataImportPuzzle
     }
 
     /**
+     * A decision is taken back on a puzzle the rules never looked at (`tier` null: it arrived decided, as in an
+     * earlier file - "Matched like last time"). It is nobody's decision any more, so the pairing looks at it like at
+     * any new puzzle and puts it in the pile its own look-up gives; marked as the player's it would be skipped by
+     * every run and wait for ever, in no pile.
+     */
+    public function decisionTakenBackBeforeTheRulesLooked(): void
+    {
+        $this->choice = ImportPuzzleChoice::Undecided;
+        $this->puzzle = null;
+        $this->decidedAt = null;
+        $this->decidedHow = null;
+        $this->decisionVersion++;
+    }
+
+    /**
      * Whether a page that saw this version of the decision still looks at the current one.
      */
     public function isDecisionVersion(int $seen): bool

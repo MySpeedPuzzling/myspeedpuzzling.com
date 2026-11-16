@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Message\AnswerImportPuzzlePile;
+use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ContinueImportBatches;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
 use SpeedPuzzling\Web\MessageHandler\AnswerImportPuzzlePileHandler;
@@ -1263,6 +1264,61 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         $this->browser->request('POST', $decide, ['_token' => 'nonsense'] + ['action' => 'undecided', 'puzzle' => $apple['id'], 'version' => '1'] + $round, server: self::AS_TURBO);
         self::assertResponseStatusCodeSame(403);
         self::assertSame('catalogue', $this->choices($importId)['Zq9t Twin Apple'][0]);
+    }
+
+    public function testAMatchedLikeLastTimeAnswerTakenBackGoesToThePileItsOwnLookUpGives(): void
+    {
+        $player = $this->seedPairingPlayer('inplace-remembered');
+        $playerId = $player->id->toString();
+        $brand = $this->seedBrand('Zq9vbrand');
+        $puzzle = $this->seedCataloguePuzzle('Zq9v Looks Like Meadow', 500, $brand);
+        $this->seedCataloguePuzzle('Zq9v Found Harbour', 1000, $this->brand($brand));
+
+        // An earlier file: the player says which puzzle "Zq9v Looks Like Meadow" is - remembered for the next one
+        [$earlier, $earlierSheet] = $this->importOf($player);
+        $this->seedRow($earlier, $earlierSheet, 'Zq9v Looks Like Meadow', 500);
+        $earlierId = $this->settled($earlier);
+        TestingLogin::asPlayer($this->browser, $playerId);
+        $token = $this->token($this->browser->request('GET', '/en/import/' . $earlierId . '/puzzles/probably?page=1'));
+        $this->browser->request('POST', '/en/import/' . $earlierId . '/puzzles/decide', ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $this->importPuzzle($earlierId, 'Zq9v Looks Like Meadow')['id'], 'version' => '0', 'catalogue' => $puzzle, 'group' => 'probably', 'page' => '1']);
+        self::assertResponseRedirects();
+
+        [$import, $sheet] = $this->importOf($player);
+        $this->seedRow($import, $sheet, 'Zq9v Looks Like Meadow', 500);
+        $this->seedRow($import, $sheet, 'Zq9v Found Harbour', 1000, 'Zq9vbrand');
+        $importId = $this->settled($import);
+        $base = '/en/import/' . $importId;
+        $remembered = $this->importPuzzle($importId, 'Zq9v Looks Like Meadow');
+        self::assertSame(['catalogue', 'remembered', null], [$remembered['choice'], $remembered['decided_how'], $remembered['tier']]);
+
+        $list = $this->browser->request('GET', $base . '/puzzles/remembered');
+        self::assertCount(1, $list->filter('#puzzle-' . $remembered['id'] . ' form[data-import-answer] [data-testid="import-puzzle-untick"]'));
+
+        // "Untick" on the list of "Matched like last time", in place: the card says the puzzle waits again ...
+        $this->browser->request('POST', $base . '/puzzles/decide', ['_token' => $token, 'action' => 'undecided', 'puzzle' => $remembered['id'], 'version' => (string) $remembered['decision_version'], 'group' => 'remembered', 'page' => '1'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('undecided', $streams['puzzle-' . $remembered['id']]['part']->filter('#puzzle-' . $remembered['id'])->attr('data-choice'));
+        self::assertSame('Undone. The puzzle waits for you again.', self::spaced($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-text"]')->text()));
+        // ... and it does: nobody's decision any more, the pairing due - its run is queued, the overview follows it
+        $now = $this->importPuzzle($importId, 'Zq9v Looks Like Meadow');
+        self::assertSame(['undecided', null, null], [$now['choice'], $now['decided_how'], $now['tier']]);
+        self::assertNull($this->database->fetchOne('SELECT paired_at FROM data_import WHERE id = :id', ['id' => $importId]));
+        $queue = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
+        self::assertContains(BuildImportPuzzles::class, array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, $queue->getSent()));
+
+        // The run: the puzzle is in a pile that waits for the player - never "still looked for" without an end
+        $this->pair($import);
+        $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = 1, mapping_version = 1 WHERE import_id = :id', ['id' => $importId]);
+        $after = $this->importPuzzle($importId, 'Zq9v Looks Like Meadow');
+        self::assertContains($after['tier'], ['probably', 'choose']);
+        self::assertSame(['undecided', null], [$after['choice'], $after['decided_how']]);
+        $overview = $this->browser->request('GET', $base . '/puzzles');
+        self::assertCount(0, $overview->filter('[data-testid="import-puzzles-searching"]'));
+        self::assertSame('1', $overview->filter('[data-testid="import-puzzle-group"][data-group="' . ($after['tier'] === 'probably' ? 'probably' : 'choose') . '"]')->attr('data-open'));
+        self::assertCount(0, $overview->filter('[data-testid="import-puzzles-remembered-link"]'));
+        self::assertCount(0, $this->browser->request('GET', $base . '/puzzles/remembered')->filter('#puzzle-' . $remembered['id']));
+        self::assertCount(1, $this->browser->request('GET', $base . '/puzzles/' . $after['tier'] . '?page=1')->filter('#puzzle-' . $remembered['id']));
     }
 
     /**

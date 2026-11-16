@@ -491,7 +491,7 @@ final class ImportAddListTest extends WebTestCase
         self::assertSame('results', $this->database->fetchOne('SELECT kind FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]));
 
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out_sheet', 'sheet' => $sheetId, 'version' => $version]);
-        self::assertResponseRedirects($path . '?page=1');
+        self::assertResponseRedirects($path . '?page=1&left=' . $sheetId . '&was=results');
         self::assertSame('not_puzzles', $this->database->fetchOne('SELECT kind FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]));
         // "Don't import this sheet" holds from the moment it is said: its rows are read again in the background, and
         // until then none of them is ready. What the engine's own summary says, and an "Add" pressed right now -
@@ -568,11 +568,34 @@ final class ImportAddListTest extends WebTestCase
 
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'leave_out_sheet', 'sheet' => $sheetId, 'version' => (string) $sheet->filter('input[name="version"]')->attr('value')]);
         self::assertSame('not_puzzles', $kind());
-        $bar = $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-bar"]');
-        $putBack = $bar->filter('form[data-testid="import-add-list-sheet-put-back"]');
-        self::assertSame('Put back', self::spaced($putBack->filter('button')->text()));
-        // Shown once, with the answer it belongs to
+        // The answer names the sheet in the list's address: what was done, "being read again" and "Put back" are
+        // in the bar at the bottom - nothing stands above the list, so the list does not move
+        $answered = $path . '?page=1&left=' . $sheetId . '&was=results';
+        self::assertResponseRedirects($answered);
+        $offer = static function (Crawler $page): array {
+            $bar = $page->filter('[data-testid="import-add-list-bar"]');
+            $putBack = $bar->filter('form[data-testid="import-add-list-sheet-put-back"][data-turbo-frame="import-add-list"]');
+
+            return [
+                self::spaced($bar->filter('[data-testid="import-add-list-sheet-left-out"] [role="status"]')->text()),
+                $bar->filter('[data-testid="import-add-list-reading-again"][data-import-reading-again]')->count(),
+                [$putBack->filter('input[name="sheet"]')->attr('value'), $putBack->filter('input[name="kind"]')->attr('value'), $putBack->filter('button')->attr('value')],
+                $page->filter('turbo-frame#import-add-list [data-import-reading-again]')->count() - $bar->filter('[data-import-reading-again]')->count(),
+            ];
+        };
+        $first = $offer($this->browser->followRedirect());
+        self::assertSame(['The rows of “Older” are not imported. You can change this in step 2, “How we read your file”.', 1, [$sheetId, 'results', 'put_back_sheet'], 0], $first);
+        // The page asks for the same address again by itself while the file is read again - and again: the offer
+        // is there every time, not only in the first answer (it was a one-time notice, gone with the first re-check)
+        self::assertSame($first, $offer($this->browser->request('GET', $answered)));
+        self::assertSame($first, $offer($this->browser->request('GET', $answered)));
+        // Without the sheet in its address the list offers nothing - and a sheet that is not left out is not offered
         self::assertCount(0, $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        $otherSheetId = (string) $crawler->filter('[data-testid="import-add-list-sheet-heading"]')->eq(0)->attr('data-sheet-id');
+        self::assertCount(0, $this->browser->request('GET', $path . '?left=' . $otherSheetId . '&was=results')->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        // Somebody else's sheet in the address: not found
+        $this->browser->request('GET', $path . '?left=' . Uuid::uuid7()->toString() . '&was=results');
+        self::assertResponseStatusCodeSame(404);
 
         // A kind that is none, "not puzzles" itself, a sheet that is not left out, and no token: nothing is put back
         foreach (['nonsense', 'not_puzzles'] as $crafted) {
@@ -592,6 +615,8 @@ final class ImportAddListTest extends WebTestCase
         $bar = $this->browser->request('GET', $path)->filter('[data-testid="import-add-list-bar"]');
         self::assertStringContainsString('Put back. Its rows are read again', $bar->filter('[data-testid="import-add-list-flash"]')->text());
         self::assertCount(0, $bar->filter('[data-testid="import-add-list-sheet-put-back"]'));
+        // ... and the address of the first answer offers nothing any more: the sheet is not left out
+        self::assertCount(0, $this->browser->request('GET', $answered)->filter('[data-testid="import-add-list-sheet-put-back"]'));
         $this->browser->request('POST', $path, ['_token' => $token, 'action' => 'put_back_sheet', 'sheet' => $sheetId, 'kind' => 'results']);
         self::assertSame('results', $kind());
     }

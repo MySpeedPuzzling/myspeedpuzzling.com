@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
+use SpeedPuzzling\Web\Value\UnfinishedResult;
 use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 #[Entity]
@@ -238,6 +239,7 @@ class PuzzleSolvingTime implements EntityWithEvents
      * A pair's or team's result from an organizer's results sheet (docs/features/event-results-import/README.md):
      * nobody's yet - no tracker, one anonymous slot per person - until the puzzlers claim their spots. Solved and
      * tracked on the event day, so it falls into that day's and month's statistics; a first try is never known.
+     * Either its time or - the team did not finish within the round's limit - its unfinished result.
      */
     public static function importedFromEvent(
         UuidInterface $id,
@@ -246,9 +248,14 @@ class PuzzleSolvingTime implements EntityWithEvents
         CompetitionRound $competitionRound,
         PuzzlersGroup $anonymousGroup,
         PuzzlingTeam $puzzlingTeam,
-        int $secondsToSolve,
+        null|int $secondsToSolve,
         DateTimeImmutable $solvedAt,
+        null|UnfinishedResult $unfinished = null,
     ): self {
+        if (($secondsToSolve === null) === ($unfinished === null)) {
+            throw new LogicException('An imported event result has either a time or an unfinished result.');
+        }
+
         foreach ($anonymousGroup->puzzlers as $puzzler) {
             if ($puzzler->anonymousSlot === null) {
                 throw new LogicException('An imported event result starts with anonymous slots only.');
@@ -274,8 +281,11 @@ class PuzzleSolvingTime implements EntityWithEvents
             unboxed: false,
             competitionRound: $competitionRound,
             competition: $competition,
+            piecesPlaced: $unfinished?->piecesPlaced,
+            finishedLaterSeconds: $unfinished?->finishedLaterSeconds,
             puzzlingTeam: $puzzlingTeam,
             createdVia: SolvingTimeSource::EventImport,
+            secondsSpent: $unfinished?->secondsSpent,
         );
     }
 
@@ -314,25 +324,65 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
-     * The organizer corrected the team's time on the sheet (docs/features/event-results-import/README.md).
+     * The organizer corrected the team's time on the sheet (docs/features/event-results-import/README.md) - also a team
+     * that had not finished before (its pieces placed go: a time means it finished).
+     *
+     * @return bool whether anything changed
      */
-    public function correctImportedTime(int $secondsToSolve): void
+    public function correctImportedTime(int $secondsToSolve): bool
     {
         if ($this->isImportedFromEvent() === false) {
             throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
         }
 
-        if ($secondsToSolve === $this->secondsToSolve) {
-            return;
+        if ($secondsToSolve === $this->secondsToSolve && $this->piecesPlaced === null) {
+            return false;
         }
 
-        self::assertUnfinishedResultIsConsistent($secondsToSolve, $this->piecesPlaced, $this->finishedLaterSeconds, $this->secondsSpent);
-
+        $this->piecesPlaced = null;
+        $this->finishedLaterSeconds = null;
+        $this->secondsSpent = null;
         $this->secondsToSolve = $secondsToSolve;
 
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+
+        return true;
+    }
+
+    /**
+     * The sheet says the team did not finish within the round's limit (pieces placed instead of a time), or corrected
+     * its pieces, or the round's limit changed (its time spent follows) - docs/features/event-results-import/README.md
+     * "Unfinished results (D9)".
+     *
+     * @return bool whether anything changed
+     */
+    public function correctImportedUnfinishedResult(UnfinishedResult $unfinished): bool
+    {
+        if ($this->isImportedFromEvent() === false) {
+            throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
+        }
+
+        if (
+            $this->secondsToSolve === null
+            && $this->piecesPlaced === $unfinished->piecesPlaced
+            && $this->finishedLaterSeconds === $unfinished->finishedLaterSeconds
+            && $this->secondsSpent === $unfinished->secondsSpent
+        ) {
+            return false;
+        }
+
+        $this->secondsToSolve = null;
+        $this->piecesPlaced = $unfinished->piecesPlaced;
+        $this->finishedLaterSeconds = $unfinished->finishedLaterSeconds;
+        $this->secondsSpent = $unfinished->secondsSpent;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        return true;
     }
 
     /**
@@ -789,6 +839,39 @@ class PuzzleSolvingTime implements EntityWithEvents
         return $this->predictable === null
             && $this->puzzlingType === PuzzlingType::Solo
             && $this->secondsToSolve !== null;
+    }
+
+    /**
+     * The result is unfinished (UnfinishedResult - built and checked before anything changed): called by the unfinished
+     * edit right after modify() without a time, which recorded PuzzleSolvingTimeModified - so it records nothing itself
+     * (docs/features/competitions-management/unfinished-results-plan.md, step 3).
+     */
+    public function unfinishedWith(UnfinishedResult $unfinished): void
+    {
+        if ($this->secondsToSolve !== null) {
+            throw new LogicException('An unfinished result (pieces placed) has no time to solve - modify() it without one first.');
+        }
+
+        $this->piecesPlaced = $unfinished->piecesPlaced;
+        $this->finishedLaterSeconds = $unfinished->finishedLaterSeconds;
+        $this->secondsSpent = $unfinished->secondsSpent;
+    }
+
+    /**
+     * An unfinished result becomes a finished (or relax) one: its pieces placed, later total and time spent go. Only
+     * EditPuzzleSolvingTimeHandler with EditPuzzleSolvingTime::$endsUnfinishedResult, right before its modify() - which
+     * records PuzzleSolvingTimeModified.
+     */
+    public function endUnfinishedResult(): void
+    {
+        $this->piecesPlaced = null;
+        $this->finishedLaterSeconds = null;
+        $this->secondsSpent = null;
+    }
+
+    public function isUnfinished(): bool
+    {
+        return $this->piecesPlaced !== null;
     }
 
     public function modify(

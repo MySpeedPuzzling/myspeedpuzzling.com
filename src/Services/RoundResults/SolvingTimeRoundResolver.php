@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 
 /**
  * The round a solving time belongs to: the round of its competition that has its puzzle and whose category
@@ -15,8 +16,9 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
  * competition, so there is never a choice to make - and deliberately no date condition, results are
  * added from home and backfilled days later.
  *
- * Used by the time's own add/edit handlers, before the entity is flushed. Changes on the round side are
- * reconciled in bulk by RoundResultsReconciler instead.
+ * Used by the time's own add/edit handlers, before the entity is flushed - and, through resolveFor(), by the unfinished
+ * result's handlers before the entity even exists (an unfinished result needs its round's limit first). One statement
+ * for both, so they can never disagree. Changes on the round side are reconciled in bulk by RoundResultsReconciler instead.
  */
 readonly final class SolvingTimeRoundResolver
 {
@@ -32,6 +34,15 @@ readonly final class SolvingTimeRoundResolver
             return null;
         }
 
+        return $this->resolveFor(
+            $solvingTime->competition->id->toString(),
+            $solvingTime->puzzle->id->toString(),
+            $solvingTime->puzzlingType,
+        );
+    }
+
+    public function resolveFor(string $competitionId, string $puzzleId, PuzzlingType $puzzlingType): null|CompetitionRound
+    {
         $roundId = $this->database->executeQuery(
             <<<SQL
 SELECT cr.id
@@ -44,9 +55,10 @@ ORDER BY cr.starts_at
 LIMIT 1
 SQL,
             [
-                'competitionId' => $solvingTime->competition->id->toString(),
-                'puzzleId' => $solvingTime->puzzle->id->toString(),
-                'category' => $solvingTime->puzzlingType->value,
+                'competitionId' => $competitionId,
+                'puzzleId' => $puzzleId,
+                // RoundCategory and PuzzlingType share their values (solo / duo / team)
+                'category' => $puzzlingType->value,
             ],
         )->fetchOne();
 

@@ -56,6 +56,33 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-16 - **first tester's feedback, all live** (#378-#381, #383-#388, hotfix `88785155c`). A real player's
+  report on the sandbox (a header-less sheet, 72 rows) and what each walk in a browser turned up after it:
+  - **#378** the row editor keeps where the player came from (`?return=`, a closed list of the import's pages), a
+    save returns there with "Row N is saved" under the header; "No time - I didn't time this one" for a row and
+    "Import all of them without a time (N)" for every group at once; "rows we could not read" answers in place.
+  - **#379, #383** unlisted puzzles are linked from the menu, the overview and the guide; "Add to the catalogue"
+    (the existing `AddPuzzle` + `PairUnlistedPuzzle`, ten new puzzles a day); rows kept just for the player are
+    named on the imports home, after an Add and after an Undo (`data_import_undo.kept_rows_removed`).
+  - **#380, #384, #388** Puzzles, People and "What will be added" answer in place (Turbo Streams, redirect
+    fallback), one fixed line at the bottom with "Undo the last one"; Put back returns a row or a whole file in
+    place; a double tap never answers twice. The first browser walk caught what tests and review missed:
+    `form.action` shadowed by `<button name="action">` - the harness now reproduces it.
+  - **#381, #387** a guessed sheet (no header row, a deciding column guessed from values only, kind unknown) is
+    checked first and its puzzles wait for "Yes, this is right"; brand, time and name are guessed from values;
+    `0:30:20.23` = `30:20.23` = `30:20,23` = 1,820 s (the fraction is dropped, as the add form does); the imports
+    home counts what an Add would really add.
+  - **#385** rows already on the profile are said plainly and leave "What will be added"; repeats have their own
+    list; an import with nothing to add can be finished.
+  - **#386** an older defect (#356): a remembered answer taken back left the puzzle in no pile, "still looking"
+    for ever - it now goes back to the rules, is never ticked by them again, and stuck ones heal on the next run.
+  - Hotfix: "Check and add" reloaded itself without end for an import with a failed sheet (from #381; no such
+    import existed on production).
+  Checked on the sandbox after every deploy (desktop width; 390 px only in a frame on the branch - **a real phone
+  has not seen any of it**). Open: `docs/TODO.md` (an Undo for answers given to many puzzles at once, the photo of
+  "Add to the catalogue" is a plain upload of at most 20 MB, the imports home statement is not measured on a large
+  account, non-English texts are unread by native speakers).
+
 - 2026-11-15 - **stage 8 live: the import is discoverable** (#366). Entry points (welcome page "Import your data
   from elsewhere", Getting started, user menu, FAQ, one static line outside the add form, footer) and the public
   guide `import_guide` in six languages ("How the import works": one small made-up spreadsheet followed through the

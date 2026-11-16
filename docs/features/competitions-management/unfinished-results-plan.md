@@ -85,9 +85,9 @@ for the relax filter; tab counts = listed puzzles, unchanged), player feed + Hub
 columns through `listed`), activity calendar (`ActivityCalendarDay::$unfinishedCount` = an hourglass pill on an active
 day without solves, drill-down badge), notifications ("competed with puzzle" + badge - never "solved"), team page,
 result detail, recap (panel: pieces, pieces left, the later total, "See round results" while the event is public),
-share card ("479/500", "pieces placed in the time limit"; its version changes only for an unfinished result). Digest +
-"Your week": a part with no solve reads "N pieces", a highlight shows the pieces and "Didn't finish within the time
-limit"; the Players page's pieces milestone chip already says "N pieces placed" (no change). **API/export:** v1 results
+share card ("479/500", "pieces placed in the time limit"; its version changes only for an unfinished result). My data's list shows the pieces (its row form is steps 3-4). Digest + "Your week": a part,
+the busiest day or (the e-mail's preheader) a week with no solve reads "N pieces", never "0 puzzles"; a highlight shows
+the pieces and "Didn't finish within the time limit"; the Players page's pieces milestone chip already says "N pieces placed" (no change). **API/export:** v1 results
 and solving-time answers + v0 results gain `pieces_placed`, `finished_later_seconds` (v0 `is_relax_mode` false for
 one), the export two last columns. Left for steps 3-4: below in `docs/TODO.md`.
 

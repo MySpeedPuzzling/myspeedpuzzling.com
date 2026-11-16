@@ -13,8 +13,9 @@ use Symfony\Component\Mercure\Jwt\Grant;
  * The live updates subscription of one organiser page (docs/features/competitions-management/official-results.md
  * "Live updates"): a short-lived subscriber JWT for exactly the topics that page follows, which the page sends as
  * `Authorization: Bearer` on its own stream (assets/official_results_events.js) - never in a URL, never in the
- * `mercureAuthorization` cookie. The cookie is rewritten by every signed-in response with that request's topics only,
- * so a round topic kept there was lost on the next reconnect; a token passed per connection beats the cookie.
+ * subscriber cookie (`__Secure-mercure_access_token`). The cookie is rewritten by every signed-in response with that
+ * request's topics only, so a round topic kept there was lost on the next reconnect; a token passed per connection
+ * beats the cookie.
  *
  * Issue it only after the voter allowed the page (organiser, or a referee for the live entry's round state). Topics
  * are always listed one by one - never a URI template, which would grant every round. Signed with the hub's key

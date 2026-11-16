@@ -14,6 +14,7 @@ use Psr\Log\AbstractLogger;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mercure\HubRegistry;
+use Symfony\Component\Mercure\Jwt\DefaultClaimsTokenFactory;
 use Symfony\Component\Mercure\Jwt\LcobucciFactory;
 use Symfony\Component\Mercure\Jwt\StaticTokenProvider;
 use Symfony\Component\Mercure\Jwt\TokenFactoryInterface;
@@ -33,7 +34,7 @@ final class OfficialResultsSubscriptionTest extends TestCase
 
     public function testARoundsSubscriptionCoversItsPrivateTopicAndItsStopwatchForAnHour(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRound(self::ROUND);
+        $subscription = $this->subscription(self::factory(self::SECRET))->forRound(self::ROUND);
 
         self::assertNotNull($subscription);
         self::assertSame('https://myspeedpuzzling.test/.well-known/mercure', $subscription['url']);
@@ -42,18 +43,18 @@ final class OfficialResultsSubscriptionTest extends TestCase
         self::assertSame(3600, $subscription['expiresIn']);
 
         $token = self::verified($subscription['token']);
-        self::assertSame(['subscribe' => $subscription['topics']], $token->claims()->get('mercure'));
+        self::assertSame($subscription['topics'], self::subscribeTopics($token));
         self::assertEquals(new \DateTimeImmutable('2026-10-07 11:30:00 UTC'), $token->claims()->get('exp'));
         self::assertStringNotContainsString('{', implode(' ', $subscription['topics']), 'never a URI template granting every round');
     }
 
     public function testTheOverviewsSubscriptionListsEveryRoundOnce(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRounds([self::OTHER_ROUND, strtolower(self::ROUND), self::OTHER_ROUND]);
+        $subscription = $this->subscription(self::factory(self::SECRET))->forRounds([self::OTHER_ROUND, strtolower(self::ROUND), self::OTHER_ROUND]);
 
         self::assertNotNull($subscription);
         self::assertSame(['/round-results/' . self::OTHER_ROUND, '/round-results/' . strtolower(self::ROUND)], $subscription['topics']);
-        self::assertSame(['subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
+        self::assertSame($subscription['topics'], self::subscribeTopics(self::verified($subscription['token'])));
     }
 
     /**
@@ -62,22 +63,22 @@ final class OfficialResultsSubscriptionTest extends TestCase
      */
     public function testAnOnlineParticipantFollowsTheRoundsStopwatchOnly(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forOnlineParticipant(self::ROUND);
+        $subscription = $this->subscription(self::factory(self::SECRET))->forOnlineParticipant(self::ROUND);
 
         self::assertNotNull($subscription);
         self::assertSame(['/round-stopwatch/' . strtolower(self::ROUND)], $subscription['topics']);
-        self::assertSame(['subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
+        self::assertSame($subscription['topics'], self::subscribeTopics(self::verified($subscription['token'])));
         self::assertSame(3600, $subscription['expiresIn']);
     }
 
     public function testNoRoundsNoSubscription(): void
     {
-        self::assertNull($this->subscription(new LcobucciFactory(self::SECRET, protocolVersion: ProtocolVersion::Legacy))->forRounds([]));
+        self::assertNull($this->subscription(self::factory(self::SECRET))->forRounds([]));
     }
 
     public function testATokenSignedWithAnotherKeyDoesNotVerify(): void
     {
-        $subscription = $this->subscription(new LcobucciFactory('some-other-key-the-hub-does-not-know', protocolVersion: ProtocolVersion::Legacy))->forRound(self::ROUND);
+        $subscription = $this->subscription(self::factory('some-other-key-the-hub-does-not-know'))->forRound(self::ROUND);
 
         self::assertNotNull($subscription);
 
@@ -122,6 +123,21 @@ final class OfficialResultsSubscriptionTest extends TestCase
         return new OfficialResultsSubscription(self::registry($factory), new MockClock('2026-10-07 10:30:00.123456 UTC'), new \Psr\Log\NullLogger());
     }
 
+    /**
+     * The factory MercureBundle builds for a protocol 1.0 hub: the RFC 9068 claims of config/packages/mercure.php added
+     *
+     * @param non-empty-string $secret
+     */
+    private static function factory(string $secret): TokenFactoryInterface
+    {
+        return new DefaultClaimsTokenFactory(new LcobucciFactory($secret), [
+            'iss' => 'https://myspeedpuzzling.com',
+            'sub' => 'myspeedpuzzling',
+            'client_id' => 'myspeedpuzzling',
+            'aud' => 'https://myspeedpuzzling.test/.well-known/mercure',
+        ]);
+    }
+
     private static function registry(null|TokenFactoryInterface $factory): HubRegistry
     {
         return new HubRegistry(new MockHub(
@@ -130,7 +146,7 @@ final class OfficialResultsSubscriptionTest extends TestCase
             static fn (Update $update): string => 'id',
             $factory,
             'https://myspeedpuzzling.test/.well-known/mercure',
-            protocolVersion: ProtocolVersion::Legacy,
+            protocolVersion: ProtocolVersion::V1,
         ));
     }
 
@@ -144,5 +160,33 @@ final class OfficialResultsSubscriptionTest extends TestCase
         self::assertTrue($configuration->validator()->validate($token, new SignedWith($configuration->signer(), $configuration->verificationKey())), 'signed with the hub key');
 
         return $token;
+    }
+
+    /**
+     * The topics of the token's one subscribe grant (Mercure protocol 1.0 `authorization_details`), exact matches only.
+     *
+     * @return list<string>
+     */
+    private static function subscribeTopics(UnencryptedToken $token): array
+    {
+        self::assertSame('at+jwt', $token->headers()->get('typ'));
+        $details = $token->claims()->get('authorization_details');
+        self::assertIsArray($details);
+        self::assertCount(1, $details);
+        $grant = $details[0];
+        self::assertIsArray($grant);
+        self::assertSame(['subscribe'], $grant['actions'] ?? null);
+        self::assertIsArray($grant['topics'] ?? null);
+
+        $topics = [];
+
+        foreach ($grant['topics'] as $topic) {
+            self::assertIsArray($topic);
+            self::assertArrayNotHasKey('match_type', $topic, 'exact matches only');
+            self::assertIsString($topic['match'] ?? null);
+            $topics[] = $topic['match'];
+        }
+
+        return $topics;
     }
 }

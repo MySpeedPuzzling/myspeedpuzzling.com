@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Results\MessageView;
@@ -18,6 +19,7 @@ final class MercureNotifier implements ResetInterface
     public function __construct(
         private readonly HubInterface $hub,
         private readonly Environment $twig,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -27,7 +29,7 @@ final class MercureNotifier implements ResetInterface
             return;
         }
 
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/conversations/' . $conversation->recipient->id->toString(),
             json_encode([
                 'type' => 'new_request',
@@ -44,7 +46,7 @@ final class MercureNotifier implements ResetInterface
             return;
         }
 
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/conversations/' . $conversation->initiator->id->toString(),
             json_encode([
                 'type' => 'accepted',
@@ -60,7 +62,7 @@ final class MercureNotifier implements ResetInterface
             return;
         }
 
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/conversations/' . $conversation->initiator->id->toString(),
             json_encode([
                 'type' => 'ignored',
@@ -99,7 +101,7 @@ final class MercureNotifier implements ResetInterface
             'message' => $messageView,
         ]);
 
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/messages/' . $conversation->id->toString() . '/user/' . $recipientId,
             $html,
             private: true,
@@ -147,7 +149,7 @@ final class MercureNotifier implements ResetInterface
                 'message' => $messageView,
             ]);
 
-            $this->hub->publish(new Update(
+            $this->publish(new Update(
                 '/messages/' . $conversation->id->toString() . '/user/' . $viewerId,
                 $html,
                 private: true,
@@ -157,7 +159,7 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyMessagesRead(string $conversationId, string $senderId): void
     {
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/conversation/' . $conversationId . '/read/' . $senderId,
             json_encode([
                 'type' => 'read',
@@ -168,7 +170,7 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyConversationListChanged(string $playerId): void
     {
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/conversations/' . $playerId,
             json_encode([
                 'type' => 'list_changed',
@@ -183,11 +185,27 @@ final class MercureNotifier implements ResetInterface
             'count' => $count,
         ]);
 
-        $this->hub->publish(new Update(
+        $this->publish(new Update(
             '/unread-count/' . $playerId,
             $html,
             private: true,
         ));
+    }
+
+    /**
+     * Fail-open: live updates are a convenience - a hub that is down or restarting must never fail the request or
+     * roll back the handler that changed the data (e.g. a system message sent from a marketplace handler).
+     */
+    private function publish(Update $update): void
+    {
+        try {
+            $this->hub->publish($update);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Could not publish a Mercure update', [
+                'topics' => $update->getTopics(),
+                'exception' => $exception,
+            ]);
+        }
     }
 
     public function reset(): void

@@ -258,7 +258,7 @@ const scenarios = {
 
         assert.equal(hub.requests.length, 1);
         const request = hub.last();
-        assert.deepEqual(request.url.searchParams.getAll('topic'), [ROUND_TOPIC, STOPWATCH_TOPIC]);
+        assert.deepEqual(request.url.searchParams.getAll('match'), [ROUND_TOPIC, STOPWATCH_TOPIC]);
         assert.equal(request.url.toString().toLowerCase().includes('token'), false);
         assert.equal(request.url.searchParams.has('authorization'), false);
         assert.equal(request.init.headers.Authorization, 'Bearer token-1');

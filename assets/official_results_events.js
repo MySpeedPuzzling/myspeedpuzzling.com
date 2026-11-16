@@ -6,8 +6,8 @@
  * short-lived subscriber JWT for exactly its topics, minted after the voter (OfficialResultsSubscription) - and this
  * module keeps one stream open with it: fetch() with `Authorization: Bearer <token>` (never in the URL: proxies log
  * URLs, and Mercure 1.0 drops the query parameter), the server-sent events read here. The token beats the
- * `mercureAuthorization` cookie, which every signed-in response rewrites with its own topics only - an EventSource
- * reconnecting on the cookie silently lost the round's private topic.
+ * subscriber cookie (`__Secure-mercure_access_token`), which every signed-in response rewrites with its own topics
+ * only - an EventSource reconnecting on the cookie silently lost the round's private topic.
  *
  * - The stream ends (the hub's write timeout, ~10 min), a network error, a 5xx: opened again after 1 s, 2 s, 5 s,
  *   15 s, then every minute (never sooner than the hub's `retry:`), with `Last-Event-ID`; once it is open again the
@@ -432,7 +432,7 @@ export class OfficialResultsEvents {
             activeAt: this.now(),
         };
         const url = new URL(subscription.url, this.baseUrl);
-        subscription.topics.forEach((topic) => url.searchParams.append('topic', topic));
+        subscription.topics.forEach((topic) => url.searchParams.append('match', topic));
 
         const headers = { Accept: 'text/event-stream', Authorization: `Bearer ${subscription.token}` };
 

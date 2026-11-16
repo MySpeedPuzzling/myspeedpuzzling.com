@@ -18,8 +18,8 @@ export default class extends Controller {
         // If mercureUrl is provided, create own EventSource (for modals where global hub lacks these topics)
         if (this.hasMercureUrlValue && this.mercureUrlValue && this.hasConversationIdValue) {
             const url = new URL(this.mercureUrlValue);
-            url.searchParams.append('topic', '/conversation/' + this.conversationIdValue + '/typing');
-            url.searchParams.append('topic', '/conversation/' + this.conversationIdValue + '/read/' + this.playerIdValue);
+            url.searchParams.append('match', '/conversation/' + this.conversationIdValue + '/typing');
+            url.searchParams.append('match', '/conversation/' + this.conversationIdValue + '/read/' + this.playerIdValue);
 
             this._ownEventSource = new EventSource(url, { withCredentials: true });
             this._ownEventSource.addEventListener('message', (event) => {

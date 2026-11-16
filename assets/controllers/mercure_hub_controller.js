@@ -8,7 +8,7 @@ export default class extends Controller {
         if (!this.mercureUrlValue || !this.topicsValue.length) return;
 
         const url = new URL(this.mercureUrlValue);
-        this.topicsValue.forEach(topic => url.searchParams.append('topic', topic));
+        this.topicsValue.forEach(topic => url.searchParams.append('match', topic));
 
         this._eventSource = new EventSource(url, { withCredentials: true });
 

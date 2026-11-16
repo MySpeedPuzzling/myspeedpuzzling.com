@@ -28,8 +28,8 @@ WORKERS="${WORKERS:-32}"
 STATE_DIR="$DIR/out/stack-$PREFIX"
 
 PHP_IMAGE="${PHP_IMAGE:-ghcr.io/myspeedpuzzling/web-base-php85:main}"
-# Production's hub (lily.srv: dunglas/mercure v2.11.3 = Mercure 0.24.2)
-MERCURE_IMAGE="${MERCURE_IMAGE:-dunglas/mercure@sha256:916834e499613d475e9ad5118cd2349875338f52d99d65b58aeff82f97ccb0c6}"
+# Production's hub (lily.srv: dunglas/mercure v1.1.6 = Mercure 1.1.6, protocol 1.0)
+MERCURE_IMAGE="${MERCURE_IMAGE:-dunglas/mercure@sha256:27845c71dd26878bfb77bb0723fd3ea26e55d07ad0025b1c0948533ac30a5afc}"
 REDIS_IMAGE="${REDIS_IMAGE:-redis:7.2}"
 MINIO_IMAGE="${MINIO_IMAGE:-minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e}"
 GARAGE_IMAGE="${GARAGE_IMAGE:-dxflrs/garage:v2.4.1}"
@@ -171,6 +171,7 @@ EOF
     -e SERVER_NAME=:80 \
     -e MERCURE_PUBLISHER_JWT_KEY="$MERCURE_SECRET" \
     -e MERCURE_SUBSCRIBER_JWT_KEY="$MERCURE_SECRET" \
+    -e MERCURE_TRUSTED_ISSUERS="https://myspeedpuzzling.com" \
     -e GLOBAL_OPTIONS="metrics" \
     -e MERCURE_EXTRA_DIRECTIVES=$'cors_origins *\nanonymous' \
     "$MERCURE_IMAGE" > /dev/null

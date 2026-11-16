@@ -308,11 +308,11 @@ A token cannot be taken back: after a referee or a maintainer loses their rights
 state fetch (at most 60 s - the 403 suspends it), but a token copied out of the page stays valid until it expires (at
 most 1 h) and receives the round's full entry updates until then.
 
-Why not the `mercureAuthorization` cookie: `MercureSubscribeCookieListener` rewrites it on **every** signed-in response
+Why not the subscriber cookie (`__Secure-mercure_access_token`, `mercureAuthorization` before the Mercure 1.0 hub): `MercureSubscribeCookieListener` rewrites it on **every** signed-in response
 with that request's topics only (the chat topics), so any other request - another tab, a JSON call - dropped the round
 topic from it, and the stream's next reconnect (a Wi-Fi drop, a sleeping laptop, the hub's write timeout every ~10 min)
 silently stopped receiving private updates (review 2 M1). A token sent with the connection beats the cookie (checked on
-Mercure 0.24.2, the image dev and production run), so the cookie now carries the chat topics only - no official
+Mercure 0.24.2 and again on 1.1.6, the hub dev and production run), so the cookie now carries the chat topics only - no official
 results controller adds a topic to `MercureTopicCollector` any more, and the base layout's `mercure-hub` subscription
 (unread counts, conversations) is untouched.
 

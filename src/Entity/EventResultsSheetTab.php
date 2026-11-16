@@ -27,6 +27,15 @@ use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
 #[UniqueConstraint(columns: ['sheet_id', 'gid'])]
 class EventResultsSheetTab
 {
+    // event_results_sheet_tab.gid
+    public const int KEY_MAX_LENGTH = 20;
+
+    // An item of the source's previous spreadsheet (setAsideForPreviousSheet()) - no format's key starts with "p"
+    // followed by ":" or "~" (Sarah Does Puzzles' keys are gids, digits only)
+    public const string PREVIOUS_SHEET_PREFIX = 'p:';
+    // When "p:" + the key is too long or taken: "p~" + the last 18 hex digits of the item's id (UUIDv7: random)
+    public const string PREVIOUS_SHEET_FALLBACK_PREFIX = 'p~';
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: EventTabStatus::class)]
     public EventTabStatus $status = EventTabStatus::Problem;
@@ -64,7 +73,8 @@ class EventResultsSheetTab
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public EventResultsSheet $sheet,
-        // The format's stable key of the event (Sarah Does Puzzles: the tab's gid) - changed only by movedToKey()
+        // The format's stable key of the event (Sarah Does Puzzles: the tab's gid) - changed only by movedToKey() and
+        // setAsideForPreviousSheet()
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 20)]
         public string $gid,
@@ -82,6 +92,40 @@ class EventResultsSheetTab
     public function movedToKey(string $key): void
     {
         $this->gid = $key;
+    }
+
+    public function isFromPreviousSheet(): bool
+    {
+        return str_starts_with($this->gid, self::PREVIOUS_SHEET_PREFIX)
+            || str_starts_with($this->gid, self::PREVIOUS_SHEET_FALLBACK_PREFIX);
+    }
+
+    /**
+     * The organizer changed the source's spreadsheet (RecordResultsSourceSheetChange): the new sheet's keys belong to
+     * other tabs - a brand-new spreadsheet's first tab is gid 0 again - so no stored item may keep a key the new sheet
+     * can have. The item goes on under "p:" + its key; from now on only its date and name connect it to the new sheet
+     * (PreviousSheetEvents). Set aside once: an item of an earlier sheet keeps its key (idempotent). "p:" + the key too
+     * long or taken (an earlier sheet's item set aside under it) = "p~" + the item's id - never a key in use, so the
+     * renames of one change never meet on the unique key, whatever order they are written in.
+     *
+     * @param array<array-key, true> $takenKeys every key stored for the source now, and the ones given out so far
+     * @return string the key it is stored under
+     */
+    public function setAsideForPreviousSheet(array $takenKeys): string
+    {
+        if ($this->isFromPreviousSheet()) {
+            return $this->gid;
+        }
+
+        $key = self::PREVIOUS_SHEET_PREFIX . $this->gid;
+
+        if (strlen($key) > self::KEY_MAX_LENGTH || isset($takenKeys[$key])) {
+            $key = self::PREVIOUS_SHEET_FALLBACK_PREFIX . substr(str_replace('-', '', $this->id->toString()), -(self::KEY_MAX_LENGTH - strlen(self::PREVIOUS_SHEET_FALLBACK_PREFIX)));
+        }
+
+        $this->gid = $key;
+
+        return $key;
     }
 
     public function isDetached(): bool

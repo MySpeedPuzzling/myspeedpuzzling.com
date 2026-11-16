@@ -211,13 +211,20 @@ duplicates an event.
   the same request, fingers_crossed); the check written by the change shows "Last checked … by …" until the next check,
   and checks are pruned (newest 10, all on the next change). A durable record (a column, or a row type in
   `results_import_log` shown in the history) is in `docs/TODO.md` for Jan to decide.
-- **Open question for Jan - a key the new sheet reuses**: a brand-new spreadsheet's first tab is usually gid 0. If the
-  new sheet has a tab under a key already stored for **another** imported event, the page compares the tab with that
-  event (by key, as always) and shows it as Changed (its differences say so); importing it would rename that event and
-  remove its unclaimed teams, and the original event would come back as New. Only the preview guards it today - a
-  guard (refuse a keyed match whose date and name both differ after a sheet change) is easy to add if wanted.
-- **A "Check sheet" running while the sheet is changed** (not under the import lock) can store a check of the previous
-  sheet after the change; the next check fixes it.
+- **Every stored item is set aside on a change** (the coordinator's call for Jan, 2026-11-16 - Sarah's case: her first
+  tab is gid 0, and so is any new spreadsheet's first tab, which must never be taken for that event): in the change's
+  transaction `RecordResultsSourceSheetChange` re-keys every item of the source through
+  `EventResultsSheetTab::setAsideForPreviousSheet()` to `p:` + its key (no format's key starts with `p:` / `p~`; a gid is
+  ≤ 10 digits, so it fits the 20 characters). Once only: an item of an earlier sheet keeps its key (`p:0` never becomes
+  `p:p:0`). `p:` + the key over 20 characters, or already given to an item of an earlier sheet = `p~` + the last 18 hex
+  digits of the item's id (UUIDv7: random) - never a key in use, so the renames of one change never meet on the unique
+  `(sheet_id, gid)`, whatever order Doctrine writes them in (that is why the earlier sheet's item keeps `p:X` rather than
+  the newest taking it over - both are previous items alike, matched by date + name only). From then on **date + name
+  is the only connection** of an old event to the new sheet's tabs; whatever does not match is New - changing back to
+  the old sheet too. An event deleted on MySpeedPuzzling (detached) has no name to match by, so after a change its tab
+  would be New again.
+- **"Check sheet" is under the source's import lock too** (`CheckResultsSource` is `SerializedByLock`, the same key as
+  the change and the import): a check never stores the previous sheet after a change.
 - **No duplicates after a change** - `PreviousSheetEvents::match()` (pure, format-agnostic, reads only the neutral
   model): the new sheet's tabs may have other gids (a *duplicated* Google spreadsheet usually keeps them - then nothing
   here is needed). An event with **no imported item under its own key** is the event imported before when exactly one
@@ -233,12 +240,16 @@ duplicates an event.
   `RemoveUnimportedResultsSourceItem` in its own transaction (the unique `(sheet_id, gid)` - Doctrine updates before
   it deletes). Decided again at import time from what is stored then (`ImportResultsFromCheckHandler`), never taken
   from the page, and the admins' sync does the same (an uncertain one is skipped and named in `last_fetch_error`).
-  An event whose MySpeedPuzzling event was deleted (detached) has no name to match by and is not matched. An
-  Unchanged match is not tickable, so its item stays under the old key and is matched again on every check - harmless.
+  An item under the event's own key whose event was deleted keeps "Event deleted". An Unchanged match is not
+  tickable, so its item stays under its `p:` key and is matched again on every check - harmless.
 - Tests: `PreviousSheetEventsTest` (the rule: folded name, another day / name, a key still in the sheet, imported under
   its own key, never-imported items, both uncertain cases), `PreviousSheetEventsImportTest` (predicted statuses, import
   moves the item and updates the same event - one competition, same item id, new key, time updated; both uncertain
   cases import nothing; the never-imported item makes way; the sync moves too and skips an uncertain one),
   `ResultsSourceSheetChangeTest` (change → new link, the only check with its changer, the event Changed "from your
-  previous sheet"; every refusal changes nothing and writes no check; guest / another player; every locale).
+  previous sheet", ticked, confirmed and imported into the same event; every refusal changes nothing and writes no
+  check; guest / another player; every locale), `ResultsSourceSheetChangeKeysTest` (an old event at gid 0 and a new
+  sheet whose gid 0 is another event: that tab New, the old one matched from the other tab - or untouched when no tab
+  matches; the prefix applied once, a taken / too long key gets the item's id, every key ≤ 20; changing back to the old
+  sheet matches by date + name; the sync after a change never renames the wrong event).
 - **Not run locally**: Docker was off the day it was built - written and verified on CI only; no browser walk yet.

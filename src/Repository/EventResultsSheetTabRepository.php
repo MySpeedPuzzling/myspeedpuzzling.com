@@ -23,6 +23,14 @@ readonly final class EventResultsSheetTabRepository
         ]);
     }
 
+    /**
+     * @return list<EventResultsSheetTab>
+     */
+    public function ofSheet(EventResultsSheet $sheet): array
+    {
+        return $this->entityManager->getRepository(EventResultsSheetTab::class)->findBy(['sheet' => $sheet], ['id' => 'ASC']);
+    }
+
     public function save(EventResultsSheetTab $tab): void
     {
         $this->entityManager->persist($tab);

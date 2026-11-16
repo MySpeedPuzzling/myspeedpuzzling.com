@@ -1877,4 +1877,3 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 
 - [ ] Browser walk of "Your sheet" / "Change sheet" and an import after a change (desktop + 390 px) - built with Docker off, CI only
 - [ ] Jan: a durable record of who changed the sheet and when (a column, or a history line) - today an info log + the check's byline
-- [ ] Jan: guard against a key the new sheet reuses for another event (gid 0) - see the plan doc's open question

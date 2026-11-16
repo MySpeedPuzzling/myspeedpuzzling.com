@@ -67,6 +67,9 @@ final class PuzzleAddUnfinishedResultTest extends WebTestCase
         self::assertStringContainsString('d-none', (string) $crawler->filter('[data-testid="unfinished-question"]')->attr('class'));
         self::assertSame('disabled', $crawler->filter('input[name="puzzle_add_form[unfinished]"]')->attr('disabled'));
         self::assertSame('form-label required', $crawler->filter('[data-unfinished-result-target="timeLabel"]')->attr('class'));
+        // An object even without a round - Stimulus refuses `null` for an Object value and the controller would not connect
+        // (seen in the browser walk: the switch never appeared after picking a competition)
+        self::assertSame('{}', $crawler->filter('form[name="puzzle_add_form"]')->attr('data-unfinished-result-round-value'));
     }
 
     public function testAnUnfinishedResultWithoutATotalIsSavedAndLandsOnTheRecap(): void

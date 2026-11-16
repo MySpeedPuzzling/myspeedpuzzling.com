@@ -53,7 +53,7 @@
         {% set form_start_options = form_start_options|merge({attr: form_start_options.attr|merge({
             'data-controller': form_start_options.attr['data-controller'] ~ ' unfinished-result',
             'data-unfinished-result-hint-url-value': path('solving_time_round_hint'),
-            'data-unfinished-result-round-value': unfinished.round is not null ? unfinished.round.toArray()|json_encode : 'null',
+            'data-unfinished-result-round-value': unfinished.round is not null ? unfinished.round.toArray()|json_encode : '{}',
             'data-unfinished-result-pieces-total-value': unfinished.piecesTotal ?? 0,
             'data-unfinished-result-texts-value': {
                 round: 'unfinished_result.form.round_line'|trans,

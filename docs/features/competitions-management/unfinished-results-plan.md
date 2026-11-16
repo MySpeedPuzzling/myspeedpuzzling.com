@@ -155,7 +155,10 @@ unfinished (an older client never turns it into a relax solve), with a `time` it
 (`GetPublishedRoundResults::withProfileStates()`), `OfficialEntryTime::$piecesPlaced` opens the form with the switch on and
 the pieces filled. Kill switch `UNFINISHED_RESULTS_FORM` (`docs/features/feature_flags.md`). Tests:
 `SolvingTimeRoundHintControllerTest`, `PuzzleAddUnfinishedResultTest`, `EditTimeUnfinishedResultTest`,
-`UnfinishedSolvingTimeEndpointTest`, `PuzzleAddOfficialUnfinishedEntryTest`; every existing form test untouched.
+`UnfinishedSolvingTimeEndpointTest`, `PuzzleAddOfficialUnfinishedEntryTest`; every existing form test untouched. *Browser walk (Selenium, a fixtures clone):* found
+two bugs the PHP tests could not see - the controller did not connect where no round was known yet (Stimulus refuses
+`null` for an Object value - now `{}`, pinned), and step 2's recap panel never showed (`.recap-card` hides a card without
+`.recap-row`, and it shared the progress card's grid cell - `recap-card-content`, `recap-layout-unfinished`).
 
 **Status:** plan, 2026-09-18, refined 2026-11-16. Steps 1-3 merged, step 4 in review (above). Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 

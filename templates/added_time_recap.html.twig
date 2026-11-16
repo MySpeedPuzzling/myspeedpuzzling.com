@@ -34,7 +34,7 @@
         Mobile first: the progress card right under the actions, then the share image, then prediction and history.
         From md up the share image sits in the right column next to both (.recap-layout grid areas).
     #}
-    <div class="recap-layout">
+    <div class="recap-layout{{ solved_puzzle.isUnfinished ? ' recap-layout-unfinished' }}">
         {# XP and achievements only while the progression is visible to the viewer (xp-system, launch ready or admin) #}
         {% set progression_visible = xp_system_visible() %}
         {% set has_competition_row = is_timed_solo and not player.rankingOptedOut and (has_rating or has_skill_tier) %}
@@ -51,7 +51,7 @@
         {# An unfinished result (docs/features/competitions-management/unfinished-results-plan.md "Read side - tier 3"):
            what they placed before the time ran out, what was left, the later total, and the round's results #}
         {% if solved_puzzle.isUnfinished %}
-            <section class="recap-card recap-layout-card text-center" data-testid="recap-unfinished">
+            <section class="recap-card recap-card-content recap-layout-unfinished-card text-center" data-testid="recap-unfinished">
                 <p class="text-muted small mb-1"><i class="bi bi-hourglass-bottom me-1" aria-hidden="true"></i>{{ 'unfinished_result.title'|trans }}</p>
                 <p class="h3 mb-1 tabular-nums">{{ 'unfinished_result.recap_pieces'|trans({'%placed%': solved_puzzle.piecesPlaced|plain_number, '%total%': solved_puzzle.piecesCount|plain_number}) }}</p>
                 <p class="text-muted mb-2">{{ 'unfinished_result.pieces_left'|trans({'%count%': (solved_puzzle.piecesCount - solved_puzzle.piecesPlaced)|plain_number}) }}</p>

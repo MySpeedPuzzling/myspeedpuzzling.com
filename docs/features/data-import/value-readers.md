@@ -106,12 +106,25 @@ Unit words (any case, a full stop after a short form allowed; a Latin word must 
 
 Between two parts: nothing, a comma, or `and` / `a` / `und` / `y` / `et`.
 
+### Fractions of a second
+
+People type `0:30:20.23` and `30:20.23` for the same time. **A result is whole seconds, and the fraction is
+dropped** - what the add-result form does with a typed time (`SolvingTime::fromUserInput()`), never rounded:
+`0:30:20.23`, `30:20.23`, `30:20,23` are 30 min 20 s; `1:02:03.5` is 1:02:03. As text (every cell of a CSV) and as
+a cell whose format shows the fraction (`[h]:mm:ss.00`, `mm:ss.0` - the reader drops it, [reader.md](reader.md)
+"Rounding"); a cell that shows whole seconds stays what the player sees there (rounded).
+
+**Two parts with a fraction are minutes:seconds, and nobody is asked** (`ImportColumnDecisions`): `30:20.23` is never
+30 hours 20 minutes. The reader still knows the "h:mm.ss" habit (the shape below) - the rows' pace, a remembered
+layout or an answer given before this rule may say so; left to itself the column is read as minutes:seconds. Two
+plain parts (`30:20`) keep their question.
+
 ### Shapes with more than one meaning
 
 | Shape (`DurationShape`) | Example | Readings (`DurationReadingRule`) |
 |---|---|---|
 | `two_part_text` | `17:36`, `83:45`, `1:02` | minutes:seconds · hours:minutes - always both (`83:45` can be 83 hours of a 9,000-piece puzzle) |
-| `two_part_text_with_hundredths` | `1:02.03`, `17:36.50` | minutes:seconds with hundredths (62 s) · the "h:mm.ss" habit (1 h 2 min 3 s). Only two decimals below 60; `17:36.5`, `1:02.75`, `1:02.035` can only be fractions of a second - read from text |
+| `two_part_text_with_hundredths` | `1:02.03`, `17:36.50` | minutes:seconds with hundredths (62 s - **taken unasked**, "Fractions of a second" above) · the "h:mm.ss" habit (1 h 2 min 3 s). Only two decimals below 60; `17:36.5`, `1:02.75`, `1:02.035` can only be fractions of a second - read from text |
 | `time_of_day_cell` | a time-only cell without seconds (`1:02` typed, stored as 1 h 2 min) | as stored · stored hours taken as minutes. With seconds it is certain - `1:09:17` typed into a plain cell is stored exactly so |
 | `long_duration_cell` | a duration of 24 h or more - a cell, or the text `45:30:00` (`45:30` typed, stored as 45 h 30 min) | as stored · stored hours taken as minutes (only without seconds; with seconds it has one reading and the column lets it stand unless its pace says otherwise) |
 | `zero_seconds_duration_cell` | a duration under 24 h with `:00` seconds - a cell, or the text `1:30:00` | as stored · stored hours taken as minutes |

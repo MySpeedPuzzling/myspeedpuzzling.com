@@ -32,7 +32,8 @@ use Symfony\Component\HttpFoundation\InputBag;
  *
  * - view(): what its page shows of the sheet's mapping - the questions with their choices and how each choice reads
  *   the sheet's own examples, the columns (those we are sure about as lines, the others as cards) with sample values
- *   and what each is, what the sheet is and what a row is;
+ *   and what each is, what the sheet is and what a row is; whether the sheet's reading is a guess the player is
+ *   asked to check first (`check_first`: why), and whether a brand column would help (`brand_hint`);
  * - submission(): what the page's form says, as the arguments of ConfirmImportMapping - checked first for what can
  *   be said at a field (a year that is none, two columns on one field); everything else is the handler's check.
  *
@@ -78,7 +79,7 @@ final readonly class ImportSheetScreen
         $mapping = self::mappingOf($sheet);
 
         if ($mapping === null) {
-            return ['mapping' => null, 'questions' => [], 'sure_columns' => [], 'open_columns' => [], 'field_groups' => [], 'errors' => $errors];
+            return ['mapping' => null, 'questions' => [], 'check_first' => null, 'time_hint' => false, 'brand_hint' => false, 'sure_columns' => [], 'open_columns' => [], 'field_groups' => [], 'errors' => $errors];
         }
 
         $options = self::optionsOf($sheet);
@@ -118,10 +119,21 @@ final readonly class ImportSheetScreen
 
         return [
             'mapping' => $mapping,
+            // "Did we read your columns right?" is not one of the questions with choices: it is the notice at the top
+            // of the page, answered by "Yes, this is right" or by saving the columns (ImportCheckFirst)
             'questions' => array_map(
                 fn (ImportQuestion $question): array => $this->question($question, $mapping, $submittedAnswers, $submitted?->getString('year_other') ?? '', $errors),
-                $mapping->questions,
+                array_values(array_filter($mapping->questions, static fn (ImportQuestion $question): bool => $question->type !== ImportQuestionType::CheckColumns)),
             ),
+            'check_first' => ImportCheckFirst::isAsked($mapping) ? (ImportCheckFirst::reason($mapping) ?? ImportCheckFirst::BECAUSE_UNSURE) : null,
+            // A sheet of results that is checked first and has no column for the time: said plainly in its notice, so
+            // "Yes, this is right" is never a silent import of results without their times
+            'time_hint' => ImportCheckFirst::isAsked($mapping) && $mapping->has(ImportField::Time) === false
+                && ($mapping->kind === DataImportSheetKind::Results || in_array($mapping->rowMeaning, [DataImportRowMeaning::Result, DataImportRowMeaning::Both], true)),
+            // A puzzle is found far more surely with its brand: said where the sheet names puzzles and no column is
+            // the brand (a barcode finds the puzzle by itself)
+            'brand_hint' => $mapping->isImported() && $mapping->layout === null && $mapping->has(ImportField::PuzzleName)
+                && $mapping->has(ImportField::Brand) === false && $mapping->has(ImportField::Barcode) === false,
             'sure_columns' => $sure,
             'open_columns' => $open,
             'field_groups' => self::fieldGroups(),
@@ -510,6 +522,7 @@ final readonly class ImportSheetScreen
                 ImportQuestionType::TypedDates => 'data_import.columns.answer.typed_dates.' . $choice,
                 ImportQuestionType::Year => $choice === ImportQuestion::YEAR_AS_STORED ? 'data_import.columns.answer.year.stored' : null,
                 ImportQuestionType::SheetSolvingType => 'data_import.columns.answer.sheet_solving_type.' . $choice,
+                ImportQuestionType::CheckColumns => 'data_import.columns.sheet.check_first.confirm',
             },
             'readings' => $readings,
         ];

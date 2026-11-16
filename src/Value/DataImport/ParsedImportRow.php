@@ -59,6 +59,24 @@ final readonly class ParsedImportRow
     }
 
     /**
+     * The row of a sheet whose columns the player has not checked yet (Services\DataImport\ImportCheckFirst): it is
+     * read - the sheet's page shows what we made of it - but it waits, and it stands for nothing: no puzzle, no key,
+     * nobody it was solved with. So no puzzle is built or matched from it, nobody is asked about, and it can not be
+     * added - until the player has looked and the sheet is read again.
+     */
+    public function heldForColumnCheck(string $code): self
+    {
+        if ($this->leftOut !== null) {
+            return $this;
+        }
+
+        $parsed = $this->parsed;
+        unset($parsed['people']);
+
+        return new self($this->kind, $parsed, [['field' => null, 'code' => $code, 'waiting' => true]], null, null, $this->sourceRowId, null);
+    }
+
+    /**
      * @param list<array{field: null|string, code: string, value?: string, choices?: list<int|string>, waiting?: bool}> $problems
      */
     public function withProblems(array $problems): self

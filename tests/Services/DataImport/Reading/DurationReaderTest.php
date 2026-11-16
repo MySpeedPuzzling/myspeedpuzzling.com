@@ -123,9 +123,14 @@ final class DurationReaderTest extends TestCase
         yield 'three parts named hours' => ['1:02:03 h', self::H + 2 * self::M + 3];
 
         // A fraction can only be one of seconds
-        yield 'minutes, seconds and tenths' => ['17:36.5', 17 * self::M + 37];
-        yield 'minutes, seconds and tenths rounded down' => ['17:36.4', 17 * self::M + 36];
-        yield 'hours, minutes, seconds and hundredths' => ['1:02:03.51', self::H + 2 * self::M + 4];
+        // ... and is dropped, as the add-result form does with a typed time: results are whole seconds
+        yield 'minutes, seconds and tenths' => ['17:36.5', 17 * self::M + 36];
+        yield 'minutes, seconds and tenths below a half' => ['17:36.4', 17 * self::M + 36];
+        yield 'hours, minutes, seconds and hundredths' => ['1:02:03.51', self::H + 2 * self::M + 3];
+        yield 'hours, minutes, seconds and hundredths: the same time as without them' => ['0:30:20.23', 30 * self::M + 20];
+        yield 'hours, minutes, seconds and a tenth' => ['1:02:03.5', self::H + 2 * self::M + 3];
+        yield 'a decimal comma' => ['0:30:20,23', 30 * self::M + 20];
+        yield 'thousandths' => ['0:30:20.999', 30 * self::M + 20];
         yield 'a decimal comma of seconds' => ['1:02:03,2', self::H + 2 * self::M + 3];
 
         // Only brackets, quotes or a full stop around a time
@@ -214,7 +219,7 @@ final class DurationReaderTest extends TestCase
         yield 'pieces before' => ['500 pieces in 45 min', 45 * self::M, '500 pieces in'];
         yield 'a bare number attached after the unit' => ['1h23 with a friend', self::H + 23 * self::M, 'with a friend'];
         yield 'Japanese about' => ['23分くらい', 23 * self::M, 'くらい'];
-        yield 'a fraction of a second and a remark' => ['1:02:03.5 (pb)', 3724, 'pb'];
+        yield 'a fraction of a second and a remark' => ['1:02:03.5 (pb)', 3723, 'pb'];
     }
 
     #[DataProvider('twoPartTexts')]
@@ -612,7 +617,9 @@ final class DurationReaderTest extends TestCase
     public static function twoPartsWithHundredths(): iterable
     {
         yield '1:02.03 - 62.03 s, or 1 h 2 min 3 s' => ['1:02.03', 62, 3723];
-        yield 'hundredths that round up' => ['17:36.50', 1057, 63410];
+        yield 'hundredths of a half and more are dropped too' => ['17:36.50', 1056, 63410];
+        yield '30:20.23 - 30 min 20 s (the reading taken unasked), never unreadable' => ['30:20.23', 1820, 109223];
+        yield '30:20,23' => ['30:20,23', 1820, 109223];
         yield 'a decimal comma' => ['1:02,03', 62, 3723];
         yield 'with a remark' => ['1:02.03 (pb)', 62, 3723, 'pb'];
     }
@@ -621,7 +628,7 @@ final class DurationReaderTest extends TestCase
     {
         $reader = new DurationReader();
 
-        foreach (['17:36.5' => 1057, '1:02.75' => 63, '1:02.035' => 62, '1:02.999' => 63] as $text => $seconds) {
+        foreach (['17:36.5' => 1056, '1:02.75' => 62, '1:02.035' => 62, '1:02.999' => 62, '30:20.5' => 1820] as $text => $seconds) {
             $read = $reader->read(CellInput::text($text));
 
             self::assertSame(DurationCertainty::ReadFromText, $read->certainty, $text);

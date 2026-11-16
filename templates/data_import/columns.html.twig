@@ -129,6 +129,15 @@
                             <div class="fs-sm text-muted" data-testid="check-sheet-line">{{ 'data_import.sheets.recognising'|trans }}</div>
                         {% elseif state == 'parsing' %}
                             <div class="fs-sm text-muted" data-testid="check-sheet-line">{{ 'data_import.sheets.parsing'|trans }}</div>
+                        {% elseif sheet.heldForACheck %}
+                            {# Its reading is a guess: nothing is built on it until the player has looked (ImportCheckFirst) #}
+                            <div class="fs-sm fw-medium" data-testid="check-sheet-check-first" data-reason="{{ sheet.checkFirst }}">{{ ('data_import.check.check_first.' ~ sheet.checkFirst)|trans }}</div>
+                            <div class="fs-sm text-muted" data-testid="check-sheet-line">{{ 'data_import.sheets.waiting_for_check'|trans }}</div>
+                            {% if sheet.fieldsRecognised is not empty %}
+                                <div class="fs-sm text-muted text-break" data-testid="check-sheet-fields">
+                                    {{- 'data_import.check.guessed'|trans({'%names%': sheet.fieldsRecognised|filter(field => field not in ['computed', 'ready_made_field'])|map(field => ('data_import.columns.field.' ~ field)|trans)|join(', ')}) -}}
+                                </div>
+                            {% endif %}
                         {% elseif not sheet.kindSure %}
                             <div class="fs-sm" data-testid="check-sheet-line">{{ 'data_import.check.unsure_kind'|trans({'%count%': sheet.rows, '%number%': sheet.rows|format_number}) }}</div>
                         {% else %}
@@ -159,7 +168,7 @@
                         {% elseif sheet.asksThePlayer %}
                             <a href="{{ path('data_import_columns', {importId: import.importId}|merge((first_question_of[sheet.sheetId] ?? 0) > 0 ? {q: first_question_of[sheet.sheetId]} : {})) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="check-sheet-answer" rel="nofollow">{{ 'data_import.check.answer'|trans }}</a>
                         {% elseif mark == 'check' %}
-                            <a href="{{ sheet_url }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="check-sheet-look">{{ (sheet.kindSure ? 'data_import.check.have_a_look' : 'data_import.check.tell_us')|trans }}</a>
+                            <a href="{{ sheet_url }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="check-sheet-look">{{ (sheet.kindSure or sheet.heldForACheck ? 'data_import.check.have_a_look' : 'data_import.check.tell_us')|trans }}</a>
                         {% else %}
                             <a href="{{ sheet_url }}" class="d-inline-flex align-items-center fs-sm" style="min-height: 44px;" data-testid="check-sheet-change">{{ 'data_import.columns.change'|trans }}</a>
                         {% endif %}
@@ -240,7 +249,7 @@
         {% if summary.working %}
             {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
         {% elseif questions > 0 %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, primary: {
+            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: summary.ready > 0, primary: {
                 label: 'data_import.flow.primary.questions'|trans({'%count%': questions, '%number%': questions|format_number}),
                 url: path('data_import_columns', {importId: import.importId}),
                 icon: 'bi-question-circle',
@@ -248,6 +257,16 @@
                 nofollow: true,
             }}, with_context = false) }}
             <a href="{{ path('data_import_detail', {importId: import.importId, after: 'check'}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-continue" rel="nofollow">{{ 'data_import.flow.continue_later'|trans }}</a>
+        {% elseif sheets|filter(sheet => sheet.heldForACheck) is not empty %}
+            {# A sheet whose reading is a guess comes before rows, people and puzzles - the same button as "Where you are" #}
+            {% set first_held = sheets|filter(sheet => sheet.heldForACheck)|first %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: summary.ready > 0, primary: {
+                label: 'data_import.flow.primary.check_first'|trans,
+                url: path('data_import_sheet', {importId: import.importId, sheetId: first_held.sheetId}),
+                icon: 'bi-eye',
+                testid: 'import-flow-check-first',
+            }}, with_context = false) }}
+            <a href="{{ path('data_import_detail', {importId: import.importId, after: 'check'}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-continue" rel="nofollow">{{ 'data_import.check.check_later'|trans }}</a>
         {% elseif unsure is not empty %}
             {% set first_unsure = unsure|first %}
             {{ include('data_import/_flow_footer.html.twig', {
@@ -256,10 +275,10 @@
                 continue_label: unsure|length == 1
                     ? 'data_import.check.continue_one'|trans({'%sheet%': first_unsure.title != '' ? first_unsure.title : 'data_import.sheets.untitled'|trans})
                     : 'data_import.check.continue_many'|trans,
-                offer_add: true,
+                offer_add: summary.ready > 0,
             }, with_context = false) }}
         {% else %}
-            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: true}, with_context = false) }}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: summary.ready > 0}, with_context = false) }}
         {% endif %}
     </turbo-frame>
 

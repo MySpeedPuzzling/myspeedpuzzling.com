@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\DataRegion;
 use SpeedPuzzling\Web\Value\DataImport\DateCertainty;
 use SpeedPuzzling\Web\Value\DataImport\DurationCertainty;
+use SpeedPuzzling\Web\Value\DataImport\DurationShape;
 use SpeedPuzzling\Web\Value\DataImport\FieldGuess;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\KnownExportLayout;
@@ -38,6 +39,11 @@ use SpeedPuzzling\Web\Value\DatePrecision;
  * - A header two fields share ("Completed": a date or a yes/no) is decided by the values; one that means several
  *   things ("Year", "Size") or only holds a known word is probable at best.
  * - Without a known header only what the values say plainly is offered: barcodes, durations, dates - probable.
+ *   Times written as text too ("1:30:41" - every cell of a CSV is text). On a sheet without a header row also piece
+ *   counts, dates written as text and the name.
+ * - **The brand** is the one field the values say only with the catalogue's help: a column nothing else was made of,
+ *   most of whose values are names of brands we know, is offered as the brand - probable, with a reason of its own
+ *   (withBrandByValues(); the brands are resolved by the caller, in one read for the whole sheet).
  * - **Never two columns on one single-valued field**: the weaker one becomes unknown and keeps what it would have
  *   been as an offer.
  */
@@ -45,6 +51,11 @@ final readonly class ColumnRecogniser
 {
     /** Values of a column that are looked at */
     public const int SAMPLE = 200;
+
+    /** A column is the brand when at least this share of its distinct values, and of its cells, are brands we know */
+    public const float BRAND_SHARE = 0.6;
+    /** … and at least this many of its cells hold one */
+    public const int BRAND_CELLS = 5;
 
     /** Piece counts boxes carry - a column of nothing else is a pieces column even under an unknown header */
     private const array USUAL_PIECES = [
@@ -103,6 +114,117 @@ final readonly class ColumnRecogniser
 
         // A known export with a header twice (two "Notes" columns) is held to the rule too: the first one stands
         return self::oneColumnPerField($columns, $strength);
+    }
+
+    /**
+     * **The brand, from the values** (docs/features/data-import/columns.md "The brand by its values"): among the
+     * columns nothing was made of - no field, no role, and no header that says something else - the one most of whose
+     * values are names of brands in the catalogue becomes the brand: `probable`, `reason: brand_values`.
+     *
+     * - Never when a column is the brand already (a header match always wins), nor a column that has a field.
+     * - A column counts when at least BRAND_SHARE of its distinct text values **and** of its cells are brands we
+     *   know, in at least BRAND_CELLS cells. Of several, the one with the largest share of cells - the left one first.
+     * - The brands are resolved by the caller for all candidate columns at once (ImportBrandResolver: the name as
+     *   typed, then letters and digits only - exact matches, nothing similar): one read for the whole sheet.
+     *
+     * @param list<MappedColumn> $columns
+     * @param iterable<array<int, array<string, mixed>>> $rows rows of the table's data (cells by column), a sample
+     * @param callable(list<string>): array<string, string> $brandsOf the texts that are brands, by the text as given
+     *
+     * @return list<MappedColumn>
+     */
+    public static function withBrandByValues(array $columns, iterable $rows, callable $brandsOf): array
+    {
+        $candidates = [];
+
+        foreach ($columns as $index => $column) {
+            if ($column->field === ImportField::Brand) {
+                return $columns;
+            }
+
+            // Nothing was made of it: no header we know (or none at all), or the weaker of two columns guessed
+            // from their values alone
+            $free = $column->field === null && $column->role === null
+                && ($column->offered === null || ($column->reason === MappedColumn::BY_DUPLICATE && $column->header === ''));
+
+            if ($free) {
+                $candidates[$column->column] = $index;
+            }
+        }
+
+        if ($candidates === []) {
+            return $columns;
+        }
+
+        /** @var array<int, array<string, int>> $texts column => text => in how many cells */
+        $texts = [];
+        $seen = [];
+
+        foreach ($rows as $cells) {
+            foreach ($candidates as $number => $index) {
+                $cell = $cells[$number] ?? null;
+
+                if (StoredCells::isBlank($cell) || ($seen[$number] ?? 0) >= self::SAMPLE) {
+                    continue;
+                }
+
+                $seen[$number] = ($seen[$number] ?? 0) + 1;
+                $shown = trim(StoredCells::shown($cell));
+
+                if (StoredCells::kind($cell) === 'text' && $shown !== '' && is_numeric($shown) === false && mb_strlen($shown) <= 100) {
+                    $texts[$number][$shown] = ($texts[$number][$shown] ?? 0) + 1;
+                }
+            }
+        }
+
+        $asked = [];
+
+        foreach ($texts as $number => $counted) {
+            // A column of fewer cells than the floor can not reach it: not asked about
+            if (array_sum($counted) >= self::BRAND_CELLS) {
+                foreach (array_keys($counted) as $text) {
+                    $asked[(string) $text] = true;
+                }
+            }
+        }
+
+        if ($asked === []) {
+            return $columns;
+        }
+
+        $brands = $brandsOf(array_map(strval(...), array_keys($asked)));
+        $best = null;
+        $bestShare = 0.0;
+
+        foreach ($texts as $number => $counted) {
+            $distinct = 0;
+            $cells = 0;
+
+            foreach ($counted as $text => $times) {
+                if (isset($brands[(string) $text])) {
+                    $distinct++;
+                    $cells += $times;
+                }
+            }
+
+            $share = $cells / max(1, $seen[$number] ?? 0);
+
+            if ($cells >= self::BRAND_CELLS && $distinct / count($counted) >= self::BRAND_SHARE && $share >= self::BRAND_SHARE && $share > $bestShare) {
+                $best = $number;
+                $bestShare = $share;
+            }
+        }
+
+        if ($best === null) {
+            return $columns;
+        }
+
+        return array_map(
+            static fn (MappedColumn $column): MappedColumn => $column->column === $best
+                ? new MappedColumn($column->column, $column->header, ImportField::Brand, ColumnCertainty::Probable, MappedColumn::BY_BRAND_VALUES)
+                : $column,
+            $columns,
+        );
     }
 
     /**
@@ -202,8 +324,16 @@ final readonly class ColumnRecogniser
             $byValues = match (true) {
                 $profile['barcodes'] / $count >= 0.8 => ImportField::Barcode,
                 $profile['durationCells'] / $count >= 0.8 => ImportField::Time,
+                // Times somebody typed as text - every cell of a CSV is text: "1:30:41", "45:10", "1h 30m". As plain
+                // as a duration cell, with or without a header row. Never a column of bare numbers (a year, pieces,
+                // minutes without a unit say nothing by themselves), a date, or a time with words around it (notes)
+                $profile['textTimes'] / $count >= 0.8 => ImportField::Time,
                 $profile['dateCells'] / $count >= 0.8 => ImportField::SolvedOn,
                 $noHeaderRow && $profile['usualPieces'] / $count >= 0.8 => ImportField::Pieces,
+                // Dates somebody typed as text ("12.3.2024", "2024-03-12"): whole days, in every row - as plain as
+                // a date cell. Only without a header row: under a header nobody knows, a column of dates may be
+                // anything (bought on, released on)
+                $noHeaderRow && $profile['textDays'] / $count >= 0.8 => ImportField::SolvedOn,
                 $noHeaderRow && $profile['texts'] / $count >= 0.9 && $profile['distinct'] / $count >= 0.5 && $profile['length'] / $count >= 8 => ImportField::PuzzleName,
                 default => null,
             };
@@ -219,7 +349,7 @@ final readonly class ColumnRecogniser
     /**
      * How well a column's values go with a field: the share of them the field's reader takes, 0 - 1.
      *
-     * @param array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int} $profile
+     * @param array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int, textDays: int, textTimes: int} $profile
      */
     private static function fit(FieldGuess $guess, array $profile): float
     {
@@ -239,7 +369,7 @@ final readonly class ColumnRecogniser
     }
 
     /**
-     * @param array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int} $profile
+     * @param array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int, textDays: int, textTimes: int} $profile
      */
     private static function fitOf(ImportField $field, array $profile): float
     {
@@ -269,11 +399,11 @@ final readonly class ColumnRecogniser
     /**
      * @param list<array<string, mixed>> $values
      *
-     * @return array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int}
+     * @return array{count: int, formulas: int, texts: int, numbers: int, dateCells: int, durationCells: int, pieces: int, usualPieces: int, durations: int, dates: int, yesNo: int, barcodes: int, smallNumbers: int, distinct: int, length: int, textDays: int, textTimes: int}
      */
     private function profile(array $values): array
     {
-        $profile = ['count' => count($values), 'formulas' => 0, 'texts' => 0, 'numbers' => 0, 'dateCells' => 0, 'durationCells' => 0, 'pieces' => 0, 'usualPieces' => 0, 'durations' => 0, 'dates' => 0, 'yesNo' => 0, 'barcodes' => 0, 'smallNumbers' => 0, 'length' => 0];
+        $profile = ['count' => count($values), 'formulas' => 0, 'texts' => 0, 'numbers' => 0, 'dateCells' => 0, 'durationCells' => 0, 'pieces' => 0, 'usualPieces' => 0, 'durations' => 0, 'dates' => 0, 'yesNo' => 0, 'barcodes' => 0, 'smallNumbers' => 0, 'length' => 0, 'textDays' => 0, 'textTimes' => 0];
         $seen = [];
 
         foreach ($values as $cell) {
@@ -300,6 +430,17 @@ final readonly class ColumnRecogniser
             // A bare year is a number like any other: it says nothing about a column of dates
             $profile['dates'] += $date->certainty !== DateCertainty::Unreadable && $date->certainty !== DateCertainty::NoDate
                 && ($date->precision !== DatePrecision::Year || $kind === 'date') ? 1 : 0;
+            // A time written as text: read by the import's own reader, whole (nothing left over), and not a number
+            // without a unit - nor something the date reader takes for a day
+            $profile['textTimes'] += $kind === 'text' && is_numeric(trim($shown)) === false
+                && in_array($duration->certainty, [DurationCertainty::Certain, DurationCertainty::ReadFromText, DurationCertainty::TwoReadings], true)
+                && $duration->shape !== DurationShape::BareNumber
+                && ($date->certainty === DateCertainty::Unreadable || $date->certainty === DateCertainty::NoDate) ? 1 : 0;
+            // A whole day written as text - not a number, a time or a short date ("Jan 23")
+            $profile['textDays'] += $kind === 'text' && is_numeric(trim($shown)) === false
+                && $date->certainty !== DateCertainty::Unreadable && $date->certainty !== DateCertainty::NoDate
+                && $date->precision === DatePrecision::Day && $date->possibleShortMeanings === []
+                && in_array($duration->certainty, [DurationCertainty::Unreadable, DurationCertainty::NoTime], true) ? 1 : 0;
 
             $profile['yesNo'] += $this->yesNoReader->read($input)->certainty === YesNoCertainty::Known ? 1 : 0;
             // A barcode a spreadsheet spoiled (4.00556E+12) still says what the column is

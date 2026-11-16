@@ -39,6 +39,8 @@ export default class extends Controller {
         fallbackUrl: String,
         workingText: String,
         rowsText: String,
+        // "Saved - your rows are being read again.": the flash a Save brings - gone once they are read
+        savedText: String,
         // The puzzles' pages (docs/features/data-import/pairing-screens.md "The live line"): the pairing of the
         // import's puzzles with the database is followed too - `data.pairing` of the same payload
         pairing: Boolean,
@@ -208,10 +210,33 @@ export default class extends Controller {
             this.reloadFrames();
         }
 
+        if (wasWorking && !this.working) {
+            this.dropSavedFlash();
+        }
+
         if (this.working && !wasWorking) {
             // Work began again (a change saved in another tab): the line is kept moving from here on
             this.askLater(ASK_EVERY_MS);
         }
+    }
+
+    /**
+     * The reading ended: the flash that says "your rows are being read again" would be wrong from now on.
+     */
+    dropSavedFlash() {
+        const saved = (this.savedTextValue || '').trim();
+
+        if (saved === '') {
+            return;
+        }
+
+        document.querySelectorAll('.alert-success[role="alert"]').forEach((alert) => {
+            if (alert.textContent.trim().startsWith(saved)) {
+                // The layout wraps each flash in a container of its own: that goes too - never anything larger
+                const wrapper = alert.parentElement;
+                (wrapper && wrapper.matches('.container.mt-3') && wrapper.children.length === 1 ? wrapper : alert).remove();
+            }
+        });
     }
 
     /**

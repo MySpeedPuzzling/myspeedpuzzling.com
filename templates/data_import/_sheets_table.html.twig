@@ -33,7 +33,9 @@
                                         {% if sheet.kind is not null %}
                                             <span class="fw-medium" data-testid="import-sheet-kind" data-kind="{{ sheet.kind.value }}">{{ ('data_import.sheets.kind.' ~ sheet.kind.value)|trans }}</span>
                                         {% endif %}
-                                        {% if sheet.state == 'waiting' %}
+                                        {% if sheet.state == 'waiting' and sheet.heldForACheck %}
+                                            <span class="badge bg-faded-warning text-warning text-wrap text-start ms-1" data-testid="import-sheet-check-first"><i class="bi bi-eye me-1"></i>{{ 'data_import.sheets.waiting_for_check'|trans }}</span>
+                                        {% elseif sheet.state == 'waiting' %}
                                             <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
                                         {% elseif not sheet.parsed %}
                                             <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>

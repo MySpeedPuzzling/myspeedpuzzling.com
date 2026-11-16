@@ -199,7 +199,8 @@ final readonly class DurationReader
             }
 
             if (($match[4] ?? '') !== '') {
-                return self::single(ReadDuration::fromText($seconds + self::roundedUp($match[4])));
+                // A fraction of a second is dropped - results are whole seconds, as the add form takes a typed time
+                return self::single(ReadDuration::fromText($seconds));
             }
 
             // Like the cell of the same value
@@ -229,7 +230,8 @@ final readonly class DurationReader
             ]));
         }
 
-        $minutesSeconds = $first * 60 + $second + self::roundedUp($fraction);
+        // A fraction of a second is dropped (the add form's rule): "30:20.23" is 30 min 20 s
+        $minutesSeconds = $first * 60 + $second;
 
         // Two decimals below 60 may be the seconds of "h:mm.ss"; any other fraction can only be one of seconds
         if (strlen($fraction) === 2 && (int) $fraction < 60) {
@@ -566,14 +568,6 @@ final readonly class DurationReader
         }
 
         return $hours * 3600 + $minutes * 60 + $seconds;
-    }
-
-    /**
-     * A fraction of a second, rounded half up to 0 or 1.
-     */
-    private static function roundedUp(string $fraction): int
-    {
-        return (int) substr($fraction, 0, 1) >= 5 ? 1 : 0;
     }
 
     /**

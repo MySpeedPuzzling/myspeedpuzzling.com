@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\StartImportSheetOver;
 use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportCheckFirst;
 use SpeedPuzzling\Web\Services\DataImport\ImportColumnDecisions;
 use SpeedPuzzling\Web\Services\DataImport\ImportSheetAnalyser;
 use SpeedPuzzling\Web\Services\DataImport\SheetLookupFactory;
@@ -103,7 +104,8 @@ readonly final class StartImportSheetOverHandler
         );
 
         // Checked like any mapping that is stored
-        $mapping = ImportMapping::fromArray($mapping->withQuestions($questions)->toArray());
+        // Started over is not confirmed: a fresh guess asks for the player's look like any first proposal
+        $mapping = ImportMapping::fromArray(ImportCheckFirst::asked($mapping->withQuestions($questions))->toArray());
         $sheet->mappingConfirmed($mapping, $options, $proposal->valueAnswers);
         $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheetId, $sheet->mappingVersion));
 

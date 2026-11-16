@@ -3,7 +3,8 @@
     (docs/features/data-import/columns-screen.md "What each state shows").
 
     Variables: state (failed | recognising | waiting | left_out | parsing | parsed), understood, look, left_out,
-    waiting (rows a question that is not answered yet decides).
+    waiting (rows a question that is not answered yet decides), check_first (optional: the sheet's rows are held
+    until the player has checked how its columns were read - said so, never as a spinner).
 #}
 <div class="fs-sm" data-testid="sheet-state" data-state="{{ state }}">
     {% if state == 'failed' %}
@@ -11,7 +12,11 @@
     {% elseif state == 'recognising' %}
         <span class="text-muted"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{{ 'data_import.sheets.recognising'|trans }}</span>
     {% elseif state == 'waiting' %}
-        <span class="badge bg-faded-warning text-warning text-wrap text-start"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+        {% if check_first|default(null) is not null %}
+            <span class="badge bg-faded-warning text-warning text-wrap text-start" data-testid="sheet-state-check-first"><i class="bi bi-eye me-1"></i>{{ 'data_import.sheets.waiting_for_check'|trans }}</span>
+        {% else %}
+            <span class="badge bg-faded-warning text-warning text-wrap text-start"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+        {% endif %}
     {% elseif state == 'left_out' %}
         <span class="badge bg-secondary text-wrap text-start"><i class="bi bi-dash-circle me-1"></i>{{ 'data_import.columns.state.left_out'|trans }}</span>
     {% elseif state == 'parsing' %}

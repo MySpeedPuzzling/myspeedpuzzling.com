@@ -46,6 +46,11 @@ ParseImportSheetHandler ends a sheet's parse
 - Every step is **one statement for the whole import** (or for a chunk of the search) - `ImportPuzzleMatcherTest`
   pins that building and pairing 60 puzzles costs the statements of 2.
 
+**A sheet whose columns the player has not checked yet takes no part** (columns.md "Check first"): its rows are
+stored without a `puzzle_key`, so step 1 finds no puzzle in them and nothing is matched on columns that were only
+guessed. When the player confirms the sheet it is read again - now with keys - and that parse ends in
+`BuildImportPuzzles` like any other. The other sheets of the file are paired meanwhile.
+
 ## Tables
 
 `data_import_puzzle` - a distinct puzzle of an import, the unit of pairing. Unique `(import_id, puzzle_key)`, index

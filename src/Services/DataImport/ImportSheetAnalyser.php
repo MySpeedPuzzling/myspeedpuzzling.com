@@ -19,7 +19,9 @@ use SpeedPuzzling\Web\Value\DataImportSheetKind;
 /**
  * Proposes a sheet's mapping from a sample of its rows (docs/features/data-import/columns.md): where its table is
  * (DataRegionFinder), whether it is a known export (KnownExportLayout), what each column is (ColumnRecogniser), what
- * the sheet holds and what a row of it is (SheetKindGuesser). Pure - no database.
+ * the sheet holds and what a row of it is (SheetKindGuesser). Pure but for one read: the brands of the catalogue,
+ * once per sheet and only when a column could be the brand by its values (ColumnRecogniser::withBrandByValues()) -
+ * without a resolver (a test of the pure parts) the brand is never guessed from values.
  *
  * What it does not do: settle the open readings of times and dates (ImportColumnDecisions, over more rows than a
  * sample) and see that a sheet is the puzzle list other sheets point to (SheetLookup, across the workbook).
@@ -30,11 +32,18 @@ final readonly class ImportSheetAnalyser
         private DataRegionFinder $regionFinder,
         private ColumnRecogniser $columnRecogniser,
         private SheetKindGuesser $kindGuesser,
+        private null|ImportBrandResolver $brandResolver = null,
     ) {
     }
 
-    public function analyse(SheetSample $sample): ImportSheetProposal
+    /**
+     * @param null|callable(list<string>): array<string, string> $brandsOf which of some texts are brands of the
+     *        catalogue, by the text as given - null: the catalogue's own answer (ImportBrandResolver)
+     */
+    public function analyse(SheetSample $sample, null|callable $brandsOf = null): ImportSheetProposal
     {
+        $brandsOf ??= $this->brandResolver === null ? null : $this->brandResolver->resolveApproved(...);
+
         $regions = $this->regionFinder->find($sample);
 
         if ($regions === []) {
@@ -49,6 +58,10 @@ final readonly class ImportSheetAnalyser
         $layout = $table->headerRow === null ? null : KnownExportLayout::matching($headers);
         $rows = array_filter($sample->rows, static fn (int $number): bool => $table->holdsRow($number), ARRAY_FILTER_USE_KEY);
         $columns = $this->columnRecogniser->recognise($table, $headers, $rows, $layout);
+
+        if ($layout === null && $brandsOf !== null) {
+            $columns = ColumnRecogniser::withBrandByValues($columns, $rows, $brandsOf);
+        }
         [$kind, $certainty, $rowMeaning] = $this->kindGuesser->guess($sample->title, $columns, $layout);
 
         $mapping = new ImportMapping($kind, $certainty, $rowMeaning, $regions, 0, $columns, [], $layout?->id);

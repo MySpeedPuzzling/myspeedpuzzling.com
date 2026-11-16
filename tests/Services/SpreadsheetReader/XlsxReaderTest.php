@@ -185,6 +185,43 @@ final class XlsxReaderTest extends TestCase
         self::assertSame([CellKind::Duration, -21600, '-6:00:00'], self::kindValueShown(self::cell($rows, 1, 10)));
     }
 
+    public function testAFractionOfASecondInATimeCellIsDroppedAsTheAddFormDoesWithATypedTime(): void
+    {
+        $day = static fn (float $seconds): string => sprintf('%.16F', $seconds / 86400);
+        $workbook = $this->open($this->saved(
+            (new RawXlsx())
+                ->styles(['[h]:mm:ss.00', 'mm:ss.00', '[h]:mm:ss'])
+                ->sheet('Times', RawXlsx::worksheet([
+                    1 => [
+                        // 0:30:20.23 - the same time as 0:30:20
+                        'A' => RawXlsx::n($day(1820.23), 1),
+                        // 1:02:03.5 is 1:02:03, never rounded up
+                        'B' => RawXlsx::n($day(3723.5), 1),
+                        'C' => RawXlsx::n($day(1820.99), 1),
+                        // The same shown as minutes:seconds.hundredths (a time of day to a spreadsheet)
+                        'D' => RawXlsx::n($day(1820.23), 2),
+                        'E' => RawXlsx::n($day(1820.5), 2),
+                        // A whole second is never a second short, however the double falls (1:09:17)
+                        'F' => RawXlsx::n($day(4157), 1),
+                        'G' => RawXlsx::n('0.0481134259259259', 1),
+                        // A cell that shows whole seconds is what the player sees: rounded
+                        'H' => RawXlsx::n($day(3723.7), 3),
+                    ],
+                ])),
+        ));
+
+        $rows = $this->rowsOf($workbook);
+
+        self::assertSame([CellKind::Duration, 1820], array_slice(self::kindValueShown(self::cell($rows, 1, 1)), 0, 2));
+        self::assertSame([CellKind::Duration, 3723], array_slice(self::kindValueShown(self::cell($rows, 1, 2)), 0, 2));
+        self::assertSame([CellKind::Duration, 1820], array_slice(self::kindValueShown(self::cell($rows, 1, 3)), 0, 2));
+        self::assertSame([CellKind::TimeOfDay, 1820], array_slice(self::kindValueShown(self::cell($rows, 1, 4)), 0, 2));
+        self::assertSame([CellKind::TimeOfDay, 1820], array_slice(self::kindValueShown(self::cell($rows, 1, 5)), 0, 2));
+        self::assertSame([CellKind::Duration, 4157], array_slice(self::kindValueShown(self::cell($rows, 1, 6)), 0, 2));
+        self::assertSame([CellKind::Duration, 4157], array_slice(self::kindValueShown(self::cell($rows, 1, 7)), 0, 2));
+        self::assertSame([CellKind::Duration, 3724, '1:02:04'], self::kindValueShown(self::cell($rows, 1, 8)));
+    }
+
     public function testATimeTypedAsTextStaysText(): void
     {
         $workbook = $this->open($this->saved(

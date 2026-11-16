@@ -8,6 +8,8 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\DataImport\DataRegionFinder;
 use SpeedPuzzling\Web\Tests\Services\DataImport\ImportTestKit as Kit;
 use SpeedPuzzling\Web\Value\DataImport\DataRegionSource;
+use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
+use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\SheetSample;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 
@@ -81,6 +83,36 @@ final class DataRegionFinderTest extends TestCase
 
         self::assertSame([DataRegionSource::HeaderWords, 4, 'A4:E'], [$regions[0]->source, $regions[0]->headerRow, $regions[0]->range()]);
         self::assertSame(2, $regions[0]->rows);
+    }
+
+    public function testAHeaderOnRowSevenUnderSummaryAndLegendCellsIsFoundAlsoWhenItsCellsWrapOntoSeveralLines(): void
+    {
+        // A log somebody decorated: a title, totals worked out by formulas, a legend - then the header on row 7,
+        // some of its cells wrapped onto several lines
+        $sample = Kit::sheet('Solo 500', [
+            1 => ['My 500 piece log', null, null, null, null],
+            2 => ['Puzzles finished', Kit::formula(Kit::number(3)), null, 'Fastest', Kit::formula(Kit::duration(2105))],
+            3 => ['Average', Kit::formula(Kit::duration(3411)), null, 'Slowest', Kit::formula(Kit::duration(4250))],
+            4 => [null, null, null, null, null],
+            5 => ['Legend', 'green = personal best', 'grey = repeat', null, null],
+            6 => ['Updated', Kit::date('2026-05-02'), null, null, null],
+            7 => ["Puzzle\nname", 'Brand', "Number of\npieces", "Date\ncompleted", "Time\n(h:mm:ss)"],
+            8 => ['Harbour at Dusk', 'Oakfield', 500, Kit::date('2026-01-18'), Kit::duration(4250)],
+            9 => ['Paper Kites', 'Northwind Puzzles', 500, Kit::date('2026-03-02'), Kit::duration(2105)],
+            10 => ['The Old Mill', 'Paper Lantern', 500, Kit::date('2026-04-27'), Kit::duration(3880)],
+        ]);
+        $regions = $this->finder->find($sample);
+
+        self::assertSame([DataRegionSource::HeaderWords, 7, 8, 1, 5], [$regions[0]->source, $regions[0]->headerRow, $regions[0]->firstRow, $regions[0]->firstColumn, $regions[0]->lastColumn]);
+        self::assertSame(["Puzzle\nname", 'Brand', "Number of\npieces", "Date\ncompleted", "Time\n(h:mm:ss)"], array_values(DataRegionFinder::headers($sample, $regions[0])));
+
+        // And every column under it is what its wrapped header says
+        $kit = new Kit();
+        $columns = $kit->analyser->analyse($sample)->mapping->columns;
+        self::assertSame(
+            [ImportField::PuzzleName, ImportField::Brand, ImportField::Pieces, ImportField::SolvedOn, ImportField::Time],
+            array_map(static fn (MappedColumn $column): null|ImportField => $column->field, $columns),
+        );
     }
 
     public function testHeadersNobodyKnowsAreFoundAsTextsOverRowsOfOtherTypes(): void

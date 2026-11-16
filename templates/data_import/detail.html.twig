@@ -19,7 +19,7 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('data_import/_flow_header.html.twig', {import: import, import_flow: import_flow}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, import_flow: import_flow, live_header: import_flow.stage == 'steps'}) }}
 
 <div class="mx-auto" style="max-width: 720px;" data-testid="data-import-page" data-import-flow-screen="detail" data-stage="{{ import_flow.stage }}" data-status="{{ import.status.value }}">
     {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}

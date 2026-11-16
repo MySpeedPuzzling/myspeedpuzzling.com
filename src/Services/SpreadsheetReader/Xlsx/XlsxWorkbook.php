@@ -35,6 +35,18 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
 final class XlsxWorkbook implements ReadWorkbook
 {
     private const int SECONDS_PER_DAY = 86_400;
+
+    /**
+     * A time of a cell **whose format shows a fraction of a second** ([h]:mm:ss.00, mm:ss.0), in whole seconds: the
+     * fraction the player sees is dropped, as the add-result form takes a typed time ("0:30:20.23" is 30 min 20 s,
+     * "1:02:03.5" is 1:02:03) - results are whole seconds. Rounded to the millisecond first: a double is never
+     * exactly the second it stands for. A cell that shows whole seconds is rounded to the second - what the player
+     * sees.
+     */
+    private static function wholeSeconds(int|float $days): int
+    {
+        return (int) floor(round($days * self::SECONDS_PER_DAY, 3));
+    }
     /** Days from 1899-12-30 (serial 0 of the 1900 date system) to 1970-01-01 */
     private const int EPOCH_SERIAL_1900 = 25_569;
     /** The 1904 date system starts 1,462 days later */
@@ -376,7 +388,7 @@ final class XlsxWorkbook implements ReadWorkbook
 
         // More days than a spreadsheet can count is a number, whatever its format says
         if ($kind === NumberFormatKind::Duration && abs($number) <= self::LAST_DAY_1900 + 1) {
-            return ReadCell::duration((int) round($number * self::SECONDS_PER_DAY), $formula);
+            return ReadCell::duration($format !== null && $format->secondFractionShown ? self::wholeSeconds($number) : (int) round($number * self::SECONDS_PER_DAY), $formula);
         }
 
         // A negative "date" is shown as ##### by a spreadsheet; so is one beyond the year 9999 - which a workbook
@@ -390,7 +402,7 @@ final class XlsxWorkbook implements ReadWorkbook
 
             // In the 1900 date system day 0 does not exist: a "date" below 1 is a time of day in a date's clothes
             if ($kind === NumberFormatKind::Time || ($number < 1 && $this->structure->date1904 === false)) {
-                return ReadCell::timeOfDay($seconds, $formula);
+                return ReadCell::timeOfDay($format->secondFractionShown ? self::wholeSeconds($number) % self::SECONDS_PER_DAY : $seconds, $formula);
             }
 
             // A cell that shows no time is its day - however close to midnight its number is

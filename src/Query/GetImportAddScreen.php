@@ -1450,7 +1450,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'undoId' => $undoId])->f
      * an answer after an "Add", questions of its sheets, rows we could not read, puzzles still to match. **One
      * statement for all of them**, whatever their number and size. Numbers only; nobody's identity is selected.
      *
-     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
+     * @return array<string, array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}> by import id
      */
     public function addedByImports(string $playerId): array
     {
@@ -1469,7 +1469,7 @@ r.import_id IN (
 SQL);
         $notAdded = self::NOT_ADDED;
 
-        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, look: int|string, to_match: int, working: bool}> $rows */
+        /** @var list<array{import_id: string, results: int, collection_items: int, wish_list_items: int, kept_just_for_you: int, last_added_at: null|string, running_batch_id: null|string, results_today: int, ready: int, waiting: int, took_rows: bool, questions: int|string, to_check: int|string, look: int|string, to_match: int, working: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 WITH {$ready},
 ready_by AS (
@@ -1516,7 +1516,18 @@ SELECT
             AND sheet.mapping_version > 0
             AND sheet.set_up_failure IS NULL
             AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            -- A sheet whose reading is a guess asks for a look, not for answers: counted below (ImportCheckFirst)
+            AND NOT (COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb)
     ) AS questions,
+    (
+        SELECT COUNT(*)
+        FROM data_import_sheet sheet
+        WHERE sheet.import_id = data_import.id
+            AND sheet.mapping_version > 0
+            AND sheet.set_up_failure IS NULL
+            AND COALESCE(sheet.kind, '') NOT IN ('not_puzzles', 'somebody_else')
+            AND COALESCE(sheet.mapping -> 'questions', '[]'::jsonb) @> '[{"type": "check_columns"}]'::jsonb
+    ) AS to_check,
     (
         SELECT COALESCE(SUM(sheet.rows_need_look), 0)
         FROM data_import_sheet sheet
@@ -1567,6 +1578,7 @@ SQL, [
                 'ready' => $row['ready'],
                 'waiting' => $row['waiting'],
                 'questions' => (int) $row['questions'],
+                'toCheck' => (int) $row['to_check'],
                 'look' => (int) $row['look'],
                 'toMatch' => $row['to_match'],
                 'working' => $row['working'],

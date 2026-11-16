@@ -64,6 +64,7 @@ final class ImportHomeCardTest extends TestCase
         yield 'step 4: something ready, puzzles to match' => [DataImportStatus::SettingUp, ['ready' => 471, 'toMatch' => 276], 0, ['data_import.after.home.ready', 'data_import.after.home.to_match'], $continue, 'data_import_detail', false, false];
         yield 'step 4: nothing ready yet' => [DataImportStatus::SettingUp, ['toMatch' => 276], 0, ['data_import.after.home.to_match'], $continue, 'data_import_detail', false, false];
         yield 'only step 5' => [DataImportStatus::SettingUp, ['ready' => 471], 0, ['data_import.after.home.ready'], 'data_import.flow.primary.check_and_add', 'data_import_add', false, false];
+        yield 'step 2: a sheet whose reading is a guess is a sheet to check, not a question' => [DataImportStatus::SettingUp, ['toCheck' => 1, 'ready' => 300], 0, ['data_import.flow.check.to_check'], $continue, 'data_import_detail', false, false];
         yield 'adding now' => [DataImportStatus::SettingUp, ['runningBatchId' => self::BATCH, 'adding' => true, 'ready' => 5, 'questions' => 1], 0, ['data_import.flow.add.running'], 'data_import.flow.primary.follow', 'data_import_batch', false, false];
         yield 'added, rows wait for an answer' => [DataImportStatus::SettingUp, ['results' => 246, 'lastAddedAt' => new DateTimeImmutable('2026-11-14'), 'waiting' => 31, 'tookRows' => true, 'ready' => 4], 0, ['data_import.flow.add.added_on', 'data_import.flow.add.rows_wait'], 'data_import.flow.primary.answer', 'data_import_not_added', false, false];
         yield 'added, the rest waits for tomorrow' => [DataImportStatus::SettingUp, ['results' => 2000, 'resultsToday' => 2000, 'lastAddedAt' => new DateTimeImmutable(self::NOW), 'ready' => 1240, 'tookRows' => true], DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, ['data_import.after.home.added_today', 'data_import.after.home.tomorrow'], $open, 'data_import_detail', true, false];
@@ -112,7 +113,7 @@ final class ImportHomeCardTest extends TestCase
     /**
      * @param array<string, mixed> $given
      *
-     * @return array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool}
+     * @return array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool}
      */
     private static function standing(array $given): array
     {
@@ -132,6 +133,7 @@ final class ImportHomeCardTest extends TestCase
             'ready' => $int('ready'),
             'waiting' => $int('waiting'),
             'questions' => $int('questions'),
+            'toCheck' => $int('toCheck'),
             'look' => $int('look'),
             'toMatch' => $int('toMatch'),
             'working' => ($given['working'] ?? false) === true,

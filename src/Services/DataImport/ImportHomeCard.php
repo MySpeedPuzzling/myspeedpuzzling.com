@@ -53,7 +53,7 @@ readonly final class ImportHomeCard
     }
 
     /**
-     * @param null|array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
+     * @param null|array{results: int, collectionItems: int, wishListItems: int, keptJustForYou: int, lastAddedAt: null|DateTimeImmutable, adding: bool, runningBatchId: null|string, resultsToday: int, ready: int, waiting: int, questions: int, toCheck: int, look: int, toMatch: int, working: bool, tookRows: bool} $standing
      *        what GetImportAddScreen::addedByImports() says about the import - null: nothing
      * @param int $resultsToday the results all of the player's imports added today (the daily limit is the player's)
      */
@@ -110,9 +110,11 @@ readonly final class ImportHomeCard
             return $card([new ImportFlowText('data_import.flow.add.running')], new ImportFlowText('data_import.flow.primary.follow'), 'data_import_batch', parameters: ['batchId' => $standing['runningBatchId']]);
         }
 
-        if ($standing['questions'] > 0 || $standing['look'] > 0) {
+        if ($standing['questions'] > 0 || $standing['toCheck'] > 0 || $standing['look'] > 0) {
             return $card([
                 $standing['questions'] > 0 ? new ImportFlowText('data_import.flow.check.questions', $standing['questions']) : null,
+                // A sheet whose reading is a guess (ImportCheckFirst): a look, not a question
+                $standing['toCheck'] > 0 ? new ImportFlowText('data_import.flow.check.to_check', $standing['toCheck']) : null,
                 $standing['look'] > 0 ? new ImportFlowText('data_import.flow.check.rows', $standing['look']) : null,
             ], $continue, 'data_import_detail');
         }

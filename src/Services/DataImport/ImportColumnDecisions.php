@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Value\DataImport\DateOrder;
 use SpeedPuzzling\Web\Value\DataImport\DateOrderState;
 use SpeedPuzzling\Web\Value\DataImport\DurationColumnCell;
 use SpeedPuzzling\Web\Value\DataImport\DurationReadingRule;
+use SpeedPuzzling\Web\Value\DataImport\DurationShape;
 use SpeedPuzzling\Web\Value\DataImport\DurationShapeOption;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
@@ -184,6 +185,14 @@ final readonly class ImportColumnDecisions
                     continue;
                 }
 
+                // "30:20.23": two parts and a fraction are minutes and seconds - never asked. (The reader still knows
+                // the "h:mm.ss" habit: the rows' pace above, a layout or an answer given earlier may say so.)
+                if ($decision->shape === DurationShape::TwoPartTextWithHundredths) {
+                    $options = $options->withDuration($decision->shape, DurationReadingRule::MinutesSeconds, ImportSheetOptions::BY_ROWS);
+
+                    continue;
+                }
+
                 // A reading that makes one of the rows shown longer than anybody puzzles ("326" as 326 hours) is not
                 // offered; when one reading is left, it is taken - nothing to ask
                 $rules = array_values(array_unique(array_map(static fn (DurationShapeOption $option): string => $option->rule->value, $decision->options)));
@@ -259,6 +268,8 @@ final readonly class ImportColumnDecisions
                 ImportQuestionType::SheetSolvingType => $options
                     ->withSolvingType($answer === self::SOLVING_TYPE_BY_ROWS ? null : PuzzlingType::from($answer))
                     ->withSolvingTypeAnswered(),
+                // "Yes, this is right": nothing to write down - the question is gone with the sheet's next version
+                ImportQuestionType::CheckColumns => $options,
             };
         }
 

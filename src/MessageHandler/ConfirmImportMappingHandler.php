@@ -15,11 +15,13 @@ use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportColumnDecisions;
+use SpeedPuzzling\Web\Services\DataImport\ImportCheckFirst;
 use SpeedPuzzling\Web\Services\DataImport\ImportLayouts;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
+use SpeedPuzzling\Web\Value\DataImport\ImportQuestionType;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImport\ImportText;
 use SpeedPuzzling\Web\Value\DataImport\ImportWordMeaning;
@@ -107,6 +109,16 @@ readonly final class ConfirmImportMappingHandler
         );
 
         $mapping = $mapping->withQuestions($questions);
+
+        // "Did we read your columns right?" (ImportCheckFirst) is answered by the player's word on the columns: its
+        // own "yes", or a change of them. An answer to another question of the sheet alone leaves it asked
+        if (ImportCheckFirst::isAsked($current)) {
+            $mapping = $message->mapping === null && isset($message->answers[ImportQuestionType::CheckColumns->value]) === false
+                ? ImportCheckFirst::asked($mapping)
+                // Looked at and found right: what was a guess is the player's word now - the sheet reads as sure
+                : ImportCheckFirst::confirmed($mapping);
+        }
+
         $sheet->mappingConfirmed($mapping, $options, $valueAnswers);
 
         // Also for a sheet that is "not puzzles" now (its rows are left out by the same job) and for one that still

@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\EventResultsImport\ParsedEvent;
 
 /**
  * One event of an organizer's results source, read and checked by the source's format - applied as an upsert in a
  * transaction of its own (docs/features/event-results-import/README.md). Stored as the source's tab keyed by the
- * event's stable key (event_results_sheet_tab.gid). Two runs never apply the same event at once.
+ * event's stable key (event_results_sheet_tab.gid). Two runs never apply the same event at once. The handler answers
+ * what it made of it (AppliedEventResultsTab).
  */
 readonly final class ApplyEventResultsTab implements SerializedByLock
 {
     public function __construct(
         public string $sheetId,
         public ParsedEvent $event,
+        // When the sheet was read, for an import from a stored check (the results import page): an event applied after
+        // that read is not applied again from it - a newer check won. Null = read just now (the sync)
+        public null|DateTimeImmutable $readAt = null,
     ) {
     }
 

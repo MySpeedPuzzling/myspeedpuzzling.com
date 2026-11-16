@@ -13539,10 +13539,12 @@ results_import:
             example: "Exemple"
     title: "Import des résultats"
     meta_title: "Import des résultats - %organization%"
-    intro: "Vérifiez votre feuille de résultats pour voir chaque événement qu'elle contient : ce qui est nouveau, ce qui a changé et ce qu'il faut corriger. Rien n'est publié depuis cette page."
+    intro: "Vérifiez votre feuille de résultats pour voir chaque événement qu'elle contient - ce qui est nouveau, ce qui a changé et ce qu'il faut corriger - puis importez ceux qui sont prêts. Rien n'est publié avant votre confirmation."
     pieces_placed: "%placed% pièces"
     flash:
         try_again: "Cela n'a pas fonctionné - veuillez réessayer."
+        newer_check: "Votre feuille a été vérifiée à nouveau entre-temps - regardez la dernière vérification et cochez à nouveau."
+        nothing_ticked: "Cochez au moins un événement à importer."
     guide:
         title: "À quoi doit ressembler votre feuille"
     sources:
@@ -13654,3 +13656,31 @@ results_import:
             date: "-"
             start_time: "Sans heure de début"
             time_limit: "Sans temps limite"
+    import:
+        button: "Importer les événements cochés"
+        hint: "Les événements nouveaux et modifiés sont cochés. Vous voyez un résumé avant que quoi que ce soit ne soit publié."
+        nothing_to_import: "Rien à importer pour l'instant - chaque événement est déjà importé ou attend quelque chose dans votre feuille."
+    confirm:
+        title: "Importer les résultats"
+        heading: "Importer %events%, %teams% ?"
+        events: "%count% événement|%count% événements"
+        no_undo: "Pas de retour en arrière : une fois importés, les résultats sont publics sur MySpeedPuzzling. Pour corriger quelque chose plus tard, corrigez votre feuille, vérifiez-la à nouveau et importez de nouveau l'événement."
+        button: "Importer %count% événement|Importer %count% événements"
+        cancel: "Retour"
+    outcome:
+        imported: "Importé"
+        unchanged: "Rien à changer - déjà importé ainsi"
+        stale: "Non importé - quelqu'un en a importé une vérification plus récente entre-temps. Vérifiez à nouveau votre feuille."
+        not_imported: "Non importé - il n'est pas encore prêt. Vérifiez à nouveau votre feuille pour voir pourquoi."
+        not_in_check: "Non importé - il ne figure plus dans cette vérification."
+        failed: "Non importé - un problème est survenu et rien n'a changé. Veuillez réessayer."
+    result:
+        heading: "Import terminé"
+        teams: "Équipes - nouvelles : %added%, modifiées : %updated%, supprimées : %removed%"
+        open_results: "Résultats"
+        open_event: "Événement"
+    history:
+        heading: "Derniers imports"
+        byline: "%when% par %name%"
+        byline_without_name: "%when%"
+        events: "%count% événement importé|%count% événements importés"

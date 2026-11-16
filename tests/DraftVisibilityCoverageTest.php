@@ -57,6 +57,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetPuzzleResultDetail.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPuzzleSolvers.php' => self::VIA_SOLVING_TIMES,
         'Query/GetRecentActivity.php' => self::VIA_SOLVING_TIMES,
+        'Query/GetResultsImportEventLinks.php' => 'Links the events an import of the results import page made (its team and admins only) to their pages - drafts included on purpose, like its other organiser pages (docs/features/event-results-import/results-import-page.md).',
         'Query/GetResultsImportStoredTabs.php' => 'The results import page of an organization\'s team (and admins) lists the events made from its own results source - drafts included on purpose, like its other organiser pages (docs/features/event-results-import/results-import-page.md).',
         'Query/GetRoundResultsOverview.php' => self::ORGANISER,
         'Query/GetRoundsWithPublishedOfficialResults.php' => self::NOTIFICATION,

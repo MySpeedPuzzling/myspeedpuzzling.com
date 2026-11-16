@@ -2,9 +2,11 @@
 
 {#
     The results import page of one results source (docs/features/event-results-import/results-import-page.md): "Check
-    sheet", the latest check's events with their status against what is stored (each links to its preview), the tabs
-    Google did not give us, and how the sheet must look (the format's guide). For the organization's team and admins.
-    Variables: organization (OrganizationDetail), source_id, format (ResultsFormat), overview (null|ResultsImportOverview)
+    sheet", the result of an import just made, the latest check's events with their status against what is stored (each
+    links to its preview; New and Changed ticked for "Import"), the tabs Google did not give us, the latest imports and
+    how the sheet must look (the format's guide). For the organization's team and admins.
+    Variables: organization (OrganizationDetail), source_id, format (ResultsFormat), overview (null|ResultsImportOverview),
+    history (list<ResultsImportLog>), just_imported (null|ResultsImportLog), event_links
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -23,6 +25,10 @@
     <div class="results-import pb-4" data-results-import>
         <h1 class="h2 mb-2">{{ 'results_import.title'|trans }}</h1>
         <p class="text-muted mb-3">{{ 'results_import.intro'|trans }}</p>
+
+        {% if just_imported %}
+            {{ include('results_import/_import_result.html.twig', {log: just_imported}) }}
+        {% endif %}
 
         <div class="card card-body shadow-sm mb-4" data-results-import-check>
             <div class="d-flex flex-wrap align-items-center gap-3">
@@ -72,6 +78,10 @@
             {% else %}
                 {{ include('results_import/_event_list.html.twig') }}
             {% endif %}
+        {% endif %}
+
+        {% if history is not empty %}
+            {{ include('results_import/_history.html.twig') }}
         {% endif %}
 
         <details class="card card-body shadow-sm mt-4 results-import-guide" data-results-import-guide>

@@ -13546,10 +13546,12 @@ results_import:
             example: "Příklad"
     title: "Import výsledků"
     meta_title: "Import výsledků - %organization%"
-    intro: "Zkontrolujte svou tabulku výsledků a uvidíte každou událost v ní - co je nové, co se změnilo a co je potřeba opravit. Z této stránky se nic nezveřejňuje."
+    intro: "Zkontrolujte svou tabulku výsledků a uvidíte každou událost v ní - co je nové, co se změnilo a co je potřeba opravit - a pak naimportujte ty, které jsou připravené. Nic se nezveřejní, dokud to nepotvrdíte."
     pieces_placed: "%placed% dílků"
     flash:
         try_again: "Nepovedlo se - zkuste to prosím znovu."
+        newer_check: "Tabulka byla mezitím zkontrolována znovu - podívejte se na poslední kontrolu a zaškrtněte události znovu."
+        nothing_ticked: "Zaškrtněte aspoň jednu událost k importu."
     guide:
         title: "Jak musí tabulka vypadat"
     sources:
@@ -13661,3 +13663,31 @@ results_import:
             date: "-"
             start_time: "Bez času začátku"
             time_limit: "Bez časového limitu"
+    import:
+        button: "Importovat zaškrtnuté události"
+        hint: "Nové a změněné události jsou zaškrtnuté. Než se cokoli zveřejní, uvidíte shrnutí."
+        nothing_to_import: "Teď není co importovat - každá událost je už importovaná, nebo čeká na něco ve vaší tabulce."
+    confirm:
+        title: "Import výsledků"
+        heading: "Importovat %events%, %teams%?"
+        events: "{1}%count% událost|[2,4]%count% události|[0,Inf[%count% událostí"
+        no_undo: "Import nejde vrátit zpět: po importu jsou výsledky na MySpeedPuzzling veřejné. Pokud budete chtít později něco opravit, opravte tabulku, zkontrolujte ji znovu a událost importujte znovu."
+        button: "{1}Importovat %count% událost|[2,4]Importovat %count% události|[0,Inf[Importovat %count% událostí"
+        cancel: "Zpět"
+    outcome:
+        imported: "Importováno"
+        unchanged: "Není co měnit - už je takto importovaná"
+        stale: "Neimportováno - mezitím někdo naimportoval novější kontrolu této události. Zkontrolujte tabulku znovu."
+        not_imported: "Neimportováno - ještě není připravená. Zkontrolujte tabulku znovu a uvidíte proč."
+        not_in_check: "Neimportováno - v této kontrole už není."
+        failed: "Neimportováno - něco se pokazilo a nic z ní se nezměnilo. Zkuste to prosím znovu."
+    result:
+        heading: "Import hotový"
+        teams: "Týmy - nové: %added%, změněné: %updated%, odstraněné: %removed%"
+        open_results: "Výsledky"
+        open_event: "Událost"
+    history:
+        heading: "Poslední importy"
+        byline: "%when%, %name%"
+        byline_without_name: "%when%"
+        events: "{1}%count% událost importována|[2,4]%count% události importovány|[0,Inf[%count% událostí importováno"

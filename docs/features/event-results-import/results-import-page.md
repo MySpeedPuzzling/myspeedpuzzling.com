@@ -142,3 +142,42 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
   and `PrivateProfileCanaryTest` do not list it; its queries are classified in the coverage tests.
 - **Every locale** renders the list and the previews (`ResultsImportPageTest`); claim words follow `event_result_claim.*`
   (fr "réclamé", ja "申告").
+
+## As built: PR 3 - import from the page (2026-11-16)
+
+- **Tick**: the list is a GET form - New and Changed events carry a ticked box, every other status a disabled one.
+  "Import ticked events" → `results_import_confirm` `GET …/results-import/{sourceId}/import?check=<id>&events[]=…`:
+  "Import 2 events, 5 teams?", each event with its status, teams and changes, the no-undo note (P3), and a form carrying
+  a **new import id** (UUIDv7). Only the source's **latest** check is imported from - an older one (somebody checked
+  again meanwhile) goes back to the page with "Your sheet was checked again meanwhile"; nothing ticked, likewise.
+- **Import**: `results_import_import` `POST …/import` (session CSRF `results_import_import_<sourceId>`, always a
+  redirect to `…?import=<id>#import-result`) dispatches `ImportResultsFromCheck` (`HandledOutsideTransaction` +
+  `SerializedByLock` on `results-import-<sourceId>`): the stored check's sheet parsed again through the source's format -
+  **Google is never read** - and every ticked event that can be imported goes through `ApplyEventResultsTab` with
+  `readAt` = the check's read time, each in a transaction of its own like the sync. One failing event is logged
+  (warning) and recorded as failed; the entity manager is cleared (or reset when closed) and the next event goes on.
+  The outcome comes from the apply handler's return value (`AppliedEventResultsTab`: status, competition, teams
+  added / updated / removed, `unchanged`, `stale`) - nothing is predicted.
+- **Staleness**: the apply refuses an event whose tab was applied **after** `readAt` (after its unchanged early return,
+  under the tab's lock) - an older check never overwrites what a newer one published. The sync passes no `readAt`.
+  Judgement call: an admin's sync run after a check makes that check's tabs stale too ("check again") - over-refusing
+  is the safe side.
+- **Idempotency**: the import id is the primary key of `results_import_log`; the handler does nothing when it exists,
+  the POST redirects straight to its result, and the source's lock makes a double submit wait for the first one.
+- **`results_import_log`** (generated migration): `id` (the import id), `source_id` CASCADE, `check_id` (copied, no
+  foreign key - checks are pruned), `imported_by_id` SET NULL, `imported_at`, `events` jsonb (`key`, `title`,
+  `outcome` = `ResultsImportOutcome`: imported / unchanged / stale / not_imported / not_in_check / failed,
+  `competition_id` copied, `added`, `updated`, `removed`), `teams_added` / `teams_updated` / `teams_removed`. Logged at
+  `info` too (no approval, P2 - nobody is notified).
+- **After the import**: the page shows the result (each event's outcome and team counts, links to its results page and
+  its event page - `GetResultsImportEventLinks`), the latest 10 imports as history (who, when, events, teams).
+- **P4** was already the import's behaviour (`upsertResults()`): a team gone from the sheet is deleted when nobody
+  claimed it, kept with `claimed_team_removed_from_sheet` when somebody did; claims are never touched. Now counted
+  (`teams_removed`) and tested through the page (`ResultsImportFlowTest`).
+- Tests: `ResultsImportFlowTest` (ticks, confirmation, import from the stored check with Google switched off, result +
+  links, log, double submit, P4, older check, nothing ticked, stale token, access), `ImportResultsFromCheckHandlerTest`
+  (stale refusal, a failing event among others, same import id twice, not importable / not in the check).
+- **Browser walk** (headless Chromium, desktop and 390 px, the dev app on a fixture database with a stored check of a
+  made-up sheet): list → previews → tick → confirmation → import → result with links → round page → history, and a
+  failed "Check sheet". It found that the preview left out a claimed team the sheet dropped (it stays on the round page)
+  and that the status counts did not wrap on phones - both fixed in PR 2; no page overflows at 390 px.

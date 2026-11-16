@@ -1,0 +1,6 @@
+{#- "5 minutes ago by Jane" of an import (its importer is null once their account is gone). Variables: log (ResultsImportLog) -#}
+{%- if log.importedBy -%}
+    {{ 'results_import.history.byline'|trans({'%when%': log.importedAt|ago, '%name%': log.importedBy.name ?? ('#' ~ log.importedBy.code)}) }}
+{%- else -%}
+    {{ 'results_import.history.byline_without_name'|trans({'%when%': log.importedAt|ago}) }}
+{%- endif -%}

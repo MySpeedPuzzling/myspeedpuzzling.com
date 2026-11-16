@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Value\EventResultsImport\AppliedEventResultsTab;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabStatus;
@@ -52,7 +53,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * One tab of an organizer's results sheet as an upsert (docs/features/event-results-import/README.md): the event and
  * its round through the same messages as the web forms, one nobody's result per team keyed by the team's folded name.
  * Nothing is imported without its puzzle; a tab with a problem changes nothing; a team somebody claimed is never
- * changed or removed by the import - a person decides.
+ * changed or removed by the import - a person decides; a team gone from the sheet is removed when nobody claimed it
+ * (P4 of results-import-page.md). An event read before it was last applied (an import from an older check) is refused.
+ * Answers what it did (AppliedEventResultsTab).
  */
 #[AsMessageHandler]
 readonly final class ApplyEventResultsTabHandler
@@ -74,7 +77,7 @@ readonly final class ApplyEventResultsTabHandler
     ) {
     }
 
-    public function __invoke(ApplyEventResultsTab $message): void
+    public function __invoke(ApplyEventResultsTab $message): AppliedEventResultsTab
     {
         $parsed = $message->event;
         $sheet = $this->sheetRepository->get($message->sheetId);
@@ -82,7 +85,12 @@ readonly final class ApplyEventResultsTabHandler
 
         // Nothing changed since it was imported - a tab still waiting for its puzzle is looked at again every run
         if ($tab !== null && $tab->status === EventTabStatus::Imported && $tab->competition !== null && $tab->contentHash === $parsed->contentHash) {
-            return;
+            return new AppliedEventResultsTab(EventTabStatus::Imported, $tab->competition->id->toString(), unchanged: true);
+        }
+
+        // Applied after this read was made (somebody imported a newer check meanwhile) - what they published stays
+        if ($message->readAt !== null && $tab?->appliedAt !== null && $tab->appliedAt > $message->readAt) {
+            return AppliedEventResultsTab::stale($tab->competition?->id->toString());
         }
 
         $problems = $parsed->problems;
@@ -104,6 +112,7 @@ readonly final class ApplyEventResultsTabHandler
         }
 
         $competition = null;
+        $counts = [0, 0, 0];
 
         // Unfinished teams: their pieces placed checked against the puzzle before anything is created or changed - a
         // new tab must not leave an event behind, an imported one must not change half its results
@@ -134,7 +143,7 @@ readonly final class ApplyEventResultsTabHandler
                 : $tab->competition;
             assert($competition !== null);
 
-            $status = $this->apply($sheet, $tab, $parsed, $competition, $puzzle, $unfinished, $problems);
+            $status = $this->apply($sheet, $tab, $parsed, $competition, $puzzle, $unfinished, $problems, $counts);
         }
 
         $tab ??= $this->newTab($sheet, $message);
@@ -152,6 +161,14 @@ readonly final class ApplyEventResultsTabHandler
                 'problems' => array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
             ]);
         }
+
+        return new AppliedEventResultsTab(
+            status: $status,
+            competitionId: $tab->competition?->id->toString(),
+            teamsAdded: $counts[0],
+            teamsUpdated: $counts[1],
+            teamsRemoved: $counts[2],
+        );
     }
 
     /**
@@ -190,6 +207,7 @@ readonly final class ApplyEventResultsTabHandler
     /**
      * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
+     * @param array{int, int, int} $counts teams added, updated, removed
      */
     private function apply(
         EventResultsSheet $sheet,
@@ -199,6 +217,7 @@ readonly final class ApplyEventResultsTabHandler
         Puzzle $puzzle,
         array $unfinished,
         array &$problems,
+        array &$counts,
     ): EventTabStatus {
         // Checked by hasTabProblem() - every event field is there
         assert($parsed->eventName !== null && $parsed->location !== null && $parsed->cityAndState !== null);
@@ -220,7 +239,7 @@ readonly final class ApplyEventResultsTabHandler
 
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
         $this->updateEvent($competition, $round, $sheet, $parsed, $location, $eventDay, $startsAt);
-        $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $unfinished, $problems);
+        $counts = $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $unfinished, $problems);
 
         return EventTabStatus::Imported;
     }
@@ -365,6 +384,7 @@ readonly final class ApplyEventResultsTabHandler
     /**
      * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
+     * @return array{int, int, int} teams added, updated, removed
      */
     private function upsertResults(
         EventResultsSheetTab $tab,
@@ -375,8 +395,9 @@ readonly final class ApplyEventResultsTabHandler
         DateTimeImmutable $eventDay,
         array $unfinished,
         array &$problems,
-    ): void {
+    ): array {
         $existing = $this->importedResultRepository->ofTab($tab);
+        [$added, $updated, $removed] = [0, 0, 0];
 
         foreach ($parsed->rows as $row) {
             $imported = $existing[$row->teamKey] ?? null;
@@ -384,13 +405,16 @@ readonly final class ApplyEventResultsTabHandler
 
             if ($imported === null) {
                 $this->createResult($tab, $row, $competition, $round, $puzzle, $eventDay, $unfinished[$row->teamKey] ?? null);
+                $added++;
                 continue;
             }
 
-            $this->updateResult($imported->solvingTime, $row, $unfinished[$row->teamKey] ?? null, $problems);
+            if ($this->updateResult($imported->solvingTime, $row, $unfinished[$row->teamKey] ?? null, $problems)) {
+                $updated++;
+            }
         }
 
-        // Taken off the sheet
+        // Taken off the sheet: removed when nobody claimed it, kept when somebody did (P4) - a person decides
         foreach ($existing as $imported) {
             $time = $imported->solvingTime;
 
@@ -401,7 +425,10 @@ readonly final class ApplyEventResultsTabHandler
 
             $this->importedResultRepository->delete($imported);
             $this->solvingTimeRepository->delete($time, SolvingTimeDeletedVia::EventImport);
+            $removed++;
         }
+
+        return [$added, $updated, $removed];
     }
 
     private function createResult(
@@ -436,8 +463,9 @@ readonly final class ApplyEventResultsTabHandler
      * from one to the other. Its people do not once somebody claimed a spot.
      *
      * @param list<EventTabProblem> $problems
+     * @return bool whether anything of the result changed
      */
-    private function updateResult(PuzzleSolvingTime $time, ParsedEventRow $row, null|UnfinishedResult $unfinished, array &$problems): void
+    private function updateResult(PuzzleSolvingTime $time, ParsedEventRow $row, null|UnfinishedResult $unfinished, array &$problems): bool
     {
         if ($unfinished !== null) {
             $changed = $time->correctImportedUnfinishedResult($unfinished);
@@ -463,20 +491,24 @@ readonly final class ApplyEventResultsTabHandler
                 $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamChangedSize, $row->teamName, $row->line);
             }
 
-            return;
+            return $changed;
         }
 
         if ($time->puzzlersCount !== $row->teamSize) {
             [$group, $puzzlingTeam] = $this->anonymousTeam($row);
             $time->replaceAnonymousGroup($group, $puzzlingTeam);
 
-            return;
+            return true;
         }
 
         // The same team written another way ("puzzle pals" -> "Puzzle Pals") - the shown name follows the sheet
         if ($time->puzzlingTeam !== null && $time->puzzlingTeam->name !== $row->teamName) {
             $time->puzzlingTeam->nameFromEvent($row->teamName);
+
+            return true;
         }
+
+        return $changed;
     }
 
     /**

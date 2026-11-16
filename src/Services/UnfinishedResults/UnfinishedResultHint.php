@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\UnfinishedResults;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 /**
  * Whether the add/edit form asks "I didn't finish within the time limit" (docs/features/competitions-management/
@@ -45,6 +47,7 @@ readonly final class UnfinishedResultHint
         private SecretPuzzleAccess $secretPuzzleAccess,
         private ClockInterface $clock,
         private Connection $database,
+        private LoggerInterface $logger,
         #[Autowire(param: 'unfinishedResultsForm')]
         private bool $enabled,
     ) {
@@ -61,6 +64,21 @@ readonly final class UnfinishedResultHint
      * @param null|DateTimeImmutable $solveDay the form's day - a series pick's edition is found by its puzzle (and day)
      */
     public function forPick(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay): null|UnfinishedRoundHint
+    {
+        // Runs on every speed submit of the add/edit form with a competition: whatever goes wrong here, the form works
+        // exactly as before (no question) - the add form must never break
+        try {
+            return $this->resolve($competitionPick, $puzzleId, $puzzlersCount, $solveDay);
+        } catch (Throwable $e) {
+            $this->logger->warning('Unfinished result round hint failed - the form asks nothing', [
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
+    }
+
+    private function resolve(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay): null|UnfinishedRoundHint
     {
         if ($this->enabled === false) {
             return null;

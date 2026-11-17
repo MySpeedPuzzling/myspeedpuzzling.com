@@ -347,6 +347,60 @@ final class ResultsImportComparisonTest extends KernelTestCase
         self::assertSame(ResultsImportStatus::Unchanged, $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('302')?->status);
     }
 
+    /**
+     * A relay tab (solo-and-relays.md §2): both puzzles, the teams' totals - predicted exactly as the import records it.
+     */
+    public function testARelayIsPredictedLikeTheImportDoesIt(): void
+    {
+        $container = self::getContainer();
+        $header = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Link to MySpeedPuzzling 2';
+        $first = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $second = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_02;
+        $relay = static fn (string $time, string $secondLink, string $name = 'Relay Night', string $date = '10/1/26'): string => implode("\r\n", [
+            $header,
+            "Puzzle Pals,$time,4,,$name,Hall,\"Springfield, MN\",$date,7:00 PM,120,Teams,$first,$secondLink",
+            'Edge Lords,1:30:00,3,,,,,,,,,,',
+        ]);
+
+        self::applyTab($container, $this->source, '401', 'Relay', $relay('1:23:45', $second));
+        self::applyTab($container, $this->source, '402', 'Relay turned single', $relay('1:23:45', $second, 'Single Night', '10/2/26'));
+
+        $snapshot = new SheetSnapshot([
+            new SheetSnapshotTab('401', 'Relay', $relay('1:20:00', $second)),
+            new SheetSnapshotTab('402', 'Relay turned single', $relay('1:23:45', '', 'Single Night', '10/2/26')),
+            new SheetSnapshotTab('403', 'New relay', $relay('1:23:45', $second, 'New Relay Night', '10/3/26')),
+            new SheetSnapshotTab('404', 'Second puzzle missing', $relay('1:23:45', 'https://myspeedpuzzling.com/en/puzzle/' . Uuid::uuid7()->toString(), 'Missing Night', '10/4/26')),
+        ]);
+        $check = $this->check($snapshot);
+        $overview = $container->get(ResultsImportComparison::class)->compare($this->source, $check);
+
+        $predicted = array_map(static fn ($event): array => [$event->event->key, $event->status], $overview->events);
+        self::assertSame([
+            ['401', ResultsImportStatus::Changed],
+            ['402', ResultsImportStatus::NeedsFixing],
+            ['403', ResultsImportStatus::New],
+            ['404', ResultsImportStatus::WaitingForPuzzle],
+        ], $predicted);
+
+        // Both puzzles shown; the stored team's time is the relay's total
+        $changed = $overview->event('401');
+        self::assertNotNull($changed);
+        self::assertSame(PuzzleFixture::PUZZLE_500_02, $changed->secondPuzzle?->id);
+        self::assertCount(1, $changed->teamChanges);
+        self::assertSame([5025, 4800], [$changed->teamChanges[0]->secondsBefore, $changed->teamChanges[0]->secondsAfter]);
+
+        foreach (new SarahDoesPuzzlesFormat()->parse($snapshot) as $event) {
+            $container->get(MessageBusInterface::class)->dispatch(new ApplyEventResultsTab($this->source->id->toString(), $event));
+            $container->get(EntityManagerInterface::class)->clear();
+        }
+
+        self::assertSame(
+            ['401' => 'imported', '402' => 'problem', '403' => 'imported', '404' => 'waiting_for_puzzle'],
+            $container->get(Connection::class)->fetchAllKeyValue("SELECT gid, status FROM event_results_sheet_tab WHERE sheet_id = :id AND gid LIKE '40_' ORDER BY gid", ['id' => $this->source->id->toString()]),
+        );
+        self::assertSame(ResultsImportStatus::Unchanged, $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('403')?->status);
+    }
+
     private function check(SheetSnapshot $snapshot): ResultsImportCheck
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

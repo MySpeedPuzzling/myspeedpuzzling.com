@@ -13775,6 +13775,8 @@ results_import:
         puzzle_not_approved: "Das Puzzle „%detail%“ ist noch nicht freigegeben - die Ergebnisse werden trotzdem importiert."
         rows_out_of_time_order: "Ab „%detail%“ sind die Zeiten nicht der Reihe nach - ist eine Zeit vertippt?"
         over_time_limit: "„%detail%“ hat eine Zeit über dem Zeitlimit - es steht nach den Teams, die nicht fertig wurden."
+        relay_same_puzzle_twice: "Beide Puzzle-Links führen zum selben Puzzle - eine Staffel braucht zwei verschiedene Puzzles."
+        relay_needs_time: "„%detail%“ hat keine Zeit - jedes Team einer Staffel braucht seine Gesamtzeit."
     preview:
         back: "Zurück zu allen Events"
         warnings: "Einen Blick wert (nichts davon hält den Import auf):"
@@ -15185,3 +15187,14 @@ event_result_solo:
     remove_button: "Nicht diese Person: %player%"
     remove_intro: "%player% wird bei diesem Ergebnis nicht mehr angezeigt. Die Person erfährt, dass ihr Anspruch entfernt wurde, aber nie von wem."
     remove_submit: "Anspruch entfernen"
+
+relay_result:
+    badge: "Staffel"
+    round_heading: "Staffel · %count% Puzzles"
+    round_hint: "Jedes Team hat alle Puzzles gleichzeitig gelegt - gereiht nach seiner Gesamtzeit."
+    profile_total: "%count% Puzzles · gesamt %time%"
+    claim_total: "Staffel · %count% Puzzles · gesamt %time%"
+    import_hint: "Eine Staffel: Jedes Team hat beide Puzzles gleichzeitig gelegt - seine Time ist die Gesamtzeit."
+    format_guide: "Eine Staffel (jedes Team legt zwei Puzzles gleichzeitig): Kopiere einen beliebigen Tab, behalte die Spalten und füge in Zeile 2 in einer neuen Spalte Link to MySpeedPuzzling 2 den MySpeedPuzzling-Link des zweiten Puzzles ein. Trage die Gesamtzeit jedes Teams in Time ein. Die Gesamtzeit steht bei der Veranstaltung, nie auf den Seiten der Puzzles."
+    template_tabs: "Ein Tab, dessen Name mit Template beginnt (Template, Template Relay, Template Solo…), ist deine leere Vorlage - er wird nie importiert."
+    open_round: "Ergebnisse der Veranstaltung"

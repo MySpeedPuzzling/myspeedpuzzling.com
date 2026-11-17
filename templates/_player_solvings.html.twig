@@ -90,7 +90,19 @@
                     </td>
 
                     <td class="ps-time">
-                        {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
+                        {# The row's real link to the result detail - a tap anywhere else on the row clicks it. A relay team's
+                           result is no result of the puzzle (solo-and-relays.md §2): its row links the event's round #}
+                        {% if puzzle.isRelay %}
+                        <a
+                            class="ps-time-value"
+                            href="{{ puzzle.competitionSlug is not null and puzzle.relayRoundSlug is not null ? path('event_round_results', {slug: puzzle.competitionSlug, roundSlug: puzzle.relayRoundSlug}) : path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}"
+                            data-row-link-target="link"
+                            data-testid="relay-result"
+                        >
+                            <span class="badge rounded-pill bg-secondary"><i class="bi bi-arrow-repeat"></i> {{ 'relay_result.badge'|trans }}</span>
+                            <span class="d-block small text-muted">{{ 'relay_result.profile_total'|trans({'%count%': puzzle.relayPuzzleCount, '%time%': puzzle.relayTotalSeconds|puzzlingTime}) }}</span>
+                        </a>
+                        {% else %}
                         <a
                             class="ps-time-value"
                             href="{{ path('puzzle_result_detail', {timeId: puzzle.timeId}) }}"
@@ -106,6 +118,7 @@
                                 <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
                             {%- endif -%}
                         </a>
+                        {% endif %}
 
                         {% if puzzle.finishedAt is not null %}
                             <time class="ps-date" datetime="{{ result_date_machine(puzzle.finishedAt, puzzle.datePrecision) }}">{{ result_date(puzzle.finishedAt, puzzle.datePrecision) }}</time>

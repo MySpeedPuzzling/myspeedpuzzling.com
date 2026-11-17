@@ -21,6 +21,9 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
 {
     private const string HEADER = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Brand,Puzzle Title,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Puzzle Link- manufacturer';
     private const string PUZZLE_URL = 'https://myspeedpuzzling.com/en/puzzle/018d0003-0000-0000-0000-000000000001';
+    // A relay tab (solo-and-relays.md §2): the second puzzle's link next to the first one
+    private const string RELAY_HEADER = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Brand,Puzzle Title,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Link to MySpeedPuzzling 2,Puzzle Link- manufacturer';
+    private const string SECOND_PUZZLE_URL = 'https://myspeedpuzzling.com/cs/puzzle/018d0003-0000-0000-0000-000000000002';
 
     public function testATeamsTabBecomesOneEventWithItsTeams(): void
     {
@@ -490,10 +493,113 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
             new SheetSnapshotTab('31', ' TEMPLATE ', self::HEADER),
             new SheetSnapshotTab('2001', 'Maple 10/5', $tab),
             new SheetSnapshotTab('32', 'Template', ''),
+            new SheetSnapshotTab('33', 'Template Relay', self::HEADER),
+            new SheetSnapshotTab('34', ' template solo', ''),
         ]));
 
         self::assertCount(1, $events);
         self::assertSame('2001', $events[0]->key);
+    }
+
+    public function testATabWhoseTitleMerelyContainsTemplateIsAnEvent(): void
+    {
+        $tab = implode("\n", [self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4')]);
+
+        $events = new SarahDoesPuzzlesFormat()->parse(new SheetSnapshot([
+            new SheetSnapshotTab('41', 'Maple template night', $tab),
+        ]));
+
+        self::assertCount(1, $events);
+    }
+
+    public function testASecondPuzzleLinkMakesTheTabARelayOfBothPuzzles(): void
+    {
+        $tab = $this->parse(
+            self::RELAY_HEADER,
+            $this->relayRow('Puzzle Pals', '1:23:45', '4', self::SECOND_PUZZLE_URL),
+            '"Edge Lords",1:30:00,3,,,,,,,,,,,,,',
+        );
+
+        self::assertSame([], $tab->problems);
+        self::assertTrue($tab->isImportable());
+        self::assertTrue($tab->isRelay());
+        self::assertSame('018d0003-0000-0000-0000-000000000001', $tab->puzzleId);
+        self::assertSame('018d0003-0000-0000-0000-000000000002', $tab->secondPuzzleId);
+        self::assertSame(['018d0003-0000-0000-0000-000000000001', '018d0003-0000-0000-0000-000000000002'], $tab->puzzleIds());
+        // Time = the team's total of both puzzles
+        self::assertSame(5025, $tab->rows[0]->seconds);
+        self::assertSame(RoundCategory::Team, $tab->category);
+    }
+
+    public function testAnEmptySecondPuzzleLinkIsAnOrdinaryTabHashedAsBefore(): void
+    {
+        $withColumn = $this->parse(self::RELAY_HEADER, $this->relayRow('Puzzle Pals', '1:00:00', '4', ''), '"Edge Lords",1:05:00,3,,,,,,,,,,,,,');
+        $withoutColumn = $this->parse(self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4'), '"Edge Lords",1:05:00,3,,,,,,,,,,,,');
+
+        self::assertFalse($withColumn->isRelay());
+        self::assertNull($withColumn->secondPuzzleId);
+        self::assertSame(['018d0003-0000-0000-0000-000000000001'], $withColumn->puzzleIds());
+        self::assertSame($withoutColumn->contentHash, $withColumn->contentHash);
+    }
+
+    public function testARelayTabHashesItsSecondPuzzleAfterEverythingElse(): void
+    {
+        $tab = $this->parse(self::RELAY_HEADER, $this->relayRow('Puzzle Pals', '1:00:00', '4', self::SECOND_PUZZLE_URL));
+
+        self::assertSame(sha1(\Nette\Utils\Json::encode([
+            'Maple Street Puzzle Night',
+            'Maple Street Taproom',
+            'Springfield, MN',
+            '2026-10-05 19:00',
+            true,
+            120,
+            'team',
+            '018d0003-0000-0000-0000-000000000001',
+            [[2, 'Puzzle Pals', 4, 3600]],
+            [],
+            '018d0003-0000-0000-0000-000000000002',
+        ])), $tab->contentHash);
+    }
+
+    public function testTheSamePuzzleTwiceInARelayKeepsTheWholeTabOut(): void
+    {
+        $tab = $this->parse(self::RELAY_HEADER, $this->relayRow('Puzzle Pals', '1:00:00', '4', self::PUZZLE_URL));
+
+        self::assertSame([EventTabProblemCode::RelaySamePuzzleTwice], $this->codes($tab));
+        self::assertTrue($tab->hasTabProblem());
+    }
+
+    public function testAnUnreadableSecondPuzzleLinkIsAProblem(): void
+    {
+        $tab = $this->parse(self::RELAY_HEADER, $this->relayRow('Puzzle Pals', '1:00:00', '4', 'https://example.com/a-puzzle'));
+
+        self::assertSame([EventTabProblemCode::UnreadablePuzzleLink], $this->codes($tab));
+        self::assertTrue($tab->hasTabProblem());
+    }
+
+    public function testARelayTeamWithoutATimeKeepsTheWholeTabOut(): void
+    {
+        $tab = $this->parse(
+            self::RELAY_HEADER,
+            $this->relayRow('Puzzle Pals', '1:00:00', '4', self::SECOND_PUZZLE_URL),
+            '"Edge Lords",,3,412,,,,,,,,,,,,',
+        );
+
+        self::assertSame([EventTabProblemCode::RelayNeedsTime], $this->codes($tab));
+        self::assertSame('Edge Lords', $tab->problems[0]->detail);
+        self::assertTrue($tab->hasTabProblem());
+    }
+
+    private function relayRow(string $name, string $time, string $size, string $secondLink): string
+    {
+        return sprintf(
+            '"%s",%s,%s,,Maple Street Puzzle Night,Maple Street Taproom,"Springfield, MN",Some Brand,Some Puzzle,10/5/26,7:00 PM,120,Teams,%s,%s,',
+            $name,
+            $time,
+            $size,
+            self::PUZZLE_URL,
+            $secondLink,
+        );
     }
 
     public function testTheKeyAndTheTitleAreNotPartOfTheContentHash(): void

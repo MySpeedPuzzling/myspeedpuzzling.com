@@ -444,6 +444,10 @@ function createCustomIndexes(): void
         $pdo->exec(sprintf('DROP INDEX IF EXISTS %s', $replacedIndex));
     }
 
+    // A relay team's results (Version20261117192407): NULL on every other result - partial instead of Doctrine's full one
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_fk_relay_result_id ON puzzle_solving_time (relay_result_id) WHERE relay_result_id IS NOT NULL');
+    $pdo->exec('DROP INDEX IF EXISTS idx_fe83a93c7a17d902');
+
     // Prefixes of unique indexes, dropped (Version20261117170000): player_rating_snapshot (player_id),
     // solving_time_prediction (time_id)
     $pdo->exec('DROP INDEX IF EXISTS idx_ab6a238999e6f5df');

@@ -8,7 +8,9 @@
 <div class="card card-body mb-3" data-testid="event-result-summary">
     <div class="fw-semibold">
         {{ context.teamName ?? 'event_result_claim.unnamed_team'|trans }}
-        {% if context.seconds is not null %}
+        {% if context.isRelay %}
+            · <span data-testid="event-result-relay">{{ 'relay_result.claim_total'|trans({'%count%': context.relayPuzzleNames|length, '%time%': context.relayTotalSeconds|puzzlingTime}) }}</span>
+        {% elseif context.seconds is not null %}
             · <span class="tabular-nums">{{ context.seconds|puzzlingTime }}</span>
         {% elseif context.piecesPlaced is not null %}
             · {{ include('_unfinished_result_badge.html.twig', {placed: context.piecesPlaced, total: context.piecesCount}) }}
@@ -17,9 +19,15 @@
     {% if context.competitionName is not null %}
         <div class="fs-sm text-muted">{{ context.competitionName }} · {{ context.solvedAt|date('d.m.Y') }}</div>
     {% endif %}
+    {% if context.isRelay %}
+    <div class="fs-sm text-muted">
+        {{ context.relayPuzzleNames|join(' + ') }}
+    </div>
+    {% else %}
     <div class="fs-sm text-muted">
         {{ context.manufacturerName }} {{ context.puzzleName }} {{ 'pieces_count'|trans({'%count%': context.piecesCount})|raw }}
     </div>
+    {% endif %}
 
     <div class="fs-sm mt-2" data-testid="event-result-claimers">
         {% if context.claimers is empty %}

@@ -51,6 +51,10 @@ readonly final class GetPuzzleResultDetail
         $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
         $unclaimedSlot = UnclaimedSolo::sqlSlot('focus_time');
         $unclaimedName = UnclaimedSolo::sqlName('focus_time');
+        // A relay team's result is no result of the puzzle (solo-and-relays.md §2): not found when opened, never listed -
+        // the profile and the round page link the relay's round instead
+        $focusNotRelay = IsRelayResult::notRelay('focus_time');
+        $notRelay = IsRelayResult::notRelay('pst');
 
         // The subject is the opened time's solo player, or its exact pair/team (`puzzling_team_id`) - never the URL.
         // Everything about the opened time - puzzle, brand, player, skill tier, team name, members - is read once in
@@ -114,6 +118,7 @@ WITH focus AS MATERIALIZED (
         -- No tracker on an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
         LEFT JOIN player focus_player ON focus_player.id = focus_time.player_id
     WHERE focus_time.id = :timeId
+        AND {$focusNotRelay}
         -- The brand was an inner join and puzzle.manufacturer_id is nullable: no brand stays "not found"
         AND puzzle.manufacturer_id IS NOT NULL
 ),
@@ -181,7 +186,7 @@ FROM focus
     INNER JOIN puzzle_solving_time pst ON pst.id = subject_times.id
     LEFT JOIN competition ON competition.id = pst.competition_id
     LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
-WHERE true
+WHERE {$notRelay}
     {$notHidden}
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC
 SQL;

@@ -77,3 +77,23 @@ it listed was read again (`SOLO` now means "a given player's solo results, or an
 
 Kept out until claimed (D4), pinned by `TrackerlessTimeCanaryTest`: `GetFastestPlayers`, `GetRanking`, the MSP rating,
 `GetRecentActivity::latest()`, every per-player surface.
+
+## Relay results (2026-11-17)
+
+[solo-and-relays.md](solo-and-relays.md) §2 adds a third kind of imported row: a relay team's result of one puzzle
+(`relay_result_id` set, no `seconds_to_solve`, no `pieces_placed`, `seconds_spent` = its share of the total), one per
+puzzle, nobody's until claimed like any imported team (or single person). Without a tracker it is read exactly like the
+rows above - nothing new for `TrackerlessTimeQueryCoverageTest`. What is new is that it would read as a relax solve:
+
+| File | Problem | Fix |
+|---|---|---|
+| `Query/GetPuzzleSolvers.php` (`untimedCountsByPuzzleId()`) | counted as a relax solve under the puzzle's tabs | `IsRelayResult::notRelay()` |
+| `Services/PuzzleStatisticsCalculator.php` | "Completed N×" of the puzzle | `IsRelayResult::notRelay()` |
+| `Query/GetPuzzleResultDetail.php` | a relax attempt of the puzzle | not found, never listed - the controller sends it to its round (`GetRelayResultRound`) |
+| `Query/GetRoundResults.php` | dropped (no time, no pieces) | the same statement reads relay rows; one row per relay, ranked by the total |
+| `Query/GetPlayerSolvedPuzzles.php` (solo + group lists) | a relax solve on the profile | the relay's total, puzzles and round (`SolvedPuzzle::isRelay()`) |
+| `Query/GetEventResultClaims.php` (`context()`) | one result of two | read as the relay's first result |
+| `Query/GetResultsImportStoredTabs.php` | two rows per team key | leg 0, the relay's total |
+
+`IsRelayResultCoverageTest` keeps every reader of the puzzle family decided. Known, not done: the Hub feed, the team
+page, API v1 and the exports show a claimed relay result as a relax solve (docs/TODO.md).

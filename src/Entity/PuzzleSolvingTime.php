@@ -149,6 +149,18 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::STRING, length: 8, nullable: true, enumType: DatePrecision::class)]
     public null|DatePrecision $finishedAtPrecision = null;
 
+    /**
+     * A relay team's result of one of its puzzles (docs/features/event-results-import/solo-and-relays.md §2): the team
+     * solved two puzzles at the same time and only the total is known (RelayResult::$seconds). Such a row has no time
+     * of its own and no pieces placed - a solve (CountsAsSolve) - with its share of the total as $secondsSpent; it is
+     * kept off the puzzle's pages (Query\IsRelayResult) and ranked by the total on the event's round. Null on every
+     * other result. Set only by importedRelayFromEvent()
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[ManyToOne]
+    #[JoinColumn(nullable: true)]
+    public null|RelayResult $relayResult = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -218,13 +230,16 @@ class PuzzleSolvingTime implements EntityWithEvents
         // instead of secondsToSolve. Null on every other result
         #[Column(nullable: true)]
         public null|int $secondsSpent = null,
+        // A relay team's result (see $relayResult) - its $secondsSpent is its share of the relay's total
+        null|RelayResult $relayResult = null,
     ) {
         if ($competitionSeries !== null && $competition !== null) {
             throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
         }
 
-        self::assertUnfinishedResultIsConsistent($secondsToSolve, $piecesPlaced, $finishedLaterSeconds, $secondsSpent);
+        self::assertUnfinishedResultIsConsistent($secondsToSolve, $piecesPlaced, $finishedLaterSeconds, $secondsSpent, $relayResult);
 
+        $this->relayResult = $relayResult;
         $this->finishedPuzzlePhotoUploadMetadata = $finishedPuzzlePhoto !== null ? $finishedPuzzlePhotoUploadMetadata?->toArray() : null;
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
@@ -331,6 +346,87 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
+     * One puzzle's result of a relay team from an organizer's results sheet (docs/features/event-results-import/
+     * solo-and-relays.md §2): finished, but without a time of its own - the team solved both puzzles at the same time
+     * and only the total is known (RelayResult). Both results of the team share one anonymous pair/team and its people
+     * (or are a single person's, no team); $secondsSpent is this puzzle's share of the total
+     * (RelayResult::shares()), so the team's time spent counts the total once. Nobody's until claimed, like any
+     * imported result.
+     */
+    public static function importedRelayFromEvent(
+        UuidInterface $id,
+        Puzzle $puzzle,
+        Competition $competition,
+        CompetitionRound $competitionRound,
+        null|PuzzlersGroup $anonymousGroup,
+        null|PuzzlingTeam $puzzlingTeam,
+        RelayResult $relayResult,
+        int $secondsSpent,
+        DateTimeImmutable $solvedAt,
+    ): self {
+        if (($anonymousGroup === null) !== ($puzzlingTeam === null)) {
+            throw new LogicException('A relay team\'s result has both its people and its pair/team, or is a single person\'s.');
+        }
+
+        foreach ($anonymousGroup->puzzlers ?? [] as $puzzler) {
+            if ($puzzler->anonymousSlot === null) {
+                throw new LogicException('An imported event result starts with anonymous slots only.');
+            }
+        }
+
+        return new self(
+            id: $id,
+            secondsToSolve: null,
+            player: null,
+            puzzle: $puzzle,
+            trackedAt: $solvedAt,
+            verified: false,
+            team: $anonymousGroup,
+            finishedAt: $solvedAt,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            competitionRound: $competitionRound,
+            competition: $competition,
+            puzzlingTeam: $puzzlingTeam,
+            createdVia: SolvingTimeSource::EventImport,
+            secondsSpent: $secondsSpent,
+            relayResult: $relayResult,
+        );
+    }
+
+    public function isRelayResult(): bool
+    {
+        return $this->relayResult !== null;
+    }
+
+    /**
+     * The relay's total changed on the sheet - this puzzle's share of it follows (solo-and-relays.md §2).
+     *
+     * @return bool whether anything changed
+     */
+    public function correctImportedRelayShare(int $secondsSpent): bool
+    {
+        if ($this->isImportedFromEvent() === false || $this->relayResult === null) {
+            throw new LogicException('Only an imported relay result has a share of the relay\'s total.');
+        }
+
+        if ($this->secondsSpent === $secondsSpent) {
+            return false;
+        }
+
+        self::assertUnfinishedResultIsConsistent(null, null, null, $secondsSpent, $this->relayResult);
+        $this->secondsSpent = $secondsSpent;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        return true;
+    }
+
+    /**
      * The organizer changed the team to a single person, before anybody claimed it - an anonymous solo result now
      * (solo-and-relays.md §1 "Size changes"). Back to a pair/team: replaceAnonymousGroup().
      */
@@ -405,6 +501,10 @@ class PuzzleSolvingTime implements EntityWithEvents
             throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
         }
 
+        if ($this->relayResult !== null) {
+            throw new LogicException('A relay result has no time of its own - correctImportedRelayShare().');
+        }
+
         if ($secondsToSolve === $this->secondsToSolve && $this->piecesPlaced === null) {
             return false;
         }
@@ -432,6 +532,10 @@ class PuzzleSolvingTime implements EntityWithEvents
     {
         if ($this->isImportedFromEvent() === false) {
             throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
+        }
+
+        if ($this->relayResult !== null) {
+            throw new LogicException('An unfinished relay is not imported (solo-and-relays.md §2).');
         }
 
         if (
@@ -478,7 +582,7 @@ class PuzzleSolvingTime implements EntityWithEvents
      * claimer tracks the result, and the first-try answer. A pair's/team's result is a first try only if it is
      * everybody's (docs/features/first-try-integrity.md), so a later claimer can keep the tag or take it off, never add it.
      */
-    public function slotClaimedBy(Player $player, bool $firstTry): void
+    public function slotClaimedBy(Player $player, bool $firstTry, bool $tellOtherClaimers = true): void
     {
         if ($this->isImportedFromEvent() === false) {
             throw new LogicException('Only a spot of an imported event result is claimed.');
@@ -492,9 +596,12 @@ class PuzzleSolvingTime implements EntityWithEvents
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
 
-        $this->recordThat(
-            new EventResultSlotClaimed($this->id, $player->id),
-        );
+        // A relay team's two results are claimed together - its other claimers are told once (solo-and-relays.md §2)
+        if ($tellOtherClaimers) {
+            $this->recordThat(
+                new EventResultSlotClaimed($this->id, $player->id),
+            );
+        }
     }
 
     /**
@@ -970,7 +1077,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         }
 
         // Checked before anything changes - a refused edit must leave nothing behind for a later flush
-        self::assertUnfinishedResultIsConsistent($seconds, $this->piecesPlaced, $this->finishedLaterSeconds, $this->secondsSpent);
+        self::assertUnfinishedResultIsConsistent($seconds, $this->piecesPlaced, $this->finishedLaterSeconds, $this->secondsSpent, $this->relayResult);
 
         $puzzlingTypeBefore = $this->puzzlingType;
         $finishedAtBefore = $this->finishedAt;
@@ -1119,14 +1226,25 @@ class PuzzleSolvingTime implements EntityWithEvents
     /**
      * An unfinished result (pieces placed when the round's time ran out) never has a time to solve - that keeps it off
      * every leaderboard, rank and median - and only an unfinished result has a later total or a time spent
-     * (docs/features/competitions-management/unfinished-results-plan.md). A programming error, never a user's.
+     * (docs/features/competitions-management/unfinished-results-plan.md). The one exception: a relay team's result has
+     * neither a time nor pieces placed, but its share of the relay's total as time spent (solo-and-relays.md §2).
+     * A programming error, never a user's.
      */
     private static function assertUnfinishedResultIsConsistent(
         null|int $secondsToSolve,
         null|int $piecesPlaced,
         null|int $finishedLaterSeconds,
         null|int $secondsSpent,
+        null|RelayResult $relayResult = null,
     ): void {
+        if ($relayResult !== null) {
+            if ($secondsToSolve !== null || $piecesPlaced !== null || $finishedLaterSeconds !== null || $secondsSpent === null || $secondsSpent < 0) {
+                throw new LogicException('A relay result has no time and no pieces placed of its own, only its share of the total as time spent.');
+            }
+
+            return;
+        }
+
         if ($piecesPlaced !== null && $secondsToSolve !== null) {
             throw new LogicException('An unfinished result (pieces placed) has no time to solve.');
         }

@@ -31,6 +31,8 @@ readonly final class ResultsImportEvent
         // Matched to the event imported from the organizer's previous sheet under this key (same date and name) -
         // $stored is that event; importing moves it to this event's key (PreviousSheetEvents)
         public null|string $previousSheetKey = null,
+        // A relay's second puzzle (docs/features/event-results-import/solo-and-relays.md §2) - its teams' times are totals
+        public null|ResultsImportPuzzle $secondPuzzle = null,
     ) {
     }
 

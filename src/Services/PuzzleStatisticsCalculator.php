@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Query\CountsAsSolve;
+use SpeedPuzzling\Web\Query\IsRelayResult;
 use SpeedPuzzling\Web\Value\PuzzleStatisticsData;
 
 readonly final class PuzzleStatisticsCalculator
@@ -20,6 +21,8 @@ readonly final class PuzzleStatisticsCalculator
     {
         // An unfinished result is not a solve (CountsAsSolve) - and has no time, so it changes nothing else here
         $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+        // A relay team's result is the event's, never the puzzle's (IsRelayResult, solo-and-relays.md §2)
+        $notRelay = IsRelayResult::notRelay('puzzle_solving_time');
 
         $result = $this->connection->executeQuery("
             WITH times AS (
@@ -28,7 +31,7 @@ readonly final class PuzzleStatisticsCalculator
                 -- stands for its own team (docs/features/event-results-import/README.md)
                 SELECT COALESCE(player_id, puzzling_team_id, id) AS solver_id, puzzling_type, first_attempt, seconds_to_solve
                 FROM puzzle_solving_time
-                WHERE puzzle_id = :puzzleId AND suspicious = false AND {$countsAsSolve}
+                WHERE puzzle_id = :puzzleId AND suspicious = false AND {$countsAsSolve} AND {$notRelay}
             ),
             player_best_per_type AS (
                 SELECT solver_id, puzzling_type, MIN(seconds_to_solve) AS best_time

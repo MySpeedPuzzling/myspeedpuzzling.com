@@ -117,7 +117,10 @@ list or show results were left for step 2 (display), the write-side ones for ste
 - [ ] Jan to confirm: after "Allow claiming again" the old removals still count, so the next removal blocks again
   (`RemoveEventResultClaimHandler` counts every removal ever) - counting only removals after the unblock needs a column
 - [ ] Later: venue series (D8), per-team claim codes, start time on organizer pages
-- [ ] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - today a result is one puzzle; needs a "several puzzles, one time" result (ties in with multipacks, `docs/features/wasgij-and-multipacks.md`). Until then: no combined catalogue entry
+- [x] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - built 2026-11-17 as two linked results ranked by the total on the event, off the puzzle's pages (README "Relays", [solo-and-relays.md](features/event-results-import/solo-and-relays.md) §2). No combined catalogue entry
+- [ ] Relays: a claimed relay result reads as a relax solve on the Hub feed (`RecentActivityItem::isRelaxMode()`), the team page, API v1 and the exports - label it "Relay" there too, or leave it (Jan)
+- [ ] Relays: unfinished relay teams (time ran out) are a `problem` (`relay_needs_time`) - import them once an organizer asks
+- [ ] Relays: "N results" of an event (`CountCompetitionResults`) counts a relay team once per puzzle
 
 ## Event results import - smaller teams (`docs/features/event-results-import/README.md` D10, 2026-11-16)
 

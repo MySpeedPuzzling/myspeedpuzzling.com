@@ -137,6 +137,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetPuzzlingTeamDetail.php' => self::COUNTS,
         'Query/GetRanking.php' => 'Ranks a given player (`player_id = :playerId`), counts rankings by `COUNT(DISTINCT player_id)` (NULL not counted) or inner-joins the player - an imported single person nobody has claimed is left out until claimed (D4, solo-and-relays.md §1).',
         'Query/GetRecentActivity.php' => self::D4,
+        'Query/GetRelayResultRound.php' => 'The round a relay team\'s result is ranked on (solo-and-relays.md §2), by the result\'s id - no person read, with a tracker or not.',
         'Query/GetRecentIdenticalSolvingTime.php' => self::OWN,
         'Query/GetResultReviewEmailCandidates.php' => self::OWN,
         'Query/GetResultReviewEmails.php' => self::OWN,

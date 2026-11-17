@@ -33,6 +33,9 @@ readonly final class RoundResult
         public null|int $gapToFaster = null,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // A relay team (docs/features/event-results-import/solo-and-relays.md §2): its total of every puzzle of the round
+        // in $seconds, $timeId its first result (claims go through it), $puzzleId the round's first puzzle
+        public null|string $relayResultId = null,
     ) {
     }
 

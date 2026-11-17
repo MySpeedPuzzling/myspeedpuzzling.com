@@ -60,10 +60,11 @@ readonly final class ResultsImportComparison
         $stored = $this->getStoredTabs->ofSource($source->id->toString());
         // After a change of the spreadsheet: events stored under another key, matched by date and name
         $previous = PreviousSheetEvents::match($events, $stored);
-        $puzzles = $this->getPuzzles->byLinkedIds(array_values(array_filter(array_map(
-            static fn (ParsedEvent $event): null|string => $event->puzzleId,
+        // Every event's puzzle - a relay's two (solo-and-relays.md §2)
+        $puzzles = $this->getPuzzles->byLinkedIds(array_merge(...array_map(
+            static fn (ParsedEvent $event): array => $event->puzzleIds(),
             $events,
-        ))));
+        )));
 
         return new ResultsImportOverview(
             checkId: $check->id->toString(),
@@ -83,6 +84,7 @@ readonly final class ResultsImportComparison
                         $storedTab,
                         $event->puzzleId !== null ? ($puzzles[strtolower($event->puzzleId)] ?? null) : null,
                         $match,
+                        $event->secondPuzzleId !== null ? ($puzzles[strtolower($event->secondPuzzleId)] ?? null) : null,
                     );
                 },
                 $events,
@@ -188,7 +190,7 @@ readonly final class ResultsImportComparison
         return $rows;
     }
 
-    private function event(EventResultsSheet $source, ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match): ResultsImportEvent
+    private function event(EventResultsSheet $source, ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match, null|ResultsImportPuzzle $secondPuzzle = null): ResultsImportEvent
     {
         $blockers = [];
         $warnings = [];
@@ -202,10 +204,12 @@ readonly final class ResultsImportComparison
             }
         }
 
-        $status = $this->status($event, $stored, $puzzle, $match, $blockers);
+        $status = $this->status($event, $stored, $puzzle, $match, $blockers, $secondPuzzle);
 
-        if ($puzzle !== null && $puzzle->approved === false) {
-            $warnings[] = new ResultsImportNote(ResultsImportNote::PUZZLE_NOT_APPROVED, $puzzle->name);
+        foreach ([$puzzle, $secondPuzzle] as $eventPuzzle) {
+            if ($eventPuzzle !== null && $eventPuzzle->approved === false) {
+                $warnings[] = new ResultsImportNote(ResultsImportNote::PUZZLE_NOT_APPROVED, $eventPuzzle->name);
+            }
         }
 
         array_push($warnings, ...self::timeWarnings($event));
@@ -236,6 +240,7 @@ readonly final class ResultsImportComparison
             $eventChanges,
             $teamChanges,
             previousSheetKey: $match?->storedKey,
+            secondPuzzle: $secondPuzzle,
         );
     }
 
@@ -246,7 +251,7 @@ readonly final class ResultsImportComparison
      *
      * @param list<ResultsImportNote> $blockers
      */
-    private function status(ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match, array &$blockers): ResultsImportStatus
+    private function status(ParsedEvent $event, null|StoredResultsTab $stored, null|ResultsImportPuzzle $puzzle, null|PreviousSheetMatch $match, array &$blockers, null|ResultsImportPuzzle $secondPuzzle = null): ResultsImportStatus
     {
         if ($match !== null && $match->problem !== null) {
             $blockers[] = new ResultsImportNote($match->problem, $match->detail);
@@ -274,6 +279,21 @@ readonly final class ResultsImportComparison
             $blockers[] = new ResultsImportNote(EventTabProblemCode::PuzzleNotFound->value, $event->puzzleId);
 
             return ResultsImportStatus::WaitingForPuzzle;
+        }
+
+        // A relay waits for both its puzzles; two links of one puzzle (one merged into the other) need fixing
+        if ($event->secondPuzzleId !== null) {
+            if ($secondPuzzle === null) {
+                $blockers[] = new ResultsImportNote(EventTabProblemCode::PuzzleNotFound->value, $event->secondPuzzleId);
+
+                return ResultsImportStatus::WaitingForPuzzle;
+            }
+
+            if ($secondPuzzle->id === $puzzle->id) {
+                $blockers[] = new ResultsImportNote(EventTabProblemCode::RelaySamePuzzleTwice->value, $secondPuzzle->name);
+
+                return ResultsImportStatus::NeedsFixing;
+            }
         }
 
         $fits = true;
@@ -308,8 +328,13 @@ readonly final class ResultsImportComparison
             return ResultsImportStatus::NeedsFixing;
         }
 
-        if ($stored->roundPuzzleIds !== [$puzzle->id]) {
-            $blockers[] = new ResultsImportNote(EventTabProblemCode::PuzzleChangedAfterImport->value, $puzzle->name);
+        $puzzleIds = $secondPuzzle === null ? [$puzzle->id] : [$puzzle->id, $secondPuzzle->id];
+        $roundPuzzleIds = $stored->roundPuzzleIds;
+        sort($puzzleIds);
+        sort($roundPuzzleIds);
+
+        if ($roundPuzzleIds !== $puzzleIds) {
+            $blockers[] = new ResultsImportNote(EventTabProblemCode::PuzzleChangedAfterImport->value, $secondPuzzle === null ? $puzzle->name : $puzzle->name . ' + ' . $secondPuzzle->name);
 
             return ResultsImportStatus::NeedsFixing;
         }

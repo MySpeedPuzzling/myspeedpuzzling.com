@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleResultNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
+use SpeedPuzzling\Web\Query\GetRelayResultRound;
 use SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesOnResults;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -26,6 +28,7 @@ final class PuzzleResultDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
         readonly private OwnCustomValuesOnResults $ownCustomValuesOnResults,
+        readonly private GetRelayResultRound $getRelayResultRound,
     ) {
     }
 
@@ -48,7 +51,14 @@ final class PuzzleResultDetailController extends AbstractController
     {
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        $result = $this->getPuzzleResultDetail->byTimeId($timeId, $viewer?->playerId);
+        try {
+            $result = $this->getPuzzleResultDetail->byTimeId($timeId, $viewer?->playerId);
+        } catch (PuzzleResultNotFound $notFound) {
+            // A relay team's result is no result of the puzzle (solo-and-relays.md §2) - it is ranked on its event's
+            // round: every link reaching it (feeds, notifications, the claim screens) leads there. Asked only here, so
+            // a found result costs nothing more
+            return $this->relayResult($request, $timeId) ?? throw $notFound;
+        }
 
         $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
             ? 'puzzle_result/_modal.html.twig'
@@ -65,6 +75,29 @@ final class PuzzleResultDetailController extends AbstractController
         ]);
 
         // Same URL, two bodies: a cache must never hand the modal to a full-page visit or the other way round
+        $response->setVary('Turbo-Frame', false);
+
+        return $response;
+    }
+
+    private function relayResult(Request $request, string $timeId): null|Response
+    {
+        $relay = $this->getRelayResultRound->ofTime($timeId);
+
+        if ($relay === null) {
+            return null;
+        }
+
+        $roundUrl = $this->generateUrl('event_round_results', ['slug' => $relay->competitionSlug, 'roundSlug' => $relay->roundSlug]);
+
+        if ($request->headers->get('Turbo-Frame') !== 'modal-frame') {
+            return $this->redirect($roundUrl);
+        }
+
+        $response = $this->render('puzzle_result/_relay_modal.html.twig', [
+            'relay' => $relay,
+            'round_url' => $roundUrl,
+        ]);
         $response->setVary('Turbo-Frame', false);
 
         return $response;

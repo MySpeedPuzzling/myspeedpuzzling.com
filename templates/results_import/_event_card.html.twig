@@ -28,9 +28,13 @@
     </div>
 
     <div class="card-body border-top" data-results-import-puzzle>
-        {% if item.puzzle %}
-            {% set puzzle = item.puzzle %}
-            <div class="d-flex align-items-center">
+        {#- A relay (solo-and-relays.md §2): both puzzles, the teams' times are their totals -#}
+        {% if event.isRelay %}
+            <p class="small mb-2" data-results-import-relay><i class="bi bi-arrow-repeat me-1 text-muted" aria-hidden="true"></i>{{ 'relay_result.import_hint'|trans }}</p>
+        {% endif %}
+        {% for puzzle in event.isRelay ? [item.puzzle, item.secondPuzzle] : [item.puzzle] %}
+        {% if puzzle %}
+            <div class="d-flex align-items-center{{ not loop.first ? ' mt-2' }}">
                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="flex-shrink-0" style="width: 90px;">
                     {{ include('_puzzle_row_image.html.twig', {image: puzzle.image, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.name}), position: 1, ratio: puzzle.imageRatio}) }}
                 </a>
@@ -47,6 +51,7 @@
         {% else %}
             <p class="small text-muted mb-0">{{ 'results_import.preview.no_puzzle'|trans }}</p>
         {% endif %}
+        {% endfor %}
     </div>
 
     {% if item.stored is not null and item.stored.competitionSlug %}

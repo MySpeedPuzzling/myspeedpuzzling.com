@@ -26,6 +26,7 @@ organizer's events they **are the official results** - she publishes her results
 | D8 | Every tab = a one-time event under the organizer's organization (series per venue maybe later - a small change in the import) |
 | D9 | Unfinished results (time ran out) count their **pieces placed and time spent** in global and personal statistics, but are never a completed puzzle, never ranked by time, never in medians - see "Unfinished results" |
 | D10 | A smaller team / single person at a team event is ranked in the event; the result is of its own type (Jan, 2026-11-16) - see "A pair at a teams event" and "A single person". Built for a pair at a Teams event (2026-11-16) and a single person at a Teams or Pairs event, plus Solo events (2026-11-17, [solo-and-relays.md](solo-and-relays.md) §1) |
+| D11 | A relay total is "not a correct real time that should be presented on the puzzle detail" - not on the puzzle's pages, on profiles as two linked results, above all on the event, ranked by the total (Jan, 2026-11-17) - see "Relays" |
 
 ## The sheet
 
@@ -44,8 +45,8 @@ The xlsx export is not used: it has no gids.
 
 ### Format (one tab)
 
-A tab named `Template` (any case) is the organizer's blank copy for the next event and is never read as an event
-(2026-11-16).
+A tab whose name starts with `Template` (any case, trimmed: `Template`, `Template Relay`, `Template Solo`) is the
+organizer's blank copy for the next event and is never read as an event (2026-11-16, widened 2026-11-17).
 
 Header row, matched case-insensitively and trimmed (`Team Size` = `team Size`). Row 2 carries the event's fields and
 its own team; every further row is one team.
@@ -64,6 +65,7 @@ its own team; every further row is one team.
 | Time limit | 2 | no | minutes; the round's limit and the time spent of an unfinished team. Without it the round has no limit (`minutes_limit` NULL, shown nowhere) |
 | Competition Type | 2 | yes | `Pairs` / `Teams` / `Solo` (also `Individual`) - the round's category |
 | Link to MySpeedPuzzling | 2 | yes | `https://myspeedpuzzling.com/<locale>/puzzle/<uuid>` |
+| Link to MySpeedPuzzling 2 | 2 | no | a relay's second puzzle - filled = every team solved both puzzles at the same time and its Time is the total (see "Relays"); empty or no column = one puzzle |
 | Brand, Puzzle Title, Puzzle Link- manufacturer | 2 | no | informational; the link decides the puzzle |
 
 **What the organizer has to add** to today's sheet: the MySpeedPuzzling link on every tab. `Start time` and `Time limit`
@@ -82,7 +84,7 @@ Tolerated without a warning: row order (the ranking is computed from the times),
 |---|---|---|
 | `imported` | every check passed, the event and its results match the tab | - |
 | `waiting_for_puzzle` | no link, or the link's puzzle does not exist (deleted puzzles follow `puzzle_redirect`) | yes |
-| `problem` | a missing header or required event field, an unreadable time/date, more than two at a Pairs event or more than one at a Solo event (`team_size_does_not_fit_category`, that row only), a team name twice in the tab, a row with neither Time nor Pieces placed, unfinished teams without a `Time limit` (`unfinished_without_time_limit`), unreadable pieces placed (`unreadable_pieces_placed`), pieces placed not fewer than the puzzle has (`pieces_placed_out_of_range`, found while applying) - each listed | yes |
+| `problem` | a missing header or required event field, an unreadable time/date, more than two at a Pairs event or more than one at a Solo event (`team_size_does_not_fit_category`, that row only), a team name twice in the tab, a row with neither Time nor Pieces placed, unfinished teams without a `Time limit` (`unfinished_without_time_limit`), unreadable pieces placed (`unreadable_pieces_placed`), pieces placed not fewer than the puzzle has (`pieces_placed_out_of_range`, found while applying), a relay whose two links are one puzzle (`relay_same_puzzle_twice`, also after a merge) or with a team without a Time (`relay_needs_time`), a tab that turned into a relay or back after it was imported (`puzzle_changed_after_import`) - each listed | yes |
 | `detached` | the event made from this tab was deleted on MySpeedPuzzling - it is never re-created | yes |
 
 A tab with a `problem` is not imported at all, so a half-fixed tab never shows half its results. The exceptions: a
@@ -276,6 +278,53 @@ Built 2026-11-17 by [solo-and-relays.md](solo-and-relays.md) §1 (shape A, Jan's
 - **The Results import page**: the preview ranks a single person by the name without "1 puzzler"; a size change shows
   as "Team size 3 → 1".
 
+## Relays
+
+Built 2026-11-17 by [solo-and-relays.md](solo-and-relays.md) §2 (D11). A relay team solves two puzzles at the same
+time; only its total is known.
+
+- **The sheet**: `Link to MySpeedPuzzling 2` on row 2 (see "Format"). Both puzzles must be on MySpeedPuzzling, else
+  `waiting_for_puzzle` naming the missing one; the same puzzle twice is `relay_same_puzzle_twice`; a team without a
+  Time (pieces placed) keeps the whole tab out (`relay_needs_time` - unfinished relays are not in v1; skipping the row
+  would remove an imported team). `Competition Type` stays Teams / Pairs (Solo works too: single people).
+  **Content hash**: the second puzzle is appended only when present - every other tab hashes exactly as before.
+- **The event**: one round (Teams / Pairs) with **both puzzles** as round puzzles (`SetCompetitionRoundPuzzles`; the
+  toolkit's `puzzle_format` stays `total`). Each puzzle is only in that round. A tab that turns into a relay or back
+  after its import is `puzzle_changed_after_import` (the round's puzzles are compared as a set) - a person decides.
+- **The results**: a team = **one result per puzzle** (`PuzzleSolvingTime::importedRelayFromEvent()`) linked by
+  `relay_result` (`id`, the total `seconds`, `created_at`; `puzzle_solving_time.relay_result_id`, a plain foreign key -
+  no cascade: the import deletes the results through `PuzzleSolvingTimeRepository::delete()` first, then the relay;
+  partial index `custom_pst_fk_relay_result_id`). Each result: `seconds_to_solve` NULL, `pieces_placed` NULL (a solve,
+  `CountsAsSolve`), `seconds_spent` = its share of the total (`RelayResult::shares()`: even, the remainder on the first
+  puzzle - "time spent" counts the total once). The entity's invariant allows a time spent without pieces placed only
+  for a relay result. Both results share **one** anonymous `puzzling_team` and snapshot (a single person: two solo
+  results). `event_imported_result` has a row per result, `leg` 0 / 1 (unique `tab_id, team_key, leg`); the upsert
+  (total, size, name, removal, the `p:` re-key) moves both together.
+- **Not on the puzzle's pages** (Jan): the tabs and their relax / unfinished counts (`GetPuzzleSolvers`), the puzzle's
+  statistics (`PuzzleStatisticsCalculator` - "Completed N×", averages), the result detail (`GetPuzzleResultDetail`: not
+  found, never listed - `PuzzleResultDetailController` then sends a relay result to its round via `GetRelayResultRound`:
+  a redirect, or in the modal a short "Relay · total" card linking the round, so every link into it - feeds,
+  notifications, the claim screens - lands on the round) leave them out through `Query\IsRelayResult`;
+  `IsRelayResultCoverageTest` keeps every reader of
+  the puzzle family decided. Leaderboards, ranks, medians, difficulty, rating and predictions never see them
+  (`seconds_to_solve` NULL).
+- **On the event**: the round page (`GetRoundResults::forRoundWithRelays()`, the same one statement as before) ranks the
+  relay teams by the total, one row each (read from the team's first result - the lowest id), under the two puzzles'
+  cards ("Relay · 2 puzzles"); times players logged themselves on one of the puzzles stay listed under it.
+- **On profiles**: both puzzles are listed, each as "Relay · 2 puzzles · total 1:23:45" linked to the event's round
+  (`SolvedPuzzle::isRelay()`, never relax). Global and personal statistics count both puzzles and their pieces like any
+  team result, the time spent once.
+- **Claiming** ("This was my team"): every read model links the team's first result; `GetEventResultClaims::context()`
+  reads any of its results as that one, so the lock (`ClaimEventResultSlot::lockKeyOf()`) is one per relay team. The
+  gates run once (one spot per round, rate limit, blocks); the same anonymous slot becomes the player on both results;
+  logged once, the other claimers told once; never a first try, no "same result" swap. Release, "Not on our team" and
+  account deletion release both (`EventResultSlotRelease::resultsOfTheSameSpot()`, the same new slot on both - still
+  one team). The claim screens show "Relay · 2 puzzles · total" and both puzzles' names.
+- **The Results import page**: a relay event shows both puzzles; its teams are ranked by the total; a stored team's
+  time is its relay's total.
+- **Known, not done**: a claimed relay result shows as a relax solve on the Hub feed, the team page, the API and the
+  exports (docs/TODO.md).
+
 ## Unfinished results (D9)
 
 Builds on [unfinished-results-plan.md](../competitions-management/unfinished-results-plan.md) (2026-09-18), which stays
@@ -316,7 +365,7 @@ result needs a round with a limit - the import's tab, the form's resolved round)
 
 ## Not in scope
 
-- Relays (two puzzles, one total time) - planned in [solo-and-relays.md](solo-and-relays.md) §2.
+- Unfinished relay teams (the time ran out) - a `problem` (`relay_needs_time`) in v1.
 - A Solo tab without a Team Size column (every row 1) - the column stays required.
 - Series per venue (D8).
 - Writing back to the sheet; the organizer editing results on MySpeedPuzzling (the sheet is the source).

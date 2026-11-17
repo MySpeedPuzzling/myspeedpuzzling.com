@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
 use SpeedPuzzling\Web\Results\FirstTryTime;
+use SpeedPuzzling\Web\Services\EventResultsImport\EventResultSlotRelease;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventResultClaimRefusal;
@@ -51,6 +52,7 @@ readonly final class ClaimEventResultSlotHandler
         private GetUserBlocks $getUserBlocks,
         private FirstTryAssessor $firstTryAssessor,
         private PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
+        private EventResultSlotRelease $eventResultSlotRelease,
         private RateLimiterFactoryInterface $eventResultClaimLimiter,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
@@ -73,6 +75,21 @@ readonly final class ClaimEventResultSlotHandler
             throw new EventResultClaimRefused(EventResultClaimRefusal::NotImported);
         }
 
+        // A relay team has a result per puzzle with the same people: the spot is claimed on every one of them at once,
+        // the first (the lowest id - what every read model links) leading; the gates are checked once, on it
+        // (docs/features/event-results-import/solo-and-relays.md §2)
+        $results = $this->eventResultSlotRelease->resultsOfTheSameSpot($time);
+        $time = $results[0];
+        $isRelay = count($results) > 1;
+
+        if ($isRelay && $message->sameResultTimeId !== null) {
+            // Nothing of the player's own is the same as a relay team's result
+            throw new EventResultClaimRefused(EventResultClaimRefusal::SameResultInvalid);
+        }
+
+        // No first try is known of puzzles solved at the same time as a relay
+        $firstTry = $message->firstTry && $isRelay === false;
+
         if ($player->eventClaimsBlockedAt !== null) {
             throw new EventResultClaimRefused(EventResultClaimRefusal::Blocked);
         }
@@ -90,7 +107,7 @@ readonly final class ClaimEventResultSlotHandler
         $slot = self::firstAnonymousSlot($time) ?? throw new EventResultClaimRefused(EventResultClaimRefusal::TeamFull);
 
         // Only a tag the claim can set is checked - a later claimer keeps it or takes it off (slotClaimedBy())
-        if ($message->firstTry && ($time->player === null || $time->firstAttempt)) {
+        if ($firstTry && ($time->player === null || $time->firstAttempt)) {
             $this->assertFirstTryPossible($time, $player, $sameResult);
         }
 
@@ -109,14 +126,18 @@ readonly final class ClaimEventResultSlotHandler
             $this->solvingTimeRepository->delete($sameResult, SolvingTimeDeletedVia::EventResultClaim);
         }
 
-        // A single person's result has no people to convert - the claimer simply tracks it (solo-and-relays.md §1)
-        if ($time->team !== null) {
-            $this->puzzlingTeamMemberConversion->anonymousSlotToPlayer($time->id->toString(), $slot, $playerId);
-            // The people and the pair/team changed in SQL - the entity reads them again before its own change
-            $this->solvingTimeRepository->reload($time);
-        }
+        foreach ($results as $result) {
+            // A single person's result has no people to convert - the claimer simply tracks it (solo-and-relays.md §1).
+            // A relay team's results carry the same anonymous slots, so the same slot becomes the player on each
+            if ($result->team !== null) {
+                $this->puzzlingTeamMemberConversion->anonymousSlotToPlayer($result->id->toString(), $slot, $playerId);
+                // The people and the pair/team changed in SQL - the entity reads them again before its own change
+                $this->solvingTimeRepository->reload($result);
+            }
 
-        $time->slotClaimedBy($player, $message->firstTry);
+            // The other claimers are told once
+            $result->slotClaimedBy($player, $firstTry, tellOtherClaimers: $result === $time);
+        }
 
         $this->resultClaimLogRepository->save(new ResultClaimLog(
             id: Uuid::uuid7(),
@@ -132,7 +153,10 @@ readonly final class ClaimEventResultSlotHandler
 
         // Like after an edit of the group: the result is the player's now (achievements, XP chain of the puzzle)
         $this->messageBus->dispatch(new RecalculateBadgesForPlayer($playerId));
-        $this->messageBus->dispatch(new RecalculateXpChainForSolve($time->id->toString(), $membersBefore));
+
+        foreach ($results as $result) {
+            $this->messageBus->dispatch(new RecalculateXpChainForSolve($result->id->toString(), $membersBefore));
+        }
     }
 
     /**

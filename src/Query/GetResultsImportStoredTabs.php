@@ -52,8 +52,9 @@ SQL;
         // The team's result: claimed once somebody holds a spot - its tracker or a registered member of its people
         // (PuzzleSolvingTime::isClaimedByAnybody())
         $resultsQuery = <<<SQL
--- A single person (no pair/team) is named by the sheet on the imported row (solo-and-relays.md section 1)
-SELECT eir.tab_id, eir.team_key, COALESCE(pt.name, eir.name) AS team_name, pst.seconds_to_solve, pst.pieces_placed, pst.puzzlers_count,
+-- A single person (no pair/team) is named by the sheet on the imported row (solo-and-relays.md section 1); a relay team
+-- (section 2) by its first row, its time = the relay's total
+SELECT eir.tab_id, eir.team_key, COALESCE(pt.name, eir.name) AS team_name, COALESCE(relay.seconds, pst.seconds_to_solve) AS seconds_to_solve, pst.pieces_placed, pst.puzzlers_count,
     (pst.player_id IS NOT NULL OR EXISTS (
         SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS member(player) WHERE member.player ->> 'player_id' IS NOT NULL
     )) AS claimed
@@ -61,7 +62,9 @@ FROM event_imported_result eir
 INNER JOIN event_results_sheet_tab t ON t.id = eir.tab_id
 INNER JOIN puzzle_solving_time pst ON pst.id = eir.solving_time_id
 LEFT JOIN puzzling_team pt ON pt.id = pst.puzzling_team_id
+LEFT JOIN relay_result relay ON relay.id = pst.relay_result_id
 WHERE t.sheet_id = :sourceId
+    AND eir.leg = 0
 ORDER BY eir.team_key
 SQL;
 

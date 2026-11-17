@@ -16,14 +16,16 @@ readonly final class EventImportedResultRepository
     }
 
     /**
-     * @return array<string, EventImportedResult> by team key
+     * Every team's rows - one, or a relay team's one per puzzle (solo-and-relays.md §2), in the order of its puzzles.
+     *
+     * @return array<string, non-empty-list<EventImportedResult>> by team key
      */
     public function ofTab(EventResultsSheetTab $tab): array
     {
         $byKey = [];
 
-        foreach ($this->entityManager->getRepository(EventImportedResult::class)->findBy(['tab' => $tab]) as $result) {
-            $byKey[$result->teamKey] = $result;
+        foreach ($this->entityManager->getRepository(EventImportedResult::class)->findBy(['tab' => $tab], ['leg' => 'ASC']) as $result) {
+            $byKey[$result->teamKey][] = $result;
         }
 
         return $byKey;

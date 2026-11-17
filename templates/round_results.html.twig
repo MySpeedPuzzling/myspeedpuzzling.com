@@ -125,7 +125,7 @@
         <p class="alert alert-info small" data-still-secret>{{ still_secret }}</p>
     {% endfor %}
 
-    {% if page.officialResults is not null %}{{ include('round_results/_official.html.twig') }}{% else %}{% for puzzle in round.puzzles %}
+    {% if page.officialResults is not null %}{{ include('round_results/_official.html.twig') }}{% elseif page.relayResults is not empty %}{{ include('round_results/_relay.html.twig') }}{% else %}{% for puzzle in round.puzzles %}
         {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}
 
         {{ include('round_results/_puzzle_card.html.twig') }}

@@ -23,6 +23,7 @@ final class SolvingTimeDeletionCoverageTest extends TestCase
         'src/MessageHandler/ApprovePuzzleMergeRequestHandler.php' => 'removes collection/wishlist/sell-swap/lending rows - solving times are moved onto the survivor, never removed',
         'src/Repository/DataImportPersonRepository.php' => 'removes a person of an import\'s file that no row names any more (docs/features/data-import/people.md) - it only counts results through DQL, never removes one',
         'src/Repository/SolvingTimeCustomValuesRepository.php' => 'removes a player\'s own custom values row of a result (docs/features/custom-fields.md) - never the result',
+        'src/Repository/RelayResultRepository.php' => 'removes a relay team\'s total (docs/features/event-results-import/solo-and-relays.md §2) after its results went through PuzzleSolvingTimeRepository::delete() - never a result',
     ];
 
     public function testEveryFileRemovingEntitiesNextToSolvingTimesIsDecided(): void

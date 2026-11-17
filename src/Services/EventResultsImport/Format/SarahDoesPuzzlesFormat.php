@@ -40,6 +40,8 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
     private const string TIME_LIMIT = 'time limit';
     private const string COMPETITION_TYPE = 'competition type';
     private const string PUZZLE_LINK = 'link to myspeedpuzzling';
+    // Optional: a relay tab's second puzzle (solo-and-relays.md §2) - filled = a relay of the two puzzles
+    private const string SECOND_PUZZLE_LINK = 'link to myspeedpuzzling 2';
 
     /** Columns every tab has, as the organizer sees them (for the problem's detail) */
     private const array REQUIRED_COLUMNS = [
@@ -81,7 +83,8 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
      */
     public function parse(SheetSnapshot $sheet): array
     {
-        // A tab named "Template" is the organizer's blank copy for the next event - never an event itself
+        // A tab whose name starts with "Template" ("Template", "Template Relay", "Template Solo") is the organizer's blank
+        // copy for the next event - never an event itself
         $events = array_filter(
             $sheet->tabs,
             static fn (SheetSnapshotTab $tab): bool => self::isTemplate($tab->title) === false,
@@ -92,7 +95,7 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
 
     private static function isTemplate(string $title): bool
     {
-        return mb_strtolower(trim($title)) === 'template';
+        return str_starts_with(mb_strtolower(trim($title)), 'template');
     }
 
     public function parseTab(SheetSnapshotTab $sheetTab): ParsedEvent
@@ -154,6 +157,22 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
             }
         }
 
+        // A relay: the second puzzle on row 2 next to the first (solo-and-relays.md §2) - empty or no column = one puzzle
+        $secondPuzzleId = null;
+        $secondLink = self::cell($eventCells, $columns, self::SECOND_PUZZLE_LINK);
+
+        if ($secondLink !== '') {
+            if (preg_match(self::PUZZLE_LINK_PATTERN, $secondLink, $match) === 1) {
+                $secondPuzzleId = strtolower($match[1]);
+
+                if ($secondPuzzleId === $puzzleId) {
+                    $problems[] = new EventTabProblem(EventTabProblemCode::RelaySamePuzzleTwice, $secondLink);
+                }
+            } else {
+                $problems[] = new EventTabProblem(EventTabProblemCode::UnreadablePuzzleLink, $secondLink);
+            }
+        }
+
         $localStartsAt = null;
 
         if ($date !== null) {
@@ -209,12 +228,24 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
             }
         }
 
+        // A relay team is ranked by its total time - one that did not finish has none (not in v1, solo-and-relays.md §2), so
+        // the whole tab waits: skipping the row would remove an imported team
+        if ($secondPuzzleId !== null) {
+            foreach ($rows as $row) {
+                if ($row->isUnfinished()) {
+                    $problems[] = new EventTabProblem(EventTabProblemCode::RelayNeedsTime, $row->teamName, $row->line);
+
+                    break;
+                }
+            }
+        }
+
         // A tab whose every row went wrong must never read as "every team is gone" - the import would remove them
         if ($rows === []) {
             $problems[] = new EventTabProblem(EventTabProblemCode::NoTeams);
         }
 
-        return $this->tab($sheetTab, $eventName, $location, $cityAndState, $localStartsAt, $startTime !== null, $timeLimit, $category, $puzzleId, $rows, $problems);
+        return $this->tab($sheetTab, $eventName, $location, $cityAndState, $localStartsAt, $startTime !== null, $timeLimit, $category, $puzzleId, $rows, $problems, $secondPuzzleId);
     }
 
     /**
@@ -365,12 +396,13 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
         null|string $puzzleId,
         array $rows,
         array $problems,
+        null|string $secondPuzzleId = null,
     ): ParsedEvent {
         $eventName = $eventName === '' ? null : $eventName;
         $location = $location === '' ? null : $location;
         $cityAndState = $cityAndState === '' ? null : $cityAndState;
 
-        $contentHash = sha1(Json::encode([
+        $hashed = [
             $eventName,
             $location,
             $cityAndState,
@@ -384,9 +416,16 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
                 ? [$row->line, $row->teamName, $row->teamSize, $row->seconds, $row->piecesPlaced]
                 : [$row->line, $row->teamName, $row->teamSize, $row->seconds], $rows),
             array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
-        ]));
+        ];
 
-        return new ParsedEvent($sheetTab->gid, $sheetTab->title, $eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
+        // A relay's second puzzle only when there is one: every other tab hashes exactly as before
+        if ($secondPuzzleId !== null) {
+            $hashed[] = $secondPuzzleId;
+        }
+
+        $contentHash = sha1(Json::encode($hashed));
+
+        return new ParsedEvent($sheetTab->gid, $sheetTab->title, $eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash, $secondPuzzleId);
     }
 
     /**

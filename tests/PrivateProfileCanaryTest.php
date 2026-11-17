@@ -30,6 +30,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
 {
     use AnalyticsStudioTesting;
     use UnfinishedResultSeeding;
+    use TrackerlessTimeSeeding;
 
     private const string OWNER = PlayerFixture::PLAYER_PRIVATE;
     private const string OWNER_NAME = 'Jane Smith';
@@ -51,6 +52,20 @@ final class PrivateProfileCanaryTest extends WebTestCase
      * An unfinished result (docs/features/competitions-management/unfinished-results-plan.md) is a bottom row of the
      * puzzle page - on a puzzle she has no time of, so the bottom row is the only place that could name her
      */
+    /**
+     * A relay team she claimed (docs/features/event-results-import/solo-and-relays.md §2) - its row on the round page is
+     * read by the round's own statement: her name for the friend only
+     */
+    public function testHerRelayTeamOnTheRoundPageNamesHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $round = $this->seedTrackerlessEvent(PuzzleFixture::PUZZLE_1500_01, secondPuzzleId: PuzzleFixture::PUZZLE_1500_02);
+        [$first] = $this->seedTrackerlessRelay($round, [PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_1500_02], 'Relay Rockets', 5025, size: 3);
+        self::getContainer()->get(\Symfony\Component\Messenger\MessageBusInterface::class)->dispatch(new \SpeedPuzzling\Web\Message\ClaimEventResultSlot($first->id->toString(), self::OWNER));
+
+        $this->assertOnlyTheFriendSees($browser, '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG, self::OWNER_NAME);
+    }
+
     public function testHerUnfinishedResultOnThePuzzlePageNamesHerForTheFriendOnly(): void
     {
         $browser = self::createClient();

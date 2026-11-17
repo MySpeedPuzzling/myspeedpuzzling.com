@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\RelayResultRepository;
 use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
@@ -40,7 +41,25 @@ readonly final class EventResultSlotRelease
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private SolvingTimeCustomValuesRepository $solvingTimeCustomValuesRepository,
+        private RelayResultRepository $relayResultRepository,
     ) {
+    }
+
+    /**
+     * The results a spot is released from at once: the result, or every result of a relay team - its people are the same
+     * on each (docs/features/event-results-import/solo-and-relays.md §2), the first one (the lowest id) leading.
+     *
+     * @return non-empty-list<PuzzleSolvingTime>
+     */
+    public function resultsOfTheSameSpot(PuzzleSolvingTime $time): array
+    {
+        if ($time->relayResult === null) {
+            return [$time];
+        }
+
+        $results = $this->relayResultRepository->resultsOf($time->relayResult);
+
+        return $results === [] ? [$time] : $results;
     }
 
     /**
@@ -59,24 +78,33 @@ readonly final class EventResultSlotRelease
             throw new EventResultClaimRefused(EventResultClaimRefusal::NotAClaimer);
         }
 
-        if ($time->team === null) {
-            // A single person's result (solo-and-relays.md §1): no people to convert - nobody's again
-            $slot = UnclaimedSolo::slotOf($time->id->toString());
-            $time->slotReleasedBy($player, null);
-        } else {
-            $slot = TeamComposition::ANONYMOUS_PREFIX . Uuid::uuid7()->toString();
+        // A relay team: every result of it, with the same new anonymous slot - so they stay one pair/team; logged once
+        $results = $this->resultsOfTheSameSpot($time);
+        $time = $results[0];
+        $teamSlot = TeamComposition::ANONYMOUS_PREFIX . Uuid::uuid7()->toString();
+        $slot = $teamSlot;
 
-            $this->puzzlingTeamMemberConversion->playerToAnonymousSlot($time->id->toString(), $playerId, $slot);
-            // The people and the pair/team changed in SQL - the entity reads them again before its own change
-            $this->solvingTimeRepository->reload($time);
-            $time->slotReleasedBy($player, $time->isTrackedBy($player) ? $this->nextTracker($time, $playerId) : null);
-        }
+        foreach ($results as $result) {
+            if ($result->team === null) {
+                // A single person's result (solo-and-relays.md §1): no people to convert - nobody's again
+                $result->slotReleasedBy($player, null);
 
-        // No longer on the result: their own values of it go with them (docs/features/custom-fields.md)
-        $customValues = $this->solvingTimeCustomValuesRepository->find($time, $player);
+                if ($result === $time) {
+                    $slot = UnclaimedSolo::slotOf($result->id->toString());
+                }
+            } else {
+                $this->puzzlingTeamMemberConversion->playerToAnonymousSlot($result->id->toString(), $playerId, $teamSlot);
+                // The people and the pair/team changed in SQL - the entity reads them again before its own change
+                $this->solvingTimeRepository->reload($result);
+                $result->slotReleasedBy($player, $result->isTrackedBy($player) ? $this->nextTracker($result, $playerId) : null);
+            }
 
-        if ($customValues !== null) {
-            $this->solvingTimeCustomValuesRepository->delete($customValues);
+            // No longer on the result: their own values of it go with them (docs/features/custom-fields.md)
+            $customValues = $this->solvingTimeCustomValuesRepository->find($result, $player);
+
+            if ($customValues !== null) {
+                $this->solvingTimeCustomValuesRepository->delete($customValues);
+            }
         }
 
         $this->resultClaimLogRepository->save(new ResultClaimLog(
@@ -95,7 +123,10 @@ readonly final class EventResultSlotRelease
         // A deleted account has nothing left to recalculate - the deletion takes its achievements and XP along
         if ($action !== ResultClaimAction::AccountDeleted) {
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($playerId));
-            $this->messageBus->dispatch(new RecalculateXpChainForSolve($time->id->toString(), $membersBefore));
+
+            foreach ($results as $result) {
+                $this->messageBus->dispatch(new RecalculateXpChainForSolve($result->id->toString(), $membersBefore));
+            }
         }
     }
 

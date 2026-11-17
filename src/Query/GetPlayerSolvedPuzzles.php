@@ -39,6 +39,21 @@ final class GetPlayerSolvedPuzzles implements ResetInterface
     ) {
     }
 
+    /**
+     * A relay team's result (docs/features/event-results-import/solo-and-relays.md §2) on the profile: the team's total,
+     * how many puzzles the relay had, and the round that ranks it - its link (the result detail of the puzzle leaves
+     * relay results out). Expects `LEFT JOIN relay_result ON relay_result.id = <alias>.relay_result_id`; NULL / 0 for
+     * every other result, which reads no extra row.
+     */
+    private function relayColumns(string $alias): string
+    {
+        return <<<SQL
+relay_result.seconds AS relay_total_seconds,
+    CASE WHEN {$alias}.relay_result_id IS NOT NULL THEN (SELECT COUNT(*) FROM puzzle_solving_time leg WHERE leg.relay_result_id = {$alias}.relay_result_id) ELSE 0 END AS relay_puzzle_count,
+    CASE WHEN {$alias}.relay_result_id IS NOT NULL THEN (SELECT round.slug FROM competition_round round WHERE round.id = {$alias}.competition_round_id) END AS relay_round_slug
+SQL;
+    }
+
     public function reset(): void
     {
         $this->existingPlayerIds = [];
@@ -262,7 +277,8 @@ SELECT
     cs.slug AS competition_series_slug,
     puzzle_solving_time.suspicious,
     -- The prediction made for this time, only where one was made (the profile's prediction sorts)
-    CASE WHEN puzzle_solving_time.predictable = true THEN puzzle_solving_time.predicted_seconds END AS predicted_seconds
+    CASE WHEN puzzle_solving_time.predictable = true THEN puzzle_solving_time.predicted_seconds END AS predicted_seconds,
+    {$this->relayColumns('puzzle_solving_time')}
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -270,6 +286,7 @@ FROM puzzle_solving_time
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
     LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
+    LEFT JOIN relay_result ON relay_result.id = puzzle_solving_time.relay_result_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzling_type = 'solo'
@@ -620,6 +637,7 @@ SELECT
         FROM json_array_elements(pst.team -> 'puzzlers') AS slot(puzzler)
         WHERE slot.puzzler ->> 'anonymous_slot' IS NOT NULL
     ) ELSE 0 END AS anonymous_count,
+    {$this->relayColumns('pst')},
     pst.puzzling_type
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
@@ -627,6 +645,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
+LEFT JOIN relay_result ON relay_result.id = pst.relay_result_id
 ORDER BY pst.seconds_to_solve ASC, pst.id
 SQL;
 

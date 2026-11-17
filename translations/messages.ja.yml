@@ -13765,6 +13765,8 @@ results_import:
         puzzle_not_approved: "パズル「%detail%」はまだ承認されていませんが、結果はインポートされます。"
         rows_out_of_time_order: "「%detail%」以降のタイムが順番になっていません。入力ミスはありませんか？"
         over_time_limit: "「%detail%」のタイムが制限時間を超えています。完成しなかったチームの後に表示されます。"
+        relay_same_puzzle_twice: "2つのパズルリンクが同じパズルを指しています。リレーには異なる2つのパズルが必要です。"
+        relay_needs_time: "「%detail%」にタイムがありません。リレーの各チームには合計タイムが必要です。"
     preview:
         back: "すべてのイベントに戻る"
         warnings: "確認してください（インポートを止めるものではありません）："
@@ -15175,3 +15177,14 @@ event_result_solo:
     remove_button: "この人ではありません：%player%"
     remove_intro: "%player% はこの結果に表示されなくなります。申告が取り消されたことは本人に伝えられますが、誰が取り消したかは伝えられません。"
     remove_submit: "申告を取り消す"
+
+relay_result:
+    badge: "リレー"
+    round_heading: "リレー · パズル%count%個"
+    round_hint: "各チームはすべてのパズルを同時に組みました。合計タイムで順位が決まります。"
+    profile_total: "パズル%count%個 · 合計 %time%"
+    claim_total: "リレー · パズル%count%個 · 合計 %time%"
+    import_hint: "リレー：各チームは2つのパズルを同時に組みました。Time は合計タイムです。"
+    format_guide: "リレー（各チームが2つのパズルを同時に組む）：任意のタブを複製し、列はそのままで、2行目の新しい列 Link to MySpeedPuzzling 2 に2つ目のパズルの MySpeedPuzzling リンクを追加します。各チームの合計タイムを Time に入力してください。合計タイムはイベントに表示され、パズルのページには表示されません。"
+    template_tabs: "名前が Template で始まるタブ（Template、Template Relay、Template Solo…）は空のコピーとして扱われ、インポートされません。"
+    open_round: "イベントの結果"

@@ -203,6 +203,11 @@ final class DeletePlayerHandler
         // An imported event result is the event's: the player's spot goes back to it, the result stays
         // (docs/features/event-results-import/README.md "Gates") - first, so the loops below never see the player in it
         foreach ($this->importedResultsOf($playerId) as $time) {
+            // A relay team's results are released together (solo-and-relays.md §2) - the other one is done already
+            if (in_array($playerId, $time->memberPlayerIds(), true) === false) {
+                continue;
+            }
+
             $this->eventResultSlotRelease->release($time, $player, ResultClaimAction::AccountDeleted, by: null);
         }
 

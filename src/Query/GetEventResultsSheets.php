@@ -57,7 +57,7 @@ readonly final class GetEventResultsSheets
         /** @var list<array{sheet_id: string, gid: string, title: string, status: string, problems: string, competition_id: null|string, first_imported_at: null|string, applied_at: null|string, results: int|string}> $tabs */
         $tabs = $this->database->fetchAllAssociative(
             'SELECT tab.sheet_id, tab.gid, tab.title, tab.status, tab.problems, tab.competition_id, tab.first_imported_at, tab.applied_at,
-                (SELECT COUNT(*) FROM event_imported_result result WHERE result.tab_id = tab.id) AS results
+                (SELECT COUNT(*) FROM event_imported_result result WHERE result.tab_id = tab.id AND result.leg = 0) AS results
              FROM event_results_sheet_tab tab
              WHERE tab.sheet_id IN (:sheetIds)
              ORDER BY tab.title, tab.gid',

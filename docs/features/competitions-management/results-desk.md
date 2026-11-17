@@ -90,7 +90,7 @@ and "published since" are shown in the round's zone (like the export), not the d
   we just saved, the desk asks the server once more.
 
 - **`pick` rounds** (competition toolkit A4): the result cell opens the per-puzzle editor and a row shows the record's
-  chips; the result and the record are saved as one group - see README "Results desk, participants sheet and export of
+  chips; the result and the record are saved as one group - see round-formats.md "Results desk, participants sheet and export of
   `pick` rounds".
 
 ### Qualification helpers - always the organiser's decision
@@ -193,7 +193,7 @@ rounds (`copyAdvancementSteps()`).
   the dialog's `data-action` emit nothing; checked by a before/after diff of the rendered desk and overview).
 
 The steps page also draws the bracket of the working steps with every round's progress, and the public bracket page
-shows it to everybody (competition toolkit A9, README.md "Bracket").
+shows it to everybody (competition toolkit A9, standings.md "Bracket").
 
 Tests: `AdvancementStepGraphTest`, `AdvancementStepsTest` (handlers, refusals, prune on delete/move, duplicate, event
 delete), `AdvancementStepsPagesTest` (voter, forms, hub card, desk banner/prefill payload, overall preset),

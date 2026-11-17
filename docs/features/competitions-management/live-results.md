@@ -28,63 +28,15 @@ device's own pick wins while it is fresh (12 hours) and that round is not stoppe
 ## The page (mobile first, one thumb)
 
 Its own lean layout (`templates/live_results/_layout.html.twig`, competition toolkit C2): no site header, footer,
-flashes, e-mail banners, modals, global search or analytics, no Turbo - its own Encore entry `live_entry`
-(`assets/live_entry.js`: Stimulus + this page's controller, eager, no lazy chunk, budget in `LiveEntryBundleTest`) with
-the site's stylesheet; the self-heal scripts are the partials `base.html.twig` includes too. Every link is a plain page
-load. A sticky bar with back, the round picker (a switch loads the other round's page) and
-the **sync pill**, and below it the stopwatch ("Running 0:47:12") and "Tables: 18 / 20" (in-person rounds that use
-table numbers). **The page carries no data of the round, its event or its reader** (competition toolkit C1 - the same
-markup can later be kept as an offline shell): it says "Loading the round…" and fills itself from one fetch of
-`official_results_round_state?viewer=1` (round, rounds, entries, clock, live updates token, and `viewer` = the player
-id that owns the outbox + whether the organiser tools show). Every variant (solo / pair / team quick add, tables or not,
-organiser or referee) is in the markup hidden and chosen by `assets/live_entry_page.js` (`pageSettings()`,
-`roundOptions()`, `resolveLanding()` - node harness); links carry placeholders the page fills in. A failed first fetch
-says so and is tried again by itself (2, 4 … 30 s, at once when back online, Retry).
+flashes, banners, modals or Turbo - its own Encore entry `live_entry`; every link is a plain page load. A sticky bar with
+back, the round picker (a switch loads the other round's page) and the **sync pill**, and below it the stopwatch
+("Running 0:47:12") and "Tables: 18 / 20" (in-person rounds that use table numbers). **The page carries no data of the
+round, its event or its reader** (C1): it says "Loading the round…" and fills itself from one fetch of
+`official_results_round_state?viewer=1`.
 
-**Offline copy and native apps** (competition toolkit C3): `live_results_shell` (`/{locale}/live-results-shell`, cs
-`/zadavani-vysledku-shell`, `LiveResultsShellController`) is the same markup with nothing of any round or person -
-`data-live-results-shell-value="true"`, no round id, sign-in link without a return (C5 adds it in JS), no `msp-rendered-at` meta (the
-stale-document check does nothing there), `Cache-Control: public, no-cache`, `noindex`, on the `stateless` firewall (no
-session, no cookie). The service worker keeps it per locale and answers it when the network fails for a live entry
-URL (C6, below), the page then rendering the device's saved rounds (C4/C5). Whose rounds: the readable cookie
-`msp_live_player=<playerId>` (`LiveEntryDeviceCookie`) - set only by the live page (so only for organisers and the
-event's referees), `Path=/`, `SameSite=Lax`, not HttpOnly, 30 days like the sign-in; cleared on sign-out and when another
-player signs in on the device (`LiveResultsDeviceCookieSubscriber`; the same player signing in again keeps it). It is no
-credential - the server never reads it. Inside the native apps (Hotwire Native, `is_native_app()`) the page adds the
-entry `live_entry_native` (Turbo with Drive off): the apps' WebView finishes loading a page only when Turbo runs on it
-(without it, the iOS app waits 30 s, the Android app 4 s, then shows its error screen). Links stay plain page loads,
-which the apps route natively. The offline copy never carries it (the apps run no service worker).
-
-**The offline copy at work** (competition toolkit C5): the controller sees `shell` and reads the URL it was answered at
-(`assets/live_entry_route.js` - `live_results`, `live_results_event`, the printed name tag `/{locale}/live/{cid}/p/{pid}`
-and the frozen tag paths `/live/{cid}/g|t|e/…` with or without a locale). `assets/live_entry_shell.js` `shellPlan()`
-picks the snapshot of the player the cookie names: the round's own; for an event the JS port of
-`LiveResultsCurrentRound::pick()` over the event's snapshots (shared cases `tests/fixtures/live-current-round-cases.json`,
-run by PHPUnit and the node harness) then the round picked by hand within 12 h; for a name tag the entrant's round (the
-entry opens), else the current one; line-up/table/entry tags open the current round (C8 resolves them). The round renders
-at once with the offline-copy strip, saves go into the outbox, and the state is asked for every 5 s (and on `online`);
-its first answer makes the page live and rewrites the address to the round's own live URL. Neutral screens instead of a
-blank page: no cookie → "You are offline - open this page again with a connection" + Retry + Sign in (back to the URL
-asked for) + the device's unsent count; no snapshot → "No offline copy of this round on this phone" + the snapshots it
-has (links). Tests: `tests/live-entry-shell-harness.mjs` (`LiveEntryShellScriptsTest`).
-
-**The service worker's part** (competition toolkit C6, `public/service-worker.js`, `.claude/rules/service-worker.md`):
-once the page is live (its first state, or an offline copy going live) it posts `live-shell:prepare` with its locale
-(`assets/live_entry_offline_ready.js`; once per page load, never in the native apps). The worker fetches
-`live_results_shell` of that locale without cookies, reads the files it lists in `#msp-live-shell-assets` (the
-`live_entry` scripts, the site CSS, the fonts - `LiveResultsShellController::shellAssets()`), stores each into
-`static-v7` and only then the copy + a record `/__live-shell/{locale}.json` in `live-shell-v7` (a copy never points at a
-missing file), plus the zbar QR decoder (`/barcode-scanner/zbar-wasm-0.9.15/*`, cache-first) when the browser reads no QR
-codes itself; it answers `live-shell:ready` → the unsent-results sheet says "Ready offline (saved 10:42)". Navigations to
-exactly the paths `parseLiveEntryRoute()` reads (the worker's own `LIVE_ENTRY_PATHS`; shared cases
-`tests/fixtures/live-entry-routes.json` + every router path, `ServiceWorkerLiveRoutesTest`) go to the network first -
-nothing read from a cache while it answers, a redirect or error page passed through - and get the stored copy of the
-URL's locale (header `X-MSP-Live-Shell: 1`) when the fetch fails (after the one 500 ms retry; none when the device knows
-it is offline) or stays silent for 4 s; a locale-less tag path or a locale never prepared gets the newest stored copy;
-none stored → the offline page as before. The prune after a deploy keeps every file a stored copy lists. The copy holds
-no user data, so sign-out leaves it. The name-tag scanner (`assets/official_results_scan.js`) loads zbar from our server
-first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceWorkerLiveShellTest`
-(`tests/service-worker-live-harness.js`, real in-memory caches), `ServiceWorkerLiveRoutesTest`.
+Lean layout and bundle budget, the data-free page and its parameters, the offline copy (`live_results_shell`, the
+`msp_live_player` cookie), the native apps' Turbo bootstrap, snapshots and drafts, the service worker's part and the
+QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
 
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and
@@ -93,7 +45,7 @@ first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceW
    word as a word start; `#code` = the linked player's code (members' too). Enter opens the exact table, else the only
    match. **A unique table opens without Enter** (competition toolkit C7, `uniqueTable()`): digits that are the table
    number of exactly one entry while no other table number starts with them open it at once (tables 1-20: `3` opens,
-   `1` waits for `1x`, `12` opens) - a per-phone preference (`msp.liveResults.prefs.autoOpenTable`, on by default, a
+   `1` waits for `1x`, `12` opens) - a per-phone preference (`autoOpenTable` in localStorage `msp.liveResults.prefs`, on by default, a
    switch in the unsent-results sheet on rounds with tables). With table numbers off (or online) only names. Empty input = **Recent entries** (`recentEntries()`):
    results by `enteredAt` from any device plus this device's unsent ones, newest first, one row per entry, each with its
    sync state (✓ saved / clock = not sent / ⚠ needs you). The "recommended: give every entry a table number" hint
@@ -119,7 +71,7 @@ first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceW
    change is just dropped; a sent one gets the opposite change; then the entry opens again), back to Find with the
    input empty and focused.
    **Pick rounds** (competition toolkit C10, `assets/live_entry_puzzles.js` - round JSON `puzzleFormat`, entry
-   `puzzles`, README "Per-puzzle results of `pick` rounds"): the card shows a chip per round puzzle between the name and
+   `puzzles`, round-formats.md "Per-puzzle results of `pick` rounds"): the card shows a chip per round puzzle between the name and
    the time - its label always, the name and picture only once the puzzle is out (`hidden: false`; a name that came for
    a hidden slot anyway is not shown, a lock instead). The known choice (the server's, this device's waiting or refused
    one) is preselected. One of N: a tap picks (again: none); K of N: taps in solving order (order badges), tap again
@@ -265,8 +217,9 @@ longer lists unless it came after the state was read). Server side: `official-re
 - **Sync pill**, always visible: "All saved" / "Saving…" / "3 waiting" / "3 waiting - offline" / "2 need you"
   (conflicts, refusals, changes without rights) / "Sign in again" / "No permission" / "Reload the page"; tap → the list
   of what is not saved yet with the actions above.
-- A reload without a connection opens the page's offline copy (service worker, toolkit C6 above) on a device that had
-  the page open online once; the native apps cannot (no worker - the sheet says so).
+- A reload without a connection opens the page's offline copy (service worker, toolkit C6 -
+  [judge-offline.md](judge-offline.md)) on a device that had the page open online once; the native apps cannot (no
+  worker - the sheet says so).
 
 ## Live updates
 
@@ -290,6 +243,9 @@ first). Full-screen camera, ~10 reads a second, vibration on a read. `parseNameT
 `http(s)://…/{locale}/live/{competitionId}/p/{participantId}`; another event's tag or any other code → "This QR code
 is not a name tag of this event"; a person not in the selected round → "… not in Group A" + "Open their round" (the
 scan URL). The native apps' scanner bridge reads EAN only, so the apps use the web camera here.
+Since toolkit C8 the scanner reads every competition tag (`parseCompetitionTagUrl()`: person, line-up, table, entry -
+`parseNameTagUrl()` is its wrapper) and resolves it on the phone, offline across the event's snapshots too:
+[judge-offline.md](judge-offline.md) "QR kinds in the judge page".
 
 ## Name tags (`competition_name_tags`)
 
@@ -302,6 +258,9 @@ to print again after re-seating), and a QR (`NameTagQrCode`: bacon/bacon-qr-code
 (`CompetitionParticipantGoing`: not removed, not waitlisted - the waitlist too when the organiser ticks "Also the N
 people on the waitlist") by name, or one round's people with that round's numbers; sorted by name or table (no table
 last). `GetCompetitionNameTags`: one statement.
+
+The competition toolkit's tag kinds (people / line-ups / tables / entries), layouts (tags / table tents) and where each
+scan leads: `competitor-pages.md` "QR modes and tag routes" and "Printing".
 
 Drawing a QR costs ~15 ms (the ~110-character URL is a version 7 code), so each SVG is cached per URL in the
 `name_tag_qr_cache` pool for 90 days: 200 tags shown again render in ~0.1 s instead of ~4 s (pinned by a test). The URL

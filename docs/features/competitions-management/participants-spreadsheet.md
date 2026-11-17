@@ -1298,6 +1298,10 @@ included); every text by `tests/ParticipantsSheetRoundTextsTest.php` (round text
 - **Solo tab**: Table, Name (read-only - Enter/Space opens the person editor, else People at the person; Delete takes
   them out of the round), Country, Result / Rank / Qualified, ⋯; the new row puts a person (or a new one) into the
   round; people on the waitlist are listed, their results cells say why they cannot be edited.
+- **`pick` rounds** (competition toolkit A4): a read-only "Puzzles" column (the record by label); a result typed or
+  pasted for an entry with a record goes with the consistent `puzzles` change as one group and one undo step
+  (`sheet_puzzles.js`, applied in the controller's `act()`) - see README "Results desk, participants sheet and export of
+  `pick` rounds".
 - **Results cells** (both): `from` = what the cell showed when its editor opened (`openEditor()` of
   official_results_pending_changes.js, remembered by the grid's `editStart`, read back by a side-effect-free
   `seenValue`); a value saved meanwhile (a live update while the editor is open) turns the editor's list into "Saved

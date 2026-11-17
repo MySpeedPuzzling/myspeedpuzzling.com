@@ -1010,14 +1010,15 @@ $lb-chart-switch-width: 68px; // two buttons sharing a border (measured 63-67 px
 
 .official-entry-puzzle {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    column-gap: 4px;
     max-width: 100%;
     padding: 1px 8px;
     border: 1px solid var(--bs-border-color, #dee2e6);
-    border-radius: 999px;
+    // Not a full pill: on a phone a chip may take two lines
+    border-radius: .75rem;
     background: var(--bs-body-bg, #fff);
-    white-space: nowrap;
 
     &.is-done {
         border-color: #b5e2c6;
@@ -1029,15 +1030,21 @@ $lb-chart-switch-width: 68px; // two buttons sharing a border (measured 63-67 px
 }
 
 .official-entry-puzzle-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .official-entry-puzzle-time {
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .lb-table .official-entry-puzzles .official-profile-action {
     margin-left: 0;
+
+    // A phone's name column is narrow: the per-puzzle buttons wrap rather than run into the result column
+    .btn {
+        max-width: 100%;
+        white-space: normal;
+        text-align: start;
+    }
 }

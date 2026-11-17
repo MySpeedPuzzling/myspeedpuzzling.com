@@ -11,6 +11,7 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionAdvancementStep;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionStanding;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
+use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -39,7 +41,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * The logo path is shared with the source: no code deletes a competition logo, and every file deletion asks
  * GetStoredFileReferences, which sees both rows. Page section pictures are copied to the copy's own prefix - a section
  * only ever points at its own page's files (PageSectionContentSanitizer::uploadPath()). Standings are copied unpublished
- * with their rounds remapped (copyStandings()).
+ * with their rounds remapped (copyStandings()), advancement steps too (copyAdvancementSteps()).
  */
 #[AsMessageHandler]
 readonly final class DuplicateCompetitionHandler
@@ -56,6 +58,7 @@ readonly final class DuplicateCompetitionHandler
         private ClockInterface $clock,
         private LoggerInterface $logger,
         private CompetitionStandingRepository $standingRepository,
+        private CompetitionAdvancementStepRepository $advancementStepRepository,
     ) {
     }
 
@@ -136,6 +139,7 @@ readonly final class DuplicateCompetitionHandler
 
         $this->copyPageSections($source, $copy, $now);
         $this->copyStandings($source, $copy, $roundIdMap, $now);
+        $this->copyAdvancementSteps($source, $copy, $roundIdMap, $now);
 
         $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($copy, $actor, $now);
     }
@@ -211,6 +215,54 @@ readonly final class DuplicateCompetitionHandler
                 orderRule: $standing->orderRule,
                 missingRule: $standing->missingRule,
             ));
+        }
+    }
+
+    /**
+     * The event's advancement steps (competition toolkit A8, A-round-formats.md §3.6) with their rounds - and the
+     * by-source map - remapped to the copies. An id that is not a round of the source any more is left out (pruned like
+     * a deleted round); a step left without sources or targets is not copied.
+     *
+     * @param array<string, string> $roundIdMap source round id => its copy's id
+     */
+    private function copyAdvancementSteps(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): void
+    {
+        $remap = static fn (array $roundIds): array => array_values(array_filter(array_map(
+            static fn (string $roundId): null|string => $roundIdMap[$roundId] ?? null,
+            $roundIds,
+        )));
+
+        foreach ($this->advancementStepRepository->ofCompetition($source) as $step) {
+            $settings = $step->settings();
+            $map = [];
+
+            foreach ($settings->targetBySource as $sourceRoundId => $targetRoundId) {
+                $from = $roundIdMap[strtolower((string) $sourceRoundId)] ?? null;
+                $to = $roundIdMap[strtolower($targetRoundId)] ?? null;
+
+                if ($from !== null && $to !== null) {
+                    $map[$from] = $to;
+                }
+            }
+
+            $stepCopy = new CompetitionAdvancementStep(
+                id: Uuid::uuid7(),
+                competition: $copy,
+                name: $step->name,
+                sourceRoundIds: $remap($settings->sourceRoundIds),
+                targetRoundIds: $remap($settings->targetRoundIds),
+                distribution: $step->distribution,
+                createdAt: $now,
+                targetBySource: $map,
+                qualifyCount: $step->qualifyCount,
+                qualifyScope: $step->qualifyScope,
+                bestOfEachCountry: $step->bestOfEachCountry,
+                position: $step->position,
+            );
+
+            if (!$stepCopy->isEmpty()) {
+                $this->advancementStepRepository->save($stepCopy);
+            }
         }
     }
 

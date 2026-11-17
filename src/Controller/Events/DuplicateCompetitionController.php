@@ -12,12 +12,15 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\FormData\DuplicateCompetitionFormData;
 use SpeedPuzzling\Web\FormType\DuplicateCompetitionFormType;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
+use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetPreviousEditionDay;
+use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDateShift;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\NextEditionName;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -34,6 +37,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * date and name, POST makes the copy: its rounds and registration window move by the same number of days
  * (DuplicateCompetition `dateFrom`, EventDateShift), then a 303 to the new draft's edit page. A plain page - it works
  * from inside the events list's frames (the links leave them, `_top`) and without JavaScript.
+ *
+ * Rounds are copied without their puzzles, so a `pick` round's copy is "One result for the round" (competition toolkit
+ * G3, round-formats.md "Known edges") - the page and a second flash name each such round and its format, so the organiser
+ * sets it again once the copy has its puzzles.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class DuplicateCompetitionController extends AbstractController
@@ -50,6 +57,7 @@ final class DuplicateCompetitionController extends AbstractController
         readonly private EventDateShift $eventDateShift,
         readonly private GetPreviousEditionDay $getPreviousEditionDay,
         readonly private FormFactoryInterface $formFactory,
+        readonly private GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
     ) {
     }
 
@@ -95,6 +103,11 @@ final class DuplicateCompetitionController extends AbstractController
             dateFrom: $proposedDay,
         );
         $form = $this->formFactory->createNamed('', DuplicateCompetitionFormType::class, $formData);
+        // The rounds whose format the copy does not keep (it has no puzzles to pick from)
+        $pickRounds = array_values(array_filter(
+            $this->getCompetitionRoundsForManagement->ofCompetition($competitionId),
+            static fn (CompetitionRoundForManagement $round): bool => $round->puzzleFormat === RoundPuzzleFormat::Pick && $round->puzzlesToSolve !== null,
+        ));
         $form->handleRequest($request);
 
         // The date is what the copy is about - its own message rather than the validator's generic one (an unreadable
@@ -118,6 +131,15 @@ final class DuplicateCompetitionController extends AbstractController
                 '%date%' => $this->formatDay($formData->dateFrom, $request->getLocale()),
             ]));
 
+            if ($pickRounds !== []) {
+                $this->addFlash('warning', $this->translator->trans('event_duplicate.formats.flash', [
+                    '%rounds%' => implode('; ', array_map(fn (CompetitionRoundForManagement $round): string => $this->translator->trans('event_duplicate.formats.round', [
+                        '%round%' => $round->name,
+                        '%format%' => $this->formatName($round),
+                    ]), $pickRounds)),
+                ]));
+            }
+
             return $this->redirectToRoute(
                 'edit_competition',
                 ['competitionId' => $newCompetitionId->toString()],
@@ -130,7 +152,22 @@ final class DuplicateCompetitionController extends AbstractController
             'form' => $form,
             'source' => $source,
             'source_day' => $sourceDay,
+            'pick_rounds' => $pickRounds,
         ]);
+    }
+
+    /**
+     * The round's format as the round pages name it (competition_toolkit/_round_format_summary.html.twig)
+     */
+    private function formatName(CompetitionRoundForManagement $round): string
+    {
+        $toSolve = (int) $round->puzzlesToSolve;
+
+        if ($toSolve >= $round->puzzleCount) {
+            return $this->translator->trans('competition_toolkit.round_format.name.all', ['%count%' => $round->puzzleCount]);
+        }
+
+        return $this->translator->trans('competition_toolkit.round_format.name.pick', ['%count%' => $toSolve, '%puzzles%' => $round->puzzleCount]);
     }
 
     private function formatDay(DateTimeImmutable $day, string $locale): string

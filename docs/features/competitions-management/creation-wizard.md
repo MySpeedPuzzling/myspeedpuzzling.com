@@ -149,6 +149,9 @@ OBS overlay / stopwatch test run tips. Collapse remembered per event in localSto
   prefilled one series gap later), POST copies with the `dateFrom` override (`DuplicateCompetition`): rounds and the
   registration window move by whole days, times of day kept in each round's zone (`EventDateShift` +
   `DuplicateDateShift`).
+- Round puzzles are not copied, so a `pick` round's copy is "One result for the round": the form lists each such round
+  with its format ("Puzzle formats reset … Round 2 was “Pick 2 of 3”") and a warning flash repeats it after the copy
+  (competition toolkit G3, round-formats.md "Known edges").
 - Edit event: "Also move the rounds by the same number of days" (ticked, shown when the start date changes, with the
   concrete effect under it - "The start moves from 15.06.2027 to 22.06.2027, so every round moves …"; end date follows in
   the browser) →

@@ -16,6 +16,12 @@ use DateTimeImmutable;
  *   after the round starts - follows the round when its start or its delay changes.
  * - Scheduled: at the organiser's own moment (also what "Reveal now" leaves behind), never moved by the round.
  * - Manual: not before the organiser clicks "Reveal now" - no moment at all.
+ * - Stopwatch: when the round's stopwatch starts with "Reveal the puzzles" ticked (StartRoundStopwatch /
+ *   ScheduleRoundStart) - no moment until then, like a manual reveal; the start writes its moment into reveal_at
+ *   (CompetitionRoundPuzzle::revealAtStopwatchStart()), a countdown called off takes a moment still ahead back
+ *   (withdrawStopwatchReveal()). A start without the tick (a test run) reveals nothing; a stopwatch never started with
+ *   it keeps the puzzle hidden until "Reveal now" - no fallback, a late reveal is harmless, an early one is not
+ *   (docs/features/competitions-management/toolkit/A-round-formats.md §4).
  *
  * PHP (revealAt(), automaticRevealAt()) and SQL (sqlRevealAt(), sqlHidden()) compute the same moment; nothing else may
  * (RoundRevealMomentComputedOnlyHereTest).
@@ -25,6 +31,7 @@ enum RoundPuzzleReveal: string
     case Automatic = 'automatic';
     case Scheduled = 'scheduled';
     case Manual = 'manual';
+    case Stopwatch = 'stopwatch';
 
     /**
      * A new round's delay - also the column's default, so a round inserted by code that does not know the delay (an
@@ -39,7 +46,7 @@ enum RoundPuzzleReveal: string
     public const int MAX_DELAY_MINUTES = 240;
 
     /**
-     * Null = no moment yet (manual): hidden until the organiser reveals it.
+     * Null = no moment yet (manual, or a stopwatch reveal before its start): hidden until the organiser reveals it.
      *
      * @param int $revealDelayMinutes the round's delay (CompetitionRound::$revealDelayMinutes) - only an automatic reveal
      *     reads it
@@ -50,6 +57,8 @@ enum RoundPuzzleReveal: string
             self::Automatic => self::automaticRevealAt($roundStartsAt, $revealDelayMinutes),
             self::Scheduled => $scheduledAt,
             self::Manual => null,
+            // The moment the stopwatch start with the tick wrote - null until then
+            self::Stopwatch => $scheduledAt,
         };
     }
 
@@ -88,7 +97,7 @@ enum RoundPuzzleReveal: string
     }
 
     /**
-     * The reveal moment of a round puzzle row as SQL - NULL for a manual reveal.
+     * The reveal moment of a round puzzle row as SQL - NULL for a manual reveal (and a stopwatch reveal before its start).
      *
      * $roundAlias must be a real competition_round row (the round of $roundPuzzleAlias): the automatic moment reads its
      * starts_at and reveal_delay_minutes.
@@ -97,10 +106,12 @@ enum RoundPuzzleReveal: string
     {
         $automatic = self::Automatic->value;
         $scheduled = self::Scheduled->value;
+        $stopwatch = self::Stopwatch->value;
 
         return "(CASE {$roundPuzzleAlias}.reveal_mode"
             . " WHEN '{$automatic}' THEN {$roundAlias}.starts_at + make_interval(mins => {$roundAlias}.reveal_delay_minutes)"
             . " WHEN '{$scheduled}' THEN {$roundPuzzleAlias}.reveal_at"
+            . " WHEN '{$stopwatch}' THEN {$roundPuzzleAlias}.reveal_at"
             . ' END)';
     }
 

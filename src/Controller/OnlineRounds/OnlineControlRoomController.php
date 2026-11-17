@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
 use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLiveState;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,6 +46,7 @@ final class OnlineControlRoomController extends AbstractController
         private readonly OnlineLiveState $onlineLiveState,
         private readonly LiveKitSettings $liveKitSettings,
         private readonly ClockInterface $clock,
+        private readonly SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
@@ -72,6 +74,9 @@ final class OnlineControlRoomController extends AbstractController
         $onlineRound = $this->onlineRoundRepository->ofRound($roundId) ?? throw new OnlineRoundNotFound();
         $now = $this->clock->now();
         $timezone = $round->displayTimezone();
+        // "Reveal the puzzles" next to the start: the round's puzzles waiting for the stopwatch start (organisers see
+        // their names), and the list + stopwatch the tick confirms - nothing of it without such a puzzle
+        $stopwatchReveal = $this->secretRevealPreview->byStopwatchStart($round, $now);
 
         $response = $this->render('online_rounds/control.html.twig', [
             'competition' => $round->competition,
@@ -84,6 +89,8 @@ final class OnlineControlRoomController extends AbstractController
             // round's zone (the zone the stopwatch control page reads every start of the round in)
             'start_at_value' => RoundTimezone::toLocal(self::startAtSuggestion($round->startsAt, $now), $timezone)->format('Y-m-d\TH:i:s'),
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
+            'stopwatch_reveal' => $stopwatchReveal,
+            'stopwatch_reveal_hash' => $stopwatchReveal !== [] ? SecretRevealPreview::stopwatchStartHash($stopwatchReveal, $round) : null,
             // The puzzle cameras, push-to-talk and the studio's invitations (templates/online_rounds/control_video*.html.twig)
             'video_console' => $this->liveKitSettings->isAvailable() && $onlineRound->videoEnabled,
         ]);

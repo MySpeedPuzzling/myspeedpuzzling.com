@@ -13986,6 +13986,36 @@ competition_toolkit:
         judges:
             title: "Judges"
             help: "Judges enter results on their phones in the live entry. Add them on the referees page."
+    reveal_stopwatch:
+        checkbox: "[0,1]Reveal the puzzle when the stopwatch starts|]1,Inf[Reveal the %count% puzzles when the stopwatch starts"
+        help: "Leave it unticked for a test run - nothing is revealed then. Tick it for the real start: the puzzles come out at the start (after the countdown, if you schedule one) and can never be hidden again."
+        confirm: "[0,1]Start the stopwatch and reveal the puzzle at the start? Once out, it can never be hidden again.|]1,Inf[Start the stopwatch and reveal the %count% puzzles at the start? Once out, they can never be hidden again."
+        button_suffix: "[0,1]reveal 1 puzzle|]1,Inf[reveal %count% puzzles"
+        scope:
+            everywhere: "everywhere on MySpeedPuzzling"
+            name_everywhere: "its name everywhere, its picture on this event"
+            event: "on this event"
+        countdown_reveals: "This countdown reveals when it ends: %puzzles%."
+        countdown_reveals_nothing: "This countdown reveals nothing (it was started without “Reveal”): %puzzles%. To reveal them at the start, cancel it and start again with the box ticked."
+        still_hidden: "Still hidden - the stopwatch was started without “Reveal”: %puzzles%."
+        still_hidden_link: "Reveal them on the round's puzzles page"
+        missed: "The stopwatch was started without “Reveal”, so this puzzle stays hidden - use “Reveal now”."
+        source: "When the stopwatch starts: it is revealed when you start the round's stopwatch with “Reveal” ticked. A start without the tick (a test run) reveals nothing."
+        status:
+            hidden_everywhere: "Hidden everywhere until the stopwatch starts with “Reveal” ticked"
+            image_hidden_everywhere: "Picture hidden everywhere until the stopwatch starts with “Reveal” ticked – the name is public"
+            hidden_on_event: "Hidden on your event page until the stopwatch starts with “Reveal” ticked – this puzzle is already public elsewhere on MySpeedPuzzling"
+            image_hidden_on_event: "Picture hidden on your event page until the stopwatch starts with “Reveal” ticked – this puzzle is already public elsewhere on MySpeedPuzzling"
+            revealed: "Revealed at the stopwatch start, %time%"
+        form:
+            option: "When the round's stopwatch starts – you tick “Reveal” at the start; a test run reveals nothing"
+            option_started: "When the round's stopwatch starts – not possible any more, the stopwatch has already started (use “Reveal now”)"
+            option_help: "Until then it stays hidden, also if the stopwatch is never started with the tick."
+        flash:
+            already_started: "The round's stopwatch has already started – use “Reveal now” to reveal the puzzle."
+        refused:
+            reveal_changed_meanwhile: "The puzzles to reveal changed meanwhile, or the start was changed - nothing started. Check the list and try again."
+            reveal_not_allowed: "No puzzle of this round waits for the stopwatch start any more - nothing started. Start again without “Reveal”."
 competitor_page:
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."

@@ -93,7 +93,7 @@
                                 {% if status.kind == 'not_secret' %}
                                     <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.status.not_secret'|trans }}
                                 {% elseif status.kind == 'revealed' %}
-                                    <i class="bi bi-eye me-1 text-success"></i>{{ 'competition.reveal.status.revealed'|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed)}) }}
+                                    <i class="bi bi-eye me-1 text-success"></i>{{ (puzzle.revealMode.value == 'stopwatch' ? 'competition_toolkit.reveal_stopwatch.status.revealed' : 'competition.reveal.status.revealed')|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed)}) }}
                                 {% else %}
                                     {% set image_prefix = status.kind == 'image_hidden' ? 'image_' : '' %}
                                     <i class="bi bi-eye-slash me-1 text-warning"></i>
@@ -104,7 +104,7 @@
                                     {%- elseif status.until is not null -%}
                                         {{ ('competition.reveal.status.' ~ image_prefix ~ 'hidden_' ~ status_scope)|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed)}) }}
                                     {%- elseif status.waitsForThisRound -%}
-                                        {{ ('competition.reveal.status.manual_' ~ image_prefix ~ 'hidden_' ~ status_scope)|trans }}
+                                        {{ ((puzzle.revealMode.value == 'stopwatch' ? 'competition_toolkit.reveal_stopwatch.status.' : 'competition.reveal.status.manual_') ~ image_prefix ~ 'hidden_' ~ status_scope)|trans }}
                                     {%- elseif status.heldByAnotherRound -%}
                                         {{ ('competition.reveal.status.held_' ~ image_prefix ~ 'hidden_everywhere')|trans }}
                                     {%- else -%}
@@ -115,7 +115,7 @@
 
                             {% if puzzle.hideUntilRoundStarts and puzzle.hidden %}
                                 <p class="small text-muted mb-0">
-                                    {{ ('competition.reveal.source.' ~ puzzle.revealMode.value)|trans({'%after_start%': after_start}) }}
+                                    {{ (puzzle.revealMode.value == 'stopwatch' ? 'competition_toolkit.reveal_stopwatch.source' : 'competition.reveal.source.' ~ puzzle.revealMode.value)|trans({'%after_start%': after_start}) }}
                                     {% if puzzle.revealsAt is not null and puzzle.revealsAt < round.startsAt %}
                                         <span class="text-danger">{{ 'competition.reveal.source.before_round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone, timezone_assumed)}) }}</span>
                                     {% endif %}
@@ -133,6 +133,12 @@
                             {% if status.kind == 'hidden' and round.startsAt <= now %}
                                 <p class="small text-warning-emphasis mb-0" data-participants-wait>
                                     <i class="bi bi-hourglass-split me-1"></i>{{ 'competition.reveal.source.participants_wait'|trans }}
+                                </p>
+                            {% endif %}
+                            {# Started without "Reveal the puzzles": it waits for nothing any more - Reveal now #}
+                            {% if puzzle.hidden and puzzle.revealMode.value == 'stopwatch' and round.stopwatchStatusAt(now) in ['running', 'stopped'] %}
+                                <p class="small text-warning-emphasis mb-0" data-stopwatch-reveal-missed>
+                                    <i class="bi bi-exclamation-triangle me-1"></i>{{ 'competition_toolkit.reveal_stopwatch.missed'|trans }}
                                 </p>
                             {% endif %}
 
@@ -186,7 +192,7 @@
 
                                     {# Never an automatic reveal that is over already - that would reveal at once (use Reveal now) #}
                                     {% set default_mode = puzzle.hideUntilRoundStarts and puzzle.hidden ? puzzle.revealMode.value : (automatic_over ? 'manual' : 'automatic') %}
-                                    {% set current_mode = refused is not null and refused.revealMode in ['automatic', 'scheduled', 'manual'] ? refused.revealMode : default_mode %}
+                                    {% set current_mode = refused is not null and refused.revealMode in ['automatic', 'scheduled', 'manual', 'stopwatch'] ? refused.revealMode : default_mode %}
                                     {% set scheduled_value = refused is not null and refused.revealAt is not empty
                                         ? refused.revealAt
                                         : ((puzzle.revealMode.value == 'scheduled' and puzzle.revealsAt is not null ? puzzle.revealsAt : round.automaticRevealAt)|date('Y-m-d\\TH:i', timezone)) %}
@@ -221,6 +227,15 @@
                                             <label class="form-check-label" for="reveal-manual-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.manual'|trans }}</label>
                                             <div class="form-text mt-0">{{ 'competition.reveal.form.participants_after_reveal'|trans }}</div>
                                         </div>
+                                        {# The competition toolkit's option: offered to whoever may change its settings; a row using it keeps it #}
+                                        {% if puzzle.revealMode.value == 'stopwatch' or is_granted('COMPETITION_TOOLKIT_MANAGE', round.competition.id.toString) %}
+                                            {% set stopwatch_ran = round.stopwatchStatusAt(now) in ['running', 'stopped'] %}
+                                            <div class="form-check mt-1" data-reveal-mode-stopwatch>
+                                                <input class="form-check-input" type="radio" name="reveal_mode" value="stopwatch" id="reveal-stopwatch-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'stopwatch' ? 'checked' }} {{ stopwatch_ran ? 'disabled' }}>
+                                                <label class="form-check-label" for="reveal-stopwatch-{{ puzzle.roundPuzzleId }}">{{ (stopwatch_ran ? 'competition_toolkit.reveal_stopwatch.form.option_started' : 'competition_toolkit.reveal_stopwatch.form.option')|trans }}</label>
+                                                <div class="form-text mt-0">{{ 'competition_toolkit.reveal_stopwatch.form.option_help'|trans }}</div>
+                                            </div>
+                                        {% endif %}
                                     </fieldset>
 
                                     <button type="submit" class="btn btn-sm btn-primary">{{ 'competition.reveal.form.save'|trans }}</button>

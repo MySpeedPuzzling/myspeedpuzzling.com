@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -88,6 +89,7 @@ final class StartRoundStopwatchHandlerTest extends KernelTestCase
             $this->competitionRoundRepository,
             self::getContainer()->get(OnlineRoundRepository::class),
             new MockClock($now),
+            self::getContainer()->get(RoundStopwatchReveal::class),
         );
     }
 }

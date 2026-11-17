@@ -25,6 +25,8 @@ final class RoundStopwatchRefused extends ConflictHttpException
             RoundStopwatchRefusal::StartScheduled => 'A start is scheduled - cancel it before starting the stopwatch now. Nothing was changed.',
             RoundStopwatchRefusal::ResultsConfirmed => 'The round has official results - clear them at the results desk before resetting its stopwatch. Nothing was changed.',
             RoundStopwatchRefusal::EndedUseReset => 'This online round has ended - reset it to run it again. Nothing was changed.',
+            RoundStopwatchRefusal::RevealChangedMeanwhile => 'The puzzles this start would reveal changed meanwhile - check the list again. Nothing was changed.',
+            RoundStopwatchRefusal::RevealNotAllowed => 'No puzzle of this round waits for the stopwatch start to be revealed. Nothing was changed.',
         });
     }
 }

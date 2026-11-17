@@ -16,6 +16,12 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
+use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
@@ -93,6 +99,47 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             self::assertNotSame(404, $browser->getResponse()->getStatusCode(), $who);
             self::assertLessThan(500, $browser->getResponse()->getStatusCode(), $who);
         }
+    }
+
+    /**
+     * "When the stopwatch starts" with a countdown started with "Reveal the puzzles" ticked (toolkit/R-review-and-plan.md
+     * §2.1.2): one second before the countdown ends the puzzle's page does not exist for anybody but its organisers, at
+     * the start it is public
+     */
+    public function testAStopwatchRevealOpensThePuzzleOnlyWhenTheCountdownEnds(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        $puzzleId = $this->secretPuzzle();
+        $container = self::getContainer();
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $roundPuzzle = $entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy(['puzzle' => $puzzleId]);
+        self::assertNotNull($roundPuzzle);
+        $bus = $container->get(MessageBusInterface::class);
+        $bus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch));
+        $entityManager->clear();
+
+        // The countdown ends one second after the frozen now - the test runs at scheduled - 1 s
+        $startsAt = TestClock::now()->modify('+1 second');
+        $round = $entityManager->find(CompetitionRound::class, CompetitionApiFixture::ROUND_FUTURE);
+        self::assertNotNull($round);
+        $hash = SecretRevealPreview::stopwatchStartHash($container->get(SecretRevealPreview::class)->byStopwatchStart($round), $round);
+        $bus->dispatch(new ScheduleRoundStart(CompetitionApiFixture::ROUND_FUTURE, $startsAt, PlayerFixture::PLAYER_ADMIN, revealPuzzles: true, revealListHash: $hash));
+        $entityManager->clear();
+
+        $browser->request('GET', '/en/puzzle/' . $puzzleId);
+        self::assertNotSame(200, $browser->getResponse()->getStatusCode(), 'a guest at scheduled - 1 s');
+        self::assertStringNotContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $browser->request('GET', '/en/puzzle/' . $puzzleId);
+        self::assertResponseStatusCodeSame(404, 'another player at scheduled - 1 s');
+
+        // The test container's clock is a MockClock (config/services_test.php) - it moves on at once
+        $container->get(ClockInterface::class)->sleep(1);
+
+        $browser->request('GET', '/en/puzzle/' . $puzzleId);
+        self::assertResponseIsSuccessful('at the start');
+        self::assertStringContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
     }
 
     public function testAdminPagesOfASecretPuzzleAreForAdminsOnly(): void

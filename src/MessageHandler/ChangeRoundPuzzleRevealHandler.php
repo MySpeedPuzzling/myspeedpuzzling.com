@@ -14,12 +14,14 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
+use SpeedPuzzling\Web\Exceptions\RoundStopwatchAlreadyStarted;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -43,6 +45,7 @@ readonly final class ChangeRoundPuzzleRevealHandler
      * @throws PuzzleHiddenByHand
      * @throws PuzzleNameAlreadyPublic
      * @throws NamePublicationNotConfirmed
+     * @throws RoundStopwatchAlreadyStarted
      */
     public function __invoke(ChangeRoundPuzzleReveal $message): void
     {
@@ -73,9 +76,25 @@ readonly final class ChangeRoundPuzzleRevealHandler
             }
         }
 
-        // A reveal that is over already would reveal the puzzle the moment it is saved - that is "Reveal now"
+        // "When the stopwatch starts" waits for a start with the tick - a stopwatch already running or stopped never
+        // starts again by itself: the puzzle would wait for nothing ("Reveal now" then). A countdown still ahead is fine:
+        // it was started without the tick, so the puzzle waits for the next start, like a manual reveal.
+        if ($message->revealMode === RoundPuzzleReveal::Stopwatch) {
+            $stopwatchStatus = $roundPuzzle->round->stopwatchStatusAt($now);
+
+            if ($stopwatchStatus === RoundStopwatchStatus::RUNNING || $stopwatchStatus === RoundStopwatchStatus::STOPPED) {
+                throw new RoundStopwatchAlreadyStarted();
+            }
+        }
+
+        // A reveal that is over already would reveal the puzzle the moment it is saved - that is "Reveal now". Manual
+        // and stopwatch reveals have no moment yet.
         $newRevealAt = $message->revealMode->revealAt($roundPuzzle->round->startsAt, $roundPuzzle->round->revealDelayMinutes, $message->scheduledAt);
-        if ($message->revealMode !== RoundPuzzleReveal::Manual && ($newRevealAt === null || $newRevealAt <= $now)) {
+        if (
+            $message->revealMode !== RoundPuzzleReveal::Manual
+            && $message->revealMode !== RoundPuzzleReveal::Stopwatch
+            && ($newRevealAt === null || $newRevealAt <= $now)
+        ) {
             throw new RevealMomentAlreadyPassed();
         }
 

@@ -10,7 +10,9 @@ use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineEntryRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -24,6 +26,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * clears them first: they belong to the run that was), and every online entry forgets what belonged to that run - the
  * pieces reported at its time-up and the review's decision (OnlineEntry::startFreshRun()). The events stay stored.
  * The message takes the event's participants lock, so a result recorded at the same moment never slips past the check.
+ *
+ * A countdown reset before its moment never ran: a reveal it was started with is taken back. A reset after a real start
+ * hides nothing again - the puzzles are out (RoundStopwatchReveal).
  */
 #[AsMessageHandler]
 readonly final class ResetRoundStopwatchHandler
@@ -33,6 +38,8 @@ readonly final class ResetRoundStopwatchHandler
         private OnlineRoundRepository $onlineRoundRepository,
         private OnlineEntryRepository $onlineEntryRepository,
         private OfficialResultsGuard $officialResultsGuard,
+        private RoundStopwatchReveal $roundStopwatchReveal,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -42,6 +49,8 @@ readonly final class ResetRoundStopwatchHandler
      */
     public function __invoke(ResetRoundStopwatch $message): void
     {
+        // First - it clears the entity manager when it locks
+        $withReveal = $this->roundStopwatchReveal->lockIfNeeded($message->roundId, false);
         $round = $this->competitionRoundRepository->get($message->roundId);
         $roundId = $round->id->toString();
 
@@ -61,5 +70,9 @@ readonly final class ResetRoundStopwatchHandler
         }
 
         $round->resetStopwatch();
+
+        if ($withReveal) {
+            $this->roundStopwatchReveal->resync($this->roundStopwatchReveal->withdrawFuture($round, $this->clock->now()));
+        }
     }
 }

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\RoundClock;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,6 +34,7 @@ final class ManageRoundStopwatchController extends AbstractController
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly ClockInterface $clock,
+        private readonly SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
@@ -57,6 +59,9 @@ final class ManageRoundStopwatchController extends AbstractController
         $roundOverview = $this->getRoundResultsOverview->forRound($roundId);
         $now = $this->clock->now();
         $timezone = $round->displayTimezone();
+        // "Reveal the puzzles" next to the start: the round's puzzles waiting for the stopwatch start (organisers see
+        // their names), and the list + stopwatch the tick confirms - nothing of it without such a puzzle
+        $stopwatchReveal = $this->secretRevealPreview->byStopwatchStart($round, $now);
 
         return $this->render('manage_round_stopwatch.html.twig', [
             'round' => $round,
@@ -72,6 +77,8 @@ final class ManageRoundStopwatchController extends AbstractController
             // round's zone, the zone the organiser reads every start of the round in
             'start_at_value' => RoundTimezone::toLocal(self::startAtSuggestion($round->startsAt, $now), $timezone)->format('Y-m-d\TH:i:s'),
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
+            'stopwatch_reveal' => $stopwatchReveal,
+            'stopwatch_reveal_hash' => $stopwatchReveal !== [] ? SecretRevealPreview::stopwatchStartHash($stopwatchReveal, $round) : null,
         ]);
     }
 

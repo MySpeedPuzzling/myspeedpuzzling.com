@@ -1,0 +1,32 @@
+{#
+    "Reveal the puzzles" on the round stopwatch's control page (docs/features/competitions-management/toolkit/
+    A-round-formats.md §4.3) - only for a round with puzzles waiting for the stopwatch start (RoundPuzzleReveal::Stopwatch).
+    Variables: reveal (SecretRevealPreview::byStopwatchStart() - organisers see the names), start_phases, phase, round.
+    The box is UNTICKED on every load (round_stopwatch_reveal_controller.js unticks a restored form too): a test run
+    reveals nothing, a forgotten tick leaves the puzzles hidden ("Reveal now" fixes it).
+#}
+{% set names = reveal|map(item => item.name)|join(', ') %}
+{% set waits_for_countdown = reveal|filter(item => item.previousRevealsAt is not null) is not empty %}
+<div class="border rounded p-3 mb-3" data-stopwatch-reveal data-stopwatch-when="{{ start_phases|join(' ') }}" {{ phase not in start_phases ? 'hidden' }}>
+    <div class="form-check mb-1">
+        <input class="form-check-input" type="checkbox" id="round-stopwatch-reveal" data-round-stopwatch-reveal-target="checkbox" data-action="round-stopwatch-reveal#toggle">
+        <label class="form-check-label fw-semibold" for="round-stopwatch-reveal">{{ 'competition_toolkit.reveal_stopwatch.checkbox'|trans({'%count%': reveal|length}) }}</label>
+    </div>
+    <ul class="small mb-1 ps-4">
+        {% for item in reveal %}
+            <li data-stopwatch-reveal-item>{{ item.name }} – <span class="text-muted">{{ ('competition_toolkit.reveal_stopwatch.scope.' ~ item.scope)|trans }}</span></li>
+        {% endfor %}
+    </ul>
+    <div class="form-text mt-0">{{ 'competition_toolkit.reveal_stopwatch.help'|trans }}</div>
+</div>
+
+{# A countdown: whether it reveals - it does only when it was started with the box ticked #}
+<p class="small mb-3" data-stopwatch-reveal-countdown data-stopwatch-when="scheduled" {{ phase != 'scheduled' ? 'hidden' }}>
+    <i class="bi bi-eye{{ waits_for_countdown ? '' : '-slash' }} me-1"></i>{{ (waits_for_countdown ? 'competition_toolkit.reveal_stopwatch.countdown_reveals' : 'competition_toolkit.reveal_stopwatch.countdown_reveals_nothing')|trans({'%puzzles%': names}) }}
+</p>
+
+{# Started without the tick: the puzzles wait - "Reveal now" on the round's puzzles page #}
+<div class="alert alert-warning py-2 mb-3" data-stopwatch-reveal-still-hidden data-stopwatch-when="running times_up" {{ phase != 'running' ? 'hidden' }}>
+    {{ 'competition_toolkit.reveal_stopwatch.still_hidden'|trans({'%puzzles%': names}) }}
+    <a href="{{ path('manage_round_puzzles', {roundId: round.id}) }}">{{ 'competition_toolkit.reveal_stopwatch.still_hidden_link'|trans }}</a>
+</div>

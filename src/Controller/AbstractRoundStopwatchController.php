@@ -8,9 +8,12 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
+use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Query\GetRoundStopwatchState;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\RoundStopwatchLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,6 +39,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - The scheduled start (schedule, cancel) needs ONLINE_ROUNDS_MANAGE as well until the test cups are done (admins, and
  *   organisers while ONLINE_ROUNDS_FOR_ORGANISERS is on - docs/features/feature_flags.md); start, stop and reset are
  *   for every organiser.
+ * - A start (now or scheduled) may carry "Reveal the puzzles": the fields `reveal=1` + `reveal_hash` (the
+ *   SecretRevealPreview::stopwatchStartHash() the page showed) - revealedFields(). Unticked or missing = nothing is
+ *   revealed. A start that revealed tells the round's results pages to fetch it again (the reveal push) - the public
+ *   stopwatch topic never carries anything of the puzzles.
  */
 abstract class AbstractRoundStopwatchController extends AbstractController
 {
@@ -49,6 +56,7 @@ abstract class AbstractRoundStopwatchController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private ClockInterface $clock,
+        readonly private OfficialResultsLiveUpdates $officialResultsLiveUpdates,
     ) {
     }
 
@@ -90,7 +98,8 @@ abstract class AbstractRoundStopwatchController extends AbstractController
         }
 
         try {
-            $this->messageBus->dispatch($message($round));
+            $dispatched = $message($round);
+            $this->messageBus->dispatch($dispatched);
         } catch (RoundStopwatchRefused $refused) {
             if ($wantsJson) {
                 return self::privateJson(['error' => $refused->reason->value], Response::HTTP_CONFLICT);
@@ -104,11 +113,31 @@ abstract class AbstractRoundStopwatchController extends AbstractController
         // After the commit - a rolled back write never reaches a page
         $state = $this->liveUpdates->stopwatchChanged($roundId);
 
+        if (($dispatched instanceof StartRoundStopwatch || $dispatched instanceof ScheduleRoundStart) && $dispatched->revealPuzzles) {
+            $this->officialResultsLiveUpdates->puzzlesRevealed($roundId);
+        }
+
         if ($wantsJson) {
             return self::privateJson(['stopwatch' => $state ?? $this->getRoundStopwatchState->forRound($roundId)]);
         }
 
         return $this->redirectToRoute($successRoute, ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * "Reveal the puzzles" of a start form: ticked (`reveal=1`) and the list it confirmed (`reveal_hash`).
+     *
+     * @return array{revealPuzzles: bool, revealListHash: null|string}
+     */
+    protected static function revealedFields(Request $request): array
+    {
+        $ticked = $request->request->getString('reveal') === '1';
+        $hash = $request->request->getString('reveal_hash');
+
+        return [
+            'revealPuzzles' => $ticked,
+            'revealListHash' => $ticked && preg_match('/^[0-9a-f]{64}\z/', $hash) === 1 ? $hash : null,
+        ];
     }
 
     protected function now(): DateTimeImmutable

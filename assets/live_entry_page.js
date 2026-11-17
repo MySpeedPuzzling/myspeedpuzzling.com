@@ -14,9 +14,10 @@ export const COMPETITION_PLACEHOLDER = '11111111-1111-1111-1111-111111111111';
 
 /**
  * The state endpoint's URL of a round: the page's template (round id placeholder) filled in, `viewer=1` (who reads it
- * - R §1.8: only the live entry asks for it) and `entries=0` (the clock and the token only).
+ * - R §1.8: only the live entry asks for it), `entries=0` (the clock and the token only) and `entriesKnown` (judge-speed
+ * J2: the hash of the entries the page holds, or 'none' - EntriesValidator).
  */
-export function stateUrl(template, roundId, { viewer = true, entries = true } = {}) {
+export function stateUrl(template, roundId, { viewer = true, entries = true, known = null } = {}) {
     const url = template.replace(UUID_PLACEHOLDER, roundId);
     const params = [];
 
@@ -26,9 +27,79 @@ export function stateUrl(template, roundId, { viewer = true, entries = true } = 
 
     if (!entries) {
         params.push('entries=0');
+    } else if (known !== null) {
+        params.push(`entriesKnown=${encodeURIComponent(known)}`);
     }
 
     return params.length > 0 ? `${url}${url.includes('?') ? '&' : '?'}${params.join('&')}` : url;
+}
+
+const ENTRIES_HASH = /^[0-9a-f]{32}$/;
+
+/**
+ * The round state's conditional entries on the page's side (judge-speed J2, decisions D-5..D-7): the page sends the hash
+ * of the entries it holds (`entriesKnown`), the server leaves `entries` out when they are still those.
+ *
+ * Invariant: `hash` is non-null only while the page's server entries are exactly the list of one full answer. Every
+ * other write of them (a live update, an own save's answer, a snapshot, another account) calls changed(), which drops
+ * the hash and moves the epoch - so an "unchanged" answer to a request sent before such a write can never bring the
+ * hash back (A-B-A: the server back at H while the page merged an update whose reversal it then missed).
+ */
+export class EntriesValidator {
+    constructor() {
+        this.hash = null;
+        this.epoch = 0;
+    }
+
+    /**
+     * What a state request carries: the hash to send ('none' when the page holds no full answer) and the epoch it was
+     * sent in - handed back to answered().
+     *
+     * @returns {{known: string, epoch: number}}
+     */
+    request() {
+        return { known: this.hash ?? 'none', epoch: this.epoch };
+    }
+
+    /**
+     * The page's server entries were written by anything but a full answer.
+     */
+    changed() {
+        this.hash = null;
+        this.epoch += 1;
+    }
+
+    /**
+     * A state answered the request `sent` (request()'s value, null = sent without a hash). The page applies the answer
+     * as this says:
+     * - 'full': the answer's entries replace the page's (its hash kept when it has one - an old server has none);
+     * - 'unchanged': the page's entries are the server's - keep them, nothing to rebuild;
+     * - 'stale': no entries, and the page cannot know its own are the server's (it changed them since the request, or
+     *   the answer does not match what was sent) - keep them, and ask again at once (that request sends 'none' = full).
+     * - 'none': no entries asked for (`entries=0`).
+     *
+     * @returns {'full'|'unchanged'|'stale'|'none'}
+     */
+    answered(sent, state) {
+        if (Array.isArray(state?.entries)) {
+            this.epoch += 1;
+            this.hash = typeof state.entriesHash === 'string' && ENTRIES_HASH.test(state.entriesHash) ? state.entriesHash : null;
+
+            return 'full';
+        }
+
+        if (state?.entriesUnchanged !== true) {
+            return 'none';
+        }
+
+        if (sent !== null && sent.epoch === this.epoch && this.hash !== null && sent.known === this.hash && state.entriesHash === this.hash) {
+            return 'unchanged';
+        }
+
+        this.changed();
+
+        return 'stale';
+    }
 }
 
 /**

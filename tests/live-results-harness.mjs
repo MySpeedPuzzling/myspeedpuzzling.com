@@ -31,6 +31,7 @@ import {
 import { parseNameTagUrl } from '../assets/official_results_scan.js';
 import {
     COMPETITION_PLACEHOLDER,
+    EntriesValidator,
     fillLink,
     landingOf,
     linkNavigation,
@@ -54,6 +55,71 @@ const ROUND_B = '018d0020-0000-0000-0000-000000000102';
 const ANNA = 'participant_round:018d0020-0000-0000-0000-000000000301';
 const BEN = 'participant_round:018d0020-0000-0000-0000-000000000302';
 const CARA = 'participant_round:018d0020-0000-0000-0000-000000000303';
+
+/**
+ * The live entry controller's use of EntriesValidator (judge-speed J2) in miniature: fetchState() sends request(),
+ * applyState() replaces the entries on 'full' (a snapshot: changed()), rebuilds on anything but 'unchanged', asks again
+ * on 'stale'; mergeEntries() calls changed().
+ */
+function validatorPage() {
+    const page = {
+        validator: new EntriesValidator(),
+        entries: new Map(),
+        rebuilds: 0,
+        refetches: 0,
+        lastOutcome: null,
+        apply(state, outcome) {
+            if (Array.isArray(state.entries)) {
+                if (outcome !== 'full') {
+                    page.validator.changed();
+                }
+
+                page.entries = new Map(state.entries.map((entry) => [entry.ref, entry]));
+            }
+
+            if (outcome !== 'unchanged') {
+                page.rebuilds += 1;
+            }
+        },
+        answer(sent, state) {
+            const outcome = page.validator.answered(sent, state);
+            page.lastOutcome = outcome;
+            page.apply(state, outcome);
+
+            if (outcome === 'stale') {
+                page.refetches += 1;
+            }
+
+            return outcome;
+        },
+        poll(state) {
+            const sent = page.validator.request();
+            page.answer(sent, state);
+
+            return sent;
+        },
+        merge(refs) {
+            for (const ref of refs) {
+                page.validator.changed();
+                page.entries.set(ref, { ref });
+            }
+            page.rebuilds += 1;
+        },
+        snapshot(refs) {
+            page.apply({ entries: refs.map((ref) => ({ ref })) }, null);
+        },
+    };
+
+    return page;
+}
+
+function full(hash, refs) {
+    return { entries: refs.map((ref) => ({ ref })), entriesHash: hash.padEnd(32, '0') };
+}
+
+function unchanged(hash) {
+    return { entriesUnchanged: true, entriesHash: hash.padEnd(32, '0') };
+}
 
 /**
  * A fake server: answers every change with `decide(change)` (default: applied) unless `answer` is set for the
@@ -913,6 +979,104 @@ const scenarios = {
         assert.equal(stateUrl(template, ROUND_A, { entries: false }), `/en/official-results/rounds/${ROUND_A}?viewer=1&entries=0`);
         assert.equal(stateUrl(template, ROUND_A, { viewer: false }), `/en/official-results/rounds/${ROUND_A}`, 'the existing consumers\' URL');
         assert.equal(stateUrl(`${template}?x=1`, ROUND_A, { viewer: true }), `/en/official-results/rounds/${ROUND_A}?x=1&viewer=1`);
+    },
+
+    // ---- Conditional entries on the round state (judge-speed J2, EntriesValidator) ----
+
+    async 'the page sends the hash of the entries it holds, none at first, never with entries=0'() {
+        const template = `/en/official-results/rounds/${UUID_PLACEHOLDER}`;
+        const hash = 'a'.repeat(32);
+
+        assert.equal(stateUrl(template, ROUND_A, { known: 'none' }), `/en/official-results/rounds/${ROUND_A}?viewer=1&entriesKnown=none`);
+        assert.equal(stateUrl(template, ROUND_A, { known: hash }), `/en/official-results/rounds/${ROUND_A}?viewer=1&entriesKnown=${hash}`);
+        assert.equal(stateUrl(template, ROUND_A, { known: hash, entries: false }), `/en/official-results/rounds/${ROUND_A}?viewer=1&entries=0`, 'entries=0 wins');
+        assert.equal(stateUrl(template, ROUND_A), `/en/official-results/rounds/${ROUND_A}?viewer=1`, 'prefetch: no validator (D-7)');
+
+        assert.deepEqual(new EntriesValidator().request(), { known: 'none', epoch: 0 }, 'the first state of a page is full');
+    },
+
+    async 'a full answer sets the hash, the same hash answered unchanged keeps the entries'() {
+        const page = validatorPage();
+        page.poll(full('f1', [ANNA, BEN]));
+        assert.equal(page.validator.hash, 'f1'.padEnd(32, '0'));
+        assert.equal(page.rebuilds, 1);
+
+        const sent = page.poll(unchanged('f1'));
+        assert.equal(sent.known, 'f1'.padEnd(32, '0'), 'the next poll sends it');
+        assert.equal(page.lastOutcome, 'unchanged');
+        assert.deepEqual([...page.entries.keys()], [ANNA, BEN], 'the entries are kept');
+        assert.equal(page.rebuilds, 1, 'no index / entries view rebuilt');
+        assert.equal(page.validator.hash, 'f1'.padEnd(32, '0'), 'the hash stays');
+        assert.equal(page.refetches, 0);
+    },
+
+    async 'a live update or an own save answer drops the hash - the next poll is full'() {
+        const page = validatorPage();
+        page.poll(full('f1', [ANNA, BEN]));
+        page.merge([CARA]);
+
+        assert.equal(page.validator.hash, null);
+        assert.equal(page.validator.request().known, 'none');
+        page.poll(full('f2', [ANNA, BEN, CARA]));
+        assert.equal(page.validator.hash, 'f2'.padEnd(32, '0'));
+    },
+
+    async 'an unchanged answer to a request sent before a merge never brings the hash back (A-B-A)'() {
+        const page = validatorPage();
+        page.poll(full('f1', [ANNA, BEN]));
+
+        // The poll goes out holding h1; meanwhile a live update (B) is merged; the server is back at h1 (the reversal
+        // of B never reached this page) and answers "unchanged"
+        const sent = page.validator.request();
+        page.merge([CARA]);
+        const outcome = page.answer(sent, unchanged('f1'));
+
+        assert.equal(outcome, 'stale');
+        assert.equal(page.validator.hash, null, 'not restored');
+        assert.ok(page.entries.has(CARA), 'the page keeps what it has until the full answer');
+        assert.equal(page.refetches, 1, 'asked again at once');
+        assert.equal(page.validator.request().known, 'none', '... for every entry');
+
+        page.poll(full('f1', [ANNA, BEN]));
+        assert.deepEqual([...page.entries.keys()], [ANNA, BEN], 'the server\'s word wins');
+        assert.equal(page.validator.hash, 'f1'.padEnd(32, '0'));
+    },
+
+    async 'an unchanged answer that does not match what was sent is never trusted'() {
+        const page = validatorPage();
+        page.poll(full('f1', [ANNA]));
+
+        assert.equal(page.answer(page.validator.request(), unchanged('f9')), 'stale', 'another hash than sent');
+        page.poll(full('f1', [ANNA]));
+        assert.equal(page.answer({ known: 'none', epoch: page.validator.epoch }, unchanged('f1')), 'stale', 'sent none');
+        page.poll(full('f1', [ANNA]));
+        assert.equal(page.answer(null, unchanged('f1')), 'stale', 'not the page\'s own request');
+        assert.equal(page.refetches, 3);
+    },
+
+    async 'a snapshot boot or another account holds no hash; an old server answers full without one'() {
+        const page = validatorPage();
+        page.snapshot([ANNA, BEN]);
+        assert.equal(page.validator.request().known, 'none', 'a snapshot\'s entries are no full answer (D-7)');
+
+        page.poll(full('f1', [ANNA, BEN]));
+        page.validator.changed(); // another_account
+        assert.equal(page.validator.request().known, 'none');
+
+        // An old server mid-deploy ignores the parameter: entries, no hash - today's path, nothing to send next time
+        page.poll({ entries: [{ ref: ANNA }] });
+        assert.equal(page.lastOutcome, 'full');
+        assert.equal(page.validator.hash, null);
+        assert.equal(page.validator.request().known, 'none');
+
+        // A malformed hash is not kept either
+        page.poll({ entries: [{ ref: ANNA }], entriesHash: 'nope' });
+        assert.equal(page.validator.hash, null);
+
+        // An answer with neither (entries=0): entries kept, the hash untouched
+        page.poll(full('f1', [ANNA]));
+        assert.equal(page.answer(page.validator.request(), { serverNowMs: 1 }), 'none');
+        assert.equal(page.validator.hash, 'f1'.padEnd(32, '0'));
     },
 
     async 'nothing of a round is shown before its state answers'() {

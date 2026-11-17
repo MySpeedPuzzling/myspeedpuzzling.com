@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Services\RefereeEntriesView;
 use SpeedPuzzling\Web\Value\RoundClock;
+use SpeedPuzzling\Web\Value\RoundEntriesHash;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,6 +35,10 @@ use Symfony\Component\Routing\Attribute\Route;
  * - `?viewer=1` adds `viewer: {playerId, organiser}` - who reads it, so the live entry page renders without any user
  *   data of its own (it fills itself from this answer);
  * - `?entries=0` leaves `entries` out (and its query) - the clock sync and the token renewal only.
+ * - `?entriesKnown=<none|32 hex>` (judge-speed J2, the live entry's own polls) adds `entriesHash` (RoundEntriesHash over
+ *   the entries as sent); when it equals the given hash, `entries` is left out and `entriesUnchanged: true` says so.
+ *   Everything else of the answer stays (clock sample, token, viewer, round, proposals) - no HTTP 304 (D-5). Any other
+ *   value = the parameter absent; `entries=0` wins over it. The entries are read either way (same statements).
  * A `pick` round (competition toolkit A2) carries `puzzleFormat` in `round` and `rounds[]` (GetRoundResultsOverview,
  * RoundPuzzleFormats) - absent on every other round.
  * A competition with time proposals on (competition toolkit P1, R §1.8) adds `proposals`: the round's pending proposals
@@ -72,6 +77,7 @@ final class RoundResultsStateController extends AbstractController
 
         $withViewer = $request->query->getString('viewer') === '1';
         $withEntries = $request->query->getString('entries') !== '0';
+        $entriesKnown = $withEntries ? RoundEntriesHash::known($request->query->getString('entriesKnown')) : null;
 
         // A referee reads the round too (the live entry) - without private players' #codes (RefereeEntriesView)
         $organiser = $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString());
@@ -101,7 +107,21 @@ final class RoundResultsStateController extends AbstractController
         ];
 
         if ($withEntries) {
-            $state['entries'] = $this->refereeEntriesView->entries($this->getRoundResultEntries->forRound($round->id->toString()), $organiser);
+            $entries = $this->refereeEntriesView->entries($this->getRoundResultEntries->forRound($round->id->toString()), $organiser);
+
+            if ($entriesKnown === null) {
+                $state['entries'] = $entries;
+            } else {
+                $entriesHash = RoundEntriesHash::of($entries);
+
+                if ($entriesHash === $entriesKnown) {
+                    $state['entriesUnchanged'] = true;
+                } else {
+                    $state['entries'] = $entries;
+                }
+
+                $state['entriesHash'] = $entriesHash;
+            }
         }
 
         // Only while the competition takes them - every other competition's state keeps its shape

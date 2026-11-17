@@ -28,7 +28,7 @@ import {
 } from '../official_results_live.js';
 import { nativeReadsQr, parseCompetitionTagUrl, startQrScan } from '../official_results_scan.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
-import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
+import { EntriesValidator, fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, monotonicNow, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { devicePlayerOf, forgetDraftsExcept, samePlayer } from '../live_entry_device.js';
@@ -183,6 +183,8 @@ export default class extends Controller {
             refresh: () => (this.isConnected() ? this.refreshState() : Promise.resolve('closed')),
         });
         this.serverEntries = new Map();
+        // The hash of serverEntries while they are one full state's list (judge-speed J2) - the page's own polls send it
+        this.entriesValidator = new EntriesValidator();
         this.localEntries = new Map();
 
         this.view = 'find';
@@ -974,7 +976,12 @@ export default class extends Controller {
 
     // ---- State ----
 
-    applyState(state) {
+    /**
+     * @param {object} state a state answer, or a snapshot's state
+     * @param {null|'full'|'unchanged'|'stale'|'none'} outcome EntriesValidator.answered()'s word on a state answer;
+     *        null = not an answer to the page's own request (a snapshot) - its entries are no full answer
+     */
+    applyState(state, outcome = null) {
         this.competition = state.competition;
         this.round = state.round;
         this.rounds = Array.isArray(state.rounds) ? state.rounds : [];
@@ -982,6 +989,10 @@ export default class extends Controller {
 
         // An answer without entries (`?entries=0`) keeps the ones the page has
         if (Array.isArray(state.entries)) {
+            if (outcome !== 'full') {
+                this.entriesValidator.changed();
+            }
+
             this.serverEntries = new Map(state.entries.map((entry) => [entry.ref, entry]));
 
             for (const ref of this.serverEntries.keys()) {
@@ -999,7 +1010,11 @@ export default class extends Controller {
         }
 
         this.refreshSettings();
-        this.entriesChanged();
+
+        // The server's entries are those the page holds (judge-speed J2): no index or view to build again
+        if (outcome !== 'unchanged') {
+            this.entriesChanged();
+        }
     }
 
     refreshSettings() {
@@ -1078,6 +1093,8 @@ export default class extends Controller {
             }
 
             const before = this.serverEntries.get(entry.ref);
+            // No longer one full state's list - the next poll asks for every entry (judge-speed J2)
+            this.entriesValidator.changed();
             countsChanged = countsChanged || before === undefined || before.tableNumber !== entry.tableNumber;
             this.serverEntries.set(entry.ref, keepWithheldPlayers(before, entry));
             this.localEntries.delete(entry.ref);
@@ -1223,9 +1240,11 @@ export default class extends Controller {
         const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
         // The clock's samples are stamped on its own (monotonic) clock
         const sentAt = monotonicNow();
+        // The entries this page holds, by hash - left out of the answer when they are still the server's (judge-speed J2)
+        const sent = this.entriesValidator.request();
 
         try {
-            const answer = await officialResultsRequest(stateUrl(this.stateUrlValue, this.roundIdValue), { signal: abort.signal });
+            const answer = await officialResultsRequest(stateUrl(this.stateUrlValue, this.roundIdValue, { known: sent.known }), { signal: abort.signal });
             const answeredAt = monotonicNow();
             const answeredAtWall = Date.now();
 
@@ -1238,6 +1257,7 @@ export default class extends Controller {
                 // A same-player state lets a retry send again (the outbox learns it either way).
                 if (this.ready && typeof viewerId === 'string' && viewerId !== '' && this.outbox?.viewerIs(viewerId) === false) {
                     this.stateBlocked = 'another_account';
+                    this.entriesValidator.changed();
                     this.events.suspend();
                     this.scheduleRender();
 
@@ -1253,8 +1273,15 @@ export default class extends Controller {
                 this.connectionBack();
                 this.serverClock.observe({ sentAtMs: sentAt, receivedAtMs: answeredAt, serverNowMs: serverTimeOf(answer.data) });
                 this.stopwatchKnownAt = answeredAtWall;
-                this.applyState(answer.data);
+                const entries = this.entriesValidator.answered(sent, answer.data);
+                this.applyState(answer.data, entries);
                 this.scheduleRender();
+
+                // No entries, and this page's may not be the server's any more (changed since the request): asked for
+                // again at once - with no hash, so the answer is full
+                if (entries === 'stale') {
+                    setTimeout(() => this.isConnected() && this.refreshState(), 0);
+                }
 
                 if (!this.ready) {
                     // The page's first state: everything that needs the round or its reader starts now

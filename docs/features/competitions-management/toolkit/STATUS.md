@@ -46,6 +46,10 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | D6 | C | merged | b40f91d85, 11887a63a | editor page `edit_competition_display` (lazy Stimulus), geometry/editor_state/sample_data pure modules, upload picker, 409/live confirm flows; browser-walked |
 | D6F | C | merged | 306fcbfe1, 028e5debf, 86adaded1 | toolbar below header (--header-height), viewport-sized work surface, two-line layer labels, add → editor, placeFrame() avoids overlaps; stage 16:9 verified at 5 sizes |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |
+| A3 | A | merged (review running) | b035ed2b5..e4e333f72 | RoundEntryPuzzles + result_puzzles jsonb, field `puzzles` (group pass, group_refused), locks only on puzzle requests, guards, official_results_puzzles.js + parity; referees may send puzzles |
+| P1 | A | started | | |
+| C10 | B | started | | |
+| A5 | C (swap) | started | | |
 
 ## Hardening list (H) - collected
 - Duplicate competition: copy competitor-page settings (B1)? displays (D8). Rounds copied without puzzles stay `total`.

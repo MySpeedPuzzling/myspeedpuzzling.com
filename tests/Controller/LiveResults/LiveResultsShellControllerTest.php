@@ -93,6 +93,51 @@ final class LiveResultsShellControllerTest extends WebTestCase
         self::assertStringContainsString('/-/stale-document', $body);
     }
 
+    /**
+     * The service worker stores every file of this list before the copy itself (toolkit C6) - the very files the copy
+     * loads, never one more page's.
+     */
+    public function testTheShellListsTheFilesItNeeds(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', self::SHELL);
+        self::assertResponseIsSuccessful();
+
+        $list = $crawler->filter('script#msp-live-shell-assets');
+        self::assertCount(1, $list);
+        self::assertSame('application/json', $list->attr('type'));
+
+        /** @var list<string> $assets */
+        $assets = json_decode($list->text(), true, flags: JSON_THROW_ON_ERROR);
+        $body = (string) $browser->getResponse()->getContent();
+
+        $scripts = $crawler->filter('head script[src]')->each(static fn ($node): string => (string) $node->attr('src'));
+        $styles = $crawler->filter('head link[rel="stylesheet"]')->each(static fn ($node): string => (string) $node->attr('href'));
+        self::assertNotSame([], $scripts);
+        self::assertNotSame([], $styles);
+
+        foreach ([...$scripts, ...$styles] as $file) {
+            self::assertContains($file, $assets, 'every script and stylesheet the copy loads is listed');
+        }
+
+        self::assertContains('/fonts/rubik/rubik-latin.woff2', $assets);
+
+        foreach ($assets as $asset) {
+            self::assertMatchesRegularExpression('#^/(build|fonts)/#', $asset);
+            self::assertStringContainsString($asset, str_replace('\\/', '/', $body));
+        }
+    }
+
+    public function testTheLivePageItselfListsNoFiles(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('#msp-live-shell-assets'));
+    }
+
     public function testTheShellNeverLoadsTheNativeAppsTurbo(): void
     {
         $browser = self::createClient();

@@ -3,19 +3,35 @@
 
 @import "display";
 
+// A work surface under the site header: the toolbar sticks right below the header (`--header-height`, kept true by
+// header_height_controller.js; the native apps have no header, so 0 there) and the editor's body is sized to the
+// viewport left below the toolbar (`--de-toolbar-height`, measured by display_editor_controller.js). On a desktop the
+// three columns scroll on their own inside that height and the stage is never taller than it, so the whole editor is
+// in view once the breadcrumb is scrolled away; stacked (tablets) the panels are capped at that height.
 .display-editor {
     --de-panel-bg: #f8f9fb;
     --de-border: #dee2e6;
     --de-accent: #fe696a;
+    --de-top: var(--header-height, 97px);
+    --de-gap: 0.75rem;
+    --de-panels-top: calc(var(--de-top) + var(--de-toolbar-height, 3.5rem) + var(--de-gap));
+}
+
+.native-app .display-editor {
+    --de-top: 0px;
 }
 
 .display-editor__toolbar {
+    position: sticky;
+    top: var(--de-top);
+    // Under the site header (.sticky-top) and its menus, over the stage and panels
+    z-index: 1010;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--de-gap);
     border: 1px solid var(--de-border);
     border-radius: 0.5rem;
     background: var(--de-panel-bg);
@@ -39,18 +55,55 @@
 // Stacked below 1200 px (tablets): stage on top, the two panels side by side below it
 .display-editor__body {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
         "stage stage"
         "left right";
-    gap: 0.75rem;
+    align-items: start;
+    gap: var(--de-gap);
+}
+
+.display-editor__left,
+.display-editor__right {
+    max-height: calc(100vh - var(--de-panels-top) - var(--de-gap));
+    max-height: calc(100dvh - var(--de-panels-top) - var(--de-gap));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
 }
 
 @media (min-width: 1200px) {
     .display-editor__body {
-        grid-template-columns: 270px minmax(0, 1fr) 320px;
+        grid-template-columns: 250px minmax(0, 1fr) 300px;
+        grid-template-rows: minmax(0, 1fr);
         grid-template-areas: "left stage right";
-        align-items: start;
+        align-items: stretch;
+        height: calc(100vh - var(--de-panels-top) - var(--de-gap));
+        height: calc(100dvh - var(--de-panels-top) - var(--de-gap));
+        min-height: 22rem;
+    }
+
+    .display-editor__left,
+    .display-editor__right,
+    .display-editor__centre {
+        max-height: none;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+
+    // The whole 16:9 stage + its hint fit the body (wide but short windows)
+    .display-editor__stage-wrap {
+        max-width: calc((100vh - var(--de-panels-top) - var(--de-gap) - 3.5rem) * 16 / 9);
+        max-width: calc((100dvh - var(--de-panels-top) - var(--de-gap) - 3.5rem) * 16 / 9);
+        margin-inline: auto;
+    }
+}
+
+@media (min-width: 1600px) {
+    .display-editor__body {
+        grid-template-columns: 280px minmax(0, 1fr) 340px;
     }
 }
 
@@ -77,8 +130,6 @@
 .display-editor__right {
     grid-area: right;
     min-width: 0;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--de-border);
     border-radius: 0.5rem;
@@ -245,10 +296,7 @@
 }
 
 .display-editor__layer {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.35rem;
+    padding: 0.15rem 0.35rem;
     border-radius: 0.25rem;
 
     &.is-selected {
@@ -260,18 +308,52 @@
     }
 }
 
+.display-editor__layer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 .display-editor__layer-name {
+    display: flex;
     flex: 1 1 auto;
+    flex-direction: column;
     min-width: 0;
-    overflow: hidden;
-    padding: 0;
+    padding: 0.1rem 0;
     border: 0;
     background: none;
     color: inherit;
     font-size: 0.8125rem;
+    line-height: 1.3;
     text-align: left;
+}
+
+.display-editor__layer-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.display-editor__layer-text,
+.display-editor__layer-detail {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.display-editor__layer-detail {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.display-editor__layer-tools {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.2rem 0 0.15rem;
 }
 
 .display-editor__layer-action {

@@ -21,7 +21,7 @@ import '../styles/display_editor.scss';
 export default class extends Controller {
     static targets = [
         'stageWrap', 'stage', 'overlay', 'panel', 'layers', 'catalogue', 'notice', 'status', 'undo', 'redo', 'save',
-        'phase', 'data', 'published', 'revealed', 'snap',
+        'phase', 'data', 'published', 'revealed', 'snap', 'toolbar',
     ];
 
     static values = { config: Object };
@@ -72,6 +72,11 @@ export default class extends Controller {
         this.onResize = () => this.fit();
         this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(this.onResize) : null;
         this.resizeObserver?.observe(this.stageWrapTarget);
+
+        // The side panels stick below the sticky toolbar, which wraps to more rows on narrower screens
+        this.toolbarObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.publishToolbarHeight()) : null;
+        this.toolbarObserver?.observe(this.toolbarTarget);
+        this.publishToolbarHeight();
         window.addEventListener('resize', this.onResize);
 
         this.onKeyDown = (event) => this.keyDown(event);
@@ -123,6 +128,7 @@ export default class extends Controller {
 
     disconnect() {
         this.resizeObserver?.disconnect();
+        this.toolbarObserver?.disconnect();
         window.removeEventListener('resize', this.onResize);
         document.removeEventListener('keydown', this.onKeyDown);
         document.removeEventListener('keyup', this.onKeyUp);
@@ -136,6 +142,14 @@ export default class extends Controller {
     }
 
     // ---- drawing
+
+    publishToolbarHeight() {
+        const height = Math.round(this.toolbarTarget.getBoundingClientRect().height);
+
+        if (height > 0) {
+            this.element.style.setProperty('--de-toolbar-height', `${height}px`);
+        }
+    }
 
     fit() {
         const width = this.stageWrapTarget.clientWidth;

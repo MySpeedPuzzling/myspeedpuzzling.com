@@ -13,6 +13,7 @@ import {
 import { CATALOGUE, EditorState, UNDO_LIMIT } from '../assets/displays/editor_state.js';
 import { ELEMENT_TYPES, PROP_SPECS, STYLE_SPEC, normaliseDesign } from '../assets/displays/schema.js';
 import { PREVIEW_PHASES, previewState } from '../assets/displays/sample_data.js';
+import { layerLabel, translator } from '../assets/displays/editor_panel.js';
 import { stopwatchView } from '../assets/round_stopwatch_clock.js';
 
 const COMPETITION = '018d0004-0000-0000-0000-00000000c0de';
@@ -433,6 +434,21 @@ check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, di
     assert(state.qr.qr000001.rows.every((row) => /^[01]{25}$/.test(row)), 'qr rows valid');
     equal(state.puzzles, BASE.puzzles, 'display mode = what the display shows');
     equal(state.round, null, 'no sample round in display mode');
+});
+
+check('a layer is named by its own name or type, with what it shows', () => {
+    const t = translator({ 'type.text': 'Text', 'type.field': 'Event detail', 'type.image': 'Picture', 'type.timer': 'Timer', 'type.qr': 'QR code', 'opt.round_name': 'Round name', 'opt.competition_logo': 'Event logo', 'opt.event_page': 'Event page' });
+    const label = (type, name, props) => layerLabel({ type, name, props }, t);
+
+    equal(label('timer', '', {}), { title: 'Timer', detail: '' }, 'type only');
+    equal(label('text', '', { text: '  Welcome to\nthe   Results Cup!  ' }), { title: 'Text', detail: 'Welcome to the Results Cup!' }, 'text words, whitespace folded');
+    equal(label('text', '', { text: 'x'.repeat(80) }).detail, `${'x'.repeat(39)}…`, 'long text cut to 40');
+    equal(label('field', '', { field: 'round_name', prefix: 'Now:', suffix: '' }), { title: 'Event detail', detail: 'Now: Round name' }, 'field choice with prefix');
+    equal(label('image', '', { source: 'competition_logo' }), { title: 'Picture', detail: 'Event logo' }, 'logo source');
+    equal(label('image', '', { source: 'upload', path: 'x.png' }), { title: 'Picture', detail: '' }, 'an upload says nothing more');
+    equal(label('image', 'Sponsor', { source: 'upload' }), { title: 'Sponsor', detail: 'Picture' }, 'own name first, type as the hint');
+    equal(label('qr', 'Event page QR', { target: 'event_page' }), { title: 'Event page QR', detail: 'QR code · Event page' }, 'own name + type + target');
+    equal(label('text', 'Welcome', { text: 'Welcome' }), { title: 'Welcome', detail: 'Text' }, 'no repeat of the name');
 });
 
 check('no innerHTML in the editor modules', () => {

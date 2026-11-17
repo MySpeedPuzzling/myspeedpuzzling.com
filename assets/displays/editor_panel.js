@@ -35,6 +35,54 @@ export function translator(labels) {
     };
 }
 
+const LAYER_DETAIL_LENGTH = 40;
+
+function snippet(value) {
+    const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+
+    return text.length > LAYER_DETAIL_LENGTH ? `${text.slice(0, LAYER_DETAIL_LENGTH - 1).trimEnd()}…` : text;
+}
+
+/**
+ * What the layers list says about an element: its own name (else its type) and a hint telling two of a kind apart -
+ * the type when it has a name, else what it shows (a text's words, a field's choice, a picture's source ...).
+ */
+export function layerLabel(element, t) {
+    const type = t(`type.${element.type}`);
+    const props = element.props ?? {};
+    let shows = '';
+
+    switch (element.type) {
+        case 'text':
+            shows = snippet(props.text);
+            break;
+        case 'field':
+            shows = snippet([props.prefix, t(`opt.${optionKey(props.field ?? 'round_name')}`), props.suffix].filter((part) => typeof part === 'string' && part.trim() !== '').join(' '));
+            break;
+        case 'image':
+            shows = props.source && props.source !== 'upload' ? t(`opt.${optionKey(props.source)}`) : '';
+            break;
+        case 'rotator':
+            shows = Array.isArray(props.images) && props.images.length > 0 ? `× ${props.images.length}` : '';
+            break;
+        case 'qr':
+            shows = props.target ? t(`opt.${optionKey(props.target)}`) : '';
+            break;
+        default:
+            shows = '';
+    }
+
+    const name = typeof element.name === 'string' ? element.name.trim() : '';
+
+    if (name === '') {
+        return { title: type, detail: shows };
+    }
+
+    const detail = [type, shows].filter((part) => part !== '' && part !== name).join(' · ');
+
+    return { title: name, detail };
+}
+
 export class EditorPanel {
     constructor({ document, t, commit, getImages, upload, uploadAvailable, kind }) {
         this.document = document;
@@ -793,19 +841,28 @@ export class EditorPanel {
             const li = this.el('li', `display-editor__layer${selected ? ' is-selected' : ''}${element.hidden ? ' is-hidden' : ''}`, null, list);
             li.dataset.layer = element.id;
 
-            const name = this.el('button', 'display-editor__layer-name', null, li);
+            const row = this.el('div', 'display-editor__layer-row', null, li);
+            const { title, detail } = layerLabel(element, this.t);
+            const name = this.el('button', 'display-editor__layer-name', null, row);
             name.type = 'button';
+            name.title = detail !== '' ? `${title} - ${detail}` : title;
             name.setAttribute('aria-pressed', selected ? 'true' : 'false');
-            this.el('span', null, element.name !== '' ? element.name : this.t(`type.${element.type}`), name);
-            name.addEventListener('click', () => actions.select(element.id));
+            const titleLine = this.el('span', 'display-editor__layer-title', null, name);
+            this.el('span', 'display-editor__layer-text', title, titleLine);
 
             if (RESULTS_TYPES.includes(element.type) && element.props.source === 'live') {
-                const chip = this.el('span', 'badge bg-danger ms-1', this.t('live_badge'), name);
+                const chip = this.el('span', 'badge bg-danger flex-shrink-0', this.t('live_badge'), titleLine);
                 chip.title = this.t('live_warning');
             }
 
-            const button = (icon, label, action, disabled = false) => {
-                const node = this.el('button', 'btn btn-sm btn-link p-0 display-editor__layer-action', null, li);
+            if (detail !== '') {
+                this.el('span', 'display-editor__layer-detail', detail, name);
+            }
+
+            name.addEventListener('click', () => actions.select(element.id));
+
+            const button = (parent, icon, label, action, disabled = false) => {
+                const node = this.el('button', 'btn btn-sm btn-link p-0 display-editor__layer-action', null, parent);
                 node.type = 'button';
                 node.title = label;
                 node.setAttribute('aria-label', label);
@@ -815,12 +872,17 @@ export class EditorPanel {
                 node.addEventListener('click', () => actions[action](element.id));
             };
 
-            button(element.hidden ? 'bi-eye-slash' : 'bi-eye', this.t(element.hidden ? 'show' : 'hide'), 'toggleHidden');
-            button(element.locked ? 'bi-lock-fill' : 'bi-unlock', this.t(element.locked ? 'unlock' : 'lock'), 'toggleLocked');
-            button('bi-arrow-up', this.t('layer_up'), 'up', position === 0);
-            button('bi-arrow-down', this.t('layer_down'), 'down', position === layers.length - 1);
-            button('bi-copy', this.t('duplicate'), 'duplicate');
-            button('bi-trash', this.t('delete'), 'remove');
+            // Visibility and lock are states worth seeing on every row; the rest acts on the selected layer only
+            button(row, element.hidden ? 'bi-eye-slash' : 'bi-eye', this.t(element.hidden ? 'show' : 'hide'), 'toggleHidden');
+            button(row, element.locked ? 'bi-lock-fill' : 'bi-unlock', this.t(element.locked ? 'unlock' : 'lock'), 'toggleLocked');
+
+            if (selected) {
+                const tools = this.el('div', 'display-editor__layer-tools', null, li);
+                button(tools, 'bi-arrow-up', this.t('layer_up'), 'up', position === 0);
+                button(tools, 'bi-arrow-down', this.t('layer_down'), 'down', position === layers.length - 1);
+                button(tools, 'bi-copy', this.t('duplicate'), 'duplicate');
+                button(tools, 'bi-trash', this.t('delete'), 'remove');
+            }
         });
     }
 }

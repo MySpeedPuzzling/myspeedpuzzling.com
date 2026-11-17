@@ -532,6 +532,11 @@ the per-round `table_number` that every reader - judge "find by table", tags, de
 
 ## 7. Unboxed rounds
 
+> **As built (W2, 2026-11-17):** see [round-formats.md](round-formats.md) "Unboxed rounds" - as designed here + W2-a.
+> Deviations: the switch lives on the round puzzles page and the hub card only shows "· Unboxed" (no per-round checkbox
+> on the card); the marketplace picker applies the whole `sqlImageHidden()` rule (secret image-only included - it only
+> hides more); the results import's event card is organiser-only and stays as it was.
+
 ### 7.1 Model
 
 - Migration: `competition_round.unboxed` boolean not null default false.

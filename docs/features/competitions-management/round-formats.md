@@ -1,4 +1,4 @@
-# Round formats, puzzle labels and the reveal at the stopwatch start (competition toolkit A1-A5, C10)
+# Round formats, puzzle labels, the reveal at the stopwatch start and unboxed rounds (competition toolkit A1-A5, C10, World Series W2)
 
 How a round's puzzles are solved and when its secret puzzles come out - two opt-in settings of the competition toolkit
 ([toolkit/STATUS.md](toolkit/STATUS.md); design `toolkit/A-round-formats.md` §2, §4; binding
@@ -151,6 +151,51 @@ time runs out we count missing pieces to show how many pieces were placed".
   modes converts the counts. **Participants sheet**: unchanged - its result cell keeps pieces *placed* (`480p`,
   `480/500`); "-" already means did not start, so no missing syntax was added. Its recompute of a record
   (`consistentRecord()` → `recordFor()`) keeps every puzzle not finished open and gives the change to the last of them.
+
+## Unboxed rounds (World Series rules W2)
+
+Design: [world-series-rules.md](world-series-rules.md) §7 + review amendments W2-a/b (binding).
+
+- **Model:** `competition_round.unboxed` (boolean, default false - every round before W2 and every new round).
+  `CompetitionRound::changeUnboxed()`; `keepsPicturesUnboxed()` = `unboxed && results_first_published_at IS NULL`.
+  Meaning: no box picture of **any** of the round's puzzles - secret or not - on the event's pages, screens and phones
+  until the round's results are first published; the **name** follows the round's normal reveal (secret or not). The
+  moment is `results_first_published_at`: unpublishing never hides the pictures again; publishing is not scheduled, so
+  no `nextRevealAtMs` moment - the publish pushes instead.
+- **Where it is set:** the "Unboxed" switch on the round puzzles page (`manage_round_puzzles`, above "Order and labels",
+  behind `COMPETITION_TOOLKIT_MANAGE`), route `change_round_unboxed` (POST, CSRF `change_round_unboxed_<roundId>`, 303
+  back to the page; switching it off while it still keeps the pictures asks a `confirm()`). Message
+  `ChangeRoundUnboxed(competitionId, roundId, unboxed)` - `CompetitionParticipantsLock` like `EditCompetitionRound`,
+  and the handler takes `SecretPuzzleHides::lockRoundsForChange()` (round, then its secret puzzles) and re-syncs them.
+  The toolkit hub's "Round formats & reveals" card says "· Unboxed" on such a round. `DuplicateCompetition` copies it.
+  Not offered in the creation wizard (Q-J10: hub only).
+- **The one rule:** PHP `RoundPuzzlesVisibleNow` (selects `cr.unboxed AND cr.results_first_published_at IS NULL` in its
+  one statement; `imageHidden = true`, picture null, **outside** the `hideUntilRoundStarts` gate, never touching the name
+  or the slots' `revealsAt`), SQL `RoundPuzzleReveal::sqlImageHidden()` = `sqlHidden() OR (cr.unboxed AND
+  cr.results_first_published_at IS NULL)`. Every toolkit surface inherits the PHP side (displays + overlays, competitor
+  page + state, analytics studio, judge chips of `pick` rounds, event/edition page rounds, round results page, public
+  API, "Add to my profile" per puzzle). The SQL side is used by the surfaces on the SQL reveal rule (W2-a): the event
+  page's tagged puzzles (`GetPuzzleOverview::byTagId()`), `GetCompetitionPuzzles` (WJPC hub + the event page's solved
+  list) and the marketplace "What will you bring?" picker (`GetEventOfferChoices` - a puzzle of this event's rounds
+  shows no picture while a round keeps it back; this also applies the existing secret image-only rule there, which the
+  picker did not honour before - it only hides more). The results import's event card is an organiser page (the
+  organization's team only) and keeps the sheet's puzzle as entered.
+- **Site-wide hide** (`SecretPuzzleHides::hideOf()`): a `hides_everywhere` row of an unboxed round keeps
+  `hide_image_until` at `HIDDEN_UNTIL_REVEALED` until the first publish, then `max(reveal, first publish)`;
+  `hide_until` (the name) stays the reveal. `PublishRoundResultsHandler` re-syncs **only on the first publish of an
+  unboxed round** (locks via `lockRoundsForChange()`, reads the round again) - every other round runs the statements it
+  ran before. A public catalogue puzzle keeps its picture on its own page and in the catalogue (inherent, W2-b - the
+  organiser help says "use a new (secret) puzzle for a truly unboxed challenge"); while its picture is hidden
+  site-wide, the strict `SecretPuzzleAccess` checks (codes, EANs) hold too; times can be logged once the name is out.
+- **Pushes:** the first publish of an unboxed round and every change of the switch call
+  `OfficialResultsLiveUpdates::puzzlesRevealed()` (judge/desk refresh + the displays' `puzzles` signal); the competitor
+  page refetches on its normal results path; the analytics studio's cache key includes `imageHidden`.
+- **Untouched rounds:** same statements, same bytes (the hub card's addition renders nothing for `unboxed = false`;
+  the SQL surfaces carry one more always-false condition).
+- Tests: `tests/CompetitionToolkit/UnboxedRoundTest.php` (every surface before / unboxed / after the first publish /
+  after an unpublish, switched off again, the organiser switch + hub card, duplicate),
+  `tests/Services/SecretPuzzleHidesTest.php` (site-wide dates: never → publish moment, publish before the reveal, off
+  again).
 
 ## Known edges and open items
 

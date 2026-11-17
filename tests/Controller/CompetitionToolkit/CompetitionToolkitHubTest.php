@@ -33,7 +33,7 @@ final class CompetitionToolkitHubTest extends WebTestCase
         self::assertStringContainsString('private', $cacheControl);
         self::assertStringContainsString('no-store', $cacheControl);
         self::assertSame(
-            ['competitor-pages', 'displays', 'standings', 'round-formats', 'judges'],
+            ['participant-links', 'competitor-pages', 'displays', 'standings', 'round-formats', 'judges'],
             $page->filter('[data-toolkit-card]')->each(static fn ($card): string => (string) $card->attr('data-toolkit-card')),
         );
         // A line per round, in the schedule's order

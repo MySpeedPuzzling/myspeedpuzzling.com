@@ -28,6 +28,7 @@
         {% set toolkit_return = {return: path('competition_toolkit', {competitionId: competition.id}), return_title: 'competition_toolkit.title'|trans} %}
 
         <div class="row g-4">
+            {{ include('competition_toolkit/_card_participant_links.html.twig') }}
             {{ include('competition_toolkit/_card_competitor_pages.html.twig') }}
             {{ include('competition_toolkit/_card_displays.html.twig') }}
             {{ include('competition_toolkit/_card_standings.html.twig') }}

@@ -14278,6 +14278,7 @@ competition_display:
             round: "Runde 1"
             category: "Solo"
             puzzle: "Beispielpuzzle"
+            standing: "Einzel-Meisterschaft"
         group:
             clock: "Uhr"
             text: "Text"
@@ -14300,6 +14301,7 @@ competition_display:
             leaderboard: "Rangliste"
             finished_count: "Anzahl Fertige"
             ticker: "Zuletzt fertig"
+            standings: "Gesamtwertung"
         section:
             general: "Element"
             position: "Position und Größe (% des Bildschirms)"
@@ -14361,6 +14363,14 @@ competition_display:
             fg: "Code-Farbe"
             bg: "Hintergrund"
             quietZone: "Weißer Rand"
+            standingId: "Gesamtwertung"
+            standing_auto: "Automatisch - die Gesamtwertung der Runde auf dem Bildschirm"
+            standing_auto_help: "Zeigt die veröffentlichte Gesamtwertung, die die Runde auf dem Bildschirm zählt, sonst die erste veröffentlichte ihrer Kategorie."
+            standing_help: "Nur Runden mit veröffentlichten Ergebnissen zählen - bis alle veröffentlicht sind, ist die Wertung „Vorläufig“."
+            standing_unpublished: "nicht veröffentlicht - die Anzeige zeigt nichts"
+            title: "Namen der Gesamtwertung zeigen"
+            whenEmpty: "Ohne veröffentlichte Gesamtwertung"
+            emptyText: "Text ohne veröffentlichte Gesamtwertung"
             image:
                 source: "Bild"
             clock:
@@ -14438,6 +14448,10 @@ competition_display:
             members: "Mitglieder"
             result: "Ergebnis"
             table: "Tisch"
+            total: "Summe"
+            rounds: "Runden"
+            missing: "Fehlende Teile"
+            stage: "Phase"
             published: "Veröffentlicht"
             live: "Live, vor dem Veröffentlichen"
             event_page: "Veranstaltungsseite"

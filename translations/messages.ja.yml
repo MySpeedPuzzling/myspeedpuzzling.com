@@ -14268,6 +14268,7 @@ competition_display:
             round: "ラウンド1"
             category: "ソロ"
             puzzle: "サンプルパズル"
+            standing: "個人選手権"
         group:
             clock: "時計"
             text: "テキスト"
@@ -14290,6 +14291,7 @@ competition_display:
             leaderboard: "順位表"
             finished_count: "完成数"
             ticker: "最新の完成者"
+            standings: "総合順位"
         section:
             general: "要素"
             position: "位置とサイズ（画面の%）"
@@ -14351,6 +14353,14 @@ competition_display:
             fg: "コードの色"
             bg: "背景"
             quietZone: "白い余白"
+            standingId: "総合順位"
+            standing_auto: "自動 - 画面のラウンドの総合順位"
+            standing_auto_help: "画面のラウンドを数える公開済みの総合順位を表示します。ない場合は、そのカテゴリーで最初に公開された総合順位です。"
+            standing_help: "結果が公開されたラウンドだけが数えられます。すべて公開されるまで総合順位は「暫定」です。"
+            standing_unpublished: "未公開 - 表示には何も出ません"
+            title: "総合順位の名前を表示"
+            whenEmpty: "公開済みの総合順位がないとき"
+            emptyText: "公開済みの総合順位がないときのテキスト"
             image:
                 source: "画像"
             clock:
@@ -14428,6 +14438,10 @@ competition_display:
             members: "メンバー"
             result: "結果"
             table: "テーブル"
+            total: "合計"
+            rounds: "ラウンド"
+            missing: "足りないピース"
+            stage: "ステージ"
             published: "公開済み"
             live: "ライブ（公開前）"
             event_page: "イベントページ"

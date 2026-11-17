@@ -65,6 +65,54 @@ final class AdvancementSeedingTest extends TestCase
     }
 
     /**
+     * An advancement step's "top N over all source rounds" (competition toolkit A8): the seed order, the last place that
+     * fits shared = everybody with the same place, finished state and result relative to their winner.
+     */
+    public function testTopOverallTakesTheBestNBySeedAndHighlightsTheTieAtTheCut(): void
+    {
+        $rounds = [
+            'group-a' => self::round('group-a', [
+                'a1' => RoundEntryResult::finished(3600),
+                'a2' => RoundEntryResult::finished(3960),
+                'a3' => RoundEntryResult::unfinished(900),
+            ]),
+            'group-b' => self::round('group-b', [
+                'b1' => RoundEntryResult::finished(4000),
+                'b2' => RoundEntryResult::finished(4200),
+                'b3' => RoundEntryResult::finished(4800),
+                'bx' => RoundEntryResult::didNotStart(),
+            ]),
+        ];
+        $pieces = ['group-a' => 1000, 'group-b' => 1000];
+        $names = static fn (array $top): array => [
+            array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['selected']),
+            array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['tiedAtCut']),
+        ];
+
+        self::assertSame([['a1', 'b1', 'b2'], []], $names(AdvancementSeeding::topOverall($rounds, $pieces, 3)));
+        // Both winners share the first place (rank 1, each 1.0 × their winner): two places, no tie past the cut
+        self::assertSame([['a1', 'b1'], []], $names(AdvancementSeeding::topOverall($rounds, $pieces, 2)));
+        // One place, two winners: both proposed, both highlighted - the organiser decides
+        self::assertSame([['a1', 'b1'], ['a1', 'b1']], $names(AdvancementSeeding::topOverall($rounds, $pieces, 1)));
+        // Did not start is never proposed
+        self::assertSame([['a1', 'b1', 'b2', 'a2', 'b3', 'a3'], []], $names(AdvancementSeeding::topOverall($rounds, $pieces, 100)));
+        self::assertSame([[], []], $names(AdvancementSeeding::topOverall($rounds, $pieces, 0)));
+        self::assertSame([4, 5], array_map(static fn (SeededEntry $entry): int => $entry->seed, array_slice(AdvancementSeeding::topOverall($rounds, $pieces, 5)['selected'], 3)));
+    }
+
+    public function testTopOverallTreatsASharedPlaceInsideOneRoundAsATie(): void
+    {
+        $rounds = [
+            'group-a' => self::round('group-a', ['amy' => RoundEntryResult::finished(100), 'zed' => RoundEntryResult::finished(100), 'cid' => RoundEntryResult::finished(150)]),
+        ];
+
+        $top = AdvancementSeeding::topOverall($rounds, [], 1);
+
+        self::assertSame(['amy', 'zed'], array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['selected']));
+        self::assertSame(['amy', 'zed'], array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['tiedAtCut']));
+    }
+
+    /**
      * @param array<string, RoundEntryResult> $results name => result
      * @return list<RoundResultEntry>
      */

@@ -7,7 +7,7 @@
 import { createRequire } from 'node:module';
 import { createRenderer } from '../assets/displays/render.js';
 import {
-    DisplayRuntime, DOWN_POLL_MS, INVALID_POLL_MS, MAX_UPTIME_MS, SAFETY_POLL_MS, SIGNAL_DEBOUNCE_MS,
+    BUSY_DEFAULT_MS, BUSY_JITTER_MS, DisplayRuntime, DOWN_POLL_MS, INVALID_POLL_MS, MAX_UPTIME_MS, SAFETY_POLL_MS, SIGNAL_DEBOUNCE_MS,
 } from '../assets/displays/runtime.js';
 
 const require = createRequire(import.meta.url);
@@ -319,6 +319,53 @@ await check('the link stops working: invalid view, no stream, a check every 5 mi
     equal(env.fetches - before, 1, 'checked after 5 min');
     equal(env.invalid.at(-1), null, 'valid again');
     assert(env.events.updates >= 1, 'stream resumed');
+});
+
+await check('a 429 keeps the picture, waits Retry-After (+ jitter) - signals and polls meanwhile fetch nothing', async () => {
+    const env = world();
+    env.runtime.start();
+    env.events.live = true;
+    await flush();
+    const renders = env.renders.length;
+    env.answer = { status: 'busy', retryAfterMs: 20_000 };
+    equal(await env.runtime.refresh(), 'error', 'the stream module sees an error');
+    equal(env.renders.length, renders, 'picture kept');
+    equal(env.invalid, [], 'never the invalid view');
+    env.answer = null;
+    const before = env.fetches;
+
+    for (let i = 0; i < 5; i += 1) {
+        env.events.options.onMessage({ type: 'display.signal', what: 'results' });
+        await env.advance(1_000);
+    }
+
+    equal(await env.runtime.refresh(), 'error', 'a refresh while waiting fetches nothing');
+    // random() is 0.5 in the fake world: the wait is 20 s + half the jitter
+    const wait = 20_000 + 0.5 * BUSY_JITTER_MS;
+    await env.advance(wait - 5_000 - 10);
+    equal(env.fetches - before, 0, 'nothing before Retry-After');
+    await env.advance(20);
+    equal(env.fetches - before, 1, 'one fetch when the wait is over');
+    equal(env.runtime.busyUntil, null, 'not limited any more');
+    await env.advance(SIGNAL_DEBOUNCE_MS);
+    env.events.options.onMessage({ type: 'display.signal', what: 'results' });
+    await env.advance(SIGNAL_DEBOUNCE_MS + 1);
+    equal(env.fetches - before, 2, 'signals fetch again');
+});
+
+await check('a 429 without Retry-After waits the default; a hall of screens comes back spread out', async () => {
+    const env = world();
+    env.runtime.start();
+    env.events.live = true;
+    await flush();
+    env.answer = { status: 'busy', retryAfterMs: null };
+    await env.runtime.refresh();
+    env.answer = null;
+    const before = env.fetches;
+    await env.advance(BUSY_DEFAULT_MS);
+    equal(env.fetches - before, 0, 'still waiting');
+    await env.advance(BUSY_JITTER_MS);
+    equal(env.fetches - before, 1, 'back after the default wait + jitter');
 });
 
 await check('a failed fetch keeps the picture and answers error', async () => {

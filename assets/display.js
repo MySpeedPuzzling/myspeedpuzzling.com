@@ -19,6 +19,16 @@ function readJson(root, name) {
     }
 }
 
+/**
+ * Retry-After in seconds (the only form our limiter sends) - null when missing or unreadable (the runtime waits its own
+ * default then)
+ */
+function retryAfterMs(header) {
+    const seconds = Number.parseInt(header ?? '', 10);
+
+    return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null;
+}
+
 async function getJson(url) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
@@ -36,6 +46,11 @@ async function getJson(url) {
 
         if (response.status === 404) {
             return { status: 'gone' };
+        }
+
+        // Too many requests on this link from this address (the display_public limit): wait as long as asked
+        if (response.status === 429) {
+            return { status: 'busy', retryAfterMs: retryAfterMs(response.headers.get('Retry-After')) };
         }
 
         if (!response.ok) {

@@ -54,6 +54,15 @@ class WaitingEventLink
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
+        // The link the player saw when they linked it (the time's event, or its series pick) - the waiting link replaces
+        // exactly that one; a time linked otherwise meanwhile keeps its new link (seenLinkIsStillOn()). Plain ids, no
+        // foreign keys: an event deleted meanwhile changed the time's link too
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $seenCompetitionId = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $seenSeriesId = null,
     ) {
         if (($competition === null) === ($series === null)) {
             throw new LogicException('A waiting link names exactly one event or one series.');
@@ -64,7 +73,7 @@ class WaitingEventLink
      * The time is linked again while it waits - to another event, or by another member of its pair/team: one row per
      * time, the latest choice waits
      */
-    public function retarget(null|Competition $competition, null|CompetitionSeries $series, Player $linkedBy, DateTimeImmutable $at): void
+    public function retarget(null|Competition $competition, null|CompetitionSeries $series, Player $linkedBy, DateTimeImmutable $at, null|UuidInterface $seenCompetitionId, null|UuidInterface $seenSeriesId): void
     {
         if (($competition === null) === ($series === null)) {
             throw new LogicException('A waiting link names exactly one event or one series.');
@@ -74,5 +83,26 @@ class WaitingEventLink
         $this->series = $series;
         $this->linkedBy = $linkedBy;
         $this->createdAt = $at;
+        $this->seenCompetitionId = $seenCompetitionId;
+        $this->seenSeriesId = $seenSeriesId;
+    }
+
+    /**
+     * Whether the time still has the link the player saw: the same series pick (its edition is derived and may move),
+     * else the same explicit event, or still none
+     */
+    public function seenLinkIsStillOn(): bool
+    {
+        $series = $this->solvingTime->competitionSeries;
+
+        if ($this->seenSeriesId !== null || $series !== null) {
+            return $series !== null && $this->seenSeriesId?->equals($series->id) === true;
+        }
+
+        $competition = $this->solvingTime->competition;
+
+        return $competition === null
+            ? $this->seenCompetitionId === null
+            : $this->seenCompetitionId?->equals($competition->id) === true;
     }
 }

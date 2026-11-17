@@ -55,7 +55,8 @@ readonly final class GetLinkableSolvingTimes
         $near = $dayFrom === null ? 'false' : "(pst.finished_at_precision IS NULL AND {$solvedDay} BETWEEN CAST(:dayFrom AS DATE) - {$days} AND CAST(:dayTo AS DATE) + {$days})";
         $distance = $dayFrom === null ? 'CAST(NULL AS INTEGER)' : "LEAST(ABS({$solvedDay} - CAST(:dayFrom AS DATE)), ABS({$solvedDay} - CAST(:dayTo AS DATE)))";
         $linkedHere = $seriesId !== null
-            ? 'pst.competition_series_id IS NOT DISTINCT FROM CAST(:seriesId AS UUID)'
+            // A series pick, or an explicit link to one of its dates (never rewritten into a series pick)
+            ? '(pst.competition_series_id = CAST(:seriesId AS UUID) OR (pst.competition_series_id IS NULL AND c.series_id = CAST(:seriesId AS UUID)))'
             : '(pst.competition_series_id IS NULL AND pst.competition_id IS NOT DISTINCT FROM CAST(:competitionId AS UUID))';
 
         /** @var list<array{id: string, puzzle_id: string, puzzle_name: string, brand_name: null|string, pieces_count: int|string, seconds_to_solve: null|int|string, solved_at: string, puzzling_type: string, suspicious: bool, current_event_name: null|string, linked_here: bool, event_puzzle: bool, on_event_day: bool}> $rows */

@@ -155,6 +155,35 @@ final class LinkSolvingTimesToEventHandlerTest extends KernelTestCase
         self::assertSame(OrganizationFixture::EDITION_MAPLE_PENDING_1, $this->time(PuzzleSolvingTimeFixture::TIME_06)['competition_id']);
     }
 
+    public function testATimeLinkedToAnotherEventMovesToThePendingOneAtItsApproval(): void
+    {
+        // Linked to the Czech Nationals, then ticked for the player's own pending event: it waits, still linked as it was
+        $this->link(PlayerFixture::PLAYER_REGULAR, CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, null, [PuzzleSolvingTimeFixture::TIME_06]);
+        $result = $this->link(PlayerFixture::PLAYER_REGULAR, CompetitionFixture::COMPETITION_UNAPPROVED, null, [PuzzleSolvingTimeFixture::TIME_06]);
+        self::assertSame(1, $result->waiting);
+        self::assertSame(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $this->time(PuzzleSolvingTimeFixture::TIME_06)['competition_id']);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        // The approval replaces the link the player saw with the new one - never dropped
+        $this->bus->dispatch(new ApproveCompetition(CompetitionFixture::COMPETITION_UNAPPROVED, PlayerFixture::PLAYER_ADMIN, notifyCreator: false));
+
+        self::assertSame(CompetitionFixture::COMPETITION_UNAPPROVED, $this->time(PuzzleSolvingTimeFixture::TIME_06)['competition_id']);
+        self::assertSame(0, $this->number('SELECT COUNT(*) FROM waiting_event_link'));
+    }
+
+    public function testAnExplicitLinkToADateOfTheSeriesIsAlreadyLinkedToTheSeries(): void
+    {
+        $this->link(PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_1, null, [PuzzleSolvingTimeFixture::TIME_06]);
+
+        $result = $this->link(PlayerFixture::PLAYER_REGULAR, null, OrganizationFixture::SERIES_LANTERN_NIGHTS, [PuzzleSolvingTimeFixture::TIME_06]);
+
+        self::assertSame(1, $result->alreadyLinked);
+        // Never rewritten into a series pick
+        $row = $this->time(PuzzleSolvingTimeFixture::TIME_06);
+        self::assertSame(OrganizationFixture::EDITION_LANTERN_1, $row['competition_id']);
+        self::assertNull($row['competition_series_id']);
+    }
+
     public function testATimeLinkedElsewhereMeanwhileKeepsItsLink(): void
     {
         $this->link(PlayerFixture::PLAYER_REGULAR, CompetitionFixture::COMPETITION_UNAPPROVED, null, [PuzzleSolvingTimeFixture::TIME_06]);

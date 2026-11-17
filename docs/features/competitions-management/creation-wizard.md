@@ -102,8 +102,8 @@ Today they had to create the event, add a round and add the puzzle, and in 99% t
   `OrganizationApprovalPolicy` (approved at once under a trusted organization; an organization's approval approving
   its pending items). An event public at creation (trusted organization) never gets a waiting row - its links are made
   at once. Safety net: `ApplyWaitingEventLinks` in the 15-minute `myspeedpuzzling:reconcile-round-results` cron, after
-  the reconcile. A link is applied only while the time still has no event (a link made meanwhile, e.g. in the edit
-  form, wins) and its linker may still change it; **a rejected event's are dropped** (the times stay unlinked), a
+  the reconcile. A link is applied only while the time still has the link the player saw when ticking it (none, or
+  another event it moves from - `WaitingEventLink::seenLinkIsStillOn()`; a link made meanwhile, e.g. in the edit form, wins) and its linker may still change it; **a rejected event's are dropped** (the times stay unlinked), a
   deleted event's go with it (FK cascade). The player reads "Linked once an admin approves the event (usually within a
   day)" on Link, Done and next to such a result on Link; the edit form of a waiting time is untouched (its link is
   empty until applied).

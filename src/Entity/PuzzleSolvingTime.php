@@ -1148,7 +1148,9 @@ class PuzzleSolvingTime implements EntityWithEvents
     public function isLinkedTo(null|Competition $competition, null|CompetitionSeries $competitionSeries): bool
     {
         if ($competitionSeries !== null) {
-            return $this->competitionSeries?->id->equals($competitionSeries->id) === true;
+            // A series pick, or an explicit link to one of its dates - never rewritten into a series pick
+            return $this->competitionSeries?->id->equals($competitionSeries->id) === true
+                || ($this->competitionSeries === null && $this->competition?->series?->id->equals($competitionSeries->id) === true);
         }
 
         return $competition !== null && $this->competitionSeries === null && $this->competition?->id->equals($competition->id) === true;

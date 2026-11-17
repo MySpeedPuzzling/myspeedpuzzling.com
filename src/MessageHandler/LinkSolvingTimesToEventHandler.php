@@ -57,8 +57,8 @@ readonly final class LinkSolvingTimesToEventHandler
     public function __invoke(LinkSolvingTimesToEvent $message): LinkedSolvingTimes
     {
         $actor = $this->playerRepository->get($message->actorPlayerId);
-        $competition = $message->competitionId !== null ? $this->competitionRepository->get($message->competitionId) : null;
-        $series = $message->seriesId !== null ? $this->competitionSeriesRepository->get($message->seriesId) : null;
+        $competition = $message->targetCompetitionId !== null ? $this->competitionRepository->get($message->targetCompetitionId) : null;
+        $series = $message->targetSeriesId !== null ? $this->competitionSeriesRepository->get($message->targetSeriesId) : null;
 
         $decision = $this->eventLinkRule->decide($actor, $competition, $series);
 
@@ -102,7 +102,7 @@ readonly final class LinkSolvingTimesToEventHandler
 
             if ($decision === EventLinkDecision::Waits) {
                 if ($waitingLink !== null) {
-                    $waitingLink->retarget($competition, $series, $actor, $this->clock->now());
+                    $waitingLink->retarget($competition, $series, $actor, $this->clock->now(), $time->competitionSeries === null ? $time->competition?->id : null, $time->competitionSeries?->id);
                     $waiting++;
 
                     continue;
@@ -115,6 +115,9 @@ readonly final class LinkSolvingTimesToEventHandler
                     series: $series,
                     linkedBy: $actor,
                     createdAt: $this->clock->now(),
+                    // The link the player saw - replaced at the approval unless it changed meanwhile
+                    seenCompetitionId: $time->competitionSeries === null ? $time->competition?->id : null,
+                    seenSeriesId: $time->competitionSeries?->id,
                 ));
                 $waiting++;
 

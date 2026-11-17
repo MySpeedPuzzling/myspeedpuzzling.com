@@ -219,6 +219,18 @@ final class SerializedByLockMessagesTest extends TestCase
     }
 
     /**
+     * "Link my results" (creation-wizard.md "Backfill"): one at a time per player - a double submit waits and finds the
+     * times linked or waiting, never two waiting rows for one time
+     */
+    public function testLinkingResultsLocksThePlayer(): void
+    {
+        $key = (new LinkSolvingTimesToEvent('018D0000-0000-0000-0000-00000000000A', 'event', null, []))->lockKey();
+
+        self::assertSame('link-times-018d0000-0000-0000-0000-00000000000a', $key);
+        self::assertSame($key, (new LinkSolvingTimesToEvent('018d0000-0000-0000-0000-00000000000a', null, 'series', ['time']))->lockKey());
+    }
+
+    /**
      * Every write to an event's participants takes turns with the others under the import's key
      * (docs/features/competitions-management/registration.md, participants-spreadsheet.md D13): two registrations
      * never both take the last spot, an import never plans over a registration that is half way through.

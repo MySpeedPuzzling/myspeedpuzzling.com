@@ -19,8 +19,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * pending items). It decides on the entities as they are in memory (isPubliclyVisible()), so it works before the flush.
  * ApplyWaitingEventLinks (the 15-minute cron) is the safety net for anything else that makes an event public.
  *
- * One link: applied through EventLinkRule only while the time still has no event (a link made meanwhile wins) and its
- * linker may still change it; dropped when the event or series was rejected; kept while it is not public yet.
+ * One link: applied through EventLinkRule only while the time still has the link the player saw when ticking it (none,
+ * or another event it moves from - a link made meanwhile wins) and its linker may still change it; dropped when the event or series was rejected; kept while it is not public yet.
  */
 readonly final class WaitingEventLinksApplier
 {
@@ -96,8 +96,9 @@ readonly final class WaitingEventLinksApplier
 
         if (
             $rejected
-            || $time->competition !== null
-            || $time->competitionSeries !== null
+            // Linked otherwise meanwhile (the edit form, another "Link my results"): that link wins; the one the player saw
+            // when ticking it - none, or another event - is replaced
+            || $link->seenLinkIsStillOn() === false
             || $time->canBeModifiedBy($link->linkedBy) === false
             || $time->isUnfinished()
         ) {

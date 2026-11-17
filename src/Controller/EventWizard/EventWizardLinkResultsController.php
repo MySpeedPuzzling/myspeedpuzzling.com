@@ -136,8 +136,8 @@ final class EventWizardLinkResultsController extends AbstractController
             if ($ticked !== []) {
                 $envelope = $this->messageBus->dispatch(new LinkSolvingTimesToEvent(
                     actorPlayerId: $profile->playerId,
-                    competitionId: $competition?->id->toString(),
-                    seriesId: $series?->id->toString(),
+                    targetCompetitionId: $competition?->id->toString(),
+                    targetSeriesId: $series?->id->toString(),
                     solvingTimeIds: $ticked,
                 ));
                 $handled = $envelope->last(HandledStamp::class)?->getResult();

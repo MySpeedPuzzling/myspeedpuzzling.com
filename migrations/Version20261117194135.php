@@ -19,7 +19,7 @@ final class Version20261117194135 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE TABLE waiting_event_link (id UUID NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, puzzle_solving_time_id UUID NOT NULL, competition_id UUID DEFAULT NULL, series_id UUID DEFAULT NULL, linked_by_player_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE waiting_event_link (id UUID NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, puzzle_solving_time_id UUID NOT NULL, competition_id UUID DEFAULT NULL, series_id UUID DEFAULT NULL, linked_by_player_id UUID NOT NULL, seen_competition_id UUID DEFAULT NULL, seen_series_id UUID DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_78FB467440440C00 ON waiting_event_link (puzzle_solving_time_id)');
         $this->addSql('CREATE INDEX IDX_78FB46747B39D312 ON waiting_event_link (competition_id)');
         $this->addSql('CREATE INDEX IDX_78FB46745278319C ON waiting_event_link (series_id)');

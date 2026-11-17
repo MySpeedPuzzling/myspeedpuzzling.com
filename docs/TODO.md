@@ -44,9 +44,10 @@ Deferred by design (R §3):
 - [ ] Judge page: ETag/304 on the round state; continuous scanning with a warm camera; a "My tables" filter; a referees-page activity column; organiser-assigned table ranges; the one-tap proposal sweep
 - [ ] Displays: the standings/bracket overlay element (first v2 item - cheap once a public standing JSON exists); multi-select / align / distribute; snapping to siblings; live control (spotlight + message elements and page); "Copy from another event"; ticker `marquee`; more fonts; scenes, animations, 4:3/portrait, a series library
 
-Event creation wizard (`docs/features/competitions-management/toolkit/W-creation-wizard-research.md`, step 2 of Jan's request - research done, nothing built):
-- [ ] **Quick fix first (W4): the web "Duplicate" never shifts dates** - the copy keeps the old dates and editing them does not move the rounds (`EditCompetitionHandler` never touches rounds; editions are dated by their first round, so the copy still shows on the old day). Ask for the new date on Duplicate and pass the existing `dateFrom` override (`DuplicateDateShift`); offer "move the rounds too" when an event's date is edited (W §1.2 item 6)
-- [ ] Validate the wizard with 2-3 organisers (W0, §7), then W1-W9 (§6)
+Event creation wizard (`docs/features/competitions-management/creation-wizard.md`, built 2026-11-17, W1-W6 + WF on main):
+- [x] W4: Duplicate asks for the new date; editing an event's date moves its rounds
+- [ ] Validate with 2-3 organisers (research §7) now that it is live - adjust from their findings
+- [ ] Open: an Extras row written after a refused later row stays (separate transactions); "When it happens" text of a series not filled from the Dates rule; rounds added later in the schedule table do not join standings/advancement steps; "try" checklist items are tips without a tick (would need timestamps)
 - [ ] W9: the wizard is every player's "Add event" since WF (2026-11-17, no flag) - Jan decides when to retire the classic forms it still links (`add_competition?classic=1` "Use the classic form", "Add several dates" on the series page)
 
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)

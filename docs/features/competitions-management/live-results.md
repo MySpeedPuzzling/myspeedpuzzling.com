@@ -187,7 +187,19 @@ longer lists unless it came after the state was read). Server side: `official-re
   memory, still sends it and shows "this browser cannot keep unsent results". Another account's changes on the device
   are never sent ("N results entered under another account wait on this device").
 - **From** = what the device believes the server holds: its own earlier waiting change's value, the other device's
-  value of a conflict being overwritten, else the server value.
+  value of a conflict being overwritten, else the server value **the judge's card showed** (reliability F2, D7):
+  `shownFromOf()` takes the open entry's `result`, `puzzles` and `missing_pieces` when the card opens and again when
+  its confirm step opens (the note names what Save replaces), and `withShownFrom()` puts them on the Save's changes -
+  never the value a live update merged in at Save, which would let the Save silently overwrite another judge. The draft
+  keeps them (`shownFrom`), so a restored card or confirm step starts from what it showed before the reload. A live
+  update of the open entry while its confirm step is open (`savedMeanwhile()`: a shown field has another server value
+  and no own change of it waits on the device) re-renders the note ("Saved meanwhile by Michael (6:35 PM): 1:00:47 -
+  Save replaces it"), turns Save into a warning "Replace 1:00:47" and restarts its 350 ms tap guard - the next tap is a
+  deliberate one over the value the card now shows, which becomes its `from`; the same value saved meanwhile reads
+  "This is the saved result already". Without a live update the server's three-way check answers a conflict (the usual
+  Keep mine / Take theirs). On the entry step another judge's value shows on the card's line and a Save from there meets
+  it as a conflict; this judge's own earlier Save arriving only moves the snapshot along. The results desk's inline
+  editor does the same with what it showed at open (`openEditor()`), the result's pieces-missing count included.
 - **Sending**: per round, in saving order, batches of ≤ 100 (the server chains changes of one field in a set). A change
   waits only behind earlier changes of the same entry's field; other entries go on. **Groups** (competition toolkit C7,
   `enqueueGroup()` - one Save of several fields of an entry, e.g. a K-of-N round's `puzzles` + `result`): one `groupId`

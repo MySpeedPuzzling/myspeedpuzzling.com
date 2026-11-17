@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -415,6 +416,40 @@ final class PrivateProfileCanaryTest extends WebTestCase
         foreach ($pages as $url) {
             self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary: ' . $url);
         }
+    }
+
+    /**
+     * The public bracket (competition toolkit A9): her qualified row in Group B and in the pairs round (Edge Hunters)
+     * names her by the organiser's name only ("Gina Quick") - no profile name, link, #code or id - except for the friend.
+     */
+    public function testTheBracketLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:b, :pairs)', ['b' => OfficialResultsFixture::ROUND_GROUP_B, 'pairs' => OfficialResultsFixture::ROUND_PAIRS]);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_PAIRS], [OfficialResultsFixture::ROUND_PAIRS_FINAL]);
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $url = '/en/events/results-cup/bracket';
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content, 'No canary: the bracket does not list her');
+            self::assertStringContainsString('Edge Hunters', $content, 'No canary: the bracket does not list her pair');
+            self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player');
+            self::assertStringNotContainsString(self::OWNER_NAME, $content);
+            self::assertStringNotContainsString(self::OWNER, $content);
+            self::assertStringNotContainsString('PLAYER2', $content);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary');
     }
 
     /**

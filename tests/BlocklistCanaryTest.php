@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -466,6 +467,51 @@ final class BlocklistCanaryTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
         self::assertStringNotContainsString('Ben Steady', $content);
+    }
+
+    /**
+     * The public bracket (competition toolkit A9): the blocked player's qualified row - solo, or a pair with them - is
+     * not in a round's box for the blocker; everybody else keeps their official place.
+     */
+    public function testBlockedPlayerIsNowhereInTheBracket(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_PAIRS], [OfficialResultsFixture::ROUND_PAIRS_FINAL]);
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_PAIRS]);
+        // "Ben Steady", qualified second in Group A and half of the qualified Puzzle Sharks, is the blocked player
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $url = '/en/events/results-cup/bracket';
+        $ranks = static fn (Crawler $crawler): array => $crawler->filter('[data-bracket-entry]')->each(static fn (Crawler $entry): string => (string) $entry->attr('data-bracket-entry-rank'));
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the bracket does not link the player.');
+        self::assertStringContainsString('Ben Steady', $content);
+        self::assertStringContainsString('Puzzle Sharks', $content, 'No canary: the bracket does not list the pair.');
+        self::assertSame(['1', '2', '1', '2'], $ranks($crawler));
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
+        // Anna (Group A) and the Edge Hunters keep their places (Puzzle Sharks above them are gone)
+        self::assertSame(['1', '2'], $ranks($crawler));
     }
 
     /**

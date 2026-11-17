@@ -99,7 +99,8 @@ final class AdvancementStepsPagesTest extends WebTestCase
         self::assertCount(1, $step);
         self::assertStringContainsString('Group A, Group B → Final', $step->text());
         self::assertStringContainsString('Top 2 of each round go to Final.', $step->text());
-        self::assertSame([['Group A', 'Group B'], ['Final']], $crawler->filter('[data-advancement-stage]')->each(static fn ($stage): array => $stage->filter('.fw-semibold')->each(static fn ($round): string => $round->text())));
+        // The stages are the bracket's columns since A9 (the organiser's bracket replaced A8's stage strip)
+        self::assertSame([['Group A', 'Group B'], ['Final']], $crawler->filter('[data-advancement-stages] [data-bracket-stage]')->each(static fn ($stage): array => $stage->filter('.bracket-round-name')->each(static fn ($round): string => trim($round->text()))));
 
         // A second step into the Final is refused with the reason - the form again, 422
         $crawler = $this->browser->request('GET', self::STEPS . '/new');

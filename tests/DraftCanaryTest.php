@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
@@ -519,6 +520,58 @@ final class DraftCanaryTest extends WebTestCase
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing is public');
             $browser->request('GET', self::SITEMAP);
             self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
+        }
+    }
+
+    /**
+     * The public bracket (competition toolkit A9): Draft Night with a declared step (its round published, a qualified
+     * entry) has a bracket page, a sitemap entry and a link on its page once published - and a 404, no sitemap entry
+     * and no link while it is a draft, for a guest and a player off its team.
+     */
+    public function testTheBracketOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start, qualified_at) VALUES (:id, :participant, :round, 3000, false, ' . TestClock::SQL_NOW . ')',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $finalId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, starts_at, category) SELECT :id, competition_id, 'Night Final', starts_at + INTERVAL '2 hours', category FROM competition_round WHERE id = :round",
+            ['id' => $finalId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        DeclaredAdvancementStep::insert($connection, $draftNight, [OrganizationFixture::ROUND_DRAFT_NIGHT], [$finalId], qualifyCount: 1);
+        $eventUrl = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG;
+        $url = $eventUrl . '/bracket';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $draftNight, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('No canary: the bracket is not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
+            $browser->request('GET', $eventUrl);
+            self::assertSelectorExists('[data-event-bracket-link]', 'No canary: the event page does not link the bracket');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the bracket');
+
+            $this->setDraft(self::COMPETITION, $draftNight, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s bracket is public');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringNotContainsString('/bracket<', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s bracket');
         }
     }
 

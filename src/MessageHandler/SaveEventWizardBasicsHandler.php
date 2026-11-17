@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Message\SaveEventWizardBasics;
+use SpeedPuzzling\Web\Query\GetEventWizardState;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -17,6 +18,7 @@ readonly final class SaveEventWizardBasicsHandler
 {
     public function __construct(
         private MessageBusInterface $messageBus,
+        private GetEventWizardState $getEventWizardState,
     ) {
     }
 
@@ -28,7 +30,9 @@ readonly final class SaveEventWizardBasicsHandler
             $this->messageBus->dispatch($message->roundEdit);
         }
 
-        if ($message->newRound !== null) {
+        // The page decided "no round yet" before this message took the event's lock - a second save of the same page
+        // (a double click, another tab) found none either. Read again under the lock: the round exists once.
+        if ($message->newRound !== null && $this->getEventWizardState->of($message->competitionId)->roundsCount === 0) {
             $this->messageBus->dispatch($message->newRound);
         }
     }

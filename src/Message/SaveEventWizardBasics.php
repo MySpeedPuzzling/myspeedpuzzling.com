@@ -11,7 +11,9 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * The event creation wizard's Basics saved again (W-creation-wizard-research.md §3.3): the event's details and its
  * single round's start following the date and start time - in one transaction. The handler dispatches EditCompetition,
  * then EditCompetitionRound (the round's start and zone, every other field kept as the round has it) or, for a draft
- * without a round yet, AddCompetitionRound.
+ * without a round yet, AddCompetitionRound - only while it still has none under the lock (a second save of the same page
+ * creates no second round). The caller sends the round edit only when the date, start time or zone changed, so a round
+ * moved on the rounds page is not pulled back by a save of the other fields.
  *
  * Takes the event's participants lock (EditCompetitionRound does) for the whole transaction - the nested
  * EditCompetitionRound passes through it (LockUntilCommittedMiddleware).

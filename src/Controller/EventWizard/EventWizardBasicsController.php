@@ -9,6 +9,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
@@ -136,6 +138,11 @@ final class EventWizardBasicsController extends AbstractController
             'action' => $request->getRequestUri(),
         ]);
 
+        // A new event's id travels with the page (kept on a refused submit): a second submit of it creates nothing twice
+        if ($competition === null) {
+            $form->get('draftId')->setData(Uuid::uuid7()->toString());
+        }
+
         if ($round !== null) {
             $form->get('startTime')->setData(RoundTimezone::toLocal($round->startsAt, $round->displayTimezone())->format('H:i'));
         }
@@ -170,21 +177,52 @@ final class EventWizardBasicsController extends AbstractController
 
             try {
                 if ($competition === null) {
-                    $newId = Uuid::uuid7();
-                    $this->messageBus->dispatch(new StartEventWizardDraft(
-                        competition: $this->addCompetition($newId->toString(), $player->playerId, $data),
-                        round: $this->newRound($newId->toString(), $startsAt, $timezone),
-                    ));
-                    $competitionId = $newId->toString();
+                    $draftId = $form->get('draftId')->getData();
+                    $newId = is_string($draftId) && Uuid::isValid($draftId) ? strtolower($draftId) : Uuid::uuid7()->toString();
+                    $existing = $this->existingDraft($newId, $player->playerId);
+
+                    // An id taken by anything but this player's draft (never by chance - a uuid7): a fresh one
+                    if ($existing === false) {
+                        $newId = Uuid::uuid7()->toString();
+                    }
+
+                    // The same page sent again (a double click, a resend) finds the draft its first submit created
+                    if ($existing !== true) {
+                        $this->messageBus->dispatch(new StartEventWizardDraft(
+                            competition: $this->addCompetition($newId, $player->playerId, $data),
+                            round: $this->newRound($newId, $startsAt, $timezone),
+                        ));
+                    }
+
+                    $competitionId = $newId;
                 } else {
+                    // The round moves only when its day, time or zone changed - a round moved on the rounds page stays
+                    // where it is when the other fields are saved
+                    $roundMoved = $round !== null && (
+                        $competition->dateFrom?->format('Y-m-d') !== $data->dateFrom->format('Y-m-d')
+                        || RoundTimezone::toLocal($round->startsAt, $round->displayTimezone())->format('H:i') !== $startTime
+                        || $timezone !== $round->displayTimezone()
+                    );
+
                     $this->messageBus->dispatch(new SaveEventWizardBasics(
                         competitionId: $competitionId,
                         competition: $this->editCompetition($competition, $data),
-                        roundEdit: $round !== null ? self::roundStart($round, $competitionId, $startsAt, $timezone) : null,
+                        roundEdit: $roundMoved ? self::roundStart($round, $competitionId, $startsAt, $timezone) : null,
                         newRound: $round === null ? $this->newRound($competitionId, $startsAt, $timezone) : null,
                     ));
                 }
             } catch (HandlerFailedException | SecretPuzzlesWouldBeRevealed | OnlineTimingInUse | OrganizationNotManaged $failure) {
+                // Two submits of the same new page at once: the second one's insert met the first one's draft
+                if ($competition === null && EventWizardRefusal::find($failure, UniqueConstraintViolationException::class) !== null) {
+                    $draftId = $form->get('draftId')->getData();
+
+                    if (is_string($draftId) && $this->existingDraft(strtolower($draftId), $player->playerId) === true) {
+                        $next = $progress->next(EventWizardStep::Basics) ?? EventWizardStep::Review;
+
+                        return $this->redirectToRoute($next->route(), ['competitionId' => strtolower($draftId)], Response::HTTP_SEE_OTHER);
+                    }
+                }
+
                 if ($this->explain($failure, $form) === false) {
                     throw $failure;
                 }
@@ -310,6 +348,21 @@ final class EventWizardBasicsController extends AbstractController
             resultsLink: $round->resultsLink,
             keepFields: ['name', 'minutesLimit', 'badgeBackgroundColor', 'badgeTextColor', 'category', 'resultsLink'],
         );
+    }
+
+    /**
+     * Whether a new event's id is taken: null = free, true = the player's own draft (a second submit of the same page),
+     * false = anything else.
+     */
+    private function existingDraft(string $competitionId, string $playerId): null|bool
+    {
+        try {
+            $competition = $this->competitionRepository->get($competitionId);
+        } catch (CompetitionNotFound) {
+            return null;
+        }
+
+        return $competition->isDraft && $competition->addedByPlayer?->id->toString() === $playerId;
     }
 
     /**

@@ -115,7 +115,7 @@ final class CompetitionDivisionsTest extends KernelTestCase
         self::assertSame(3, $changed);
         self::assertSame($this->senior, $this->database->fetchOne('SELECT division_id FROM competition_team WHERE id = ?', [OfficialResultsFixture::TEAM_SHARKS]));
         self::assertSame($this->regular, $this->database->fetchOne('SELECT division_id FROM competition_team WHERE id = ?', [OfficialResultsFixture::TEAM_EDGES]));
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE round_id = ? AND division_id IS NOT NULL', [OfficialResultsFixture::ROUND_PAIRS]));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE round_id = ? AND division_id IS NOT NULL', [OfficialResultsFixture::ROUND_PAIRS]));
 
         $entries = self::byName(self::getContainer()->get(GetRoundResultEntries::class)->forRound(OfficialResultsFixture::ROUND_PAIRS));
         self::assertSame([1, 1], [$entries['Puzzle Sharks']->rank, $entries['Puzzle Sharks']->divisionRank]);
@@ -154,8 +154,8 @@ final class CompetitionDivisionsTest extends KernelTestCase
             self::assertSame($reason, $refused->reason);
         }
 
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL'));
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_team WHERE division_id IS NOT NULL'));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL'));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_team WHERE division_id IS NOT NULL'));
     }
 
     public function testARemovedParticipantsEntryIsNoEntry(): void
@@ -192,7 +192,7 @@ final class CompetitionDivisionsTest extends KernelTestCase
             self::assertSame($reason, $refused->reason);
         }
 
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
         self::assertSame('Elsewhere', $this->database->fetchOne('SELECT name FROM competition_division WHERE id = ?', [$otherEvents]));
     }
 
@@ -213,17 +213,17 @@ final class CompetitionDivisionsTest extends KernelTestCase
         self::assertInstanceOf(DivisionsInUse::class, $inUse);
         self::assertSame(3, $inUse->count);
 
-        self::assertSame(3, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id = ?', [$this->senior]));
-        self::assertSame(6, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_round_division crd JOIN competition_division d ON d.id = crd.division_id WHERE d.competition_id = ?', [self::CUP]));
+        self::assertSame(3, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id = ?', [$this->senior]));
+        self::assertSame(6, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_round_division crd JOIN competition_division d ON d.id = crd.division_id WHERE d.competition_id = ?', [self::CUP]));
 
         $changedRounds = self::handled($this->messageBus, new SetCompetitionDivisions(self::CUP, $without->divisions, $without->rounds, confirmClearing: true));
 
         self::assertIsArray($changedRounds);
         self::assertSame(self::sortedRounds([OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_PAIRS, OfficialResultsFixture::ROUND_FINAL]), self::sortedRounds($changedRounds));
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id = ?', [$this->senior]));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id = ?', [$this->senior]));
         self::assertSame($this->regular, $this->database->fetchOne('SELECT division_id FROM competition_participant_round WHERE id = ?', [OfficialResultsFixture::ENTRY_A_ANNA]));
         // The division stays on the list
-        self::assertSame(3, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
+        self::assertSame(3, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
 
         // Removing Junior from the list takes it from Eva - confirmed
         $this->messageBus->dispatch(new SetCompetitionDivisions(self::CUP, [new DivisionInput($this->regular, 'Regular (open)')], [
@@ -280,8 +280,8 @@ final class CompetitionDivisionsTest extends KernelTestCase
 
         $this->messageBus->dispatch(new DeleteCompetition(self::CUP));
 
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_round_division WHERE division_id IN (?, ?, ?)', [$this->regular, $this->senior, $this->junior]));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [self::CUP]));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_round_division WHERE division_id IN (?, ?, ?)', [$this->regular, $this->senior, $this->junior]));
     }
 
     /**

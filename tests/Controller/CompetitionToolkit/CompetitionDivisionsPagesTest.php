@@ -98,7 +98,7 @@ final class CompetitionDivisionsPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('senior', $page->filter('[data-divisions-error]')->text());
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division'));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_division'));
     }
 
     public function testTakingADivisionFromEntriesAsksFirst(): void
@@ -113,12 +113,12 @@ final class CompetitionDivisionsPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('3 entries would lose their division', $page->filter('[data-divisions-in-use]')->text());
-        self::assertSame(3, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division'));
+        self::assertSame(3, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_division'));
 
         $this->browser->submit($page->filter('[data-divisions-confirm]')->form());
         self::assertResponseStatusCodeSame(303);
         self::assertSame(['Regular', 'Junior U16'], $this->database->fetchFirstColumn('SELECT name FROM competition_division ORDER BY position'));
-        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL AND division_id NOT IN (SELECT id FROM competition_division)'));
+        self::assertSame(0, self::divisionRowCount($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL AND division_id NOT IN (SELECT id FROM competition_division)'));
     }
 
     public function testARoundWithDivisionsCarriesThemInTheStateTheDeskAndTheExport(): void

@@ -67,7 +67,7 @@ trait DivisionsSetup
      *
      * @param list<mixed> $params
      */
-    private static function countOf(Connection $database, string $sql, array $params = []): int
+    private static function divisionRowCount(Connection $database, string $sql, array $params = []): int
     {
         $count = $database->fetchOne($sql, $params);
         self::assertIsNumeric($count);

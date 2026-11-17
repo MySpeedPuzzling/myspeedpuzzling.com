@@ -9,7 +9,9 @@
     them (official + place once published; before that "not official yet" when the organiser chose it, or the viewer's
     own time - never a place).
 
-    The root carries what the live part (B5) needs: the state URL, the server's time, the public stopwatch topics.
+    The root carries what the live part needs (competitor_page_controller.js, B5): the state URL, the server's time, the
+    public stopwatch topics, the first state (the competitor_state JSON - the same view, nothing more) and the clock's
+    labels. The clock follows the round stopwatch to the second; a changed card is drawn again from this page's HTML.
 #}
 {% extends 'base.html.twig' %}
 
@@ -33,6 +35,16 @@
     <div class="competitor-page"
          data-competitor-page
          data-competitor-page-kind="{{ view.kind.value }}"
+         data-controller="competitor-page"
+         data-competitor-page-state-value="{{ view|json_encode|e('html_attr') }}"
+         data-competitor-page-labels-value="{{ {
+             scheduled: 'competitor_page.round.scheduled'|trans,
+             running: 'competitor_page.round.running'|trans,
+             times_up: 'competitor_page.clock.times_up'|trans,
+             stopped: 'competitor_page.round.stopped'|trans,
+             starts_in: 'competitor_page.clock.starts_in'|trans,
+             left: 'competitor_page.clock.left'|trans,
+         }|json_encode|e('html_attr') }}"
          data-competitor-page-state-url-value="{{ path('competitor_state', {competitionId: view.competitionId, kind: view.kind.value, id: view.tagId}) }}"
          data-competitor-page-server-now-ms-value="{{ view.serverNow|date('U') * 1000 }}"
          data-competitor-page-mercure-url-value="{{ mercure_public_url }}"
@@ -71,6 +83,7 @@
             {% endif %}
         </header>
 
+        <div data-competitor-rounds>
         {% if view.rounds is empty %}
             <p class="text-muted mt-3" data-competitor-no-rounds>{{ (is_table ? 'competitor_page.page.table_unused' : 'competitor_page.page.no_rounds')|trans }}</p>
         {% else %}
@@ -80,5 +93,6 @@
                 {% endfor %}
             </div>
         {% endif %}
+        </div>
     </div>
 {% endblock %}

@@ -59,6 +59,44 @@ Topics are the public `/round-stopwatch/{roundId}` of the tag's rounds. No playe
 `private, no-store` for everybody (R §2.6). The page's root carries `data-competitor-page-state-url-value`,
 `-server-now-ms-value`, `-mercure-url-value`, `-topics-value` for B5's controller.
 
+## Live clock (B5)
+
+`assets/controllers/competitor_page_controller.js` (lazy Stimulus, `data-controller="competitor-page"` on the page root)
+is the DOM adapter of the pure module `assets/competitor_page_live.js` (`CompetitorPageLive`, node harness
+`tests/competitor-page-live-harness.mjs` → `CompetitorPageLiveScriptTest`).
+
+- **First state inline:** the root's `data-competitor-page-state-value` is the view's JSON - exactly the
+  `competitor_state` answer without `mercure` (pinned by `CompetitorPageControllerTest`), so a running round's clock
+  shows at once, without a fetch. Labels in `data-competitor-page-labels-value` (`competitor_page.round.*`,
+  `competitor_page.clock.*`).
+- **The clock** is `round_stopwatch_clock.js` unchanged (`stopwatchView()` - the projector's arithmetic): countdown to a
+  scheduled start ("Starts in 0:00:09"), elapsed + "1:29:47 left" while running, `times_up` at the limit, frozen when
+  stopped (shown as a clock only on the current round - a round stopped at its end is history). A scheduled start turns
+  into the running clock locally at the moment. Drawn at each whole second (`nextChangeMs()`), not every frame.
+  Each card gets `data-competitor-round-phase` + `is-phase-*`, its badge (`[data-competitor-round-badge]`) and the
+  clock (`[data-competitor-clock]`) updated in place.
+- **Server time:** `createServerClock()` - hint from `serverNowMs`, two samples at start (0 s, 1.5 s), then every state
+  fetch; the shortest round trip wins.
+- **Mercure:** the public `/round-stopwatch/{roundId}` topics of the shown rounds that are started/counting down or
+  start within ±12 h (nearest first, at most 12), one anonymous stream through `official_results_events.js` with a
+  *public subscription* (`{url, topics, public: true}`: no token, no renewal, other topics → new stream first; refused
+  → no stream, the page polls). A push is applied at once (newest `asOfMs`).
+- **State fetches (300 phones):** on a push within 0-1 s (random; several pushes = one fetch), at each
+  `nextRevealAtMs` + 300 ms + 0-1 s, 1 s after a scheduled start + 0-1 s, after the stream reopens 0-3 s, when the page
+  is shown again 0-0.5 s. Polling: 5 min with a live stream (clock sample), else 15 s while a shown round runs/counts
+  down and 60 s otherwise, ±20 %, doubled per failed fetch up to 5 min, nothing while hidden; 404 (pages switched
+  off) → no stream, a look every 5 min. Visibility of a puzzle is never computed in the browser.
+- **Changed cards** (puzzles, results, who plays, round list - `contentKey()`; the stopwatch is not content) are
+  re-drawn from the page's own HTML (one GET of the page, `[data-competitor-rounds]` / the changed
+  `[data-competitor-round]` swapped) - the markup lives in Twig only.
+- **Wake lock** (`navigator.wakeLock`) while a round of the page's entrant (not masked, not unpaired, an entry) runs or
+  starts within 5 minutes; re-acquired when the page is shown again.
+- **For B8:** `tapNowMs()` on the controller reads the server's time synchronously from the same clock (read it first
+  in the tap handler), `roundView(roundId)` the card's phase, `competitor-page:phase` events ({roundId, phase}) on the
+  root, and an empty `[data-competitor-round-actions]` slot in each card for the Stop button.
+- Dev: the local hub refuses anonymous subscribers (no `anonymous` directive; production allows it) and its CORS list
+  is `localhost:8080` only - locally the page lives on the refetch path.
+
 ## Statements
 
 `CompetitorPageQueryBudgetTest` pins: guest page/JSON **4** (the competition with its rounds, the tag's entries with

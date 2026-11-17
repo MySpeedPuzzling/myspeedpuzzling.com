@@ -7,7 +7,7 @@
 #}
 {%- set url = path('event_wizard_continue', {competitionId: competition_id}) -%}
 {%- if layout == 'action' -%}
-    <a class="ev-action ev-action-publish" href="{{ url }}" data-turbo-frame="_top" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }}</a>
+    <a class="ev-action" href="{{ url }}" data-turbo-frame="_top" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }}</a>
 {%- elseif layout == 'banner' -%}
     <a class="btn btn-outline-primary ev-draft-banner-button" href="{{ url }}" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }}</a>
 {%- else -%}

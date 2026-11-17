@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Repository\ParticipantLinkRequestRepository;
 use SpeedPuzzling\Web\Value\LinkRequestKind;
 use SpeedPuzzling\Web\Value\ParticipantLinkAction;
 use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * The one link path (docs/features/competitions-management/participant-linking.md §4, D1): every link and unlink of a
@@ -27,12 +28,53 @@ use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
  * Persist only, called by handlers under CompetitionParticipantsLock. The live push to the open participants sheets
  * (§5.8) is the callers' controllers' (after the commit, ParticipantsSheetLiveUpdates::changedAfterResponse()).
  */
-readonly final class ParticipantLinks
+final class ParticipantLinks implements ResetInterface
 {
+    /**
+     * While a batch runs (inBatch()): competition id => its pending requests, read once - a 300-row import or sheet change
+     * set reads the requests in one statement, not two per link. Cleared when the batch ends (and between requests in
+     * worker mode, reset()).
+     *
+     * @var array<string, list<ParticipantLinkRequest>>
+     */
+    private array $batch = [];
+
     public function __construct(
-        private ParticipantLinkLogRepository $logRepository,
-        private ParticipantLinkRequestRepository $requestRepository,
+        private readonly ParticipantLinkLogRepository $logRepository,
+        private readonly ParticipantLinkRequestRepository $requestRepository,
     ) {
+    }
+
+    /**
+     * Runs `$work` with the event's pending requests read once (ParticipantImportApplier: every link and removal of one
+     * import or sheet change set). Under the event's lock, so nobody else adds a request meanwhile; the requests made in
+     * the batch are added to it.
+     *
+     * @template T
+     * @param callable(): T $work
+     * @return T
+     */
+    public function inBatch(string $competitionId, callable $work): mixed
+    {
+        $competitionId = strtolower($competitionId);
+        $outer = isset($this->batch[$competitionId]);
+
+        if ($outer === false) {
+            $this->batch[$competitionId] = $this->requestRepository->pendingOfCompetition($competitionId);
+        }
+
+        try {
+            return $work();
+        } finally {
+            if ($outer === false) {
+                unset($this->batch[$competitionId]);
+            }
+        }
+    }
+
+    public function reset(): void
+    {
+        $this->batch = [];
     }
 
     /**
@@ -55,7 +97,7 @@ readonly final class ParticipantLinks
             return;
         }
 
-        $pendingOnRow = $this->requestRepository->pendingOfParticipant($participant);
+        $pendingOnRow = $this->pendingOfParticipant($participant);
         $approved = null;
 
         foreach ($pendingOnRow as $request) {
@@ -87,7 +129,7 @@ readonly final class ParticipantLinks
             }
         }
 
-        foreach ($this->requestRepository->pendingOfPlayer($participant->competition->id->toString(), $player->id->toString()) as $request) {
+        foreach ($this->pendingOfPlayer($participant->competition->id->toString(), $player) as $request) {
             if ($request !== $approved) {
                 $this->supersede($request, $now);
             }
@@ -105,7 +147,7 @@ readonly final class ParticipantLinks
         bool $releasesOwnRegistration,
         DateTimeImmutable $now,
     ): ParticipantLinkRequest {
-        foreach ($this->requestRepository->pendingOfPlayer($participant->competition->id->toString(), $player->id->toString()) as $request) {
+        foreach ($this->pendingOfPlayer($participant->competition->id->toString(), $player) as $request) {
             if ($request->participant === $participant && $request->kind === $kind) {
                 return $request;
             }
@@ -126,6 +168,12 @@ readonly final class ParticipantLinks
         );
 
         $this->requestRepository->save($request);
+        $competitionId = $participant->competition->id->toString();
+
+        if (isset($this->batch[$competitionId])) {
+            $this->batch[$competitionId][] = $request;
+        }
+
         $this->log($participant, $player, ParticipantLinkAction::Requested, null, $player, $now);
 
         return $request;
@@ -161,9 +209,37 @@ readonly final class ParticipantLinks
      */
     public function participantRemoved(CompetitionParticipant $participant, DateTimeImmutable $now): void
     {
-        foreach ($this->requestRepository->pendingOfParticipant($participant) as $request) {
+        foreach ($this->pendingOfParticipant($participant) as $request) {
             $this->supersede($request, $now);
         }
+    }
+
+    /**
+     * @return list<ParticipantLinkRequest>
+     */
+    private function pendingOfParticipant(CompetitionParticipant $participant): array
+    {
+        $batch = $this->batch[$participant->competition->id->toString()] ?? null;
+
+        if ($batch === null) {
+            return $this->requestRepository->pendingOfParticipant($participant);
+        }
+
+        return array_values(array_filter($batch, static fn (ParticipantLinkRequest $request): bool => $request->isPending() && $request->participant === $participant));
+    }
+
+    /**
+     * @return list<ParticipantLinkRequest>
+     */
+    private function pendingOfPlayer(string $competitionId, Player $player): array
+    {
+        $batch = $this->batch[$competitionId] ?? null;
+
+        if ($batch === null) {
+            return $this->requestRepository->pendingOfPlayer($competitionId, $player->id->toString());
+        }
+
+        return array_values(array_filter($batch, static fn (ParticipantLinkRequest $request): bool => $request->isPending() && $request->player->id->equals($player->id)));
     }
 
     /**

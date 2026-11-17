@@ -63,7 +63,9 @@ readonly final class ParticipantClaims
             return ClaimOutcome::AskOrganiser;
         }
 
-        if ($releasesOwnRegistration === false && $this->holdsOwnPaidRegistration($competitionId, $player, $participant)) {
+        // Only while the event manages registration: a paid status left from before management was switched off means
+        // nothing - and the page has no box to say yes in
+        if ($releasesOwnRegistration === false && $competition->registrationManaged && $this->holdsOwnPaidRegistration($competitionId, $player, $participant)) {
             return ClaimOutcome::ReleaseNotConfirmed;
         }
 

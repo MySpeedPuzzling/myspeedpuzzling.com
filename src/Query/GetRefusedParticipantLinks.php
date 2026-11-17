@@ -53,7 +53,7 @@ readonly final class GetRefusedParticipantLinks
 SELECT
     EXISTS (
         SELECT 1 FROM participant_link_log l
-        WHERE l.participant_id = :participantId AND l.player_id = :playerId AND l.action IN ({$refusing})
+        WHERE l.competition_id = :competitionId AND l.participant_id = :participantId AND l.player_id = :playerId AND l.action IN ({$refusing})
     ) AS refused_pair,
     (
         SELECT COUNT(*) FROM participant_link_log l

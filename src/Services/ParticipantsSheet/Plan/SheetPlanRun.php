@@ -573,7 +573,8 @@ final class SheetPlanRun
                 continue;
             }
 
-            if ($other['selfJoined'] && ($this->registrationStatuses[$otherId] ?? null) === RegistrationStatus::Paid->value && $request['releasesOwnRegistration'] === false) {
+            // Paid matters only while the event manages registration (a status left from before means nothing now)
+            if ($this->registrationManaged && $other['selfJoined'] && ($this->registrationStatuses[$otherId] ?? null) === RegistrationStatus::Paid->value && $request['releasesOwnRegistration'] === false) {
                 return $this->refused($change, $index, 'claimant_registration_paid', ['name' => $other['name']]);
             }
         }
@@ -588,6 +589,7 @@ final class SheetPlanRun
                 $this->recordTeamsOf($otherId);
                 $other['deleted'] = true;
                 $this->removedInGroup[$otherId] = true;
+                $this->removedForRequests($otherId);
             } else {
                 $other['playerId'] = null;
                 unset($this->notThem[$otherId]);
@@ -890,8 +892,21 @@ final class SheetPlanRun
         $person['markAsImported'] = $person['markAsImported'] || $person['selfJoined'];
         $this->people[$id] = $person;
         $this->removedInGroup[$id] = true;
+        // Its pending link requests go with it (ParticipantLinks::participantRemoved()) - a later decline of one in the
+        // same change set reads as changed meanwhile
+        $this->removedForRequests($id);
 
         return $this->outcome($change, $index, SheetChangeStatus::Applied);
+    }
+
+    private function removedForRequests(string $participantId): void
+    {
+        foreach ($this->requests as $requestId => $request) {
+            if ($request['status'] === LinkRequestStatus::Pending->value && $request['participantId'] === $participantId) {
+                $request['status'] = LinkRequestStatus::Superseded->value;
+                $this->requests[$requestId] = $request;
+            }
+        }
     }
 
     private function restoreParticipant(SheetChange $change, int $index): SheetChangeOutcome

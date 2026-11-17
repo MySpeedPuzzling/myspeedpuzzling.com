@@ -73,6 +73,22 @@ readonly final class ParticipantImportApplier
         ParticipantLinkMethod $linkVia = ParticipantLinkMethod::Organiser,
         null|Player $by = null,
     ): ParticipantImportResult {
+        // The event's pending link requests are read once for every link and removal of these operations
+        return $this->participantLinks->inBatch(
+            $competitionId,
+            fn (): ParticipantImportResult => $this->write($competitionId, $operations, $linkVia, $by),
+        );
+    }
+
+    /**
+     * @throws ParticipantImportPreviewStale
+     */
+    private function write(
+        string $competitionId,
+        ParticipantImportOperations $operations,
+        ParticipantLinkMethod $linkVia,
+        null|Player $by,
+    ): ParticipantImportResult {
         $competition = $this->competitionRepository->get($competitionId);
         $now = $this->clock->now();
 

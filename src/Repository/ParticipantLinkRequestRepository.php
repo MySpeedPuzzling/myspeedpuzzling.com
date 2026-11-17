@@ -80,6 +80,28 @@ readonly final class ParticipantLinkRequestRepository
     }
 
     /**
+     * Every pending request of the event (ParticipantLinks::inBatch()) - one statement.
+     *
+     * @return list<ParticipantLinkRequest>
+     */
+    public function pendingOfCompetition(string $competitionId): array
+    {
+        /** @var list<ParticipantLinkRequest> $requests */
+        $requests = $this->entityManager->createQueryBuilder()
+            ->select('request')
+            ->from(ParticipantLinkRequest::class, 'request')
+            ->where('request.competition = :competition')
+            ->andWhere('request.status = :pending')
+            ->setParameter('competition', $competitionId)
+            ->setParameter('pending', LinkRequestStatus::Pending)
+            ->orderBy('request.createdAt')
+            ->getQuery()
+            ->getResult();
+
+        return array_values(array_filter($requests, static fn (ParticipantLinkRequest $request): bool => $request->isPending()));
+    }
+
+    /**
      * @param list<string> $requestIds
      * @return array<string, ParticipantLinkRequest> lower-cased id => request
      */

@@ -78,7 +78,7 @@ SELECT cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, 
     (
         SELECT string_agg(DISTINCT refusal.player_id::text, ',')
         FROM participant_link_log refusal
-        WHERE refusal.participant_id = cp.id AND refusal.action IN ({$refusing})
+        WHERE refusal.competition_id = cp.competition_id AND refusal.participant_id = cp.id AND refusal.action IN ({$refusing})
     ) AS refused_player_ids
 FROM competition_participant cp
 LEFT JOIN player p ON p.id = cp.player_id

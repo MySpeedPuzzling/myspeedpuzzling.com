@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\ParticipantsSheet\SheetChangeSets;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\ClaimOutcome;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -168,6 +169,16 @@ final class ParticipantClaimsTest extends KernelTestCase
         self::assertSame(ClaimOutcome::Linked, $this->join(PlayerFixture::PLAYER_WITH_FAVORITES, Wjpc::PARTICIPANT_UNCONNECTED, releasesOwnRegistration: true));
         self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->linkedPlayer(Wjpc::PARTICIPANT_UNCONNECTED));
         self::assertNotNull($this->row(Wjpc::PARTICIPANT_SELF_JOINED)['deleted_at']);
+    }
+
+    /**
+     * A paid status left from before the event stopped managing registration needs no yes - the page has no box for it
+     */
+    public function testAPaidStatusOfAnUnmanagedEventNeedsNoYes(): void
+    {
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'paid' WHERE id = :id", ['id' => Wjpc::PARTICIPANT_SELF_JOINED]);
+
+        self::assertSame(ClaimOutcome::Linked, $this->join(PlayerFixture::PLAYER_WITH_FAVORITES, Wjpc::PARTICIPANT_UNCONNECTED));
     }
 
     public function testTakingARequestBack(): void
@@ -351,6 +362,22 @@ final class ParticipantClaimsTest extends KernelTestCase
         self::assertSame('withdrawn', $this->requests()[0]['status']);
     }
 
+    public function testARemovedPersonsRequestCannotBeDeclinedInTheSameChangeSet(): void
+    {
+        $this->policy('approval');
+        $this->claim(PlayerFixture::PLAYER_ADMIN, Wjpc::PARTICIPANT_UNCONNECTED);
+        $requestId = $this->requests()[0]['id'];
+
+        $applied = $this->applySheetChanges([
+            self::sheetGroup(['op' => 'remove', 'participant' => Wjpc::PARTICIPANT_UNCONNECTED]),
+            self::sheetGroup(self::declineChange($requestId, 'pending')),
+        ], competitionId: self::EVENT, actingPlayerId: self::ORGANISER);
+
+        self::assertSame(['applied', 'conflict'], self::groupStatuses($applied));
+        self::assertSame('superseded', $this->requests()[0]['status']);
+        self::assertNotContains('declined', $this->logActions(Wjpc::PARTICIPANT_UNCONNECTED));
+    }
+
     public function testARequestOfAnotherEventIsNotFound(): void
     {
         $this->policy('approval');
@@ -381,6 +408,39 @@ final class ParticipantClaimsTest extends KernelTestCase
         $this->applySheetChanges([self::sheetGroup(self::playerChange(Wjpc::PARTICIPANT_CONNECTED, PlayerFixture::PLAYER_REGULAR, null))], competitionId: self::EVENT, actingPlayerId: self::ORGANISER);
 
         self::assertSame(ClaimOutcome::Linked, $this->claim(PlayerFixture::PLAYER_REGULAR, Wjpc::PARTICIPANT_CONNECTED));
+    }
+
+    /**
+     * The requests of an event are read once per import / sheet change set (ParticipantLinks::inBatch()), not twice per
+     * link: one link and two links read them equally often
+     */
+    public function testLinkingManyPeopleReadsTheRequestsOnce(): void
+    {
+        $first = $this->newParticipant('First Person');
+        $second = $this->newParticipant('Second Person');
+        $third = $this->newParticipant('Third Person');
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $requestReads = static function () use ($debugDataHolder): int {
+            /** @var list<array{sql: string}> $executed */
+            $executed = $debugDataHolder->getData()['default'] ?? [];
+
+            return count(array_filter($executed, static fn (array $query): bool => str_contains($query['sql'], 'participant_link_request') && stripos($query['sql'], 'INSERT') !== 0));
+        };
+
+        $debugDataHolder->reset();
+        $this->applySheetChanges([self::sheetGroup(self::playerChange($first, null, PlayerFixture::PLAYER_ADMIN))], competitionId: self::EVENT, actingPlayerId: self::ORGANISER);
+        $one = $requestReads();
+
+        $debugDataHolder->reset();
+        $this->applySheetChanges([
+            self::sheetGroup(self::playerChange($second, null, PlayerFixture::PLAYER_WITH_STRIPE)),
+            self::sheetGroup(['op' => 'remove', 'participant' => $third]),
+            self::sheetGroup(['op' => 'remove', 'participant' => Wjpc::PARTICIPANT_UNCONNECTED]),
+        ], competitionId: self::EVENT, actingPlayerId: self::ORGANISER);
+
+        self::assertGreaterThan(0, $one);
+        self::assertSame($one, $requestReads());
     }
 
     // ---------------------------------------------------------------- helpers

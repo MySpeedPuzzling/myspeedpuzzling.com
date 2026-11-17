@@ -23,6 +23,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
+use SpeedPuzzling\Web\Query\EventIsOnline;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\EventTypes;
@@ -448,7 +449,7 @@ class Competition implements EntityWithEvents
             $this->participantClaims,
             $this->competitorPages,
             $this->timeProposals,
-            $this->series !== null ? $this->series->isOnline : $this->isOnline,
+            EventIsOnline::of($this),
         );
     }
 

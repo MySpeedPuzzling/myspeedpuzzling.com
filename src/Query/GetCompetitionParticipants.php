@@ -328,14 +328,27 @@ SQL;
      * The one not-connected participant whose name equals the given name, ignoring case, accents
      * and extra whitespace. A participant with a different country does not match, and neither
      * does an ambiguous name — then the player picks from the list themselves.
+     *
+     * With `$playerId`: a participant the log refuses for that player (a refused pair, participant-linking.md D11) is
+     * no match - the join page then shows the list instead of a claim that would only say "ask the organiser".
      */
-    public function findNotConnectedParticipantMatchingName(string $competitionId, string $name, null|string $country): null|string
+    public function findNotConnectedParticipantMatchingName(string $competitionId, string $name, null|string $country, null|string $playerId = null): null|string
     {
         if (trim($name) === '') {
             return null;
         }
 
         $going = CompetitionParticipantGoing::sql('competition_participant');
+        $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
+        $notRefused = $playerId !== null ? <<<SQL
+AND NOT EXISTS (
+    SELECT 1 FROM participant_link_log refusal
+    WHERE refusal.competition_id = :competitionId
+        AND refusal.participant_id = competition_participant.id
+        AND refusal.player_id = :playerId
+        AND refusal.action IN ({$refusing})
+)
+SQL : '';
 
         $query = <<<SQL
 SELECT id
@@ -346,16 +359,23 @@ AND {$going}
 AND lower(regexp_replace(trim(immutable_unaccent(name)), '\s+', ' ', 'g'))
     = lower(regexp_replace(trim(immutable_unaccent(:name)), '\s+', ' ', 'g'))
 AND (country IS NULL OR CAST(:country AS TEXT) IS NULL OR country = :country)
+{$notRefused}
 LIMIT 2
 SQL;
 
+        $parameters = [
+            'competitionId' => $competitionId,
+            'name' => $name,
+            'country' => $country,
+        ];
+
+        if ($playerId !== null) {
+            $parameters['playerId'] = $playerId;
+        }
+
         /** @var array<string> $ids */
         $ids = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-                'name' => $name,
-                'country' => $country,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchFirstColumn();
 
         return count($ids) === 1 ? $ids[0] : null;

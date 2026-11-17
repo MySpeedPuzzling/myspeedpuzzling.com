@@ -136,7 +136,7 @@ final class JoinCompetitionController extends AbstractController
         if ($isGoing === false) {
             // Opted in and their name is on the organizer's list: no need to make them pick it
             $matchingParticipantId = $profile->playerName !== null
-                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)
+                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country, $profile->playerId)
                 : null;
 
             // R11 (participant-linking.md §0a): a GET never links a name where the organiser confirms who is who - the
@@ -147,8 +147,15 @@ final class JoinCompetitionController extends AbstractController
                 $outcome = null;
                 $joined = $this->join($competitionId, $profile->playerId, $matchingParticipantId, outcome: $outcome);
 
-                return $this->claimNotLinked($outcome, $competitionId, $competitionUrl)
-                    ?? $this->afterJoin($joined, $competition, $profile, $competitionUrl);
+                if ($outcome === ClaimOutcome::AskOrganiser) {
+                    // The player's claims end here (3 refusals): the page with the list stays theirs - they may still
+                    // join as themselves; said once, nothing changed
+                    $this->addFlash('warning', $this->translator->trans('participant_linking.flash.ask_organiser'));
+                    $matchingParticipantId = null;
+                } else {
+                    return $this->claimNotLinked($outcome, $competitionId, $competitionUrl)
+                        ?? $this->afterJoin($joined, $competition, $profile, $competitionUrl);
+                }
             }
         }
 
@@ -282,7 +289,7 @@ final class JoinCompetitionController extends AbstractController
             'registration' => $this->getEventAttendance->forEvent($competition, $profile->playerId, true)->registration,
             // No auto-connect on a GET - the name found on the list is only pre-selected
             'matching_participant_id' => $profile->playerName !== null && $isConnected === false
-                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)
+                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country, $profile->playerId)
                 : null,
             'register_csrf_id' => self::REGISTER_CSRF_PREFIX . $competitionId,
             'claims_need_approval' => $this->getParticipantClaimPolicy->of($competitionId)['policy'] === ParticipantClaimPolicy::Approval,

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
@@ -190,6 +191,56 @@ final class JoinCompetitionControllerTest extends WebTestCase
         self::assertSame('withdrawn', $database->fetchOne('SELECT status FROM participant_link_request WHERE player_id = :pid', ['pid' => PlayerFixture::PLAYER_ADMIN]));
     }
 
+    /**
+     * A name match the organiser refused for this player is no match: the open GET shows the list instead of a claim
+     * that would only say "ask the organiser" on every visit - the player can still join as themselves
+     */
+    public function testARefusedNameMatchLeavesThePageToThePlayer(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE competition_participant SET name = 'Admin  user', country = 'cz' WHERE id = :id",
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
+        );
+        $this->refusal($database, CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, PlayerFixture::PLAYER_ADMIN);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('select[name="participant_id"] option[selected]'));
+        self::assertCount(1, $crawler->filter('input[name="self_join"]'));
+        self::assertNull($database->fetchOne('SELECT player_id FROM competition_participant WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]));
+    }
+
+    /**
+     * A player whose claims ended at the event (3 refusals): the GET's name match asks the organiser once, on the page
+     * with the list - never a redirect away from it
+     */
+    public function testAPlayerWithThreeRefusalsStillGetsThePage(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE competition_participant SET name = 'Admin  user', country = 'cz' WHERE id = :id",
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
+        );
+
+        foreach ([CompetitionParticipantFixture::PARTICIPANT_CONNECTED, CompetitionParticipantFixture::PARTICIPANT_PRIVATE, CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED] as $refused) {
+            $this->refusal($database, $refused, PlayerFixture::PLAYER_ADMIN);
+        }
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.alert-warning', 'Please ask the organiser to link you.');
+        self::assertCount(1, $crawler->filter('input[name="self_join"]'));
+        self::assertNull($database->fetchOne('SELECT player_id FROM competition_participant WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]));
+    }
+
     public function testAPickOfANameLinkedToSomebodyElseAsksTheOrganiser(): void
     {
         $browser = self::createClient();
@@ -208,12 +259,13 @@ final class JoinCompetitionControllerTest extends WebTestCase
      */
     public function testTooManyPicksAreStopped(): void
     {
+        // PLAYER_PRIVATE picks a name in no other test - the limiter's budget (shared by paratest workers) is theirs only
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
         /** @var RateLimiterFactoryInterface $limiter */
         $limiter = self::getContainer()->get('limiter.participant_claim');
-        $limiter->create(PlayerFixture::PLAYER_ADMIN)->reset();
-        $limiter->create(PlayerFixture::PLAYER_ADMIN)->consume(100000);
+        $limiter->create(PlayerFixture::PLAYER_PRIVATE)->reset();
+        $limiter->create(PlayerFixture::PLAYER_PRIVATE)->consume(100000);
 
         try {
             $browser->request('POST', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
@@ -223,8 +275,17 @@ final class JoinCompetitionControllerTest extends WebTestCase
             $browser->followRedirect();
             self::assertSelectorTextContains('.alert-warning', 'Too many tries');
         } finally {
-            $limiter->create(PlayerFixture::PLAYER_ADMIN)->reset();
+            $limiter->create(PlayerFixture::PLAYER_PRIVATE)->reset();
         }
+    }
+
+    private function refusal(Connection $database, string $participantId, string $playerId): void
+    {
+        $database->executeStatement(
+            "INSERT INTO participant_link_log (id, competition_id, participant_id, participant_name, player_id, player_name, action, method, by_player_id, at)
+             VALUES (:id, :competition, :participant, 'x', :player, 'y', 'not_this_person', NULL, NULL, " . TestClock::SQL_NOW . ")",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => CompetitionFixture::COMPETITION_WJPC_2024, 'participant' => $participantId, 'player' => $playerId],
+        );
     }
 
     private function participantRowsOf(string $playerId, string $competitionId): int

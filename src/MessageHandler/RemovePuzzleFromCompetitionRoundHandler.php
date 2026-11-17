@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,11 +23,22 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
     ) {
     }
 
+    /**
+     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick
+     * @throws SecretPuzzlesWouldBeRevealed
+     */
     public function __invoke(RemovePuzzleFromCompetitionRound $message): void
     {
         $this->secretPuzzleHides->lockRoundPuzzle($message->roundPuzzleId);
 
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
+        $round = $roundPuzzle->round;
+
+        // A `pick` round keeps at least K puzzles (competition toolkit A2) - the organiser lowers K first. The round is
+        // locked FOR SHARE above, so a format change (FOR NO KEY UPDATE) waits for this removal or the other way round
+        if ($round->puzzleFormat === RoundPuzzleFormat::Pick) {
+            $round->assertKeepsEnoughPuzzles($round->roundPuzzles->count() - 1);
+        }
 
         // The organiser said yes to a list before the lock - it must still be that list
         if ($message->confirmedRevealHash !== null) {

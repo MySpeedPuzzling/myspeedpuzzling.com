@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
@@ -46,6 +47,7 @@ readonly final class SetCompetitionRoundPuzzlesHandler
      * @throws PuzzleHiddenByHand
      * @throws PuzzleIsStillSecret
      * @throws SecretPuzzlesWouldBeRevealed
+     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick
      */
     public function __invoke(SetCompetitionRoundPuzzles $message): void
     {
@@ -100,6 +102,9 @@ readonly final class SetCompetitionRoundPuzzlesHandler
             $round->roundPuzzles->toArray(),
             static fn (CompetitionRoundPuzzle $roundPuzzle): bool => in_array($roundPuzzle->puzzle->id->toString(), $message->puzzleIds, true) === false,
         ));
+
+        // A `pick` round keeps at least K puzzles (competition toolkit A2) - checked before anything changes
+        $round->assertKeepsEnoughPuzzles($round->roundPuzzles->count() - count($rowsToRemove) + count($puzzlesToAttach));
 
         if ($message->refuseToReveal) {
             $revealed = $this->secretRevealPreview->byRemoving($rowsToRemove);

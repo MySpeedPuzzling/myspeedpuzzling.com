@@ -1,7 +1,7 @@
 {#
     Round formats & reveals (lane A: A1 reveal at the stopwatch start, A2 the round format) - R §1.4 card 4: one line per
-    round linking to its puzzles page; the per-round settings stay on the round pages. Variables: competition, rounds
-    (list<CompetitionRoundForManagement>), toolkit_return.
+    round linking to its puzzles page - how its puzzles are solved and when its secret ones are revealed; the per-round
+    settings stay on the round pages. Variables: competition, rounds (list<CompetitionRoundForManagement>), toolkit_return.
 #}
 <div class="col-lg-6">
     <div class="card shadow-sm h-100" data-toolkit-card="round-formats">
@@ -17,7 +17,26 @@
                 <ul class="list-unstyled mb-0">
                     {% for round in rounds %}
                         <li class="d-flex flex-wrap align-items-center gap-2 py-1" data-toolkit-round="{{ round.id }}">
-                            <span class="fw-semibold">{{ round.name }}</span>
+                            <div>
+                                <span class="fw-semibold">{{ round.name }}</span>
+                                <div class="small text-muted" data-toolkit-round-format="{{ round.puzzleFormat.value }}">
+                                    {{- include('competition_toolkit/_round_format_summary.html.twig', {
+                                        puzzle_format: round.puzzleFormat.value,
+                                        puzzles_to_solve: round.puzzlesToSolve,
+                                        puzzles_count: round.puzzleCount,
+                                    }, with_context = false) -}}
+                                    {{- ' · ' -}}
+                                    <span data-toolkit-round-reveal="{{ round.secretRevealModes|join(',') }}">
+                                        {%- if round.secretRevealModes is empty -%}
+                                            {{ 'competition_toolkit.round_format.reveal.none'|trans }}
+                                        {%- elseif round.secretRevealModes|length > 1 -%}
+                                            {{ 'competition_toolkit.round_format.reveal.mixed'|trans }}
+                                        {%- else -%}
+                                            {{ ('competition_toolkit.round_format.reveal.' ~ round.secretRevealModes|first)|trans({'%count%': round.revealDelayMinutes}) }}
+                                        {%- endif -%}
+                                    </span>
+                                </div>
+                            </div>
                             <a href="{{ path('manage_round_puzzles', {roundId: round.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary ms-auto">
                                 <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
                             </a>

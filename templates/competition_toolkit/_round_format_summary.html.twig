@@ -1,0 +1,13 @@
+{#
+    How a round's puzzles are solved, in a few words (competition toolkit A2): "One result for the round", "Solve all 3",
+    "Pick 2 of 3". Variables: puzzle_format ('total' | 'pick'), puzzles_to_solve (K or null), puzzles_count (N).
+#}
+{%- if puzzle_format == 'pick' and puzzles_to_solve is not null -%}
+    {%- if puzzles_to_solve >= puzzles_count -%}
+        {{ 'competition_toolkit.round_format.summary.all'|trans({'%count%': puzzles_count}) }}
+    {%- else -%}
+        {{ 'competition_toolkit.round_format.summary.pick'|trans({'%count%': puzzles_to_solve, '%puzzles%': puzzles_count}) }}
+    {%- endif -%}
+{%- else -%}
+    {{ 'competition_toolkit.round_format.summary.total'|trans }}
+{%- endif -%}

@@ -7,10 +7,12 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Results\RoundPuzzlesNow;
 use SpeedPuzzling\Web\Results\VisibleRoundPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundClock;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
@@ -24,6 +26,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  *   RoundPuzzleReveal): before it the puzzle is left out entirely, or - PuzzleHideMode::ImageOnly - shown by name
  *   without its picture.
  * - The puzzle's site-wide embargo: hide_until leaves the puzzle out, hide_image_until takes its picture away.
+ *
+ * Every round also comes as its slots (competition toolkit A2): each puzzle as a place with its position and neutral
+ * label, in the organiser's order (RoundPuzzleLabel) - a hidden one by its label only.
  *
  * One statement for any number of rounds.
  */
@@ -61,6 +66,8 @@ SELECT
     crp.hide_mode,
     crp.reveal_mode,
     crp.reveal_at,
+    crp.position,
+    crp.label,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.pieces_count,
@@ -101,9 +108,11 @@ SQL;
         $puzzlesByRound = [];
         /** @var array<string, int> $nextRevealByRound */
         $nextRevealByRound = [];
+        /** @var array<string, list<array{roundPuzzleId: string, position: null|int, label: null|string, revealsAt: null|DateTimeImmutable, puzzle: null|VisibleRoundPuzzle}>> $slotsByRound */
+        $slotsByRound = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_puzzle_id: string, round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, puzzle_image_embargoed: bool, puzzle_image_embargoed_until: null|string, puzzle_embargoed: bool, puzzle_embargoed_until: null|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
+            /** @var array{round_puzzle_id: string, round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, position: null|int|string, label: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, puzzle_image_embargoed: bool, puzzle_image_embargoed_until: null|string, puzzle_embargoed: bool, puzzle_embargoed_until: null|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
             $roundId = $row['round_id'];
             $hideUntilRoundStarts = $row['hide_until_round_starts'];
             if (is_string($hideUntilRoundStarts)) {
@@ -121,6 +130,9 @@ SQL;
             // The round puzzle's one reveal moment (RoundPuzzleReveal) - null = a manual reveal not made yet
             $hidden = false;
             $imageHidden = false;
+            // When the name comes out (the slot's revealsAt): the latest moment of what hides it, null = unknown
+            $nameMoments = [];
+            $nameMomentUnknown = false;
             if ($hideUntilRoundStarts) {
                 $revealAt = RoundPuzzleReveal::from($row['reveal_mode'])->revealAt(
                     new DateTimeImmutable($row['round_starts_at']),
@@ -134,6 +146,11 @@ SQL;
                 if ($revealAt !== null && $imageHidden) {
                     $moments[] = $revealAt;
                 }
+
+                if ($hidden) {
+                    $nameMomentUnknown = $revealAt === null;
+                    $nameMoments[] = $revealAt;
+                }
             }
 
             foreach ($moments as $moment) {
@@ -141,20 +158,32 @@ SQL;
                 $nextRevealByRound[$roundId] = min($nextRevealByRound[$roundId] ?? PHP_INT_MAX, $momentMs);
             }
 
-            if ($hidden || $row['puzzle_embargoed']) {
-                continue;
+            $visible = null;
+
+            if ($hidden === false && $row['puzzle_embargoed'] === false) {
+                $visible = new VisibleRoundPuzzle(
+                    roundPuzzleId: $row['round_puzzle_id'],
+                    puzzleId: $row['puzzle_id'],
+                    puzzleName: $row['puzzle_name'],
+                    piecesCount: (int) $row['pieces_count'],
+                    puzzleImage: $imageHidden ? null : $row['puzzle_image'],
+                    puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
+                    manufacturerName: $row['manufacturer_name'],
+                    imageHidden: $imageHidden || $row['puzzle_image_embargoed'],
+                );
+                $puzzlesByRound[$roundId][] = $visible;
+            } elseif ($row['puzzle_embargoed_until'] !== null) {
+                $nameMoments[] = new DateTimeImmutable($row['puzzle_embargoed_until']);
             }
 
-            $puzzlesByRound[$roundId][] = new VisibleRoundPuzzle(
-                roundPuzzleId: $row['round_puzzle_id'],
-                puzzleId: $row['puzzle_id'],
-                puzzleName: $row['puzzle_name'],
-                piecesCount: (int) $row['pieces_count'],
-                puzzleImage: $imageHidden ? null : $row['puzzle_image'],
-                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
-                manufacturerName: $row['manufacturer_name'],
-                imageHidden: $imageHidden || $row['puzzle_image_embargoed'],
-            );
+            $nameMoments = array_filter($nameMoments);
+            $slotsByRound[$roundId][] = [
+                'roundPuzzleId' => $row['round_puzzle_id'],
+                'position' => $row['position'] !== null ? (int) $row['position'] : null,
+                'label' => $row['label'],
+                'revealsAt' => $visible === null && $nameMomentUnknown === false && $nameMoments !== [] ? max($nameMoments) : null,
+                'puzzle' => $visible,
+            ];
         }
 
         $result = [];
@@ -162,9 +191,32 @@ SQL;
             $result[$roundId] = new RoundPuzzlesNow(
                 puzzles: $puzzlesByRound[strtolower($roundId)] ?? [],
                 nextRevealAtMs: $nextRevealByRound[strtolower($roundId)] ?? null,
+                slots: self::slots($slotsByRound[strtolower($roundId)] ?? []),
             );
         }
 
         return $result;
+    }
+
+    /**
+     * @param list<array{roundPuzzleId: string, position: null|int, label: null|string, revealsAt: null|DateTimeImmutable, puzzle: null|VisibleRoundPuzzle}> $rows
+     * @return list<RoundPuzzleSlot>
+     */
+    private static function slots(array $rows): array
+    {
+        $sorted = RoundPuzzleLabel::sort($rows, static fn (array $row): array => [$row['position'], $row['roundPuzzleId']]);
+        $slots = [];
+
+        foreach ($sorted as $index => $row) {
+            $slots[] = new RoundPuzzleSlot(
+                roundPuzzleId: $row['roundPuzzleId'],
+                position: $index + 1,
+                label: RoundPuzzleLabel::effective($row['label'], $index + 1),
+                revealsAt: $row['revealsAt'],
+                puzzle: $row['puzzle'],
+            );
+        }
+
+        return $slots;
     }
 }

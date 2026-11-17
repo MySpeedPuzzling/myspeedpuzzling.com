@@ -15,10 +15,13 @@ readonly final class RoundPuzzlesNow
      * @param null|int $nextRevealAtMs the earliest moment (Unix milliseconds) after now at which something of the round's
      *     puzzles comes out (a reveal of the round, a puzzle's own hide_until / hide_image_until) - null when nothing is
      *     scheduled (all out, or only manual reveals left). A moment, never a puzzle: a page refetches then
+     * @param list<RoundPuzzleSlot> $slots every puzzle of the round as a place with its label, in the organiser's order
+     *     (RoundPuzzleLabel) - hidden ones too, but only by their label (competition toolkit A2: pick rounds)
      */
     public function __construct(
         public array $puzzles,
         public null|int $nextRevealAtMs,
+        public array $slots = [],
     ) {
     }
 

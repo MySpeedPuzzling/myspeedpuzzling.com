@@ -50,6 +50,47 @@
             </div>
         {% endfor %}
 
+        {# Competition toolkit A2: how the puzzles are solved, and their order and labels - for whom may change the toolkit's
+           settings (a round using `pick` shows its format to every organiser) #}
+        {% set toolkit_manage = is_granted('COMPETITION_TOOLKIT_MANAGE', round.competition.id.toString) %}
+        {% if toolkit_manage or round.puzzleFormat.value == 'pick' %}
+            <p class="mb-2" data-round-puzzle-format="{{ round.puzzleFormat.value }}">
+                <i class="bi bi-list-ol me-1"></i>{{ 'competition_toolkit.round_format.page_line'|trans }}
+                <strong>{{ include('competition_toolkit/_round_format_summary.html.twig', {
+                    puzzle_format: round.puzzleFormat.value,
+                    puzzles_to_solve: round.puzzlesToSolve,
+                    puzzles_count: puzzles|length,
+                }, with_context = false) }}</strong>
+                · <a href="{{ path('edit_competition_round', {roundId: round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}">{{ 'competition_toolkit.round_format.change'|trans }}</a>
+            </p>
+        {% endif %}
+        {% if toolkit_manage and puzzles|length > 0 %}
+            {% set arranged = puzzles|sort((a, b) => a.position <=> b.position) %}
+            <details class="card mb-3 col-xl-9 px-0" data-arrange-round-puzzles>
+                <summary class="card-header fw-medium">{{ 'competition_toolkit.round_format.arrange.title'|trans }}</summary>
+                <div class="card-body">
+                    <p class="small text-muted">{{ 'competition_toolkit.round_format.arrange.help'|trans }}</p>
+                    <form method="post" action="{{ path('arrange_round_puzzles', {roundId: round.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('arrange_round_puzzles_' ~ round.id) }}">
+                        {% for puzzle in arranged %}
+                            <div class="row g-2 align-items-center mb-2" data-arrange-puzzle="{{ puzzle.roundPuzzleId }}">
+                                <div class="col-3 col-sm-2">
+                                    <label class="visually-hidden" for="arrange-position-{{ puzzle.roundPuzzleId }}">{{ 'competition_toolkit.round_format.arrange.position'|trans }}</label>
+                                    <input class="form-control form-control-sm" type="number" min="1" max="{{ puzzles|length }}" step="1" inputmode="numeric" name="position[{{ puzzle.roundPuzzleId }}]" id="arrange-position-{{ puzzle.roundPuzzleId }}" value="{{ puzzle.position }}">
+                                </div>
+                                <div class="col-9 col-sm-4">
+                                    <label class="visually-hidden" for="arrange-label-{{ puzzle.roundPuzzleId }}">{{ 'competition_toolkit.round_format.arrange.label'|trans }}</label>
+                                    <input class="form-control form-control-sm" type="text" maxlength="40" name="label[{{ puzzle.roundPuzzleId }}]" id="arrange-label-{{ puzzle.roundPuzzleId }}" value="{{ puzzle.customLabel }}" placeholder="{{ puzzle.label }}">
+                                </div>
+                                <div class="col-12 col-sm-6 small text-truncate">{{ puzzle.puzzleName }}</div>
+                            </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-sm btn-primary mt-1">{{ 'competition_toolkit.round_format.arrange.save'|trans }}</button>
+                    </form>
+                </div>
+            </details>
+        {% endif %}
+
         <h2 class="h4 mt-4">{{ 'competition.puzzles'|trans }}</h2>
 
         {% if puzzles|length > 0 %}

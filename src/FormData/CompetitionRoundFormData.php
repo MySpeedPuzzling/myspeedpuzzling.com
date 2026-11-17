@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -50,6 +51,15 @@ final class CompetitionRoundFormData
             constraints: [new Assert\Range(min: CompetitionRound::TEAM_SIZE_MIN, max: CompetitionRound::TEAM_SIZE_MAX)],
         )]
         public null|int $teamSize = null,
+        // How the round's puzzles are solved (competition toolkit A2) - on the form only for whom COMPETITION_TOOLKIT_MANAGE
+        // grants, or when the round uses `pick` already (CompetitionRoundFormType `puzzle_format`). K ≤ the round's
+        // puzzles is the handler's check (RoundPuzzleFormatRefused)
+        public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total,
+        #[Assert\When(
+            expression: 'this.puzzleFormat.value === "pick"',
+            constraints: [new Assert\NotNull(), new Assert\Positive()],
+        )]
+        public null|int $puzzlesToSolve = null,
     ) {
     }
 
@@ -82,6 +92,8 @@ final class CompetitionRoundFormData
         // The stored size only - a guess is the field's placeholder (CompetitionRoundFormType `team_size_guess`), so an
         // untouched form stores nothing
         $data->teamSize = $round->teamSize;
+        $data->puzzleFormat = $round->puzzleFormat;
+        $data->puzzlesToSolve = $round->puzzlesToSolveCount();
 
         return $data;
     }

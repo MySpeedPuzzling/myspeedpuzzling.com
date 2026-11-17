@@ -33,6 +33,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * - `?viewer=1` adds `viewer: {playerId, organiser}` - who reads it, so the live entry page renders without any user
  *   data of its own (it fills itself from this answer);
  * - `?entries=0` leaves `entries` out (and its query) - the clock sync and the token renewal only.
+ * A `pick` round (competition toolkit A2) carries `puzzleFormat` in `round` and `rounds[]` (GetRoundResultsOverview,
+ * RoundPuzzleFormats) - absent on every other round.
  * docs/features/competitions-management/official-results.md - the JSON shape is documented there.
  */
 final class RoundResultsStateController extends AbstractController

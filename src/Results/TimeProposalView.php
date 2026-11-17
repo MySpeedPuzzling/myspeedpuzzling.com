@@ -12,10 +12,10 @@ use DateTimeImmutable;
  * no puzzle choice in v1). The same payload goes to the organisers' and the referees' topic: who proposed is the
  * participant's organiser-recorded name only - never the linked player's id, #code or profile name.
  *
- * - `late` = more than 5 s between the tap and the receipt - kept for compatibility; what the judge's card does with it
- *   is `timing` (reliability hardening T2, TimeProposalTiming): `{verdict: on_time|offline|suspicious, lastHeardAtMs,
- *   clockUncertain, queuedOffline, attempts}` - only `suspicious` defaults to the receipt time. Null on a proposal from
- *   before T2: then `late` defaults to the receipt time as it did (R §2.4). Judges only - never on the competitor's phone.
+ * - `late` = more than 5 s between the tap and the receipt - data kept for compatibility, no judge UI: the recorded
+ *   time is always the tap's (Jan). `timing` (reliability hardening T2, TimeProposalTiming): `{verdict:
+ *   on_time|offline|suspicious, lastHeardAtMs, clockUncertain, queuedOffline, attempts}` - `suspicious` /
+ *   `clockUncertain` make the card warn. Null on a proposal from before T2. Judges only - never on the competitor's phone.
  * - `proposedBy.linkedAt` = when the proposer's profile was linked to that name, only when that was less than a day
  *   before the tap (R §2.4: "linked to this name on {date}"); null otherwise.
  * - `decided` once it is not pending.

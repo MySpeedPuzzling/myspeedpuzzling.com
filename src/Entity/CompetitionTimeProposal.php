@@ -32,9 +32,9 @@ use SpeedPuzzling\Web\Value\TimeProposalVerdict;
  *   `custom_time_proposal_pending_solo` / `custom_time_proposal_pending_team` (migration + tests/bootstrap.php).
  * - The times: `tappedAtMs` is the phone's server-synced clock at the tap, `receivedAtMs` the server's receipt; the
  *   seconds of both against the stopwatch start the server used (`startedAtMs`). Late (> 5 s, isLate()) is shown to the
- *   judge with both times. Since reliability hardening T2 the judge's default follows `timingVerdict`
- *   (TimeProposalTiming - evidence from the competitor page's heartbeats): only `suspicious` defaults to the receipt;
- *   a row from before T2 (no verdict) keeps the old rule (late → the receipt).
+ *   judge with both times. Since reliability hardening T2 the recorded time is always the tap's (Jan) and `late` is
+ *   data only; `timingVerdict` (TimeProposalTiming - evidence from the competitor page's heartbeats) says whether
+ *   the judge should check it (`suspicious`).
  * - Gone with the round, the entry and the participant (ON DELETE CASCADE - DeleteCompetitionHandler deletes in SQL).
  */
 #[Entity]

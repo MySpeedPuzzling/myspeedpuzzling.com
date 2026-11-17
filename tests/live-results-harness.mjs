@@ -1873,15 +1873,16 @@ const scenarios = {
         assert.equal(applyOutcome(confirmed.proposals, { id: PROP_1, status: 'superseded' }).stale, true);
     },
 
-    'the card panel: confirm, differs, matches, sending, decided - late defaults to the receipt'() {
+    'the card panel: confirm, differs, matches, sending, decided - a late tap keeps the tapped time'() {
         const anna = entry(ANNA, 'Anna', 12);
         const pending = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]).get(PROP_1);
         assert.deepEqual(proposalPanel(pending, anna, []), { state: 'confirm', value: { seconds: 2712 }, saved: null });
         assert.deepEqual(proposalValue(pending), { seconds: 2712 });
 
         const late = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { late: true, lateByMs: 12000, receiptSeconds: 2724 })]).get(PROP_1);
-        assert.deepEqual(proposalValue(late), { seconds: 2724 }, 'late: the receipt time');
-        assert.deepEqual(proposalPanel(late, anna, []).value, { seconds: 2724 });
+        // T2 (Jan): the recorded time is the tap's, never the receipt's - also for a proposal from before T2
+        assert.deepEqual(proposalValue(late), { seconds: 2712 }, 'late: still the tapped time');
+        assert.deepEqual(proposalPanel(late, anna, []).value, { seconds: 2712 });
 
         assert.equal(proposalPanel(pending, entry(ANNA, 'Anna', 12, { result: { seconds: 2800 } }), []).state, 'differs');
         assert.deepEqual(proposalPanel(pending, entry(ANNA, 'Anna', 12, { result: { seconds: 2800 } }), []).saved, { seconds: 2800 });
@@ -1894,60 +1895,47 @@ const scenarios = {
         assert.equal(proposalPanel(null, anna, []), null);
     },
 
-    'T2: the timing verdict decides the default - only a suspicious tap defaults to the receipt'() {
+    'T2: always the tapped time - a warning and the received time on offer only with evidence'() {
         const anna = entry(ANNA, 'Anna', 12);
         const timing = (verdict, extra = {}) => ({ verdict, lastHeardAtMs: T_STATE - 20_000, clockUncertain: false, queuedOffline: false, attempts: 1, ...extra });
         const late = { late: true, lateByMs: 42_000, proposedSeconds: 2712, receiptSeconds: 2754, tappedAtMs: T_STATE - 43_000, receivedAtMs: T_STATE - 1000 };
 
-        // On time
-        const onTime = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { timing: timing('on_time') })]).get(PROP_1);
-        assert.deepEqual(proposalValue(onTime), { seconds: 2712 });
-        assert.deepEqual(proposalNotes(onTime), []);
-        assert.equal(proposalAlternative(onTime), null);
-        assert.equal(waitingNote(onTime), null);
+        // On time, offline (arrived late without evidence), from before T2 (late, no timing): the tap, nothing shown
+        for (const extra of [{ timing: timing('on_time') }, { ...late, timing: timing('offline', { queuedOffline: true, attempts: 6 }) }, late]) {
+            const proposal = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, extra)]).get(PROP_1);
+            assert.deepEqual(proposalValue(proposal), { seconds: 2712 });
+            assert.deepEqual(proposalPanel(proposal, anna, []).value, { seconds: 2712 });
+            assert.deepEqual(proposalNotes(proposal), [], 'no late badge, no "arrived later" note');
+            assert.equal(proposalAlternative(proposal), null);
+            assert.equal(waitingNote(proposal), null);
+        }
 
-        // Offline: late, but the tap stands - a neutral note, no other button
-        const offline = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { ...late, timing: timing('offline', { queuedOffline: true, attempts: 6 }) })]).get(PROP_1);
+        const offline = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { ...late, timing: timing('offline', { attempts: 6 }) })]).get(PROP_1);
         assert.equal(offline.timing.attempts, 6, 'the timing survives the merge (and so the snapshot)');
-        assert.deepEqual(proposalValue(offline), { seconds: 2712 }, 'an honest offline phone keeps its tap');
-        assert.deepEqual(proposalPanel(offline, anna, []).value, { seconds: 2712 });
-        assert.deepEqual(proposalNotes(offline), [{ key: 'proposalArrivedLater', ages: { age: [T_STATE - 43_000, T_STATE - 1000] } }]);
-        assert.equal(proposalAlternative(offline), null);
-        assert.equal(waitingNote(offline), 'proposalSentLater');
 
-        // Suspicious: "Check this time", both times, the receipt by default, one tap takes the tapped time
+        // Suspicious: "Check this time" with both times - the tapped time stays the default, the received one a tap away
         const suspicious = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { ...late, timing: timing('suspicious') })]).get(PROP_1);
-        assert.deepEqual(proposalValue(suspicious), { seconds: 2754 });
-        assert.deepEqual(proposalPanel(suspicious, anna, []).value, { seconds: 2754 });
-        assert.deepEqual(proposalValue(suspicious, 'tapped'), { seconds: 2712 });
-        assert.deepEqual(proposalValue(onTime, 'received'), { seconds: 2713 });
-        assert.deepEqual(proposalAlternative(suspicious), { use: 'tapped', seconds: 2712 });
+        assert.deepEqual(proposalValue(suspicious), { seconds: 2712 });
+        assert.deepEqual(proposalPanel(suspicious, anna, []).value, { seconds: 2712 });
+        assert.deepEqual(proposalValue(suspicious, 'received'), { seconds: 2754 });
+        assert.deepEqual(proposalAlternative(suspicious), { use: 'received', seconds: 2754 });
         const notes = proposalNotes(suspicious);
         assert.deepEqual(notes.map((note) => note.key), ['proposalCheck', 'proposalCheckTimes']);
         assert.equal(notes[0].warning, true);
         assert.deepEqual(notes[1].seconds, { tapped: 2712, received: 2754 });
         assert.deepEqual(notes[1].clocks, { tappedAt: T_STATE - 43_000, heardAt: T_STATE - 20_000, receivedAt: T_STATE - 1000 });
         assert.equal(waitingNote(suspicious), 'proposalCheck');
-        // Confirm with the tapped time: the result carries the proposal
-        const { fields } = confirmFields(null, null, proposalValue(suspicious, 'tapped'), anna, [], PROP_1);
-        assert.deepEqual(fields, [{ field: 'result', to: { seconds: 2712 }, proposalId: PROP_1 }]);
+        const { fields } = confirmFields(null, null, proposalValue(suspicious, 'received'), anna, [], PROP_1);
+        assert.deepEqual(fields, [{ field: 'result', to: { seconds: 2754 }, proposalId: PROP_1 }]);
+        assert.equal(proposalAlternative({ ...suspicious, receiptSeconds: 2712 }), null, 'the same seconds: nothing else to offer');
 
-        // The clock in doubt: a note on any verdict, the default unchanged
+        // The clock in doubt (evidence): a note, the default unchanged
         const uncertain = proposalOf(PROP_1, ANNA, { timing: timing('on_time', { clockUncertain: true }) });
         assert.deepEqual(proposalNotes(uncertain), [{ key: 'proposalClockUncertain' }]);
         assert.deepEqual(proposalValue(uncertain), { seconds: 2712 });
 
-        // From before T2 (no timing): late keeps the receipt default - and offers the tapped time
-        const legacy = proposalOf(PROP_1, ANNA, late);
-        assert.equal(proposalTiming(legacy).verdict, 'legacy_late');
-        assert.deepEqual(proposalValue(legacy), { seconds: 2754 });
-        assert.deepEqual(proposalAlternative(legacy), { use: 'tapped', seconds: 2712 });
-        assert.equal(proposalNotes(legacy)[0].prefix, 'proposalLate');
-        assert.equal(waitingNote(legacy), 'proposalLate');
-        assert.equal(proposalTiming(proposalOf(PROP_1, ANNA)).verdict, 'on_time');
+        assert.equal(proposalTiming(proposalOf(PROP_1, ANNA, late)).verdict, 'on_time');
         assert.equal(proposalTiming(proposalOf(PROP_1, ANNA, { timing: { verdict: 'nonsense' } })).verdict, 'on_time', 'an unknown verdict is no verdict');
-        // Same tapped and received seconds: nothing else to offer
-        assert.equal(proposalAlternative({ ...suspicious, receiptSeconds: 2712 }), null);
     },
 
     'the proposer is named only on a pair/team card - a solo card would repeat its own name'() {

@@ -258,10 +258,11 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
    `CompetitionParticipantsLock`, `TimeProposalApi`, limiter `time_proposal` 10 per 10 min) write a pending
    `competition_time_proposal`. `TimeProposalOwnership`: only the linked solo entrant / member, **linked before the
    round's first stopwatch start** (`linked_after_start` otherwise); a known `proposalId` answers only its own entry and
-   sender. Tap vs receipt > 5 s = `late`. A stopwatch reset supersedes pending proposals (`stopwatch_reset`).
+   sender. The timing verdict ("Timing you can trust" below) is stored with it. A stopwatch reset supersedes pending
+   proposals (`stopwatch_reset`).
    Pushed as `official_results.proposals`.
-3. **Judge** (C9, `live-results.md` "Time proposals"): the entry card's panel - Confirm / Change / Not right; a `late`
-   proposal **defaults to the receipt time**; "Proposals waiting (N)" rows only **open the card - nothing is confirmed
+3. **Judge** (C9, `live-results.md` "Time proposals"): the entry card's panel - Confirm / Change / Not right; the value is
+   **always the tap's time** - only a `suspicious` tap shows "Check this time" (+ "Use received"); "Proposals waiting (N)" rows only **open the card - nothing is confirmed
    from a list**. A confirmation is the `result` change with `proposalId` (`TimeProposalResolver` in
    `RecordRoundResults`); any other result on the entry confirms (same seconds) or supersedes it.
 4. **Back to the competitor**: the 5 s poll returns the decided proposal - "Confirmed", "Confirmed as X - you proposed
@@ -282,47 +283,55 @@ Decided behaviours, edges:
 
 ## Timing you can trust (reliability hardening T2)
 
-Jan: "+5 s can make a huge difference" - an honest competitor whose tap reached us late (venue Wi-Fi) must keep the
-time of the tap; a late receipt alone proves nothing. What the server knows for sure is only **when it received
-something** (the proposal, a heartbeat); everything else (the tap moment, the clock offset, "I was offline") is the
-phone's word. The honest page always tells the truth, so the rule is: **trust the tap unless the phone's own words
-contradict it.**
+Jan: "+5 s can make a huge difference" - **the recorded time is the moment of the tap on the server-synced clock,
+never the moment we received it**. An honest competitor whose tap reached us late (venue Wi-Fi) keeps it; the judge
+sees no "late" badge (Jan: useless information for the judge). What the server knows for sure is only **when it
+received something** (the proposal, a heartbeat); the tap moment, the clock offset, "I was offline" are the phone's
+word. The honest page always tells the truth, so a warning is shown **only where the phone's own words contradict the
+tap** - and even then the tap stays the default.
 
 Threat model:
 
-| Case | What happens | Verdict / judge's default |
+| Case | What happens | Verdict / judge's card |
 |---|---|---|
 | Honest phone, online | sent at the tap, received within 5 s | `on_time` - the tap time |
-| Honest phone, offline at the tap | the tap waits in the outbox (IndexedDB); its heartbeats, if any get through, say "I hold an unsent tap from T" | `offline` - the tap time, a neutral "arrived 0:42 after the tap" note |
-| The confirm sheet left open | "Propose 0:49:12?" read for 8 s - the heartbeats say "confirming a tap from T" | `offline` (as above) - never penalised |
-| Page reloaded after the tap | the outbox survives the reload and resends with the same id and the original `tappedAtMs`; heartbeats start only after the outbox is read | as the first send would have been |
+| Honest phone, offline at the tap | the tap waits in the outbox (IndexedDB); its heartbeats, if any get through, say "I hold an unsent tap from T" | `offline` - the tap time, nothing shown |
+| The confirm sheet left open | "Propose 0:49:12?" read for 8 s - the heartbeats say "confirming a tap from T" | `offline` - the tap time, nothing shown |
+| Page reloaded after the tap | the outbox survives the reload and resends with the same id and the original `tappedAtMs`; heartbeats start only after the outbox is read | as the first send would have been (a resend is answered `known`) |
 | Several taps | a resend of the same id is answered `known`; a second tap while one is pending is `already_proposed` (one pending per entry) | - |
-| Dishonest: taps late on purpose with a faked "offline" story (a request crafted with an earlier `tappedAtMs`) | the page's heartbeats after the claimed tap said "nothing unsent" - the phone was online and held no tap | `suspicious` - "Check this time", both times, the **receipt** time default, one tap takes the tap time |
+| Dishonest: taps late on purpose with a faked "offline" story (a request crafted with an earlier `tappedAtMs`) | the page's heartbeats after the claimed tap said "nothing unsent" - the phone was online and held no tap | `suspicious` - "Check this time" with both times and when the phone was online; the tap time stays the default, "Use received 0:49:52" is one tap away |
 | Dishonest and thorough: crafted heartbeats too, or airplane mode around a pre-tap ("insurance") | indistinguishable from an honest offline phone | `offline` - **the judge's eyes at the table are the final check** (Confirm needs WHO first) |
-| Clock offset jumps / old sample | the phone's offset differs from its last heartbeat's by > 2 s, its sample is older than 30 min or missing, or its clock disagrees with ours at the send | `clockUncertain` - a visible note, the default unchanged; only the impossible (`clock_ahead`) is refused |
+| Clock offset jumps / the phone's clock runs ahead | the offset behind the tap differs from the last heartbeat's by > 2 s, or the phone claims to have sent the proposal > 2 s after we received it | `clockUncertain` - a note on the card, the default unchanged; only the impossible (`clock_ahead`, a tap > 2 s after the receipt) is refused |
+
+**Why the tap stays the default even when `suspicious`:** the evidence proves only that the phone held no tap while
+it was online - not when the competitor finished (an honest second device, a tab that crashed before storing the tap
+could look the same). The judge stands at the table and looks at the puzzle; the warning and the one-tap "Use
+received" give them what they need without software overruling Jan's rule.
 
 Rules (server: `TimeProposalTiming::judge()`, pure; evidence read by the controller before the dispatch and carried in
 the message):
 
 - **Heartbeat** - only on the signed-in competitor's own entry with proposals on (`canPropose`): every 15 s ±20 % while
   the page is visible and the round runs (or the outbox still holds a tap of it), at once on `online` /
-  `visibilitychange`. `POST /-/competitor-heartbeat` (stateless firewall: no session, no user, no ORM, no Postgres) with
-  the round's signed token from the state JSON (`heartbeat` on the round, HMAC of round + entry + player + expiry,
-  `CompetitorHeartbeatToken`, 6 h) + the phone's clock (`atMs` its server-synced now, `offsetMs`, `rttMs`,
-  `sampleAgeMs`) + its outbox (`unsent`, `oldestUnsentTapMs` - a tap still in the confirm sheet counts). One Lua call
-  to redis-state (`CompetitorHeartbeats`, hash per round, TTL 6 h); answer `{serverNowMs}` = a clock sample.
+  `visibilitychange` (at most one per 2 s). `POST /-/competitor-heartbeat` (stateless firewall: no session, no user,
+  no ORM, no Postgres - `CompetitorHeartbeatControllerTest` pins 0 statements) with the round's signed token from the
+  state JSON (`heartbeat` on the round, HMAC of round + entry + player + expiry, `CompetitorHeartbeatToken`, 6 h; 403
+  `expired_token` → the page fetches the state) + the phone's clock (`atMs` its server-synced now, `offsetMs`,
+  `rttMs`, `sampleAgeMs`) + its outbox (`unsent`, `oldestUnsentTapMs` - read from IndexedDB for every beat, so another
+  tab's tap counts, and a tap still in the confirm sheet counts). One Lua call to redis-state (`CompetitorHeartbeats`,
+  hash per round, TTL 6 h; limiter `competitor_heartbeat` 30/min per player and round); answer `{serverNowMs}` = a
+  clock sample for the page.
 - A heartbeat is **clean** when it reports no unsent tap. Its evidence moment is the phone's `atMs`, clamped to
-  [receipt − 30 s, receipt] (a slow request never counts as later than it was built). The store keeps the last beat
-  and the last clean beat per entry and player.
+  [receipt − 30 s, receipt]. The store keeps the last beat and the last clean beat per entry and player.
 - **Verdict** on receipt R of a tap T: R − T ≤ 5 s → `on_time`; else the last clean beat's moment > T + 2 s and
   R − its receipt > 5 s → `suspicious`; else `offline`. A heartbeat that says "I hold an unsent tap from T" never counts
   against T - the phone was trying. No heartbeat at all (an old page, a phone that never got through) = `offline`.
-- Stored on the proposal (`timing_verdict`, `last_heard_at_ms`, `clock_uncertain`, plus the phone's
-  `offset_sample_age_ms`, `queued_offline`, `send_attempts`); rows from before T2 have no verdict and keep the old
-  rule (`late` → the receipt default). `late` (> 5 s) stays in the JSON for compatibility.
+- Every send of the outbox says how the tap travelled (`proposalBody()`): `offsetSampleAgeMs`, `queuedOffline`,
+  `attempts`, `sentAtMs` - stored with `timing_verdict`, `last_heard_at_ms`, `clock_uncertain` (diagnostics:
+  `offset_sample_age_ms`, `queued_offline`, `send_attempts`). `late` / `lateByMs` stay in the data, no judge UI.
 - Known limits: two devices of the same player on the same entry share one heartbeat record (a clean beat of the
-  tablet can make the phone's offline tap `suspicious` - the judge takes the tap time with one tap); a hidden page
-  sends no heartbeats (no evidence = the tap is trusted).
+  tablet can mark the phone's offline tap `suspicious` - a warning only, the tap stays the default); a hidden page
+  sends no heartbeats (no evidence = nothing shown).
 
 ## Statements (competitor page)
 

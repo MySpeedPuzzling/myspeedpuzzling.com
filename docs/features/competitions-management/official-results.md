@@ -324,8 +324,8 @@ Only for a competition with `time_proposals` on (Competitor pages & QR card; des
   competitor-pages.md "Timing you can trust")**: the controller reads what the competitor page's heartbeats left in
   redis-state (`CompetitorHeartbeats`) and passes it in the message with the phone's `offsetSampleAgeMs`,
   `queuedOffline`, `attempts`, `sentAtMs`; `TimeProposalTiming::judge()` stores `timing_verdict` on_time / offline /
-  suspicious, `last_heard_at_ms`, `clock_uncertain` (+ the phone's diagnostics) - only `suspicious` makes the judge's
-  card default to the receipt time; a row from before T2 (no verdict) keeps `late` → receipt.
+  suspicious, `last_heard_at_ms`, `clock_uncertain` (+ the phone's diagnostics). The recorded time is always the tap's
+  (Jan) - `suspicious` / `clockUncertain` only make the judge's card warn; `late` is kept as data without any UI.
 - **In `RecordRoundResults`**: a `result` change may carry `proposalId` → that proposal is confirmed with the written
   seconds (a non-finished result rejects it `not_finished`; no longer pending = the result stands, `not_pending`); a
   judge's "Not right" is `{"field": "proposal", "entry", "from": {"id"}, "to": {"status": "rejected", "reason":

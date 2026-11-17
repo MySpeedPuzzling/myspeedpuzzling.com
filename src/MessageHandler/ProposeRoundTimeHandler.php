@@ -40,9 +40,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * 5. `result_recorded` (the entry has an official result), `already_proposed` (one is pending - its id comes along).
  *
  * The seconds are counted from the stored start, both for the tap and for the receipt; more than 5 s between them is
- * `late` (lateByMs). Whether that lateness is a problem is the timing verdict (reliability hardening T2,
- * TimeProposalTiming::judge() over the message's evidence - the heartbeats of the competitor's page): on_time /
- * offline (the tap stands) / suspicious (the judge checks; the receipt is the default), plus `clockUncertain`.
+ * `late` (lateByMs, kept as data - no judge UI). The recorded time is always the tap's; the timing verdict
+ * (reliability hardening T2, TimeProposalTiming::judge() over the message's evidence - the heartbeats of the
+ * competitor's page) only says whether the judge should check it: on_time / offline (nothing to show) / suspicious
+ * ("Check this time"), plus `clockUncertain`.
  * A phone that timed against another stopwatch state (a pause/resume since) is flagged `clockChanged`. Nothing is
  * published here - the controller does after the commit.
  */
@@ -136,8 +137,6 @@ readonly final class ProposeRoundTimeHandler
             receivedAtMs: $message->receivedAtMs,
             heartbeat: $message->heartbeat,
             offsetMs: $message->offsetMs,
-            rttMs: $message->rttMs,
-            offsetSampleAgeMs: $message->offsetSampleAgeMs,
             sentAtMs: $message->sentAtMs,
         );
 

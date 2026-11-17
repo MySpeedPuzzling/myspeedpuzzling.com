@@ -5598,10 +5598,8 @@ live_results:
             other: "Other"
         timing:
             check: "Check this time"
-            check_times: "Tapped %tapped% (%tappedAt%), but the phone was online at %heardAt% without sending it - received %received% (%receivedAt%). The received time is used."
-            use_tapped: "Use tapped %time%"
-            arrived_later: "Arrived %age% after the tap - the phone was offline or still confirming. The tapped time is used."
-            sent_later: "sent later"
+            check_times: "Tapped %tapped% (%tappedAt%), but the phone was online at %heardAt% without sending it - received %received% (%receivedAt%). Look at the puzzle; the tapped time is used unless you choose otherwise."
+            use_received: "Use received %time%"
             clock_uncertain: "The phone's clock may be off - compare with the stopwatch."
 
 name_tags:

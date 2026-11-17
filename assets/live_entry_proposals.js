@@ -9,12 +9,10 @@
  * - A confirmation is the entry's `result` change carrying `proposalId` (a pick round: with its `puzzles` in one
  *   group), a rejection a `field: "proposal"` change - both through the outbox, offline-safe; the server's outcome
  *   annotates `proposal: {id, status}`.
- * - Timing (reliability hardening T2, competitor-pages.md "Timing you can trust" - the server's verdict from the
- *   competitor page's heartbeats, `timing.verdict`): `on_time` → the tapped time; `offline` (arrived late, nothing
- *   contradicts the tap) → the tapped time + a neutral "arrived 0:42 after the tap"; `suspicious` (the phone was online
- *   and held no tap) → "Check this time", both times, the received time is the default and one tap takes the tapped
- *   one; `clockUncertain` → a note. A proposal from before T2 (no `timing`) keeps the old rule: late (> 5 s) → the
- *   received time, both shown.
+ * - Timing (reliability hardening T2, competitor-pages.md "Timing you can trust"): the value is always the moment of
+ *   the tap (Jan) - never the receipt, no "late" on the card. Only evidence is shown: a `suspicious` tap (the phone's
+ *   own heartbeats said it was online holding nothing after the tap) gets "Check this time" with both times and a
+ *   second button "Use received"; a clock in doubt (an offset jump, a send our clock disagrees with) a note.
  *
  * Pure functions - tests/live-results-harness.mjs runs them under node.
  */
@@ -124,10 +122,10 @@ export function decisionOnDevice(proposalId, outboxItems) {
 const VERDICTS = ['on_time', 'offline', 'suspicious'];
 
 /**
- * How the tap reached the server (T2): the server's verdict, or for a proposal from before T2 `legacy_late` / `on_time`
- * by the old 5 s rule.
+ * What the server's timing evidence says about the tap (T2): its verdict (`on_time` also for a proposal from before
+ * T2) and whether the phone's clock is in doubt.
  *
- * @returns {{verdict: 'on_time'|'offline'|'suspicious'|'legacy_late', clockUncertain: boolean, lastHeardAtMs: null|number}}
+ * @returns {{verdict: 'on_time'|'offline'|'suspicious', clockUncertain: boolean, lastHeardAtMs: null|number}}
  */
 export function proposalTiming(proposal) {
     const timing = proposal?.timing;
@@ -140,47 +138,37 @@ export function proposalTiming(proposal) {
         };
     }
 
-    return { verdict: proposal?.late === true ? 'legacy_late' : 'on_time', clockUncertain: false, lastHeardAtMs: null };
+    return { verdict: 'on_time', clockUncertain: false, lastHeardAtMs: null };
 }
 
 /**
- * The value a Confirm saves: the tapped time - the received one when the timing says to check it (`suspicious`, or a
- * late proposal from before T2). `use` = 'tapped' / 'received': the judge's explicit pick.
+ * The value a Confirm saves: always the moment of the tap (Jan: the recorded time is the tap on the server-synced
+ * clock, never the receipt). `use` = 'received': the judge's explicit pick on a time to check.
  */
 export function proposalValue(proposal, use = null) {
-    if (use === 'tapped') {
-        return { seconds: proposal.proposedSeconds };
-    }
-
-    if (use === 'received') {
-        return { seconds: proposal.receiptSeconds };
-    }
-
-    const { verdict } = proposalTiming(proposal);
-
-    return { seconds: verdict === 'suspicious' || verdict === 'legacy_late' ? proposal.receiptSeconds : proposal.proposedSeconds };
+    return { seconds: use === 'received' ? proposal.receiptSeconds : proposal.proposedSeconds };
 }
 
 /**
- * The other value the card offers with one tap - the tapped time where the default is the received one - or null.
+ * The other value the card offers with one tap - only where the evidence says to check the time (`suspicious`): the
+ * received time - or null.
  *
- * @returns {null|{use: 'tapped', seconds: number}}
+ * @returns {null|{use: 'received', seconds: number}}
  */
 export function proposalAlternative(proposal) {
-    const { verdict } = proposalTiming(proposal);
-
-    if ((verdict !== 'suspicious' && verdict !== 'legacy_late') || proposal.proposedSeconds === proposal.receiptSeconds) {
+    if (proposalTiming(proposal).verdict !== 'suspicious' || proposal.proposedSeconds === proposal.receiptSeconds) {
         return null;
     }
 
-    return { use: 'tapped', seconds: proposal.proposedSeconds };
+    return { use: 'received', seconds: proposal.receiptSeconds };
 }
 
 /**
- * The timing lines of the card (T2), as label keys with their values - the page formats them: `seconds` as result
- * times, `clocks` as times of day, `ages` as [from, to] durations; `warning` = the "Check this time" line.
+ * The timing lines of the card (T2) - only where there is evidence: the "Check this time" warning with both times of a
+ * suspicious tap, the note of a clock in doubt. Nothing for a tap that merely arrived late. Label keys with their
+ * values - the page formats `seconds` as result times and `clocks` as times of day; `warning` = the warning line.
  *
- * @returns {{key: string, prefix?: string, warning?: boolean, seconds?: object, clocks?: object, ages?: object}[]}
+ * @returns {{key: string, warning?: boolean, seconds?: object, clocks?: object}[]}
  */
 export function proposalNotes(proposal) {
     const timing = proposalTiming(proposal);
@@ -193,15 +181,6 @@ export function proposalNotes(proposal) {
             seconds: { tapped: proposal.proposedSeconds, received: proposal.receiptSeconds },
             clocks: { tappedAt: proposal.tappedAtMs, heardAt: timing.lastHeardAtMs ?? proposal.tappedAtMs, receivedAt: proposal.receivedAtMs },
         });
-    } else if (timing.verdict === 'offline') {
-        notes.push({ key: 'proposalArrivedLater', ages: { age: [proposal.tappedAtMs, proposal.receivedAtMs] } });
-    } else if (timing.verdict === 'legacy_late') {
-        notes.push({
-            key: 'proposalLateTimes',
-            prefix: 'proposalLate',
-            seconds: { tapped: proposal.proposedSeconds, received: proposal.receiptSeconds },
-            clocks: { tappedAt: proposal.tappedAtMs, receivedAt: proposal.receivedAtMs },
-        });
     }
 
     if (timing.clockUncertain) {
@@ -212,10 +191,10 @@ export function proposalNotes(proposal) {
 }
 
 /**
- * The short note of a "Proposals waiting" row: the label key, or null.
+ * The short note of a "Proposals waiting" row: "Check this time" on a suspicious tap, else null.
  */
 export function waitingNote(proposal) {
-    return { suspicious: 'proposalCheck', offline: 'proposalSentLater', legacy_late: 'proposalLate' }[proposalTiming(proposal).verdict] ?? null;
+    return proposalTiming(proposal).verdict === 'suspicious' ? 'proposalCheck' : null;
 }
 
 /**

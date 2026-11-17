@@ -1834,7 +1834,7 @@ export default class extends Controller {
             } else {
                 status = [state === 'differs' ? this.t('proposalDiffers', { '%saved%': this.describe(panel.saved) }) : '', this.proposalNeedsChoice && pickFormat(this.round) ? this.t('proposalPickPuzzle') : ''].filter(Boolean).join(' · ');
                 const other = proposalAlternative(proposal);
-                buttons = `<button type="button" class="btn btn-success w-100 lr-big-btn" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t(state === 'differs' ? 'proposalReplace' : 'proposalConfirm', { '%time%': time }))}</button>${other ? `<button type="button" class="btn btn-outline-success w-100 mt-2" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-use="${other.use}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal">${escapeHtml(this.t('proposalUseTapped', { '%time%': formatResultTime(other.seconds) }))}</button>` : ''}<div class="d-flex gap-2 mt-2">${button('changeProposal', this.t('proposalChange'))}${button('rejectProposal', this.t('proposalReject'), 'danger')}</div>`;
+                buttons = `<button type="button" class="btn btn-success w-100 lr-big-btn" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t(state === 'differs' ? 'proposalReplace' : 'proposalConfirm', { '%time%': time }))}</button>${other ? `<button type="button" class="btn btn-outline-success w-100 mt-2" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-use="${other.use}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal">${escapeHtml(this.t('proposalUseReceived', { '%time%': formatResultTime(other.seconds) }))}</button>` : ''}<div class="d-flex gap-2 mt-2">${button('changeProposal', this.t('proposalChange'))}${button('rejectProposal', this.t('proposalReject'), 'danger')}</div>`;
             }
 
             html = `<div class="lr-proposal" data-state="${state}" role="group"><div class="lr-proposal-time">${escapeHtml(this.t('proposalTitle', { '%time%': time }))}</div>${check}<div class="small text-muted">${lines.map(escapeHtml).join('<br>')}</div>${status !== '' ? `<div class="small fw-medium mt-1">${escapeHtml(status)}</div>` : ''}${buttons !== '' ? `<div class="mt-2">${buttons}</div>` : ''}</div>`;
@@ -1856,8 +1856,7 @@ export default class extends Controller {
     }
 
     /**
-     * One timing line of a proposal (T2, proposalNotes()): seconds as result times, clocks as times of day, ages as
-     * durations.
+     * One timing line of a proposal (T2, proposalNotes()): seconds as result times, clocks as times of day.
      */
     proposalNote(note) {
         const values = {};
@@ -1870,11 +1869,7 @@ export default class extends Controller {
             values[`%${name}%`] = this.clockTime(atMs);
         }
 
-        for (const [name, [fromMs, toMs]] of Object.entries(note.ages ?? {})) {
-            values[`%${name}%`] = this.age(fromMs, toMs);
-        }
-
-        return `${note.prefix ? `${this.t(note.prefix)}: ` : ''}${this.t(note.key, values)}`;
+        return this.t(note.key, values);
     }
 
     /**
@@ -1919,7 +1914,7 @@ export default class extends Controller {
         }
 
         const format = pickFormat(this.round);
-        // The card's default - or the judge's explicit "Use tapped" (T2)
+        // The tap's time - or the judge's explicit "Use received" on a time to check (T2)
         const value = proposalValue(proposal, event?.currentTarget?.dataset?.use ?? null);
         const { fields, record, needsChoice } = confirmFields(format, this.choice, value, entry, this.outbox.all(), proposal.id);
 

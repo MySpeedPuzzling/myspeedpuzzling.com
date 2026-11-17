@@ -83,7 +83,7 @@ final class ProposalTimingVerdictTest extends KernelTestCase
         self::assertSame('suspicious', $timing['verdict']);
     }
 
-    public function testAnOffsetJumpOrAStaleSampleIsANoteNotARefusal(): void
+    public function testAnOffsetJumpIsANoteNotARefusal(): void
     {
         $jump = new CompetitorHeartbeatRecord(lastHeardAtMs: self::ago(3000), lastOffsetMs: -4000.0);
         $answer = self::propose(self::ANNA_FINAL, tappedAgoMs: 1000, heartbeat: $jump);
@@ -92,9 +92,11 @@ final class ProposalTimingVerdictTest extends KernelTestCase
         assert($answer->proposalId !== null);
         self::withdraw($answer->proposalId);
 
+        // An old clock sample alone is no evidence - kept as a diagnostic only
         $stale = self::propose(self::ANNA_FINAL, tappedAgoMs: 1000, offsetSampleAgeMs: 45 * 60_000);
         self::assertSame('on_time', self::row($stale)['timing_verdict']);
-        self::assertTrue(self::row($stale)['clock_uncertain']);
+        self::assertFalse(self::row($stale)['clock_uncertain']);
+        self::assertSame(45 * 60_000, self::row($stale)['offset_sample_age_ms']);
     }
 
     public function testAResendAfterAReloadKeepsTheOriginalTapAndVerdict(): void

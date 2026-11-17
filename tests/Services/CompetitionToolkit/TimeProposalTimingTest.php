@@ -40,7 +40,7 @@ final class TimeProposalTimingTest extends TestCase
     #[DataProvider('provideCases')]
     public function testTheVerdict(int $receivedAfterMs, null|CompetitorHeartbeatRecord $record, TimeProposalVerdict $verdict, null|int $lastHeardAtMs): void
     {
-        $timing = TimeProposalTiming::judge(self::TAP, self::TAP + $receivedAfterMs, $record, 10.0, 80.0, 4000, self::TAP + $receivedAfterMs);
+        $timing = TimeProposalTiming::judge(self::TAP, self::TAP + $receivedAfterMs, $record, 10.0, self::TAP + $receivedAfterMs);
 
         self::assertSame($verdict, $timing->verdict);
         self::assertSame($lastHeardAtMs, $timing->lastHeardAtMs);
@@ -48,27 +48,24 @@ final class TimeProposalTimingTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{null|float, null|float, null|int, null|int, null|CompetitorHeartbeatRecord, bool}>
+     * @return iterable<string, array{null|float, null|int, null|CompetitorHeartbeatRecord, bool}>
      */
     public static function provideClocks(): iterable
     {
-        // [offsetMs, rttMs, sample age, sentAt − received, record, uncertain]
-        yield 'a fresh sample' => [10.0, 80.0, 60_000, 0, null, false];
-        yield 'no measured sample - only the page hint' => [10.0, null, null, 0, null, true];
-        yield 'a sample older than 30 min' => [10.0, 80.0, 31 * 60_000, 0, null, true];
-        yield 'the old page sends no sample age' => [10.0, 80.0, null, null, null, false];
-        yield 'the offset jumped since the last heartbeat' => [3_000.0, 80.0, 1000, 0, new CompetitorHeartbeatRecord(lastHeardAtMs: self::TAP, lastOffsetMs: 500.0), true];
-        yield 'the offset moved a little' => [600.0, 80.0, 1000, 0, new CompetitorHeartbeatRecord(lastHeardAtMs: self::TAP, lastOffsetMs: 500.0), false];
-        yield 'the phone claims to send 3 s after our receipt' => [10.0, 80.0, 1000, 3000, null, true];
-        yield 'the phone sent 12 s before our receipt' => [10.0, 80.0, 1000, -12_000, null, true];
-        yield 'a slow network, 4 s' => [10.0, 80.0, 1000, -4000, null, false];
+        // [offsetMs, sentAt − received, record, uncertain] - only evidence counts
+        yield 'a steady clock' => [10.0, 0, new CompetitorHeartbeatRecord(lastHeardAtMs: self::TAP, lastOffsetMs: 12.0), false];
+        yield 'no heartbeat, an old page that sends nothing more' => [null, null, null, false];
+        yield 'the offset jumped since the last heartbeat' => [3_000.0, 0, new CompetitorHeartbeatRecord(lastHeardAtMs: self::TAP, lastOffsetMs: 500.0), true];
+        yield 'the offset moved a little' => [600.0, 0, new CompetitorHeartbeatRecord(lastHeardAtMs: self::TAP, lastOffsetMs: 500.0), false];
+        yield 'the phone claims to send 3 s after our receipt' => [10.0, 3000, null, true];
+        yield 'a slow network, 12 s on the way - no clock evidence' => [10.0, -12_000, null, false];
     }
 
     #[DataProvider('provideClocks')]
-    public function testTheClockInDoubtIsANoteNeverAnotherVerdict(null|float $offsetMs, null|float $rttMs, null|int $sampleAgeMs, null|int $sentAfterReceiptMs, null|CompetitorHeartbeatRecord $record, bool $uncertain): void
+    public function testTheClockInDoubtIsANoteNeverAnotherVerdict(null|float $offsetMs, null|int $sentAfterReceiptMs, null|CompetitorHeartbeatRecord $record, bool $uncertain): void
     {
         $received = self::TAP + 1000;
-        $timing = TimeProposalTiming::judge(self::TAP, $received, $record, $offsetMs, $rttMs, $sampleAgeMs, $sentAfterReceiptMs === null ? null : $received + $sentAfterReceiptMs);
+        $timing = TimeProposalTiming::judge(self::TAP, $received, $record, $offsetMs, $sentAfterReceiptMs === null ? null : $received + $sentAfterReceiptMs);
 
         self::assertSame($uncertain, $timing->clockUncertain);
         self::assertSame(TimeProposalVerdict::OnTime, $timing->verdict);

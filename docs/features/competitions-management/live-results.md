@@ -154,12 +154,12 @@ longer lists unless it came after the state was read). Server side: `official-re
 
 - **Entry card**: a panel above Finished now - "Proposed 0:49:00", from their phone at the tap's time of day, by the
   participant as the organiser recorded them (pair/team cards only - a solo card's name is the proposer already,
-  `proposerName()`), "tapped 3 min ago"; the timing (reliability hardening T2, `timing.verdict`, `proposalNotes()` /
-  `proposalValue()` / `proposalAlternative()`): on time → the tapped seconds; offline → the tapped seconds + "Arrived
-  0:42 after the tap"; suspicious → "Check this time" in warning colour, both times and when the phone was online, the
-  **received** seconds by default and a second button "Use tapped 0:49:12"; the phone's clock in doubt → a note; a
-  proposal from before T2 (no `timing`): late (> 5 s) shows both times and defaults to the received seconds (+ "Use
-  tapped"). The waiting list's rows say "Check this time" / "sent later"; "stopwatch changed" and "linked recently" hints. One big **Confirm** (focused, the
+  `proposerName()`), "tapped 3 min ago". **The value is always the tap's seconds** (Jan: never the receipt; no "late"
+  badge - also for proposals from before T2). Only evidence is shown (reliability hardening T2, `timing.verdict`,
+  `proposalNotes()` / `proposalAlternative()`): suspicious → "Check this time" in warning colour with both times and
+  when the phone was online, Confirm still the tapped time, a second button "Use received 0:49:52"; the phone's clock
+  in doubt → a note. The waiting list's rows say "Check this time" on a suspicious tap; "stopwatch changed" and
+  "linked recently" hints. One big **Confirm** (focused, the
   card is its confirm view - the 350 ms guard of C7 applies; "Replace with" in warning colour when another result is
   saved; "Matches the saved time" and no button when equal), **Change** (the time field prefilled; its Save confirms the
   proposal with the judge's value - also after a reload, the draft keeps it), **Not right** (reason: not finished / wrong

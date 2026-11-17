@@ -13,7 +13,7 @@
 {%- set claimers = result.players|filter(p => p.anonymousSlot is null and p.playerId is not null and p.playerId != viewer_id) -%}
 {%- if viewer_id is not null and claimers is not empty and is_granted('COMPETITION_EDIT', event.id) -%}
 <span class="dropdown d-inline-block ms-1" data-testid="round-result-organizer-menu">
-    <button class="btn btn-link btn-xs text-muted p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'event_result_claim.organizer_menu'|trans }}">
+    <button class="btn btn-link btn-xs text-muted p-0 px-1" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" aria-label="{{ 'event_result_claim.organizer_menu'|trans }}">
         <i class="bi bi-three-dots" aria-hidden="true"></i>
     </button>
     <ul class="dropdown-menu dropdown-menu-end">

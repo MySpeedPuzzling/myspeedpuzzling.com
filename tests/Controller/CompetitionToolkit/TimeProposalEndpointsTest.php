@@ -115,6 +115,33 @@ final class TimeProposalEndpointsTest extends WebTestCase
         self::assertSame([], self::hub()->getPublishedUpdates());
     }
 
+    /**
+     * Reliability hardening F1 (D1): a tap stored on the phone for one player, sent after another player signed in on
+     * the same browser, is neither stored nor refused - 409 `another_account` keeps it on the phone; so is an Undo
+     */
+    public function testATapOfAnotherPlayerThanTheSignedInOneStaysOnThePhone(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $proposalId = self::newProposalId();
+
+        $this->post(self::PROPOSE, [...$this->body(self::ANNA_FINAL, $proposalId), 'expectedPlayerId' => PlayerFixture::PLAYER_ADMIN]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('another_account', $this->json()['error']);
+        self::assertSame(0, self::proposalCount());
+
+        $this->post('/en/competitor-proposals/' . $proposalId . '/withdraw', ['expectedPlayerId' => PlayerFixture::PLAYER_ADMIN]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('another_account', $this->json()['error']);
+
+        // The tap's own player
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $this->post(self::PROPOSE, [...$this->body(self::ANNA_FINAL, $proposalId), 'expectedPlayerId' => PlayerFixture::PLAYER_ADMIN]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('proposed', $this->json()['status']);
+    }
+
     public function testAnUnreadableProposalIs400(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);

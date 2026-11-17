@@ -95,6 +95,41 @@ final readonly class OfficialResultsApi
         return $body;
     }
 
+    /**
+     * A write made on a page of another player (reliability hardening F1, D1): the device's outbox names the player
+     * whose changes it sends (`expectedPlayerId`) - when the browser's session is somebody else's by now (another
+     * player signed in on the same phone), nothing is applied: 409 `another_account`, the changes stay on the device
+     * until their player signs in again. A request without the field (an older page) is not checked.
+     *
+     * @param array<mixed> $body
+     */
+    public static function anotherAccount(array $body, string $playerId): null|JsonResponse
+    {
+        $expected = $body['expectedPlayerId'] ?? null;
+
+        if (!is_string($expected) || $expected === '' || strtolower($expected) === strtolower($playerId)) {
+            return null;
+        }
+
+        return self::error('another_account', JsonResponse::HTTP_CONFLICT);
+    }
+
+    /**
+     * The request's JSON object without answering anything - an empty array when it is none (a withdrawal's `{}`).
+     *
+     * @return array<mixed>
+     */
+    public static function bodyOrEmpty(Request $request): array
+    {
+        try {
+            $body = json_decode($request->getContent(), associative: true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        return is_array($body) ? $body : [];
+    }
+
     public static function json(mixed $data, int $status = JsonResponse::HTTP_OK): JsonResponse
     {
         $response = new JsonResponse($data, $status);

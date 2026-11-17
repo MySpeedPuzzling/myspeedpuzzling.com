@@ -30,11 +30,12 @@ use Symfony\Component\Routing\Attribute\Route;
  * "Stop - propose my time" of a competitor's own page (competition toolkit P1, toolkit/B-qr-competitor-page.md §5,
  * R-review-and-plan.md §2.4): `POST {"proposalId": "<the phone's UUIDv7>", "entry": "participant_round:<id>" |
  * "team:<id>", "tappedAtMs": <the phone's server-synced clock at the tap>, "offsetMs", "rttMs", "stateHash",
- * "offsetSampleAgeMs", "queuedOffline", "attempts", "sentAtMs"}` → ProposeRoundTime → `{status: proposed|known|refused,
- * reason, message, proposal}` (TimeProposalApi). The server's receipt moment is taken here, before the dispatch waits
- * for the event's lock - and the timing evidence (reliability hardening T2): what the server last heard from this
- * player's page for this entry (CompetitorHeartbeats, one redis-state read - a store that does not answer means no
- * evidence, the tap is trusted).
+ * "offsetSampleAgeMs", "queuedOffline", "attempts", "sentAtMs", "expectedPlayerId"}` (another player signed in
+ * meanwhile: 409 `another_account`, OfficialResultsApi::anotherAccount()) → ProposeRoundTime → `{status:
+ * proposed|known|refused, reason, message, proposal}` (TimeProposalApi). The server's receipt moment is taken here,
+ * before the dispatch waits for the event's lock - and the timing evidence (reliability hardening T2): what the server
+ * last heard from this player's page for this entry (CompetitorHeartbeats, one redis-state read - a store that does not
+ * answer means no evidence, the tap is trusted).
  *
  * Limited per player and round (`time_proposal`, 10 in 10 minutes - a stuck button never floods the judges, 429
  * `rate_limited`). A stored proposal is published to the round's judges after the commit (official_results.proposals).
@@ -80,6 +81,13 @@ final class ProposeRoundTimeController extends AbstractController
 
         if ($body instanceof JsonResponse) {
             return $body;
+        }
+
+        // The phone's tap of another player than the one signed in now: kept on the phone (409), never refused
+        $anotherAccount = OfficialResultsApi::anotherAccount($body, $playerId);
+
+        if ($anotherAccount !== null) {
+            return $anotherAccount;
         }
 
         $proposalId = $body['proposalId'] ?? null;

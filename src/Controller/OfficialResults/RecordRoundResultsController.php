@@ -27,10 +27,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The organiser devices' change sets (RecordRoundResults): `{"changes": [...], "dryRun": false}` → one outcome per
+ * The organiser devices' change sets (RecordRoundResults): `{"changes": [...], "dryRun": false, "expectedPlayerId":
+ * "<the player whose changes they are>"}` → one outcome per
  * change, the entries as they are now, and - after the commit - a private Mercure update for the other devices.
  * Organisers and referees may send them; a referee's table number and qualified changes are refused one by one.
- * docs/features/competitions-management/official-results.md - request and response documented there.
+ * docs/features/competitions-management/official-results.md - request and response documented there. A set of another
+ * player than the session's (`expectedPlayerId`, OfficialResultsApi::anotherAccount()) is 409 `another_account`.
  */
 final class RecordRoundResultsController extends AbstractController
 {
@@ -73,6 +75,13 @@ final class RecordRoundResultsController extends AbstractController
 
         if ($body instanceof JsonResponse) {
             return $body;
+        }
+
+        // The device sends the changes of another player than the one signed in now - none of them is applied
+        $anotherAccount = OfficialResultsApi::anotherAccount($body, $playerId);
+
+        if ($anotherAccount !== null) {
+            return $anotherAccount;
         }
 
         try {

@@ -195,6 +195,34 @@ final class OfficialResultsApiTest extends WebTestCase
         self::assertSame([], self::hub()->getPublishedUpdates());
     }
 
+    /**
+     * Reliability hardening F1 (D1): a phone's unsent changes of one player, sent after another player signed in on the
+     * same browser, are applied for nobody - 409 `another_account`; the player's own (in any letter case) go through
+     */
+    public function testChangesOfAnotherPlayerThanTheSignedInOneAreNotApplied(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->browser->disableReboot();
+
+        $this->post(self::CHANGES, [
+            'changes' => [self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'qualified', false, true)],
+            'expectedPlayerId' => PlayerFixture::PLAYER_REGULAR,
+        ]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(['error' => 'another_account'], $this->json());
+        $this->assertFilipNotQualified();
+        self::assertSame([], self::hub()->getPublishedUpdates());
+
+        $this->post(self::CHANGES, [
+            'changes' => [self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'table_number', null, 6)],
+            'expectedPlayerId' => strtoupper(PlayerFixture::PLAYER_WITH_STRIPE),
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['applied'], array_column(self::list($this->json()['outcomes']), 'status'));
+    }
+
     public function testAnOrganiserOfAnotherEventCanNotWriteHere(): void
     {
         // PLAYER_WITH_STRIPE organises the Results Cup, not WJPC
@@ -440,6 +468,17 @@ final class OfficialResultsApiTest extends WebTestCase
     private static function change(string $entry, string $field, mixed $from, mixed $to): array
     {
         return ['clientChangeId' => Uuid::uuid7()->toString(), 'entry' => $entry, 'field' => $field, 'from' => $from, 'to' => $to];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function list(mixed $value): array
+    {
+        assert(is_array($value));
+
+        /** @var list<array<string, mixed>> $value */
+        return $value;
     }
 
     private static function hub(): NullMercureHub

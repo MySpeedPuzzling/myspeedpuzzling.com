@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\WithdrawTimeProposal;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
+use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,7 +19,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * "Undo" of a pending time proposal on the competitor's own page (competition toolkit P1): `POST {}` →
+ * "Undo" of a pending time proposal on the competitor's own page (competition toolkit P1): `POST {}` (or
+ * `{"expectedPlayerId": …}` - another player signed in meanwhile: 409 `another_account`) →
  * WithdrawTimeProposal → `{status: withdrawn|known|refused, reason, message, proposal}` (TimeProposalApi). A proposal
  * a judge decided meanwhile answers `known` with its state. Published to the round's judges after the commit.
  */
@@ -44,6 +46,13 @@ final class WithdrawTimeProposalController extends AbstractController
 
         if ($playerId instanceof JsonResponse) {
             return $playerId;
+        }
+
+        // An Undo of another player than the one signed in now stays on the phone (409 `another_account`)
+        $anotherAccount = OfficialResultsApi::anotherAccount(OfficialResultsApi::bodyOrEmpty($request), $playerId);
+
+        if ($anotherAccount !== null) {
+            return $anotherAccount;
         }
 
         // The event whose lock the withdrawal takes

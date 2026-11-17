@@ -11,6 +11,12 @@
     overflow-wrap: anywhere;
 }
 
+.competitor-page-people,
+.competitor-round-puzzle-list {
+    padding-left: 0;
+    list-style: none;
+}
+
 .competitor-page-people {
     display: flex;
     flex-direction: column;

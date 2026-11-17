@@ -22,7 +22,6 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\MockClock;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
@@ -135,9 +134,8 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $browser->request('GET', '/en/puzzle/' . $puzzleId);
         self::assertResponseStatusCodeSame(404, 'another player at scheduled - 1 s');
 
-        $clock = $container->get(ClockInterface::class);
-        self::assertInstanceOf(MockClock::class, $clock);
-        $clock->sleep(1);
+        // The test container's clock is a MockClock (config/services_test.php) - it moves on at once
+        $container->get(ClockInterface::class)->sleep(1);
 
         $browser->request('GET', '/en/puzzle/' . $puzzleId);
         self::assertResponseIsSuccessful('at the start');

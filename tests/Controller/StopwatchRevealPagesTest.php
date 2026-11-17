@@ -265,7 +265,10 @@ final class StopwatchRevealPagesTest extends WebTestCase
 
     private function revealMode(string $roundPuzzleId): string
     {
-        return (string) self::getContainer()->get(Connection::class)->fetchOne('SELECT reveal_mode FROM competition_round_puzzle WHERE id = :id', ['id' => $roundPuzzleId]);
+        $mode = self::getContainer()->get(Connection::class)->fetchOne('SELECT reveal_mode FROM competition_round_puzzle WHERE id = :id', ['id' => $roundPuzzleId]);
+        self::assertIsString($mode);
+
+        return $mode;
     }
 
     /**

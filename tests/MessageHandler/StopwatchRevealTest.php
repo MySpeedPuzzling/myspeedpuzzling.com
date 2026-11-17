@@ -34,7 +34,6 @@ use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -52,7 +51,7 @@ final class StopwatchRevealTest extends KernelTestCase
 
     private MessageBusInterface $messageBus;
     private Connection $database;
-    private MockClock $clock;
+    private ClockInterface $clock;
     private string $roundPuzzleId;
 
     protected function setUp(): void
@@ -60,9 +59,7 @@ final class StopwatchRevealTest extends KernelTestCase
         self::bootKernel();
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
         $this->database = self::getContainer()->get(Connection::class);
-        $clock = self::getContainer()->get(ClockInterface::class);
-        self::assertInstanceOf(MockClock::class, $clock);
-        $this->clock = $clock;
+        $this->clock = self::getContainer()->get(ClockInterface::class);
         $this->roundPuzzleId = $this->stopwatchSecretPuzzle();
     }
 
@@ -207,17 +204,17 @@ final class StopwatchRevealTest extends KernelTestCase
     public function testATestRunThenTheRealStartAndAResetAfterIt(): void
     {
         $this->dispatch(new StartRoundStopwatch(self::ROUND));
-        $this->clock->modify('+2 minutes');
+        $this->advance(120);
         $this->dispatch(new ResetRoundStopwatch(self::ROUND, CompetitionApiFixture::COMPETITION_API));
         self::assertNull($this->row()['reveal_at']);
         self::assertSame(self::NEVER, $this->row()['hide_until']);
 
-        $this->clock->modify('+5 minutes');
+        $this->advance(300);
         $realStart = $this->clock->now();
         $this->dispatch(new StartRoundStopwatch(self::ROUND, revealPuzzles: true, revealListHash: $this->shownHash()));
         self::assertSame($realStart->format('Y-m-d H:i:s'), $this->row()['reveal_at']);
 
-        $this->clock->modify('+1 minute');
+        $this->advance(60);
         $this->dispatch(new ResetRoundStopwatch(self::ROUND, CompetitionApiFixture::COMPETITION_API));
 
         self::assertNull($this->stopwatchStatus());
@@ -232,12 +229,12 @@ final class StopwatchRevealTest extends KernelTestCase
     public function testAResumeWithTheTickRevealsAtTheResume(): void
     {
         $this->dispatch(new StartRoundStopwatch(self::ROUND));
-        $this->clock->modify('+3 minutes');
+        $this->advance(180);
         $this->dispatch(new StartRoundStopwatch(self::ROUND, revealPuzzles: true, revealListHash: $this->shownHash()));
         self::assertNull($this->row()['reveal_at'], 'a start that changes nothing reveals nothing');
 
         $this->dispatch(new StopRoundStopwatch(self::ROUND));
-        $this->clock->modify('+1 minute');
+        $this->advance(60);
         $resumedAt = $this->clock->now();
         $this->dispatch(new StartRoundStopwatch(self::ROUND, revealPuzzles: true, revealListHash: $this->shownHash()));
 
@@ -359,6 +356,15 @@ final class StopwatchRevealTest extends KernelTestCase
         $startedAt = $this->database->fetchOne('SELECT stopwatch_started_at FROM competition_round WHERE id = :id', ['id' => self::ROUND]);
 
         return is_string($startedAt) ? $startedAt : null;
+    }
+
+    /**
+     * The test container's clock is a MockClock (config/services_test.php) - it moves on at once
+     */
+    private function advance(int $seconds): void
+    {
+        $clock = self::getContainer()->get(ClockInterface::class);
+        $clock->sleep($seconds);
     }
 
     private function wholeSecond(string $modifier): DateTimeImmutable

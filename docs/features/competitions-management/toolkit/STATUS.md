@@ -35,7 +35,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | C6 | B | merged | 1c5c583a0..89931fce5 | SW live-shell:prepare + live-shell-v7 cache, network-first 4 s → shell, LIVE_ENTRY_PATHS mirrors parseLiveEntryRoute (shared fixture), self-hosted zbar first. Browser: offline reload → stored round → save → synced |
 | C7 | B | merged | b0288c0f7, 9fe480b60 | taps (a) 5→4, (b) 11→10; table auto-open, confirm in place + 350 ms guard, outbox enqueueGroup (never split), instant send when back online; bundle limit 160→170 KB min (gzip 43.5/45) |
 | C8 | B | merged | 2cfb97b6b, 196642133 | parseCompetitionTagUrl reuses parseLiveEntryRoute, live_entry_tag.js (uuid5 lineup id, PHP parity fixture), offline tag resolution. H: waitlisted member in lineup hash differs phone vs server; tag-URL 'Open their round' asks leave? (linkNavigation one-liner); bundle gzip 44.7/45 KB |
-| D7 | B (swap) | started | | |
+| D7 | B (swap) | merged | 26672aa49..91fc22f20 | upload `upload_competition_display_image` (multipart `file`, X-CSRF-Token official_results, 5 MB, 60/h), DisplayImages URL builder (DISPLAY_IMAGE_PRESET, default /original/), references + async cleanup. Lily: imgproxy preset `display=rs:fit:1920:1920` + env. H: ConvertCompetitionToSeries loses displays (blocker?) |
 | C1 | B | merged | 1cbf47ff3, 1e1e8c729 | data-free live page, ?viewer=1/?entries=0, event-people endpoint (C3 skips it), browser-walked |
 | D1 | C | merged | ea158c6b0, cb60963d7 | competition_display + 7 messages, hub card + list/settings pages; copy-link 404 until D4; not browser-tried |
 | D2 | C | merged | 74c8bfa6c..96f494ab4 | DisplayDesignSanitizer + schema.js + 42 shared fixtures, 7 presets, save endpoint (409/422, liveConfirmed) |

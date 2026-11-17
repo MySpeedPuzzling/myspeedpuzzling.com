@@ -14189,3 +14189,6 @@ competition_display:
         too_many_images: "A display can use at most 30 pictures."
         too_large: "The design is too large. Remove some elements or texts."
         live_not_confirmed: "This element shows results before they are published. Confirm it to save."
+    texts:
+        finished: "finished"
+        pieces_placed: "%count% pieces"

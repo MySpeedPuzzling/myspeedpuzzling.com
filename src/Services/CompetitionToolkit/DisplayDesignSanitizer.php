@@ -114,6 +114,33 @@ final readonly class DisplayDesignSanitizer
     }
 
     /**
+     * What the shown results elements ask of the display's state (D3, GetCompetitionDisplayState): per element type
+     * (finished_count, leaderboard, ticker) whether one of them shows live results and the most rows any of them shows.
+     * A type no shown element has is missing - the state carries nothing of it.
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @return array<string, array{live: bool, rows: int}>
+     */
+    public static function resultsDemand(array $design): array
+    {
+        $demand = [];
+
+        foreach (self::shownResultsElements($design) as $element) {
+            $type = $element['type'];
+            assert(is_string($type));
+            $props = is_array($element['props'] ?? null) ? $element['props'] : [];
+            $rows = is_int($props['rows'] ?? null) ? $props['rows'] : 0;
+
+            $demand[$type] = [
+                'live' => ($demand[$type]['live'] ?? false) || self::isLive($element),
+                'rows' => max($demand[$type]['rows'] ?? 0, $rows),
+            ];
+        }
+
+        return $demand;
+    }
+
+    /**
      * Ids of the results elements with `source: live`, hidden or not - the save handler asks for the organiser's
      * confirmation for every id that was not live before.
      *

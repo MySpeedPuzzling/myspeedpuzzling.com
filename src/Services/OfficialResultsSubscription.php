@@ -94,6 +94,31 @@ final readonly class OfficialResultsSubscription
     }
 
     /**
+     * The private, signal-only topic of an event's displays (D-displays-overlays.md §7.3): `display.signal` messages
+     * that carry no data, only that something changed - a leaked token learns nothing more.
+     */
+    public static function displayTopic(string $competitionId): string
+    {
+        return '/competition-display/' . strtolower($competitionId);
+    }
+
+    /**
+     * A competition display (timer screen / stream overlay, D-displays-overlays.md §7.3): the event's display signal
+     * topic and the public stopwatch topic of every round it may show. Issue it only after the display's token was found
+     * (GetCompetitionDisplayState) - the page has no account and no cookie.
+     *
+     * @param list<string> $roundIds
+     * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
+     */
+    public function forDisplay(string $competitionId, array $roundIds): null|array
+    {
+        return $this->forTopics(array_values(array_unique([
+            self::displayTopic($competitionId),
+            ...array_map(self::stopwatchTopic(...), $roundIds),
+        ])));
+    }
+
+    /**
      * @param list<string> $topics
      * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
      */

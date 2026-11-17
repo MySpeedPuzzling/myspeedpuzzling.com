@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
@@ -33,6 +34,10 @@ use Symfony\Component\Mercure\Update;
  * - official_results.proposals {roundId, proposals: [TimeProposalView...]} - competitors' time proposals created,
  *   withdrawn or decided (competition toolkit P1, proposalsChanged()); only a competition with time proposals has any.
  *   One payload for both topics: a proposal names the participant as the organiser recorded them, never a profile.
+ *
+ * The event's open displays hear of the same writes (competition toolkit D5, CompetitionDisplayLiveUpdates - nothing
+ * for an event without displays): entries and refreshes as a results signal, a round update (publication, format,
+ * table numbers) as a round signal, the reveal push as a puzzles signal. Proposals are no display's business.
  */
 final readonly class OfficialResultsLiveUpdates
 {
@@ -45,6 +50,7 @@ final readonly class OfficialResultsLiveUpdates
         private GetRoundResultsOverview $getRoundResultsOverview,
         private LoggerInterface $logger,
         private GetTimeProposals $getTimeProposals,
+        private CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -79,6 +85,8 @@ final readonly class OfficialResultsLiveUpdates
                 'round' => $this->getRoundResultsOverview->forRound($roundId),
             ];
         });
+
+        $this->displayLiveUpdates->resultsChanged($roundId);
     }
 
     /**
@@ -86,10 +94,8 @@ final readonly class OfficialResultsLiveUpdates
      */
     public function refresh(string $roundId): void
     {
-        $this->publish($roundId, static fn (): array => [
-            'type' => 'official_results.refresh',
-            'roundId' => $roundId,
-        ]);
+        $this->publishRefresh($roundId);
+        $this->displayLiveUpdates->resultsChanged($roundId);
     }
 
     /**
@@ -100,7 +106,8 @@ final readonly class OfficialResultsLiveUpdates
      */
     public function puzzlesRevealed(string $roundId): void
     {
-        $this->refresh($roundId);
+        $this->publishRefresh($roundId);
+        $this->displayLiveUpdates->puzzlesChanged($roundId);
     }
 
     /**
@@ -134,6 +141,16 @@ final readonly class OfficialResultsLiveUpdates
             'type' => 'official_results.round',
             'roundId' => $roundId,
             'round' => $this->getRoundResultsOverview->forRound($roundId),
+        ]);
+
+        $this->displayLiveUpdates->roundChanged($roundId);
+    }
+
+    private function publishRefresh(string $roundId): void
+    {
+        $this->publish($roundId, static fn (): array => [
+            'type' => 'official_results.refresh',
+            'roundId' => $roundId,
         ]);
     }
 

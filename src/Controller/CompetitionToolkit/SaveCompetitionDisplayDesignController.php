@@ -23,6 +23,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 
 /**
  * The display editor's Save (D-displays-overlays.md §8.1 `save_competition_display`): a JSON POST (or PUT) of
@@ -45,6 +47,8 @@ final class SaveCompetitionDisplayDesignController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -115,6 +119,13 @@ final class SaveCompetitionDisplayDesignController extends AbstractController
 
         $saved = $envelope->last(HandledStamp::class)?->getResult();
         assert($saved instanceof SavedCompetitionDisplayDesign);
+
+        // After the commit: the open display picks the new design up within seconds, and whether the event shows results
+        // anywhere is read again (competition toolkit D5) - a save that changed nothing keeps its version
+        if ($saved->designVersion !== $display->designVersion) {
+            $this->displaysPresence->changed($display->competitionId);
+            $this->displayLiveUpdates->displayChanged($display->competitionId, $display->id);
+        }
 
         return OfficialResultsApi::json([
             'designVersion' => $saved->designVersion,

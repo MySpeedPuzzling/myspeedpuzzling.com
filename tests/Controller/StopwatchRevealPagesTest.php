@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\CreatesCompetitionDisplays;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -36,6 +38,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class StopwatchRevealPagesTest extends WebTestCase
 {
+    use CreatesCompetitionDisplays;
     use ReadsRoundAutomaticReveal;
 
     private const string ROUND = CompetitionApiFixture::ROUND_FUTURE;
@@ -117,6 +120,31 @@ final class StopwatchRevealPagesTest extends WebTestCase
         // Nothing waits any more: no checkbox
         $page = $this->browser->request('GET', '/en/manage-round-stopwatch/' . self::ROUND);
         self::assertCount(0, $page->filter('[data-stopwatch-reveal]'));
+    }
+
+    /**
+     * Competition toolkit D5: the event's displays follow the stopwatch on its public topic, so a plain start tells them
+     * nothing more; a start that revealed puzzles also sends their display topic a `puzzles` signal (no puzzle in it).
+     */
+    public function testATickedStartAlsoTellsTheEventsDisplays(): void
+    {
+        $this->stopwatchSecret();
+        self::createDisplay(CompetitionApiFixture::COMPETITION_API, [['type' => 'timer'], ['type' => 'puzzle']]);
+        $hash = $this->shownHash();
+
+        $this->post('/en/start-round-stopwatch/' . self::ROUND, ['_token' => 'csrf-token', 'reveal' => '1', 'reveal_hash' => $hash]);
+
+        self::assertResponseRedirects('/en/round-stopwatch/' . self::ROUND);
+        $updates = self::hub()->getPublishedUpdates();
+        self::assertCount(3, $updates);
+        self::assertSame([OfficialResultsSubscription::displayTopic(CompetitionApiFixture::COMPETITION_API)], $updates[2]->getTopics());
+        self::assertTrue($updates[2]->isPrivate());
+        self::assertSame(['type' => 'display.signal', 'what' => 'puzzles', 'roundId' => self::ROUND], json_decode($updates[2]->getData(), true, flags: JSON_THROW_ON_ERROR));
+
+        // Stopped: the public stopwatch topic tells the displays, nothing else does
+        $this->post('/en/stop-round-stopwatch/' . self::ROUND, ['_token' => 'csrf-token']);
+        self::assertCount(1, self::hub()->getPublishedUpdates());
+        self::assertSame(['/round-stopwatch/' . self::ROUND], self::hub()->getPublishedUpdates()[0]->getTopics());
     }
 
     public function testTheControlRoomsStaleListIsAConflict(): void

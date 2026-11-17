@@ -18,6 +18,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * Changes only the fields sent. The round's slug never changes (shared result links keep working). A category change
@@ -35,6 +36,7 @@ final class UpdateCompetitionRoundController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetAdminCompetitions $getAdminCompetitions,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -90,6 +92,9 @@ final class UpdateCompetitionRoundController extends AbstractController
 
             throw $exception;
         }
+
+        // After the commit (competition toolkit D5)
+        $this->displayLiveUpdates->roundChanged($round->id->toString());
 
         return new JsonResponse($this->getAdminCompetitions->round($round->id->toString())->toArray());
     }

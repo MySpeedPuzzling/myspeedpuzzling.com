@@ -43,6 +43,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
@@ -61,6 +62,7 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly GetRoundTeamSizes $getRoundTeamSizes,
         private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -189,6 +191,10 @@ final class EditCompetitionRoundController extends AbstractController
                     // A changed puzzle format: the round's open judge pages read it again (after the commit)
                     if ([$updatedRound->puzzleFormat, $updatedRound->puzzlesToSolve] !== $previousPuzzleFormat) {
                         $this->officialResultsLiveUpdates->roundChanged($roundId);
+                    } else {
+                        // The event's displays show the round's name, start, limit and badge (competition toolkit D5) -
+                        // a changed format told them above
+                        $this->displayLiveUpdates->roundChanged($roundId);
                     }
 
                     $this->flashRoundUpdated(

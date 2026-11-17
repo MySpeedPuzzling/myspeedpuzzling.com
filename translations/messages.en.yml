@@ -14374,7 +14374,7 @@ competition_display:
         saving: "Saving…"
         saved: "All changes saved"
         unsaved: "Unsaved changes"
-        saved_notice: "Saved. Open displays show the new design after a reload."
+        saved_notice: "Saved. Open displays show the new design within a few seconds."
         save_failed: "The design could not be saved. Try again."
         save_offline: "No connection - the design was not saved. Try again when you are online."
         conflict: "Somebody saved this display meanwhile."

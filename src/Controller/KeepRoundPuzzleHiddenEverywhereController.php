@@ -16,6 +16,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class KeepRoundPuzzleHiddenEverywhereController extends AbstractController
@@ -24,6 +25,7 @@ final class KeepRoundPuzzleHiddenEverywhereController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -51,6 +53,8 @@ final class KeepRoundPuzzleHiddenEverywhereController extends AbstractController
         } else {
             try {
                 $this->messageBus->dispatch(new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId));
+                // After the commit: the event's displays read the round's visible puzzles again (competition toolkit D5)
+                $this->displayLiveUpdates->puzzlesChanged($roundId);
                 $this->addFlash('success', $this->translator->trans('competition.reveal.flash.kept_everywhere', [
                     '%puzzle%' => $puzzleName,
                 ]));

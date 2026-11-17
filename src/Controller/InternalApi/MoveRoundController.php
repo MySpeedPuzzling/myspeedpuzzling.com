@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 
 /**
  * Moves a round to another one-time event or edition (`{"competitionId": "…"}`, MoveRoundToCompetition): the round
@@ -33,6 +35,8 @@ final class MoveRoundController extends AbstractController
         private readonly GetAdminCompetitions $getAdminCompetitions,
         #[Autowire(env: 'INTERNAL_API_REVIEWER_PLAYER_ID')]
         private readonly string $reviewerPlayerId,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -57,12 +61,20 @@ final class MoveRoundController extends AbstractController
         // 404 for an unknown target before anything runs
         $target = $this->competitionRepository->get($targetId);
 
+        $sourceId = $round->competition->id->toString();
+
         $this->messageBus->dispatch(new MoveRoundToCompetition(
             roundId: $round->id->toString(),
-            competitionId: $round->competition->id->toString(),
+            competitionId: $sourceId,
             targetCompetitionId: $target->id->toString(),
             actingPlayerId: $this->reviewerPlayerId,
         ));
+
+        // After the commit: both events' displays pick their rounds again (competition toolkit D5)
+        $this->displaysPresence->changed($sourceId);
+        $this->displaysPresence->changed($target->id->toString());
+        $this->displayLiveUpdates->roundsChanged($sourceId);
+        $this->displayLiveUpdates->roundsChanged($target->id->toString());
 
         return new JsonResponse($this->getAdminCompetitions->round($round->id->toString())->toArray());
     }

@@ -30,6 +30,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 
 /**
  * "Move to another event or edition" (docs/features/organizations/README.md "Restructuring tools", D7) →
@@ -50,6 +52,8 @@ final class MoveCompetitionRoundController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private CompetitionParticipantRoundRepository $participantRoundRepository,
         readonly private CompetitionTeamRepository $competitionTeamRepository,
+        readonly private CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        readonly private CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -129,6 +133,12 @@ final class MoveCompetitionRoundController extends AbstractController
                         targetCompetitionId: $targetId,
                         actingPlayerId: $profile->playerId,
                     ));
+
+                    // After the commit: both events' displays pick their rounds again (competition toolkit D5)
+                    $this->displaysPresence->changed($competitionId);
+                    $this->displaysPresence->changed($targetId);
+                    $this->displayLiveUpdates->roundsChanged($competitionId);
+                    $this->displayLiveUpdates->roundsChanged($targetId);
 
                     $this->addFlash('success', $this->translator->trans('restructure.move_round.flash.moved', [
                         '%round%' => $round->name,

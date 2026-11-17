@@ -20,6 +20,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 
 /**
  * "New display" (D-displays-overlays.md §8.1): added = straight into the editor of the new display (303), the event at
@@ -34,6 +35,7 @@ final class AddCompetitionDisplayController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -84,6 +86,9 @@ final class AddCompetitionDisplayController extends AbstractController
 
                 return $this->redirect($returnPath, Response::HTTP_SEE_OTHER);
             }
+
+            // After the commit: the event has displays now - its writes start signalling them (competition toolkit D5)
+            $this->displaysPresence->changed($competitionId);
 
             $this->addFlash('success', $this->translator->trans('competition_display.flash.added'));
 

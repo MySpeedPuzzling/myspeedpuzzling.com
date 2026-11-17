@@ -17,6 +17,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 
 /**
  * Deletes a display - its link stops working (D-displays-overlays.md §8.1) - a button on the display's row of the hub
@@ -30,6 +32,8 @@ final class DeleteCompetitionDisplayController extends AbstractController
         private readonly GetCompetitionDisplays $getCompetitionDisplays,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -56,6 +60,11 @@ final class DeleteCompetitionDisplayController extends AbstractController
         }
 
         $this->messageBus->dispatch(new DeleteCompetitionDisplay($displayId));
+
+        // After the commit: the open page learns at once that it is no longer valid, and whether the event has displays is
+        // read again (competition toolkit D5)
+        $this->displaysPresence->changed($display->competitionId);
+        $this->displayLiveUpdates->displayChanged($display->competitionId, $displayId);
 
         $this->addFlash('success', $this->translator->trans('competition_display.flash.deleted', ['%name%' => $display->name]));
 

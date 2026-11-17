@@ -6,7 +6,14 @@
     Inputs:
       - players: the result's people (Puzzler, RoundResultPlayer - anything with anonymousSlot)
       - team_name (string, optional): the pair's/team's name
+      - unclaimed_count (int, optional): instead of players, where the list holds only the claimers (the profile's
+        SolvedPuzzle::$anonymousCount) - always "+N" there: the profile's player is in the result
 #}
+{%- if unclaimed_count is defined -%}
+    {%- if unclaimed_count > 0 -%}
+        <span class="lb-player lb-anonymous-more text-muted" data-testid="anonymous-more">+{{ unclaimed_count }}</span>
+    {%- endif -%}
+{%- else -%}
 {%- set anonymous_count = players|filter(p => p.anonymousSlot is not null)|length -%}
 {%- if anonymous_count > 0 -%}
     {%- if anonymous_count == players|length -%}
@@ -20,4 +27,5 @@
     {%- else -%}
         <span class="lb-player lb-anonymous-more text-muted" data-testid="anonymous-more">+{{ anonymous_count }}</span>
     {%- endif -%}
+{%- endif -%}
 {%- endif -%}

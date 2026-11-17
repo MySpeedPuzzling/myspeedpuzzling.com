@@ -14621,3 +14621,7 @@ bracket:
         desk: "結果デスク"
         public_results: "公開結果"
         note: "公開のトーナメント表では、ラウンドの結果が公開されてから通過者が表示されます。"
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "この枠はあなたのアカウントでは申告できません。あなたのチームだった場合は、イベントの主催者にお問い合わせください。"
+event_result_claim.organizer_menu: "このチームの枠を管理"

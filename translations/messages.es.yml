@@ -14632,3 +14632,7 @@ bracket:
         desk: "Mesa de resultados"
         public_results: "Resultados públicos"
         note: "El cuadro público muestra a los clasificados de una ronda solo cuando sus resultados están publicados."
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "Este puesto no se puede reclamar desde tu cuenta. Si era tu equipo, ponte en contacto con el organizador del evento."
+event_result_claim.organizer_menu: "Gestionar los puestos de este equipo"

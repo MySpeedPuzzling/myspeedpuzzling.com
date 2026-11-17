@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Events\EventResultSlotClaimed;
 use SpeedPuzzling\Web\Exceptions\EventResultClaimLimitReached;
 use SpeedPuzzling\Web\Exceptions\EventResultClaimRefused;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\AllowEventResultClaimsAgain;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ReleaseEventResultSlot;
 use SpeedPuzzling\Web\Message\RemoveEventResultClaim;
@@ -22,6 +23,7 @@ use SpeedPuzzling\Web\MessageHandler\NotifyWhenEventResultSlotClaimed;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\UserBlockFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TrackerlessTimeSeeding;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventResultClaimRefusal;
@@ -334,9 +336,75 @@ final class EventResultClaimTest extends KernelTestCase
         $this->assertRefused(EventResultClaimRefusal::Blocked, fn () => $this->claim($crew, PlayerFixture::PLAYER_WITH_FAVORITES));
     }
 
+    /**
+     * A block between the claimer and anybody already in the result - whoever blocks whom - refuses the claim with a
+     * reason that names neither the block nor its direction, and nothing changes (no spot, no log, no rate limit used).
+     */
+    public function testABlockEitherWayBetweenTheClaimersRefusesTheClaimWithoutSayingSo(): void
+    {
+        $timeId = $this->seedTeam('Puzzle Pals', 3600)->id->toString();
+        $this->claim($timeId, PlayerFixture::PLAYER_REGULAR);
+
+        // The claimer blocks the one already in it
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
+        $this->assertRefused(EventResultClaimRefusal::NotAvailable, fn () => $this->claim($timeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        // The one already in it blocks the claimer
+        $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->assertRefused(EventResultClaimRefusal::NotAvailable, fn () => $this->claim($timeId, PlayerFixture::PLAYER_WITH_STRIPE));
+
+        self::assertSame(3, $this->anonymousCountOf($timeId));
+        self::assertSame(1, self::int($this->database->fetchOne('SELECT COUNT(*) FROM result_claim_log WHERE solving_time_id = :id', ['id' => $timeId])));
+
+        // Nobody else of the result is blocked - the claim goes through
+        $this->claim($timeId, PlayerFixture::PLAYER_ADMIN);
+        self::assertSame(2, $this->anonymousCountOf($timeId));
+    }
+
+    public function testAnAdminLetsABlockedPlayerClaimAgain(): void
+    {
+        $timeId = $this->seedTeam('Puzzle Pals', 3600)->id->toString();
+        $player = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNotNull($player);
+        $player->blockEventClaims(TestClock::now());
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->messageBus->dispatch(new AllowEventResultClaimsAgain(PlayerFixture::PLAYER_WITH_STRIPE));
+
+        self::assertNull($this->database->fetchOne('SELECT event_claims_blocked_at FROM player WHERE id = :id', ['id' => PlayerFixture::PLAYER_WITH_STRIPE]));
+        $this->claim($timeId, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertSame(3, $this->anonymousCountOf($timeId));
+    }
+
+    /**
+     * The removals counted for a block are every removal ever (RemoveEventResultClaimHandler::countRemovalsOf()): after an
+     * admin lets a player claim again, the next removal blocks them again at once.
+     */
+    public function testAPlayerAllowedAgainIsBlockedAgainByTheNextRemoval(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE);
+        $pals = $this->seedTrackerlessTime($round, self::PUZZLE, 'Puzzle Pals', 3600)->id->toString();
+        $crew = $this->seedTrackerlessTime($round, self::PUZZLE, 'Corner Crew', 3000)->id->toString();
+
+        $this->claim($pals, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->messageBus->dispatch(new RemoveEventResultClaim($pals, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN));
+        $this->claim($pals, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->messageBus->dispatch(new RemoveEventResultClaim($pals, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN));
+        $this->entityManager->clear();
+
+        $this->messageBus->dispatch(new AllowEventResultClaimsAgain(PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->claim($crew, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->messageBus->dispatch(new RemoveEventResultClaim($crew, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN));
+
+        self::assertNotNull($this->database->fetchOne('SELECT event_claims_blocked_at FROM player WHERE id = :id', ['id' => PlayerFixture::PLAYER_WITH_FAVORITES]));
+    }
+
     public function testAFullyClaimedPairJoinsThePairTheyAlreadyAreAndLeavesItAgainAlone(): void
     {
-        // TIME_12: the pair PLAYER_REGULAR + PLAYER_PRIVATE, with their own results
+        // TIME_12: the pair PLAYER_REGULAR + PLAYER_PRIVATE, with their own results. The fixtures' block between the
+        // two would refuse the second claim (testABlockEitherWayBetweenTheClaimersRefusesTheClaimWithoutSayingSo)
+        $this->database->executeStatement('DELETE FROM user_block WHERE id = :id', ['id' => UserBlockFixture::BLOCK_REGULAR_BLOCKS_PRIVATE]);
         $existingTeamId = $this->teamOf(PuzzleSolvingTimeFixture::TIME_12);
         $existingKey = $this->database->fetchOne('SELECT composition_key FROM puzzling_team WHERE id = :id', ['id' => $existingTeamId]);
 
@@ -401,6 +469,14 @@ final class EventResultClaimTest extends KernelTestCase
     private function claim(string $timeId, string $playerId, bool $firstTry = false, null|string $sameResultTimeId = null): void
     {
         $this->messageBus->dispatch(new ClaimEventResultSlot($timeId, $playerId, $firstTry, $sameResultTimeId));
+    }
+
+    private function block(string $blockerId, string $blockedId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
+        );
     }
 
     private function notifyAboutClaim(string $timeId, string $playerId): void

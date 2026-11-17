@@ -15238,3 +15238,7 @@ event_wizard_series:
     flash:
         dates_added: "{1}1 date added.|[0,Inf[%count% dates added."
         dates_added_with_rounds: "{1}1 date added, with its round.|[0,Inf[%count% dates added, each with its round."
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "This spot cannot be claimed from your account. If this was your team, please contact the organizer of the event."
+event_result_claim.organizer_menu: "Manage the spots of this team"

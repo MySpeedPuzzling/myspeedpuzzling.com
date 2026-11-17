@@ -14627,3 +14627,7 @@ bracket:
         desk: "Bureau des résultats"
         public_results: "Résultats publics"
         note: "Le tableau public ne montre les qualifiés d'une manche qu'une fois ses résultats publiés."
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "Tu ne peux pas réclamer cette place avec ton compte. Si c’était ton équipe, contacte l’organisateur de l’événement."
+event_result_claim.organizer_menu: "Gérer les places de cette équipe"

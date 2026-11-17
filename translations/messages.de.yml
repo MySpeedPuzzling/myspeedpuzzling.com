@@ -14631,3 +14631,7 @@ bracket:
         desk: "Ergebnisbüro"
         public_results: "Öffentliche Ergebnisse"
         note: "Der öffentliche Turnierbaum zeigt die Qualifizierten einer Runde erst, wenn ihre Ergebnisse veröffentlicht sind."
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "Diesen Platz kannst du mit deinem Konto nicht beanspruchen. Wenn das dein Team war, wende dich bitte an den Veranstalter."
+event_result_claim.organizer_menu: "Plätze dieses Teams verwalten"

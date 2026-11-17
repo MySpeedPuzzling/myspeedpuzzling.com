@@ -11,13 +11,14 @@ use Symfony\Contracts\Service\ResetInterface;
 /**
  * Whether the viewer is offered "This was my team" on a result (docs/features/event-results-import/README.md "Claiming a
  * spot"): signed in, the result still has an anonymous spot, the viewer is not in it and holds no spot of an imported
- * result of the same event (one round per imported event). Costs one statement per request, and only once a result with
+ * result of the same event (one round per imported event), and nobody in it has a block with the viewer, either way
+ * (the claim would be refused). Costs one statement per request, and only once a result with
  * an anonymous spot is asked about by a signed-in viewer - every other page view pays nothing.
  */
 final class EventResultClaimability implements ResetInterface
 {
-    /** @var null|list<string> */
-    private null|array $competitionsWithSpot = null;
+    /** @var null|array{competitions: list<string>, blockedEitherWay: list<string>} */
+    private null|array $viewer = null;
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -53,17 +54,19 @@ final class EventResultClaimability implements ResetInterface
             return false;
         }
 
-        if ($competitionId === null) {
-            return true;
+        $this->viewer ??= $this->getEventResultClaims->claimabilityOf($profile->playerId);
+
+        foreach ($playerIds as $playerId) {
+            if (in_array(strtolower($playerId), $this->viewer['blockedEitherWay'], true)) {
+                return false;
+            }
         }
 
-        $this->competitionsWithSpot ??= $this->getEventResultClaims->competitionsWithImportedSpot($profile->playerId);
-
-        return in_array($competitionId, $this->competitionsWithSpot, true) === false;
+        return $competitionId === null || in_array(strtolower($competitionId), $this->viewer['competitions'], true) === false;
     }
 
     public function reset(): void
     {
-        $this->competitionsWithSpot = null;
+        $this->viewer = null;
     }
 }

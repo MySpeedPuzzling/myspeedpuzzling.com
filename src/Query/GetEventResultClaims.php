@@ -53,29 +53,41 @@ SQL;
     }
 
     /**
-     * The events in which the player holds a spot of an imported result - "This was my team" is not offered there. An
-     * imported event has one round, so the event stands for the round.
+     * What "This was my team" needs to know about the viewer, in one statement: the events in which they hold a spot of
+     * an imported result (not offered there - an imported event has one round, so the event stands for the round) and
+     * the players with a block between them and the viewer, whoever blocks whom (no claim next to them - the handler
+     * refuses it, docs/features/event-results-import/README.md "Gates").
      *
-     * @return list<string>
+     * @return array{competitions: list<string>, blockedEitherWay: list<string>}
      */
-    public function competitionsWithImportedSpot(string $playerId): array
+    public function claimabilityOf(string $playerId): array
     {
         $query = <<<SQL
-SELECT DISTINCT pst.competition_id::varchar
+SELECT DISTINCT 'competition' AS kind, pst.competition_id::varchar AS id
 FROM puzzling_team_member member
 INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = member.team_id
 WHERE member.player_id = :playerId
     AND pst.created_via = :source
     AND pst.competition_id IS NOT NULL
+UNION
+SELECT 'blocked', (CASE WHEN block.blocker_id = :playerId THEN block.blocked_id ELSE block.blocker_id END)::varchar
+FROM user_block block
+WHERE block.blocker_id = :playerId OR block.blocked_id = :playerId
 SQL;
 
-        /** @var list<string> $ids */
-        $ids = $this->database->fetchFirstColumn($query, [
+        /** @var list<array{kind: string, id: string}> $rows */
+        $rows = $this->database->fetchAllAssociative($query, [
             'playerId' => $playerId,
             'source' => SolvingTimeSource::EventImport->value,
         ]);
 
-        return $ids;
+        $claimability = ['competitions' => [], 'blockedEitherWay' => []];
+
+        foreach ($rows as $row) {
+            $claimability[$row['kind'] === 'competition' ? 'competitions' : 'blockedEitherWay'][] = strtolower($row['id']);
+        }
+
+        return $claimability;
     }
 
     /**

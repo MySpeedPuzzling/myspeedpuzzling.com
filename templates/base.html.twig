@@ -290,6 +290,11 @@
                                             {% if queue_counts.duplicatePuzzleSignals is not null %}<span class="badge {{ queue_counts.duplicatePuzzleSignals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-duplicate-puzzle-signals">{{ queue_counts.duplicatePuzzleSignals }}</span>{% endif %}
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_event_claim_blocks' %}active{% endif %}" href="{{ path('admin_event_claim_blocks') }}">
+                                            Claim blocks
+                                        </a>
+                                    </li>
                                     {% endif %}
                                 </ul>
                             </div>

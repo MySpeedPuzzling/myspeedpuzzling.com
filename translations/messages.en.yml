@@ -13982,10 +13982,10 @@ competition_toolkit:
             title: "Judges"
             help: "Judges enter results on their phones in the live entry. Add them on the referees page."
     reveal_stopwatch:
-        checkbox: "{1}Reveal the puzzle when the stopwatch starts|]1,Inf[Reveal the %count% puzzles when the stopwatch starts"
+        checkbox: "[0,1]Reveal the puzzle when the stopwatch starts|]1,Inf[Reveal the %count% puzzles when the stopwatch starts"
         help: "Leave it unticked for a test run - nothing is revealed then. Tick it for the real start: the puzzles come out at the start (after the countdown, if you schedule one) and can never be hidden again."
-        confirm: "{1}Start the stopwatch and reveal the puzzle at the start? Once out, it can never be hidden again.|]1,Inf[Start the stopwatch and reveal the %count% puzzles at the start? Once out, they can never be hidden again."
-        button_suffix: "{1}reveal 1 puzzle|]1,Inf[reveal %count% puzzles"
+        confirm: "[0,1]Start the stopwatch and reveal the puzzle at the start? Once out, it can never be hidden again.|]1,Inf[Start the stopwatch and reveal the %count% puzzles at the start? Once out, they can never be hidden again."
+        button_suffix: "[0,1]reveal 1 puzzle|]1,Inf[reveal %count% puzzles"
         scope:
             everywhere: "everywhere on MySpeedPuzzling"
             name_everywhere: "its name everywhere, its picture on this event"

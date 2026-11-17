@@ -349,3 +349,47 @@ export function toPercent(px, py, rect) {
         y: rect.height > 0 ? (py / rect.height) * 100 : 0,
     };
 }
+
+const PLACE_STEP = 2.5;
+const BACKDROP_AREA = 0.6;
+
+function overlapArea(a, b) {
+    const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+    const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+
+    return w > 0 && h > 0 ? w * h : 0;
+}
+
+/**
+ * Where a new element lands: its default frame when that overlaps nothing, else the spot of the same size (on a 2.5 %
+ * grid) that overlaps the existing frames least, the nearest to the default among equals. Backdrops (frames over 60 %
+ * of the canvas, e.g. a board panel) are meant to be drawn on, so they do not count.
+ */
+export function placeFrame(frame, others) {
+    const obstacles = others.filter((other) => other.w * other.h < BACKDROP_AREA * 10000);
+    const cost = (candidate) => obstacles.reduce((sum, other) => sum + overlapArea(candidate, other), 0);
+
+    if (cost(frame) === 0) {
+        return frame;
+    }
+
+    let best = frame;
+    let bestCost = cost(frame);
+    let bestDistance = 0;
+
+    for (let y = 0; y + frame.h <= 100 + 1e-9; y += PLACE_STEP) {
+        for (let x = 0; x + frame.w <= 100 + 1e-9; x += PLACE_STEP) {
+            const candidate = { ...frame, x: round2(x), y: round2(y) };
+            const candidateCost = cost(candidate);
+            const distance = (candidate.x - frame.x) ** 2 + (candidate.y - frame.y) ** 2;
+
+            if (candidateCost < bestCost - 1e-9 || (Math.abs(candidateCost - bestCost) <= 1e-9 && distance < bestDistance)) {
+                best = candidate;
+                bestCost = candidateCost;
+                bestDistance = distance;
+            }
+        }
+    }
+
+    return best;
+}

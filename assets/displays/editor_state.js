@@ -4,7 +4,7 @@
 // hide, lock, duplicate, delete. Run under node by tests/display-editor-harness.mjs.
 
 import { normaliseDesign, RESULTS_TYPES } from './schema.js';
-import { clampFrame, stackOrder } from './geometry.js';
+import { clampFrame, placeFrame, stackOrder } from './geometry.js';
 
 export const UNDO_LIMIT = 100;
 
@@ -224,7 +224,10 @@ export class EditorState {
     addElement(type) {
         const id = newId(this.random, this.takenIds());
         const next = clone(this.design);
-        next.elements.push(newElement(type, id, Math.min(999, this.topZ() + 1), { text: this.texts.text ?? 'Text' }));
+        const element = newElement(type, id, Math.min(999, this.topZ() + 1), { text: this.texts.text ?? 'Text' });
+        // Not on top of what is there already (the default spot when it is free)
+        element.frame = placeFrame(element.frame, next.elements.filter((other) => !other.hidden).map((other) => other.frame));
+        next.elements.push(element);
 
         if (!this.commit(next)) {
             return null;

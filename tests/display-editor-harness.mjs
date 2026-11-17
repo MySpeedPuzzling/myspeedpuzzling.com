@@ -8,7 +8,7 @@
 
 import { readFileSync } from 'node:fs';
 import {
-    HANDLES, clampFrame, hitTest, keepsRatio, moveFrame, nudgeFrame, resizeFrame, stackOrder, toPercent,
+    HANDLES, clampFrame, hitTest, keepsRatio, moveFrame, nudgeFrame, placeFrame, resizeFrame, stackOrder, toPercent,
 } from '../assets/displays/geometry.js';
 import { CATALOGUE, EditorState, UNDO_LIMIT } from '../assets/displays/editor_state.js';
 import { ELEMENT_TYPES, PROP_SPECS, STYLE_SPEC, normaliseDesign } from '../assets/displays/schema.js';
@@ -434,6 +434,25 @@ check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, di
     assert(state.qr.qr000001.rows.every((row) => /^[01]{25}$/.test(row)), 'qr rows valid');
     equal(state.puzzles, BASE.puzzles, 'display mode = what the display shows');
     equal(state.round, null, 'no sample round in display mode');
+});
+
+check('a new element lands where nothing is', () => {
+    const text = { x: 30, y: 10, w: 40, h: 10, rotate: 0 };
+    equal(placeFrame(text, []), text, 'free default kept');
+    equal(placeFrame(text, [{ x: 0, y: 0, w: 100, h: 100 }]), text, 'a full-canvas backdrop does not count');
+
+    const badge = { x: 40, y: 8, w: 20, h: 7 };
+    const placed = placeFrame(text, [badge]);
+    const overlaps = (a, b) => Math.min(a.x + a.w, b.x + b.w) > Math.max(a.x, b.x) && Math.min(a.y + a.h, b.y + b.h) > Math.max(a.y, b.y);
+    equal(overlaps(placed, badge), false, `moved off the badge: ${JSON.stringify(placed)}`);
+    equal([placed.w, placed.h, placed.rotate], [40, 10, 0], 'size kept');
+    equal(placed.y + placed.h <= 100 && placed.x + placed.w <= 100, true, 'inside the canvas');
+    equal(Math.abs(placed.y - text.y) + Math.abs(placed.x - text.x) <= 10, true, `near the default: ${JSON.stringify(placed)}`);
+
+    const state = new EditorState({ design: normaliseDesign({ elements: [] }, { competitionId: COMPETITION }), designVersion: 1, competitionId: COMPETITION });
+    const first = state.element(state.addElement('text')).frame;
+    const second = state.element(state.addElement('text')).frame;
+    equal(overlaps(first, second), false, `two texts side by side: ${JSON.stringify([first, second])}`);
 });
 
 check('a layer is named by its own name or type, with what it shows', () => {

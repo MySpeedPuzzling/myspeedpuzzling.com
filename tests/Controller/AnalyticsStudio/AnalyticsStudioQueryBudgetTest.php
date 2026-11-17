@@ -79,6 +79,32 @@ final class AnalyticsStudioQueryBudgetTest extends WebTestCase
     }
 
     /**
+     * The page (S3, §1.1): a data-free shell - the event (MapEntity) + GetAnalyticsStudioRound::bySlug() (the round, the
+     * switcher's rounds, the visibility condition) = 2; an edition: the edition by its series' and its own slug + its
+     * series (the draft check reads it) + the round = 3. A guest; the id-based organiser link: the round only = 1.
+     *
+     * @return iterable<string, array{string, int}>
+     */
+    public static function provideShells(): iterable
+    {
+        yield 'event' => ['/en/events/results-cup/analytics-studio/group-a', 2];
+        yield 'edition' => ['/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/analytics-studio/main-round', 3];
+        yield 'organisers\' link by id' => ['/en/analytics-studio/' . F::ROUND_GROUP_A, 1];
+    }
+
+    #[DataProvider('provideShells')]
+    public function testTheShellCost(string $url, int $statements): void
+    {
+        $browser = self::createClient();
+
+        $this->startCountingQueries($browser);
+        $browser->request('GET', $url);
+        self::assertLessThan(400, $browser->getResponse()->getStatusCode(), $url);
+
+        self::assertSame($statements, $this->queryCount($browser), $url . "\n" . implode("\n", $this->executedSql($browser)));
+    }
+
+    /**
      * Wall time of a cold analytics answer on the fixture round - printed, never asserted (machines differ).
      */
     public function testTheColdAnalyticsTime(): void

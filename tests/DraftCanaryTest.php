@@ -478,7 +478,7 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
-     * The analytics studio's JSON (docs/features/competitions-management/analytics-studio.md §4): every answer of a round
+     * The analytics studio's JSON and page (docs/features/competitions-management/analytics-studio.md §4): every answer of a round
      * of a draft - or of an edition of a draft series - is a 404 for everybody (the JSON has no viewer, so its team gets
      * one too), and an answer once published. Draft Night's "Main round"; Quiet Pines #1 gets a slugged round by SQL.
      */
@@ -492,12 +492,13 @@ final class DraftCanaryTest extends WebTestCase
             ['id' => $pinesRound, 'competition' => OrganizationFixture::EDITION_QUIET_PINES_1],
         );
         $answers = ['state', 'analytics', 'predictions'];
+        // The page (S3) and the organisers' id-based link to it
         $items = [
-            [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::ROUND_DRAFT_NIGHT],
-            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $pinesRound],
+            [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::ROUND_DRAFT_NIGHT, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/analytics-studio/main-round'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $pinesRound, '/en/series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT_SLUG . '/' . OrganizationFixture::EDITION_QUIET_PINES_1_SLUG . '/analytics-studio/pines-round'],
         ];
 
-        foreach ($items as [$table, $id, $roundId]) {
+        foreach ($items as [$table, $id, $roundId, $page]) {
             foreach ([null, PlayerFixture::PLAYER_WITH_STRIPE] as $viewer) {
                 $browser->restart();
                 if ($viewer !== null) {
@@ -509,11 +510,19 @@ final class DraftCanaryTest extends WebTestCase
                     $browser->request('GET', '/analytics-studio/' . $roundId . '/' . $answer);
                     self::assertResponseIsSuccessful('No canary: the studio ' . $answer . ' of ' . $roundId . ' is not there once published');
                 }
+                $browser->request('GET', $page);
+                self::assertResponseIsSuccessful('No canary: the studio page ' . $page . ' is not there once published');
+                $browser->request('GET', '/en/analytics-studio/' . $roundId);
+                self::assertResponseRedirects($page);
 
                 $this->setDraft($table, $id, true);
                 foreach ($answers as $answer) {
                     $browser->request('GET', '/analytics-studio/' . $roundId . '/' . $answer);
                     self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s analytics studio answers: ' . $answer . ' of ' . $roundId);
+                }
+                foreach ([$page, '/en/analytics-studio/' . $roundId] as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s analytics studio page: ' . $url);
                 }
             }
         }

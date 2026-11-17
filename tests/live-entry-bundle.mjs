@@ -1,5 +1,6 @@
-// Walks the module graph of the live entry page's Encore entry (assets/live_entry.js, competition toolkit C2) and prints
-// what tests/LiveEntryBundleTest.php checks, as JSON:
+// Walks the module graph of the live entry page's Encore entry (assets/live_entry.js, competition toolkit C2) - or of
+// the entry named as the first argument (`assets/analytics_studio.js` for tests/AnalyticsStudioBundleTest.php) - and
+// prints what tests/LiveEntryBundleTest.php checks, as JSON (a stylesheet import is the entry's CSS, not script - skipped):
 //   modules         - every module the entry reaches (paths relative to the project root)
 //   packages        - the npm packages it imports (bare specifiers)
 //   dynamicImports  - modules with an `import(` (a lazy chunk - missing offline, the service worker precaches only
@@ -46,7 +47,7 @@ function packageEntry(specifier, from) {
 const seen = new Map();
 const packages = new Set();
 const dynamicImports = [];
-const queue = [path.join(root, 'assets', 'live_entry.js')];
+const queue = [path.join(root, process.argv[2] ?? path.join('assets', 'live_entry.js'))];
 
 while (queue.length > 0) {
     const file = queue.shift();
@@ -66,6 +67,10 @@ while (queue.length > 0) {
     for (const pattern of [IMPORT_FROM, IMPORT_BARE]) {
         for (const match of code.matchAll(pattern)) {
             const specifier = match[1];
+
+            if (/\.(s?css)$/.test(specifier)) {
+                continue;
+            }
 
             if (specifier.startsWith('.')) {
                 queue.push(path.resolve(path.dirname(file), specifier));

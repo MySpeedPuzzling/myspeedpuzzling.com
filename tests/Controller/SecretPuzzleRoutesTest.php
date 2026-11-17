@@ -284,6 +284,15 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             }
 
             self::assertStringContainsString('API Visible', $read('state'), 'No canary: the studio shows no puzzle at all.');
+            // The page (S3) carries no slot at all - the organisers' link leads to it
+            $browser->request('GET', '/en/analytics-studio/' . CompetitionApiFixture::ROUND_FUTURE);
+            $page = (string) $browser->getResponse()->headers->get('Location');
+            self::assertStringContainsString('/analytics-studio/future-round', $page);
+            $browser->request('GET', $page);
+            self::assertResponseIsSuccessful($who . ' page');
+            foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN, 'API Visible'] as $secret) {
+                self::assertStringNotContainsString($secret, (string) $browser->getResponse()->getContent(), "{$who} page");
+            }
             foreach (['state', 'analytics', 'predictions'] as $answer) {
                 $content = $read($answer);
                 foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN] as $secret) {

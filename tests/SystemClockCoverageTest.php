@@ -71,6 +71,7 @@ final class SystemClockCoverageTest extends TestCase
         'Services/PuzzleIntelligence/PredictionModelRecalculator.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => [['microtime('], self::DURATION],
         'MessageHandler/SyncPlanSwitchPortalConfigurationHandler.php' => [['\'now\''], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],
+        'Services/AnalyticsStudio/AnalyticsStudioPageBuilder.php' => [['\'now\''], 'The label name \'now\' ("now" next to a current value) in LABEL_NAMES - a translation key, no clock read.'],
         'Services/SecretRevealPreview.php' => [['\'now\''], 'The word \'now\' as a token of a hash (a reveal without a moment), no clock read.'],
         'Twig/ClockTwigExtension.php' => [['\'now\''], 'Registers the Twig function now() - backed by the clock.'],
     ];

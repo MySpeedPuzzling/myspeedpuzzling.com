@@ -27,6 +27,7 @@ final class ServiceWorkerInstallTest extends TestCase
             'live_entry_native' => ['js' => ['/build/runtime.1.js', '/build/live_entry_native.10.js']],
             'compete' => ['js' => ['/build/runtime.1.js'], 'css' => ['/build/compete.7.css']],
             'display' => ['js' => ['/build/runtime.1.js', '/build/display.8.js'], 'css' => ['/build/display.9.css']],
+            'analytics_studio' => ['js' => ['/build/runtime.1.js', '/build/analytics_studio.11.js'], 'css' => ['/build/analytics_studio.12.css']],
         ],
     ];
 
@@ -68,11 +69,22 @@ final class ServiceWorkerInstallTest extends TestCase
         self::assertNotContains('/build/compete.7.css', $added);
     }
 
+    /**
+     * The analytics studio (docs/features/competitions-management/analytics-studio.md §7.6): commentators' screens only.
+     */
+    public function testTheStudioEntryIsNeverPrecached(): void
+    {
+        $added = array_merge(...$this->install(self::ENTRYPOINTS)['added']);
+
+        self::assertNotContains('/build/analytics_studio.11.js', $added);
+        self::assertNotContains('/build/analytics_studio.12.css', $added);
+    }
+
     public function testTheSkipListNamesTheVenueAndRefereeEntries(): void
     {
         $serviceWorker = (string) file_get_contents(__DIR__ . '/../public/service-worker.js');
 
-        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch'\\];$/m", $serviceWorker));
+        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch', 'analytics_studio'\\];$/m", $serviceWorker));
     }
 
     /**

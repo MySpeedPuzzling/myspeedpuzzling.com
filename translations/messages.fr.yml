@@ -15191,3 +15191,5 @@ relay_result:
     profile_total: "%count% puzzles · total %time%"
     claim_total: "Relais · %count% puzzles · total %time%"
     import_hint: "Un relais : chaque équipe a fait les deux puzzles en même temps - son Time est le total."
+    format_guide: "Un relais (chaque équipe fait deux puzzles en même temps) : dupliquez n'importe quel onglet, gardez les colonnes et, en ligne 2, ajoutez le lien MySpeedPuzzling du second puzzle dans une nouvelle colonne Link to MySpeedPuzzling 2. Mettez le temps total de chaque équipe dans Time. Le total est affiché sur l'événement, jamais sur les pages des puzzles."
+    template_tabs: "Un onglet dont le nom commence par Template (Template, Template Relay, Template Solo…) est votre modèle vierge - il n'est jamais importé."

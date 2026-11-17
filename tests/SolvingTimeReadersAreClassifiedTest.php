@@ -158,6 +158,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Repository/FinishedPhotoAnalysisRepository.php' => self::PHOTOS,
         'Repository/PuzzleSolvingTimeRepository.php' => 'neutral + performance: reads by id, by round, photos of a puzzle, combined guests; the prediction backfill reads timed solo results only.',
         'Repository/PuzzlingTeamRepository.php' => self::NEUTRAL,
+        'Repository/RelayResultRepository.php' => 'neutral: a relay team\'s results by their relay (solo-and-relays.md §2), to claim, release or remove them together - no figure.',
         'Repository/SuspiciousTimeCaseRepository.php' => self::ADMIN,
         'Repository/SuspiciousTimeCheckRepository.php' => self::NEUTRAL,
         'Services/DataImport/ImportNeverTwice.php' => self::DATA_IMPORT,

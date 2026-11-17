@@ -15196,3 +15196,5 @@ relay_result:
     profile_total: "%count% puzzles · total %time%"
     claim_total: "Relevo · %count% puzzles · total %time%"
     import_hint: "Un relevo: cada equipo hizo los dos puzzles a la vez; su Time es el total."
+    format_guide: "Un relevo (cada equipo hace dos puzzles a la vez): duplica cualquier pestaña, mantén las columnas y en la fila 2 añade el enlace de MySpeedPuzzling del segundo puzzle en una nueva columna Link to MySpeedPuzzling 2. Pon el tiempo total de cada equipo en Time. El total se muestra en el evento, nunca en las páginas de los puzzles."
+    template_tabs: "Una pestaña cuyo nombre empieza por Template (Template, Template Relay, Template Solo…) es tu copia en blanco: nunca se importa."

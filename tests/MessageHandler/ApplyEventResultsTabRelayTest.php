@@ -99,7 +99,7 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         $legs = $this->legs('Puzzle Pals');
         self::assertCount(2, $legs);
         self::assertSame([self::FIRST, self::SECOND], array_column($legs, 'puzzle_id'));
-        self::assertSame(5025, (int) $this->database->fetchOne('SELECT seconds FROM relay_result WHERE id = :id', ['id' => $legs[0]['relay_result_id']]));
+        self::assertSame(5025, $this->number('SELECT seconds FROM relay_result WHERE id = :id', ['id' => $legs[0]['relay_result_id']]));
 
         foreach ($legs as $leg) {
             self::assertNull($leg['seconds_to_solve'], 'No time of its own');
@@ -116,7 +116,7 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
 
         // The total split, the remainder on the first puzzle: time spent counts it once
         self::assertSame([2513, 2512], array_map(static fn (array $leg): int => (int) $leg['seconds_spent'], $legs));
-        self::assertSame([0, 1], array_map('intval', $this->database->fetchFirstColumn("SELECT leg FROM event_imported_result WHERE team_key = 'puzzle pals' ORDER BY leg")));
+        self::assertSame([0, 1], array_map($this->number(...), $this->database->fetchFirstColumn("SELECT leg::text FROM event_imported_result WHERE team_key = 'puzzle pals' ORDER BY leg")));
 
         // The reconcile never moves them (keepsItsRound())
         self::getContainer()->get(RoundResultsReconciler::class)->reconcile();
@@ -140,10 +140,10 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         self::assertTrue($relays[0]->fromOrganizer);
         self::assertNotNull($relays[0]->relayResultId);
         // The team's first result (the lowest id) is the one claims go through
-        self::assertSame(min(array_column($this->legs('Edge Lords'), 'id')), $relays[0]->timeId);
+        self::assertSame($this->firstId('Edge Lords'), $relays[0]->timeId);
         self::assertCount(3, $relays[0]->players);
         // A single person's relay: one spot, by the first result
-        self::assertSame('s:' . min(array_column($this->legs('Jane Doe'), 'id')), $relays[2]->players[0]->anonymousSlot);
+        self::assertSame('s:' . $this->firstId('Jane Doe'), $relays[2]->players[0]->anonymousSlot);
     }
 
     public function testTheRelayIsKeptOffThePuzzlesPages(): void
@@ -175,7 +175,7 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         $legs = $this->legs('Puzzle Pals');
         self::assertSame($ids, array_column($legs, 'id'));
         self::assertSame([1801, 1800], array_map(static fn (array $leg): int => (int) $leg['seconds_spent'], $legs));
-        self::assertSame(3601, (int) $this->database->fetchOne('SELECT seconds FROM relay_result WHERE id = :id', ['id' => $legs[0]['relay_result_id']]));
+        self::assertSame(3601, $this->number('SELECT seconds FROM relay_result WHERE id = :id', ['id' => $legs[0]['relay_result_id']]));
 
         // Unchanged: nothing to apply
         self::assertTrue($this->apply($this->eventRow('Puzzle Pals', '1:00:01', '4'))->unchanged);
@@ -258,7 +258,7 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         self::assertStringContainsString(PlayerFixture::PLAYER_REGULAR, (string) $legs[0]['team']);
         // A relay is never a first try
         self::assertSame([false, false], array_column($legs, 'first_attempt'));
-        self::assertSame(1, (int) $this->database->fetchOne("SELECT COUNT(*) FROM result_claim_log WHERE player_id = :player AND action = 'claimed'", ['player' => PlayerFixture::PLAYER_REGULAR]));
+        self::assertSame(1, $this->number("SELECT COUNT(*) FROM result_claim_log WHERE player_id = :player AND action = 'claimed'", ['player' => PlayerFixture::PLAYER_REGULAR]));
 
         // Both on the profile, one relay each: the total, two puzzles, the round
         $team = self::getContainer()->get(GetPlayerSolvedPuzzles::class)->teamByPlayerId(PlayerFixture::PLAYER_REGULAR);
@@ -291,13 +291,13 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         $legs = $this->legs('Puzzle Pals');
         self::assertSame([null, null], array_column($legs, 'player_id'));
         self::assertSame($legs[0]['puzzling_team_id'], $legs[1]['puzzling_team_id']);
-        self::assertSame(1, (int) $this->database->fetchOne("SELECT COUNT(*) FROM result_claim_log WHERE player_id = :player AND action = 'removed'", ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]), 'One removal, not one per puzzle');
+        self::assertSame(1, $this->number("SELECT COUNT(*) FROM result_claim_log WHERE player_id = :player AND action = 'removed'", ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]), 'One removal, not one per puzzle');
     }
 
     public function testASameResultIsRefusedForARelay(): void
     {
         $this->apply($this->eventRow('Puzzle Pals', '1:23:45', '3'));
-        $firstId = min(array_column($this->legs('Puzzle Pals'), 'id'));
+        $firstId = $this->firstId('Puzzle Pals');
 
         $this->expectException(EventResultClaimRefused::class);
         $this->messageBus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_REGULAR, sameResultTimeId: Uuid::uuid7()->toString()));
@@ -306,7 +306,7 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
     public function testASingleRelayClaimedAndTheAccountDeletedReleasesBoth(): void
     {
         $this->apply($this->eventRow('Jane Doe', '1:23:45', '1'));
-        $firstId = min(array_column($this->legs('Jane Doe'), 'id'));
+        $firstId = $this->firstId('Jane Doe');
 
         $this->messageBus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_REGULAR));
         $this->entityManager->clear();
@@ -318,6 +318,29 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
         $legs = $this->legs('Jane Doe');
         self::assertCount(2, $legs, 'The event\'s results stay');
         self::assertSame([null, null], array_column($legs, 'player_id'));
+    }
+
+    /**
+     * The relay's first result (the lowest id) - claims go through it.
+     */
+    private function firstId(string $teamName): string
+    {
+        $ids = array_column($this->legs($teamName), 'id');
+        self::assertNotSame([], $ids);
+        sort($ids);
+
+        return $ids[0];
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    private function number(mixed $sqlOrValue, array $parameters = []): int
+    {
+        $value = is_string($sqlOrValue) && str_starts_with($sqlOrValue, 'SELECT') ? $this->database->fetchOne($sqlOrValue, $parameters) : $sqlOrValue;
+        self::assertTrue(is_int($value) || is_numeric($value));
+
+        return (int) $value;
     }
 
     private function roundDetail(): EditionRoundDetail

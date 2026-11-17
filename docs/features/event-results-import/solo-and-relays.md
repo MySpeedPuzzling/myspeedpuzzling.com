@@ -82,6 +82,27 @@ The spike (2026-11-17) compared the two possible shapes:
 
 ## 2. Relays - two linked results (Jan, 2026-11-17)
 
+**Built 2026-11-17** - the as-built summary is README "Relays". What the build decided beyond this plan, or where the
+plan was not what the code needed:
+- `relay_result` holds `id`, `seconds` and `created_at` only - the tab and the team key are on `event_imported_result`
+  (a row per result, new `leg` 0 / 1, unique `tab_id, team_key, leg`), which the upsert already keys by.
+- The foreign key `puzzle_solving_time.relay_result_id` has no `ON DELETE` action: SET NULL would turn a result into a
+  relax solve on the puzzle page, CASCADE would bypass the graveyard. The import deletes the results first, then the
+  relay. Partial index `custom_pst_fk_relay_result_id` instead of Doctrine's full one.
+- The entity's invariant ("only an unfinished result has a time spent") gained the relay exception explicitly.
+- One lock per relay team: every read model and every claim screen goes through the team's first result (the lowest
+  id), so `ClaimEventResultSlot::lockKeyOf()` stays as it was.
+- Never a first try, no "same result" swap; claimed, released and removed once in the claim log and the notifications.
+- The puzzle's statistics (`puzzle_statistics`: "Completed N×" also on catalogue lists) leave relays out - they are the
+  puzzle's counts; global and personal statistics count them.
+- The result detail of a relay result is not found (it is the puzzle's page); profiles link the relay's round instead.
+- `Template…` tabs: any tab whose trimmed title starts with "template" is never an event.
+- A tab that turns into a relay or back after its import is `puzzle_changed_after_import`.
+- The round page reads the relay teams in the same statement as the round's results, so no other round page runs a
+  statement more (`OfficialRoundResultsPageTest`).
+- Not done: a claimed relay result reads as a relax solve on the Hub feed, the team page, API v1 and the exports
+  (docs/TODO.md).
+
 A relay is a team event where one team solves **two puzzles at the same time**, and only the **total time** is known.
 
 Jan's decision:

@@ -15198,3 +15198,5 @@ relay_result:
     profile_total: "počet puzzle: %count% · celkem %time%"
     claim_total: "Štafeta · počet puzzle: %count% · celkem %time%"
     import_hint: "Štafeta: každý tým skládal obě puzzle současně - jeho Time je celkový čas."
+    format_guide: "Štafeta (každý tým skládá dvě puzzle současně): zkopírujte libovolnou záložku, ponechte sloupce a na řádek 2 přidejte do nového sloupce Link to MySpeedPuzzling 2 odkaz na druhé puzzle na MySpeedPuzzling. Do Time napište celkový čas týmu. Celkový čas se zobrazí u události, nikdy na stránkách puzzle."
+    template_tabs: "Záložka, jejíž název začíná na Template (Template, Template Relay, Template Solo…), je vaše prázdná šablona - nikdy se neimportuje."

@@ -71,6 +71,8 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
     private const string KIM = 'Kim Out-of-Time';
     private const string LONE = 'Lone Wolf';
     private const string SOLO_EVENT_SLUG = 'maple-street-solo-night';
+    private const string RELAY = 'Relay Rockets';
+    private const string RELAY_SECOND_PUZZLE = PuzzleFixture::PUZZLE_1000_02;
 
     private KernelBrowser $browser;
 
@@ -645,6 +647,120 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
         self::assertNull($container->get(GetSolvingTimePrediction::class)->resultForTime($jane->id->toString()));
 
         $container->get(CommunityStatsCalculator::class)->recalculate(TestClock::now());
+    }
+
+    /**
+     * A relay team (solo-and-relays.md §2): the round page ranks it by its total, one row; the puzzles' own pages - the
+     * tabs, the counts under them, the result detail - never show it, nor its statistics on the puzzle.
+     */
+    public function testARelayIsOnTheRoundPageAndOffThePuzzlesPages(): void
+    {
+        $puzzleStatistics = self::getContainer()->get(PuzzleStatisticsCalculator::class);
+        $statisticsBefore = [
+            $puzzleStatistics->calculateForPuzzle(Uuid::fromString(self::PUZZLE)),
+            $puzzleStatistics->calculateForPuzzle(Uuid::fromString(self::RELAY_SECOND_PUZZLE)),
+        ];
+
+        [$first] = $this->seedRelay();
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $round = $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+            self::assertStringContainsString('data-round-relay', $round);
+            self::assertSame(1, substr_count($round, self::RELAY), 'One row for the relay team');
+            self::assertStringContainsString('01:23:45', $round);
+
+            foreach ([self::PUZZLE, self::RELAY_SECOND_PUZZLE] as $puzzleId) {
+                self::assertStringNotContainsString(self::RELAY, $this->page('/en/puzzle/' . $puzzleId));
+
+                $teams = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => $puzzleId, 'piecesCount' => 1000, 'category' => 'group'], $this->browser);
+                $teams->setRouteLocale('en');
+                self::assertStringNotContainsString(self::RELAY, $teams->render()->toString());
+            }
+
+            $this->browser->catchExceptions(true);
+            $this->browser->request('GET', '/en/result/' . $first->id->toString());
+            self::assertResponseStatusCodeSame(404);
+            $this->browser->catchExceptions(false);
+        }
+
+        self::assertEquals($statisticsBefore, [
+            $puzzleStatistics->calculateForPuzzle(Uuid::fromString(self::PUZZLE)),
+            $puzzleStatistics->calculateForPuzzle(Uuid::fromString(self::RELAY_SECOND_PUZZLE)),
+        ]);
+    }
+
+    /**
+     * Both puzzles count for the team like any team result - solved, their pieces - and the time spent counts the total
+     * once (each result its share).
+     */
+    public function testStatisticsCountARelaysPuzzlesAndItsTotalOnce(): void
+    {
+        $statistics = self::getContainer()->get(GetStatistics::class);
+        $before = $statistics->globally();
+
+        $this->seedRelay();
+
+        $after = $statistics->globally();
+        self::assertSame($before->solvedPuzzlesCount + 2, $after->solvedPuzzlesCount);
+        self::assertSame($before->totalSeconds + 5025, $after->totalSeconds);
+        self::assertSame($before->totalPieces + 2000, $after->totalPieces);
+    }
+
+    /**
+     * "This was my team" on the relay claims both results; the claimer's profile shows them as two linked results
+     * ("Relay", the total, linked to the round); "Remove from my profile" takes both off again.
+     */
+    public function testARelayIsClaimedShownOnTheProfileAndReleased(): void
+    {
+        [$first, $second] = $this->seedRelay();
+        $firstId = min($first->id->toString(), $second->id->toString());
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $claim = $this->page('/en/event-result/' . $second->id->toString() . '/claim');
+        self::assertStringContainsString('data-testid="event-result-relay"', $claim);
+        self::assertStringContainsString('total 01:23:45', $claim);
+        self::assertStringNotContainsString('name="first_try"', $claim, 'No first try of a relay');
+
+        $bus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        $profile = $this->createLiveComponent('PlayerSolvedPuzzles', ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'category' => 'group'], $this->browser);
+        $profile->setRouteLocale('en');
+        $html = $profile->render()->toString();
+        self::assertSame(2, substr_count($html, 'data-testid="relay-result"'), 'Both puzzles, one relay each');
+        self::assertStringContainsString('2 puzzles · total 01:23:45', $html);
+        self::assertStringContainsString('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG, $html);
+
+        $round = $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+        self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $round);
+
+        $bus->dispatch(new ReleaseEventResultSlot($second->id->toString(), PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame([null, null], $database->fetchFirstColumn('SELECT player_id FROM puzzle_solving_time WHERE relay_result_id = :relay', ['relay' => $first->relayResult?->id->toString()]));
+
+        $profile = $this->createLiveComponent('PlayerSolvedPuzzles', ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'category' => 'group'], $this->browser);
+        $profile->setRouteLocale('en');
+        self::assertStringNotContainsString('data-testid="relay-result"', $profile->render()->toString());
+    }
+
+    /**
+     * A relay of two puzzles (this test's puzzle and RELAY_SECOND_PUZZLE) in the teams round: Relay Rockets, four
+     * people, 1:23:45 in total - the import's shape
+     *
+     * @return non-empty-list<PuzzleSolvingTime>
+     */
+    private function seedRelay(): array
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE, secondPuzzleId: self::RELAY_SECOND_PUZZLE);
+
+        return $this->seedTrackerlessRelay($round, [self::PUZZLE, self::RELAY_SECOND_PUZZLE], self::RELAY, 5025);
     }
 
     /**

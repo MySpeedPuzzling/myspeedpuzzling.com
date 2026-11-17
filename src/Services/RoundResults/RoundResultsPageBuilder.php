@@ -89,6 +89,9 @@ readonly final class RoundResultsPageBuilder
             }
         }
 
+        // The relay teams of a relay round (solo-and-relays.md §2) come with the round's results, in the same statement
+        [$results, $relayResults] = $this->getRoundResults->forRoundWithRelays($round, $viewer?->playerId);
+
         return new RoundResultsPage(
             event: $event,
             eventTitle: EventTitle::forCompetition($event, $seriesName, $allRounds, $now),
@@ -96,7 +99,7 @@ readonly final class RoundResultsPageBuilder
             rounds: $rounds,
             previousRound: $rounds[$position - 1] ?? null,
             nextRound: $rounds[$position + 1] ?? null,
-            results: $this->getRoundResults->forRound($round, $viewer?->playerId),
+            results: $results,
             hasStarted: $hasStarted,
             canAddTime: $viewer !== null && $hasStarted,
             officialResultsLink: $round->resultsLink !== null
@@ -110,8 +113,7 @@ readonly final class RoundResultsPageBuilder
             )),
             // Queried only for a published round - any other round page runs exactly what it ran before
             officialResults: $round->resultsPublished ? $this->getPublishedRoundResults->forRound($round, $viewer?->playerId) : null,
-            // A relay round (more than one puzzle) only - every other round page runs exactly what it ran before
-            relayResults: count($round->puzzles) > 1 ? $this->getRoundResults->relaysForRound($round, $viewer?->playerId) : [],
+            relayResults: $relayResults,
         );
     }
 }

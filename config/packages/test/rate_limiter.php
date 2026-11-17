@@ -132,6 +132,14 @@ return App::config([
             // The watch page's token endpoint: the same - production counts with RedisSlidingWindowLimiterFactory
             // (config/packages/rate_limiter.php), this one stands in (the alias below); a test of the 429 uses up a key
             // of its own
+            // The competitor heartbeat (toolkit reliability T2): the same; a test of the 429 uses up a key of its own
+            'competitor_heartbeat' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_participant_rate_limits',
+            ],
             'online_watch_ip' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,
@@ -144,6 +152,9 @@ return App::config([
     'services' => [
         'online_rate_limiter.online_watch_ip' => [
             'alias' => 'limiter.online_watch_ip',
+        ],
+        'online_rate_limiter.competitor_heartbeat' => [
+            'alias' => 'limiter.competitor_heartbeat',
         ],
     ],
 ]);

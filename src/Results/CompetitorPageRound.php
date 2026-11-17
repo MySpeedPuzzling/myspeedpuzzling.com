@@ -47,6 +47,8 @@ readonly final class CompetitorPageRound implements \JsonSerializable
         public null|TimeProposalView $proposal = null,
         // A guest on a page whose entrant has a linked profile: "Sign in to propose your time" (never says who)
         public bool $signInToPropose = false,
+        // Reliability hardening T2: the signed right to send heartbeats for the own entry (CompetitorHeartbeatToken)
+        public null|string $heartbeatToken = null,
     ) {
     }
 
@@ -89,6 +91,10 @@ readonly final class CompetitorPageRound implements \JsonSerializable
         if ($this->canPropose) {
             $json['canPropose'] = true;
             $json['proposal'] = $this->proposal;
+
+            if ($this->heartbeatToken !== null) {
+                $json['heartbeat'] = $this->heartbeatToken;
+            }
         }
 
         if ($this->signInToPropose) {

@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Message\ProposeRoundTime;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeats;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
+use SpeedPuzzling\Web\Value\CompetitorHeartbeatRecord;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -26,9 +29,12 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * "Stop - propose my time" of a competitor's own page (competition toolkit P1, toolkit/B-qr-competitor-page.md §5,
  * R-review-and-plan.md §2.4): `POST {"proposalId": "<the phone's UUIDv7>", "entry": "participant_round:<id>" |
- * "team:<id>", "tappedAtMs": <the phone's server-synced clock at the tap>, "offsetMs", "rttMs", "stateHash"}` →
- * ProposeRoundTime → `{status: proposed|known|refused, reason, message, proposal}` (TimeProposalApi). The server's
- * receipt moment is taken here, before the dispatch waits for the event's lock.
+ * "team:<id>", "tappedAtMs": <the phone's server-synced clock at the tap>, "offsetMs", "rttMs", "stateHash",
+ * "offsetSampleAgeMs", "queuedOffline", "attempts", "sentAtMs"}` → ProposeRoundTime → `{status: proposed|known|refused,
+ * reason, message, proposal}` (TimeProposalApi). The server's receipt moment is taken here, before the dispatch waits
+ * for the event's lock - and the timing evidence (reliability hardening T2): what the server last heard from this
+ * player's page for this entry (CompetitorHeartbeats, one redis-state read - a store that does not answer means no
+ * evidence, the tap is trusted).
  *
  * Limited per player and round (`time_proposal`, 10 in 10 minutes - a stuck button never floods the judges, 429
  * `rate_limited`). A stored proposal is published to the round's judges after the commit (official_results.proposals).
@@ -43,6 +49,8 @@ final class ProposeRoundTimeController extends AbstractController
         private readonly OfficialResultsLiveUpdates $liveUpdates,
         private readonly ClockInterface $clock,
         private readonly RateLimiterFactoryInterface $timeProposalLimiter,
+        private readonly CompetitorHeartbeats $heartbeats,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -98,6 +106,11 @@ final class ProposeRoundTimeController extends AbstractController
             offsetMs: self::number($body['offsetMs'] ?? null),
             rttMs: self::number($body['rttMs'] ?? null),
             stateHash: $stateHash,
+            offsetSampleAgeMs: self::integer($body['offsetSampleAgeMs'] ?? null),
+            queuedOffline: ($body['queuedOffline'] ?? false) === true,
+            attempts: self::integer($body['attempts'] ?? null),
+            sentAtMs: self::integer($body['sentAtMs'] ?? null),
+            heartbeat: $this->heartbeat($round->id->toString(), $entry, $playerId),
         ));
 
         $answer = $envelope->last(HandledStamp::class)?->getResult();
@@ -111,6 +124,29 @@ final class ProposeRoundTimeController extends AbstractController
         $views = $answer->proposalId !== null ? $this->getTimeProposals->byIds($round->id->toString(), [$answer->proposalId]) : [];
 
         return $this->api->answer($answer, $views[0] ?? null);
+    }
+
+    private function heartbeat(string $roundId, string $entry, string $playerId): null|CompetitorHeartbeatRecord
+    {
+        try {
+            return $this->heartbeats->of($roundId, $entry, $playerId);
+        } catch (\Throwable $e) {
+            $this->logger->warning('Reading a competitor heartbeat failed', [
+                'round_id' => $roundId,
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
+    }
+
+    private static function integer(mixed $value): null|int
+    {
+        if (is_float($value) && is_finite($value) && abs($value) < 1e15) {
+            return (int) round($value);
+        }
+
+        return is_int($value) ? $value : null;
     }
 
     private static function number(mixed $value): null|float

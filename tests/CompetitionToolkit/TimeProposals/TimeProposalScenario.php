@@ -106,6 +106,12 @@ trait TimeProposalScenario
         int $receivedAgoMs = 0,
         string $roundId = OfficialResultsFixture::ROUND_FINAL,
         null|string $stateHash = null,
+        null|\SpeedPuzzling\Web\Value\CompetitorHeartbeatRecord $heartbeat = null,
+        null|int $offsetSampleAgeMs = 4000,
+        bool $queuedOffline = false,
+        null|int $attempts = 1,
+        null|float $offsetMs = 12.5,
+        null|float $rttMs = 80.0,
     ): TimeProposalAnswer {
         self::getContainer()->get(EntityManagerInterface::class)->clear();
 
@@ -117,9 +123,14 @@ trait TimeProposalScenario
             actingPlayerId: $playerId,
             tappedAtMs: self::nowMs() - $tappedAgoMs,
             receivedAtMs: self::nowMs() - $receivedAgoMs,
-            offsetMs: 12.5,
-            rttMs: 80.0,
+            offsetMs: $offsetMs,
+            rttMs: $rttMs,
             stateHash: $stateHash,
+            offsetSampleAgeMs: $offsetSampleAgeMs,
+            queuedOffline: $queuedOffline,
+            attempts: $attempts,
+            sentAtMs: self::nowMs() - $receivedAgoMs,
+            heartbeat: $heartbeat,
         ))->last(HandledStamp::class)?->getResult();
         assert($answer instanceof TimeProposalAnswer);
 

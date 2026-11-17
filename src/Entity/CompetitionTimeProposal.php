@@ -18,6 +18,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
 use SpeedPuzzling\Web\Value\TimeProposalStatus;
+use SpeedPuzzling\Web\Value\TimeProposalVerdict;
 
 /**
  * A competitor's "propose my time" (competition toolkit P1 - toolkit/B-qr-competitor-page.md §5.2-5.3 with
@@ -31,7 +32,9 @@ use SpeedPuzzling\Web\Value\TimeProposalStatus;
  *   `custom_time_proposal_pending_solo` / `custom_time_proposal_pending_team` (migration + tests/bootstrap.php).
  * - The times: `tappedAtMs` is the phone's server-synced clock at the tap, `receivedAtMs` the server's receipt; the
  *   seconds of both against the stopwatch start the server used (`startedAtMs`). Late (> 5 s, isLate()) is shown to the
- *   judge with both times.
+ *   judge with both times. Since reliability hardening T2 the judge's default follows `timingVerdict`
+ *   (TimeProposalTiming - evidence from the competitor page's heartbeats): only `suspicious` defaults to the receipt;
+ *   a row from before T2 (no verdict) keeps the old rule (late → the receipt).
  * - Gone with the round, the entry and the participant (ON DELETE CASCADE - DeleteCompetitionHandler deletes in SQL).
  */
 #[Entity]
@@ -133,6 +136,29 @@ class CompetitionTimeProposal
         #[Immutable]
         #[Column]
         public bool $clockChanged,
+        // T2: how the tap reached us (TimeProposalTiming::judge()) - null on rows from before T2
+        #[Immutable]
+        #[Column(length: 16, nullable: true, enumType: TimeProposalVerdict::class)]
+        public null|TimeProposalVerdict $timingVerdict = null,
+        // T2: the heartbeat receipt the verdict rests on (the clean one of a suspicious tap, else the last one heard)
+        #[Immutable]
+        #[Column(type: Types::BIGINT, nullable: true)]
+        public null|int $lastHeardAtMs = null,
+        // T2: the phone's clock is in doubt (no sample, an old one, an offset jump, a send our clock disagrees with)
+        #[Immutable]
+        #[Column(options: ['default' => false])]
+        public bool $clockUncertain = false,
+        // T2 diagnostics, the phone's word: the age of its clock sample at the tap, whether the tap waited offline or a
+        // send failed before, and which attempt reached us
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|int $offsetSampleAgeMs = null,
+        #[Immutable]
+        #[Column(options: ['default' => false])]
+        public bool $queuedOffline = false,
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|int $sendAttempts = null,
     ) {
         if (($participantRound === null) === ($team === null)) {
             throw new \InvalidArgumentException('A time proposal belongs to exactly one entry - a solo entry or a pair/team.');

@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\CompetitionTimeProposalRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalOwnership;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalTiming;
 use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -39,8 +40,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * 5. `result_recorded` (the entry has an official result), `already_proposed` (one is pending - its id comes along).
  *
  * The seconds are counted from the stored start, both for the tap and for the receipt; more than 5 s between them is
- * flagged `late` for the judge (CompetitionTimeProposal::isLate()), a phone that timed against another stopwatch state
- * (a pause/resume since) is flagged `clockChanged`. Nothing is published here - the controller does after the commit.
+ * `late` (lateByMs). Whether that lateness is a problem is the timing verdict (reliability hardening T2,
+ * TimeProposalTiming::judge() over the message's evidence - the heartbeats of the competitor's page): on_time /
+ * offline (the tap stands) / suspicious (the judge checks; the receipt is the default), plus `clockUncertain`.
+ * A phone that timed against another stopwatch state (a pause/resume since) is flagged `clockChanged`. Nothing is
+ * published here - the controller does after the commit.
  */
 #[AsMessageHandler]
 readonly final class ProposeRoundTimeHandler
@@ -127,6 +131,16 @@ readonly final class ProposeRoundTimeHandler
         $receivedNow = new DateTimeImmutable('@' . intdiv($message->receivedAtMs, 1000));
         $storedHash = RoundClock::fromRound($round, $receivedNow)->stateHash();
 
+        $timing = TimeProposalTiming::judge(
+            tappedAtMs: $message->tappedAtMs,
+            receivedAtMs: $message->receivedAtMs,
+            heartbeat: $message->heartbeat,
+            offsetMs: $message->offsetMs,
+            rttMs: $message->rttMs,
+            offsetSampleAgeMs: $message->offsetSampleAgeMs,
+            sentAtMs: $message->sentAtMs,
+        );
+
         $proposal = new CompetitionTimeProposal(
             id: Uuid::fromString(strtolower($message->proposalId)),
             round: $round,
@@ -145,6 +159,12 @@ readonly final class ProposeRoundTimeHandler
             receiptSeconds: max(0, intdiv($message->receivedAtMs - $startedAtMs, 1000)),
             lateByMs: max(0, $message->receivedAtMs - $message->tappedAtMs),
             clockChanged: $message->stateHash !== null && $message->stateHash !== $storedHash,
+            timingVerdict: $timing->verdict,
+            lastHeardAtMs: $timing->lastHeardAtMs,
+            clockUncertain: $timing->clockUncertain,
+            offsetSampleAgeMs: $message->offsetSampleAgeMs !== null ? max(0, min($message->offsetSampleAgeMs, 2_000_000_000)) : null,
+            queuedOffline: $message->queuedOffline,
+            sendAttempts: $message->attempts !== null ? max(0, min($message->attempts, 1_000_000)) : null,
         );
         $this->proposalRepository->save($proposal);
 

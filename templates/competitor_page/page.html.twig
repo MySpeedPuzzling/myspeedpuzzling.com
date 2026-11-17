@@ -56,6 +56,7 @@
          data-competitor-page-withdraw-url-value="{{ path('competitor_withdraw_time_proposal', {proposalId: '00000000-0000-0000-0000-000000000000'}) }}"
          data-competitor-page-csrf-token-value="{{ csrf_token('time_proposal') }}"
          data-competitor-page-viewer-value="{{ logged_user.profile.playerId }}"
+         data-competitor-page-heartbeat-url-value="{{ path('competitor_heartbeat') }}"
          data-competitor-page-proposal-labels-value="{{ {
              stop: 'competitor_page.proposal.stop'|trans,
              confirm_question: 'competitor_page.proposal.confirm_question'|trans,

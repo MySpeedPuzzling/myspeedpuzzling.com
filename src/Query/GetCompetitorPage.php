@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Results\RoundPuzzlesNow;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Results\TimeProposalView;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeatToken;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
@@ -54,7 +55,8 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *
  * Statements: the competition with its rounds (1), the tag's entries with their people (1), the round puzzles (1), the
  * published rounds' official entries (0-2: OfficialEntrantsView runs one per category of rounds it is asked for), the
- * signed-in competitor's own time proposals (0-1: only with time proposals on and an own entry shown - B8).
+ * signed-in competitor's own time proposals (0-1: only with time proposals on and an own entry shown - B8). The
+ * heartbeat token of an own entry (T2) is an HMAC - no statement.
  *
  * @phpstan-type RoundRow array{id: string, name: string, category: RoundCategory, starts_at: DateTimeImmutable, zone: string, zone_assumed: bool, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, published: bool, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int}
  * @phpstan-type EntryRow array{kind: string, id: string, round_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, puzzles: null|RoundEntryPuzzles, team_name: null|string, entrants: list<PublishedRoundEntrant>}
@@ -67,6 +69,7 @@ readonly final class GetCompetitorPage
         private RoundPuzzlesVisibleNow $roundPuzzlesVisibleNow,
         private PrivateProfileAccess $privateProfileAccess,
         private GetTimeProposals $getTimeProposals,
+        private CompetitorHeartbeatToken $heartbeatToken,
     ) {
     }
 
@@ -273,6 +276,8 @@ readonly final class GetCompetitorPage
             canPropose: $canPropose,
             proposal: $canPropose ? ($proposals[$entry->ref->toString()] ?? null)?->forCompetitor() : null,
             signInToPropose: $signInToPropose,
+            // T2: the right to send heartbeats for this entry while the round runs (no statement - an HMAC)
+            heartbeatToken: $canPropose && $viewerPlayerId !== null ? $this->heartbeatToken->issue($round['id'], $entry->ref->toString(), $viewerPlayerId, $now) : null,
         );
     }
 

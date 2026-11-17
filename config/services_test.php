@@ -89,6 +89,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Online competitions: presence and evidence storage without Redis and object storage - their doubles keep what a
     // test wrote for the next request of the same kernel (docs/features/online-competitions/)
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence::class, \SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence::class);
+    // Competitor heartbeats (toolkit reliability T2) without Redis - RedisCompetitorHeartbeatsTest covers the Lua script
+    $services->set(\SpeedPuzzling\Web\Services\CompetitionToolkit\InMemoryCompetitorHeartbeats::class);
+    $services->alias(\SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeats::class, \SpeedPuzzling\Web\Services\CompetitionToolkit\InMemoryCompetitorHeartbeats::class);
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage::class, \SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage::class);
 
     // Live video (docs/features/online-competitions/contracts/phase-1b.md): LiveKit's server API answers from a static

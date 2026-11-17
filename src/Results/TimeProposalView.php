@@ -12,8 +12,10 @@ use DateTimeImmutable;
  * no puzzle choice in v1). The same payload goes to the organisers' and the referees' topic: who proposed is the
  * participant's organiser-recorded name only - never the linked player's id, #code or profile name.
  *
- * - `late` = more than 5 s between the tap and the receipt: the judge shows both seconds and the lateness, and the
- *   card's default value is the receipt time (R §2.4).
+ * - `late` = more than 5 s between the tap and the receipt - kept for compatibility; what the judge's card does with it
+ *   is `timing` (reliability hardening T2, TimeProposalTiming): `{verdict: on_time|offline|suspicious, lastHeardAtMs,
+ *   clockUncertain, queuedOffline, attempts}` - only `suspicious` defaults to the receipt time. Null on a proposal from
+ *   before T2: then `late` defaults to the receipt time as it did (R §2.4). Judges only - never on the competitor's phone.
  * - `proposedBy.linkedAt` = when the proposer's profile was linked to that name, only when that was less than a day
  *   before the tap (R §2.4: "linked to this name on {date}"); null otherwise.
  * - `decided` once it is not pending.
@@ -38,6 +40,11 @@ readonly final class TimeProposalView implements \JsonSerializable
         public int $lateByMs,
         public bool $late,
         public bool $clockChanged,
+        public null|string $timingVerdict,
+        public null|int $lastHeardAtMs,
+        public bool $clockUncertain,
+        public bool $queuedOffline,
+        public null|int $sendAttempts,
         public string $proposedByParticipantId,
         public string $proposedByName,
         public null|DateTimeImmutable $proposerLinkedAt,
@@ -65,6 +72,11 @@ readonly final class TimeProposalView implements \JsonSerializable
             lateByMs: $this->lateByMs,
             late: $this->late,
             clockChanged: $this->clockChanged,
+            timingVerdict: $this->timingVerdict,
+            lastHeardAtMs: $this->lastHeardAtMs,
+            clockUncertain: $this->clockUncertain,
+            queuedOffline: $this->queuedOffline,
+            sendAttempts: $this->sendAttempts,
             proposedByParticipantId: $this->proposedByParticipantId,
             proposedByName: $this->proposedByName,
             proposerLinkedAt: null,
@@ -114,6 +126,13 @@ readonly final class TimeProposalView implements \JsonSerializable
             'lateByMs' => $this->lateByMs,
             'late' => $this->late,
             'clockChanged' => $this->clockChanged,
+            ...($this->forCompetitor ? [] : ['timing' => $this->timingVerdict === null ? null : [
+                'verdict' => $this->timingVerdict,
+                'lastHeardAtMs' => $this->lastHeardAtMs,
+                'clockUncertain' => $this->clockUncertain,
+                'queuedOffline' => $this->queuedOffline,
+                'attempts' => $this->sendAttempts,
+            ]]),
             'proposedBy' => [
                 'participantId' => $this->proposedByParticipantId,
                 'name' => $this->proposedByName,

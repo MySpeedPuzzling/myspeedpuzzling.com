@@ -233,6 +233,20 @@ return App::config([
         // what one address can take there too. One atomic call on the cache Redis like the participant API's limits
         // (RedisSlidingWindowLimiterFactory, its connection online_rate_limiter.redis - config/services.php); the test
         // environment stands in with the framework limiter `online_watch_ip` (config/packages/test/rate_limiter.php).
+        // A competitor page's heartbeat (CompetitorHeartbeatController, toolkit reliability T2): per player and round - a page
+        // beats every 15 s and on every reconnect/visibility change, a stuck loop or a script is stopped. One atomic call on
+        // the cache Redis like the watch page's limit; the test environment stands in with the framework limiter.
+        'online_rate_limiter.competitor_heartbeat' => [
+            'class' => \SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory::class,
+            'autowire' => true,
+            'arguments' => [
+                '$redis' => service('online_rate_limiter.redis'),
+                '$id' => 'competitor_heartbeat',
+                '$limit' => 30,
+                '$intervalSeconds' => 60,
+                '$keyPrefix' => 'online_rate_limit:',
+            ],
+        ],
         'online_rate_limiter.online_watch_ip' => [
             'class' => \SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory::class,
             'autowire' => true,

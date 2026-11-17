@@ -258,7 +258,8 @@ final class ProposeRoundTimeHandlerTest extends KernelTestCase
         $this->expectException(UniqueConstraintViolationException::class);
 
         $row['id'] = Uuid::uuid7()->toString();
-        self::db()->insert('competition_time_proposal', $row, ['clock_changed' => \Doctrine\DBAL\ParameterType::BOOLEAN]);
+        $boolean = \Doctrine\DBAL\ParameterType::BOOLEAN;
+        self::db()->insert('competition_time_proposal', $row, ['clock_changed' => $boolean, 'clock_uncertain' => $boolean, 'queued_offline' => $boolean]);
     }
 
     public function testAProposalBelongsToExactlyOneEntry(): void

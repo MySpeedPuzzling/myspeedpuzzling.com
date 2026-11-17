@@ -608,6 +608,12 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$redis', service('api_usage.redis'));
     $services->alias(OnlinePresence::class, RedisOnlinePresence::class);
 
+    // Competitor heartbeats (competition toolkit reliability hardening T2): redis-state too, never Postgres -
+    // config/services_test.php keeps the in-process double
+    $services->set(\SpeedPuzzling\Web\Services\CompetitionToolkit\RedisCompetitorHeartbeats::class)
+        ->arg('$redis', service('api_usage.redis'));
+    $services->alias(\SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeats::class, \SpeedPuzzling\Web\Services\CompetitionToolkit\RedisCompetitorHeartbeats::class);
+
     // The participant API's rate limits (OnlineParticipantApi): every link is a possibly hostile client, so the count
     // must hold when many requests come at the same moment - one atomic Lua call per request on the cache Redis
     // (RedisSlidingWindowLimiterFactory). Framework limiters count in PHP: without a lock parallel requests all pass,

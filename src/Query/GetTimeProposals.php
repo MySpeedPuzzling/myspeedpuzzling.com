@@ -37,6 +37,11 @@ SELECT
     tp.received_at_ms,
     tp.late_by_ms,
     tp.clock_changed,
+    tp.timing_verdict,
+    tp.last_heard_at_ms,
+    tp.clock_uncertain,
+    tp.queued_offline,
+    tp.send_attempts,
     tp.proposed_by_participant_id,
     cp.name AS proposed_by_name,
     tp.proposer_linked_at,
@@ -166,7 +171,7 @@ SQL;
      */
     private static function view(array $row): TimeProposalView
     {
-        /** @var array{id: string, round_id: string, participant_round_id: null|string, team_id: null|string, table_number: null|int, status: string, proposed_seconds: int, receipt_seconds: int, tapped_at_ms: int|string, received_at_ms: int|string, late_by_ms: int, clock_changed: bool, proposed_by_participant_id: string, proposed_by_name: string, proposer_linked_at: null|string, decided_at: null|string, decided_by_player_id: null|string, decided_by_name: null|string, decided_by_code: null|string, decided_seconds: null|int, decision_reason: null|string} $row */
+        /** @var array{id: string, round_id: string, participant_round_id: null|string, team_id: null|string, table_number: null|int, status: string, proposed_seconds: int, receipt_seconds: int, tapped_at_ms: int|string, received_at_ms: int|string, late_by_ms: int, clock_changed: bool, timing_verdict: null|string, last_heard_at_ms: null|int|string, clock_uncertain: bool, queued_offline: bool, send_attempts: null|int, proposed_by_participant_id: string, proposed_by_name: string, proposer_linked_at: null|string, decided_at: null|string, decided_by_player_id: null|string, decided_by_name: null|string, decided_by_code: null|string, decided_seconds: null|int, decision_reason: null|string} $row */
         $entry = $row['team_id'] !== null ? RoundEntryRef::team($row['team_id']) : RoundEntryRef::participantRound((string) $row['participant_round_id']);
 
         return new TimeProposalView(
@@ -182,6 +187,11 @@ SQL;
             lateByMs: $row['late_by_ms'],
             late: $row['late_by_ms'] > CompetitionTimeProposal::LATE_AFTER_MS,
             clockChanged: $row['clock_changed'],
+            timingVerdict: $row['timing_verdict'],
+            lastHeardAtMs: $row['last_heard_at_ms'] !== null ? (int) $row['last_heard_at_ms'] : null,
+            clockUncertain: $row['clock_uncertain'],
+            queuedOffline: $row['queued_offline'],
+            sendAttempts: $row['send_attempts'],
             proposedByParticipantId: $row['proposed_by_participant_id'],
             proposedByName: $row['proposed_by_name'],
             proposerLinkedAt: $row['proposer_linked_at'] !== null ? new DateTimeImmutable($row['proposer_linked_at']) : null,

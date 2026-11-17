@@ -64,6 +64,7 @@ readonly final class CreateCompetitionStandingHandler
             unfinishedPenaltySecondsPerPiece: $message->rules->penaltySecondsPerPiece,
             orderRule: $message->rules->order,
             missingRule: $message->rules->missing,
+            penaliseFinishedMissing: $message->rules->penaliseFinishedMissing,
         ));
     }
 }

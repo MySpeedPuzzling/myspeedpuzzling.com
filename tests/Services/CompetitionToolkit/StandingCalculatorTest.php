@@ -267,6 +267,66 @@ final class StandingCalculatorTest extends TestCase
         self::assertTrue(StandingCalculator::anyRecorded([self::entry('a', RoundEntryResult::none()), self::entry('b', RoundEntryResult::didNotStart())]));
     }
 
+    /**
+     * Competition toolkit T6 - Jan's World Series: two rounds, 30 s per missing piece. The total = the times + the
+     * penalty; the missing pieces and the parts are kept per round and per row.
+     */
+    public function testUnfinishedRoundsShowTimeMissingPiecesAndThePenalisedTotal(): void
+    {
+        $rounds = [
+            self::round('r1', [self::entry('anna', RoundEntryResult::unfinished(463)), self::entry('ben', RoundEntryResult::finished(5000))], minutesLimit: 90),
+            self::round('r2', [self::entry('anna', RoundEntryResult::finished(4000)), self::entry('ben', RoundEntryResult::unfinished(499))], minutesLimit: 90),
+        ];
+        $rows = StandingCalculator::sum(new StandingRules(30, StandingOrder::TotalOnly), $rounds);
+
+        // anna: 5400 + 4000 = 9400 time, 37 missing × 30 = 1110 → 10510; ben: 5000 + 5400 = 10400, 1 × 30 → 10430
+        self::assertSame(['ben' => [1, 10430], 'anna' => [2, 10510]], self::ranks($rows));
+        self::assertSame([10400, 1, 30], [$rows[0]->totalTimeSeconds, $rows[0]->totalMissingPieces, $rows[0]->totalPenaltySeconds]);
+        self::assertSame([9400, 37, 1110], [$rows[1]->totalTimeSeconds, $rows[1]->totalMissingPieces, $rows[1]->totalPenaltySeconds]);
+        $annaR1 = $rows[1]->perRound['r1'];
+        self::assertSame([5400, 37, 1110, 6510], [$annaR1->timeSeconds, $annaR1->missingPieces, $annaR1->penaltySeconds, $annaR1->scoreSeconds]);
+
+        // Penalty 0: the missing pieces are shown, the order is by time alone
+        $free = StandingCalculator::sum(new StandingRules(0, StandingOrder::TotalOnly), $rounds);
+        self::assertSame(['anna' => [1, 9400], 'ben' => [2, 10400]], self::ranks($free));
+        self::assertSame(37, $free[0]->totalMissingPieces);
+        self::assertSame(0, $free[0]->totalPenaltySeconds);
+    }
+
+    public function testPiecesMissingFromAFinishedPuzzleArePenalisedOnlyWithTheSwitch(): void
+    {
+        $rounds = [
+            self::round('r1', [
+                new StandingEntryInput('anna', RoundEntryResult::finished(3000), null, 500, 'anna', missingPieces: 2),
+                self::entry('ben', RoundEntryResult::finished(3050)),
+            ]),
+        ];
+
+        $off = StandingCalculator::sum(new StandingRules(30), $rounds);
+        self::assertSame(['anna' => [1, 3000], 'ben' => [2, 3050]], self::ranks($off));
+        self::assertSame(StandingScoreStatus::Finished, $off[0]->perRound['r1']->status);
+        self::assertTrue($off[0]->perRound['r1']->isFinishedWithMissingPieces());
+        self::assertSame([3000, 2, 0], [$off[0]->totalTimeSeconds, $off[0]->totalMissingPieces, $off[0]->totalPenaltySeconds]);
+
+        $on = StandingCalculator::sum(new StandingRules(30, penaliseFinishedMissing: true), $rounds);
+        self::assertSame(['ben' => [1, 3050], 'anna' => [2, 3060]], self::ranks($on));
+        self::assertSame([3000, 2, 60], [$on[1]->totalTimeSeconds, $on[1]->totalMissingPieces, $on[1]->totalPenaltySeconds]);
+        // Still a finished round for "more finished rounds first"
+        self::assertSame(1, $on[1]->roundsFinished);
+    }
+
+    public function testEqualPenalisedTotalsShareARank(): void
+    {
+        $rows = StandingCalculator::sum(new StandingRules(10, penaliseFinishedMissing: true), [
+            self::round('r1', [
+                new StandingEntryInput('anna', RoundEntryResult::finished(1000), null, 500, 'anna', missingPieces: 1),
+                self::entry('ben', RoundEntryResult::finished(1010)),
+            ]),
+        ]);
+
+        self::assertSame(['anna' => [1, 1010], 'ben' => [1, 1010]], self::ranks($rows));
+    }
+
     public function testTheRulesRefuseAPenaltyOutOfRange(): void
     {
         $this->expectException(\InvalidArgumentException::class);

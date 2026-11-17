@@ -24,6 +24,8 @@ final readonly class StandingEntryInput
         public string $name,
         public array $countries = [],
         public array $entrants = [],
+        // Finished with pieces missing (competition toolkit T6): how many - null = complete or not finished
+        public null|int $missingPieces = null,
     ) {
     }
 }

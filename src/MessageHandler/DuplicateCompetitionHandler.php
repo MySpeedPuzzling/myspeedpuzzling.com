@@ -227,6 +227,7 @@ readonly final class DuplicateCompetitionHandler
                 unfinishedPenaltySecondsPerPiece: $standing->unfinishedPenaltySecondsPerPiece,
                 orderRule: $standing->orderRule,
                 missingRule: $standing->missingRule,
+                penaliseFinishedMissing: $standing->penaliseFinishedMissing,
             ));
         }
     }

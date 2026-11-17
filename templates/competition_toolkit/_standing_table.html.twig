@@ -57,19 +57,20 @@
                                     <span class="badge text-bg-light border ms-1" data-standing-incomplete>{{ 'competition_standing.preview.rounds_of'|trans({'%scored%': row.roundsScored, '%count%': table.roundsCounted}) }}</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end text-nowrap fw-semibold" data-standing-total>{{ row.totalSeconds|puzzlingTime }}</td>
+                            <td class="text-end text-nowrap fw-semibold">{{ include('standing/_total.html.twig') }}</td>
                             {% for round in table.rounds %}
                                 {% set score = row.perRound[round.id] %}
                                 <td class="text-end text-nowrap" data-standing-score="{{ score.status.value }}">
                                     {% if score.status.value == 'finished' %}
-                                        {{ score.scoreSeconds|puzzlingTime }}
+                                        {{ score.timeSeconds|puzzlingTime }}
                                     {% elseif score.status.value == 'unfinished' %}
-                                        <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.scoreSeconds|puzzlingTime }}*</span>
+                                        <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.timeSeconds|puzzlingTime }}*</span>
                                     {% elseif score.status.value == 'not_counted' %}
                                         –
                                     {% else %}
                                         <span class="text-danger">{{ ('competition_standing.status.' ~ score.status.value)|trans }}</span>
                                     {% endif %}
+                                    {% if score.missingPieces > 0 %}<span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif %}
                                     {% if score.rank is not null %}<span class="text-muted">({{ score.rank }}.)</span>{% endif %}
                                 </td>
                             {% endfor %}
@@ -78,6 +79,6 @@
                 </tbody>
             </table>
         </div>
-        <p class="small text-muted mt-1 mb-0">{{ 'competition_standing.preview.legend'|trans }}</p>
+        <p class="small text-muted mt-1 mb-0">{{ 'finished_missing.standing.preview_legend'|trans }}</p>
     {% endif %}
 </div>

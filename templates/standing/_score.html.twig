@@ -1,8 +1,12 @@
-{#- One round's score of a public standing row (competition toolkit A7). Variables: score (StandingRoundScore), round. -#}
+{#- One round's score of a public standing row (competition toolkit A7). Variables: score (StandingRoundScore), round.
+    Competition toolkit T6: the time with the pieces missing next to it (not placed at the time's up, or missing from a
+    finished puzzle) - the penalty they cost is in the row's total. -#}
 {%- if score.status.value == 'finished' -%}
-    {{ score.scoreSeconds|puzzlingTime }}
+    {{ score.timeSeconds|puzzlingTime }}
+    {%- if score.missingPieces > 0 %} <span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif -%}
 {%- elseif score.status.value == 'unfinished' -%}
-    <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.scoreSeconds|puzzlingTime }}*</span>
+    <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.timeSeconds|puzzlingTime }}*</span>
+    {%- if score.missingPieces > 0 %} <span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif -%}
 {%- elseif score.status.value == 'not_counted' -%}
     <span title="{{ 'public_standing.not_published_round'|trans }}">–</span>
 {%- elseif score.status.value == 'unfinished_without_limit' -%}

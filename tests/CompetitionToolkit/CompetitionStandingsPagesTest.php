@@ -110,14 +110,17 @@ final class CompetitionStandingsPagesTest extends WebTestCase
             'name' => 'Solo overall',
             'category' => 'solo',
             'penaltySecondsPerPiece' => '3',
+            // Competition toolkit T6 - pieces missing from a finished puzzle penalised too
+            'penaliseFinishedMissing' => '1',
             'orderRule' => 'total_only',
             'roundIds' => $this->soloRounds,
         ]);
         self::assertResponseRedirects('/en/manage-event-standings/' . self::WS_COMPETITION, 303);
 
-        /** @var array{id: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string} $row */
-        $row = $this->database->fetchAssociative('SELECT id, round_ids, unfinished_penalty_seconds_per_piece, order_rule FROM competition_standing WHERE competition_id = :id', ['id' => self::WS_COMPETITION]);
+        /** @var array{id: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, penalise_finished_missing: bool} $row */
+        $row = $this->database->fetchAssociative('SELECT id, round_ids, unfinished_penalty_seconds_per_piece, order_rule, penalise_finished_missing FROM competition_standing WHERE competition_id = :id', ['id' => self::WS_COMPETITION]);
         self::assertSame(3, $row['unfinished_penalty_seconds_per_piece']);
+        self::assertTrue($row['penalise_finished_missing']);
         self::assertSame('total_only', $row['order_rule']);
         self::assertSame($this->soloRounds, json_decode($row['round_ids'], true, flags: JSON_THROW_ON_ERROR));
 
@@ -192,14 +195,14 @@ final class CompetitionStandingsPagesTest extends WebTestCase
         self::assertTrue($state['standing']['includesUnpublished']);
         self::assertFalse($state['standing']['published']);
         self::assertSame(6, $state['standing']['roundsCounted']);
-        self::assertSame(['penaltySecondsPerPiece' => 0, 'order' => 'finished_rounds_first', 'missing' => 'incomplete'], $state['standing']['rules']);
+        self::assertSame(['penaltySecondsPerPiece' => 0, 'order' => 'finished_rounds_first', 'missing' => 'incomplete', 'penaliseFinishedMissing' => false], $state['standing']['rules']);
         self::assertSame([true, true, true, false, false, false], array_column($state['rounds'], 'published'));
         self::assertSame([1, 2, 3, null], array_column($state['rows'], 'rank'));
         self::assertSame([6000, 6600, 8100, 4000], array_column($state['rows'], 'totalSeconds'));
         self::assertSame(['Alice', 'Cyril', 'Bob', 'Dora'], array_column($state['rows'], 'name'));
         /** @var list<array<string, mixed>> $bobRounds */
         $bobRounds = $state['rows'][2]['perRound'];
-        self::assertSame(['roundId' => $this->soloRounds[5], 'status' => 'unfinished', 'result' => ['piecesPlaced' => 450], 'scoreSeconds' => 3600, 'rank' => 4], $bobRounds[5]);
+        self::assertSame(['roundId' => $this->soloRounds[5], 'status' => 'unfinished', 'result' => ['piecesPlaced' => 450], 'scoreSeconds' => 3600, 'rank' => 4, 'timeSeconds' => 3600, 'missingPieces' => 50, 'penaltySeconds' => 0], $bobRounds[5]);
 
         // Another standing id: 404
         $this->browser->request('GET', '/en/official-results/standings/' . Uuid::uuid7()->toString());

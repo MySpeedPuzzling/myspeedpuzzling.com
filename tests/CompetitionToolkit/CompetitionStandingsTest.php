@@ -216,7 +216,7 @@ final class CompetitionStandingsTest extends KernelTestCase
 
     public function testDuplicatingTheEventCopiesItsStandingsUnpublishedWithTheCopiedRounds(): void
     {
-        $solo = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(5, StandingOrder::TotalOnly));
+        $solo = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(5, StandingOrder::TotalOnly, penaliseFinishedMissing: true));
         $this->database->executeStatement('UPDATE competition_standing SET published_at = :at WHERE id = :id', ['id' => $solo, 'at' => '2026-01-01 00:00:00']);
         $this->create('World Series - Pairs', RoundCategory::Duo, $this->pairRounds);
 
@@ -233,6 +233,8 @@ final class CompetitionStandingsTest extends KernelTestCase
         self::assertNull($copies[0]->publishedAt);
         self::assertSame(5, $copies[0]->rules->penaltySecondsPerPiece);
         self::assertSame(StandingOrder::TotalOnly, $copies[0]->rules->order);
+        self::assertTrue($copies[0]->rules->penaliseFinishedMissing);
+        self::assertFalse($copies[1]->rules->penaliseFinishedMissing);
         self::assertSame(RoundCategory::Duo, $copies[1]->category);
 
         // Remapped onto the copy's rounds, in the same order (the copied rounds keep the slugs)

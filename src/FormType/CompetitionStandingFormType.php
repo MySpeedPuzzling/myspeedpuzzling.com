@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -58,6 +59,12 @@ final class CompetitionStandingFormType extends AbstractType
             'label' => 'competition_standing.form.penalty',
             'help' => 'competition_standing.form.penalty_help',
             'attr' => ['min' => 0, 'max' => StandingRules::PENALTY_MAX, 'inputmode' => 'numeric'],
+        ]);
+
+        $builder->add('penaliseFinishedMissing', CheckboxType::class, [
+            'required' => false,
+            'label' => 'finished_missing.standing_form.penalise',
+            'help' => 'finished_missing.standing_form.penalise_help',
         ]);
 
         $builder->add('orderRule', EnumType::class, [

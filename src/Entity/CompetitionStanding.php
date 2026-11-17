@@ -87,6 +87,10 @@ class CompetitionStanding
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $publishedAt = null,
+        // Competition toolkit T6: the penalty per piece also for pieces a finished puzzle lacked (default off)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => false])]
+        public bool $penaliseFinishedMissing = false,
     ) {
     }
 
@@ -108,7 +112,7 @@ class CompetitionStanding
 
     public function rules(): StandingRules
     {
-        return new StandingRules($this->unfinishedPenaltySecondsPerPiece, $this->orderRule, $this->missingRule);
+        return new StandingRules($this->unfinishedPenaltySecondsPerPiece, $this->orderRule, $this->missingRule, $this->penaliseFinishedMissing);
     }
 
     /**
@@ -122,6 +126,7 @@ class CompetitionStanding
         $this->unfinishedPenaltySecondsPerPiece = $rules->penaltySecondsPerPiece;
         $this->orderRule = $rules->order;
         $this->missingRule = $rules->missing;
+        $this->penaliseFinishedMissing = $rules->penaliseFinishedMissing;
     }
 
     /**

@@ -152,6 +152,7 @@ readonly final class GetStandingResults
                         playerId: $entrant->playerId,
                         playerCode: $entrant->playerId !== null ? $entrant->linkedPlayerCode : null,
                     ), $entry->entrants),
+                    missingPieces: $entry->missingPieces,
                 );
                 $latest[$key] = $entry;
                 $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
@@ -311,6 +312,7 @@ SQL, ['competitionId' => $competitionId]) as $row
                     playerId: $entry->playerId,
                     playerCode: $organiser || $entry->playerIsPrivate === false ? $entry->playerCode : null,
                 )],
+                missingPieces: $entry->missingPieces,
             );
         }
 
@@ -330,6 +332,7 @@ SQL, ['competitionId' => $competitionId]) as $row
                 playerId: $member->playerId,
                 playerCode: $organiser || $member->playerIsPrivate === false ? $member->playerCode : null,
             ), $entry->members),
+            missingPieces: $entry->missingPieces,
         );
     }
 }

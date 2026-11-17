@@ -37,13 +37,28 @@ no qualification, the winner per category has the lowest sum.
   `limit_reached`, `invalid_name`); a standing of another event = `CompetitionStandingNotFound`. Deleting or moving a
   round prunes it from the event's standings (+1 statement on a round delete); readers also skip ids that are no round
   of the event and category any more (a round whose category changed - the page says so).
-- **The rule:** `StandingCalculator::sum()` (pure, stateless): finished = seconds; unfinished = limit × 60 + penalty ×
-  missing pieces (unknown pieces = no penalty part; a round without a limit cannot score it - missing); DNS / no result
+- **The rule:** `StandingCalculator::sum()` (pure, stateless): finished = seconds (+ penalty × pieces missing from it
+  when `penalise_finished_missing`); unfinished = limit × 60 + penalty × missing pieces (unknown pieces = no penalty part; a round without a limit cannot score it - missing); DNS / no result
   / not entered = missing. Complete entrants first, ranked (`finished_rounds_first`: rounds finished desc, then total;
   `total_only`: total; equal keys share a rank, "1, 2, 2, 4"); incomplete ones after without a rank ("5 of 6 rounds"),
   by rounds scored, then the rule. An entrant with no score at all is left out. Entrants across rounds: the participant
   (solo) or the exact line-up (`CompetitionLineupId` - a substitute is another entrant); name and people of the last
   round they are in. A round that does not count scores nobody and makes nobody missing.
+- **Missing pieces and the penalty** (competition toolkit T6, Jan 2026-11-17: "an unfinished round in a sum shows BOTH the
+  total time and the total missing pieces; an organiser-configured penalty per missing piece (may be 0) converts missing
+  pieces to time"): every round score keeps its parts - `timeSeconds` (finished seconds / the limit of an unfinished
+  result), `missingPieces` (not placed at the time's up, or missing from a finished puzzle - official-results.md
+  "Finished with pieces missing") and `penaltySeconds`; `scoreSeconds` = time + penalty. A row sums them
+  (`totalTimeSeconds`, `totalMissingPieces`, `totalPenaltySeconds`, `totalSeconds` = the penalised total, the ranking
+  key). Pieces missing from a **finished** puzzle cost the penalty only with the standing's switch
+  `penalise_finished_missing` on (**default off** - shown, never timed); a finished round with pieces missing is still a
+  finished round for `finished_rounds_first`. Penalty 0 = the missing pieces are shown, the order is by time alone (no
+  hidden tie-break). Pages: a round cell shows the time with "· N pieces missing"; the total cell the penalised total and,
+  when pieces are missing, "time + penalty · N pieces missing" under it (`standing/_total.html.twig`, shared by the
+  organiser preview and the public page); the rule line (`standing/_rules.html.twig`) "+30 s per missing piece; pieces
+  missing from a finished puzzle are (not) penalised". Organiser JSON: the new keys on `perRound[]`, the rows and
+  `rules.penaliseFinishedMissing` (additive). The form has the switch; "Create one standing per category" uses the
+  default (off); duplicate copies it. A standing where nothing is missing renders as before.
 - **Organiser view** (`GetStandingResults::organiserView()`): every round of the standing, published or not, through
   `GetRoundResultEntries` (people going to the event, the official in-round rank shown per cell); a round counts once
   anything is recorded in it; "provisional" while a round does not count or is unpublished. Piece totals: a `pick`

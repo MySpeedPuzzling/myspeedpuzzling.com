@@ -35,6 +35,9 @@ final class CompetitionStandingFormData
     #[Assert\NotNull]
     public null|StandingOrder $orderRule = StandingOrder::FinishedRoundsFirst;
 
+    // Competition toolkit T6 - the penalty also for pieces a finished puzzle lacked
+    public bool $penaliseFinishedMissing = false;
+
     public static function fromStanding(CompetitionStandingOverview $standing): self
     {
         $data = new self();
@@ -43,12 +46,17 @@ final class CompetitionStandingFormData
         $data->roundIds = $standing->roundIds;
         $data->penaltySecondsPerPiece = $standing->rules->penaltySecondsPerPiece;
         $data->orderRule = $standing->rules->order;
+        $data->penaliseFinishedMissing = $standing->rules->penaliseFinishedMissing;
 
         return $data;
     }
 
     public function rules(): StandingRules
     {
-        return new StandingRules($this->penaltySecondsPerPiece ?? 0, $this->orderRule ?? StandingOrder::FinishedRoundsFirst);
+        return new StandingRules(
+            $this->penaltySecondsPerPiece ?? 0,
+            $this->orderRule ?? StandingOrder::FinishedRoundsFirst,
+            penaliseFinishedMissing: $this->penaliseFinishedMissing,
+        );
     }
 }

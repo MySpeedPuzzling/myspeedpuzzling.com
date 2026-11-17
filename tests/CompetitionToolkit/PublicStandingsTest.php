@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionStandingNotFound;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
+use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\UnpublishCompetitionStanding;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
@@ -151,6 +152,50 @@ final class PublicStandingsTest extends WebTestCase
         // Dora did not start round 4: she is listed last, without a rank
         self::assertSame([['1', 'Bob', '01:00:00'], ['2', 'Alice', '01:06:40'], ['3', 'Cyril', '01:13:20'], ['', 'Dora', '00:40:00']], self::pageRows($crawler));
         self::assertSelectorTextContains('[data-standing-incomplete]', '3 of 4 rounds');
+    }
+
+    /**
+     * Competition toolkit T6 - Bob finished round 1 with 15 pieces missing (from the factory): with 30 s per missing
+     * piece the count is shown and costs nothing while the standing's switch is off; on, it costs 15 × 30 s.
+     */
+    public function testPiecesMissingFromAFinishedPuzzleCostTimeOnlyWithTheSwitch(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_participant_round SET result_missing_pieces = 15 WHERE round_id = :roundId AND participant_id = :participantId',
+            ['roundId' => $this->soloRounds[0], 'participantId' => $this->people['Bob']],
+        );
+        $standingId = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(30));
+        $this->publish($standingId);
+        $url = self::SOLO_URL . $this->slug($standingId);
+
+        // Off (the default): Bob keeps his place, the count is next to his round 1 time and under his total
+        $crawler = $this->browser->request('GET', $url);
+        self::assertSame([['1', 'Dora', '00:40:00'], ['2', 'Bob', '00:45:00'], ['3', 'Alice', '00:50:00'], ['4', 'Cyril', '00:55:00']], self::pageRows($crawler));
+        self::assertSelectorTextContains('[data-standing-rules]', '+30 s per missing piece');
+        self::assertSelectorTextContains('[data-standing-rules]', 'pieces missing from a finished puzzle are not penalised');
+        self::assertCount(2, $crawler->filter('[data-standing-missing="15"]'));
+        self::assertSame(['00:45:00 · 15 pieces missing'], $crawler->filter('[data-standing-breakdown]')->each(static fn (Crawler $node): string => trim($node->text())));
+
+        // On: + 7:30 - Bob drops behind Alice
+        $this->messageBus->dispatch(new EditCompetitionStanding($standingId, self::WS_COMPETITION, 'World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(30, penaliseFinishedMissing: true)));
+        $crawler = $this->browser->request('GET', $url);
+        self::assertSame([['1', 'Dora', '00:40:00'], ['2', 'Alice', '00:50:00'], ['3', 'Bob', '00:52:30'], ['4', 'Cyril', '00:55:00']], self::pageRows($crawler));
+        self::assertSelectorTextContains('[data-standing-rules]', 'pieces missing from a finished puzzle are penalised too');
+        self::assertSame(['00:45:00 + 00:07:30 penalty · 15 pieces missing'], $crawler->filter('[data-standing-breakdown]')->each(static fn (Crawler $node): string => trim($node->text())));
+
+        // The organiser's preview shows the same parts (every round, published or not: Bob's unfinished round 6 too)
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $this->browser->request('GET', '/en/manage-event-standings/' . self::WS_COMPETITION);
+        self::assertResponseIsSuccessful();
+        $breakdowns = $crawler->filter('[data-standing-preview] [data-standing-breakdown]')->each(static fn (Crawler $node): string => trim($node->text()));
+        // Bob: 5 × 900 + 3600 = 2:15:00, 15 + 50 missing × 30 s = 32:30
+        self::assertContains('02:15:00 + 00:32:30 penalty · 65 pieces missing', $breakdowns);
+        $this->browser->request('GET', '/en/official-results/standings/' . $standingId);
+        /** @var array{standing: array{rules: array<string, mixed>}, rows: list<array<string, mixed>>} $state */
+        $state = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertTrue($state['standing']['rules']['penaliseFinishedMissing']);
+        $bob = array_values(array_filter($state['rows'], static fn (array $row): bool => $row['name'] === 'Bob'))[0];
+        self::assertSame([8100, 65, 1950, 10050], [$bob['totalTimeSeconds'], $bob['totalMissingPieces'], $bob['totalPenaltySeconds'], $bob['totalSeconds']]);
     }
 
     public function testRanksEqualTheOrganisersPreviewOnceEveryRoundIsPublished(): void

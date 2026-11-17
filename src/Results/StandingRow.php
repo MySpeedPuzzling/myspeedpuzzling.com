@@ -28,6 +28,11 @@ readonly final class StandingRow
         public int $roundsScored,
         public int $roundsFinished,
         public array $perRound,
+        // Competition toolkit T6: totalSeconds = totalTimeSeconds + totalPenaltySeconds; the pieces missing over all rounds
+        // (penalised or not)
+        public int $totalTimeSeconds = 0,
+        public int $totalMissingPieces = 0,
+        public int $totalPenaltySeconds = 0,
     ) {
     }
 
@@ -44,6 +49,9 @@ readonly final class StandingRow
             'countries' => $this->countries,
             'entrants' => array_map(static fn (StandingEntrant $entrant): array => $entrant->toArray(), $this->entrants),
             'totalSeconds' => $this->totalSeconds,
+            'totalTimeSeconds' => $this->totalTimeSeconds,
+            'totalMissingPieces' => $this->totalMissingPieces,
+            'totalPenaltySeconds' => $this->totalPenaltySeconds,
             'roundsScored' => $this->roundsScored,
             'roundsFinished' => $this->roundsFinished,
             'perRound' => array_values(array_map(static fn (StandingRoundScore $score): array => $score->toArray(), $this->perRound)),

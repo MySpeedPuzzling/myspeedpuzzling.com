@@ -1,0 +1,12 @@
+{#- A standing row's total (competition toolkit A7 + T6): the penalised total; when pieces are missing, the time and the
+    missing pieces (and the penalty they cost) under it. Variables: row (StandingRow). -#}
+<span class="lb-time-value" data-standing-total>{{ row.totalSeconds|puzzlingTime }}</span>
+{%- if row.totalMissingPieces > 0 %}
+    <span class="d-block small text-muted text-nowrap fw-normal" data-standing-breakdown>
+        {%- if row.totalPenaltySeconds > 0 -%}
+            {{ 'finished_missing.standing.breakdown_penalised'|trans({'%time%': row.totalTimeSeconds|puzzlingTime, '%penalty%': row.totalPenaltySeconds|puzzlingTime, '%missing%': 'finished_missing.missing_short'|trans({'%count%': row.totalMissingPieces})}) -}}
+        {%- else -%}
+            {{ 'finished_missing.standing.breakdown'|trans({'%time%': row.totalTimeSeconds|puzzlingTime, '%missing%': 'finished_missing.missing_short'|trans({'%count%': row.totalMissingPieces})}) -}}
+        {%- endif -%}
+    </span>
+{%- endif -%}

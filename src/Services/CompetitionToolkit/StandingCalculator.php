@@ -17,11 +17,14 @@ use SpeedPuzzling\Web\Value\StandingScoreStatus;
  * The one `sum` rule of the competition toolkit's standings (A-round-formats.md §3.3) - pure and stateless (worker mode,
  * R-review-and-plan.md §2.5); the organiser's preview and the public page (A7) both compute through it.
  *
- * Round score of an entrant:
- * - finished: its seconds;
+ * Round score of an entrant = time + penalty (competition toolkit T6 - both parts and the missing pieces are kept,
+ * the pages show time, missing pieces and the penalised total):
+ * - finished: its seconds; a finished puzzle that missed pieces (a piece missing from the factory) shows them, and they
+ *   cost penalty × pieces only with `penaliseFinishedMissing` on (default off);
  * - unfinished: time limit × 60 + penalty × missing pieces (missing = the entry's pieces − pieces placed; unknown piece
  *   count = no penalty part). A round without a time limit cannot score an unfinished result - a missing round;
  * - did not start, no result, not in the round: missing.
+ * A finished round with pieces missing is still a finished round for `finished_rounds_first`.
  * A round that does not count (`counted` false) scores nobody and makes nobody missing.
  *
  * Order (`missing_rule = incomplete`): every complete entrant (a score in each counted round) first, ranked by
@@ -65,6 +68,9 @@ final readonly class StandingCalculator
             $key = (string) $key;
             $perRound = [];
             $total = 0;
+            $totalTime = 0;
+            $totalMissing = 0;
+            $totalPenalty = 0;
             $scored = 0;
             $finished = 0;
 
@@ -77,6 +83,9 @@ final readonly class StandingCalculator
 
                 if ($score->scoreSeconds !== null) {
                     $total += $score->scoreSeconds;
+                    $totalTime += $score->timeSeconds ?? $score->scoreSeconds;
+                    $totalMissing += $score->missingPieces;
+                    $totalPenalty += $score->penaltySeconds;
                     $scored++;
                 }
 
@@ -101,6 +110,9 @@ final readonly class StandingCalculator
                 roundsScored: $scored,
                 roundsFinished: $finished,
                 perRound: $perRound,
+                totalTimeSeconds: $totalTime,
+                totalMissingPieces: $totalMissing,
+                totalPenaltySeconds: $totalPenalty,
             );
         }
 
@@ -164,6 +176,9 @@ final readonly class StandingCalculator
                 roundsScored: $row->roundsScored,
                 roundsFinished: $row->roundsFinished,
                 perRound: $row->perRound,
+                totalTimeSeconds: $row->totalTimeSeconds,
+                totalMissingPieces: $row->totalMissingPieces,
+                totalPenaltySeconds: $row->totalPenaltySeconds,
             );
         }
 
@@ -175,7 +190,19 @@ final readonly class StandingCalculator
         $result = $entry->result;
 
         if ($result->seconds !== null) {
-            return new StandingRoundScore($round->roundId, StandingScoreStatus::Finished, $result, $result->seconds, $entry->rank);
+            $missingPieces = max(0, $entry->missingPieces ?? 0);
+            $penalty = $rules->penaliseFinishedMissing ? $rules->penaltySecondsPerPiece * $missingPieces : 0;
+
+            return new StandingRoundScore(
+                $round->roundId,
+                StandingScoreStatus::Finished,
+                $result,
+                $result->seconds + $penalty,
+                $entry->rank,
+                timeSeconds: $result->seconds,
+                missingPieces: $missingPieces,
+                penaltySeconds: $penalty,
+            );
         }
 
         if ($result->piecesPlaced !== null) {
@@ -184,13 +211,17 @@ final readonly class StandingCalculator
             }
 
             $missingPieces = $entry->piecesCount !== null ? max(0, $entry->piecesCount - $result->piecesPlaced) : 0;
+            $penalty = $rules->penaltySecondsPerPiece * $missingPieces;
 
             return new StandingRoundScore(
                 $round->roundId,
                 StandingScoreStatus::Unfinished,
                 $result,
-                $round->minutesLimit * 60 + $rules->penaltySecondsPerPiece * $missingPieces,
+                $round->minutesLimit * 60 + $penalty,
                 $entry->rank,
+                timeSeconds: $round->minutesLimit * 60,
+                missingPieces: $missingPieces,
+                penaltySeconds: $penalty,
             );
         }
 

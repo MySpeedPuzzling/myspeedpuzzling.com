@@ -58,8 +58,7 @@
         {% endif %}
     </p>
     <p class="small text-muted mb-3" data-standing-rules>
-        {{ ('competition_standing.order.' ~ table.table.standing.rules.order.value)|trans }}
-        {%- if table.table.standing.rules.penaltySecondsPerPiece > 0 %} · {{ 'competition_standing.penalty_short'|trans({'%seconds%': table.table.standing.rules.penaltySecondsPerPiece}) }}{% endif %}
+        {{ include('standing/_rules.html.twig', {rules: table.table.standing.rules}) }}
     </p>
 
     {% if table.rows is empty %}
@@ -127,7 +126,7 @@
                         {% endfor %}
 
                         <td class="lb-time">
-                            <span class="lb-time-value" data-standing-total>{{ row.totalSeconds|puzzlingTime }}</span>
+                            {{ include('standing/_total.html.twig') }}
                         </td>
                     </tr>
                 {% endfor %}
@@ -139,7 +138,7 @@
             <li class="d-lg-none">{{ 'public_standing.legend.rounds'|trans }}
                 {%- for round in table.table.rounds %}{{ loop.first ? ' ' : ', ' }}{{ 'public_standing.round_short'|trans({'%number%': loop.index}) }} = {% if round.slug is not null and round.counted %}<a href="{{ path(round_route, route_params|merge({roundSlug: round.slug})) }}">{{ round.name }}</a>{% else %}{{ round.name }}{% endif %}{% endfor %}</li>
             <li>{{ 'public_standing.legend.places'|trans }}</li>
-            {% if table.hasUnfinishedScores %}<li>{{ 'public_standing.legend.unfinished'|trans }}</li>{% endif %}
+            {% if table.hasUnfinishedScores %}<li>{{ 'finished_missing.standing.legend_unfinished'|trans }}</li>{% endif %}
             {% if table.hasIncomplete %}<li>{{ 'public_standing.legend.incomplete'|trans }}</li>{% endif %}
             {% if table.provisional %}<li>{{ 'public_standing.legend.not_published'|trans }}</li>{% endif %}
         </ul>

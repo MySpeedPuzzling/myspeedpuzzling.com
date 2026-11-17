@@ -12,7 +12,6 @@ import {
     describeResult,
     entriesWithWaitingTables,
     entryForEnter,
-    entryOfParticipant,
     entryValue,
     findRows,
     outboxByEntry,
@@ -24,7 +23,7 @@ import {
     shownValue,
     uniqueTable,
 } from '../official_results_live.js';
-import { nativeReadsQr, parseNameTagUrl, startQrScan } from '../official_results_scan.js';
+import { nativeReadsQr, parseCompetitionTagUrl, startQrScan } from '../official_results_scan.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
 import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
@@ -33,7 +32,8 @@ import { devicePlayerOf, forgetDraftsExcept, samePlayer } from '../live_entry_de
 import { createIndexedDbSnapshotStorage, createMemorySnapshotStorage, PREFETCH_GAP_MS, prefetchRounds, prefetchTargets, SnapshotStore } from '../live_entry_snapshot.js';
 import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../live_entry_draft.js';
 import { parseLiveEntryRoute } from '../live_entry_route.js';
-import { liveUrlOnceLive, loginUrlWithReturn, shellPlan } from '../live_entry_shell.js';
+import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
+import { entryOfTag, tagPath } from '../live_entry_tag.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -2530,26 +2530,55 @@ export default class extends Controller {
         }
     }
 
-    scanned(text) {
+    /**
+     * A QR code read (also a decoded text handed in by hand): the name tag as always, the line-up, table and entry tags
+     * (toolkit C8) resolved on this phone from the round it has - an entry or line-up of another round links to that
+     * round (from this phone's copies of the event's rounds, else the tag's own address picks it).
+     */
+    async scanned(text) {
         this.stopScan = null;
         this.scannerTarget.hidden = true;
-        const tag = parseNameTagUrl(text);
+        const tag = parseCompetitionTagUrl(text);
+        const competitionId = String(this.settings.competitionId ?? '').toLowerCase();
 
-        if (tag === null || tag.competitionId !== String(this.settings.competitionId ?? '').toLowerCase()) {
+        if (tag === null || tag.competitionId !== competitionId) {
             this.showFind({ focus: false });
             this.releaseHistory();
-            this.notice(this.t('scanForeign'), 'warning');
+            this.notice(this.t(tag === null || tag.kind === 'participant' ? 'scanForeign' : 'tagForeign'), 'warning');
 
             return;
         }
 
-        const entry = entryOfParticipant(this.allEntries(), tag.participantId);
+        const entry = entryOfTag(this.allEntries(), tag);
+
+        if (entry === null && tag.kind === 'participant') {
+            this.showFind({ focus: false });
+            this.releaseHistory();
+            const link = fillLink(this.scanUrlValue, tag.id, this.settings.competitionId);
+            this.notice(this.t('scanNotInRound', { '%round%': this.settings.roundName }), 'warning', ` <a class="alert-link" href="${escapeHtml(link)}">${escapeHtml(this.t('openTheirRound'))}</a>`);
+
+            return;
+        }
 
         if (entry === null) {
             this.showFind({ focus: false });
             this.releaseHistory();
-            const link = fillLink(this.scanUrlValue, tag.participantId, this.settings.competitionId);
-            this.notice(this.t('scanNotInRound', { '%round%': this.settings.roundName }), 'warning', ` <a class="alert-link" href="${escapeHtml(link)}">${escapeHtml(this.t('openTheirRound'))}</a>`);
+            const { notice, parameters } = resolveLanding({ kind: 'tag', tag }, [], null, this.settings.roundName);
+            let link = '';
+
+            if (tag.kind !== 'table') {
+                const others = this.snapshots === null ? [] : (await this.snapshots.list().catch(() => []))
+                    .filter((snapshot) => String(snapshot.competitionId ?? '').toLowerCase() === competitionId && snapshot.roundId !== this.roundIdValue);
+                const theirs = snapshotOfTag(others, tag, Date.now());
+                const href = theirs === null
+                    ? tagPath(tag)
+                    : `${this.liveUrl(theirs.roundId)}?entry=${encodeURIComponent(entryOfTag(theirs.state.entries, tag).ref)}`;
+                link = ` <a class="alert-link" href="${escapeHtml(href)}">${escapeHtml(this.t('openTheirRound'))}</a>`;
+            }
+
+            if (this.isConnected()) {
+                this.notice(this.t(notice, parameters), 'warning', link);
+            }
 
             return;
         }

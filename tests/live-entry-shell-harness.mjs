@@ -1,15 +1,17 @@
 // Runs the live result entry's offline copy (competition toolkit C5: assets/live_entry_route.js, live_entry_shell.js)
 // through its scenarios and prints {scenario: "ok" | error} as JSON - tests/LiveEntryShellScriptsTest.php asserts every
-// one is "ok". Route parsing of every live entry URL the service worker may answer with the copy, the round the copy
+// one is "ok". Route parsing (and the scanner's reading of every tag kind, toolkit C8, with the entry it means) of every live entry URL the service worker may answer with the copy, the round the copy
 // shows from the device's snapshots (the current-round port shares its cases with LiveResultsCurrentRoundTest), the
 // neutral screens, and the way back to the live page.
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseLiveEntryRoute } from '../assets/live_entry_route.js';
-import { currentRound, liveUrlOnceLive, loginUrlWithReturn, shellPlan } from '../assets/live_entry_shell.js';
+import { currentRound, liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../assets/live_entry_shell.js';
+import { entryOfTag, lineupIdOf, tagPath, uuid5 } from '../assets/live_entry_tag.js';
+import { resolveLanding } from '../assets/live_entry_page.js';
 import { createMemorySnapshotStorage, SnapshotStore } from '../assets/live_entry_snapshot.js';
-import { parseNameTagUrl, ZBAR_SOURCES } from '../assets/official_results_scan.js';
+import { parseCompetitionTagUrl, parseNameTagUrl, ZBAR_SOURCES } from '../assets/official_results_scan.js';
 import { prepareOfflineCopy } from '../assets/live_entry_offline_ready.js';
 
 const ANNA = '018d0020-0000-0000-0000-00000000a001';
@@ -53,6 +55,16 @@ const later = snapshot(ROUND_C, COMPETITION, round(ROUND_C, 'Final', '2026-11-21
     entries: [{ ref: 'participant_round:y', participantId: PARTICIPANT, name: 'Tagged' }],
 });
 const foreign = snapshot('018d0020-0000-0000-0000-000000000201', OTHER_COMPETITION, round('018d0020-0000-0000-0000-000000000201', 'Elsewhere', '2026-11-21T10:00:00Z'));
+const PARTNER_A = '018d0020-0000-0000-0000-0000000000f3';
+const PARTNER_B = '018d0020-0000-0000-0000-0000000000f4';
+const TEAM = '018d0020-0000-0000-0000-0000000000e1';
+const TEAM_ROUND = '018d0020-0000-0000-0000-000000000104';
+const teamRound = snapshot(TEAM_ROUND, COMPETITION, round(TEAM_ROUND, 'Pairs', '2026-11-21T08:00:00Z', 'stopped', '2026-11-21T08:00:00Z'), {
+    entries: [
+        { ref: 'participant_round:q', id: 'q', participantId: PARTICIPANT, name: 'Solo', tableNumber: 3, members: [] },
+        { ref: `team:${TEAM}`, id: TEAM, kind: 'team', participantId: null, name: null, tableNumber: 7, members: [{ participantId: PARTNER_A, name: 'A' }, { participantId: PARTNER_B.toUpperCase(), name: 'B' }] },
+    ],
+});
 
 const scenarios = {
     async 'live_results in every locale'() {
@@ -289,14 +301,118 @@ const scenarios = {
         assert.deepEqual(elsewhere.landing, { kind: 'entrant', participantId: PARTICIPANT });
     },
 
-    async 'line-up, table and entry tags open the event current round (C8 resolves them)'() {
-        for (const path of [`/live/${COMPETITION}/t/12`, `/live/${COMPETITION}/g/${ROUND_A}`, `/en/live/${COMPETITION}/e/${ROUND_A}`]) {
-            const plan = shellPlan({ route: parseLiveEntryRoute(path), player: ANNA, snapshots: [morning, running, foreign], nowMs: NOW, remembered: () => ({ roundId: ROUND_A, at: NOW }) });
+    // ---- Tags of every kind (toolkit C8: official_results_scan.js parseCompetitionTagUrl(), live_entry_tag.js) ----
 
-            assert.equal(plan.screen, 'round', path);
-            assert.equal(plan.snapshot.roundId, ROUND_B, path);
-            assert.equal(plan.landing, null, path);
+    async 'the scanner reads every tag kind, with or without a locale, from any host'() {
+        const lineup = '018d0020-0000-5000-8000-0000000000aa';
+
+        assert.deepEqual(parseCompetitionTagUrl(`https://myspeedpuzzling.com/live/${COMPETITION}/g/${lineup}`), { competitionId: COMPETITION, kind: 'lineup', id: lineup });
+        assert.deepEqual(parseCompetitionTagUrl(`https://myspeedpuzzling.com/de/live/${COMPETITION.toUpperCase()}/g/${lineup.toUpperCase()}/`), { competitionId: COMPETITION, kind: 'lineup', id: lineup });
+        assert.deepEqual(parseCompetitionTagUrl(`http://localhost:8080/live/${COMPETITION}/t/12`), { competitionId: COMPETITION, kind: 'table', id: 12 });
+        assert.deepEqual(parseCompetitionTagUrl(`  https://sandbox.myspeedpuzzling.com/cs/live/${COMPETITION}/t/9999?x=1#y  `), { competitionId: COMPETITION, kind: 'table', id: 9999 });
+        assert.deepEqual(parseCompetitionTagUrl(`https://other.example/live/${COMPETITION}/e/${ROUND_A}`), { competitionId: COMPETITION, kind: 'entry', id: ROUND_A });
+        assert.deepEqual(parseCompetitionTagUrl(`https://myspeedpuzzling.com/en/live/${COMPETITION}/p/${PARTICIPANT}`), { competitionId: COMPETITION, kind: 'participant', id: PARTICIPANT });
+
+        // The name tag wrapper sees only name tags
+        assert.equal(parseNameTagUrl(`https://myspeedpuzzling.com/live/${COMPETITION}/t/12`), null);
+        assert.equal(parseNameTagUrl(`https://myspeedpuzzling.com/live/${COMPETITION}/e/${ROUND_A}`), null);
+    },
+
+    async 'the printed name tag reads exactly as before C8 (also without a locale, any two letters)'() {
+        // The old regex: an optional two-letter segment - kept for tags printed in any way it accepted
+        for (const path of [`/en/live/${COMPETITION}/p/${PARTICIPANT}`, `/live/${COMPETITION}/p/${PARTICIPANT}`, `/xx/live/${COMPETITION}/p/${PARTICIPANT}/`]) {
+            assert.deepEqual(parseNameTagUrl(`https://myspeedpuzzling.com${path}`), { competitionId: COMPETITION, participantId: PARTICIPANT }, path);
+            assert.equal(parseCompetitionTagUrl(`https://myspeedpuzzling.com${path}`).kind, 'participant', path);
         }
+    },
+
+    async 'garbage is no tag'() {
+        for (const text of [
+            '', null, undefined, 'not a url', '4005555011897', 'http://[', `/live/${COMPETITION}/t/12`,
+            `javascript:alert(1)//live/${COMPETITION}/t/12`, `ftp://x.test/live/${COMPETITION}/t/12`,
+            `https://x.test/en/live-results/${ROUND_A}`, `https://x.test/en/live-results/event/${COMPETITION}`,
+            `https://x.test/live/${COMPETITION}/t/0`, `https://x.test/live/${COMPETITION}/t/10000`,
+            `https://x.test/live/${COMPETITION}/r/${ROUND_A}/e/${ROUND_B}`, `https://x.test/it/live/${COMPETITION}/t/1`,
+            `https://x.test/live/${COMPETITION}/g/not-a-uuid`, `https://x.test/en/puzzle/${COMPETITION}`,
+        ]) {
+            assert.equal(parseCompetitionTagUrl(text), null, String(text));
+        }
+    },
+
+    async 'the line-up id is the one PHP prints (shared cases with CompetitionLineupIdTest)'() {
+        const { cases } = JSON.parse(readFileSync(new URL('./fixtures/competition-lineup-id-cases.json', import.meta.url), 'utf8'));
+
+        assert.ok(cases.length >= 5);
+
+        for (const testCase of cases) {
+            assert.equal(lineupIdOf(testCase.competitionId, testCase.members), testCase.lineupId, testCase.case);
+        }
+
+        // RFC 4122 appendix B / Python's uuid.uuid5(NAMESPACE_DNS, 'python.org')
+        assert.equal(uuid5('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'python.org'), '886313e1-3b8a-5372-9b90-0c9aee199e5d');
+    },
+
+    async 'each kind finds its entry in the round, or says it is not there'() {
+        const pairId = lineupIdOf(COMPETITION, [PARTNER_B, PARTNER_A]);
+        const entries = teamRound.state.entries;
+        const tag = (kind, id) => ({ competitionId: COMPETITION, kind, id });
+
+        assert.equal(entryOfTag(entries, tag('lineup', pairId))?.ref, `team:${TEAM}`);
+        assert.equal(entryOfTag(entries, tag('lineup', pairId.toUpperCase()))?.ref, `team:${TEAM}`);
+        assert.equal(entryOfTag(entries, tag('lineup', lineupIdOf(COMPETITION, [PARTNER_A]))), null, 'one member is another line-up');
+        assert.equal(entryOfTag(entries, tag('lineup', lineupIdOf(OTHER_COMPETITION, [PARTNER_A, PARTNER_B]))), null, 'the pair at another event');
+        assert.equal(entryOfTag(entries, tag('table', 7))?.ref, `team:${TEAM}`);
+        assert.equal(entryOfTag(entries, tag('table', 8)), null);
+        assert.equal(entryOfTag(entries, tag('entry', TEAM))?.ref, `team:${TEAM}`);
+        assert.equal(entryOfTag([{ ref: `participant_round:${TEAM}` }], tag('entry', TEAM))?.ref, `participant_round:${TEAM}`, 'an entry without its id: the ref');
+        assert.equal(entryOfTag(entries, tag('entry', ROUND_A)), null);
+        assert.equal(entryOfTag(entries, tag('participant', PARTNER_B))?.ref, `team:${TEAM}`);
+        assert.equal(entryOfTag(entries, null), null);
+
+        // What the page says (resolveLanding - the scanner's and the offline copy's words)
+        assert.deepEqual(resolveLanding({ kind: 'tag', tag: tag('table', 7) }, entries, null, 'Pairs'), { open: `team:${TEAM}` });
+        assert.deepEqual(resolveLanding({ kind: 'tag', tag: tag('table', 8) }, entries, null, 'Pairs'), { notice: 'tableEmpty', parameters: { '%number%': 8, '%round%': 'Pairs' } });
+        assert.deepEqual(resolveLanding({ kind: 'tag', tag: tag('lineup', ROUND_A) }, entries, null, 'Pairs'), { notice: 'lineupNotInRound', parameters: { '%round%': 'Pairs' } });
+        assert.deepEqual(resolveLanding({ kind: 'tag', tag: tag('entry', ROUND_A) }, entries, null, 'Pairs'), { notice: 'entryNotInRound', parameters: { '%round%': 'Pairs' } });
+
+        assert.equal(tagPath(tag('lineup', pairId)), `/live/${COMPETITION}/g/${pairId}`);
+        assert.equal(tagPath(tag('table', 7)), `/live/${COMPETITION}/t/7`);
+        assert.equal(tagPath(tag('entry', TEAM)), `/live/${COMPETITION}/e/${TEAM}`);
+        assert.equal(tagPath(tag('participant', PARTNER_A)), null);
+    },
+
+    async 'offline: a line-up, table or entry tag opens its round from the snapshots'() {
+        const pairId = lineupIdOf(COMPETITION, [PARTNER_A, PARTNER_B]);
+        const snapshots = [morning, running, teamRound, foreign];
+        const plan = (path) => shellPlan({ route: parseLiveEntryRoute(path), player: ANNA, snapshots, nowMs: NOW, remembered: () => ({ roundId: ROUND_A, at: NOW }) });
+
+        // In a round that is not the current one (Group B runs): that round, the entry opens there
+        for (const path of [`/live/${COMPETITION}/g/${pairId}`, `/live/${COMPETITION}/t/7`, `/en/live/${COMPETITION}/e/${TEAM}`]) {
+            const found = plan(path);
+
+            assert.equal(found.screen, 'round', path);
+            assert.equal(found.snapshot.roundId, TEAM_ROUND, path);
+            assert.equal(resolveLanding(found.landing, found.snapshot.state.entries, null, 'Pairs').open, `team:${TEAM}`, path);
+        }
+
+        // Unknown here: the event's current round, which says so
+        for (const [path, notice] of [[`/live/${COMPETITION}/g/${ROUND_C}`, 'lineupNotInRound'], [`/live/${COMPETITION}/t/99`, 'tableEmpty'], [`/live/${COMPETITION}/e/${ROUND_C}`, 'entryNotInRound']]) {
+            const missing = plan(path);
+
+            assert.equal(missing.snapshot.roundId, ROUND_B, path);
+            assert.equal(resolveLanding(missing.landing, missing.snapshot.state.entries, null, 'Group B').notice, notice, path);
+        }
+
+        // A tag of an event this phone has no copy of: the no-copy screen
+        assert.equal(shellPlan({ route: parseLiveEntryRoute(`/live/${OTHER_COMPETITION}/t/7`), player: ANNA, snapshots: [morning, teamRound], nowMs: NOW }).screen, 'noCopy');
+
+        // The current round wins among the rounds a table plays in; a round-entry tag keeps its own round
+        const laterTable = snapshot(ROUND_C, COMPETITION, round(ROUND_C, 'Final', '2026-11-21T11:45:00Z', 'running', '2026-11-21T11:50:00Z'), {
+            entries: [{ ref: 'participant_round:z', id: 'z', tableNumber: 7 }],
+        });
+        assert.equal(snapshotOfTag([teamRound, laterTable], { competitionId: COMPETITION, kind: 'table', id: 7 }, NOW).roundId, ROUND_C);
+        assert.equal(snapshotOfTag([laterTable, teamRound], { competitionId: COMPETITION, kind: 'entry', id: TEAM }, NOW).roundId, TEAM_ROUND);
+        assert.equal(snapshotOfTag([laterTable], { competitionId: COMPETITION, kind: 'entry', id: TEAM }, NOW), null);
     },
 
     async 'the shell finds the snapshots the live page stored, never another player\'s'() {

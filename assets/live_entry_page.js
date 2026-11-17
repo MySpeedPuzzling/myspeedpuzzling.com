@@ -6,6 +6,7 @@
  */
 
 import { entryOfParticipant } from './official_results_live.js';
+import { entryOfTag } from './live_entry_tag.js';
 
 export const UUID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
 export const COMPETITION_PLACEHOLDER = '11111111-1111-1111-1111-111111111111';
@@ -106,7 +107,7 @@ export function landingOf({ entrant = '', table = '', entry = '' } = {}) {
  *   them);
  * - null - nothing to do.
  *
- * @param {object|null} landing                 landingOf()
+ * @param {object|null} landing                 landingOf(), or `{kind: 'tag', tag}` (a scanned tag, toolkit C8)
  * @param {Array<object>} entries               the round's entries (the page's allEntries())
  * @param {Array<object>|null} people           the event's people who are no entry of the round, null = not loaded
  * @param {string} roundName
@@ -141,6 +142,20 @@ export function resolveLanding(landing, entries, people, roundName) {
         const entry = list.find((candidate) => String(candidate.ref).toLowerCase() === landing.ref);
 
         return entry ? { open: entry.ref } : { notice: 'entryNotInRound', parameters: { '%round%': roundName } };
+    }
+
+    // A scanned line-up, table or entry tag (live_entry_tag.js; toolkit C8) - the scanner's and the offline copy's
+    if (landing.kind === 'tag') {
+        const { tag } = landing;
+        const entry = entryOfTag(list, tag);
+
+        if (entry) {
+            return { open: entry.ref };
+        }
+
+        return tag.kind === 'table'
+            ? { notice: 'tableEmpty', parameters: { '%number%': tag.id, '%round%': roundName } }
+            : { notice: tag.kind === 'lineup' ? 'lineupNotInRound' : 'entryNotInRound', parameters: { '%round%': roundName } };
     }
 
     if (landing.kind === 'table') {

@@ -6,6 +6,7 @@
  */
 
 import { entryOfParticipant, preferredRound } from './official_results_live.js';
+import { entryOfTag } from './live_entry_tag.js';
 
 const RECENTLY_STARTED_MS = 12 * 3600 * 1000;
 
@@ -117,7 +118,7 @@ function pickSnapshot(snapshots, nowMs) {
  * What the offline copy shows:
  * - `{screen: 'signedOut'}` - the device names no player (signed out, never a referee here): nothing of anybody;
  * - `{screen: 'round', snapshot, landing}` - the round from its snapshot; `landing` (live_entry_page.js landingOf()
- *   shape) opens the name tag's entrant, null for nothing;
+ *   shape, or `{kind: 'tag', tag}`) opens the name tag's entrant or the scanned tag's entry, null for nothing;
  * - `{screen: 'noCopy', roundId, others}` - no snapshot for what was asked for: `roundId` when the URL named a round
  *   (the page keeps asking for it), `others` = the player's snapshots to choose from (links), the URL's event first.
  *
@@ -170,14 +171,30 @@ export function shellPlan({ route, player, snapshots, nowMs, remembered = () => 
         return { screen: 'round', snapshot, landing: { kind: 'entrant', participantId: route.id } };
     }
 
-    // The event (LiveResultsEventController + the page's `auto` pick: a round picked by hand within 12 hours wins);
-    // the line-up, table and entry tags open the event's current round until toolkit C8 resolves them
     const picked = pickSnapshot(ofEvent, nowMs);
-    const preferred = route.kind === 'event'
-        ? preferredRound(picked.roundId, remembered(competitionId), ofEvent.map(roundOf), nowMs)
-        : picked.roundId;
 
-    return { screen: 'round', snapshot: ofEvent.find((snapshot) => snapshot.roundId === preferred) ?? picked, landing: null };
+    if (route.kind === 'event') {
+        // LiveResultsEventController + the page's `auto` pick: a round picked by hand within 12 hours wins
+        const preferred = preferredRound(picked.roundId, remembered(competitionId), ofEvent.map(roundOf), nowMs);
+
+        return { screen: 'round', snapshot: ofEvent.find((snapshot) => snapshot.roundId === preferred) ?? picked, landing: null };
+    }
+
+    // A line-up, table or entry tag (toolkit C8) - as CompetitionTagResolver: the tag's own round, else the event's
+    // current round (which then says why the tag is not in it)
+    const tag = { competitionId, kind: route.kind, id: route.id };
+
+    return { screen: 'round', snapshot: snapshotOfTag(ofEvent, tag, nowMs) ?? picked, landing: { kind: 'tag', tag } };
+}
+
+/**
+ * The snapshot among one event's that the tag means (CompetitionTagResolver): a round-entry tag's own round, else the
+ * current round among those the tag plays in. Null when it is in none of them.
+ */
+export function snapshotOfTag(snapshots, tag, nowMs) {
+    const theirs = snapshots.filter((snapshot) => entryOfTag(snapshot.state?.entries, tag) !== null);
+
+    return tag.kind === 'entry' ? theirs[0] ?? null : pickSnapshot(theirs, nowMs);
 }
 
 /**

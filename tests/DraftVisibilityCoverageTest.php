@@ -42,6 +42,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
         'Query/GetCompetitionPermissions.php' => self::ORGANISER,
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,
+        'Query/GetCompetitorPageSettings.php' => self::ORGANISER,
         'Query/GetEditionRounds.php' => self::PAGE_GATED,
         'Query/GetEventAttendance.php' => self::PAGE_GATED,
         'Query/GetEventsViewerData.php' => self::OWN,

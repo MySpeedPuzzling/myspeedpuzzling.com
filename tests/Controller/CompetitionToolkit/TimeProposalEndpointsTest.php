@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Mercure\Update;
 
 /**
@@ -98,6 +99,25 @@ final class TimeProposalEndpointsTest extends WebTestCase
         $this->post(self::PROPOSE, $this->body(self::ANNA_FINAL, $proposalId));
         self::assertSame('known', $this->json()['status']);
         self::assertSame([], self::hub()->getPublishedUpdates());
+    }
+
+    /**
+     * Reliability hardening T4: the phone's answer does not wait for the hub - the judges' push follows the response.
+     */
+    public function testTheAnswerIsSentBeforeTheJudgesAreTold(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $this->browser->disableReboot();
+        $publishedWhenAnswered = null;
+        self::getContainer()->get('event_dispatcher')->addListener(KernelEvents::RESPONSE, static function () use (&$publishedWhenAnswered): void {
+            $publishedWhenAnswered = count(self::hub()->getPublishedUpdates());
+        }, -1000);
+
+        $this->post(self::PROPOSE, $this->body(self::ANNA_FINAL, self::newProposalId()));
+
+        self::assertSame('proposed', $this->json()['status']);
+        self::assertSame(0, $publishedWhenAnswered);
+        self::assertCount(1, self::hub()->getPublishedUpdates());
     }
 
     public function testARefusalIsSaidAndToldToNobody(): void

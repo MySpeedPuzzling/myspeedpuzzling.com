@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
+use SpeedPuzzling\Web\Services\AfterResponse;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\RefereeEntriesView;
@@ -29,7 +30,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The organiser devices' change sets (RecordRoundResults): `{"changes": [...], "dryRun": false, "expectedPlayerId":
  * "<the player whose changes they are>"}` → one outcome per
- * change, the entries as they are now, and - after the commit - a private Mercure update for the other devices.
+ * change, the entries as they are now, and - after the commit, once the answer is sent (AfterResponse) - a private Mercure
+ * update for the other devices.
  * Organisers and referees may send them; a referee's table number and qualified changes are refused one by one.
  * docs/features/competitions-management/official-results.md - request and response documented there. A set of another
  * player than the session's (`expectedPlayerId`, OfficialResultsApi::anotherAccount()) is 409 `another_account`.
@@ -44,6 +46,7 @@ final class RecordRoundResultsController extends AbstractController
         private readonly OfficialResultsLiveUpdates $liveUpdates,
         private readonly TranslatorInterface $translator,
         private readonly RefereeEntriesView $refereeEntriesView,
+        private readonly AfterResponse $afterResponse,
     ) {
     }
 
@@ -110,10 +113,14 @@ final class RecordRoundResultsController extends AbstractController
         $recorded = $envelope->last(HandledStamp::class)?->getResult();
         assert($recorded instanceof RecordedRoundResults);
 
-        // Committed by now - the other devices of the round learn about it
-        $this->liveUpdates->entriesChanged($round->id->toString(), $recorded->changedEntryRefs);
-        // A time proposal the set decided (competition toolkit P1) - only when the competition has them
-        $this->liveUpdates->proposalsChanged($round->id->toString(), $recorded->changedProposalIds);
+        // Committed by now - the other devices of the round learn about it once this device has its answer (a slow hub
+        // never holds back "saved"); a time proposal the set decided (competition toolkit P1) - only when the
+        // competition has them
+        $roundIdString = $round->id->toString();
+        $this->afterResponse->defer(function () use ($roundIdString, $recorded): void {
+            $this->liveUpdates->entriesChanged($roundIdString, $recorded->changedEntryRefs);
+            $this->liveUpdates->proposalsChanged($roundIdString, $recorded->changedProposalIds);
+        });
 
         $refs = array_values(array_unique(array_filter(array_map(
             static fn (RoundResultChangeOutcome $outcome): null|string => $outcome->entryRef,

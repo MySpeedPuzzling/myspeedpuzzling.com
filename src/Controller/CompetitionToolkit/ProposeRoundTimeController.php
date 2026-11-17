@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\ProposeRoundTime;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
+use SpeedPuzzling\Web\Services\AfterResponse;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeats;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
 use SpeedPuzzling\Web\Value\CompetitorHeartbeatRecord;
@@ -38,7 +39,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * answer means no evidence, the tap is trusted).
  *
  * Limited per player and round (`time_proposal`, 10 in 10 minutes - a stuck button never floods the judges, 429
- * `rate_limited`). A stored proposal is published to the round's judges after the commit (official_results.proposals).
+ * `rate_limited`). A stored proposal is published to the round's judges after the commit, once the answer is sent
+ * (official_results.proposals, AfterResponse).
  */
 final class ProposeRoundTimeController extends AbstractController
 {
@@ -52,6 +54,7 @@ final class ProposeRoundTimeController extends AbstractController
         private readonly RateLimiterFactoryInterface $timeProposalLimiter,
         private readonly CompetitorHeartbeats $heartbeats,
         private readonly LoggerInterface $logger,
+        private readonly AfterResponse $afterResponse,
     ) {
     }
 
@@ -124,9 +127,10 @@ final class ProposeRoundTimeController extends AbstractController
         $answer = $envelope->last(HandledStamp::class)?->getResult();
         assert($answer instanceof TimeProposalAnswer);
 
-        // Committed by now - the judges of the round learn about it
+        // Committed by now - the judges of the round learn about it once the phone has its answer (AfterResponse)
         if ($answer->changed() && $answer->proposalId !== null) {
-            $this->liveUpdates->proposalsChanged($answer->roundId, [$answer->proposalId]);
+            $changedId = $answer->proposalId;
+            $this->afterResponse->defer(fn () => $this->liveUpdates->proposalsChanged($answer->roundId, [$changedId]));
         }
 
         $views = $answer->proposalId !== null ? $this->getTimeProposals->byIds($round->id->toString(), [$answer->proposalId]) : [];

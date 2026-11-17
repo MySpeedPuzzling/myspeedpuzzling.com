@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * The official results JSON endpoints (docs/features/competitions-management/official-results.md): who may call them,
@@ -183,6 +184,26 @@ final class OfficialResultsApiTest extends WebTestCase
         self::assertSame('official_results.entries', $payload['type']);
         self::assertIsArray($payload['entries']);
         self::assertSame([6], array_column($payload['entries'], 'tableNumber'));
+    }
+
+    /**
+     * Reliability hardening T4: the save's answer does not wait for the hub - the push goes out after the response
+     * (AfterResponse at kernel.terminate), still after the commit.
+     */
+    public function testTheAnswerIsSentBeforeThePush(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->browser->disableReboot();
+        $publishedWhenAnswered = null;
+        self::getContainer()->get('event_dispatcher')->addListener(KernelEvents::RESPONSE, static function () use (&$publishedWhenAnswered): void {
+            $publishedWhenAnswered = count(self::hub()->getPublishedUpdates());
+        }, -1000);
+
+        $this->post(self::CHANGES, ['changes' => [self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'table_number', null, 6)]]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(0, $publishedWhenAnswered);
+        self::assertCount(1, self::hub()->getPublishedUpdates());
     }
 
     public function testNothingIsBroadcastWhenNothingChanged(): void

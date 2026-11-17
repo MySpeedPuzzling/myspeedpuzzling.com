@@ -322,7 +322,9 @@ unsent changes of that round are refused one by one (`round_not_found`).
 | `POST competitions/{competitionId}/advance` | `AdvanceQualified` | the plan (409 `plan_changed`, 422 `reason`) |
 
 Live updates: after the commit the controller publishes a **private** Mercure update on `/round-results/{roundId}`
-(`OfficialResultsLiveUpdates`; a Mercure failure is a logged warning, never a failed write): `official_results.entries`
+(`OfficialResultsLiveUpdates`; a Mercure failure is a logged warning, never a failed write) - for the live entry's
+changes and the competitors' propose/withdraw **after the answer is sent** (`AfterResponse` at kernel.terminate,
+reliability hardening T4: a hub that does not answer no longer holds back "saved"): `official_results.entries`
 (the changed entries + the round), `official_results.refresh` (more than 50 entries changed, or an entry taken out of
 the round - fetch the state again),
 `official_results.round` (publication / table numbers usage). The same updates go to the referees' topic

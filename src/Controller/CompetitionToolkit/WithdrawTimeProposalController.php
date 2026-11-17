@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\WithdrawTimeProposal;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
+use SpeedPuzzling\Web\Services\AfterResponse;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
@@ -31,6 +32,7 @@ final class WithdrawTimeProposalController extends AbstractController
         private readonly TimeProposalApi $api,
         private readonly GetTimeProposals $getTimeProposals,
         private readonly OfficialResultsLiveUpdates $liveUpdates,
+        private readonly AfterResponse $afterResponse,
     ) {
     }
 
@@ -71,8 +73,10 @@ final class WithdrawTimeProposalController extends AbstractController
         $answer = $envelope->last(HandledStamp::class)?->getResult();
         assert($answer instanceof TimeProposalAnswer);
 
+        // Committed by now - the judges learn about it once the phone has its answer (AfterResponse)
         if ($answer->changed() && $answer->proposalId !== null) {
-            $this->liveUpdates->proposalsChanged($answer->roundId, [$answer->proposalId]);
+            $changedId = $answer->proposalId;
+            $this->afterResponse->defer(fn () => $this->liveUpdates->proposalsChanged($answer->roundId, [$changedId]));
         }
 
         // Only to somebody it belongs to - a refusal shows nothing of the proposal

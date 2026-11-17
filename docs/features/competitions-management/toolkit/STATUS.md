@@ -26,8 +26,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 |---|---|---|---|---|
 | F0 | A | merged | 17a4fefc4..0ab0e5422 | flag+voter, hub, RoundPuzzlesVisibleNow, golden pins |
 | A1 | A | merged, reviewed: no early-reveal path; fixes queued as A1F | d8f21b453..b15c8ad40 | reveal mode `stopwatch`, RoundStopwatchReveal, checkbox unticked; NOT browser-tried yet (checkpoint 1); PluralMessagesTest OOM in paratest workers (H) |
-| A2 | A | started | | |
-| A1F | A | queued after A2 | | delete round/remove puzzle during ticked countdown keeps old hide_until (cm-delivery/review-A1.md) |
+| A2 | A | merged | a4a63e971..cc79c3704 | puzzle_format total/pick K, position+label (computed on read), guards, puzzleFormat via GetRoundResultsOverview (pick only). Duplicate copies rounds without puzzles => total |
+| A1F | A | started | | delete round/remove puzzle during ticked countdown keeps old hide_until (cm-delivery/review-A1.md) |
 | C2 | B | merged | f10ef1cef..84443b7b7 | lean layout, `live_entry` entry, fixed SW install precache (was a no-op: duplicate runtime.js). **On merge to main: restart js-watch.** Native-app (Hotwire Native) + precache scope -> C3 |
 | C3 | B | started | | |
 | C1 | B | merged | 1cbf47ff3, 1e1e8c729 | data-free live page, ?viewer=1/?entries=0, event-people endpoint (C3 skips it), browser-walked |

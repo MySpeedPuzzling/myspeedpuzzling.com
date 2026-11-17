@@ -27,4 +27,4 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | F0 | A | merged | 17a4fefc4..0ab0e5422 | flag+voter, hub, RoundPuzzlesVisibleNow, golden pins |
 | A1 | A | started | | |
 | C1 | B | started | | |
-| B1 | C | started | | |
+| B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |

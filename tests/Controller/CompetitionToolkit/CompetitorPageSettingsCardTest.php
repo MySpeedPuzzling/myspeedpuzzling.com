@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\QrTagMode;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
@@ -157,6 +158,20 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
         self::assertInstanceOf(ChoiceFormField::class, $field);
 
         return $field;
+    }
+
+    public function testThePrintTagsLinksLeadToTheKindsWithTheQrModesFirst(): void
+    {
+        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+
+        $page = $browser->request('GET', self::HUB);
+        self::assertSame(['people', 'lineups', 'tables', 'entries'], $page->filter('[data-print-tags-kind]')->each(static fn ($link): string => (string) $link->attr('data-print-tags-kind')));
+        self::assertSame('/en/name-tags/' . self::EVENT . '?kind=lineups', $page->filter('[data-print-tags-kind="lineups"]')->attr('href'));
+
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE competition SET qr_tag_mode = 'table' WHERE id = :id", ['id' => self::EVENT]);
+        $page = $browser->request('GET', self::HUB);
+        self::assertSame(['tables', 'people', 'lineups', 'entries'], $page->filter('[data-print-tags-kind]')->each(static fn ($link): string => (string) $link->attr('data-print-tags-kind')));
+        self::assertStringContainsString('btn-primary', (string) $page->filter('[data-print-tags-kind="tables"]')->attr('class'));
     }
 
     private function browser(bool $flag, string $player): KernelBrowser

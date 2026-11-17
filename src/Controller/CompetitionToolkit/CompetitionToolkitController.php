@@ -12,7 +12,11 @@ use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitorPageSettings;
+use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Value\CompetitionTagPrintKind;
+use SpeedPuzzling\Web\Value\CompetitorPageSettings;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPage;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -63,14 +67,17 @@ final class CompetitionToolkitController extends AbstractController
         $this->denyAccessUnlessGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId);
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
+        $rounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
 
         // Competitor pages & QR are for in-person events (an online round has its own finish flow)
         $competitorPagesForm = null;
+        $competitorPageSettings = null;
 
         if ($competition->isOnline === false) {
+            $competitorPageSettings = $this->getCompetitorPageSettings->of($competitionId);
             $competitorPagesForm = $this->createForm(
                 CompetitorPageSettingsFormType::class,
-                CompetitorPageSettingsFormData::fromSettings($this->getCompetitorPageSettings->of($competitionId)),
+                CompetitorPageSettingsFormData::fromSettings($competitorPageSettings),
                 ['action' => $request->getRequestUri()],
             );
             $competitorPagesForm->handleRequest($request);
@@ -90,8 +97,10 @@ final class CompetitionToolkitController extends AbstractController
         // A refused form answers 422 (render() sets it when handed the form itself)
         $response = $this->render('competition_toolkit/hub.html.twig', [
             'competition' => $competition,
-            'rounds' => $this->getCompetitionRoundsForManagement->ofCompetition($competitionId),
+            'rounds' => $rounds,
             'competitor_pages_form' => $competitorPagesForm,
+            // "Print tags": the kind the saved QR mode prints first (CompetitionTagPrintKind::defaultFor())
+            'print_tags_kind' => $competitorPageSettings !== null ? self::printTagsKind($competitorPageSettings, $rounds) : null,
             // Displays & overlays: the card's own forms post to their controllers and come back here
             'displays' => $this->getCompetitionDisplays->ofCompetition($competitionId),
             'add_display_form' => $this->competitionDisplaysPage->addForm($request, $competitionId, $request->getRequestUri())->createView(),
@@ -101,5 +110,15 @@ final class CompetitionToolkitController extends AbstractController
         $response->headers->addCacheControlDirective('no-store');
 
         return $response;
+    }
+
+    /**
+     * @param array<CompetitionRoundForManagement> $rounds
+     */
+    private static function printTagsKind(CompetitorPageSettings $settings, array $rounds): string
+    {
+        $pairsAndTeamsOnly = $rounds !== [] && array_all($rounds, static fn (CompetitionRoundForManagement $round): bool => $round->category !== RoundCategory::Solo);
+
+        return CompetitionTagPrintKind::defaultFor($settings->qrTagMode, $pairsAndTeamsOnly)->value;
     }
 }

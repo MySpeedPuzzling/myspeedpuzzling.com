@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
+use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioSignals;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
@@ -38,6 +39,10 @@ use Symfony\Component\Mercure\Update;
  * The event's open displays hear of the same writes (competition toolkit D5, CompetitionDisplayLiveUpdates - nothing
  * for an event without displays): entries and refreshes as a results signal, a round update (publication, format,
  * table numbers) as a round signal, the reveal push as a puzzles signal. Proposals are no display's business.
+ *
+ * So do the round's open analytics studios (analytics-studio.md R21-R24, AnalyticsStudioSignals - nothing and no
+ * statement for a round nobody watches there): the public data-free `/analytics-studio-signal/{roundId}` for entries and
+ * refreshes (only while the round's results are public), round updates and the reveal push. Proposals are not studio data.
  */
 final readonly class OfficialResultsLiveUpdates
 {
@@ -51,6 +56,7 @@ final readonly class OfficialResultsLiveUpdates
         private LoggerInterface $logger,
         private GetTimeProposals $getTimeProposals,
         private CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private AnalyticsStudioSignals $studioSignals,
     ) {
     }
 
@@ -87,6 +93,7 @@ final readonly class OfficialResultsLiveUpdates
         });
 
         $this->displayLiveUpdates->resultsChanged($roundId);
+        $this->studioSignals->resultsChanged($roundId);
     }
 
     /**
@@ -96,6 +103,7 @@ final readonly class OfficialResultsLiveUpdates
     {
         $this->publishRefresh($roundId);
         $this->displayLiveUpdates->resultsChanged($roundId);
+        $this->studioSignals->resultsChanged($roundId);
     }
 
     /**
@@ -108,6 +116,7 @@ final readonly class OfficialResultsLiveUpdates
     {
         $this->publishRefresh($roundId);
         $this->displayLiveUpdates->puzzlesChanged($roundId);
+        $this->studioSignals->puzzlesChanged($roundId);
     }
 
     /**
@@ -144,6 +153,7 @@ final readonly class OfficialResultsLiveUpdates
         ]);
 
         $this->displayLiveUpdates->roundChanged($roundId);
+        $this->studioSignals->roundChanged($roundId);
     }
 
     private function publishRefresh(string $roundId): void

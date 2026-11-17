@@ -114,6 +114,6 @@
     ],
     "mercure": {
         "hubUrl": "https://myspeedpuzzling.com/.well-known/mercure",
-        "topics": ["/round-stopwatch/018d0040-0000-7000-8000-000000000001"]
+        "topics": ["/round-stopwatch/018d0040-0000-7000-8000-000000000001", "/analytics-studio-signal/018d0040-0000-7000-8000-000000000001"]
     }
 }

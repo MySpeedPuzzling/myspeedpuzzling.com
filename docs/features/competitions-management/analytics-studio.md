@@ -93,6 +93,29 @@ Independent design review 2026-11-17, decisions by the orchestrator:
 - **R20 Blocklist exemption** (Q5) is broader than displays (a public URL, not an organiser token) - stated in the
   doc and to Jan; accepted for on-air consistency.
 
+v2 amendments (2026-11-17, design note `design-v2/studio.md`; binding) - R2's "Reveal now and new results arrive at the
+next poll" is superseded by R21-R26:
+
+- **R21 Studio signal.** A new public topic `/analytics-studio-signal/{roundId}` (lowercase id) with the constant
+  payload `{"type": "analytics_studio.signal", "roundId": "…"}` - no counts, no entries, no puzzles, identical whatever
+  changed (the swap test extends to it). The state's `mercure.topics` = the stopwatch topic + this one (one stream).
+  Not the stopwatch topic (300 competitor phones would refetch per result; its payload is pinned), not the private
+  results or display topics.
+- **R22** Published from inside `OfficialResultsLiveUpdates` (entries, refresh, reveal push, round update - not
+  proposals), so every existing write path is covered after its commit without touching a controller.
+- **R23** Only for a round whose studio computed a state in the last 180 s (`AnalyticsStudioWatch`, pool
+  `analytics_studio_watch_cache`): an unwatched round costs one cache read and no statement.
+- **R24** Gate read at publish time (1 statement, watched rounds only): `GetAnalyticsStudioRound::byId()` (publicly
+  visible, slugged - a draft never signals); a results signal only when the round is published or live results are on
+  (an unpublished result is not told by its timing).
+- **R25** The client asks for the state `SIGNAL_SETTLE_MS` 2.3 s + 0-1 s after a signal (the 2 s state cache must have
+  expired - the cache key stays as it is, one computation per 2 s per round under any write rate), signal-driven fetches
+  ≥ 5 s apart per tab.
+- **R26** Fallback poll while the round is live: 30 s ±20 % while the stream is live (`isLive()`), 10 s when it is not
+  (down, refused, silent > 100 s); idle 60 s unchanged.
+- **R27** Not signalled (the poll covers them): the participants sheet (competition-wide, display-only hook), label-only
+  puzzle edits (add / remove / wizard), table numbers while results are not public.
+
 ---
 
 ## 1. Routes, controllers, HTTP
@@ -792,3 +815,28 @@ Where it differs from the sections above:
   Czech URLs, not public, draft for its team, a round without a slug, the link answers 200),
   `RoundsTimelineBuilderTest::testTheAnalyticsStudioOfEverySluggedRoundOfAPublicPageResultsOrNot`, a `DraftCanaryTest`
   surface.
+
+## As built: V1 (studio signal, 2026-11-18)
+
+- `src/Services/AnalyticsStudio/AnalyticsStudioSignals.php` (`topic()`, `payload()`, `resultsChanged()`,
+  `roundChanged()`, `puzzlesChanged()`; every failure a warning "Could not publish an analytics studio signal", never the
+  write's) and `AnalyticsStudioWatch.php` (`markWatched()` / `watched()`, `WATCH_TTL_SECONDS = 180`, fail-closed).
+  Hooked in `OfficialResultsLiveUpdates` after the display forwarding (S1's standings forwarding through
+  `CompetitionDisplayLiveUpdates` untouched): `entriesChanged()` + `refresh()` → results, `puzzlesRevealed()` → puzzles,
+  `roundChanged()` → round. `AnalyticsStudioStateBuilder::compute()` marks the round and lists both topics.
+- The marker has its own pool `analytics_studio_watch_cache` (not `analytics_studio_cache`, as the note had it). In
+  tests `AnalyticsStudioWatch` gets `tests/TestDouble/AnalyticsStudioWatchPool` (config/services_test.php): static, no
+  `ResetInterface` (a kernel reboot or reset would clear any container pool between the state and the write), emptied
+  before every test by `AnalyticsStudioWatchResetExtension` - a marker one test set never makes another test's results
+  write publish (the studio cache is on disk there).
+- A signal fetch still planned when the state answers 404 (gone) is dropped; signals while gone are ignored.
+- Client `assets/analytics-studio/refresh.js`: `SIGNAL_TYPE`, `SIGNAL_SETTLE_MS`, `SIGNAL_JITTER_MS`,
+  `SIGNAL_MIN_GAP_MS`, `STREAMED_LIVE_POLL_MS`; `requestSignalRefresh()` has its own timer slot - a refresh already
+  planned at least 2.3 s ahead serves the signal, one planned earlier (a stopwatch push's 0-1 s) does not, and a signal
+  arriving after the planned signal fetch's settle point plans one more (5 s after). Any other typed message is ignored.
+  Bundle 65.7 KB / 21.8 KB gzip (budget 66.4 / 22.3 unchanged).
+- Tests: `AnalyticsStudioSignalsTest` (unwatched = 1 update as before, watched published round, live results off/on,
+  publish, refused write, hub down, reveal push + round update, draft with a stale marker, warning + unknown round),
+  `AnalyticsStudioSignalTimingTest` (settle ≥ TTL + 300 ms, type twin), `AnalyticsStudioStateControllerTest` (topics,
+  marker), `AnalyticsStudioSecretPuzzleTest::testTheSignalIsTheSameWhicheverPuzzleIsHidden`,
+  `SecretPuzzleRoutesTest::testTheAnalyticsStudioSignalCarriesOnlyItsTypeAndRound`, six harness scenarios.

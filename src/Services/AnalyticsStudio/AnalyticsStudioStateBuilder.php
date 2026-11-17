@@ -28,6 +28,9 @@ use Symfony\Contracts\Cache\ItemInterface;
  * round, its stopwatch state hash (RoundClock::stateHash()), the visible hash and the published/live switches, never past
  * the next reveal moment (not kept at all when that is under 2 s away). `serverNowMs` is stamped on every answer
  * outside the cache.
+ *
+ * Every computed state marks the round as watched (AnalyticsStudioWatch, 180 s - no statement), so its writes publish the
+ * public data-free studio signal (AnalyticsStudioSignals) the page follows next to the stopwatch topic (`mercure.topics`).
  */
 readonly final class AnalyticsStudioStateBuilder
 {
@@ -40,6 +43,7 @@ readonly final class AnalyticsStudioStateBuilder
         private OfficialEntrantsView $officialEntrantsView,
         private ImageThumbnailTwigExtension $imageThumbnail,
         private CacheInterface $analyticsStudioCache,
+        private AnalyticsStudioWatch $watch,
         #[Autowire('%env(MERCURE_PUBLIC_URL)%')]
         private string $mercurePublicUrl,
     ) {
@@ -86,6 +90,7 @@ readonly final class AnalyticsStudioStateBuilder
     private function compute(AnalyticsStudioContext $context): array
     {
         $round = $context->round;
+        $this->watch->markWatched($round->id);
         $entrants = $this->getAnalyticsStudioEntrants->forRound($round);
         $official = $round->published() ? $this->officialEntrantsView->forRound($round->id, $round->category, null) : null;
 
@@ -121,7 +126,7 @@ readonly final class AnalyticsStudioStateBuilder
             'results' => AnalyticsStudioLiveResults::of($round, $entrants, $context->puzzles, $official),
             'mercure' => [
                 'hubUrl' => $this->mercurePublicUrl,
-                'topics' => [RoundStopwatchLiveUpdates::topic($round->id)],
+                'topics' => [RoundStopwatchLiveUpdates::topic($round->id), AnalyticsStudioSignals::topic($round->id)],
             ],
         ];
     }

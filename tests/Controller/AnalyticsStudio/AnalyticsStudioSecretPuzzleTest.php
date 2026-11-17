@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\AnalyticsStudio;
 
+use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioSignals;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Tests\AnalyticsStudioTesting;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture as F;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Mercure\Update;
 
 /**
  * Secret puzzles by exclusion (analytics-studio.md §5, R1): the studio knows a round's puzzles only through
@@ -69,6 +73,41 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         self::assertArrayHasKey(self::HIDDEN_SLOT, self::digArray($analytics, 'puzzles'));
         self::assertGreaterThanOrEqual(1, self::dig($analytics, 'entrants', F::ENTRY_B_HUGO, 'members', 0, 'perPuzzle', self::HIDDEN_SLOT, 'solves'));
         self::assertNotSame($withX['analytics'], $revealed['analytics']);
+    }
+
+    /**
+     * The studio's public signal (R21) of a watched round is the same whichever puzzle is hidden - and names neither.
+     */
+    public function testTheSignalIsTheSameWhicheverPuzzleIsHidden(): void
+    {
+        self::bootKernel();
+        $database = $this->studioDatabase();
+        $database->executeStatement('UPDATE competition_round_puzzle SET position = 1 WHERE round_id = :round', ['round' => F::ROUND_GROUP_B]);
+        $database->executeStatement(
+            "INSERT INTO competition_round_puzzle (id, round_id, puzzle_id, hide_until_round_starts, hide_mode, reveal_mode, reveal_at, hides_everywhere, position)
+             VALUES (:id, :round, :puzzle, true, 'entirely', 'manual', NULL, false, 2)",
+            ['id' => self::HIDDEN_SLOT, 'round' => F::ROUND_GROUP_B, 'puzzle' => self::X],
+        );
+        $this->studioWatch()->markWatched(F::ROUND_GROUP_B);
+        $hub = self::getContainer()->get(NullMercureHub::class); // @phpstan-ignore symfonyContainer.serviceNotFound
+        assert($hub instanceof NullMercureHub);
+        $liveUpdates = self::getContainer()->get(OfficialResultsLiveUpdates::class);
+
+        $signal = function () use ($hub, $liveUpdates): string {
+            $hub->reset();
+            $liveUpdates->puzzlesRevealed(F::ROUND_GROUP_B);
+            $signals = array_values(array_filter($hub->getPublishedUpdates(), static fn (Update $update): bool => $update->getTopics() === [AnalyticsStudioSignals::topic(F::ROUND_GROUP_B)]));
+            self::assertCount(1, $signals);
+
+            return $signals[0]->getData();
+        };
+
+        $withX = $signal();
+        $database->executeStatement('UPDATE competition_round_puzzle SET puzzle_id = :puzzle WHERE id = :id', ['puzzle' => self::Y, 'id' => self::HIDDEN_SLOT]);
+        self::assertSame($withX, $signal());
+        foreach ([self::X, self::Y, self::HIDDEN_SLOT] as $secret) {
+            self::assertStringNotContainsString($secret, $withX);
+        }
     }
 
     /**

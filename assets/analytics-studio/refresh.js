@@ -2,12 +2,18 @@
 // §6 "Freshness", §0a R2/R3) - the refetch planner. DOM-free: the page adapter injects the four fetches, the clock,
 // timers and the Mercure stream; tests/analytics-studio-harness.mjs drives it with fakes.
 //
-// - `state` (§3.1): fetched at the start, then polled - every 10 s ±20 % while the round is live (counting down,
-//   running, time up, or stopped but not published yet), every 60 s ±20 % otherwise; a failed fetch doubles the pause
-//   up to 5 minutes (before the first answer the 10 s cadence is the base). A 404 (the event went private, the round lost its slug): a look every 5 minutes.
-// - The anonymous public `/round-stopwatch/{roundId}` stream (official_results_events.js public subscription, as the
-//   competitor page): a push is applied at once (the newest `asOfMs` wins) and asks for the state within 0-1 s
-//   (random - many commentator tabs must not hit the server in the same millisecond).
+// - `state` (§3.1): fetched at the start, then polled - while the round is live (counting down, running, time up, or
+//   stopped but not published yet) every 30 s ±20 % when the stream is live (it brings the studio signal) or every 10 s
+//   ±20 % without it (down, refused, silent); every 60 s ±20 % otherwise; a failed fetch doubles the pause up to 5
+//   minutes (before the first answer the 10 s cadence is the base). A 404 (the event went private, the round lost its
+//   slug): a look every 5 minutes.
+// - The anonymous public stream (official_results_events.js public subscription, as the competitor page) of the state's
+//   `mercure.topics`: `/round-stopwatch/{roundId}` - a push is applied at once (the newest `asOfMs` wins) and asks for
+//   the state within 0-1 s (random - many commentator tabs must not hit the server in the same millisecond); and the
+//   data-free studio signal `/analytics-studio-signal/{roundId}` (R21-R25: `{type: 'analytics_studio.signal',
+//   roundId}` after a results write, a reveal, a round change) - the state again after 2.3 s + 0-1 s (the server's 2 s
+//   state cache must have expired: what it kept was computed before the commit the signal follows), signal-driven
+//   fetches at least 5 s apart (a finish rush: one fetch per 5 s per tab, the signals in between served by the next).
 // - `nextRevealAtMs`: the state again at that moment + 300 ms + 0-1 s (the server must already see it as passed).
 // - The server's time: createServerClock() - a hint from the shell's `serverNowMs`, then every state answer is a sample
 //   (R2: `serverNowMs` per response).
@@ -29,6 +35,13 @@ export const REVEAL_GRACE_MS = 300;
 export const REVEAL_JITTER_MS = 1000;
 export const RECONNECT_JITTER_MS = 3000;
 export const VISIBLE_JITTER_MS = 500;
+// The studio signal (R25): AnalyticsStudioStateBuilder::TTL_SECONDS * 1000 + 300 (pinned by AnalyticsStudioSignalTimingTest)
+export const SIGNAL_TYPE = 'analytics_studio.signal';
+export const SIGNAL_SETTLE_MS = 2300;
+export const SIGNAL_JITTER_MS = 1000;
+export const SIGNAL_MIN_GAP_MS = 5000;
+// R26: the live cadence while the stream is live (the signal tells of changes) - the poll stays the safety net
+export const STREAMED_LIVE_POLL_MS = 30 * 1000;
 // setTimeout's limit is ~24.8 days; nothing here waits that long
 const MAX_DELAY_MS = 24 * 3600 * 1000;
 
@@ -51,10 +64,11 @@ export function isLiveRound(state, nowMs) {
 }
 
 /**
- * The next state poll: 10 s live / 60 s otherwise, doubled per failed fetch up to 5 minutes, spread ±20 %.
+ * The next state poll: 10 s live (30 s live with the stream live) / 60 s otherwise, doubled per failed fetch up to 5
+ * minutes, spread ±20 %.
  */
-export function pollDelay({ live, errors = 0, random = Math.random }) {
-    const base = live ? LIVE_POLL_MS : IDLE_POLL_MS;
+export function pollDelay({ live, streamed = false, errors = 0, random = Math.random }) {
+    const base = live ? (streamed ? STREAMED_LIVE_POLL_MS : LIVE_POLL_MS) : IDLE_POLL_MS;
     const backedOff = Math.min(MAX_POLL_MS, base * (2 ** Math.min(errors, 10)));
 
     return Math.round(backedOff * (1 - POLL_SPREAD + random() * 2 * POLL_SPREAD));
@@ -145,6 +159,10 @@ export class AnalyticsStudioRefresh {
         this.events = null;
         this.closed = false;
         this.started = false;
+        // The studio signal's planned fetch (server-free moment) and the last signal-driven fetch
+        this.signalAt = null;
+        this.signalAgain = false;
+        this.lastSignalFetchAt = null;
 
         // What is shown (loaded) and what is on its way, per dependent answer
         this.selected = null;
@@ -267,8 +285,20 @@ export class AnalyticsStudioRefresh {
             return;
         }
 
-        // The public stopwatch payload (RoundStopwatchState): no type
-        if (typeof message.roundId !== 'string' || !('status' in message)) {
+        // The studio signal: data-free - the state says what changed
+        if (message.type === SIGNAL_TYPE) {
+            const current = this.state?.round;
+
+            if (isObject(current) && typeof current.id === 'string' && typeof message.roundId === 'string'
+                && current.id.toLowerCase() === message.roundId.toLowerCase()) {
+                this.requestSignalRefresh();
+            }
+
+            return;
+        }
+
+        // The public stopwatch payload (RoundStopwatchState): no type; any other typed message is not ours
+        if (typeof message.type === 'string' || typeof message.roundId !== 'string' || !('status' in message)) {
             return;
         }
 
@@ -307,6 +337,59 @@ export class AnalyticsStudioRefresh {
         }
 
         return new Promise((resolve) => this.waiters.push(resolve));
+    }
+
+    /**
+     * A studio signal: the state once the server's state cache cannot hold what was before the signalled commit - after
+     * SIGNAL_SETTLE_MS + 0-SIGNAL_JITTER_MS, and at least SIGNAL_MIN_GAP_MS after the last signal-driven fetch. A
+     * refresh already planned late enough serves it; one planned too early for it is followed by another (5 s later).
+     */
+    requestSignalRefresh() {
+        if (this.closed) {
+            return;
+        }
+
+        const earliest = this.now() + SIGNAL_SETTLE_MS;
+
+        if (this.refreshAt !== null && this.refreshAt >= earliest) {
+            return;
+        }
+
+        if (this.signalAt !== null) {
+            if (this.signalAt < earliest) {
+                this.signalAgain = true;
+            }
+
+            return;
+        }
+
+        this.planSignalRefresh();
+    }
+
+    planSignalRefresh() {
+        const now = this.now();
+        const settle = SIGNAL_SETTLE_MS + this.random() * SIGNAL_JITTER_MS;
+        const gap = this.lastSignalFetchAt === null ? 0 : this.lastSignalFetchAt + SIGNAL_MIN_GAP_MS - now;
+        const delay = Math.max(settle, gap);
+
+        this.signalAt = now + delay;
+        this.set('signal', delay, () => {
+            this.signalAt = null;
+
+            if (this.gone) {
+                this.signalAgain = false;
+
+                return;
+            }
+
+            this.lastSignalFetchAt = this.now();
+            this.refresh();
+
+            if (this.signalAgain) {
+                this.signalAgain = false;
+                this.planSignalRefresh();
+            }
+        });
     }
 
     resolveWaiters(kind) {
@@ -357,6 +440,10 @@ export class AnalyticsStudioRefresh {
             this.gone = true;
             this.events?.suspend();
             this.clear('reveal');
+            // A signal fetch still planned is no fetch for a round that is gone - the 5-minute look stays
+            this.clear('signal');
+            this.signalAt = null;
+            this.signalAgain = false;
             this.set('poll', GONE_POLL_MS, () => this.refresh());
             this.onGoneFn();
 
@@ -396,7 +483,9 @@ export class AnalyticsStudioRefresh {
     schedulePoll() {
         // No state yet (the first fetch failed): the short cadence - the page has nothing to show until it answers
         const live = this.state === null || isLiveRound(this.state, this.serverNow());
-        this.set('poll', pollDelay({ live, errors: this.errors, random: this.random }), () => this.refresh());
+        // The stream live (R26): the studio signal tells of changes - the poll is only the safety net
+        const streamed = this.events !== null && typeof this.events.isLive === 'function' && this.events.isLive() === true;
+        this.set('poll', pollDelay({ live, streamed, errors: this.errors, random: this.random }), () => this.refresh());
     }
 
     // ---- the answers that follow the state

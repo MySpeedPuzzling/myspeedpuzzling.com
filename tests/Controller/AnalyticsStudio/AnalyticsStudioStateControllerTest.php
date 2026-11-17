@@ -45,7 +45,10 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         self::assertSame('solo', self::dig($state, 'round', 'category'));
         self::assertTrue(self::dig($state, 'round', 'published'));
         self::assertArrayNotHasKey('puzzleFormat', self::digArray($state, 'round'));
-        self::assertSame(['/round-stopwatch/' . F::ROUND_GROUP_A], self::dig($state, 'mercure', 'topics'));
+        // One stream, two topics: the public stopwatch and the data-free studio signal (R21) - and the round is watched now
+        self::assertSame(['/round-stopwatch/' . F::ROUND_GROUP_A, '/analytics-studio-signal/' . F::ROUND_GROUP_A], self::dig($state, 'mercure', 'topics'));
+        self::assertTrue($this->studioWatch()->watched(F::ROUND_GROUP_A));
+        self::assertFalse($this->studioWatch()->watched(F::ROUND_GROUP_B));
 
         self::assertIsArray(self::dig($state, 'slots'));
         self::assertCount(1, self::digArray($state, 'slots'));

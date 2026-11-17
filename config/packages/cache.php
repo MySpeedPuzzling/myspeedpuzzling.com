@@ -154,6 +154,13 @@ return App::config([
                     'adapters' => ['cache.app'],
                     'default_lifetime' => 600,
                 ],
+                // Which rounds' analytics studios are open (AnalyticsStudioWatch, analytics-studio.md R23): marked by every
+                // computed studio state for 180 s, read on every results write - only a watched round publishes the public
+                // studio signal. Disposable: a miss = no signal, the studio's poll stays
+                'analytics_studio_watch_cache' => [
+                    'adapters' => ['cache.app'],
+                    'default_lifetime' => 180,
+                ],
             ],
         ],
     ],

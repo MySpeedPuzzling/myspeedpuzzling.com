@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioWatch;
+use SpeedPuzzling\Web\Tests\TestDouble\AnalyticsStudioWatchPool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
@@ -21,6 +23,14 @@ trait AnalyticsStudioTesting
     {
         $cache = self::getContainer()->get('analytics_studio_cache');
         $cache->clear();
+    }
+
+    /**
+     * The studio's watch markers (static in tests, emptied before every test - AnalyticsStudioWatchPool).
+     */
+    protected function studioWatch(): AnalyticsStudioWatch
+    {
+        return new AnalyticsStudioWatch(new AnalyticsStudioWatchPool());
     }
 
     /**

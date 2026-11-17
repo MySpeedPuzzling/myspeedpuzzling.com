@@ -33,15 +33,18 @@ enum EventWizardPath: string
 
     /**
      * The wizard's steps of this path, in order. Empty = the path has no wizard pages yet (its drafts are set up on the
-     * classic pages). W6 puts Extras before Review on every path.
+     * classic pages). Extras (W6) is the step before Review - a path that gets it lists it there; the step itself works
+     * on any draft event (an edition included), the rows it offers follow the event's data (EventWizardExtrasController).
      *
      * @return list<EventWizardStep>
      */
     public function steps(): array
     {
         return match ($this) {
-            self::OneRound => [EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Review],
-            // A draft series (W3) - its editions are not set up in the wizard (EventWizardSteps::of())
+            self::OneRound => [EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Extras, EventWizardStep::Review],
+            // A draft series (W3) - its editions are not set up in the wizard (EventWizardSteps::of()). No Extras: every
+            // feature it switches (registration, links, judges, the toolkit's settings and displays) belongs to one
+            // date (an edition), not to the series - each date's edit page and "Get ready" checklist have them
             self::Series => [EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview],
             self::SeveralRounds => [],
         };

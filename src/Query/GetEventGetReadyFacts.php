@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Results\GetReadyFacts;
 use SpeedPuzzling\Web\Results\GetReadyRoundFacts;
 use SpeedPuzzling\Web\Value\DisplayKind;
+use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
@@ -39,6 +40,7 @@ readonly final class GetEventGetReadyFacts
 
         $going = CompetitionParticipantGoing::sql('cp');
         $screen = DisplayKind::Screen->value;
+        $overlay = DisplayKind::Overlay->value;
 
         $event = <<<SQL
 SELECT
@@ -48,14 +50,16 @@ SELECT
     c.date_to,
     c.registration_managed,
     c.capacity,
+    c.qr_tag_mode,
     (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = c.id AND {$going}) AS participants_going,
     (SELECT COUNT(*) FROM competition_referee r WHERE r.competition_id = c.id) AS referees_count,
-    (SELECT COUNT(*) FROM competition_display d WHERE d.competition_id = c.id AND d.kind = '{$screen}') AS screens_count
+    (SELECT COUNT(*) FROM competition_display d WHERE d.competition_id = c.id AND d.kind = '{$screen}') AS screens_count,
+    (SELECT COUNT(*) FROM competition_display d WHERE d.competition_id = c.id AND d.kind = '{$overlay}') AS overlays_count
 FROM competition c
 WHERE c.id = :competitionId
 SQL;
 
-        /** @var false|array{is_draft: bool, is_online: bool, date_from: null|string, date_to: null|string, registration_managed: bool, capacity: null|int, participants_going: int|string, referees_count: int|string, screens_count: int|string} $row */
+        /** @var false|array{is_draft: bool, is_online: bool, date_from: null|string, date_to: null|string, registration_managed: bool, capacity: null|int, participants_going: int|string, referees_count: int|string, screens_count: int|string, overlays_count: int|string, qr_tag_mode: null|string} $row */
         $row = $this->database->executeQuery($event, ['competitionId' => $competitionId])->fetchAssociative();
 
         if ($row === false) {
@@ -138,6 +142,8 @@ SQL;
             participantsGoing: (int) $row['participants_going'],
             refereesCount: (int) $row['referees_count'],
             screenDisplaysCount: (int) $row['screens_count'],
+            overlayDisplaysCount: (int) $row['overlays_count'],
+            qrTagMode: $row['qr_tag_mode'] !== null ? QrTagMode::tryFrom($row['qr_tag_mode']) : null,
             rounds: $roundFacts,
             toolkitAvailable: $toolkitAvailable,
             now: $now,

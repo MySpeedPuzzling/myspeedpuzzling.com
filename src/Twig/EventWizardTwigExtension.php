@@ -28,6 +28,8 @@ final class EventWizardTwigExtension extends AbstractExtension
         return [
             new TwigFunction('event_wizard_resumable', $this->resume->offered(...)),
             new TwigFunction('event_wizard_resumable_event', $this->resume->offeredFor(...)),
+            new TwigFunction('event_wizard_resumable_series', $this->resume->seriesOffered(...)),
+            new TwigFunction('event_wizard_resumable_series_id', $this->resume->seriesOfferedFor(...)),
         ];
     }
 }

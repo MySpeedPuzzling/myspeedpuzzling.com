@@ -12,11 +12,13 @@ use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventDetailsItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\JudgesItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\NameTagsItem;
+use SpeedPuzzling\Web\Services\EventWizard\GetReady\OverlayTip;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\RegistrationItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\RoundsAndPuzzlesItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\StopwatchTestRunTip;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\TableNumbersItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\TimerScreenTip;
+use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
@@ -117,6 +119,39 @@ final class GetReadyItemsTest extends TestCase
         self::assertSame('competition_name_tags', $item->row(self::facts(rounds: [self::round('r1', entries: 1)]))?->route);
     }
 
+    public function testNameTagsWithQrCodesFromTheStartForTheToolkit(): void
+    {
+        $item = new NameTagsItem();
+
+        // QR mode chosen (Extras): there before anybody is in, saying when to print
+        $early = $item->row(self::facts(toolkit: true, qrTagMode: QrTagMode::Table));
+        self::assertNotNull($early);
+        self::assertSame('event_wizard.get_ready.name_tags_qr', $early->labelKey);
+        self::assertSame('event_wizard.get_ready.name_tags_later', $early->noteKey);
+        self::assertNull($early->done);
+
+        $withPeople = $item->row(self::facts(going: 3, toolkit: true, qrTagMode: QrTagMode::Table));
+        self::assertNotNull($withPeople);
+        self::assertSame('event_wizard.get_ready.name_tags_qr', $withPeople->labelKey);
+        self::assertNull($withPeople->noteKey);
+
+        // Without the toolkit the mode changes nothing
+        self::assertNull($item->row(self::facts(qrTagMode: QrTagMode::Table)));
+        self::assertSame('event_wizard.get_ready.name_tags', $item->row(self::facts(going: 1, qrTagMode: QrTagMode::Table))?->labelKey);
+    }
+
+    public function testTheOverlayTipOnceTheEventHasAnOverlay(): void
+    {
+        $tip = new OverlayTip();
+        self::assertNull($tip->row(self::facts(overlays: 1)));
+        self::assertNull($tip->row(self::facts(toolkit: true, screens: 1)));
+        $row = $tip->row(self::facts(toolkit: true, overlays: 1));
+        self::assertNotNull($row);
+        self::assertNull($row->done);
+        self::assertSame('competition_displays', $row->route);
+        self::assertSame(['competitionId' => self::EVENT], $row->routeParameters);
+    }
+
     public function testToolkitTipsOnlyForWhomTheToolkitIsOn(): void
     {
         $screen = new TimerScreenTip();
@@ -171,6 +206,8 @@ final class GetReadyItemsTest extends TestCase
         bool $toolkit = false,
         null|string $dateFrom = null,
         null|string $dateTo = null,
+        int $overlays = 0,
+        null|QrTagMode $qrTagMode = null,
     ): GetReadyFacts {
         return new GetReadyFacts(
             competitionId: self::EVENT,
@@ -186,6 +223,8 @@ final class GetReadyItemsTest extends TestCase
             rounds: $rounds,
             toolkitAvailable: $toolkit,
             now: new DateTimeImmutable(self::NOW),
+            overlayDisplaysCount: $overlays,
+            qrTagMode: $qrTagMode,
         );
     }
 

@@ -16,6 +16,8 @@ use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
  *
  * - Basics: the draft exists (it is created by Basics);
  * - Puzzle (one round): the round has a puzzle - "Decide later" leaves it not done, so resuming comes back to it;
+ * - Extras: one of its features is on (EventWizardState::$extrasOn) - nothing switched on leaves it not done, so resuming
+ *   shows it once more (one click: "Continue");
  * - Review: never - publishing ends the wizard.
  *
  * The series path (W3) works on a draft series (ofSeries()): Basics done once it exists, Dates once it has an edition.
@@ -76,6 +78,7 @@ readonly final class EventWizardSteps
         return match ($step) {
             EventWizardStep::Basics => true,
             EventWizardStep::Puzzle => $state->singleRoundId !== null && $state->roundPuzzlesCount > 0,
+            EventWizardStep::Extras => $state->extrasOn,
             EventWizardStep::Review => false,
             // The series path's steps are never an event's (ofSeries())
             EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview => false,

@@ -21,6 +21,9 @@ readonly final class EventWizardState
         public int $roundPuzzlesCount,
         // Who created it - a new event's page sent twice finds its own draft by it (EventWizardBasicsController)
         public null|string $addedByPlayerId = null,
+        // One of the Extras step's features is on: registration here or elsewhere, a judge, competitor pages or QR tags,
+        // a display (EventWizardSteps: the step is done)
+        public bool $extrasOn = false,
     ) {
     }
 }

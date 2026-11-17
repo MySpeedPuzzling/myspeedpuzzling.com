@@ -1,0 +1,177 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{#
+    The event creation wizard's "Extras" (W6, W-creation-wizard-research.md §3.8): one switch per opt-in feature, all off
+    for a new event; switching one on shows only its fields (organizer-form - without JavaScript everything stays
+    visible and the server ignores the fields of a row switched off). A display kind or standings the event already has
+    are a line with a link, not a switch.
+#}
+
+{% block title %}{{ 'event_wizard.step.extras'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.extras.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    <p class="text-muted">{{ 'event_wizard.extras.intro'|trans }}</p>
+
+    {{ form_start(form) }}
+    <div data-controller="organizer-form" data-action="change->organizer-form#update">
+        {{ form_errors(form) }}
+
+        <div class="card shadow-sm mb-3" data-event-wizard-extra="registration">
+            <div class="card-body">
+                <div class="form-switch">{{ form_row(form.registration, {row_attr: {class: 'mb-0'}}) }}</div>
+                <div class="mt-3" data-organizer-form-target="part" data-show-field="registration" data-show-values="1">
+                    {{ form_row(form.capacity) }}
+                    <div class="row">
+                        {% for field in [form.opensAt, form.closesAt] %}
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(field) }}
+                                <div class="input-group">
+                                    {{ form_widget(field, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y H:i", "enableTime": true, "time_24hr": true}'}}) }}
+                                    <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                </div>
+                                {{ form_errors(field) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <p class="form-text mt-n2">{{ 'event_wizard.extras.registration_zone'|trans({'%zone%': timezone_name(extras.registrationTimezone, false)}) }}</p>
+                    {{ form_row(form.entryFeeText, {row_attr: {class: 'mb-0'}}) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3" data-event-wizard-extra="elsewhere">
+            <div class="card-body">
+                <div class="form-switch">{{ form_row(form.elsewhere, {row_attr: {class: 'mb-0'}}) }}</div>
+                <div class="mt-3" data-organizer-form-target="part" data-show-field="elsewhere" data-show-values="1">
+                    {{ form_row(form.registrationLink, {attr: {placeholder: 'https://'}}) }}
+                    {{ form_row(form.resultsLink, {attr: {placeholder: 'https://'}, row_attr: {class: 'mb-0'}}) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3" data-event-wizard-extra="judges">
+            <div class="card-body">
+                <div class="form-switch">{{ form_row(form.judges, {row_attr: {class: 'mb-0'}}) }}</div>
+                <div class="mt-3" data-organizer-form-target="part" data-show-field="judges" data-show-values="1">
+                    {% if extras.referees is not empty %}
+                        <ul class="list-unstyled small mb-2" data-event-wizard-judges>
+                            {% for referee in extras.referees %}
+                                <li><i class="ci-user me-1 text-muted"></i>{{ referee.playerName ?? ('#' ~ referee.playerCode|upper) }} <span class="text-muted">#{{ referee.playerCode|upper }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                        {{ form_row(form.judgePlayers, {row_attr: {class: 'mb-1'}}) }}
+                    </div>
+                    <p class="form-text mb-0">{{ 'event_wizard.extras.judges_link'|trans }}</p>
+                </div>
+                {% if extras.referees is not empty %}
+                    <p class="form-text text-warning-emphasis mt-2 mb-0" data-organizer-form-target="part" data-show-field="judges" data-show-values="" data-event-wizard-judges-removed>
+                        {{ 'event_wizard.extras.judges_off_removes'|trans({'%count%': extras.referees|length}) }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if extras.toolkit %}
+            <h2 class="h6 text-muted text-uppercase small mt-4 mb-2" data-event-wizard-toolkit-rows>{{ 'event_wizard.extras.toolkit_heading'|trans }}</h2>
+
+            {% if form.qrTags is defined %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="qr_tags">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.qrTags, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="qrTags" data-show-values="1">
+                            {{ form_label(form.qrTagMode, null, {label_attr: {class: 'form-label'}}) }}
+                            {% for child in form.qrTagMode %}
+                                <div class="form-check mb-1">
+                                    {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                    {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                    <div class="form-text mt-0">{{ ('competitor_page.settings.qr_mode.' ~ child.vars.value ~ '_help')|trans }}</div>
+                                </div>
+                            {% endfor %}
+                            {{ form_errors(form.qrTagMode) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="competitor_pages">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.competitorPages, {row_attr: {class: 'mb-0'}}) }}</div>
+                        {#- Live results and time proposals need the competitor pages - asked only while they are on -#}
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="competitorPages" data-show-values="1">
+                            {{ form_row(form.liveResultsBeforePublishing) }}
+                            <div class="form-switch" data-event-wizard-extra="time_proposals">{{ form_row(form.timeProposals, {row_attr: {class: 'mb-0'}}) }}</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if form.timerScreen is defined %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="timer_screen">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.timerScreen, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="timerScreen" data-show-values="1">
+                            {{ form_row(form.screenPreset, {row_attr: {class: 'mb-0'}}) }}
+                        </div>
+                    </div>
+                </div>
+            {% elseif not extras.isOnline %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="timer_screen" data-event-wizard-set-up>
+                    <div class="card-body d-flex flex-wrap align-items-center gap-2">
+                        <i class="ci-check-circle text-success"></i>
+                        <span class="me-auto">{{ 'event_wizard.extras.timer_screen_added'|trans({'%count%': extras.screensCount}) }}</span>
+                        <a class="small" href="{{ path('competition_displays', {competitionId: extras.competitionId}) }}">{{ 'event_wizard.get_ready.link.manage'|trans }}</a>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if form.overlay is defined %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="overlay">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.overlay, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="overlay" data-show-values="1">
+                            {{ form_row(form.overlayPreset, {row_attr: {class: 'mb-0'}}) }}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="overlay" data-event-wizard-set-up>
+                    <div class="card-body d-flex flex-wrap align-items-center gap-2">
+                        <i class="ci-check-circle text-success"></i>
+                        <span class="me-auto">{{ 'event_wizard.extras.overlay_added'|trans({'%count%': extras.overlaysCount}) }}</span>
+                        <a class="small" href="{{ path('competition_displays', {competitionId: extras.competitionId}) }}">{{ 'event_wizard.get_ready.link.manage'|trans }}</a>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if form.standings is defined %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="standings">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.standings, {row_attr: {class: 'mb-0'}}) }}</div>
+                    </div>
+                </div>
+            {% elseif extras.standingsShown %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="standings" data-event-wizard-set-up>
+                    <div class="card-body d-flex flex-wrap align-items-center gap-2">
+                        <i class="ci-check-circle text-success"></i>
+                        <span class="me-auto">{{ 'event_wizard.extras.standings_set_up'|trans }}</span>
+                        <a class="small" href="{{ path('competition_standings_manage', {competitionId: extras.competitionId}) }}">{{ 'event_wizard.get_ready.link.manage'|trans }}</a>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <p class="small text-muted mt-3" data-event-wizard-tables-note><i class="ci-announcement me-1"></i>{{ 'event_wizard.extras.tables_note'|trans }}</p>
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+            <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+            {% set previous = progress.previous(step) %}
+            {% if previous is not null %}
+                <a href="{{ path(previous.route, progress.routeParameters) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+            {% endif %}
+        </div>
+    </div>
+    {{ form_end(form) }}
+{% endblock %}

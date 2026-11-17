@@ -166,9 +166,9 @@ final class GetReadyChecklistTest extends WebTestCase
         // One link per resumable draft, none for published events
         self::assertCount(count(array_unique($crawler->filter('[data-event-wizard-continue]')->each(static fn (Crawler $link): string => (string) $link->attr('href')))), $crawler->filter('[data-event-wizard-continue]'));
 
-        // The link resumes: the draft's round has its puzzle → Review
+        // The link resumes: the draft's round has its puzzle, nothing of Extras is on → Extras (W6)
         $this->browser()->request('GET', $continue);
-        self::assertResponseRedirects('/en/new-event/' . self::DRAFT . '/review');
+        self::assertResponseRedirects('/en/new-event/' . self::DRAFT . '/extras');
     }
 
     public function testNoContinueWithoutTheWizardOrForADraftItCannotResume(): void

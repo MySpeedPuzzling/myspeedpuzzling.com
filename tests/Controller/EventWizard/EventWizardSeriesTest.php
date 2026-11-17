@@ -330,6 +330,38 @@ final class EventWizardSeriesTest extends WebTestCase
         self::assertCount(13, $crawler->filter('[data-quick-add-puzzle]'));
     }
 
+    public function testADraftSeriesOffersContinueSettingUpAndItsDatesDoNot(): void
+    {
+        // W6 / W2: "Continue setting up" of a draft series (event_wizard_series_continue) on its draft banner and in
+        // "You organize"; its dates (editions) belong to the series' wizard - none of their own
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $seriesId = $this->startSeries();
+        self::assertNotNull($seriesId);
+        $continue = '/en/new-event/series/' . $seriesId;
+
+        $crawler = $this->browser->request('GET', '/en/series/' . self::string($this->database()->fetchOne('SELECT slug FROM competition_series WHERE id = :id', ['id' => $seriesId])));
+        self::assertResponseIsSuccessful();
+        self::assertSame($continue, $crawler->filter('[data-draft-banner-own] [data-event-wizard-continue]')->attr('href'));
+
+        $this->addMonthlyDates($seriesId);
+        $crawler = $this->browser->request('GET', '/en/you-organize');
+        self::assertResponseIsSuccessful();
+        self::assertSame($continue, $crawler->filter('[data-organized-id="' . $seriesId . '"] [data-event-wizard-continue]')->attr('href'));
+        $editionIds = self::ids($this->database()->fetchFirstColumn('SELECT id FROM competition WHERE series_id = :id', ['id' => $seriesId]));
+        self::assertNotSame([], $editionIds);
+        foreach ($editionIds as $editionId) {
+            self::assertCount(0, $crawler->filter('[data-organized-id="' . $editionId . '"] [data-event-wizard-continue]'));
+        }
+
+        // Without the wizard: no link
+        $this->overrideFeatureFlagEnv(self::FLAG, false);
+        self::ensureKernelShutdown();
+        $this->browser = self::createClient();
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $this->browser->request('GET', '/en/you-organize');
+        self::assertSelectorNotExists('[data-organized-id="' . $seriesId . '"] [data-event-wizard-continue]');
+    }
+
     /**
      * Basics of a new series, submitted - its id, null when nothing was created
      *

@@ -80,6 +80,10 @@
         </div>
     {% endif %}
 
+    {% if extras is not null %}
+        {{ include('event_wizard/_review_extras.html.twig', {extras: extras, progress: progress}, with_context = false) }}
+    {% endif %}
+
     <div class="alert alert-light border d-flex align-items-start small" data-event-wizard-approval>
         <i class="ci-announcement me-2 mt-1 text-primary"></i>
         <span>{{ (approved_at_once ? 'event_wizard.review.public_at_once' : 'event_wizard.review.admin_checks')|trans }}</span>

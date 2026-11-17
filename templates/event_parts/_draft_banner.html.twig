@@ -25,7 +25,7 @@
                 </p>
                 {# "Continue setting up" in the event creation wizard (W2, EventWizardResume) - on the Publish line, so a page
                    without it is byte-identical -#}
-                {% if draft_state.kind == 'competition' and event_wizard_resumable_event(draft_state.id) %}{{ include('event_wizard/_continue_setting_up.html.twig', {competition_id: draft_state.id, layout: 'banner'}) }}{% endif %}{% if is_granted(publish.attribute, draft_state.id) %}
+                {% if draft_state.kind == 'competition' and event_wizard_resumable_event(draft_state.id) %}{{ include('event_wizard/_continue_setting_up.html.twig', {competition_id: draft_state.id, layout: 'banner'}) }}{% endif %}{% if draft_state.kind == 'series' and event_wizard_resumable_series_id(draft_state.id) %}{{ include('event_wizard/_continue_setting_up.html.twig', {series_id: draft_state.id, layout: 'banner'}) }}{% endif %}{% if is_granted(publish.attribute, draft_state.id) %}
                     <form method="post" action="{{ path(publish.route, {(publish.param): draft_state.id}) }}" class="ev-draft-banner-form">
                         <input type="hidden" name="_token" value="{{ csrf_token(publish.route ~ '_' ~ draft_state.id) }}">
                         <input type="hidden" name="return" value="{{ app.request.requestUri }}">

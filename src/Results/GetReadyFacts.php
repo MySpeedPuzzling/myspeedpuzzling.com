@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\QrTagMode;
 
 /**
  * Everything the "Get ready" checklist derives its rows from (GetEventGetReadyFacts, a fixed number of statements) -
@@ -32,6 +33,10 @@ readonly final class GetReadyFacts
         // Whom the competition toolkit's tips are for (COMPETITION_TOOLKIT_MANAGE)
         public bool $toolkitAvailable,
         public DateTimeImmutable $now,
+        // Stream overlays (DisplayKind::Overlay) - the Extras step's "Overlay for a live stream" (W6)
+        public int $overlayDisplaysCount = 0,
+        // The chosen QR tag mode (competitor pages & QR) - null = name tags as before
+        public null|QrTagMode $qrTagMode = null,
     ) {
     }
 

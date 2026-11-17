@@ -335,7 +335,7 @@ final class EventWizardTest extends WebTestCase
             'hideUntilRoundStarts' => true,
             'revealMode' => 'stopwatch',
         ]);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/extras', 303);
 
         $roundPuzzle = $this->database()->fetchAssociative(
             'SELECT crp.* FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id',
@@ -402,7 +402,7 @@ final class EventWizardTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
         $this->submitPuzzle($crawler, ['brand' => '', 'puzzle' => '', 'category' => 'duo']);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/extras', 303);
 
         $round = $this->database()->fetchAssociative('SELECT * FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
         self::assertIsArray($round);
@@ -462,7 +462,7 @@ final class EventWizardTest extends WebTestCase
         // K = 1 of 2: both written, then the format
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
         $this->submitPuzzle($crawler, ['puzzle' => PuzzleFixture::PUZZLE_500_02, 'puzzleFormat' => 'pick', 'puzzlesToSolve' => '1']);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/extras', 303);
         self::assertSame(2, $this->roundPuzzlesCount($competitionId));
 
         $round = $this->database()->fetchAssociative('SELECT puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
@@ -490,7 +490,7 @@ final class EventWizardTest extends WebTestCase
         self::assertNotNull($competitionId);
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_PRIVATE);
-        foreach (['basics', 'puzzle', 'review'] as $step) {
+        foreach (['basics', 'puzzle', 'extras', 'review'] as $step) {
             $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
             self::assertResponseStatusCodeSame(403, $step);
         }
@@ -512,7 +512,7 @@ final class EventWizardTest extends WebTestCase
         $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
-        foreach (['basics', 'puzzle', 'review'] as $step) {
+        foreach (['basics', 'puzzle', 'extras', 'review'] as $step) {
             $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
             self::assertResponseStatusCodeSame(404, $step);
         }
@@ -535,7 +535,7 @@ final class EventWizardTest extends WebTestCase
         self::assertFalse($this->database()->fetchOne('SELECT is_draft FROM competition WHERE id = :id', ['id' => $competitionId]));
 
         // A published event's wizard pages lead to its edit page
-        foreach (['basics', 'puzzle', 'review'] as $step) {
+        foreach (['basics', 'puzzle', 'extras', 'review'] as $step) {
             $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
             self::assertResponseRedirects('/en/edit-event/' . $competitionId, 302, $step);
         }

@@ -1,0 +1,50 @@
+{#
+    Review's "Extras" (W6, W-creation-wizard-research.md §3.9): what is switched on, with "edit" back to the step.
+
+    Required: extras - EventWizardExtrasState, progress - EventWizardProgress
+#}
+{%- set settings = extras.competitorPageSettings -%}
+<div class="card shadow-sm mb-3" data-event-wizard-review-extras>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <h2 class="h6 mb-2">{{ 'event_wizard.step.extras'|trans }}</h2>
+            <a class="small flex-shrink-0" href="{{ path('event_wizard_extras', progress.routeParameters) }}">{{ 'event_wizard.edit'|trans }}</a>
+        </div>
+        <ul class="list-unstyled small mb-0">
+            {% if extras.registrationManaged %}
+                <li data-event-wizard-review-extra="registration"><i class="ci-check text-success me-1"></i>
+                    {{- extras.capacity is not null ? 'event_wizard.review.extras_registration_places'|trans({'%count%': extras.capacity}) : 'event_wizard.review.extras_registration'|trans -}}
+                </li>
+            {% endif %}
+            {% if extras.registrationLink is not null or extras.resultsLink is not null %}
+                <li data-event-wizard-review-extra="elsewhere"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.review.extras_elsewhere'|trans }}</li>
+            {% endif %}
+            {% if extras.referees is not empty %}
+                <li data-event-wizard-review-extra="judges"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.review.extras_judges'|trans({'%count%': extras.referees|length}) }}</li>
+            {% endif %}
+            {% if extras.toolkit %}
+                {% if settings.qrTagMode is not null %}
+                    <li data-event-wizard-review-extra="qr_tags"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.qr_tags'|trans }} · {{ ('competitor_page.settings.qr_mode.' ~ settings.qrTagMode.value)|trans }}</li>
+                {% endif %}
+                {% if settings.competitorPages %}
+                    <li data-event-wizard-review-extra="competitor_pages"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.competitor_pages'|trans }}
+                        {%- if settings.liveResultsBeforePublishing %} · {{ 'event_wizard.review.extras_live_results'|trans }}{% endif -%}
+                        {%- if settings.timeProposals %} · {{ 'event_wizard.review.extras_time_proposals'|trans }}{% endif -%}
+                    </li>
+                {% endif %}
+                {% if extras.screensCount > 0 %}
+                    <li data-event-wizard-review-extra="timer_screen"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.timer_screen_added'|trans({'%count%': extras.screensCount}) }}</li>
+                {% endif %}
+                {% if extras.overlaysCount > 0 %}
+                    <li data-event-wizard-review-extra="overlay"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.overlay_added'|trans({'%count%': extras.overlaysCount}) }}</li>
+                {% endif %}
+                {% if extras.standingsCount > 0 %}
+                    <li data-event-wizard-review-extra="standings"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.standings_set_up'|trans }}</li>
+                {% endif %}
+            {% endif %}
+            {% if not extras.registrationManaged and extras.registrationLink is null and extras.resultsLink is null and extras.referees is empty and (not extras.toolkit or (settings.qrTagMode is null and not settings.competitorPages and extras.screensCount == 0 and extras.overlaysCount == 0 and extras.standingsCount == 0)) %}
+                <li class="text-muted" data-event-wizard-review-extra="none">{{ 'event_wizard.review.extras_none'|trans }}</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>

@@ -14,6 +14,9 @@ enum EventWizardStep: string
 {
     case Basics = 'basics';
     case Puzzle = 'puzzle';
+    // Opt-in features as plain switches (W6, W-creation-wizard-research.md §3.8) - the last step before Review on every
+    // path that has it
+    case Extras = 'extras';
     case Review = 'review';
     // The series path (W3) - its pages take `seriesId`: the draft is a series, not an event
     case SeriesBasics = 'series_basics';
@@ -29,6 +32,7 @@ enum EventWizardStep: string
         return match ($this) {
             self::Basics => 'event_wizard_basics_edit',
             self::Puzzle => 'event_wizard_puzzle',
+            self::Extras => 'event_wizard_extras',
             self::Review => 'event_wizard_review',
             self::SeriesBasics => 'event_wizard_series_basics_edit',
             self::Dates => 'event_wizard_series_dates',

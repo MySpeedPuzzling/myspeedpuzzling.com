@@ -12,9 +12,11 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\EventWizardProgress;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
+use SpeedPuzzling\Web\Services\EventWizard\EventWizardExtras;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,6 +47,7 @@ final class EventWizardReviewController extends AbstractController
         private readonly GetRoundPuzzlesForManagement $getRoundPuzzlesForManagement,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly EventWizardDefaults $defaults,
+        private readonly EventWizardExtras $extras,
     ) {
     }
 
@@ -102,6 +105,10 @@ final class EventWizardReviewController extends AbstractController
             'round' => $round,
             'round_name_generated' => $round !== null && $round->name === $this->defaults->roundName($round->category),
             'round_puzzles' => $round !== null ? $this->getRoundPuzzlesForManagement->ofRound($round->id->toString()) : [],
+            // What the Extras step switched on (W6) - listed with "edit" back to it
+            'extras' => $progress->has(EventWizardStep::Extras)
+                ? $this->extras->of($competitionId, $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId))
+                : null,
             'approved_at_once' => $competition->isApproved() && $competition->isRejected() === false,
             'error' => $error,
         ], new Response(status: $error !== null ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));

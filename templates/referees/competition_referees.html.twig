@@ -90,12 +90,24 @@
                     <thead>
                         <tr>
                             <th>{{ 'competition_referees.list.player'|trans }}</th>
+                            <th class="d-none d-md-table-cell">{{ 'competition_referees.list.activity'|trans }}</th>
                             <th>{{ 'competition_referees.list.added'|trans }}</th>
                             <th><span class="visually-hidden">{{ 'competition_referees.remove.button'|trans }}</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for referee in referees %}
+                            {# Activity (judge-speed J1): in the zone of the round of the last change - the venue's time;
+                               the day only when it is not today there #}
+                            {% if referee.lastEnteredAt is not null %}
+                                {% set activity_zone = referee.lastRoundTimezone %}
+                                {% set activity_time = referee.lastEnteredAt|date('Y-m-d', activity_zone) == now()|date('Y-m-d', activity_zone)
+                                    ? referee.lastEnteredAt|format_datetime(pattern: 'HH:mm', timezone: activity_zone)
+                                    : referee.lastEnteredAt|format_datetime(pattern: 'd MMM HH:mm', timezone: activity_zone) %}
+                                {% set activity = 'competition_referees.list.activity_value'|trans({'%count%': referee.resultsEntered, '%time%': activity_time, '%round%': referee.lastRoundName}) %}
+                            {% else %}
+                                {% set activity = 'competition_referees.list.activity_none'|trans %}
+                            {% endif %}
                             <tr data-referee="{{ referee.playerId }}">
                                 <td>
                                     {% if referee.playerCountry is not null %}
@@ -103,7 +115,9 @@
                                     {% endif %}
                                     <a href="{{ path('player_profile', {playerId: referee.playerId}) }}">{{ referee.playerName ?? ('#' ~ referee.playerCode|upper) }}</a>
                                     <small class="text-muted">#{{ referee.playerCode|upper }}</small>
+                                    <div class="small text-muted d-md-none" data-referee-activity-narrow>{{ activity }}</div>
                                 </td>
+                                <td class="small d-none d-md-table-cell" data-referee-activity>{{ activity }}</td>
                                 <td class="small text-muted">
                                     {{ referee.addedAt|date('d.m.Y') }}
                                     {% if referee.addedByName is not null %}· {{ referee.addedByName }}{% endif %}
@@ -120,6 +134,7 @@
                     </tbody>
                 </table>
             </div>
+            <p class="small text-muted">{{ 'competition_referees.list.activity_help'|trans }}</p>
         {% endif %}
     </div>
 {% endblock %}

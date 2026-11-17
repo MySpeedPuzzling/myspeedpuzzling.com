@@ -1301,6 +1301,10 @@ competition_referees:
         empty: "No referees yet."
         player: "Player"
         added: "Added"
+        activity: "Activity"
+        activity_value: "%count% result · last %time% (%round%)|%count% results · last %time% (%round%)"
+        activity_none: "No results yet"
+        activity_help: "Activity counts the results whose last change was theirs."
     remove:
         button: "Remove"
         confirm: "Remove %name% from the referees? Results they entered stay."

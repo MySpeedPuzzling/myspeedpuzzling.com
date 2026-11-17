@@ -35,7 +35,7 @@ final readonly class CompetitionRefereesPage
 
         return [
             'competition' => $competition,
-            'referees' => $this->getCompetitionReferees->ofCompetition($competition->id),
+            'referees' => $this->getCompetitionReferees->withActivity($competition->id),
             'referees_link' => self::refereesLink($this->urlGenerator, $competition->id, $locale),
         ];
     }

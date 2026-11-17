@@ -55,7 +55,6 @@ SELECT CAST(:timeId AS UUID) AS time_id,
     CAST(:trackedAt AS TIMESTAMP) AS tracked_at
 SQL;
 
-
     public function __construct(
         private Connection $database,
         private CompetitionRoundRepository $competitionRoundRepository,

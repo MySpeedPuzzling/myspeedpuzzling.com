@@ -70,6 +70,8 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   edition's inherited series sections stay on the series;
 - the standings (competition toolkit A6): unpublished, same name, slug, category and rules, their rounds remapped onto
   the copied rounds (`copyStandings()`).
+- the advancement steps (competition toolkit A8): same settings, their rounds and by-source map remapped onto the copied
+  rounds (`copyAdvancementSteps()`) - see results-desk.md "Declared advancement steps".
 
 **Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
 check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the

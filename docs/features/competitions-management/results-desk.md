@@ -159,6 +159,43 @@ write with `from` = no table (if somebody seated them meanwhile, nothing is writ
 a number already keeps it. "Skip" closes; "Seating" opens the round's seating page for changes by
 hand.
 
+### Declared advancement steps (competition toolkit A8)
+
+An organiser can declare the bracket once instead of choosing in the dialog every time:
+`competition_advancement_steps_manage` (`/en/manage-event-advancement/{competitionId}`, behind
+`COMPETITION_TOOLKIT_MANAGE`, linked from the toolkit hub's "Standings & bracket" card). A step
+(`CompetitionAdvancementStep`) stores exactly what this dialog takes - source rounds, target rounds, distribution, the
+by-source map, the country rule - plus **how many qualify**: top N of each source round, or top N of all source rounds
+together (by the advancement seed), or empty = marked by hand. `AdvancementStepGraph` checks every write: one category
+per step, sources and targets disjoint, the distribution fits the targets, a round is fed by one step only, no cycles;
+the steps page shows the stages (longest path: groups 1, semifinals 2, final 3) and marks a step a later round change
+broke. A deleted or moved round is pruned from the steps (a step left without sources or targets is removed; "spread
+evenly" left with one target becomes "all into one round"); `DuplicateCompetition` copies the steps onto the copied
+rounds (`copyAdvancementSteps()`).
+
+**Qualification stays the organiser's decision** (Jan, PR #136) - a step is a preset, never a write path:
+
+- The desk of a round that is a source of a (working) step shows a banner per step: "Step: Groups → Final · Top 8 of each
+  round go to Final. Also the best 1 of each country."
+- **Mark top N** opens the existing Top N review dialog with N preset; "Apply" writes ordinary `qualified` changes of
+  this round (from → to) through `RecordRoundResults`. Ties at the cut are proposed and highlighted with a checkbox
+  each, exactly like Top N by hand - so the marks are exactly N when nobody shares the last place, and N + the tied
+  entries (each one the organiser can untick) when somebody does. For "top N of all source rounds together" the dialog
+  asks `official_results_advancement_step_preset` (`GET /{_locale}/official-results/advancement-steps/{stepId}/preset
+  ?count=`, organisers only, read only): `AdvancementSeeding::topOverall()` over the **saved** results of every source
+  round, the same order AdvanceQualified uses; ties at the cut = the same place, finished state and result relative to
+  the round's winner. The desk proposes its own round's part of it (`overallForRound()`).
+- **Advance** opens this dialog prefilled from the step (window event `advance-qualified:open-step`,
+  `prefillFromStep()` in `official_results_qualification.js`: rounds the page does not know or of another category are
+  left out, a distribution that no longer fits is left for the organiser). The dry run, plan hash and apply are
+  unchanged.
+- A round that feeds no step - and every event without steps - renders the desk byte-identically (the banner loop and
+  the dialog's `data-action` emit nothing; checked by a before/after diff of the rendered desk and overview).
+
+Tests: `AdvancementStepGraphTest`, `AdvancementStepsTest` (handlers, refusals, prune on delete/move, duplicate, event
+delete), `AdvancementStepsPagesTest` (voter, forms, hub card, desk banner/prefill payload, overall preset),
+`AdvancementSeedingTest::testTopOverall*`, node: `OfficialResultsDeskHelpersTest` (`prefillFromStep`, `overallForRound`).
+
 ## Results overview (`results_overview_controller.js`)
 
 A row per round: badge + category, start (round's zone) + stopwatch running/stopped, entries, results entered

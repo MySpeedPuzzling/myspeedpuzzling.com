@@ -15209,7 +15209,7 @@ event_wizard_series:
     dates:
         title: "When does it happen?"
         when: "Dates"
-        existing: "{1}The series has 1 date already - a day it has is left unchecked.|[0,Inf[The series has %count% dates already - a day it has is left unchecked."
+        existing: "{1}The series has 1 date already - that day is left unchecked.|[0,Inf[The series has %count% dates already - those days are left unchecked."
         name_example: "For example: %name%"
         rounds_label: "Each date"
         with_rounds: "has a round"
@@ -15220,8 +15220,8 @@ event_wizard_series:
         minutes_limit_required: "Type the time limit in minutes."
         team_size_range: "A team has %min% to %max% people."
         invalid_local_time: "This time does not exist on %days% (the clocks change that night) - choose another time, or uncheck the date."
-        create: "Save 1 date & continue|Save %count% dates & continue"
-        create_next: "Add 1 date|Add %count% dates"
+        create: "{1}Save 1 date & continue|[0,Inf[Save %count% dates & continue"
+        create_next: "{1}Add 1 date|[0,Inf[Add %count% dates"
         to_review: "Continue to review"
     review:
         series: "A regular series"

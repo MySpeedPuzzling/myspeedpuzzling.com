@@ -7977,7 +7977,7 @@ official_results:
         unknown_round_puzzle: "One of these puzzles is not a puzzle of this round (any more)."
         puzzle_listed_twice: "A puzzle is listed twice."
         too_many_puzzles: "More puzzles than each entrant of this round solves."
-        invalid_split: "A time a puzzle was finished at is between 0:00:01 and 23:59:59."
+        invalid_split: "The time a puzzle was finished at must be between 0:00:01 and 23:59:59."
         splits_out_of_order: "Finished puzzles come first, in the order they were finished, each at a later time than the one before."
         puzzles_mismatch: "The result does not match the puzzles - a finished result needs all its puzzles finished (the last one at the result's time), pieces placed must be the sum over the puzzles, and an entrant who did not start has no puzzles. Change both together."
         group_refused: "Saved together with another change of this entrant that was refused - nothing of the two was saved."
@@ -14092,14 +14092,14 @@ competition_toolkit:
         checkbox: "[0,1]Reveal the puzzle when the stopwatch starts|]1,Inf[Reveal the %count% puzzles when the stopwatch starts"
         help: "Leave it unticked for a test run - nothing is revealed then. Tick it for the real start: the puzzles come out at the start (after the countdown, if you schedule one) and can never be hidden again."
         confirm: "[0,1]Start the stopwatch and reveal the puzzle at the start? Once out, it can never be hidden again.|]1,Inf[Start the stopwatch and reveal the %count% puzzles at the start? Once out, they can never be hidden again."
-        button_suffix: "[0,1]reveal 1 puzzle|]1,Inf[reveal %count% puzzles"
+        button_suffix: "{0}reveal no puzzle|{1}reveal 1 puzzle|]1,Inf[reveal %count% puzzles"
         scope:
             everywhere: "everywhere on MySpeedPuzzling"
             name_everywhere: "its name everywhere, its picture on this event"
             event: "on this event"
         countdown_reveals: "This countdown reveals when it ends: %puzzles%."
         countdown_reveals_nothing: "This countdown reveals nothing (it was started without “Reveal”): %puzzles%. To reveal them at the start, cancel it and start again with the box ticked."
-        still_hidden: "Still hidden - the stopwatch was started without “Reveal”: %puzzles%."
+        still_hidden: "Still hidden (the stopwatch was started without “Reveal”): %puzzles%."
         still_hidden_link: "Reveal them on the round's puzzles page"
         missed: "The stopwatch was started without “Reveal”, so this puzzle stays hidden - use “Reveal now”."
         source: "When the stopwatch starts: it is revealed when you start the round's stopwatch with “Reveal” ticked. A start without the tick (a test run) reveals nothing."
@@ -14209,7 +14209,7 @@ competitor_page:
         live_results: "Show confirmed results before publishing"
         live_results_help: "Competitor pages show a result as soon as a judge confirms it, marked as not official yet. Ranks wait until you publish the round."
         time_proposals: "Let competitors propose their time"
-        time_proposals_help: "A competitor signed in on their own page can tap Stop when they finish. A judge confirms the time. Needs public competitor pages."
+        time_proposals_help: "A competitor signed in on their own page can tap “Done - propose my time” when they finish. A judge confirms the time. Needs public competitor pages."
         save: "Save"
         saved: "Competitor page settings saved."
     page:
@@ -14647,15 +14647,15 @@ competition_display:
 time_proposal:
     reason:
         sign_in_required: "Sign in to propose your time."
-        invalid_proposal: "This time proposal could not be read - tap Stop again."
+        invalid_proposal: "This time proposal could not be read - tap the button again."
         rate_limited: "Too many time proposals in a short time - wait a few minutes and try again."
         round_not_found: "This round does not exist any more."
         proposals_off: "This event does not take time proposals from competitors."
-        invalid_proposal_id: "This time proposal could not be accepted - tap Stop again."
+        invalid_proposal_id: "This time proposal could not be accepted - tap the button again."
         entry_not_in_round: "This entrant is not in this round."
         not_your_entry: "Only the competitor signed in with their own profile can propose a time for this entrant."
         linked_after_start: "Your profile was linked to this competitor after the round started, so you cannot propose a time in this round. Ask a judge to enter your time."
-        clock_ahead: "The time on this phone is off - your time was not sent. Reload the page and tap Stop again."
+        clock_ahead: "The time on this phone is off - your time was not sent. Reload the page and tap the button again."
         not_running: "The round is not running - nothing to stop."
         times_up: "The time limit is over - a judge will record your result."
         too_late: "This time proposal arrived too long after the round ended - a judge records your result."
@@ -14663,7 +14663,7 @@ time_proposal:
         already_proposed: "A time is already waiting for the judge."
         proposal_not_found: "This time proposal does not exist."
 competition_standing:
-    rounds_count: "[0,1]%count% round|]1,Inf[%count% rounds"
+    rounds_count: "{0}No rounds|{1}%count% round|]1,Inf[%count% rounds"
     per_category_name: "Overall - %category%"
     penalty_short: "+%seconds% s per missing piece"
     card:
@@ -14702,7 +14702,7 @@ competition_standing:
         final: "All rounds published"
         after_rounds: "after %counted% of %count% rounds"
         includes_unpublished: "Includes rounds whose results are not published yet - only you see this."
-        skipped_rounds: "[0,1]%count% round of this standing is no longer of its category and is left out - edit the standing.|]1,Inf[%count% rounds of this standing are no longer of its category and are left out - edit the standing."
+        skipped_rounds: "{0}Every round of this standing counts.|{1}%count% round of this standing is no longer of its category and is left out - edit the standing.|]1,Inf[%count% rounds of this standing are no longer of its category and are left out - edit the standing."
         no_limit: "“%round%” has no time limit - a result not finished there cannot be scored and counts as a missing round."
         no_pieces: "“%round%” has no puzzle yet, so its pieces are unknown - no penalty per missing piece is added there."
         no_rounds: "This standing has no rounds - edit it to choose them."
@@ -14715,12 +14715,12 @@ competition_standing:
     status:
         unfinished_help: "%pieces% pieces placed"
         unfinished_without_limit: "not finished"
-        did_not_start: "DNS"
+        did_not_start: "Did not start"
         no_result: "no result"
         not_in_round: "not entered"
     flash:
         added: "The standing was created."
-        added_per_category: "[0,1]%count% standing was created.|]1,Inf[%count% standings were created."
+        added_per_category: "{0}No standing was created - every category already has one.|{1}%count% standing was created.|]1,Inf[%count% standings were created."
         saved: "The standing was saved."
         deleted: "The standing “%name%” was deleted."
     refused:
@@ -14736,7 +14736,7 @@ public_standing:
     other_standings: "Standings of this event"
     provisional: "Provisional"
     after_rounds: "after %counted% of %count% rounds - the other rounds' results are not published yet"
-    final: "[0,1]Final - %count% round|]1,Inf[Final - all %count% rounds"
+    final: "{0}Final|{1}Final - %count% round|]1,Inf[Final - all %count% rounds"
     rank: "Place"
     total: "Total"
     rounds_of: "%scored% of %count% rounds"
@@ -14767,7 +14767,7 @@ public_standing:
 advancement_step:
     card:
         none: "No advancement steps yet. A step declares who moves on: “the best 8 of each group go to the semifinal”."
-        count: "[0,1]%count% advancement step declared.|]1,Inf[%count% advancement steps declared."
+        count: "{0}No advancement step declared yet.|{1}%count% advancement step declared.|]1,Inf[%count% advancement steps declared."
         manage: "Advancement steps"
     list:
         title: "Advancement steps"

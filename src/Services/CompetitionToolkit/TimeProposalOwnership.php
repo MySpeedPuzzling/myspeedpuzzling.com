@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
@@ -22,7 +23,8 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * stopwatchOriginalStartAt(), kept through pause/resume; for a scheduled start the scheduled moment; a round never
  * started: any link). Connecting to a friend's unlinked participant at the venue (anybody may connect
  * to an unconnected participant) and proposing their time is refused (`linked_after_start`). A link without a moment
- * (older data, before connections were dated) counts as an old one. Stateless (worker mode).
+ * (older data, before connections were dated) counts as an old one. A late link that is proof - not a claim from a name
+ * - may propose (R3, lateLinkIsAClaim()). Stateless (worker mode).
  */
 final readonly class TimeProposalOwnership
 {
@@ -82,7 +84,7 @@ final readonly class TimeProposalOwnership
             // during the pause would pass (P1F)
             $startedAt = $round->stopwatchOriginalStartAt();
 
-            if ($startedAt !== null && $participant->connectedAt !== null && $participant->connectedAt >= $startedAt) {
+            if ($startedAt !== null && $participant->connectedAt !== null && $participant->connectedAt >= $startedAt && self::lateLinkIsAClaim($participant)) {
                 $linkedLate = true;
 
                 continue;
@@ -92,5 +94,16 @@ final readonly class TimeProposalOwnership
         }
 
         return $linkedLate ? self::LINKED_AFTER_START : self::NOT_YOUR_ENTRY;
+    }
+
+    /**
+     * R3 (participant-linking.md §0a): only a link that is nobody's proof is refused late - a claim from a name
+     * (`claim`) or a link from before the method was recorded (NULL). A claim link, an approved claim, the organiser's
+     * link or import, the online personal link and the player's own new row made during the event may propose
+     * ("connect even during it").
+     */
+    private static function lateLinkIsAClaim(CompetitionParticipant $participant): bool
+    {
+        return $participant->connectedVia === null || $participant->connectedVia === ParticipantLinkMethod::Claim;
     }
 }

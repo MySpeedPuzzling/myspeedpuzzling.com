@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\GetRefusedParticipantLinks;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
@@ -68,10 +69,17 @@ readonly final class SiteSnapshotReader
         $parameters = ['competitionId' => $competitionId];
 
         $participants = [];
+        $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
         $participantRows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, cp.source, cp.organizer_note, cp.registration_status,
-    cp.connected_via, p.name AS player_name, p.code AS player_code, {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private
+    cp.connected_via, p.name AS player_name, p.code AS player_code, {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private,
+    -- Refused pairs (participant-linking.md D11): the players the log says no to for this row - an import never links them
+    (
+        SELECT string_agg(DISTINCT refusal.player_id::text, ',')
+        FROM participant_link_log refusal
+        WHERE refusal.participant_id = cp.id AND refusal.action IN ({$refusing})
+    ) AS refused_player_ids
 FROM competition_participant cp
 LEFT JOIN player p ON p.id = cp.player_id
 WHERE cp.competition_id = :competitionId
@@ -81,7 +89,7 @@ SQL,
             $parameters,
         );
         foreach ($participantRows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, registration_status: null|string, connected_via: null|string, player_name: null|string, player_code: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, registration_status: null|string, connected_via: null|string, player_name: null|string, player_code: null|string, player_is_private: null|bool, refused_player_ids: null|string} $row */
             $participants[] = [
                 'id' => $row['id'],
                 'name' => $row['name'],
@@ -96,6 +104,7 @@ SQL,
                 'connectedVia' => $row['player_id'] !== null ? $row['connected_via'] : null,
                 'playerCode' => $row['player_code'],
                 'playerMasked' => $row['player_id'] !== null && $this->masked($row['player_id'], $row['player_is_private'] === true),
+                'refusedPlayerIds' => $row['refused_player_ids'] !== null ? explode(',', strtolower($row['refused_player_ids'])) : [],
             ];
         }
 

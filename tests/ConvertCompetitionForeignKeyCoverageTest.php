@@ -49,6 +49,9 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         'event_url_redirect.competition_id' => self::REPOINTED,
         // The followers follow the series
         'followed_competition.competition_id' => self::MOVED,
+        // Participant link requests (participant-linking.md §3.3) are about the event's participants - an event with
+        // participants converts only with dropParticipants, and its requests cascade with them (and with the event)
+        'participant_link_request.competition_id' => self::CASCADES,
         // The participant sheet's change trail goes with its participants
         'participant_sheet_change_receipt.competition_id' => self::DELETED,
         // Partner finder listings (and their requests) are going-intent like the participants the conversion drops

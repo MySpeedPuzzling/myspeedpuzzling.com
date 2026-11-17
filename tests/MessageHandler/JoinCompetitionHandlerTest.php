@@ -9,8 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\RecordPlayerActivity;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
@@ -19,9 +17,10 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\ClaimOutcome;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 final class JoinCompetitionHandlerTest extends KernelTestCase
 {
@@ -82,27 +81,32 @@ final class JoinCompetitionHandlerTest extends KernelTestCase
         );
     }
 
-    public function testPickingParticipantOfAnotherPlayerKeepsOwnRowEvenWhenSomethingFlushesLater(): void
+    /**
+     * A name linked to somebody else is a dispute for the organiser (participant-linking.md §5.1) - nothing of the
+     * player's own rows changes, also when something flushes later in the same request
+     */
+    public function testPickingParticipantOfAnotherPlayerAsksTheOrganiserAndKeepsOwnRow(): void
     {
-        try {
-            $this->messageBus->dispatch(new JoinCompetition(
-                competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-                playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
-                participantId: CompetitionParticipantFixture::PARTICIPANT_CONNECTED,
-            ));
-            self::fail('Picking a participant connected to another player must fail');
-        } catch (HandlerFailedException $e) {
-            self::assertInstanceOf(CompetitionParticipantAlreadyConnectedToDifferentPlayer::class, $e->getPrevious());
-        }
+        $envelope = $this->messageBus->dispatch(new JoinCompetition(
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            participantId: CompetitionParticipantFixture::PARTICIPANT_CONNECTED,
+        ));
+
+        self::assertSame(ClaimOutcome::DisputeSent, $envelope->last(HandledStamp::class)?->getResult());
 
         // The same request goes on — PlayerActivitySubscriber dispatches this on kernel.terminate,
-        // and its transaction flushes whatever the failed handler left changed in the entity manager
+        // and its transaction flushes whatever the handler left changed in the entity manager
         $this->messageBus->dispatch(new RecordPlayerActivity('auth0|fav004'));
 
         self::assertSame(
             [CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
             $this->activeParticipantIds(PlayerFixture::PLAYER_WITH_FAVORITES),
         );
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->database->fetchOne(
+            'SELECT player_id FROM competition_participant WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_CONNECTED],
+        ));
     }
 
     public function testPickingFromListReplacesSelfJoinedRow(): void
@@ -142,24 +146,27 @@ final class JoinCompetitionHandlerTest extends KernelTestCase
 
     public function testPickingParticipantOfDifferentCompetitionIsRejected(): void
     {
-        $this->expectException(CompetitionParticipantNotFound::class);
-
-        $this->messageBus->dispatch(new JoinCompetition(
+        $envelope = $this->messageBus->dispatch(new JoinCompetition(
             competitionId: CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024,
             playerId: PlayerFixture::PLAYER_ADMIN,
             participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED,
         ));
+
+        // participant-linking.md §5.1: not_available - nothing changes
+        self::assertSame(ClaimOutcome::NotAvailable, $envelope->last(HandledStamp::class)?->getResult());
+        self::assertNull($this->participantRepository->get(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED)->player);
     }
 
     public function testPickingSoftDeletedParticipantIsRejected(): void
     {
-        $this->expectException(CompetitionParticipantNotFound::class);
-
-        $this->messageBus->dispatch(new JoinCompetition(
+        $envelope = $this->messageBus->dispatch(new JoinCompetition(
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             playerId: PlayerFixture::PLAYER_ADMIN,
             participantId: CompetitionParticipantFixture::PARTICIPANT_DELETED,
         ));
+
+        self::assertSame(ClaimOutcome::NotAvailable, $envelope->last(HandledStamp::class)?->getResult());
+        self::assertNull($this->participantRepository->get(CompetitionParticipantFixture::PARTICIPANT_DELETED)->player);
     }
 
     /**

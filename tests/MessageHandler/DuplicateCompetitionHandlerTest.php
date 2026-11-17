@@ -82,6 +82,23 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         self::assertSame(9, $this->countRows('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id', $source));
     }
 
+    /**
+     * The claim policy is an event setting (participant-linking.md §3.2) - the organiser's choice is copied, automatic
+     * stays automatic; link requests are never copied
+     */
+    public function testTheClaimPolicyIsCopied(): void
+    {
+        $source = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+
+        self::assertNull($this->competition($this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE))['participant_claims']);
+
+        $this->database->executeStatement("UPDATE competition SET participant_claims = 'approval' WHERE id = :id", ['id' => $source]);
+        $copy = $this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertSame('approval', $this->competition($copy)['participant_claims']);
+        self::assertSame(0, $this->countRows('SELECT COUNT(*) FROM participant_link_request WHERE competition_id = :id', $copy));
+    }
+
     public function testEveryCopyGetsItsOwnSlug(): void
     {
         $first = $this->duplicate(OfficialResultsFixture::COMPETITION_RESULTS_CUP, PlayerFixture::PLAYER_WITH_STRIPE);

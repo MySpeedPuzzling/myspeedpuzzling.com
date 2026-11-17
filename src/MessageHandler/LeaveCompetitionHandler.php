@@ -43,6 +43,7 @@ readonly final class LeaveCompetitionHandler
             // A row holding official results is the organiser's record - the player only lets go of it
             if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
+                $this->participantLinks->participantRemoved($participant, $this->clock->now());
             } else {
                 // Not going is no "this is not me" - the player may pick the name again (a refused pair is L2's "Not me")
                 $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $player, $this->clock->now());

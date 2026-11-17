@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\EventTypes;
+use SpeedPuzzling\Web\Value\ParticipantClaimPolicy;
 use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -79,6 +80,14 @@ class Competition implements EntityWithEvents
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 16, nullable: true, enumType: QrTagMode::class)]
     public null|QrTagMode $qrTagMode = null;
+
+    /**
+     * What a claim from a name does here (docs/features/competitions-management/participant-linking.md D3, §3.2) - null =
+     * automatic, participantClaimPolicy() resolves it; changeParticipantClaimPolicy().
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 20, nullable: true, enumType: ParticipantClaimPolicy::class)]
+    public null|ParticipantClaimPolicy $participantClaims = null;
 
     /**
      * @param Collection<int, Player> $maintainers
@@ -421,6 +430,25 @@ class Competition implements EntityWithEvents
             liveResultsBeforePublishing: $this->competitorPagesLiveResults,
             timeProposals: $this->timeProposals,
             qrTagMode: $this->qrTagMode,
+        );
+    }
+
+    public function changeParticipantClaimPolicy(null|ParticipantClaimPolicy $policy): void
+    {
+        $this->participantClaims = $policy;
+    }
+
+    /**
+     * The policy in effect (D3, R9): the organiser's choice, or automatic - `approval` while time proposals are effective
+     * at an event that is not online by the series-aware rule (EventIsOnline::of(): an edition by its series' flag).
+     */
+    public function participantClaimPolicy(): ParticipantClaimPolicy
+    {
+        return ParticipantClaimPolicy::resolve(
+            $this->participantClaims,
+            $this->competitorPages,
+            $this->timeProposals,
+            $this->series !== null ? $this->series->isOnline : $this->isOnline,
         );
     }
 

@@ -105,6 +105,7 @@ readonly final class CompetitionSelfJoin
             // A row holding official results is the organiser's record - the player only lets go of it
             if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
+                $this->participantLinks->participantRemoved($participant, $this->clock->now());
             } else {
                 $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $player, $this->clock->now());
             }

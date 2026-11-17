@@ -24,6 +24,7 @@ import {
     COMPETITION_PLACEHOLDER,
     fillLink,
     landingOf,
+    linkNavigation,
     pageSettings,
     resolveLanding,
     roundOptions,
@@ -968,6 +969,38 @@ const scenarios = {
         );
         // Not going (waitlist) or the people could not be loaded: the name tag's text without a name
         assert.deepEqual(resolveLanding(landing, entries, [], 'Group A'), { notice: 'scanNotInRound', parameters: { '%round%': 'Group A' } });
+    },
+
+    // ---- Links without Turbo (live_entry_page.js linkNavigation(), competition toolkit C2) ----
+
+    async 'a link to another live entry page is within the tool, any other page leaves it'() {
+        const here = 'https://x.test/en/live-results/' + ROUND_A + '?table=3';
+        const template = '/en/live-results/' + UUID_PLACEHOLDER;
+
+        assert.equal(linkNavigation({ href: 'https://x.test/en/live-results/' + ROUND_B }, here, template), 'within', 'their round');
+        assert.equal(linkNavigation({ href: '/en/live-results/' + ROUND_B + '?entrant=p' }, here, template), 'within', 'relative, with a landing');
+        assert.equal(linkNavigation({ href: 'https://x.test/en/results-desk/' + ROUND_A }, here, template), 'leave', 'the results desk');
+        assert.equal(linkNavigation({ href: 'https://x.test/en/manage/rounds' }, here, template), 'leave');
+        assert.equal(linkNavigation({ href: 'https://other.test/en/live-results/' + ROUND_B }, here, template), 'leave', 'another site is never the tool');
+        // Czech: the route has no locale prefix
+        assert.equal(linkNavigation({ href: '/zadavani-vysledku/' + ROUND_B }, 'https://x.test/zadavani-vysledku/' + ROUND_A, '/zadavani-vysledku/' + UUID_PLACEHOLDER), 'within');
+        assert.equal(linkNavigation({ href: '/zadavani-vysledku-udalosti/x' }, 'https://x.test/zadavani-vysledku/' + ROUND_A, '/zadavani-vysledku/' + UUID_PLACEHOLDER), 'leave');
+    },
+
+    async 'a link that does not load another page here is left alone'() {
+        const here = 'https://x.test/en/live-results/' + ROUND_A;
+        const template = '/en/live-results/' + UUID_PLACEHOLDER;
+        const desk = 'https://x.test/en/results-desk/' + ROUND_A;
+
+        assert.equal(linkNavigation({ href: here + '#' }, here, template), 'stay', 'a link not filled in yet (href="#")');
+        assert.equal(linkNavigation({ href: here + '#top' }, here, template), 'stay');
+        assert.equal(linkNavigation({ href: desk, target: '_blank' }, here, template), 'stay', 'the sign-in link opens a tab');
+        assert.equal(linkNavigation({ href: desk, target: '_self' }, here, template), 'leave');
+        assert.equal(linkNavigation({ href: desk, modifier: true }, here, template), 'stay', 'cmd/ctrl-click');
+        assert.equal(linkNavigation({ href: desk, button: 1 }, here, template), 'stay', 'middle click');
+        assert.equal(linkNavigation({ href: desk, download: true }, here, template), 'stay');
+        assert.equal(linkNavigation({ href: 'mailto:a@b.test' }, here, template), 'stay');
+        assert.equal(linkNavigation({ href: 'http://[' }, here, template), 'stay', 'not a URL');
     },
 
     async 'the landing parameters are taken out of the URL, nothing else'() {

@@ -27,7 +27,11 @@ device's own pick wins while it is fresh (12 hours) and that round is not stoppe
 
 ## The page (mobile first, one thumb)
 
-No site header/footer: a sticky bar with back, the round picker (a switch is a Turbo visit to the other round) and
+Its own lean layout (`templates/live_results/_layout.html.twig`, competition toolkit C2): no site header, footer,
+flashes, e-mail banners, modals, global search or analytics, no Turbo - its own Encore entry `live_entry`
+(`assets/live_entry.js`: Stimulus + this page's controller, eager, no lazy chunk, budget in `LiveEntryBundleTest`) with
+the site's stylesheet; the self-heal scripts are the partials `base.html.twig` includes too. Every link is a plain page
+load. A sticky bar with back, the round picker (a switch loads the other round's page) and
 the **sync pill**, and below it the stopwatch ("Running 0:47:12") and "Tables: 18 / 20" (in-person rounds that use
 table numbers). **The page carries no data of the round, its event or its reader** (competition toolkit C1 - the same
 markup can later be kept as an offline shell): it says "Loading the round…" and fills itself from one fetch of
@@ -72,7 +76,7 @@ says so and is tried again by itself (2, 4 … 30 s, at once when back online, R
    The entrant is a `newEntry` with a device-made id: created on the server by its first saved change (the table
    number, else the result), never matched by name.
 
-Views over Find get a history entry of their own (Turbo's history paused meanwhile, like `dynamic_modal_controller`),
+Views over Find get a history entry of their own (`pushState` - the page has no Turbo),
 so the phone's back button returns to Find instead of leaving. Lists and texts are re-rendered; inputs never are.
 
 ## Referees
@@ -159,8 +163,9 @@ player; an edition is a competition - series owners and maintainers stay full or
 - **Two tabs**: one sends at a time (Web Locks `ifAvailable`, a localStorage lease where they are missing); every tab
   reads the shared store and a BroadcastChannel tells the others to re-read. Two senders at once would do no harm -
   replays answer `unchanged`.
-- **Leaving**: `beforeunload` warns while anything is unsent; a Turbo visit out of the tool asks first (another live
-  entry page is fine - it sends them).
+- **Leaving**: `beforeunload` warns while anything is unsent; a link out of the tool asks first in the page's words
+  (`linkNavigation()` in `live_entry_page.js`: another live entry page is fine - it sends them; a new tab, `#` or a
+  modifier click is no leaving), and a leave answered there or a round switch is not asked again by `beforeunload`.
 - **Sync pill**, always visible: "All saved" / "Saving…" / "3 waiting" / "3 waiting - offline" / "2 need you"
   (conflicts, refusals, changes without rights) / "Sign in again" / "No permission" / "Reload the page"; tap → the list
   of what is not saved yet with the actions above.

@@ -1,12 +1,13 @@
-{% extends 'base.html.twig' %}
+{% extends 'live_results/_layout.html.twig' %}
 
 {# The referee's phone during a round - docs/features/competitions-management/live-results.md.
    No site header/footer: every pixel of a 375 px screen goes to find → enter → confirm.
    Data-free (competition toolkit C1): nothing of the round, the event or the person reading it is rendered here -
    live_results_controller.js fills the page from the round state (`?viewer=1`). Variants (solo/pair/team, tables or not,
-   organiser or referee) are all in the markup, hidden, and shown by the controller; links carry placeholders. #}
+   organiser or referee) are all in the markup, hidden, and shown by the controller; links carry placeholders.
+   Its own lean layout and Encore entry `live_entry` (competition toolkit C2): no site chrome, no Turbo - links are plain
+   page loads. #}
 
-{% set hide_comparison_launcher = true %}
 {% set uuid_placeholder = '00000000-0000-0000-0000-000000000000' %}
 {% set competition_placeholder = '11111111-1111-1111-1111-111111111111' %}
 
@@ -127,16 +128,10 @@
     entryNotInRound: 'live_results.page.entry_not_in_round'|trans({'%round%': '%round%'}),
 } %}
 
-{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
-
 {% block title %}{{ 'live_results.title'|trans }}{% endblock %}
 
-{% block header %}{% endblock %}
-{% block footer %}{% endblock %}
-
-{% block full_content %}
+{% block body %}
     <style>
-        main { padding-top: 0 !important; }
         .lr { --lr-row: 3.5rem; max-width: 40rem; margin: 0 auto; padding-bottom: 6rem; }
         .lr-bar { position: sticky; top: 0; z-index: 1030; background: var(--bs-body-bg, #fff); border-bottom: 1px solid var(--bs-border-color, #e3e9ef); padding: .5rem .75rem .375rem; }
         .lr-bar-row { display: flex; align-items: center; gap: .5rem; }

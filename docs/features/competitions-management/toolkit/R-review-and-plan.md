@@ -180,6 +180,7 @@ Also important:
 | same | `official_results.proposals` | P1 | only while `time_proposals` is on |
 | `/round-stopwatch/{roundId}` (public) | unchanged payload | - | **never** carries reveal lists or puzzle data (A §4.3; a test asserts the keys) |
 | `/competition-display/{competitionId}` (private, signal-only) | `display.signal` | D5 | only when the competition has displays (`CompetitionDisplaysPresence`, memoised, `ResetInterface`) |
+| `/analytics-studio-signal/{roundId}` (public, signal-only) | `analytics_studio.signal` `{type, roundId}` only | studio v2 V1 | only for a round whose studio computed a state in the last 180 s (`AnalyticsStudioWatch`), the round publicly visible at publish time; results signals only while the results are public (analytics-studio.md R21-R24) |
 | standings | **none in v1** | - | A's `official_results.standing` is deferred. Organiser and public standings pages refetch (60 s visible-only, plus on `official_results.entries` of an included round on the organiser view) |
 | `/competitor-entry/...` | **none in v1** | - | §1.2 |
 

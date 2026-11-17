@@ -28,7 +28,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The public branch of a tag scan with competitor pages on (B-qr-competitor-page.md §3.3 branch 2): the tag's own
- * competitor page for a tag of somebody in the event, the event page for anything else. A stand-in `competitor_page`
+ * competitor page for a tag of somebody in the event, the competitor list (`?notice=tag_unknown`) for anything else. A stand-in `competitor_page`
  * route of the agreed shape (CompetitorPageUrl) pins the contract; LiveResultsTagRoutesTest's "on" matrix covers the
  * real route end to end.
  */
@@ -46,15 +46,19 @@ final class CompetitionTagLandingTest extends KernelTestCase
         self::assertSame('/en/competitor/' . $cup . '/p/' . F::PARTICIPANT_IVAN, $this->landing(CompetitionTag::participant(F::PARTICIPANT_IVAN), 'en'));
     }
 
-    public function testATagOfNobodyInTheEventOpensTheEventPage(): void
+    /**
+     * Toolkit v2 D2: a tag of nobody in the event (any more) opens the event's competitor list, saying so
+     */
+    public function testATagOfNobodyInTheEventOpensTheCompetitorList(): void
     {
         $this->competitorPages(true, [F::COMPETITION_RESULTS_CUP]);
-        $eventPage = self::getContainer()->get(CompetitionDetailUrl::class)->of(F::COMPETITION_RESULTS_CUP, 'en');
+        $list = '/en/competitor/' . F::COMPETITION_RESULTS_CUP . '?notice=tag_unknown';
         $unknown = '018d0020-0000-0000-0000-00000000ffff';
 
-        self::assertSame($eventPage, $this->landing(CompetitionTag::entry($unknown), 'en'));
-        self::assertSame($eventPage, $this->landing(CompetitionTag::lineup($unknown), 'en'));
-        self::assertSame($eventPage, $this->landing(CompetitionTag::participant($unknown), 'en'));
+        self::assertSame($list, $this->landing(CompetitionTag::entry($unknown), 'en'));
+        self::assertSame($list, $this->landing(CompetitionTag::lineup($unknown), 'en'));
+        self::assertSame($list, $this->landing(CompetitionTag::participant($unknown), 'en'));
+        self::assertSame('/de/teilnehmer/' . F::COMPETITION_RESULTS_CUP . '?notice=tag_unknown', $this->landing(CompetitionTag::participant($unknown), 'de'));
     }
 
     public function testCompetitorPagesOffOrADraftKeepTheirLandings(): void

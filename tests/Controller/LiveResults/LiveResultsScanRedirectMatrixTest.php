@@ -37,7 +37,8 @@ final class LiveResultsScanRedirectMatrixTest extends WebTestCase
     /**
      * Competitor pages on (toolkit B2, B-qr-competitor-page.md §3.3): only the public branch may change - organisers
      * and referees land where they did; signed out and puzzlers open a known participant's competitor page
-     * (`/en/competitor/{cid}/p/{id}`, CompetitorPageController), anything else the event page as before.
+     * (`/en/competitor/{cid}/p/{id}`, CompetitorPageController), anything else the event's competitor list with
+     * `?notice=tag_unknown` (toolkit v2 D2).
      */
     public function testWithCompetitorPagesOnOnlyThePublicBranchChanges(): void
     {

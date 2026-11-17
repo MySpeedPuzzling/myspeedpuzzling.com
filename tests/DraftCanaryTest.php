@@ -425,9 +425,9 @@ final class DraftCanaryTest extends WebTestCase
      * @param self::COMPETITION|self::SERIES|self::ORGANIZATION $table
      */
     /**
-     * The public competitor pages and their state JSON (competition toolkit B4): a page of an event's own, open to
-     * anybody once the event is published and has competitor pages on, a 404 for a guest and a player off its team
-     * while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
+     * The public competitor pages, their state JSON (competition toolkit B4) and the competitor list (v2): a page of an
+     * event's own, open to anybody once the event is published and has competitor pages on, a 404 for a guest and a
+     * player off its team while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
      * competitor pages and an entry by SQL; Quiet Pines #1 (an edition of a draft series) a table page.
      */
     public function testTheCompetitorPagesOfADraftAreNotThere(): void
@@ -450,8 +450,8 @@ final class DraftCanaryTest extends WebTestCase
         );
 
         $items = [
-            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId], '/live/' . $draftNight . '/t/3'],
-            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
+            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight], '/live/' . $draftNight . '/t/3'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
         ];
 
         foreach ($items as [$table, $id, $urls, $tag]) {

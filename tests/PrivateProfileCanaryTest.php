@@ -547,6 +547,38 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The public competitor list (competition toolkit v2): she is the organiser's name ("Gina Quick") - no profile
+     * name, #code, id or avatar - except for the friend, who sees her #code (and finds her by it).
+     */
+    public function testTheCompetitorListShowsHerCodeToTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $cup]);
+        $url = '/en/competitor/' . $cup;
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content, 'No canary: the list does not show her');
+            self::assertStringContainsString('Edge Hunters', $content, 'No canary: the list does not show her pair');
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A stranger is shown a private player');
+            self::assertStringNotContainsString(self::OWNER, $content);
+            self::assertStringNotContainsString('player2', strtolower($content));
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('#PLAYER2', $content, 'The allowed friend does not see her code here - the list is no canary');
+        self::assertStringContainsString('gina quick #player2', $content, 'the friend finds her by it');
+        self::assertStringNotContainsString(self::OWNER, $content, 'the list links competitor pages, never a profile');
+    }
+
+    /**
      * The same on a `pick` round's page (competition toolkit A5): her row with its chosen puzzles names her by the
      * organiser's name only (OfficialEntrantsView), except for the friend.
      */

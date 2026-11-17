@@ -205,6 +205,26 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         }
     }
 
+    /**
+     * The competitor list link (competition toolkit v2) rides on the event's own statement (`c.*` of
+     * GetCompetitionEvents::byId() carries competitor_pages): the event and edition pages link it for no statement of
+     * their own - and without competitor pages there is no link.
+     */
+    public function testCompetitorPagesOnAddNoStatementToTheEventAndEditionPages(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([self::HILLTOP => 'hilltop-puzzle-weekend', self::SEASON_ONE => 'season-one'] as $url => $slug) {
+            $before = $this->measure($browser, $url);
+            self::assertSelectorNotExists('[data-event-competitors-link]');
+            $database->executeStatement('UPDATE competition SET competitor_pages = true WHERE slug = :slug', ['slug' => $slug]);
+
+            self::assertSame($before, $this->measure($browser, $url), 'competitor pages on must not add statements: ' . $url);
+            self::assertSelectorExists('[data-event-competitors-link]');
+        }
+    }
+
     public function testTenMoreEditionsAddNoStatementToTheSeriesPage(): void
     {
         $browser = self::createClient();

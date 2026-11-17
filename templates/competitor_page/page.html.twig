@@ -89,6 +89,7 @@
             {% else %}
                 <span class="text-muted">{{ view.competition.displayName }}</span>
             {% endif %}
+            <a href="{{ path('competitor_list', {competitionId: view.competitionId}) }}" class="competitor-page-list-link" data-competitor-list-link><i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'competitor_page.list.link'|trans }}</a>
         </p>
 
         <header class="competitor-page-header" data-competitor-header>

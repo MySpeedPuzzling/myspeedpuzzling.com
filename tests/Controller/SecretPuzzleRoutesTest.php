@@ -210,6 +210,23 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             'INSERT INTO competition_participant_round (id, participant_id, round_id, table_number) VALUES (:id, :participant, :round, 7)',
             ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => CompetitionApiFixture::ROUND_FUTURE],
         );
+        // The competitor list (toolkit v2) reads no puzzle at all - for nobody, organisers included
+        foreach ([null, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN] as $playerId) {
+            $browser->restart();
+            if ($playerId !== null) {
+                TestingLogin::asPlayer($browser, $playerId);
+            }
+
+            $browser->request('GET', '/en/competitor/' . $competitionId);
+            self::assertResponseIsSuccessful();
+            $content = html_entity_decode((string) $browser->getResponse()->getContent(), ENT_QUOTES | ENT_HTML5);
+            self::assertStringContainsString('Sam Scanner', $content, 'No canary: the list does not show the competitor.');
+
+            foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN, 'API Visible'] as $puzzle) {
+                self::assertStringNotContainsString($puzzle, $content, 'the competitor list');
+            }
+        }
+
         $urls = [
             '/en/competitor/' . $competitionId . '/p/' . $participantId,
             '/en/competitor/' . $competitionId . '/t/7',

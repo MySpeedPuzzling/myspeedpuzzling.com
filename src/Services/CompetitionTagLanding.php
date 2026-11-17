@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -26,7 +27,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *    (CompetitionTagResolver) with its entry open: `?entrant=` (person), `?table=` (table), `?entry=` (line-up, entry);
  *    a tag of nobody in the event says so (`?notice=tag_unknown`). With no round at all an organiser gets the rounds
  *    page and a referee the event page, both saying that.
- * 2. Anybody else, on an event with competitor pages on: the tag's competitor page (CompetitorPageUrl).
+ * 2. Anybody else, on an event with competitor pages on: the tag's competitor page (CompetitorPageUrl) - a tag of
+ *    nobody in the event the competitor list with `?notice=tag_unknown` (CompetitorListController).
  * 3. Anybody else otherwise - signed out, a puzzler: the event page; a draft's tag (or an unknown event's) the events
  *    list.
  *
@@ -97,11 +99,18 @@ final readonly class CompetitionTagLanding
             return $this->urlGenerator->generate('events', ['_locale' => $locale]);
         }
 
-        // Competitor pages on (toolkit B): the tag's own page - for a tag of nobody in the event, the event page
+        // Competitor pages on (toolkit B): the tag's own page - for a tag of nobody in the event (any more), the event's
+        // competitor list saying so (toolkit v2 D2), where they find themselves
         if ($canEnterResults === false && $competition->competitorPages) {
             if ($this->competitionTagResolver->knows($competitionId, $tag)) {
                 return $this->competitorPageUrl->of($competitionId, $tag, $locale);
             }
+
+            return $this->urlGenerator->generate(CompetitorListController::ROUTE, [
+                'competitionId' => strtolower($competitionId),
+                'notice' => CompetitorListController::NOTICE_TAG_UNKNOWN,
+                '_locale' => $locale,
+            ]);
         }
 
         try {

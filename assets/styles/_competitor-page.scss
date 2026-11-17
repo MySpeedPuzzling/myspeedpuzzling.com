@@ -294,3 +294,69 @@
 .competitor-round-signin {
     margin-bottom: .5rem;
 }
+
+// The header line: the event back link, "All competitors" on the right (it wraps under it on a narrow phone)
+.competitor-page-event {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .25rem .75rem;
+}
+
+.competitor-page-list-link {
+    white-space: nowrap;
+}
+
+// The competitor list (templates/competitor_page/list.html.twig): one tappable row per person / line-up
+.competitor-list-total {
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.competitor-list-section {
+    margin-top: 1.25rem;
+}
+
+.competitor-list-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: .5rem;
+}
+
+.competitor-list-rows {
+    padding-left: 0;
+    margin-bottom: 0;
+    list-style: none;
+    border-top: 1px solid $border-color;
+}
+
+.competitor-list-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+    padding: .5rem .25rem;
+    border-bottom: 1px solid $border-color;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background-color: $gray-100;
+    }
+}
+
+.competitor-list-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.competitor-list-members {
+    display: block;
+    margin-top: .125rem;
+}
+
+.competitor-list-chevron {
+    flex: 0 0 auto;
+}

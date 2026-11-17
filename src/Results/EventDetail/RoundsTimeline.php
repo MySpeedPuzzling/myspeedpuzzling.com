@@ -41,6 +41,8 @@ readonly final class RoundsTimeline
         public array $standings = [],
         // The public bracket of the declared advancement steps (competition toolkit A9) - a public page only
         public null|string $bracketUrl = null,
+        // The event's public competitor list (competition toolkit v2) - only while it has competitor pages on
+        public null|string $competitorsUrl = null,
     ) {
     }
 

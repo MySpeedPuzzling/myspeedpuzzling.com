@@ -45,6 +45,7 @@ use SpeedPuzzling\Web\Value\EventTypes;
  *     has_published_official_results?: bool|string,
  *     published_standings?: null|string,
  *     bracket_round_ids?: null|string,
+ *     competitor_pages?: bool|string,
  *     organization_id?: null|string,
  *     is_draft?: bool|string,
  *     eligibility?: null|string,
@@ -117,6 +118,8 @@ readonly final class CompetitionEvent
         // The rounds of its declared advancement steps (competition toolkit A9), lower case - only GetCompetitionEvents::byId()
         // reads them, in its own statement: the event, edition and round pages link the bracket at no statement of their own
         public array $bracketRoundIds = [],
+        // Public competitor pages are on (competition toolkit B1) - the event and edition pages link its competitor list
+        public bool $competitorPages = false,
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -174,6 +177,7 @@ readonly final class CompetitionEvent
             eventTypes: EventTypes::fromJson($row['event_types'] ?? null),
             publishedStandings: PublishedStandingRef::listFromJson($row['published_standings'] ?? null),
             bracketRoundIds: self::bracketRoundIds($row['bracket_round_ids'] ?? null),
+            competitorPages: self::parseBool($row['competitor_pages'] ?? false),
         );
     }
 

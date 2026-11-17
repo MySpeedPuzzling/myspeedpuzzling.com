@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\EventDetail;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\PublishedStandingRef;
@@ -62,6 +63,8 @@ readonly final class RoundsTimelineBuilder
         array $standings = [],
         // The event declared advancement steps (CompetitionEvent::hasBracket(), competition toolkit A9)
         bool $hasBracket = false,
+        // The event has competitor pages on (CompetitionEvent::$competitorPages) - its competitor list exists
+        bool $competitorPages = false,
     ): RoundsTimeline {
         $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
 
@@ -177,6 +180,8 @@ readonly final class RoundsTimelineBuilder
             standings: $isPublic ? $this->standings($event, $standings) : [],
             // The bracket page of an event that is not public answers 404 too
             bracketUrl: $isPublic && $hasBracket ? $this->bracketUrl($event) : null,
+            // The list answers whoever may see this page (a draft's page is its team's, and so is its list)
+            competitorsUrl: $competitorPages ? $this->urlGenerator->generate(CompetitorListController::ROUTE, ['competitionId' => strtolower($competitionId)]) : null,
         );
     }
 

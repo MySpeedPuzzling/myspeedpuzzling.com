@@ -20,7 +20,9 @@ The living record of where the prototype stands and what comes next. Updated by 
 |---|---|
 | **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); **Phase 2 integrated + reviewed** (the detector on the participant page, control room, review, accuracy report; the review's fixes merged; 6 locales); **Phase 3 built** (the advisory completeness check - off in production until Jan's yes for the worker on lily) |
 | **Resumed** | 2026-10-14 after the pause of 2026-10-13 |
-| **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) - runbook [test-cup-1.md](test-cup-1.md) |
+| **Next milestone** | M1 → Test Cup #1 (was targeted Tue 2026-11-10 - **not run yet**: production has never had an online round, checked 2026-11-17) - runbook [test-cup-1.md](test-cup-1.md) |
+| **Live video** | **LiveKit live on lily since 2026-11-17** (lily D106 - production `live.` / `turn.` + sandbox `sandbox-live.` / `sandbox-turn.`; media UDP 7882 / 7883, ICE/TCP 7882 / 7883, TURN/UDP 7884 / 7885, TURN/TLS 443); both apps run with `LIVEKIT_*` set. Checked from a real Chrome: relay-only over TURN/TLS and TURN/UDP and direct UDP carry video on both servers, every webhook 200 |
+| **Sandbox demo** | draft event "Online timing demo" on sandbox.myspeedpuzzling.com (15-minute solo round, detection `on`, video + see each other on, Demo Phone 1-3) - how to run it: [sandbox-demo.md](sandbox-demo.md) |
 
 ## Next
 
@@ -35,7 +37,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 - **Jan's answers, 2026-10-14** (done or in `test-cup-1.md`): the cup stays a **draft only Jan sees** - that was the proof of concept's goal (volunteers see no results page and add no time to their profile); the volunteers' e-mail goes out **only after the cup is fully tested** (real-device pass + rehearsal on production); the detector's model files are served by us, nothing to note about their licences; yes to the lily.srv changes - **all live and verified 2026-10-14** (lily.srv `2b90668`, journal): the bucket CORS rule, `online/` refused by the images proxy, the personal links redacted in Loki, `/api/compete/*` + `/-/time` past the bot-blocker, the completeness worker on lily (the check is on in production).
 - Before Test Cup #1: the real-device pass on phones (`device-test.md`, now 65 steps - 1-24 for this cup), volunteers, a deploy freeze on the day.
-- For Test Cup #2: the OK for ADR D78 (LiveKit on lily.srv: one UDP port + TURN/TLS on 443 through Traefik), the production load run at a quiet hour (`tools/online-load/README.md`: a draft event with made-up participants, generators allowlisted in CrowdSec, stop rules).
+- For Test Cup #2: ~~the OK for ADR D78~~ (done 2026-11-17: Jan approved, lily D106 live - [lily-livekit-proposal.md](lily-livekit-proposal.md)); the production load run at a quiet hour (`tools/online-load/README.md`: a draft event with made-up participants, generators allowlisted in CrowdSec, stop rules).
 - S1 footage (spikes.md) - the bench scores it the same day.
 - Small decisions: the control room plays no other moderator's voice (only "X is talking", against echo) - OK? A round's YouTube link has no form field yet (SQL only) - add it to the online timing page? Referees reviewing online rounds (TODO.md). The second screen stays view-only - Finished stays on the camera phone (its burst comes from that camera) - OK?
 
@@ -90,6 +92,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Date | What |
 |---|---|
+| 2026-11-17 | LiveKit live on lily (D106, sandbox + production together, TURN/UDP + ICE/TCP too - Jan); relay + direct video proven from a real Chrome on both, webhooks 200. Internal API for online timing (`PUT /internal-api/rounds/{id}/online-timing`, `POST …/competitions/{id}/participants`, `GET …/competitions/{id}/online-links`, b766efce6) - the sandbox demo is set up through it. CrowdSec: the online pages' background calls and the LiveKit hosts never count toward a ban (lily `6d83105` + D106) |
 | 2026-10-14 | Their texts in cs, de, es, fr, ja (796 online keys in every locale) |
 | 2026-10-14 | Gap marks stored (RG) + a reference image per round (RF) merged; full suite 10,596 green. Also: Hetzner enforces a presigned PUT's signed size and type (spike S5), npm's cache out of the image, the completeness check proven end to end on production (a presigned catalogue image through the worker, 0.9 s) |
 | 2026-10-14 | Jan's answers carried out on production (lily.srv `2b90668` + the bucket): `/api/compete/*` + `/-/time` past the bot-blocker (120 × `/-/time` a minute from one phone = all 200), the `online-cv` worker (image by `.github/workflows/online-cv.yml`), `online/` refused by the images proxy, tokens redacted in Loki, the bucket CORS rule. Found on the way (lily.srv backlog): the reconciler's SIGHUP never reloaded Alloy's bind-mounted config (recreated by hand), Traefik's access log is never rotated |

@@ -117,6 +117,11 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
+use SpeedPuzzling\Web\Value\DisplayKind;
+use SpeedPuzzling\Web\Value\CompetitionDisplaysLock;
+use SpeedPuzzling\Web\Message\SaveEventWizardExtras;
+use SpeedPuzzling\Web\Message\AddCompetitionReferee;
+use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
@@ -281,6 +286,37 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new DeleteCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
         self::assertSame($key, (new PublishCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
         self::assertSame($key, (new UnpublishCompetitionStanding('standing', $competitionId))->lockKey());
+    }
+
+    /**
+     * The creation wizard's Extras in one transaction (SaveEventWizardExtras, SerializedByLocks): the event's own key
+     * first, plus the key of every nested message that takes another one - the displays' when a display is set up, the
+     * referees' when a judge is added - so none of them is released before the composite's commit.
+     */
+    public function testTheWizardsExtrasHoldTheEventsKeyAndTheirNestedMessagesKeys(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000003';
+        $display = new AddCompetitionDisplay(Uuid::uuid7(), $competitionId, DisplayKind::Screen, 'Timer screen', 'en', null);
+        $referee = new AddCompetitionReferee($competitionId, 'player', 'organiser');
+
+        $none = new SaveEventWizardExtras($competitionId);
+        self::assertSame(CompetitionParticipantsLock::key($competitionId), $none->lockKey());
+        self::assertSame([], $none->moreLockKeys());
+
+        $withDisplay = new SaveEventWizardExtras($competitionId, displays: ['timerScreen' => $display]);
+        self::assertSame(CompetitionParticipantsLock::key($competitionId), $withDisplay->lockKey());
+        self::assertSame([CompetitionDisplaysLock::key($competitionId)], $withDisplay->moreLockKeys());
+        self::assertSame($display->lockKey(), $withDisplay->moreLockKeys()[0]);
+
+        $withReferee = new SaveEventWizardExtras($competitionId, addReferees: [$referee]);
+        self::assertSame([$referee->lockKey()], $withReferee->moreLockKeys());
+
+        $both = new SaveEventWizardExtras($competitionId, addReferees: [$referee], displays: ['timerScreen' => $display]);
+        $keys = $both->moreLockKeys();
+        sort($keys);
+        $expected = [$referee->lockKey(), CompetitionDisplaysLock::key($competitionId)];
+        sort($expected);
+        self::assertSame($expected, $keys);
     }
 
     /**

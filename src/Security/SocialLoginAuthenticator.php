@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialAccountResolver;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
+use SpeedPuzzling\Web\Exceptions\SocialProviderUnavailable;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\ReturnUrl;
@@ -121,6 +122,16 @@ abstract class SocialLoginAuthenticator extends AbstractAuthenticator
                 $flowState->pkceVerifier,
                 $this->appleUserPayload($request),
             );
+        } catch (SocialProviderUnavailable $exception) {
+            // Retried once already; a warning (= Sentry issue), the visitor is
+            // told it is the provider's temporary problem and that we know
+            $this->logger->warning('Social login provider temporarily unavailable.', [
+                'exception' => $exception,
+                'provider' => $this->provider()->value,
+                'provider_error' => $exception->providerError,
+            ]);
+
+            throw new SocialLoginFailed(SocialLoginFailureReason::ProviderUnavailable, $this->provider(), $exception);
         } catch (\Throwable $exception) {
             $this->logger->error('Social login code exchange failed.', [
                 'exception' => $exception,

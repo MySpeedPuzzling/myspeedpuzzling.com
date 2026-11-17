@@ -1196,6 +1196,7 @@ competition_referees:
     "result_already_linked": "Ce compte fournisseur est déjà associé à un compte MySpeedPuzzling."
     "result_cancelled": "Association annulée — rien n'a changé."
     "result_failed": "L'association a échoué. Veuillez réessayer dans un instant."
+    "result_unavailable": "%provider% rencontre un problème temporaire et n'a pas pu confirmer l'association. Nous en avons été informés. Veuillez réessayer dans quelques minutes."
   "change_password_current": "Mot de passe actuel"
   "change_password_new": "Nouveau mot de passe"
   "change_password_wrong_current": "Ce n'est pas votre mot de passe actuel."

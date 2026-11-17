@@ -272,6 +272,9 @@ final class EditProfileController extends AbstractController
             'already_linked' => $this->addFlash('warning', $this->translator->trans('edit_profile.social.result_already_linked')),
             'cancelled' => $this->addFlash('warning', $this->translator->trans('edit_profile.social.result_cancelled')),
             'failed' => $this->addFlash('danger', $this->translator->trans('edit_profile.social.result_failed')),
+            'unavailable' => $this->addFlash('warning', $this->translator->trans('edit_profile.social.result_unavailable', [
+                '%provider%' => $provider?->displayName() ?? '',
+            ])),
             default => null,
         };
 

@@ -1213,6 +1213,7 @@ competition_referees:
     "result_already_linked": "Tento účet poskytovatele už je propojený s účtem na MySpeedPuzzling."
     "result_cancelled": "Propojení zrušeno — nic se nezměnilo."
     "result_failed": "Propojení se nepodařilo. Zkuste to prosím za chvíli znovu."
+    "result_unavailable": "%provider% má dočasný výpadek a propojení nepotvrdil. Už o tom víme. Zkuste to prosím za pár minut znovu."
   "change_password_current": "Současné heslo"
   "change_password_new": "Nové heslo"
   "change_password_wrong_current": "To není vaše současné heslo."

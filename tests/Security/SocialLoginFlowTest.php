@@ -1005,6 +1005,27 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->assertFailureAudited($browser, $userAgent, 'code_exchange_failed');
     }
 
+    public function testProviderOutageShowsTemporaryProblemMessage(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google);
+        $browser = self::createClient();
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+        // The first failure is retried once - both fail
+        SocialLoginHttpMock::queue(
+            new HttpResponse(500, ['Content-Type' => 'application/json'], '{"error":"server_error"}'),
+            new HttpResponse(503, ['Content-Type' => 'application/json'], '{"error":"temporarily_unavailable"}'),
+        );
+        $userAgent = 'provider-outage-' . bin2hex(random_bytes(4));
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code", server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertSame(
+            'Google is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail.',
+            $this->followToLoginError($browser),
+        );
+        $this->assertFailureAudited($browser, $userAgent, 'provider_unavailable');
+    }
+
     public function testStateOfAnotherProviderShowsTookTooLongMessage(): void
     {
         // A login-intent state minted for Google, replayed at Apple's callback:

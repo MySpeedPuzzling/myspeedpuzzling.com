@@ -1658,6 +1658,7 @@ edit_profile:
         result_already_linked: "That provider account is already connected to a MySpeedPuzzling account."
         result_cancelled: "Connection cancelled — nothing changed."
         result_failed: "Connecting failed. Please try again in a moment."
+        result_unavailable: "%provider% is having a temporary problem and could not confirm the connection. We have been notified. Please try again in a few minutes."
     change_password_current: "Current password"
     change_password_new: "New password"
     change_password_wrong_current: "That is not your current password."

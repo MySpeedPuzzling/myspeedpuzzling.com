@@ -17,4 +17,5 @@
 "You cancelled signing in with %provider%. Nothing was changed.": "You cancelled signing in with %provider%. Nothing was changed."
 "Signing in with %provider% took too long or was opened twice. Please try again.": "Signing in with %provider% took too long or was opened twice. Please try again."
 "Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "Signing in with %provider% didn't work. Please try again, or sign in with your e-mail."
+"%provider% is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail.": "%provider% is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail."
 "We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings."

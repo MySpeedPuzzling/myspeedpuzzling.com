@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\SocialLogin;
 
 use Firebase\JWT\ExpiredException;
+use GuzzleHttp\Psr7\Response;
+use League\OAuth2\Client\Provider\Exception\AppleAccessDeniedException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Exceptions\SocialProviderUnavailable;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
@@ -153,6 +156,77 @@ final class SocialProfileFetcherAppleTest extends KernelTestCase
 
         $this->expectException(ExpiredException::class);
         $this->fetch();
+    }
+
+    public function testServerErrorIsRetriedOnce(): void
+    {
+        SocialLoginHttpMock::queue(self::tokenError(400, 'server_error'));
+        AppleIdTokenFactory::queueTokenExchange(['sub' => 'apple-sub-7', 'email' => 'real@example.com', 'email_verified' => true]);
+
+        self::assertSame('apple-sub-7', $this->fetch()->providerUserId);
+        // the failed exchange, the retried one and the JWKS fetch
+        self::assertCount(3, SocialLoginHttpMock::sentRequests());
+    }
+
+    public function testServerErrorTwiceMeansTheProviderIsUnavailable(): void
+    {
+        SocialLoginHttpMock::queue(self::tokenError(400, 'server_error'), self::tokenError(503, 'temporarily_unavailable'));
+
+        try {
+            $this->fetch();
+            self::fail('The exchange must fail');
+        } catch (SocialProviderUnavailable $exception) {
+            self::assertSame(OauthProvider::Apple, $exception->provider);
+            self::assertSame('temporarily_unavailable', $exception->providerError);
+        }
+
+        self::assertCount(2, SocialLoginHttpMock::sentRequests());
+    }
+
+    public function testBareServerFailureMeansTheProviderIsUnavailable(): void
+    {
+        SocialLoginHttpMock::queue(self::tokenError(502, null), self::tokenError(502, null));
+
+        $this->expectException(SocialProviderUnavailable::class);
+        $this->fetch();
+    }
+
+    public function testFlakyInvalidClientIsRetriedOnce(): void
+    {
+        SocialLoginHttpMock::queue(self::tokenError(400, 'invalid_client'));
+        AppleIdTokenFactory::queueTokenExchange(['sub' => 'apple-sub-8', 'email' => 'real@example.com', 'email_verified' => true]);
+
+        self::assertSame('apple-sub-8', $this->fetch()->providerUserId);
+    }
+
+    public function testInvalidClientTwiceStaysAPlainFailure(): void
+    {
+        // Possibly our own config - never dressed up as "Apple is down"
+        SocialLoginHttpMock::queue(self::tokenError(400, 'invalid_client'), self::tokenError(400, 'invalid_client'));
+
+        $this->expectException(AppleAccessDeniedException::class);
+        $this->fetch();
+    }
+
+    public function testInvalidGrantIsNotRetried(): void
+    {
+        SocialLoginHttpMock::queue(self::tokenError(400, 'invalid_grant'));
+
+        try {
+            $this->fetch();
+            self::fail('The exchange must fail');
+        } catch (AppleAccessDeniedException) {
+        }
+
+        self::assertCount(1, SocialLoginHttpMock::sentRequests());
+    }
+
+    private static function tokenError(int $status, null|string $error): Response
+    {
+        return new Response($status, ['Content-Type' => 'application/json'], json_encode(
+            $error === null ? [] : ['error' => $error],
+            JSON_THROW_ON_ERROR,
+        ));
     }
 
     private function fetch(): SocialUserProfile

@@ -21,6 +21,9 @@ enum SocialLoginFailureReason: string
     public const string MESSAGE_CANCELLED = 'You cancelled signing in with %provider%. Nothing was changed.';
     public const string MESSAGE_STATE_INVALID = 'Signing in with %provider% took too long or was opened twice. Please try again.';
     public const string MESSAGE_PROVIDER_FAILED = 'Signing in with %provider% didn\'t work. Please try again, or sign in with your e-mail.';
+    // The provider's token endpoint failed on its side twice (SocialProviderUnavailable) -
+    // logged as a warning, so "we know about it" is true
+    public const string MESSAGE_PROVIDER_UNAVAILABLE = '%provider% is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail.';
     public const string MESSAGE_NOT_POSSIBLE = 'We couldn\'t sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.';
 
     // Rule 3, split by which side has not verified the address. The account side
@@ -40,6 +43,7 @@ enum SocialLoginFailureReason: string
     case ProviderError = 'provider_error';
     case CodeMissing = 'code_missing';
     case CodeExchangeFailed = 'code_exchange_failed';
+    case ProviderUnavailable = 'provider_unavailable';
     case AutoLinkRefused = 'auto_link_refused';
     case AccountEmailUnverified = 'account_email_unverified';
     case ProviderEmailUnverified = 'provider_email_unverified';
@@ -51,6 +55,7 @@ enum SocialLoginFailureReason: string
             self::StateInvalid => self::MESSAGE_STATE_INVALID,
             self::ProviderCancelled => self::MESSAGE_CANCELLED,
             self::ProviderError, self::CodeMissing, self::CodeExchangeFailed => self::MESSAGE_PROVIDER_FAILED,
+            self::ProviderUnavailable => self::MESSAGE_PROVIDER_UNAVAILABLE,
             self::AutoLinkRefused => self::MESSAGE_NOT_POSSIBLE,
             self::AccountEmailUnverified => self::MESSAGE_ACCOUNT_EMAIL_UNVERIFIED,
             self::ProviderEmailUnverified => self::MESSAGE_PROVIDER_EMAIL_UNVERIFIED,

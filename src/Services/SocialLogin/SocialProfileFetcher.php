@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SocialLogin;
 
+use GuzzleHttp\Exception\ConnectException;
+use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\FacebookUser;
 use League\OAuth2\Client\Provider\GoogleUser;
 use League\OAuth2\Client\Token\AccessToken;
+use League\OAuth2\Client\Token\AccessTokenInterface;
 use League\OAuth2\Client\Token\AppleAccessToken;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Exceptions\SocialProviderUnavailable;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use SpeedPuzzling\Web\Value\SocialUserProfile;
+use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Exchanges the authorization code and normalizes what each provider proved
@@ -28,10 +34,26 @@ final readonly class SocialProfileFetcher
      */
     private const string MICROSOFT_EXPIRED_SECRET_CODE = 'AADSTS7000222';
 
+    /**
+     * The token endpoint failed on the provider's side. Retried once; a second
+     * failure becomes SocialProviderUnavailable ("try again in a few minutes").
+     */
+    private const array PROVIDER_SIDE_ERRORS = ['server_error', 'temporarily_unavailable'];
+
+    /**
+     * Retried once too, but a second one stays a plain failure (it may be our
+     * config). Apple answered the very same valid request `invalid_client` about
+     * 1 time in 12 on 2026-11-17 (Sentry WEB-GA), next to `server_error`.
+     */
+    private const array FLAKY_ERRORS = ['invalid_client'];
+
+    private const int RETRY_DELAY_SECONDS = 1;
+
     public function __construct(
         private SocialLoginProviders $providers,
         private MicrosoftIdTokenVerifier $microsoftIdTokenVerifier,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -41,6 +63,7 @@ final readonly class SocialProfileFetcher
      *        and it never comes from the token endpoint (plan §Provider gotchas)
      *
      * @throws IdentityProviderException
+     * @throws SocialProviderUnavailable the token endpoint failed on the provider's side twice
      */
     public function fetch(
         OauthProvider $provider,
@@ -54,19 +77,7 @@ final readonly class SocialProfileFetcher
             $leagueProvider->setPkceCode($pkceVerifier);
         }
 
-        try {
-            $accessToken = $leagueProvider->getAccessToken('authorization_code', ['code' => $code]);
-        } catch (IdentityProviderException $exception) {
-            if ($provider === OauthProvider::Microsoft && self::isExpiredMicrosoftSecret($exception)) {
-                // An outage, not a user problem: every Microsoft sign-in fails
-                // until the secret is rotated (setup-microsoft.md, "Rotating the secret")
-                $this->logger->error('Microsoft client secret expired - rotate MICROSOFT_CLIENT_SECRET.', [
-                    'exception' => $exception,
-                ]);
-            }
-
-            throw $exception;
-        }
+        $accessToken = $this->exchangeCode($provider, $leagueProvider, $code);
 
         assert($accessToken instanceof AccessToken);
 
@@ -133,6 +144,104 @@ final readonly class SocialProfileFetcher
             emailVerified: $email !== null,
             name: $claims['name'],
         );
+    }
+
+    /**
+     * One retry with the same code when the provider failed on its side: an
+     * authorization code is single-use, so if the first attempt did consume it
+     * the retry just ends in `invalid_grant` - never in a second sign-in.
+     *
+     * @throws IdentityProviderException
+     * @throws SocialProviderUnavailable
+     */
+    private function exchangeCode(OauthProvider $provider, AbstractProvider $leagueProvider, string $code): AccessTokenInterface
+    {
+        try {
+            return $leagueProvider->getAccessToken('authorization_code', ['code' => $code]);
+        } catch (IdentityProviderException | ConnectException $exception) {
+            $error = self::providerError($exception);
+
+            // An expired Microsoft secret is `invalid_client` too, but a retry never helps
+            if ($this->reportExpiredMicrosoftSecret($provider, $exception)) {
+                throw $exception;
+            }
+
+            if (!in_array($error, [...self::PROVIDER_SIDE_ERRORS, ...self::FLAKY_ERRORS], true) && !self::isServerFailure($exception)) {
+                throw $exception;
+            }
+
+            $this->logger->info('Social login token exchange failed on the provider side, retrying once.', [
+                'provider' => $provider->value,
+                'provider_error' => $error,
+            ]);
+        }
+
+        $this->clock->sleep(self::RETRY_DELAY_SECONDS);
+
+        try {
+            return $leagueProvider->getAccessToken('authorization_code', ['code' => $code]);
+        } catch (IdentityProviderException | ConnectException $exception) {
+            $error = self::providerError($exception);
+
+            if (in_array($error, self::PROVIDER_SIDE_ERRORS, true) || self::isServerFailure($exception)) {
+                throw new SocialProviderUnavailable($provider, $error, $exception);
+            }
+
+            $this->reportExpiredMicrosoftSecret($provider, $exception);
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @return bool whether it was the expired Microsoft secret
+     */
+    private function reportExpiredMicrosoftSecret(OauthProvider $provider, \Throwable $exception): bool
+    {
+        if ($provider !== OauthProvider::Microsoft || !$exception instanceof IdentityProviderException || !self::isExpiredMicrosoftSecret($exception)) {
+            return false;
+        }
+
+        // An outage, not a user problem: every Microsoft sign-in fails
+        // until the secret is rotated (setup-microsoft.md, "Rotating the secret")
+        $this->logger->error('Microsoft client secret expired - rotate MICROSOFT_CLIENT_SECRET.', [
+            'exception' => $exception,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * The OAuth `error` code, or `network` when no answer came at all. Apple's
+     * library hands over the raw response, the others the parsed body.
+     */
+    private static function providerError(IdentityProviderException|ConnectException $exception): string
+    {
+        if ($exception instanceof ConnectException) {
+            return 'network';
+        }
+
+        $body = $exception->getResponseBody();
+
+        if ($body instanceof ResponseInterface) {
+            $body = json_decode((string) $body->getBody(), true);
+        }
+
+        $error = is_array($body) ? ($body['error'] ?? null) : null;
+
+        return is_string($error) ? mb_substr($error, 0, 64) : 'unknown';
+    }
+
+    private static function isServerFailure(IdentityProviderException|ConnectException $exception): bool
+    {
+        if ($exception instanceof ConnectException) {
+            return true;
+        }
+
+        $body = $exception->getResponseBody();
+        $status = $body instanceof ResponseInterface ? $body->getStatusCode() : $exception->getCode();
+
+        return $status >= 500 && $status < 600;
     }
 
     private static function isExpiredMicrosoftSecret(IdentityProviderException $exception): bool

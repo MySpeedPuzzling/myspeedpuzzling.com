@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\EventSubscriber\NativeAuthPageSubscriber;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
+use SpeedPuzzling\Web\Exceptions\SocialProviderUnavailable;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
 use SpeedPuzzling\Web\Value\OauthFlowIntent;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -91,6 +92,14 @@ final class SocialLoginCallbackController extends AbstractController
                 $flowState->pkceVerifier,
                 self::appleUserPayload($request),
             );
+        } catch (SocialProviderUnavailable $exception) {
+            $this->logger->warning('Social link provider temporarily unavailable.', [
+                'exception' => $exception,
+                'provider' => $oauthProvider->value,
+                'provider_error' => $exception->providerError,
+            ]);
+
+            return $this->linkResult($oauthProvider, 'unavailable');
         } catch (\Throwable $exception) {
             $this->logger->error('Social link code exchange failed.', [
                 'exception' => $exception,

@@ -16,4 +16,5 @@
 "You cancelled signing in with %provider%. Nothing was changed.": "Přihlášení přes %provider% jste zrušili. Nic se nezměnilo."
 "Signing in with %provider% took too long or was opened twice. Please try again.": "Přihlášení přes %provider% trvalo příliš dlouho nebo bylo otevřeno dvakrát. Zkuste to prosím znovu."
 "Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "Přihlášení přes %provider% se nepovedlo. Zkuste to prosím znovu, nebo se přihlaste e-mailem."
+"%provider% is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail.": "%provider% má dočasný výpadek a nepotvrdil vaše přihlášení. Už o tom víme. Zkuste to prosím za pár minut znovu, nebo se přihlaste e-mailem."
 "We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "Přes %provider% vás nemůžeme přihlásit. Přihlaste se prosím e-mailem nebo heslem a potom si %provider% propojte v nastavení profilu."

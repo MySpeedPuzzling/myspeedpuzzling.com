@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\TestDouble\MicrosoftIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Microsoft profile mapping (identity = oid, every personal-account email trusted)
@@ -41,6 +42,7 @@ final class SocialProfileFetcherMicrosoftTest extends KernelTestCase
             $container->get(SocialLoginProviders::class),
             $container->get(MicrosoftIdTokenVerifier::class),
             $this->logger,
+            $container->get(ClockInterface::class),
         );
     }
 

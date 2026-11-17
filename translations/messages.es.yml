@@ -875,6 +875,7 @@
     "result_already_linked": "Esa cuenta del proveedor ya está conectada a una cuenta de MySpeedPuzzling."
     "result_cancelled": "Conexión cancelada: no ha cambiado nada."
     "result_failed": "No hemos podido conectarlo. Inténtalo de nuevo en un momento."
+    "result_unavailable": "%provider% tiene un problema temporal y no ha podido confirmar la conexión. Ya estamos avisados. Vuelve a intentarlo en unos minutos."
   "change_password_current": "Contraseña actual"
   "change_password_new": "Nueva contraseña"
   "change_password_wrong_current": "Esa no es tu contraseña actual."

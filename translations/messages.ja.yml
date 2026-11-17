@@ -1495,6 +1495,7 @@ competition_referees:
     "result_already_linked": "そのプロバイダーのアカウントは、すでにMySpeedPuzzlingアカウントに接続されています。"
     "result_cancelled": "接続をキャンセルしました — 変更はありません。"
     "result_failed": "接続できませんでした。しばらくしてからもう一度お試しください。"
+    "result_unavailable": "%provider%側で一時的な問題が発生しており、接続を確認できませんでした。この問題は把握済みです。数分後にもう一度お試しください。"
   "change_password_current": "現在のパスワード"
   "change_password_new": "新しいパスワード"
   "change_password_wrong_current": "現在のパスワードが正しくありません。"

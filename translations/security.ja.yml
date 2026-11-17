@@ -12,4 +12,5 @@
 "You cancelled signing in with %provider%. Nothing was changed.": "%provider%でのサインインをキャンセルしました。変更は何も行われていません。"
 "Signing in with %provider% took too long or was opened twice. Please try again.": "%provider%でのサインインに時間がかかりすぎたか、二重に開かれました。もう一度お試しください。"
 "Signing in with %provider% didn't work. Please try again, or sign in with your e-mail.": "%provider%でのサインインがうまくいきませんでした。もう一度お試しいただくか、メールアドレスでサインインしてください。"
+"%provider% is having a temporary problem and could not confirm your sign-in. We have been notified. Please try again in a few minutes, or sign in with your e-mail.": "%provider%側で一時的な問題が発生しており、サインインを確認できませんでした。この問題は把握済みです。数分後にもう一度お試しいただくか、メールアドレスでサインインしてください。"
 "We couldn't sign you in with %provider%. Please sign in with your e-mail or password, then connect %provider% in your profile settings.": "%provider%でサインインできませんでした。メールアドレスまたはパスワードでサインインしてから、プロフィール設定で%provider%を接続してください。"

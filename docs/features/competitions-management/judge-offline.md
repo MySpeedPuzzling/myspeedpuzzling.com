@@ -175,6 +175,23 @@ pref `autoOpenTable`); confirm in place with Save focused, `enterkeyhint="done"`
 outbox groups never split (`enqueueGroup()`) and instant send when back (`connectionBack()`); O(1) entries view, perf
 budget "300 entries and 300 unsent changes - search and rows under 5 ms" in `tests/live-results-harness.mjs`.
 
+Measured on the page (reliability hardening T4, `tools/competition-load/` `load.sh timings`: production build, 375×812,
+Chrome CPU 4x, round of 300 entrants; CDP network throttling - it does not reach the service worker's own fetches, so
+the warm HTML is not throttled, the state fetch is):
+
+| | Slow 4G (150 ms, 1.6 Mbit/s) | Fast 3G (563 ms, 1.44 Mbit/s) |
+|---|---|---|
+| cold (nothing cached): first paint / ready | 1.8 s / 2.7 s | 2.8 s / 4.2 s |
+| warm (service worker + HTTP cache): first paint / ready | 0.14 s / 0.33-0.40 s | 0.14-0.16 s / 0.79-0.81 s |
+| state fetch (`?viewer=1`, 300 entries: 171 KB JSON, 10.5 KB gzip) | 0.21-0.26 s | 0.62-0.68 s |
+| table typed → card open (p50 / p95) | 40 / 61 ms | 37 / 62 ms |
+| Save → "All saved" (p50 / p95, the round trip included) | 236 / 266 ms | 646 / 674 ms |
+
+A cold open loads 369 KB of build files (the site's whole stylesheet, 137 KB gzip, render-blocking, is most of it; the
+live entry's JS 64 KB gzip, `LiveEntryBundleTest`) - once per device, the judge-device checklist opens the page before
+the event; afterwards it comes from the service worker. Not changed in T4 (a stylesheet of the live entry's own is the
+lever if a cold open ever matters).
+
 ## QR kinds in the judge page (C8)
 
 - One parser `parseCompetitionTagUrl(text)` in `assets/official_results_scan.js` → `{competitionId, kind:

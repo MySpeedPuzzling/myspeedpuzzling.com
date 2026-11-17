@@ -279,9 +279,31 @@ Decided behaviours, edges:
   standing result). **Decided:** a confirmed result the judge later changes to another value supersedes the proposal too
   (`result_changed`) - "Confirmed as X" would no longer be the official result; the page shows "The judge recorded your
   result." The page learns of it with its next ordinary poll (5 s polling is only while something waits for the judge).
-- **Load (P1)**: `tools/time-proposals-load/run.php` - 40 simultaneous proposals p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms
-  each under the event lock; 100 ≈ 1.9 s vs the 500 ms goal of R §2.4). Accepted for v1 (finishes spread, the phone's
-  outbox retries); to be measured on prod-like hardware; a per-round lock key needs Jan's OK.
+- **Load (P1, measured over HTTP in T4)**: `tools/competition-load/` (k6 against the site in production mode -
+  FrankenPHP worker mode, 16 workers, Docker-on-Mac shared with Postgres and k6; README there). 300 entrants, 6 judges
+  saving every 3-8 s (30 % result + puzzles on a `pick` round), 100 proposals within 10 s, 300 phones' heartbeats every
+  15 s + their state polls (~32 requests/s), **p95 in ms** (before → after T4's `AfterResponse`):
+
+  | | single (service time) | full mix | 100 proposals in **1 s** + mix | hub stalled |
+  |---|---|---|---|---|
+  | save | 70 → 37 | 83 → 42 | 65 → 60 | 2,057 → 38 |
+  | save result + puzzles | 145 → 87 | 176 → 41 | 70 → 54 | 2,051 → 51 |
+  | propose | 26 → 20 | 40 → 22 | 136 → 106 | 2,036 → 19 |
+  | heartbeat (no Postgres) | 3 | 9 → 4 | 6 | 2 |
+
+  No failure in any run. The event lock is not the bottleneck: the sampler (`pg_stat_activity` every 100 ms) saw a
+  waiter for `CompetitionParticipantsLock` in ≤ 0.3 % of samples, queue ≤ 6 in the 1-second burst; a save holds it
+  ≈ 20 ms (half of it hydrating the round's 300 entries and the flush's change sets), a proposal ≈ 5 ms. P1's 0.8 s
+  was forked processes opening connections at once, not the lock. **No per-round lock key** - a running event has one
+  round at a time, so every judge save and proposal is in the same round and would share the round's key anyway; a
+  shared-event + exclusive-round scheme (provably safe: the round writers read and write only their round's entries,
+  proposals and receipts - a new entrant's participant row is new; everything else keeps the exclusive event key) buys
+  nothing until two rounds run at once - documented, not built.
+  **The pushes go out after the answer** (T4): the save / propose / withdraw controllers defer their
+  `OfficialResultsLiveUpdates` calls to kernel.terminate (`AfterResponse`; FrankenPHP sends the response first), still
+  after the commit - a stalled hub (2 s timeout per publish, `mercure_hub.client`) no longer holds back "saved"; every
+  push still reached the hub in the runs (290 updates = 190 saves + 100 proposals). The worker stays busy until the
+  publish ends, so a stalled hub still costs capacity, not answers.
 - A pre-tap "as insurance" cannot be stopped by software - the judge looks at the puzzle (R §2.4).
 
 ## Timing you can trust (reliability hardening T2)

@@ -8,6 +8,9 @@
  *   (ASCII case-insensitive, like PHP's strcasecmp), then id.
  *
  * A result is the wire format: null | {seconds} | {piecesPlaced} | {didNotStart: true}.
+ *
+ * A round with divisions (its entries carry `division`: null | {id, …}) gets `divisionRank` too -
+ * OfficialResultsRanking::rankWithin(): the same rules inside each division, no division = unranked.
  */
 
 function group(result) {
@@ -107,15 +110,54 @@ export function rankResults(results) {
 }
 
 /**
- * The entries of a round ranked and ordered as GetRoundResultEntries::forRound() - new objects with `rank` set.
+ * OfficialResultsRanking::rankWithin() - the rank of every result within its group (null = no group: unranked), in
+ * the input order.
  *
- * @param {Array<{id: string, displayName: string, tableNumber: number|null, result: object|null}>} entries
+ * @param {Array<object|null>} results
+ * @param {Array<string|null>} groups
+ * @returns {Array<number|null>}
+ */
+export function rankResultsWithin(results, groups) {
+    const ranks = results.map(() => null);
+    const byGroup = new Map();
+
+    groups.forEach((group, index) => {
+        if (group === null || group === undefined) {
+            return;
+        }
+
+        if (!byGroup.has(group)) {
+            byGroup.set(group, []);
+        }
+
+        byGroup.get(group).push(index);
+    });
+
+    for (const indexes of byGroup.values()) {
+        const groupRanks = rankResults(indexes.map((index) => results[index]));
+        indexes.forEach((index, position) => { ranks[index] = groupRanks[position]; });
+    }
+
+    return ranks;
+}
+
+/**
+ * The entries of a round ranked and ordered as GetRoundResultEntries::forRound() - new objects with `rank` set (and
+ * `divisionRank` when the entries carry `division`).
+ *
+ * @param {Array<{id: string, displayName: string, tableNumber: number|null, result: object|null, division?: object|null}>} entries
  */
 export function rankEntries(entries) {
-    const ranks = rankResults(entries.map((entry) => entry.result));
+    const results = entries.map((entry) => entry.result);
+    const ranks = rankResults(results);
+    const divisionRanks = entries.some((entry) => entry.division !== undefined)
+        ? rankResultsWithin(results, entries.map((entry) => entry.division?.id ?? null))
+        : null;
 
     return entries
-        .map((entry, index) => ({ ...entry, rank: ranks[index] }))
+        .map((entry, index) => (divisionRanks === null
+            ? { ...entry, rank: ranks[index] }
+            : { ...entry, rank: ranks[index], divisionRank: divisionRanks[index] }))
         .sort((a, b) => compareResults(a.result, b.result)
             || compareTables(a.tableNumber, b.tableNumber)
             || compareNames(a.displayName, b.displayName)

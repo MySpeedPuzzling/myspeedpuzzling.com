@@ -54,6 +54,8 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         // "Reveal" ticked (RoundPuzzleReveal::Stopwatch without a moment - competition toolkit G3, A §4.4): the desk's
         // notice and the publish dialog's "Also reveal" offer. The JSON's `stopwatchRevealMissed`, absent while 0
         public int $stopwatchRevealMissed = 0,
+        /** @var list<RoundDivision> the divisions the round uses (shared-puzzles-and-divisions.md D2) - the JSON's `divisions`, absent while none */
+        public array $divisions = [],
     ) {
     }
 
@@ -111,6 +113,11 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         // Only on a round whose secret puzzles missed the stopwatch start (a count - labels and names stay where they were)
         if ($this->stopwatchRevealMissed > 0) {
             $json['stopwatchRevealMissed'] = $this->stopwatchRevealMissed;
+        }
+
+        // Only on a round that uses divisions - every other answer is unchanged (RoundResultsStateGoldenTest)
+        if ($this->divisions !== []) {
+            $json['divisions'] = $this->divisions;
         }
 
         return $json;

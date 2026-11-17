@@ -56,6 +56,7 @@ final class ExportRoundResultsController extends AbstractController
         $timezone = 'UTC';
         $piecesCount = null;
         $pickFormat = null;
+        $withDivisions = false;
 
         foreach ($this->officialResultsRounds->forCompetition($competitionId) as $candidate) {
             if ($candidate->id() === $roundId) {
@@ -63,6 +64,8 @@ final class ExportRoundResultsController extends AbstractController
                 $piecesCount = $candidate->overview->piecesCount;
                 // A `pick` round adds its per-puzzle columns (competition toolkit A4)
                 $pickFormat = $candidate->overview->puzzleFormatView;
+                // A round with divisions adds "Division" + "Division rank" (shared-puzzles-and-divisions.md D2)
+                $withDivisions = $candidate->overview->divisions !== [];
             }
         }
 
@@ -72,6 +75,7 @@ final class ExportRoundResultsController extends AbstractController
             $timezone,
             ExportFormat::from($format),
             $pickFormat,
+            $withDivisions,
         );
 
         $slugger = new AsciiSlugger();

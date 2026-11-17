@@ -53,6 +53,43 @@ final readonly class OfficialResultsRanking
     }
 
     /**
+     * The rank of every result within its group - a division of the round (shared-puzzles-and-divisions.md A13): the
+     * rules of rank() inside each group (ties share, did not start and no result unranked), a result without a group
+     * (null) is unranked. Like rank(), computed over every entry before a viewer's hidden rows are dropped - never
+     * renumbered.
+     *
+     * @template TKey of array-key
+     * @param array<TKey, RoundEntryResult> $results
+     * @param array<TKey, null|string> $groupKeyOf the group of every key (a key left out has none)
+     * @return array<TKey, null|int> the rank within the group of every key, in the input order
+     */
+    public static function rankWithin(array $results, array $groupKeyOf): array
+    {
+        $groups = [];
+        foreach ($results as $key => $result) {
+            $group = $groupKeyOf[$key] ?? null;
+
+            if ($group !== null) {
+                $groups[$group][$key] = $result;
+            }
+        }
+
+        $ranks = [];
+        foreach ($groups as $groupResults) {
+            foreach (self::rank($groupResults) as $key => $rank) {
+                $ranks[$key] = $rank;
+            }
+        }
+
+        $all = [];
+        foreach (array_keys($results) as $key) {
+            $all[$key] = $ranks[$key] ?? null;
+        }
+
+        return $all;
+    }
+
+    /**
      * The ranking order as a comparator: ranked results (by the rules above), then did not start, then no result.
      * 0 = the same place.
      */

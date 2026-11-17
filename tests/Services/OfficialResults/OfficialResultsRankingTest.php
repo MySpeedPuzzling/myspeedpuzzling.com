@@ -70,4 +70,58 @@ final class OfficialResultsRankingTest extends TestCase
         self::assertSame([], OfficialResultsRanking::rank([]));
         self::assertSame([0 => null, 1 => null], OfficialResultsRanking::rank([RoundEntryResult::none(), RoundEntryResult::didNotStart()]));
     }
+
+    /**
+     * Divisions (shared-puzzles-and-divisions.md A13): the overall rules inside each division - ties share, the next rank
+     * skips, unfinished after finished, did not start / no result / no division unranked; input order kept.
+     */
+    public function testRankWithinRanksEveryDivisionOnItsOwn(): void
+    {
+        $results = [
+            'regular-fast' => RoundEntryResult::finished(3000),
+            'senior-tie-a' => RoundEntryResult::finished(4200),
+            'regular-slow' => RoundEntryResult::finished(5000),
+            'senior-tie-b' => RoundEntryResult::finished(4200),
+            'senior-unfinished' => RoundEntryResult::unfinished(900),
+            'senior-fastest' => RoundEntryResult::finished(4000),
+            'junior-dns' => RoundEntryResult::didNotStart(),
+            'junior-none' => RoundEntryResult::none(),
+            'junior-only' => RoundEntryResult::unfinished(10),
+            'no-division' => RoundEntryResult::finished(1000),
+        ];
+        $divisions = [
+            'regular-fast' => 'regular',
+            'senior-tie-a' => 'senior',
+            'regular-slow' => 'regular',
+            'senior-tie-b' => 'senior',
+            'senior-unfinished' => 'senior',
+            'senior-fastest' => 'senior',
+            'junior-dns' => 'junior',
+            'junior-none' => 'junior',
+            'junior-only' => 'junior',
+            'no-division' => null,
+        ];
+
+        self::assertSame([
+            'regular-fast' => 1,
+            'senior-tie-a' => 2,
+            'regular-slow' => 2,
+            'senior-tie-b' => 2,
+            'senior-unfinished' => 4,
+            'senior-fastest' => 1,
+            'junior-dns' => null,
+            'junior-none' => null,
+            'junior-only' => 1,
+            'no-division' => null,
+        ], OfficialResultsRanking::rankWithin($results, $divisions));
+
+        // The overall rank is untouched by divisions
+        self::assertSame(1, OfficialResultsRanking::rank($results)['no-division']);
+    }
+
+    public function testRankWithinWithoutGroupsRanksNobody(): void
+    {
+        self::assertSame([], OfficialResultsRanking::rankWithin([], []));
+        self::assertSame([0 => null, 1 => null], OfficialResultsRanking::rankWithin([RoundEntryResult::finished(10), RoundEntryResult::finished(20)], []));
+    }
 }

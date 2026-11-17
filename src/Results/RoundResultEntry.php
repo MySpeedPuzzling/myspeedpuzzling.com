@@ -64,6 +64,13 @@ readonly final class RoundResultEntry implements \JsonSerializable
         public null|string $lineupId = null,
         // Finished with pieces missing (competition toolkit T6): how many - null = complete, or not finished
         public null|int $missingPieces = null,
+        // The round uses divisions (shared-puzzles-and-divisions.md D2): the entry JSON carries `division` and
+        // `divisionRank`; absent otherwise
+        public bool $divisionsUsed = false,
+        // The entry's division - null = none (it has the overall rank only)
+        public null|RoundDivision $division = null,
+        // The rank within its division (OfficialResultsRanking::rankWithin() - the overall rules inside the division)
+        public null|int $divisionRank = null,
     ) {
     }
 
@@ -109,6 +116,9 @@ readonly final class RoundResultEntry implements \JsonSerializable
             piecesCount: $this->piecesCount,
             lineupId: $this->lineupId,
             missingPieces: $this->missingPieces,
+            divisionsUsed: $this->divisionsUsed,
+            division: $this->division,
+            divisionRank: $this->divisionRank,
         );
     }
 
@@ -173,6 +183,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
             // Only for an entry of a `pick` round - every other entry's JSON stays as it was (R-review-and-plan.md §1.8)
             ...($this->puzzlesUsed ? ['puzzles' => $this->puzzles?->toWire()] : []),
             'rank' => $this->rank,
+            // Only for an entry of a round that uses divisions - every other entry's JSON stays as it was
+            ...($this->divisionsUsed ? ['division' => $this->division, 'divisionRank' => $this->divisionRank] : []),
             'qualified' => $this->isQualified(),
             'qualifiedAt' => $this->qualifiedAt?->format(DateTimeImmutable::ATOM),
             'enteredAt' => $this->resultEnteredAt?->format(DateTimeImmutable::ATOM),

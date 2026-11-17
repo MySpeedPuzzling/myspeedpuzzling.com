@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests;
 
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -72,10 +73,35 @@ final class OfficialResultsRankingParityTest extends TestCase
     }
 
     /**
+     * A round with divisions (shared-puzzles-and-divisions.md D2): the desk ranks within each division like the server
+     * (OfficialResultsRanking::rankWithin()) - entries without a division unranked in it.
+     */
+    public function testTheBrowserRanksWithinDivisionsLikeTheServer(): void
+    {
+        $divisions = [null, 'regular', 'senior', 'junior'];
+        $results = [['seconds' => 100], ['seconds' => 100], ['seconds' => 90], ['piecesPlaced' => 5], ['didNotStart' => true], null];
+
+        $entries = [];
+        $seed = 11;
+        for ($i = 0; $i < 60; $i++) {
+            $seed = ($seed * 1103515245 + 12345) % 2147483648;
+            $entries[] = [
+                'id' => sprintf('018d0020-0000-0000-0099-%012d', ($i * 37) % 1000),
+                'displayName' => 'Entrant ' . ($seed % 7),
+                'tableNumber' => $i % 5 === 0 ? null : $i,
+                'result' => $results[$seed % count($results)],
+                'division' => ($division = $divisions[intdiv($seed, 7) % count($divisions)]) !== null ? ['id' => $division] : null,
+            ];
+        }
+
+        self::assertSame([self::ranked($entries)], $this->runInNode([$entries]));
+    }
+
+    /**
      * The server's order: GetRoundResultEntries' own ranking of the entries.
      *
-     * @param list<array{id: string, displayName: string, tableNumber: null|int, result: null|array<string, int|bool>}> $entries
-     * @return list<array{id: string, rank: null|int}>
+     * @param list<array{id: string, displayName: string, tableNumber: null|int, result: null|array<string, int|bool>, division?: null|array{id: string}}> $entries
+     * @return list<array{id: string, rank: null|int, divisionRank?: null|int}>
      */
     private static function ranked(array $entries): array
     {
@@ -98,18 +124,22 @@ final class OfficialResultsRankingParityTest extends TestCase
             resultEnteredAt: null,
             resultEnteredById: null,
             resultEnteredByName: null,
+            divisionsUsed: array_key_exists('division', $entry),
+            division: isset($entry['division']) ? new RoundDivision($entry['division']['id'], $entry['division']['id'], null) : null,
         ), $entries);
 
         $method = new \ReflectionMethod(GetRoundResultEntries::class, 'ranked');
         /** @var list<RoundResultEntry> $ranked */
         $ranked = $method->invoke(null, $roundEntries);
 
-        return array_map(static fn (RoundResultEntry $entry): array => ['id' => $entry->ref->id, 'rank' => $entry->rank], $ranked);
+        return array_map(static fn (RoundResultEntry $entry): array => $entry->divisionsUsed
+            ? ['id' => $entry->ref->id, 'rank' => $entry->rank, 'divisionRank' => $entry->divisionRank]
+            : ['id' => $entry->ref->id, 'rank' => $entry->rank], $ranked);
     }
 
     /**
      * @param list<list<array<string, mixed>>> $rounds
-     * @return list<list<array{id: string, rank: null|int}>>
+     * @return list<list<array{id: string, rank: null|int, divisionRank?: null|int}>>
      */
     private function runInNode(array $rounds): array
     {
@@ -121,7 +151,7 @@ final class OfficialResultsRankingParityTest extends TestCase
         $process->setInput((string) json_encode(['rounds' => $rounds], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var list<list<array{id: string, rank: null|int}>> $results */
+        /** @var list<list<array{id: string, rank: null|int, divisionRank?: null|int}>> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

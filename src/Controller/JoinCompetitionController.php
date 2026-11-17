@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventJustJoined;
@@ -47,6 +48,7 @@ final class JoinCompetitionController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly GetEventAttendance $getEventAttendance,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private readonly ParticipantsSheetLiveUpdates $sheetLiveUpdates,
     ) {
     }
 
@@ -253,6 +255,9 @@ final class JoinCompetitionController extends AbstractController
                 playerId: $playerId,
                 participantId: $participantId,
             ));
+
+            // The organiser's open participants sheets learn about the new or changed link (participant-linking.md §5.8)
+            $this->sheetLiveUpdates->changedAfterResponse($competitionId);
 
             return true;
         } catch (HandlerFailedException $e) {

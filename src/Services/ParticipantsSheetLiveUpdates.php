@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
@@ -26,12 +27,27 @@ final readonly class ParticipantsSheetLiveUpdates
     public function __construct(
         private HubInterface $hub,
         private LoggerInterface $logger,
+        private GetParticipantsSheetVersion $getVersion,
+        private AfterResponse $afterResponse,
     ) {
     }
 
     public static function topic(string $competitionId): string
     {
         return '/competition-participants/' . strtolower($competitionId);
+    }
+
+    /**
+     * For a write made outside the sheet - a player's "I'm going", leaving, the online personal link
+     * (docs/features/competitions-management/participant-linking.md §5.8): once the answer is sent (AfterResponse, the
+     * dispatch returned = committed), the version is read and the open sheets are told. A version nothing changed is one
+     * they know already - no refetch.
+     */
+    public function changedAfterResponse(string $competitionId): void
+    {
+        $this->afterResponse->defer(function () use ($competitionId): void {
+            $this->changed($competitionId, $this->getVersion->ofCompetition($competitionId));
+        });
     }
 
     public function changed(string $competitionId, string $version): void

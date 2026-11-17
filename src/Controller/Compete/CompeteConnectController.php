@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\ConfirmOnlineLink;
 use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineConnectRules;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
+use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\OnlineConnectStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,6 +42,7 @@ final class CompeteConnectController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly OnlineConnectRules $onlineConnectRules,
         private readonly MessageBusInterface $messageBus,
+        private readonly ParticipantsSheetLiveUpdates $sheetLiveUpdates,
     ) {
     }
 
@@ -80,6 +82,9 @@ final class CompeteConnectController extends AbstractController
                     playerId: $profile->playerId,
                     participantId: $participant->id->toString(),
                 ));
+
+                // The organiser's open participants sheets learn about the link (participant-linking.md §5.8)
+                $this->sheetLiveUpdates->changedAfterResponse($access->competition->id->toString());
             } catch (CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
                 // Somebody else's connect came first
                 $status = OnlineConnectStatus::BelongsToOther;

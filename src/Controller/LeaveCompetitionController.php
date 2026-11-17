@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,6 +36,7 @@ final class LeaveCompetitionController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly ParticipantsSheetLiveUpdates $sheetLiveUpdates,
     ) {
     }
 
@@ -78,6 +80,9 @@ final class LeaveCompetitionController extends AbstractController
                 competitionId: $competitionId,
                 playerId: $profile->playerId,
             ));
+
+            // The organiser's open participants sheets learn about it (participant-linking.md §5.8)
+            $this->sheetLiveUpdates->changedAfterResponse($competitionId);
 
             $this->addFlash('success', $this->translator->trans('flashes.competition_leave_success'));
         }

@@ -177,3 +177,21 @@ amendments R1-R13 → packages in worktrees `.claude/worktrees/lk-<pkg>`, branch
 | Pkg | State | Commit(s) on main | Notes |
 |---|---|---|---|
 | design | merged | | §0a binding; order L1a → L1b → L2 → L4a → L3 → L5 → L4b |
+
+## Gaps 2026-11-17 (orchestrator: sub-session; brief `cm-delivery/brief-gaps-orchestrator.md`)
+Small gaps of the shipped toolkit + creation wizard, three packages in parallel (worktrees `.claude/worktrees/gp-<pkg>`,
+branches `gp/<pkg>`, Docker serialised through one lock `cm-delivery/gp.sh`), reviewed (diffs + screenshots
+`cm-delivery/shots/gp-*`), straight to main. Translations cs/de/es/fr/ja by the orchestrator (46 keys).
+
+| Pkg | State | Commit(s) on main | Notes |
+|---|---|---|---|
+| G1 | merged | a25b0e987..d80cc154b | "Were you there? Link my results" on event/edition pages (`LinkMyResultsEntry`, guests +0, signed-in +1 statement - `DetailPagesQueryBudgetTest` 19 → 20 on purpose; counts only results the Link page lists: unlinked, of a visible event puzzle from the first day to 7 days after, or on the event's days without puzzles; `?from=event` returns to the event); the waiting-link note on result detail + My data (rides on existing statements, only for who may change the time; `WaitingEventLinkCanaryTest` extended) |
+| CI fix | merged | a096b595c + 7ca812c0b (main session) | `PluralMessagesTest` ran CI's 512 MB worker out of memory through the profiler's collecting translator - renders through the inner translator |
+| G3 | merged | this PR (squash) | Duplicate says pick rounds' formats reset (form notice + flash; copying puzzles not built - secret reveal moments); desk "Still hidden: the stopwatch was never started with Reveal" (`stopwatchRevealMissed` in the round JSON only when > 0, no statement more) + publish dialog "Also reveal the hidden puzzle(s) now" (unticked; `RevealPuzzlesTheStopwatchMissed` after the publish in its own transaction, all rows or none under the round's locks, confirmed hash - a changed list publishes and reveals nothing); `display_public` limiter (token + IP, sliding 1200/min, 429 + Retry-After, the runtime keeps its picture and waits); toolkit reason translation tests read every locale's own catalogue |
+| G2 | merged | this PR (squash) | Wizard puzzle pickers: one "Find the puzzle" field (name / EAN / brand code across brands, `puzzle_search_autocomplete` = the site's `SearchPuzzle::byUserInput`, never a secret puzzle), brand path kept; Extras all or nothing (`SaveEventWizardExtras`, `SerializedByLocks` - own key first, the others sorted); a round added later in the schedule joins every unpublished standing that holds all rounds of its category (steps never guessed, the table says so); a series' empty "When it happens" filled from the Dates rule in the creator's language |
+
+Decisions: the entry's window looks forward only (results logged after the event are common, solves before are practice);
+Duplicate keeps the copy `total` instead of relaxing the K ≤ N guard; the reveal at publish is one message, not
+`RevealRoundPuzzleNow` per row (the hash is checked under the lock); 1200/min instead of 120 (a hall of 20 screens on
+one link behind one NAT). Not browser-tried: a real 429 on a TV, the "changed meanwhile" toast, a camera scan in the
+wizard's search, "Add the next dates" filling the series text.

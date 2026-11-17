@@ -68,18 +68,21 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | A8 | B | started | | |
 
 ## Hardening list (H) - collected
-- Duplicate competition: copy competitor-page settings (B1)? displays (D8). Rounds copied without puzzles stay `total`.
+- ~~Duplicate competition: copy competitor-page settings (B1)? displays (D8).~~ **Resolved** by D8 (duplicate copies both). Still true: rounds copied without puzzles stay `total`.
 - PluralMessagesTest / XlsxSafetyTest OOM in local paratest workers (CI fine so far).
 - SandboxSimulatedResultsTest error seen once in CI (passes locally) - watch.
-- name_tags.hint text after competitor pages (B3).
-- C8 edges: waitlisted member line-up hash; tag-URL link leave prompt.
+- ~~name_tags.hint text after competitor pages (B3).~~ **Resolved**: no change needed - the hint still fits.
+- ~~C8 edges: waitlisted member line-up hash; tag-URL link leave prompt.~~ **Resolved** in H1.
 - Real devices: native apps live page (C3), iPhone Safari offline, camera scan.
 - Translations of every new key (5 locales).
 - A3 review: translate official_results.reason.* toolkit reasons + loop testEveryNewReasonIsTranslated over 6 locales; JS twin lacks shape rules (doc or add); live puzzle.pieces_count changes can block a stored record (doc + a clear path).
 - **A4 scope add:** the participants SHEET (not only the desk) must handle pick rounds - send/clear `puzzles` with results, else result edits on entries with a record are refused `puzzles_mismatch`.
 - P1 load: 40 simultaneous proposals p95 ≈ 0.8 s on Docker-on-Mac (≈19 ms each under the event lock) → 100 ≈ 1.9 s vs 500 ms goal. Accepted for v1 (finishes spread, outbox); measure on prod-like HW; per-round lock key needs Jan's OK.
-- B4 open: show 'Did not start' on public competitor pages? (round page omits it) - decide in H.
-- C9 polish: proposer name only on pair/team cards; document 'undo of a confirmation clears the result, proposal stays confirmed'.
+- ~~B4 open: show 'Did not start' on public competitor pages? (round page omits it) - decide in H.~~ **Resolved** in H1 (public pages never show it).
+- ~~C9 polish: proposer name only on pair/team cards; document 'undo of a confirmation clears the result, proposal stays confirmed'.~~ **Resolved**: proposer name in H1; the undo dead end fixed in H3 (the proposal turns `superseded` `result_cleared`, the competitor gets Stop back).
 - Decisions: public pages never show 'Did not start' (round page, competitor page, standings); drop the category badge when the standing name already says it (polish).
 - Orchestrator: CI was red from the A6 merge to D8 (3 guard tests) - fixed. Check CI after EVERY merge.
 - B8 polish: pending/sending boxes use a neutral style (not $primary pink).
+- ~~C5: ~20 s until offline-failed outbox items send after going live.~~ **Resolved** by C7 (instant send when back online).
+- ~~D7: ConvertCompetitionToSeries loses displays (blocker?).~~ **Resolved** by D8 (convert-to-series refuses an event with displays).
+- ~~D1: copy-link 404 until D4.~~ **Resolved** by D4 (`/display/{token}` exists).

@@ -1,5 +1,6 @@
 {#
-    "New display" (D-displays-overlays.md §8.1) - posts to add_competition_display, which comes back to where it was.
+    "New display" (D-displays-overlays.md §8.1) - posts to add_competition_display, which opens the new display's editor
+    (at the event's limit it comes back to where it was).
     Variables: add_display_form, displays (to know whether the cap is reached).
 #}
 {% if displays|length >= constant('SpeedPuzzling\\Web\\Entity\\CompetitionDisplay::MAX_PER_COMPETITION') %}

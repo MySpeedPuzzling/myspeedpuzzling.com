@@ -25,8 +25,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The Displays card of the competition toolkit hub and the displays pages (D-displays-overlays.md §8.1, R §1.4 card 2):
- * forms redirect back on success and answer 422 when refused, everything only for COMPETITION_TOOLKIT_MANAGE on the
- * display's own event.
+ * forms redirect back on success (a new display: into its editor) and answer 422 when refused, everything only for
+ * COMPETITION_TOOLKIT_MANAGE on the display's own event.
  */
 final class CompetitionDisplaysPagesTest extends WebTestCase
 {
@@ -74,15 +74,20 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
         ]);
         $browser->submit($form);
 
-        self::assertResponseRedirects(self::HUB, 303);
+        // Straight into the editor of the new display (D §8.1, D6F) - not back to the hub
         $displays = $this->displays();
         self::assertCount(1, $displays);
+        self::assertResponseRedirects('/en/display-editor/' . $displays[0]->id, 303);
         self::assertSame('OBS corner', $displays[0]->name);
         self::assertSame(DisplayKind::Overlay, $displays[0]->kind);
         self::assertSame('de', $displays[0]->locale);
 
-        $page = $browser->followRedirect();
+        $browser->followRedirect();
+        self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.alert-success', 'Display added.');
+        self::assertSelectorExists('[data-display-editor-page]');
+
+        $page = $browser->request('GET', self::HUB);
         $row = $page->filter('[data-toolkit-card="displays"] [data-display="' . $displays[0]->id . '"]');
         self::assertCount(1, $row);
         self::assertSame('OBS corner', $row->filter('[data-display-name]')->text());
@@ -285,8 +290,10 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
         $browser->submit($page->filter('[data-display-add]')->form([self::ADD_FORM . '[name]' => 'Projector']));
 
-        self::assertResponseRedirects(self::LIST, 303);
         self::assertSame(['Projector'], array_map(static fn (CompetitionDisplayOverview $display): string => $display->name, $this->displays()));
+        self::assertResponseRedirects('/en/display-editor/' . $this->displays()[0]->id, 303);
+        $browser->followRedirect();
+        self::assertResponseIsSuccessful();
     }
 
     public function testANewDisplayStartsFromTheChosenPreset(): void
@@ -304,8 +311,8 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
             self::ADD_FORM . '[name]' => 'OBS sidebar',
         ]));
 
-        self::assertResponseRedirects(self::LIST, 303);
         $displayId = $this->displays()[0]->id;
+        self::assertResponseRedirects('/en/display-editor/' . $displayId, 303);
         /** @var array{design: string, uses_live_results: bool} $row */
         $row = self::getContainer()->get(Connection::class)->fetchAssociative('SELECT design, uses_live_results FROM competition_display WHERE id = :id', ['id' => $displayId]);
         self::assertStringContainsString('leaderboard', $row['design']);

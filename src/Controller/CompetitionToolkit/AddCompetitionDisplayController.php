@@ -22,8 +22,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "New display" (D-displays-overlays.md §8.1): added = back to where the form was (?return=, the hub or the displays
- * page), refused = the displays page with the form's errors and 422 (Turbo drops a 200 answer to a full-page POST).
+ * "New display" (D-displays-overlays.md §8.1): added = straight into the editor of the new display (303), the event at
+ * its limit = back to where the form was (?return=, the hub or the displays page), refused = the displays page with the
+ * form's errors and 422 (Turbo drops a 200 answer to a full-page POST).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddCompetitionDisplayController extends AbstractController
@@ -63,9 +64,11 @@ final class AddCompetitionDisplayController extends AbstractController
             $data = $form->getData();
             assert($data->kind !== null && $data->preset !== null && $data->name !== null && $data->locale !== null);
 
+            $displayId = Uuid::uuid7();
+
             try {
                 $this->messageBus->dispatch(new AddCompetitionDisplay(
-                    displayId: Uuid::uuid7(),
+                    displayId: $displayId,
                     competitionId: $competitionId,
                     kind: $data->kind,
                     name: $data->name,
@@ -84,7 +87,7 @@ final class AddCompetitionDisplayController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('competition_display.flash.added'));
 
-            return $this->redirect($returnPath, Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('edit_competition_display', ['displayId' => $displayId->toString()], Response::HTTP_SEE_OTHER);
         }
 
         // Not submitted (an empty POST) or refused: the displays page with the errors, 422

@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
-use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 /**
  * The analytics studio's round-wide predictions (analytics-studio.md R28-R33) on the "Results Cup": Group B (solo -
@@ -111,9 +110,7 @@ final class AnalyticsStudioRoundPredictionsControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         $address = '203.0.113.91';
-        $limiter = self::getContainer()->get('limiter.analytics_studio_heavy');
-        self::assertInstanceOf(RateLimiterFactoryInterface::class, $limiter);
-        $limiter->create($address)->consume(100000);
+        self::getContainer()->get('limiter.analytics_studio_heavy')->create($address)->consume(100000);
 
         $browser->request('GET', self::URL, server: ['REMOTE_ADDR' => $address]);
 

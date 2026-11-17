@@ -21,7 +21,7 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -34,8 +34,9 @@ use Symfony\Contracts\Cache\CacheInterface;
  * "Results Cup": Gina (private), Hugo (PLAYER_REGULAR, public) and Ivan (unlinked). It writes exactly what the entrant
  * answer would (the same key, the same numbers), skips everybody who gets none, does nothing for a pair round, another
  * visible set or a stale message, ends a turn by queueing the next one, and never computes anything for a hidden puzzle.
+ * A WebTestCase only for AnalyticsStudioTesting's helpers - no request is made, the handler is called directly.
  */
-final class WarmAnalyticsStudioPredictionsHandlerTest extends KernelTestCase
+final class WarmAnalyticsStudioPredictionsHandlerTest extends WebTestCase
 {
     use AnalyticsStudioTesting;
 
@@ -165,7 +166,6 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends KernelTestCase
         $puzzle = $this->puzzleOf(F::ROUND_GROUP_B);
         $container = self::getContainer();
         $realCache = $container->get('analytics_studio_cache');
-        self::assertInstanceOf(CacheInterface::class, $realCache);
         $failingForHugo = new class ($realCache, strtolower(self::HUGO)) implements CacheInterface {
             public function __construct(
                 private readonly CacheInterface $cache,
@@ -321,18 +321,12 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends KernelTestCase
 
     private function shownModel(): string
     {
-        $model = self::getContainer()->getParameter('predictionShownModel');
-        self::assertIsString($model);
-
-        return $model;
+        return self::getContainer()->getParameter('predictionShownModel');
     }
 
     private function pool(): CacheItemPoolInterface
     {
-        $pool = self::getContainer()->get('analytics_studio_cache');
-        self::assertInstanceOf(CacheItemPoolInterface::class, $pool);
-
-        return $pool;
+        return self::getContainer()->get('analytics_studio_cache');
     }
 
     private function puzzleOf(string $roundId): string

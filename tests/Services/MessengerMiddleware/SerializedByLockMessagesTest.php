@@ -70,6 +70,7 @@ use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Message\MoveEditionToSeries;
 use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
+use SpeedPuzzling\Web\Message\ProposeRoundTime;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\ReconcileRoundResults;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
@@ -89,6 +90,7 @@ use SpeedPuzzling\Web\Message\UndoImportRows;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Message\UnpublishCompetition;
+use SpeedPuzzling\Web\Message\WithdrawTimeProposal;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
@@ -223,6 +225,10 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
         // A Reset of an online round checks the round's official results and starts a fresh run
         self::assertSame($key, (new ResetRoundStopwatch('round', $competitionId))->lockKey());
+        // A competitor's time proposal and its undo (competition toolkit P1) - "one pending per entry" and "none once a
+        // result exists" are checked under the same lock as the judges' result writes
+        self::assertSame($key, (new ProposeRoundTime($competitionId, 'round', 'team:' . $participantId, 'proposal', 'player', 1, 1))->lockKey());
+        self::assertSame($key, (new WithdrawTimeProposal(strtolower($competitionId), 'proposal', 'player'))->lockKey());
     }
 
     /**

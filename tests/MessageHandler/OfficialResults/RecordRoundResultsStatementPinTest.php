@@ -58,6 +58,28 @@ final class RecordRoundResultsStatementPinTest extends KernelTestCase
     }
 
     /**
+     * Competition toolkit P1: with time proposals on, the same plain solo set costs exactly one read more - the round's
+     * pending proposals (TimeProposalResolver::load()); off (the two pins above), it reads nothing of them.
+     */
+    public function testAPlainSoloChangeSetWithTimeProposalsOnReadsTheProposalsOnce(): void
+    {
+        self::bootKernel();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET competitor_pages = true, time_proposals = true WHERE id = :id',
+            ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
+        );
+
+        $statements = $this->statementsOf(OfficialResultsFixture::ROUND_GROUP_A, [
+            self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'result', null, ['seconds' => 4000]),
+            self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'table_number', null, 7),
+            self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'qualified', false, true),
+        ]);
+
+        self::assertSame(['applied', 'applied', 'applied'], $statements['statuses']);
+        self::assertSame(['reads' => 5, 'writes' => 4], ['reads' => count($statements['reads']), 'writes' => count($statements['writes'])], self::describe($statements));
+    }
+
+    /**
      * @param list<array<string, mixed>> $changes wire format
      * @return array{reads: list<string>, writes: list<string>, statuses: list<string>}
      */

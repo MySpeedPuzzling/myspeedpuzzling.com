@@ -1299,6 +1299,8 @@ export class SheetModel {
                 qualified: entry.qualified === true,
                 enteredAt: entry.enteredAt ?? null,
                 enteredBy: entry.enteredBy?.name ?? null,
+                // A `pick` round's per-puzzle record (competition toolkit A4) - only its entries carry the key
+                ...('puzzles' in (entry ?? {}) ? { puzzles: entry.puzzles ?? null } : {}),
             };
 
             if (ref.startsWith('team:')) {
@@ -1400,7 +1402,7 @@ export class SheetModel {
         const round = this.base.rounds.get(overview.id);
         const next = { ...round };
 
-        for (const key of ['resultsPublished', 'tableNumbersOff', 'started', 'piecesCount']) {
+        for (const key of ['resultsPublished', 'tableNumbersOff', 'started', 'piecesCount', 'puzzleFormat']) {
             if (key in overview) {
                 next[key] = overview[key];
             }
@@ -1417,7 +1419,10 @@ export class SheetModel {
 }
 
 function officialFields(entry) {
-    return { table: entry.table, result: entry.result, qualified: entry.qualified, enteredAt: entry.enteredAt, enteredBy: entry.enteredBy };
+    const fields = { table: entry.table, result: entry.result, qualified: entry.qualified, enteredAt: entry.enteredAt, enteredBy: entry.enteredBy };
+
+    // A `pick` round's per-puzzle record (competition toolkit A4) - absent on every other entry
+    return 'puzzles' in entry ? { ...fields, puzzles: entry.puzzles } : fields;
 }
 
 function newer(current, incoming) {
@@ -1433,7 +1438,7 @@ function mergeOfficial(entry, incoming) {
         return entry;
     }
 
-    const next = { ...entry, table: incoming.table, qualified: incoming.qualified, result: incoming.result, enteredAt: incoming.enteredAt, enteredBy: incoming.enteredBy };
+    const next = { ...entry, table: incoming.table, qualified: incoming.qualified, result: incoming.result, enteredAt: incoming.enteredAt, enteredBy: incoming.enteredBy, ...('puzzles' in incoming ? { puzzles: incoming.puzzles } : {}) };
 
     return same(officialFields(next), officialFields(entry)) ? entry : next;
 }

@@ -11,6 +11,8 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SpeedPuzzling\Web\Results\Export\ExportFile;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
+use SpeedPuzzling\Web\Results\RoundPuzzleFormatView;
+use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Value\ExportFormat;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,6 +25,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * One table, so CSV is a single file (not the data export's ZIP of sections) and XLSX a single sheet. Every cell
  * goes through SpreadsheetSafeValue: entrants' names are typed by people, and a spreadsheet must never run them as
  * formulas. Headers and values are in the organiser's language; times are h:mm:ss, dates in the round's zone.
+ *
+ * A `pick` round (competition toolkit A4) adds, per position in solving order 1..K, the puzzle (its label, the name only
+ * once it is out - the public rule of RoundPuzzlesVisibleNow), the time it was finished at, its own time and the pieces
+ * placed on it. Every other round exports exactly the columns it always did.
  */
 readonly final class RoundResultsExporter
 {
@@ -33,13 +39,14 @@ readonly final class RoundResultsExporter
 
     /**
      * @param list<RoundResultEntry> $entries in ranking order (GetRoundResultEntries::forRound())
+     * @param null|RoundPuzzleFormatView $pickFormat the round's format when it is a `pick` round
      */
-    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format): ExportFile
+    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null): ExportFile
     {
-        $rows = [$this->header()];
+        $rows = [[...$this->header(), ...$this->puzzlesHeader($pickFormat)]];
 
         foreach ($entries as $entry) {
-            $rows[] = $this->row($entry, $piecesCount, new DateTimeZone($timezone));
+            $rows[] = [...$this->row($entry, $piecesCount, new DateTimeZone($timezone)), ...$this->puzzlesRow($entry, $pickFormat)];
         }
 
         return match ($format) {
@@ -78,6 +85,78 @@ readonly final class RoundResultsExporter
             $entry->resultEnteredByName,
             $entry->resultEnteredAt?->setTimezone($zone)->format('Y-m-d H:i:s'),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function puzzlesHeader(null|RoundPuzzleFormatView $pickFormat): array
+    {
+        if ($pickFormat === null) {
+            return [];
+        }
+
+        $columns = [];
+
+        for ($position = 1; $position <= $this->positions($pickFormat); $position++) {
+            foreach (['export_puzzle', 'export_finished_at', 'export_time', 'export_pieces'] as $column) {
+                $columns[] = $this->translator->trans('competition_toolkit.desk_puzzles.' . $column, ['%position%' => $position]);
+            }
+        }
+
+        return $columns;
+    }
+
+    /**
+     * @return list<null|int|string>
+     */
+    private function puzzlesRow(RoundResultEntry $entry, null|RoundPuzzleFormatView $pickFormat): array
+    {
+        if ($pickFormat === null) {
+            return [];
+        }
+
+        /** @var array<string, RoundPuzzleSlot> $slots */
+        $slots = [];
+        foreach ($pickFormat->slots as $slot) {
+            $slots[strtolower($slot->roundPuzzleId)] = $slot;
+        }
+
+        $items = $entry->puzzles !== null ? $entry->puzzles->items : [];
+        $cells = [];
+
+        for ($index = 0; $index < $this->positions($pickFormat); $index++) {
+            $item = $items[$index] ?? null;
+
+            if ($item === null) {
+                array_push($cells, null, null, null, null);
+
+                continue;
+            }
+
+            $slot = $slots[strtolower($item->roundPuzzleId)] ?? null;
+            $duration = $entry->puzzles?->duration($index);
+
+            $cells[] = $slot === null ? '?' : ($slot->puzzle !== null ? $slot->label . ' - ' . $slot->puzzle->puzzleName : $slot->label);
+            $cells[] = $item->done && $item->atSeconds !== null ? self::time($item->atSeconds) : null;
+            $cells[] = $item->done && $duration !== null ? self::time($duration) : null;
+            $cells[] = $item->done ? null : $item->piecesPlaced;
+        }
+
+        return $cells;
+    }
+
+    /**
+     * One group of columns per puzzle an entrant solves (K) - a record never holds more (too_many_puzzles).
+     */
+    private function positions(RoundPuzzleFormatView $pickFormat): int
+    {
+        return max(1, $pickFormat->toSolve);
+    }
+
+    private static function time(int $seconds): string
+    {
+        return sprintf('%d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
     }
 
     private function resultText(RoundResultEntry $entry, null|int $piecesCount): null|string

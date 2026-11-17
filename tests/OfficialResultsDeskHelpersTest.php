@@ -345,6 +345,20 @@ final class OfficialResultsDeskHelpersTest extends TestCase
     }
 
     /**
+     * Competition toolkit A4 - the per-puzzle editor of `pick` rounds and the groups of PendingChanges
+     * (tests/official-results-desk/puzzles.mjs): a `result` + `puzzles` pair is never split, the total is computed by
+     * official_results_puzzles.js, keep mine / try again / discard act on both, clearing a record, hidden puzzles by label.
+     */
+    public function testPickRoundEditorAndGroupsSuitePasses(): void
+    {
+        [$result] = $this->runInNode([['fn' => 'suite', 'name' => 'puzzles']]);
+
+        self::assertIsArray($result);
+        self::assertSame([], $result['failures'] ?? null, (string) json_encode($result['failures'] ?? null, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        self::assertGreaterThan(8, $result['passed'] ?? 0);
+    }
+
+    /**
      * @param list<array<string, mixed>> $cases
      * @return list<mixed>
      */

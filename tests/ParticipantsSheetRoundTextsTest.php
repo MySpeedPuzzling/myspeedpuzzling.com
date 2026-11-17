@@ -112,6 +112,24 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
     }
 
     /**
+     * The `pick` round texts (competition toolkit A4) come only with an event that has such a round - every other sheet
+     * gets exactly the JSON it always got.
+     */
+    public function testPickRoundTextsOnlyForAnEventWithAPickRound(): void
+    {
+        $withPick = $this->render();
+        self::assertSame('Puzzles', $withPick['col_puzzles'] ?? null);
+        self::assertIsString($withPick['puzzles_cleared'] ?? null);
+
+        $json = self::getContainer()->get(Environment::class)->render('participants_sheet/_texts_round.html.twig', ['state' => ['rounds' => [['puzzleFormat' => null]]]]);
+        $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($texts);
+        self::assertArrayNotHasKey('col_puzzles', $texts);
+        self::assertArrayNotHasKey('puzzles_cleared', $texts);
+        self::assertSame(array_keys($texts), array_values(array_diff(array_keys($withPick), ['col_puzzles', 'puzzles_cleared'])));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function render(string $template = 'participants_sheet/_texts_round.html.twig'): array
@@ -122,7 +140,8 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         $container->get('request_stack')->push($request);
         $container->get('router')->getContext()->setParameter('_locale', 'en');
 
-        $json = self::getContainer()->get(Environment::class)->render($template);
+        // An event with a `pick` round (competition toolkit A4) - its texts too
+        $json = self::getContainer()->get(Environment::class)->render($template, ['state' => ['rounds' => [['puzzleFormat' => ['mode' => 'pick']]]]]);
         $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($texts);
 

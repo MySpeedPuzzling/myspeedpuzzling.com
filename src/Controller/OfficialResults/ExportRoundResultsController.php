@@ -55,11 +55,14 @@ final class ExportRoundResultsController extends AbstractController
         $roundId = $round->id->toString();
         $timezone = 'UTC';
         $piecesCount = null;
+        $pickFormat = null;
 
         foreach ($this->officialResultsRounds->forCompetition($competitionId) as $candidate) {
             if ($candidate->id() === $roundId) {
                 $timezone = $candidate->timezone;
                 $piecesCount = $candidate->overview->piecesCount;
+                // A `pick` round adds its per-puzzle columns (competition toolkit A4)
+                $pickFormat = $candidate->overview->puzzleFormatView;
             }
         }
 
@@ -68,6 +71,7 @@ final class ExportRoundResultsController extends AbstractController
             $piecesCount,
             $timezone,
             ExportFormat::from($format),
+            $pickFormat,
         );
 
         $slugger = new AsciiSlugger();

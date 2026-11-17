@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results\ParticipantsSheet;
 
+use SpeedPuzzling\Web\Results\RoundPuzzleFormatView;
 use DateTimeImmutable;
 
 /**
@@ -34,11 +35,13 @@ readonly final class ParticipantsSheetRound implements \JsonSerializable
         public null|int $piecesCount,
         public bool $resultsPublished,
         public array $urls,
+        // A `pick` round's format (competition toolkit A4) - the JSON's `puzzleFormat`, absent while null
+        public null|RoundPuzzleFormatView $puzzleFormat = null,
     ) {
     }
 
     /**
-     * @return array{id: string, name: string, category: string, teamSize: null|int, startsAt: string, timezone: string, started: bool, color: string, textColor: string, tableNumbersOff: bool, piecesCount: null|int, resultsPublished: bool, urls: array{liveEntry: string, resultsDesk: string, seating: null|string, edit: string}}
+     * @return array{id: string, name: string, category: string, teamSize: null|int, startsAt: string, timezone: string, started: bool, color: string, textColor: string, tableNumbersOff: bool, piecesCount: null|int, resultsPublished: bool, urls: array{liveEntry: string, resultsDesk: string, seating: null|string, edit: string}, puzzleFormat?: RoundPuzzleFormatView}
      */
     public function jsonSerialize(): array
     {
@@ -56,6 +59,7 @@ readonly final class ParticipantsSheetRound implements \JsonSerializable
             'piecesCount' => $this->piecesCount,
             'resultsPublished' => $this->resultsPublished,
             'urls' => $this->urls,
+            ...($this->puzzleFormat !== null ? ['puzzleFormat' => $this->puzzleFormat] : []),
         ];
     }
 }

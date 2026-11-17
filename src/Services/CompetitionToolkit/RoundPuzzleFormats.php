@@ -34,26 +34,50 @@ readonly final class RoundPuzzleFormats
      */
     public function attachTo(array $rounds): array
     {
-        $pickRoundIds = [];
+        $toSolve = [];
 
         foreach ($rounds as $round) {
             if ($round->puzzleFormat === RoundPuzzleFormat::Pick->value && $round->puzzlesToSolve !== null) {
-                $pickRoundIds[] = $round->roundId;
+                $toSolve[$round->roundId] = $round->puzzlesToSolve;
             }
         }
 
-        if ($pickRoundIds === []) {
+        if ($toSolve === []) {
             return $rounds;
         }
 
-        $puzzlesNow = $this->roundPuzzlesVisibleNow->forRounds($pickRoundIds, $this->clock->now());
-        $piecesCounts = $this->getRoundPuzzlePiecesCounts->ofRounds($pickRoundIds);
+        $views = $this->viewsFor($toSolve);
 
-        return array_map(function (RoundResultsOverview $round) use ($puzzlesNow, $piecesCounts): RoundResultsOverview {
-            $now = $puzzlesNow[$round->roundId] ?? null;
+        return array_map(static function (RoundResultsOverview $round) use ($views): RoundResultsOverview {
+            $view = $views[$round->roundId] ?? null;
 
-            if ($now === null || $round->puzzlesToSolve === null) {
-                return $round;
+            return $view === null ? $round : $round->withPuzzleFormat($view);
+        }, $rounds);
+    }
+
+    /**
+     * The formats of `pick` rounds by id - also for the participants sheet's rounds (competition toolkit A4). No round,
+     * no statement.
+     *
+     * @param array<string, int> $toSolveByRound K by round id, `pick` rounds only
+     * @return array<string, RoundPuzzleFormatView>
+     */
+    public function viewsFor(array $toSolveByRound): array
+    {
+        if ($toSolveByRound === []) {
+            return [];
+        }
+
+        $roundIds = array_map(strval(...), array_keys($toSolveByRound));
+        $puzzlesNow = $this->roundPuzzlesVisibleNow->forRounds($roundIds, $this->clock->now());
+        $piecesCounts = $this->getRoundPuzzlePiecesCounts->ofRounds($roundIds);
+        $views = [];
+
+        foreach ($toSolveByRound as $roundId => $toSolve) {
+            $now = $puzzlesNow[$roundId] ?? null;
+
+            if ($now === null) {
+                continue;
             }
 
             $imageUrls = [];
@@ -63,12 +87,14 @@ readonly final class RoundPuzzleFormats
                 }
             }
 
-            return $round->withPuzzleFormat(new RoundPuzzleFormatView(
-                toSolve: $round->puzzlesToSolve,
+            $views[(string) $roundId] = new RoundPuzzleFormatView(
+                toSolve: $toSolve,
                 slots: $now->slots,
                 piecesCounts: array_intersect_key($piecesCounts, array_flip(array_map(static fn ($slot): string => $slot->roundPuzzleId, $now->slots))),
                 imageUrls: $imageUrls,
-            ));
-        }, $rounds);
+            );
+        }
+
+        return $views;
     }
 }

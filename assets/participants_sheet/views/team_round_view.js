@@ -71,6 +71,7 @@ import {
     whereInRound,
 } from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
+import { roundPickFormat } from '../sheet_puzzles.js';
 import {
     CHOOSE,
     NEW_TEAM,
@@ -216,7 +217,7 @@ export class TeamRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? ''].join('|');
+        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null].join('|');
     }
 
     /** Columns changed (member count, results shown, the round's table usage): a new grid, the same cell focused. */
@@ -501,6 +502,8 @@ export class TeamRoundView {
         if (this.showResults) {
             columns.push(
                 { key: 'result', label: this.t('col_result'), kind: 'list', width: 150, autoHighlight: false, className: 'sheet-col-result' },
+                // A `pick` round: the per-puzzle record by label, read-only (competition toolkit A4)
+                ...(roundPickFormat(this.model, this.roundId) !== null ? [{ key: 'puzzles', label: this.t('col_puzzles'), kind: 'readonly', width: 200, className: 'sheet-col-puzzles' }] : []),
                 { key: 'rank', label: this.t('col_rank'), kind: 'readonly', width: 58, className: 'sheet-col-rank' },
                 { key: 'qualified', label: this.t('col_qualified'), kind: 'checkbox', width: 92 },
             );
@@ -707,6 +710,10 @@ export class TeamRoundView {
 
         if (col === 'result') {
             return this.results.resultCell(ref, team.result, team.enteredBy, team.enteredAt);
+        }
+
+        if (col === 'puzzles') {
+            return this.results.puzzlesCell(ref);
         }
 
         if (col === 'rank') {

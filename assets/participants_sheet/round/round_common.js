@@ -34,6 +34,7 @@ import {
     wordList,
 } from '../sheet_results.js';
 import { SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
+import { recordCellText } from '../sheet_puzzles.js';
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;
@@ -986,6 +987,13 @@ export class RoundResultsCells {
         }
 
         return { text, html, copy: text, marker: this.marker(ref, 'result'), readonly, className: 'sheet-col-result' };
+    }
+
+    /** The "Puzzles" cell of a `pick` round entry (competition toolkit A4): its record by label, read-only. */
+    puzzlesCell(ref) {
+        const text = recordCellText(this.model, this.roundId, ref, ref === null ? null : this.pending(), { pieces: this.t('result_pieces_placed') });
+
+        return { text, html: escapeHtml(text), copy: text, readonly: true, className: 'sheet-col-puzzles' };
     }
 
     tableCell(ref, server, { readonly = false } = {}) {

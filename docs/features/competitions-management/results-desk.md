@@ -89,6 +89,10 @@ and "published since" are shown in the round's zone (like the export), not the d
   while the tab is shown - see "Live updates" below. When our own answer and a live update disagree about an entry
   we just saved, the desk asks the server once more.
 
+- **`pick` rounds** (competition toolkit A4): the result cell opens the per-puzzle editor and a row shows the record's
+  chips; the result and the record are saved as one group - see README "Results desk, participants sheet and export of
+  `pick` rounds".
+
 ### Qualification helpers - always the organiser's decision
 
 They only **pre-select** for review (`assets/official_results_qualification.js`, pinned by
@@ -121,7 +125,9 @@ the pages show it ("1:23:45", "479 / 500 pcs", "Did not start"), time in seconds
 by, entered at (round's zone). Headers in the organiser's language. CSV = one UTF-8 file with a BOM (Excel), XLSX =
 one sheet named in the organiser's language (`results_desk.export.sheet`, cleaned of the characters a sheet name may
 not have), numbers typed. **Every cell through `SpreadsheetSafeValue`** (names are typed by people).
-Deliberately not the data export's sectioned writer: one table is one file, not a ZIP.
+Deliberately not the data export's sectioned writer: one table is one file, not a ZIP. A `pick` round adds four columns per puzzle position (puzzle, finished
+at, own time, pieces placed - a hidden puzzle by its label only); every other round's columns are pinned unchanged
+(`PickRoundDeskAndExportTest`).
 
 ## Advance the qualified (`advance_qualified_controller.js`)
 

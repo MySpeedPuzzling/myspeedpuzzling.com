@@ -49,10 +49,17 @@ The edit forms show the current logo above the file input ("Leave empty to keep 
 
 Organisers run the same event again and again - a 6-week pairs league at three venues at once (three near-identical
 events with 6 weekly rounds each), a yearly championship. **"Duplicate"** (the ⋯ menu, "You organize" and the edit page
-of a one-time event or an edition; `DuplicateCompetitionController`, POST with the stateless CSRF token
-`competition_duplicate`) makes a copy and opens its edit page with "A copy was created as a draft - change its dates and
-venue, then publish it." One message, `DuplicateCompetition` (new id from the controller, source, acting player); the
-internal API has the same with optional overrides (`POST /internal-api/competitions/{id}/duplicate`,
+of a one-time event or an edition; `DuplicateCompetitionController`, route `duplicate_competition`) first asks for the
+copy's **new date** (required, a native date input; "Copy of <the source's first day>" under it) and its **name**, with
+one line of what moves ("Rounds and registration move by the same number of days; the times of day stay"). GET renders
+that small page (a link from every entry point, out of the events list's frames - `_top` - and without JavaScript too),
+POST (the stateless CSRF token `competition_duplicate`, field `_token`; a wrong token = 403, no date = 422) makes the copy
+and opens its edit page with a flash naming the date. Proposals (smart forms): an edition of a series gets the number at
+the end of its name +1 (`NextEditionName`: "Cup #4" → "Cup #5", "Week 09" → "Week 10", any other name unchanged) and the
+date one gap after it - the gap between it and the series' edition before it (`GetPreviousEditionDay`); a one-time event
+keeps its name and the date is left empty. A multi-day event is asked for its first day only - the last one follows. One
+message, `DuplicateCompetition` (new id from the controller, source, acting player, the name and the date); the internal
+API has the same with optional overrides (`POST /internal-api/competitions/{id}/duplicate`,
 [internal-api.md](../internal-api.md#competitions-and-events)).
 
 **Copied** - what the organiser wrote and set up:
@@ -96,9 +103,26 @@ controller, `GetCompetitionPermissions` again in the handler - `CompetitionNotEd
 **The logo is shared, not copied**: no code deletes a competition logo (a new upload gets a new path), and every file
 deletion asks `GetStoredFileReferences`, which sees both rows.
 
-**A new first day moves everything dated** (internal API `dateFrom`, `DuplicateDateShift`): `dateTo` (unless sent),
-every round's start and the registration window move by the same number of calendar days, keeping their wall-clock
-time in their own zone. The web copy keeps the dates - the organiser changes them on the edit page.
+**A new first day moves everything dated** (the web form's date, internal API `dateFrom`; `EventDateShift` +
+`DuplicateDateShift`): `dateTo` (unless sent), every round's start and the registration window move by the same number of
+calendar days, keeping their wall-clock time in their own zone. The days are counted from the source's first day - its
+`date_from`, else its first round's day in the round's zone (an online edition is often dated by its rounds only).
+
+#### Moving an event's date
+
+Editions are dated by their first round (`OccurrenceDates`), so a new start date alone left the event on its old day.
+The edit form of an event or an edition (`EditCompetitionController`, both through the same form) has **"Move the rounds
+too"** - ticked by default - while the event has rounds and none of them has begun (`EventDateShift::roundsCanMove()`):
+no stopwatch state on any round (**a scheduled start counts too** - its countdown is a moment the organiser set, so
+nothing moves it automatically; they move that round on the Rounds page), no official result, and no secret puzzle in any
+round (a moved start moves its reveal, which only the round form confirms puzzle by puzzle, `SecretRevealPreview`). The
+field is absent otherwise. It is shown once the start date differs from the saved one (`date_move_rounds_controller.js`;
+without JavaScript simply visible). Ticked + a changed start date: `EditCompetition::$moveRoundsWithDate` moves every
+round's start and the registration window by the days the first day moved - the rule of a copy (`EventDateShift`, same
+transaction, before the event's own fields change: a round without a saved zone is read in the zone of the country it
+had). `moveRoundsWithDate` defaults to false (internal API and every other caller unchanged). `EditCompetition` takes the
+event's `CompetitionParticipantsLock` (it checks official results). The event's displays are told after the commit
+(`CompetitionDisplayLiveUpdates::roundChanged()` per moved round); the end date stays what the organiser typed.
 
 ### 4. Public Listing
 

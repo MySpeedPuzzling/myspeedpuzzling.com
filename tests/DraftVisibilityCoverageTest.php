@@ -57,6 +57,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetParticipantsSheetState.php' => self::ORGANISER,
         'Query/GetParticipantsSheetVersion.php' => self::ORGANISER,
         'Query/GetPlayerDuplicateCases.php' => self::VIA_SOLVING_TIMES,
+        'Query/GetPreviousEditionDay.php' => self::ORGANISER . ' Only the day of the edition before, to propose the date of a copy ("Duplicate") - drafts count: they are the organiser\'s own dates.',
         'Query/GetPublishedRoundResults.php' => 'Round results pages answer 404 for an event that is not public (RoundResultsPageBuilder), the sitemap and the counts embed IsCompetitionPubliclyVisible.',
         'Query/GetPuzzleResultDetail.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPuzzleSolvers.php' => self::VIA_SOLVING_TIMES,

@@ -13,9 +13,9 @@ use Ramsey\Uuid\UuidInterface;
  * (participants, entries, teams, results, referees, round puzzles, tables, online timing). An edition's copy is a new
  * edition of the same series.
  *
- * The overrides (internal API only - the web copies everything and the organiser edits the draft): null = the source's
- * value. A new `dateFrom` moves everything dated by the same number of days - `dateTo` (unless sent), every round's
- * start (wall clock in the round's zone) and the registration window.
+ * The overrides (the web form sends the name and the date, the internal API any of them): null = the source's value. A
+ * new `dateFrom` moves everything dated by the same number of days - `dateTo` (unless sent), every round's start (wall
+ * clock in the round's zone) and the registration window (EventDateShift).
  */
 readonly final class DuplicateCompetition
 {

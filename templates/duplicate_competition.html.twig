@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'event_duplicate.title'|trans }} - {{ source.name }}{% endblock %}
+
+{% block content %}
+    {#- "Duplicate" (DuplicateCompetitionController): the copy's new date and name. The ?return= of the page goes on to the
+        form, so a refused submit keeps the way back -#}
+    {%- set back_query = app.request.query.has('return') ? {return: app.request.query.getString('return'), return_title: app.request.query.getString('return_title')} : {} -%}
+    {%- set edit_url = path('edit_competition', {competitionId: source.id.toString}) -%}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: source.name, url: edit_url},
+        {label: 'event_duplicate.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: edit_url, fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'event_duplicate.title'|trans }}</h1>
+                <p class="text-muted">{{ source.name }}</p>
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form, {action: path('duplicate_competition', {competitionId: source.id.toString}|merge(back_query)), attr: {'data-duplicate-form': ''}}) }}
+                        <input type="hidden" name="_token" value="{{ csrf_token('competition_duplicate') }}">
+
+                        <div class="mb-3 required">
+                            {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label'}}) }}
+                            {{ form_widget(form.dateFrom, {attr: {class: 'form-control', style: 'max-width: 16rem;'}}) }}
+                            {% if source_day %}
+                                <div class="form-text" data-source-date>{{ 'event_duplicate.form.source_date'|trans({'%date%': source_day|format_date('long', timezone: false)}) }}</div>
+                            {% endif %}
+                            {{ form_errors(form.dateFrom) }}
+                        </div>
+
+                        <div class="required">{{ form_row(form.name) }}</div>
+
+                        <p class="form-text mb-3" data-what-moves><i class="bi bi-info-circle me-1"></i>{{ 'event_duplicate.form.what_moves'|trans }}</p>
+                        <p class="form-text mb-3">{{ 'event_duplicate.help'|trans }}</p>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-copy me-1"></i>{{ 'event_duplicate.form.submit'|trans }}
+                            </button>
+                            <a href="{{ safe_return_url(app.request.query.get('return'), edit_url) }}" class="btn btn-outline-secondary">{{ 'event_duplicate.form.cancel'|trans }}</a>
+                        </div>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

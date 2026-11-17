@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+                <title>Results Cup 2026 – Pairs Results – MySpeedPuzzling</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+
+                                                                                                                
+        <meta name="description" content="Official results of Pairs at Results Cup 2026: the organiser&#039;s ranking of 3 entrants, with times and pieces placed.">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="turbo-cache-control" content="no-cache">
+        <meta name="turbo-prefetch" content="false">
+
+                <meta name="robots" content="index, follow">
+                <script>
+        (function () {
+            var MAX_HEALS = 2;
+            var MAX_REPORTS = 3;
+
+            function read(key) {
+                try { return window.sessionStorage.getItem(key); } catch (e) { return undefined; }
+            }
+
+            function write(key, value) {
+                try { window.sessionStorage.setItem(key, value); return true; } catch (e) { return false; }
+            }
+
+                        var storedHeals = read('msp-asset-heal');
+            var heals = storedHeals === undefined ? null : (parseInt(storedHeals || '0', 10) || 0);
+            var reportedBefore = read('msp-asset-reported') === '1';
+            var reloadedByUs = false;
+            try { reloadedByUs = !!(window.history.state && window.history.state.mspAssetHeal); } catch (e) {}
+
+            var mayHeal = heals !== null && heals < MAX_HEALS && !!window.caches && !!window.fetch
+                && !(reloadedByUs && heals === 0);
+
+            var failures = [];
+            var seen = {};
+            var sent = 0;
+            var healing = false;
+
+            function verdicts() {
+                try { return JSON.parse(read('msp-asset-refetch') || '{}') || {}; } catch (e) { return {}; }
+            }
+
+            function send(failure, isHealing, verdict) {
+                if (failure.sent || sent >= MAX_REPORTS || !navigator.sendBeacon) return;
+                failure.sent = true;
+                sent++;
+
+                var meta = document.querySelector('meta[name="msp-rendered-at"]');
+                try {
+                    navigator.sendBeacon('/-/asset-load-failure', JSON.stringify({
+                        v: 2,
+                        url: failure.url,
+                        page: window.location.pathname,
+                        controlled: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+                        retry: heals !== null && heals > 0,
+                        healing: isHealing,
+                        refetch: verdict || '',
+                        rendered: meta ? parseInt(meta.getAttribute('content'), 10) || 0 : 0,
+                        webdriver: navigator.webdriver === true
+                    }));
+                } catch (e) {}
+            }
+
+                        function refetch(failure) {
+                return Promise.race([download(failure), new Promise(function (resolve) {
+                    window.setTimeout(function () { resolve('timeout'); }, 10000);
+                })]);
+            }
+
+            function download(failure) {
+                return window.fetch(failure.url, { cache: 'reload', credentials: 'same-origin' }).then(function (response) {
+                    var subtle = window.crypto && window.crypto.subtle;
+                    if (!response.ok) return 'http-' + response.status;
+                    if (!subtle || !window.btoa || !window.Uint8Array || failure.integrity.indexOf('sha384-') !== 0) return 'fetched';
+
+                    return response.arrayBuffer().then(function (body) {
+                        return subtle.digest('SHA-384', body);
+                    }).then(function (digest) {
+                        var bytes = new Uint8Array(digest);
+                        var binary = '';
+                        for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                        return failure.integrity.split(/\s+/).indexOf('sha384-' + window.btoa(binary)) === -1 ? 'corrupt' : 'intact';
+                    });
+                }, function () {
+                    return 'unreachable';
+                }).then(null, function () {
+                    return 'fetched';
+                });
+            }
+
+            function reload() {
+                                try {
+                    var state = window.history.state;
+                    var marked = {};
+                    if (state && typeof state === 'object') {
+                        for (var key in state) {
+                            if (Object.prototype.hasOwnProperty.call(state, key)) marked[key] = state[key];
+                        }
+                    }
+                    marked.mspAssetHeal = heals + 1;
+                    window.history.replaceState(marked, '');
+                } catch (e) {
+                    return;
+                }
+                window.location.reload();
+            }
+
+                        function heal() {
+                if (healing) return;
+                healing = true;
+
+                if (!write('msp-asset-heal', String(heals + 1))) {
+                    mayHeal = false;
+                    for (var i = 0; i < failures.length; i++) send(failures[i], false, '');
+                    return;
+                }
+
+                window.caches.keys().then(function (cacheNames) {
+                    return Promise.all(cacheNames.map(function (cacheName) {
+                        return window.caches.open(cacheName).then(function (cache) {
+                            return cache.keys().then(function (requests) {
+                                return Promise.all(requests.filter(function (cachedRequest) {
+                                    return cachedRequest.url.indexOf('/build/') !== -1;
+                                }).map(function (cachedRequest) {
+                                    return cache.delete(cachedRequest);
+                                }));
+                            });
+                        });
+                    }));
+                }).then(null, function () {}).then(function () {
+                    var batch = failures.slice(0, MAX_REPORTS);
+
+                    return Promise.all(batch.map(refetch)).then(function (results) {
+                        var stored = verdicts();
+                        for (var i = 0; i < batch.length; i++) {
+                            stored[batch[i].url] = results[i];
+                            send(batch[i], true, results[i]);
+                        }
+                        write('msp-asset-refetch', JSON.stringify(stored));
+                    });
+                }).then(null, function () {}).then(function () {
+                    for (var i = 0; i < failures.length; i++) send(failures[i], true, '');
+                    reload();
+                });
+            }
+
+            function fail(assetUrl, integrity) {
+                if (!assetUrl || assetUrl.indexOf('/build/') === -1 || seen[assetUrl]) return;
+                seen[assetUrl] = true;
+
+                var failure = { url: assetUrl, integrity: integrity || '', sent: false };
+                failures.push(failure);
+
+                if (mayHeal) {
+                    heal();
+                } else if (!reportedBefore) {
+                                        send(failure, false, verdicts()[assetUrl]);
+                    write('msp-asset-reported', '1');
+                }
+            }
+
+            window.addEventListener('error', function (event) {
+                var element = event.target;
+                if (!element || !element.tagName) return;
+                if (element.tagName !== 'SCRIPT' && element.tagName !== 'LINK') return;
+                fail(element.src || element.href || '', element.getAttribute('integrity'));
+            }, true);
+
+                        window.addEventListener('load', function () {
+                var links = document.querySelectorAll('link[rel="stylesheet"]');
+
+                for (var i = 0; i < links.length; i++) {
+                    var href = links[i].href || '';
+                    if (href.indexOf('/build/') === -1) continue;
+
+                    var sheet;
+                    try { sheet = links[i].sheet; } catch (e) { continue; }
+                    if (sheet === null || sheet === undefined) { fail(href, links[i].getAttribute('integrity')); continue; }
+
+                                        try { if (sheet.cssRules.length === 0) fail(href, links[i].getAttribute('integrity')); } catch (e) {}
+                }
+            });
+        })();
+        </script>
+
+                <meta name="msp-rendered-at" content="">        <script>
+        (function () {
+            var STALE_AFTER_SECONDS = 300;
+
+            try {
+                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+                if (!window.fetch || !window.performance || !performance.getEntriesByType) return;
+
+                var meta = document.querySelector('meta[name="msp-rendered-at"]');
+                var renderedAt = meta ? parseInt(meta.getAttribute('content'), 10) : 0;
+                if (!renderedAt) return;
+
+                var navigation = performance.getEntriesByType('navigation')[0];
+                if (!navigation || (navigation.type !== 'navigate' && navigation.type !== 'reload')) return;
+
+                if (Date.now() / 1000 - renderedAt < STALE_AFTER_SECONDS) return;
+
+                fetch('/service-worker.js', { method: 'HEAD', cache: 'no-store' }).then(function (response) {
+                    var serverNow = Date.parse(response.headers.get('Date') || '') / 1000;
+                    var age = Math.round(serverNow - renderedAt);
+                    if (!(age >= STALE_AFTER_SECONDS)) return;
+
+                    var healed;
+                    try { healed = window.sessionStorage.getItem('msp-stale-heal') === '1'; }
+                    catch (e) { return; }
+
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('/-/stale-document', JSON.stringify({
+                            page: window.location.pathname,
+                            age: age,
+                            type: navigation.type,
+                            delivery: navigation.deliveryType || '',
+                            transferSize: navigation.transferSize,
+                            throughWorker: navigation.workerStart > 0,
+                            discarded: document.wasDiscarded === true,
+                            retry: healed
+                        }));
+                    }
+
+                    if (healed || !window.caches) return;
+                    try { window.sessionStorage.setItem('msp-stale-heal', '1'); } catch (e) { return; }
+
+                    // Drop this URL from every cache first, or a worker that
+                    // answers from one would hand the same copy straight back.
+                    window.caches.keys().then(function (cacheNames) {
+                        return Promise.all(cacheNames.map(function (cacheName) {
+                            return window.caches.open(cacheName).then(function (cache) {
+                                return cache.delete(window.location.href);
+                            });
+                        }));
+                    }).then(function () {
+                        window.location.reload();
+                    }, function () {
+                        window.location.reload();
+                    });
+                }, function () {});
+            } catch (e) {}
+        })();
+        </script>
+
+        <meta property="og:title" content="Results Cup 2026 – Pairs Results – MySpeedPuzzling">
+        <meta property="og:description" content="Official results of Pairs at Results Cup 2026: the organiser&#039;s ranking of 3 entrants, with times and pieces placed.">
+        <meta property="og:type" content="website">
+        <meta property="og:image" content="http://localhost/img/speedpuzzling-logo.png">
+        <meta property="og:url" content="http://localhost/en/events/results-cup/results/pairs">
+                <meta property="og:site_name" content="MySpeedPuzzling">
+        <meta property="og:locale" content="en_US">
+                                    <meta property="og:locale:alternate" content="cs_CZ">
+                                                                    <meta property="og:locale:alternate" content="es_ES">
+                                                <meta property="og:locale:alternate" content="ja_JP">
+                                                <meta property="og:locale:alternate" content="fr_FR">
+                                                <meta property="og:locale:alternate" content="de_DE">
+                            <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="Results Cup 2026 – Pairs Results – MySpeedPuzzling">
+        <meta name="twitter:description" content="Official results of Pairs at Results Cup 2026: the organiser&#039;s ranking of 3 entrants, with times and pieces placed.">
+        <meta name="twitter:image" content="http://localhost/img/speedpuzzling-logo.png">
+
+                <link rel="preconnect" href="http://localhost:19100" crossorigin>
+        <link rel="dns-prefetch" href="http://localhost:19100">
+
+                        <link rel="preload" href="/fonts/rubik/rubik-latin.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/rubik/rubik-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2">
+        <link rel="manifest" href="/site.webmanifest?v=2">
+        <link rel="mask-icon" href="/safari-pinned-tab.svg?v=2" color="#2d89ef">
+        <link rel="shortcut icon" href="/favicon.ico?v=2">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="msapplication-TileColor" content="#2d89ef">
+        <meta name="theme-color" content="#fe696a">
+
+        <link type="text/plain" rel="author" href="/humans.txt">
+
+                                    <link rel="canonical" href="http://localhost/en/events/results-cup/results/pairs">
+                    
+                        <style>@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url(/fonts/rubik/rubik-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url(/fonts/rubik/rubik-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-display:swap;font-family:cartzilla-icons;font-style:normal;font-weight:400;src:url(/build/fonts/cartzilla-icons.woff) format("woff")}@font-face{font-display:swap;font-family:bootstrap-icons;src:url(/build/fonts/bootstrap-icons.woff2) format("woff2"),url(/build/fonts/bootstrap-icons.woff) format("woff")}[class^=ci-],[class*=" ci-"]{font-family:cartzilla-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}.ci-search:before{content:"\e972"}.ci-sign-in:before{content:"\e99e"}.ci-user:before{content:"\e98d"}.ci-add:before{content:"\e903"}.ci-bell:before{content:"\e912"}.ci-mail:before{content:"\e956"}.ci-user-circle:before{content:"\e98c"}.ci-key:before{content:"\e94c"}.ci-time:before{content:"\e986"}.ci-calendar:before{content:"\e9de"}.bi{font-family:bootstrap-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}.bi-house-door::before{content:"\f423"}.bi-puzzle::before{content:"\f503"}.bi-shop::before{content:"\f543"}.bi-trophy::before{content:"\f5e7"}.bi-people::before{content:"\f4d0"}.bi-patch-question::before{content:"\f4be"}*,::after,::before{box-sizing:border-box}html{font-size:100%}@media(min-width:768px){html{font-size:106.25%}}@media(min-width:1200px){html{font-size:112.5%}}body{margin:0;font-family:Rubik,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.9375rem;line-height:1.5;color:#4b566b;background:#fff;display:flex;flex-direction:column;min-height:100vh}a{color:#fe696a;text-decoration:none}img{max-width:100%;height:auto}small{font-size:.875rem}:root{--header-height:101px}@media(min-width:992px){:root{--header-height:97px}}main{flex-grow:1}.css-loading footer{visibility:hidden}.css-loading main{opacity:0;transition:opacity .1s}.row{display:flex;flex-wrap:wrap}.col-lg-6{width:100%}@media(min-width:992px){.col-lg-6{flex:0 0 auto;width:50%}}.mt-4{margin-top:1.5rem!important}.mt-5{margin-top:3rem!important}.pt-2{padding-top:.5rem!important}.mb-0{margin-bottom:0!important}.h3{font-size:1.375rem;font-weight:500}.h4{font-size:1.1875rem;font-weight:500}.table{width:100%;margin-bottom:1rem;vertical-align:top;border-color:#dee2e6}.table>:not(caption)>*>*{padding:.5rem}.table-striped>tbody>tr:nth-of-type(odd)>*{background-color:#fdfdfd}.nav-tabs{border-bottom:1px solid #dee2e6;display:flex}.nav-fill>.nav-item{flex:1 1 auto;text-align:center}.nav-link{display:block;padding:.5rem 1rem;color:#4b566b}.nav-tabs .nav-link.active{color:#495057;background-color:#fff;border-color:#dee2e6 #dee2e6 #fff}.placeholder-glow .placeholder{animation:placeholder-glow 2s ease-in-out infinite}.placeholder{display:inline-block;min-height:1em;vertical-align:middle;cursor:wait;background-color:currentcolor;opacity:.5;border-radius:.25rem}@keyframes placeholder-glow{50%{opacity:.2}}.tab-content>.tab-pane{display:none}.tab-content>.active{display:block}.fade:not(.show){opacity:0}.custom-table-wrapper{border-radius:8px 8px 0 0;box-shadow:rgba(0,0,0,.25) 0 0 10px 0}.text-center{text-align:center!important}.text-end{text-align:right!important}.d-sm-none{display:none!important}@media(max-width:575.98px){.d-sm-none{display:block!important}.d-none.d-sm-table-cell{display:none!important}}.table-responsive{overflow-x:auto}.fixed-top{position:fixed;top:0;right:0;left:0;z-index:1030}.sticky-top{position:sticky;top:0;z-index:1030}.shadow-sm{box-shadow:0 .125rem .25rem rgba(0,0,0,.075)}header{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.topbar{display:flex;align-items:center;justify-content:space-between;padding:.1875rem 0;font-size:.875rem}.topbar-light{background:rgba(240,244,246,.7)}.topbar-text,.topbar-link{display:inline-block;text-decoration:none!important;color:rgba(75,86,107,.9)}.topbar-link>i,.topbar-text>i{margin-right:.375rem;font-size:1.15em;vertical-align:middle;color:#fe696a}.navbar{background:rgba(255,255,255,.66);padding:2px 0}.navbar>.container{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}.container{width:100%;padding-right:.75rem;padding-left:.75rem;margin-right:auto;margin-left:auto}@media(min-width:576px){.container{max-width:540px}}@media(min-width:768px){.container{max-width:720px}}@media(min-width:992px){.container{max-width:960px}}@media(min-width:1200px){.container{max-width:1140px}}@media(min-width:1400px){.container{max-width:1320px}}.d-flex{display:flex!important}.d-none{display:none!important}.align-items-center{align-items:center!important}.text-nowrap{white-space:nowrap!important}.ms-1{margin-left:.25rem!important}.ms-2{margin-left:.5rem!important}.me-1{margin-right:.25rem!important}.me-2{margin-right:.5rem!important}.me-n1{margin-right:-.25rem!important}.me-auto{margin-right:auto!important}.ms-n3{margin-left:-1rem!important}.position-relative{position:relative!important}@media(min-width:576px){.ms-sm-3{margin-left:1rem!important}.me-sm-3{margin-right:1rem!important}}@media(min-width:992px){.d-lg-block{display:block!important}.d-lg-none{display:none!important}.d-lg-flex{display:flex!important}.d-lg-inline{display:inline!important}.flex-lg-column{flex-direction:column!important}.align-items-lg-center{align-items:center!important}.text-lg-center{text-align:center!important}.order-lg-1{order:1!important}.order-lg-2{order:2!important}.order-lg-3{order:3!important}.ms-lg-0{margin-left:0!important}.ms-lg-3{margin-left:1rem!important}.me-lg-2{margin-right:.5rem!important}.me-lg-3{margin-right:1rem!important}}.visually-hidden-focusable:not(:focus):not(:focus-within){position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}ul,ol{margin:0;padding:0;list-style:none}.navbar-brand{display:inline-flex;align-items:center;padding:.25rem 0;margin-right:0!important}.navbar-tool{display:flex;align-items:center;position:relative}.navbar-tool-icon-box{width:2.875rem;height:2.875rem;border-radius:50%;text-align:center;line-height:2.625rem}.navbar-tool-icon{font-size:1.25rem;line-height:2.875rem;color:#4b566b}.navbar-tool-text{display:none;flex-shrink:0;padding-left:.875rem;font-size:.875rem;white-space:nowrap}@media(min-width:992px){.navbar-tool-text{display:block}}.navbar-tool-label{position:absolute;top:1.6rem;right:-.1rem;width:1.25rem;height:1.25rem;border-radius:50%;background-color:#fe696a;color:#fff;font-size:.75rem;font-weight:500;text-align:center;line-height:1.25rem}.navbar-tool-label.bg-secondary{background:#e2e6ea!important}.text-dark{color:#373f50!important}.dropdown{position:relative}.dropdown-toggle::after{display:inline-block;margin-left:.255em;vertical-align:.255em;content:"";border-top:.3em solid;border-right:.3em solid transparent;border-left:.3em solid transparent}.dropdown-toggle.navbar-tool::after{color:#4b566b!important;margin-left:-7px}@media(min-width:992px){.dropdown-toggle.navbar-tool::after{margin-left:4px}}.no-caret::after{display:none!important}.navbar-toggler{border:none;background:transparent;width:50px;height:50px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;cursor:pointer;padding:18px 14px}.toggler-bar{display:block;width:100%;height:2px;background-color:#4b566b;border-radius:2px}.collapse:not(.show){display:none}.navbar-nav{display:flex;flex-direction:column;padding-left:0;margin-bottom:0;list-style:none}.navbar-light .nav-item{background:transparent!important;margin-bottom:0}.nav-link{display:block;padding:.5rem 1rem;color:#4b566b;font-weight:500;text-decoration:none}@media(min-width:992px){.navbar-expand-lg{flex-wrap:nowrap}.navbar-expand-lg .navbar-collapse{display:flex!important;flex-basis:auto}.navbar-expand-lg .navbar-toggler{display:none}.navbar-expand-lg .navbar-nav{flex-direction:row}.navbar-nav .nav-link{line-height:1.2;padding-top:.25rem!important;padding-bottom:.25rem!important}.navbar-nav .nav-link>i{font-size:1.15rem;height:23px;line-height:23px}.navbar-nav .nav-link>small{font-size:.8rem}}.bg-secondary{background-color:#f3f5f9!important}.fi{display:inline-block;width:1.333em;height:1em;line-height:1em}.global-search{opacity:0;pointer-events:none;position:fixed;z-index:1015}.global-search-overlay{opacity:0;pointer-events:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1014}.modal{display:none}.fade:not(.show){opacity:0}.dropdown-menu{display:none;position:absolute}.badge{display:inline-block;padding:.35em .65em;font-size:.75em;font-weight:500;line-height:1;text-align:center;white-space:nowrap;vertical-align:baseline;border-radius:.25rem}.bg-primary{background-color:#fe696a!important;color:#fff}</style>
+        <link rel="stylesheet" href="/build/vendors-node_modules_hotwired_turbo_dist_turbo_es2017-esm_js-node_modules_symfony_stimulus-br-60558f.css" data-turbo-track="reload"><link rel="stylesheet" href="/build/app.css" data-turbo-track="reload">
+                
+                                            <link rel="alternate" hreflang="cs" href="http://localhost/eventy/results-cup/vysledky/pairs">
+                <link rel="alternate" hreflang="en" href="http://localhost/en/events/results-cup/results/pairs">
+                <link rel="alternate" hreflang="es" href="http://localhost/es/eventos/results-cup/resultados/pairs">
+                <link rel="alternate" hreflang="ja" href="http://localhost/ja/%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88/results-cup/results/pairs">
+                <link rel="alternate" hreflang="fr" href="http://localhost/fr/evenements/results-cup/resultats/pairs">
+                <link rel="alternate" hreflang="de" href="http://localhost/de/veranstaltungen/results-cup/ergebnisse/pairs">
+                                    <link rel="alternate" hreflang="x-default" href="http://localhost/en/events/results-cup/results/pairs">
+                                    
+        <script src="/build/runtime.js" defer data-turbo-track="reload"></script><script src="/build/vendors-node_modules_hotwired_turbo_dist_turbo_es2017-esm_js-node_modules_symfony_stimulus-br-60558f.js" defer data-turbo-track="reload"></script><script src="/build/app.js" defer data-turbo-track="reload"></script>
+
+        <!-- JSON-LD Structured Data -->
+                <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "Organization",
+                    "@id": "https://myspeedpuzzling.com/#organization",
+                    "name": "MySpeedPuzzling",
+                    "url": "http:\/\/localhost\/",
+                    "logo": "http:\/\/localhost\/img\/speedpuzzling-logo.png",
+                    "description": "Join the world\u0027s largest speed puzzling community. Track jigsaw puzzle solve times, climb global leaderboards, and find competitions near you.",
+                    "sameAs": [
+                        "https://www.instagram.com/myspeedpuzzling/",
+                        "https://github.com/MySpeedPuzzling/myspeedpuzzling.com"
+                    ],
+                    "contactPoint": {
+                        "@type": "ContactPoint",
+                        "email": "simona@speedpuzzling.cz",
+                        "contactType": "customer service"
+                    },
+                    "founder": [
+                        {
+                            "@type": "Person",
+                            "name": "Simona Mikešová"
+                        },
+                        {
+                            "@type": "Person",
+                            "name": "Jan Mikeš",
+                            "url": "https://janmikes.cz"
+                        }
+                    ]
+                },
+                {
+                    "@type": "WebSite",
+                    "@id": "https://myspeedpuzzling.com/#website",
+                    "url": "http:\/\/localhost\/",
+                    "name": "MySpeedPuzzling",
+                    "alternateName": ["My Speed Puzzling", "Speed Puzzling"],
+                    "publisher": {"@id": "https://myspeedpuzzling.com/#organization"},
+                    "inLanguage": "en"
+                }
+            ]
+        }
+        </script>
+            </head>
+                        <body class="lang-en"
+          data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast"
+          >
+        <a href="#main-content" class="visually-hidden-focusable">Skip to content</a>
+                                <header class="sticky-top shadow-sm" data-controller="header-height">
+            <div class="topbar topbar-light">
+                <div class="container">
+                    <div class="topbar-text text-nowrap">
+                                                
+                        <a data-turbo="true" rel="nofollow" class="topbar-link" href="/en/feedback?url=http://localhost/en/events/results-cup/results/pairs" >
+                            <i class="ci-mail"></i> <span class="topbar-feedback-label">Send feedback</span>
+                        </a>
+
+                        <a class="ms-2 ms-sm-3 topbar-link" href="/en/membership">
+                            <i class="ci-user-circle"></i> Membership
+                                                    </a>
+
+                        <a class="ms-2 ms-sm-3 topbar-link d-none d-md-inline" href="/en/feature-requests">
+                            <i class="ci-idea"></i> Feature Requests
+                        </a>
+                    </div>
+
+                    <div class="text-nowrap">
+                        <div class="topbar-text dropdown disable-autohide">
+                            <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <span class="fi shadow-custom fi-us shadow-custom me-1"></span>
+                                EN
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end" data-controller="locale-preference">
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/de/veranstaltungen/results-cup/ergebnisse/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="de">
+                <span class="fi shadow-custom fi-de me-1"></span> Deutsch
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/eventy/results-cup/vysledky/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="cs">
+                <span class="fi shadow-custom fi-cz me-1"></span> Čeština
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/fr/evenements/results-cup/resultats/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="fr">
+                <span class="fi shadow-custom fi-fr me-1"></span> Français
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/es/eventos/results-cup/resultados/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="es">
+                <span class="fi shadow-custom fi-es me-1"></span> Español
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/ja/%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88/results-cup/results/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="ja">
+                <span class="fi shadow-custom fi-jp me-1"></span> 日本語
+            </a>
+        </li>
+    </ul>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navbar navbar-expand-lg navbar-light">
+                <div class="container">
+                    <a class="navbar-brand d-none d-lg-block order-lg-1" href="/">
+                        <img width="50" height="44" src="/img/speedpuzzling-logo.svg" alt="MySpeedPuzzling.com"/>
+                    </a>
+
+                    <a class="navbar-brand d-lg-none me-2" href="/">
+                        <img width="50" height="44" src="/img/speedpuzzling-logo.svg" alt="MySpeedPuzzling.com"/>
+                    </a>
+
+                    <!-- Toolbar -->
+                    <div class="navbar-toolbar d-flex align-items-center order-lg-3 ms-lg-3">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#" aria-label="Search">
+                            <div class="navbar-tool-icon-box">
+                                <i class="navbar-tool-icon ci-search" aria-hidden="true"></i>
+                            </div>
+                            <div class="navbar-tool-text ms-n3"><small>Search</small></div>
+                        </a>
+
+                                                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="/register" aria-label="Register">
+                                <div class="navbar-tool-icon-box">
+                                    <i class="navbar-tool-icon ci-add-user" aria-hidden="true"></i>
+                                </div>
+                                <div class="navbar-tool-text ms-n3"><small>Register</small></div>
+                            </a>
+
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="/en/my-profile" aria-label="Sign in">
+                                <div class="navbar-tool-icon-box">
+                                    <i class="navbar-tool-icon ci-sign-in" aria-hidden="true"></i>
+                                </div>
+                                <div class="navbar-tool-text ms-n3"><small>Sign in</small></div>
+                            </a>
+                        
+
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 " rel="nofollow" href="/en/puzzle-add" aria-label="Add">
+                            <div class="navbar-tool-icon-box">
+                                <i class="navbar-tool-icon ci-add" aria-hidden="true"></i>
+                            </div>
+                            <div class="navbar-tool-text ms-n3"><small>Add</small></div>
+                        </a>
+
+                        
+                                                
+                                                    <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2" rel="nofollow" href="/en/notifications" data-turbo-prefetch="false" aria-label="Notifications (0)">
+                                <div class="navbar-tool-icon-box">
+                                    <span class="navbar-tool-label bg-secondary text-dark" aria-hidden="true">0</span>
+                                    <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
+                                </div>
+                            </a>
+                        
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false" aria-controls="navbarCollapse" aria-label="Toggle navigation">
+                            <span class="toggler-bar"></span>
+                            <span class="toggler-bar"></span>
+                            <span class="toggler-bar"></span>
+                        </button>
+                    </div>
+
+                    <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
+                        <hr class="d-lg-none my-2">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/hub">
+                                    <i class="me-1 me-lg-0 bi bi-house-door"></i>
+                                    <small class="d-none d-lg-block">Hub</small>
+                                    <span class="d-lg-none">Hub</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/puzzle">
+                                    <i class="me-1 me-lg-0 bi bi-puzzle"></i>
+                                    <small class="d-none d-lg-block">Puzzle</small>
+                                    <span class="d-lg-none">Puzzle</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/marketplace">
+                                    <i class="me-1 me-lg-0 bi bi-shop"></i>
+                                    <small class="d-none d-lg-block">Marketplace</small>
+                                    <span class="d-lg-none">Marketplace</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/ladder">
+                                    <i class="me-1 me-lg-0 bi bi-trophy"></i>
+                                    <small class="d-none d-lg-block">Leaderboards</small>
+                                    <span class="d-lg-none">Leaderboards</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/puzzlers">
+                                    <i class="me-1 me-lg-0 bi bi-people"></i>
+                                    <small class="d-none d-lg-block">Players</small>
+                                    <span class="d-lg-none">Players</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/events">
+                                    <i class="me-1 me-lg-0 ci-calendar"></i>
+                                    <small class="d-none d-lg-block">Events</small>
+                                    <span class="d-lg-none">Events</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/stopwatch">
+                                    <i class="me-1 me-lg-0 ci-time"></i>
+                                    <small class="d-none d-lg-block">Stopwatch</small>
+                                    <span class="d-lg-none">Stopwatch</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/faq">
+                                    <i class="me-1 me-lg-0 bi bi-patch-question"></i>
+                                    <small class="d-none d-lg-block">FAQ</small>
+                                    <span class="d-lg-none">FAQ</span>
+                                </a>
+                            </li>
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center " href="/en/feature-requests">
+                                    <i class="me-1 bi bi-lightbulb"></i>
+                                    <span class="d-lg-none">Feature Requests</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+                
+        <main id="main-content">
+            <div data-global-search-target="searchBar" class="global-search">
+                <div  data-controller="live" data-live-name-value="GlobalSearch" data-live-url-value="/en/_components/GlobalSearch" id="live-1289830290-0" data-live-props-value="{&quot;query&quot;:&quot;&quot;,&quot;@attributes&quot;:{&quot;id&quot;:&quot;live-1289830290-0&quot;},&quot;@checksum&quot;:&quot;gA2eVagN00N99UUiXbqAsy+PrgjosZXaYjIqkMsMeJU=&quot;}">
+    <div data-controller="barcode-scanner">
+        <div class="input-group position-relative">
+            <input type="search" data-model="debounce(150)|query" class="form-control" data-barcode-scanner-target="input" data-global-search-target="searchInput" placeholder="Search puzzle or player...">
+                            <button
+                    class="btn btn-secondary border-0 px-3 fs-6 position-relative"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                    aria-label="Scan barcode"
+                >
+                    <i class="bi-upc-scan text-muted" aria-hidden="true"></i>
+                    <i class="ci-locked position-absolute fs-sm" style="right: 2px;top: 7px;" aria-hidden="true"></i>
+                </button>
+            
+            <button type="button"
+                    class="close btn btn-primary fw-bold px-3 fs-6"
+                    aria-label="Close"
+                    data-action="click->global-search#closeSearchBar">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+                <div data-barcode-scanner-target="wrapper"
+     data-live-ignore
+     class="barcode-scanner-viewfinder position-relative d-none global-search-barcode-scan">
+    <div class="spinner spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading</span>
+    </div>
+    <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100"></canvas>
+    
+    <div class="barcode-scanner-hud">
+    <p class="barcode-scanner-hint" data-barcode-scanner-target="hint">Hold the barcode about 20 cm away. Tap the picture to refocus.</p>
+    <div data-barcode-scanner-target="zoomContainer" class="barcode-scanner-pill d-none">
+        <button type="button"
+                data-action="click->barcode-scanner#toggleTorch"
+                data-barcode-scanner-target="torchButton"
+                class="btn btn-sm btn-outline-secondary rounded-circle p-1 d-none"
+                aria-pressed="false"
+                aria-label="Light"
+                title="Light">
+            <i class="bi-lightbulb" aria-hidden="true"></i>
+        </button>
+        <span data-barcode-scanner-target="zoomControls" class="d-none align-items-center gap-1">
+            <span data-barcode-scanner-target="zoomValue" data-label="Zoom %zoom%×" class="small text-nowrap"></span>
+            <button type="button"
+                    data-action="click->barcode-scanner#zoomOut"
+                    data-barcode-scanner-target="zoomOut"
+                    class="btn btn-sm btn-outline-secondary rounded-circle p-1"
+                    aria-label="Zoom out">
+                <i class="bi-dash" aria-hidden="true"></i>
+            </button>
+            <button type="button"
+                    data-action="click->barcode-scanner#zoomIn"
+                    data-barcode-scanner-target="zoomIn"
+                    class="btn btn-sm btn-outline-secondary rounded-circle p-1"
+                    aria-label="Zoom in">
+                <i class="bi-plus" aria-hidden="true"></i>
+            </button>
+        </span>
+    </div>
+</div>
+
+</div>
+
+
+        
+    </div>
+</div>
+
+            </div>
+
+                                                                                                            
+                            <section class="container px-3 pt-2 pt-md-3 pt-lg-4 mb-4">
+                        
+        <div class="mb-2">
+        <a href="/en/events/results-cup" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+            <i class="ci-arrow-left me-1"></i> <small class="text-muted">Back to</small> Results Cup
+        </a>
+    </div>
+
+
+    <p class="mb-1 small">
+        <a href="/en/events/results-cup" class="text-muted">Results Cup</a>
+    </p>
+
+    <h1 class="h4 mb-2">
+        <span class="badge align-middle" style="background-color: #ffe119; color: #000000;">Pairs</span>
+        <span class="text-muted fw-normal">– results</span>
+    </h1>
+
+    <div class="text-muted small mb-3">        <i class="bi bi-calendar-event me-1"></i>04.10.2026 15:00 <span class="text-muted" data-round-zone>(Czechia Time)</span>        <span class="mx-1">&middot;</span>        <i class="bi bi-stopwatch me-1"></i>90 min limit
+        <span class="mx-1">&middot;</span>        <span data-round-category>Pair</span>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                    <a class="btn btn-sm btn-outline-secondary" href="/en/events/results-cup/results/group-b">
+                <i class="bi bi-chevron-left"></i> Group B
+            </a>
+        
+                    <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    All rounds
+                </button>
+                <ul class="dropdown-menu">
+                                            <li>
+                            <a class="dropdown-item " href="/en/events/results-cup/results/group-a">
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: #e6194b;" aria-hidden="true"></span>Group A
+                                <small class="text-muted ms-1">04.10. 11:00</small>
+                            </a>
+                        </li>
+                                            <li>
+                            <a class="dropdown-item " href="/en/events/results-cup/results/group-b">
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: #5fd36e;" aria-hidden="true"></span>Group B
+                                <small class="text-muted ms-1">04.10. 13:00</small>
+                            </a>
+                        </li>
+                                            <li>
+                            <a class="dropdown-item active" href="/en/events/results-cup/results/pairs">
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: #ffe119;" aria-hidden="true"></span>Pairs
+                                <small class=" ms-1">04.10. 15:00</small>
+                            </a>
+                        </li>
+                                            <li>
+                            <a class="dropdown-item " href="/en/events/results-cup/results/final">
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: #007abb;" aria-hidden="true"></span>Final
+                                <small class="text-muted ms-1">04.10. 17:00</small>
+                            </a>
+                        </li>
+                                            <li>
+                            <a class="dropdown-item " href="/en/events/results-cup/results/pairs-final">
+                                <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: #ffa057;" aria-hidden="true"></span>Pairs Final
+                                <small class="text-muted ms-1">04.10. 19:00</small>
+                            </a>
+                        </li>
+                                    </ul>
+            </div>
+        
+                    <a class="btn btn-sm btn-outline-secondary" href="/en/events/results-cup/results/final">
+                Final <i class="bi bi-chevron-right"></i>
+            </a>
+            </div>
+
+        
+    
+    
+        
+        <div class="card card-body shadow-sm p-2 mb-3">
+            <div class="d-flex align-items-center">
+                <a href="/en/puzzle/018d0003-0000-0000-0000-000000000014" class="flex-shrink-0" style="width: 90px;">
+                    <span class="diff-corner-host">
+                                                <span class="lazy-img-wrapper lazy-img-80 rounded-2 puzzle-row-image" style="width:80px;height:80px"><picture><img src="/img/placeholder-puzzle.jpg" alt="Ravensburger Puzzle 14 - puzzle image" loading="eager" class="lazy-img loaded" width="80" height="80" style="max-height:80px"></picture></span>
+
+                                                                    </span>
+                </a>
+
+                <div class="ps-3 flex-grow-1">
+                    <a class="text-decoration-underline" href="/en/puzzle/018d0003-0000-0000-0000-000000000014">Puzzle 14</a>
+                    <div class="small text-muted">
+                        Ravensburger &middot; 2000&nbsp;pieces
+                    </div>
+                </div>
+
+                            </div>
+        </div>
+
+<section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results>
+    <h2 class="h5 mb-1" id="official-results-heading"><i class="bi bi-trophy me-1" aria-hidden="true"></i>Official results</h2>
+    <p class="small text-muted mb-2">The organiser&#039;s ranking of the round.</p>
+
+            <div class="custom-table-wrapper lb-wrapper mb-2">
+            <table class="table custom-table lb-table official-results-table mb-0">
+                <caption class="visually-hidden">Official results of Pairs</caption>
+                <thead>
+                <tr>
+                    <th scope="col" class="lb-rank-head"><abbr title="Rank">#</abbr></th>
+                    <th scope="col">Pair</th>
+                    <th scope="col" class="text-end">Result</th>
+                </tr>
+                </thead>
+                <tbody>
+                                    <tr class="" data-official-entry="team:018d0020-0000-0000-0000-000000000401" data-official-rank="1">
+                        <td class="rank">
+                            <span class="lb-rank lb-rank-podium lb-rank-podium-1">1</span>
+                        </td>
+
+                        <td class="lb-solver">
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-cz" title="Czechia"></span></span>
+<a class="lb-name" href="/en/player-profile/018d0000-0000-0000-0000-000000000003">Anna Fast</a></span>
+
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-de" title="Germany"></span></span>
+<span class="lb-name lb-name-guest">Ben Steady</span></span>
+
+                            
+                                                            <div class="lb-badges"><span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> Puzzle Sharks</span><span class="badge rounded-pill official-qualified-badge" title="Qualified" data-official-qualified><span aria-hidden="true">Q</span><span class="visually-hidden">Qualified</span></span></div>
+                            
+                                                    </td>
+
+                        <td class="lb-time">
+                            <span class="lb-time-value">01:30:00</span>
+                        </td>
+                    </tr>
+                                    <tr class="" data-official-entry="team:018d0020-0000-0000-0000-000000000404" data-official-rank="2">
+                        <td class="rank">
+                            <span class="lb-rank lb-rank-podium lb-rank-podium-2">2</span>
+                        </td>
+
+                        <td class="lb-solver">
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-us" title="United States of America"></span></span>
+<span class="lb-name lb-name-guest">Gina Quick</span></span>
+
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-de" title="Germany"></span></span>
+<a class="lb-name" href="/en/player-profile/018d0000-0000-0000-0000-000000000001">Hugo Slow</a></span>
+
+                            
+                                                            <div class="lb-badges"><span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> Edge Hunters</span><span class="badge rounded-pill official-qualified-badge" title="Qualified" data-official-qualified><span aria-hidden="true">Q</span><span class="visually-hidden">Qualified</span></span></div>
+                            
+                                                    </td>
+
+                        <td class="lb-time">
+                            <span class="lb-time-value">01:40:00</span>
+                        </td>
+                    </tr>
+                                    <tr class="" data-official-entry="team:018d0020-0000-0000-0000-000000000402" data-official-rank="3">
+                        <td class="rank">
+                            <span class="lb-rank lb-rank-podium lb-rank-podium-3">3</span>
+                        </td>
+
+                        <td class="lb-solver">
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-us" title="United States of America"></span></span>
+<span class="lb-name lb-name-guest">Cara Tied</span></span>
+
+                                                            <span class="lb-player lb-player-sm"><span class="lb-avatar">        <span class="lb-avatar-img lb-avatar-flag fi fis fi-cz" title="Czechia"></span></span>
+<span class="lb-name lb-name-guest">Dan Unfinished</span></span>
+
+                            
+                                                            <div class="lb-badges"><span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> Corner Pieces</span></div>
+                            
+                                                    </td>
+
+                        <td class="lb-time">
+                            <span class="lb-time-value">1700 / 2000 pcs</span>
+                        </td>
+                    </tr>
+                                </tbody>
+            </table>
+        </div>
+
+                
+                    <p class="small text-muted mb-0" data-official-legend>
+                <span class="badge rounded-pill official-qualified-badge" aria-hidden="true">Q</span>
+                Qualified
+            </p>
+            </section>
+
+                </section>
+                    </main>
+
+                        <footer class="site-footer">
+                                            <section class="footer-newsletter" aria-labelledby="footer-newsletter-title">
+    <div class="container px-3 footer-newsletter-inner">
+        <div>
+            <h2 class="footer-newsletter-title" id="footer-newsletter-title">What&#039;s new on MySpeedPuzzling</h2>
+            <p class="mb-0">New features and platform news, once a month. No marketing, no promotions.</p>
+        </div>
+
+                <form action="/en/newsletter/subscribe" method="post" data-turbo-frame="modal-frame">
+            <input type="hidden" name="_token" value="">
+            <div class="visually-hidden" aria-hidden="true">
+    <label>Leave this field empty
+        <input type="text" name="homepage" value="" tabindex="-1" autocomplete="off">
+    </label>
+</div>
+            <div class="input-group">
+                <input type="email" class="form-control" name="email" required autocomplete="email"
+                       placeholder="Your e-mail address"
+                       aria-label="Your e-mail address">
+                <button class="btn btn-primary" type="submit">Subscribe</button>
+            </div>
+            <p class="footer-newsletter-consent">By subscribing you agree to receiving the MySpeedPuzzling newsletter. Unsubscribe anytime with one click. <a href="/en/privacy-policy">Privacy policy</a></p>
+        </form>
+    </div>
+</section>
+            
+            <div class="container px-3 footer-main">
+    <nav class="footer-columns" aria-label="Site links">
+        <div>
+            <h2 class="footer-heading">Discover</h2>
+            <ul class="footer-links">
+                <li><a href="/en/puzzle">Puzzle database</a></li>
+                <li><a href="/en/ladder">Leaderboards</a></li>
+                                    <li><a href="/en/achievements">Achievements</a></li>
+                                <li><a href="/en/puzzlers">Players</a></li>
+                <li><a href="/en/recent-activity">Latest Puzzle Times</a></li>
+                <li><a href="/en/events">Events</a></li>
+                <li><a href="/en/partner-finder">Partner finder</a></li>
+                <li><a href="/en/marketplace">Marketplace</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">Track</h2>
+            <ul class="footer-links">
+                <li><a rel="nofollow" href="/en/puzzle-add">Add puzzle</a></li>
+                <li><a rel="nofollow" href="/en/stopwatch">Stopwatch</a></li>
+                <li><a rel="nofollow" href="/en/multiscan">Scanning</a></li>
+                                <li><a href="/en/import-your-spreadsheet">Import a spreadsheet</a></li>
+                <li><a href="/en/what-to-solve-next">What should I solve next?</a></li>
+                <li><a rel="nofollow" href="/en/pairs-and-teams">Pairs &amp; teams</a></li>
+                <li><a rel="nofollow" href="/en/compare">Compare</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">Learn</h2>
+            <ul class="footer-links">
+                                    <li><a href="/en/how-progress-works">How progress works</a></li>
+                                <li><a href="/en/getting-started">Getting started</a></li>
+                <li><a href="/en/guides">Speed Puzzling Guides</a></li>
+                <li><a href="/en/faq">FAQ</a></li>
+                <li><a href="/en/methodology">Difficulty &amp; Rating Methodology</a></li>
+                <li><a href="/en/world-jigsaw-puzzle-championship">World Jigsaw Puzzle Championship</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h2 class="footer-heading">MySpeedPuzzling</h2>
+            <ul class="footer-links">
+                <li><a href="/en/puzzle-tracker-app">Puzzle Tracker App</a></li>
+                <li><a rel="nofollow" href="/en/membership">Membership</a></li>
+                <li><a href="/en/feature-requests">Feature Requests</a></li>
+                <li><a rel="nofollow" href="/en/puzzles-needing-improvement">Help improve puzzles</a></li>
+                <li><a rel="nofollow" href="/en/feedback?url=http://localhost/en/events/results-cup/results/pairs" >Send feedback</a></li>
+                <li><a href="/en/for-organizers">For Organizers</a></li>
+                <li><a href="/en/for-developers">For Developers</a></li>
+            </ul>
+        </div>
+    </nav>
+
+        <div class="footer-brand">
+        <a class="footer-logo" href="/">
+                        <img src="/img/email-logo.png" alt="" width="40" height="36" loading="lazy">
+            MySpeedPuzzling
+        </a>
+        <p class="footer-tagline">MySpeedPuzzling is the world&#039;s largest speed puzzling platform and jigsaw puzzle time tracker.</p>
+        <p class="footer-social">
+            <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram"><i class="bi-instagram" aria-hidden="true"></i></a>
+            <a href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub"><i class="bi-github" aria-hidden="true"></i></a>
+        </p>
+    </div>
+</div>
+
+                                                                        
+                                                            
+        
+                                                                        
+    <nav class="footer-popular" aria-labelledby="footer-popular-title">
+        <div class="container px-3">
+            <h2 class="footer-popular-title" id="footer-popular-title">Popular searches</h2>
+
+                        <div class="footer-popular-groups">
+                                    <details class="footer-popular-group">
+                        <summary class="footer-heading">Brand &amp; size</summary>
+                        <ul class="footer-links footer-popular-searches">
+                                                            <li>
+                                    <a href="/en/puzzle/brand/ravensburger/500-pieces">Ravensburger 500-Piece Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/ravensburger/1000-pieces">Ravensburger 1000-Piece Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/trefl/500-pieces">Trefl 500-Piece Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/clementoni/500-pieces">Clementoni 500-Piece Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/buffalo-games/500-pieces">Buffalo Games 500-Piece Puzzles</a>
+                                </li>
+                                                    </ul>
+                    </details>
+                                    <details class="footer-popular-group">
+                        <summary class="footer-heading">Brands</summary>
+                        <ul class="footer-links footer-popular-searches">
+                                                            <li>
+                                    <a href="/en/puzzle/brand/cobble-hill">Cobble Hill Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/educa">Educa Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/galison">Galison Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brand/masterpieces">Masterpieces Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/brands">All puzzle brands A–Z</a>
+                                </li>
+                                                    </ul>
+                    </details>
+                                    <details class="footer-popular-group">
+                        <summary class="footer-heading">Piece counts &amp; times</summary>
+                        <ul class="footer-links footer-popular-searches">
+                                                            <li>
+                                    <a href="/en/puzzle/750-pieces">750 Piece Puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/puzzle/1000-pieces/hardest">Hardest 1000-piece puzzles</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/guides/how-long-does-a-1000-piece-puzzle-take" hreflang="en">How long does a 1000-piece puzzle take?</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/guides/average-puzzle-time-by-piece-count" hreflang="en">Puzzle solve times by piece count</a>
+                                </li>
+                                                    </ul>
+                    </details>
+                                    <details class="footer-popular-group">
+                        <summary class="footer-heading">World Championship</summary>
+                        <ul class="footer-links footer-popular-searches">
+                                                            <li>
+                                    <a href="/en/events/world-jigsaw-puzzle-championship-2026">WJPC 2026</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/events/world-jigsaw-puzzle-championship-2025">WJPC 2025</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/events/world-jigsaw-puzzle-championship-2024">WJPC 2024</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/events/world-jigsaw-puzzle-championship-2023">WJPC 2023</a>
+                                </li>
+                                                            <li>
+                                    <a href="/en/events/world-jigsaw-puzzle-championship-2022">WJPC 2022</a>
+                                </li>
+                                                    </ul>
+                    </details>
+                            </div>
+        </div>
+    </nav>
+
+
+<div class="footer-bar">
+    <div class="container px-3 footer-bar-inner">
+        <p class="footer-copy">© 2026 MySpeedPuzzling</p>
+
+        <ul class="footer-legal">
+            <li><a href="/en/terms-of-service">Terms of service</a></li>
+            <li><a href="/en/privacy-policy">Privacy policy</a></li>
+            <li><a href="/en/data-deletion">Data deletion</a></li>
+        </ul>
+
+        <div class="footer-language dropup">
+            <button class="footer-language-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Language: English">
+                <i class="bi-globe" aria-hidden="true"></i>
+                English
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" data-controller="locale-preference">
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/de/veranstaltungen/results-cup/ergebnisse/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="de">
+                <span class="fi shadow-custom fi-de me-1"></span> Deutsch
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/eventy/results-cup/vysledky/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="cs">
+                <span class="fi shadow-custom fi-cz me-1"></span> Čeština
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/fr/evenements/results-cup/resultats/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="fr">
+                <span class="fi shadow-custom fi-fr me-1"></span> Français
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/es/eventos/results-cup/resultados/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="es">
+                <span class="fi shadow-custom fi-es me-1"></span> Español
+            </a>
+        </li>
+    
+            <li>
+            <a class="dropdown-item pb-1" href="/ja/%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88/results-cup/results/pairs" data-action="click->locale-preference#save" data-locale-preference-locale-param="ja">
+                <span class="fi shadow-custom fi-jp me-1"></span> 日本語
+            </a>
+        </li>
+    </ul>
+
+        </div>
+
+        
+        <p class="footer-credit">
+            Created with love for puzzles and code by <a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a> and <a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>
+        </p>
+    </div>
+</div>
+
+        </footer>
+                
+        
+                        
+        <div class="modal fade" tabindex="-1" role="dialog" id="membersExclusiveModal">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Exclusive Feature for Members</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This is one of the extras for members. A membership also gives you:</p>
+                        <div class="mb-3"><ul class="membership-checks">
+            <li><span class="membership-tick" aria-hidden="true"><i class="bi bi-check-lg"></i></span> Difficulty and your predicted time on every puzzle</li>
+            <li><span class="membership-tick" aria-hidden="true"><i class="bi bi-check-lg"></i></span> Detailed statistics, charts and achievements</li>
+            <li><span class="membership-tick" aria-hidden="true"><i class="bi bi-check-lg"></i></span> Your own collections, multiscan, selling and lending</li>
+    </ul>
+</div>
+
+                                                    <a href="/login" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person"></i> Sign in</a>
+                        
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">No, thanks!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="global-search-overlay" data-global-search-target="overlay"></div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
+
+        <!-- Dynamic Modal (Turbo-powered) -->
+        <div id="dynamic-modal-container"
+             class="modal fade"
+             tabindex="-1"
+             role="dialog"
+             aria-hidden="true"
+             data-controller="dynamic-modal">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                                        <div class="dynamic-modal-loading" data-dynamic-modal-target="loading" hidden>
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading</span>
+                        </div>
+                    </div>
+                                        <div class="dynamic-modal-error" data-dynamic-modal-target="error" role="alert" hidden>
+                        <p class="mb-3">This couldn&#039;t be loaded. Check your connection and try again.</p>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <button type="button" class="btn btn-primary" data-action="dynamic-modal#retry">Try again</button>
+                            <button type="button" class="btn btn-outline-secondary" data-action="dynamic-modal#dismiss">Close</button>
+                        </div>
+                    </div>
+                    <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">
+                    </turbo-frame>
+                </div>
+            </div>
+        </div>
+
+        
+    </body>
+</html>

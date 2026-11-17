@@ -10,8 +10,10 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 
 /**
  * Every entry of a round with its official record, for the organiser's tools - live entry, results desk, seating,
@@ -21,12 +23,14 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * of a managed event are left out (a waitlisted person put into a round counts once the organiser gives them a spot;
  * GetRoundResultsOverview tells how many wait).
  *
- * Two statements: the entries, and for a pair/team round their members.
+ * Statements: the round, the entries, for a pair/team round their members, and for a `pick` round (competition toolkit
+ * A3) the piece counts of its puzzles - entries of a `pick` round carry their per-puzzle record (`puzzles`).
  */
 readonly final class GetRoundResultEntries
 {
     public function __construct(
         private Connection $database,
+        private GetRoundPuzzlePiecesCounts $getRoundPuzzlePiecesCounts,
     ) {
     }
 
@@ -39,17 +43,68 @@ readonly final class GetRoundResultEntries
      */
     public function forRound(string $roundId): array
     {
-        $category = $this->database->fetchOne('SELECT category FROM competition_round WHERE id = :roundId', [
+        /** @var false|array{category: string, puzzle_format: string, puzzles_to_solve: null|int} $round */
+        $round = $this->database->fetchAssociative('SELECT category, puzzle_format, puzzles_to_solve FROM competition_round WHERE id = :roundId', [
             'roundId' => $roundId,
         ]);
 
-        if (!is_string($category)) {
+        if ($round === false) {
             throw new CompetitionRoundNotFound();
         }
 
-        $entries = $category === 'solo' ? $this->people($roundId) : $this->teams($roundId);
+        $entries = $round['category'] === 'solo' ? $this->people($roundId) : $this->teams($roundId);
+
+        if ($round['puzzle_format'] === RoundPuzzleFormat::Pick->value && $round['puzzles_to_solve'] !== null) {
+            $entries = $this->withPuzzles($roundId, $round['puzzles_to_solve'], $entries);
+        }
 
         return self::ranked($entries);
+    }
+
+    /**
+     * A `pick` round's entries with their record and the pieces each places when it finishes.
+     *
+     * @param list<RoundResultEntry> $entries
+     * @return list<RoundResultEntry>
+     */
+    private function withPuzzles(string $roundId, int $toSolve, array $entries): array
+    {
+        $pieces = $this->getRoundPuzzlePiecesCounts->ofRounds([$roundId]);
+        $roundBound = RoundEntryPuzzles::roundPiecesBound($toSolve, $pieces);
+
+        return array_map(static fn (RoundResultEntry $entry): RoundResultEntry => self::copy(
+            $entry,
+            puzzlesUsed: true,
+            piecesCount: $entry->puzzles !== null && count($entry->puzzles->items) === $toSolve ? $entry->puzzles->piecesCount($pieces) : $roundBound,
+        ), $entries);
+    }
+
+    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null): RoundResultEntry
+    {
+        return new RoundResultEntry(
+            ref: $entry->ref,
+            kind: $entry->kind,
+            roundId: $entry->roundId,
+            name: $entry->name,
+            participantId: $entry->participantId,
+            country: $entry->country,
+            countries: $entry->countries,
+            members: $entry->members,
+            playerId: $entry->playerId,
+            playerCode: $entry->playerCode,
+            playerName: $entry->playerName,
+            tableNumber: $entry->tableNumber,
+            result: $entry->result,
+            rank: $rank ?? $entry->rank,
+            qualifiedAt: $entry->qualifiedAt,
+            resultEnteredAt: $entry->resultEnteredAt,
+            resultEnteredById: $entry->resultEnteredById,
+            resultEnteredByName: $entry->resultEnteredByName,
+            playerIsPrivate: $entry->playerIsPrivate,
+            puzzles: $entry->puzzles,
+            puzzlesUsed: $puzzlesUsed ?? $entry->puzzlesUsed,
+            piecesCount: $piecesCount ?? $entry->piecesCount,
+        );
     }
 
     /**
@@ -83,27 +138,7 @@ readonly final class GetRoundResultEntries
 
         $rankedEntries = [];
         foreach ($entries as $index => $entry) {
-            $rankedEntries[] = new RoundResultEntry(
-                ref: $entry->ref,
-                kind: $entry->kind,
-                roundId: $entry->roundId,
-                name: $entry->name,
-                participantId: $entry->participantId,
-                country: $entry->country,
-                countries: $entry->countries,
-                members: $entry->members,
-                playerId: $entry->playerId,
-                playerCode: $entry->playerCode,
-                playerName: $entry->playerName,
-                tableNumber: $entry->tableNumber,
-                result: $entry->result,
-                rank: $ranks[$index],
-                qualifiedAt: $entry->qualifiedAt,
-                resultEnteredAt: $entry->resultEnteredAt,
-                resultEnteredById: $entry->resultEnteredById,
-                resultEnteredByName: $entry->resultEnteredByName,
-                playerIsPrivate: $entry->playerIsPrivate,
-            );
+            $rankedEntries[] = self::copy($entry, rank: $ranks[$index]);
         }
 
         usort($rankedEntries, static function (RoundResultEntry $a, RoundResultEntry $b): int {
@@ -135,6 +170,7 @@ SELECT
     entered_by.name AS entered_by_name,
     entered_by.code AS entered_by_code,
     cpr.qualified_at,
+    cpr.result_puzzles,
     cp.id AS participant_id,
     cp.name AS participant_name,
     cp.country AS participant_country,
@@ -153,7 +189,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
             $entries[] = new RoundResultEntry(
                 ref: RoundEntryRef::participantRound($row['id']),
                 kind: RoundResultEntry::KIND_PERSON,
@@ -174,6 +210,7 @@ SQL,
                 resultEnteredById: $row['result_entered_by_id'],
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
                 playerIsPrivate: $row['player_is_private'] === true,
+                puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
             );
         }
 
@@ -198,7 +235,8 @@ SELECT
     ct.result_entered_by_id,
     entered_by.name AS entered_by_name,
     entered_by.code AS entered_by_code,
-    ct.qualified_at
+    ct.qualified_at,
+    ct.result_puzzles
 FROM competition_team ct
 LEFT JOIN player entered_by ON entered_by.id = ct.result_entered_by_id
 WHERE ct.round_id = :roundId
@@ -247,7 +285,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string} $row */
+            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string} $row */
             $teamMembers = $members[$row['id']] ?? [];
             $countries = [];
             foreach ($teamMembers as $member) {
@@ -275,6 +313,7 @@ SQL,
                 resultEnteredAt: self::date($row['result_entered_at']),
                 resultEnteredById: $row['result_entered_by_id'],
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
+                puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
             );
         }
 

@@ -9,7 +9,8 @@ namespace SpeedPuzzling\Web\Value;
  * value the device last saw) to `to`. The entry is an existing one (`target`) or one created by this change
  * (`newEntry`). A change the parser could not read carries only its id and `rejectedReason`.
  *
- * Values are RoundEntryResult for the result, null|int for the table number, bool for the qualified mark.
+ * Values are RoundEntryResult for the result, null|int for the table number, bool for the qualified mark,
+ * null|RoundEntryPuzzles for the puzzles of a `pick` round entry.
  */
 final readonly class RoundResultChange
 {
@@ -18,8 +19,8 @@ final readonly class RoundResultChange
         public null|RoundEntryRef $target,
         public null|NewRoundEntry $newEntry,
         public null|RoundResultField $field,
-        public null|RoundEntryResult|int|bool $from,
-        public null|RoundEntryResult|int|bool $to,
+        public null|RoundEntryResult|RoundEntryPuzzles|int|bool $from,
+        public null|RoundEntryResult|RoundEntryPuzzles|int|bool $to,
         public null|string $rejectedReason,
     ) {
     }
@@ -28,8 +29,8 @@ final readonly class RoundResultChange
         string $clientChangeId,
         RoundEntryRef|NewRoundEntry $entry,
         RoundResultField $field,
-        null|RoundEntryResult|int|bool $from,
-        null|RoundEntryResult|int|bool $to,
+        null|RoundEntryResult|RoundEntryPuzzles|int|bool $from,
+        null|RoundEntryResult|RoundEntryPuzzles|int|bool $to,
     ): self {
         return new self(
             clientChangeId: strtolower($clientChangeId),

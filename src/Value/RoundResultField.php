@@ -9,10 +9,12 @@ namespace SpeedPuzzling\Web\Value;
  * - result: RoundEntryResult's wire format (null, {"seconds": n}, {"piecesPlaced": n}, {"didNotStart": true})
  * - table_number: null or 1..9999
  * - qualified: true / false
+ * - puzzles: RoundEntryPuzzles' wire format (null or a list) - `pick` rounds only (competition toolkit A3)
  */
 enum RoundResultField: string
 {
     case Result = 'result';
     case TableNumber = 'table_number';
     case Qualified = 'qualified';
+    case Puzzles = 'puzzles';
 }

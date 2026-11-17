@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Exceptions\UnreadableRoundResultChanges;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\NewRoundEntry;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundResultChange;
@@ -18,7 +19,7 @@ use SpeedPuzzling\Web\Value\RoundResultField;
  * Reads the `changes` of an official results change set (RecordRoundResultsController) into RoundResultChange values:
  *
  *     {"clientChangeId": "<uuid>", "entry": "participant_round:<uuid>" | "team:<uuid>",
- *      "field": "result" | "table_number" | "qualified", "from": <value>, "to": <value>}
+ *      "field": "result" | "table_number" | "qualified" | "puzzles", "from": <value>, "to": <value>}
  *
  * or, for an entrant added at the venue, `newEntry` instead of `entry` - typed in, or a participant of the event who
  * is not in the round yet (`participantId`):
@@ -103,12 +104,13 @@ final readonly class RoundResultChangesParser
     /**
      * @throws \InvalidArgumentException
      */
-    private static function value(RoundResultField $field, mixed $value): null|RoundEntryResult|int|bool
+    private static function value(RoundResultField $field, mixed $value): null|RoundEntryResult|RoundEntryPuzzles|int|bool
     {
         return match ($field) {
             RoundResultField::Result => RoundEntryResult::fromWire($value),
             RoundResultField::TableNumber => $value === null || is_int($value) ? $value : throw new \InvalidArgumentException('A table number is an integer or null.'),
             RoundResultField::Qualified => is_bool($value) ? $value : throw new \InvalidArgumentException('Qualified is true or false.'),
+            RoundResultField::Puzzles => RoundEntryPuzzles::fromWire($value),
         };
     }
 

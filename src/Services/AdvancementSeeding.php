@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Results\SeededEntry;
  * 1. rank within the own round (OfficialResultsRanking) - every round's winner before every round's second, ...
  * 2. the same rank (a tie, or the same place in different rounds): finished before unfinished, then the result
  *    relative to the round's winner - time ÷ the winner's time (a 1:05 in a round won in 1:00 beats a 1:10 in a round
- *    won in 1:05); unfinished by pieces placed ÷ the round's piece count (or pieces placed without one), most first
+ *    won in 1:05); unfinished by pieces placed ÷ the round's piece count (or pieces placed without one), most first -
+ *    in a `pick` round the pieces of the entry's chosen puzzles, else of the round's K biggest (RoundResultEntry::$piecesCount)
  * 3. then the organiser's order of the rounds, the name, the id - never random
  * Entries without a ranked result (did not start, no result yet) come last, by name.
  */
@@ -52,7 +53,8 @@ final readonly class AdvancementSeeding
                     'roundId' => $roundId,
                     'roundPosition' => $roundPosition,
                     'entry' => $entry,
-                    'relative' => self::relative($entry, $winnerSeconds, $piecesCountByRound[$roundId] ?? null),
+                    // A `pick` round's entry brings its own bound (GetRoundResultEntries, competition toolkit A3)
+                    'relative' => self::relative($entry, $winnerSeconds, $entry->piecesCount ?? $piecesCountByRound[$roundId] ?? null),
                 ];
             }
 

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
 use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
@@ -24,11 +25,13 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
         private SecretRevealPreview $secretRevealPreview,
         private RoundStopwatchReveal $roundStopwatchReveal,
         private ClockInterface $clock,
+        private PickRoundRecords $pickRoundRecords,
     ) {
     }
 
     /**
-     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick
+     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick, or an entry's
+     *                                  per-puzzle record names the puzzle
      * @throws SecretPuzzlesWouldBeRevealed
      */
     public function __invoke(RemovePuzzleFromCompetitionRound $message): void
@@ -42,6 +45,15 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
         // locked FOR SHARE above, so a format change (FOR NO KEY UPDATE) waits for this removal or the other way round
         if ($round->puzzleFormat === RoundPuzzleFormat::Pick) {
             $round->assertKeepsEnoughPuzzles($round->roundPuzzles->count() - 1);
+
+            // A puzzle an entry's per-puzzle record names stays (competition toolkit A3) - checked with its row locked
+            // FOR UPDATE, so a record being written now (FOR KEY SHARE) is committed first or no longer finds it
+            $this->pickRoundRecords->lockForRemoval([$message->roundPuzzleId]);
+            $entries = $this->pickRoundRecords->countEntriesNaming($round->id->toString(), [$message->roundPuzzleId]);
+
+            if ($entries > 0) {
+                throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::PUZZLE_IN_RESULTS, $round->puzzlesToSolve ?? 0, $round->roundPuzzles->count(), $entries);
+            }
         }
 
         // The organiser said yes to a list before the lock - it must still be that list

@@ -7930,6 +7930,14 @@ official_results:
         participant_waitlisted: "This person is on the event's waitlist - give them a spot on the participants page first."
         round_not_found: "This round does not exist any more."
         competition_not_found: "This event does not exist any more."
+        puzzles_not_used: "This round has one result for the whole round - it records no puzzles."
+        unknown_round_puzzle: "One of these puzzles is not a puzzle of this round (any more)."
+        puzzle_listed_twice: "A puzzle is listed twice."
+        too_many_puzzles: "More puzzles than each entrant of this round solves."
+        invalid_split: "A time a puzzle was finished at is between 0:00:01 and 23:59:59."
+        splits_out_of_order: "Finished puzzles come first, in the order they were finished, each at a later time than the one before."
+        puzzles_mismatch: "The result does not match the puzzles - a finished result needs all its puzzles finished (the last one at the result's time), pieces placed must be the sum over the puzzles, and an entrant who did not start has no puzzles. Change both together."
+        group_refused: "Saved together with another change of this entrant that was refused - nothing of the two was saved."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."
     guard:
@@ -14097,6 +14105,8 @@ competition_toolkit:
             to_solve_range: "The number of puzzles each entrant solves must be at least 1 and at most the round's puzzles (%puzzles% now). Add the puzzles on the round's puzzles page first."
             too_few_puzzles: "{0}This round lets each entrant pick its puzzles - change that first.|{1}Each entrant of this round solves 1 puzzle, so the round keeps at least 1. Change how its puzzles are solved first.|]1,Inf[Each entrant of this round solves %count% puzzles, so the round keeps at least %count%. Lower that number in the round's settings first."
             online_timing: "This round uses online timing, which works with one result for the round only."
+            puzzle_in_results: "Recorded results of this round name this puzzle (entrants: %entries%). Change those results on the results desk first."
+            conflicts_with_results: "Recorded per-puzzle results of this round do not fit this change (entrants: %entries%). Change or clear those results on the results desk first."
 competitor_page:
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."

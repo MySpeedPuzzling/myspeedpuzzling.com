@@ -94,7 +94,7 @@ SQL,
         $entryRows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT cpr.id, cpr.participant_id, cpr.round_id, cpr.team_id,
-    (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL) AS own_official_data
+    (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL) AS own_official_data
 FROM competition_participant_round cpr
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
 WHERE cp.competition_id = :competitionId

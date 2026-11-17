@@ -54,7 +54,8 @@ final class RedisCompetitorHeartbeatsTest extends TestCase
         $record = $this->heartbeats->of(self::ROUND, self::ENTRY, self::PLAYER);
         self::assertNotNull($record);
         self::assertSame(16_000, $record->lastHeardAtMs);
-        self::assertSame(-14.0, $record->lastOffsetMs);
+        // That beat had no measured clock sample (no rtt): its offset is the page's hint, never compared
+        self::assertNull($record->lastOffsetMs);
         self::assertSame(990, $record->cleanAtMs);
         self::assertSame(1_000, $record->cleanHeardAtMs);
 

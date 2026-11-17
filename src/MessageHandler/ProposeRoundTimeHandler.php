@@ -136,7 +136,8 @@ readonly final class ProposeRoundTimeHandler
             tappedAtMs: $message->tappedAtMs,
             receivedAtMs: $message->receivedAtMs,
             heartbeat: $message->heartbeat,
-            offsetMs: $message->offsetMs,
+            // Only a measured offset is evidence (a tap before the page's first clock sample has the page's hint)
+            offsetMs: $message->rttMs !== null ? $message->offsetMs : null,
             sentAtMs: $message->sentAtMs,
         );
 

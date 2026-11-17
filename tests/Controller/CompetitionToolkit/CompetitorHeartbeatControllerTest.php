@@ -137,9 +137,11 @@ final class CompetitorHeartbeatControllerTest extends WebTestCase
     {
         $limiter = self::getContainer()->get('limiter.competitor_heartbeat'); // @phpstan-ignore symfonyContainer.serviceNotFound
         assert($limiter instanceof RateLimiterFactoryInterface);
-        $limiter->create(strtolower(PlayerFixture::PLAYER_REGULAR) . '-' . strtolower(OfficialResultsFixture::ROUND_PAIRS))->consume(100_000);
+        // A round of its own: the test limiter's counts live on disk across runs (and the clock is frozen)
+        $round = \Ramsey\Uuid\Uuid::uuid7()->toString();
+        $limiter->create(strtolower(PlayerFixture::PLAYER_REGULAR) . '-' . $round)->consume(100_000);
 
-        $token = self::getContainer()->get(CompetitorHeartbeatToken::class)->issue(OfficialResultsFixture::ROUND_PAIRS, self::UNNAMED_PAIR, PlayerFixture::PLAYER_REGULAR, TestClock::now());
+        $token = self::getContainer()->get(CompetitorHeartbeatToken::class)->issue($round, self::UNNAMED_PAIR, PlayerFixture::PLAYER_REGULAR, TestClock::now());
         $this->beat(['token' => $token, 'unsent' => 0]);
 
         self::assertResponseStatusCodeSame(429);

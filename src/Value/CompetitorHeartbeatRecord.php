@@ -31,7 +31,8 @@ readonly final class CompetitorHeartbeatRecord
     {
         return new self(
             lastHeardAtMs: self::int($last['heardAtMs'] ?? null),
-            lastOffsetMs: is_int($last['offsetMs'] ?? null) || is_float($last['offsetMs'] ?? null) ? (float) $last['offsetMs'] : null,
+            // Only a measured offset is compared - a beat before the page's first clock sample sends the page's hint
+            lastOffsetMs: (is_int($last['offsetMs'] ?? null) || is_float($last['offsetMs'] ?? null)) && ($last['rttMs'] ?? null) !== null ? (float) $last['offsetMs'] : null,
             cleanAtMs: self::int($clean['atMs'] ?? null),
             cleanHeardAtMs: self::int($clean['heardAtMs'] ?? null),
         );

@@ -18,6 +18,8 @@ readonly final class RecordedRoundResults
         /** @var list<string> RoundEntryRef strings of the entries written (created or changed) */
         public array $changedEntryRefs,
         public bool $dryRun,
+        /** @var list<string> time proposals the set decided (competition toolkit P1) - the controller publishes them */
+        public array $changedProposalIds = [],
     ) {
     }
 

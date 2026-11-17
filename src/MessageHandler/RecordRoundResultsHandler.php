@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Entity\CompetitionTimeProposal;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\RoundResultChangeReceipt;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
@@ -27,6 +28,7 @@ use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Value\NewRoundEntry;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalResolver;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -53,10 +55,17 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * `pick` round, reads the round's format and puzzles under a lock (PickRoundRecords); every other set runs exactly the
  * statements it ran before (RecordRoundResultsStatementPinTest).
  *
+ * Time proposals (competition toolkit P1, R-review-and-plan.md §1.2): the round is read together with its competition
+ * (one statement, as before), and only while the competition has `time_proposals` on does a set with a `result` or
+ * `proposal` change read the round's proposals (TimeProposalResolver::load(), one statement) - a `result` change with
+ * `proposalId` confirms that proposal, a `proposal` change rejects one (a judge's "Not right"), any other result
+ * resolves the entry's pending proposal; all of it after the write, in the same transaction. With proposals off a
+ * `proposal` change is refused (`proposals_off`) and nothing else differs.
+ *
  * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, puzzles: null|RoundEntryPuzzles, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
  * @phpstan-type Plan array{outcomes: list<RoundResultChangeOutcome>, applied: list<int>, tableChanges: array<string, list<int>>, newEntries: array<string, NewRoundEntry>, state: array<string, EntryState>}
  * @phpstan-type Format null|array{toSolve: int, pieces: array<string, int>}
- * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>, format: Format}
+ * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>, format: Format, proposals: null|array<string, CompetitionTimeProposal>}
  */
 #[AsMessageHandler]
 readonly final class RecordRoundResultsHandler
@@ -77,6 +86,7 @@ readonly final class RecordRoundResultsHandler
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
         private PickRoundRecords $pickRoundRecords,
+        private TimeProposalResolver $timeProposalResolver,
     ) {
     }
 
@@ -85,7 +95,8 @@ readonly final class RecordRoundResultsHandler
      */
     public function __invoke(RecordRoundResults $message): RecordedRoundResults
     {
-        $round = $this->roundRepository->get($message->roundId);
+        // With its competition - whether it takes time proposals, without a statement of its own
+        $round = $this->roundRepository->getWithCompetition($message->roundId);
 
         if ($round->competition->id->toString() !== strtolower($message->competitionId)) {
             throw new CompetitionRoundNotFound();
@@ -104,6 +115,10 @@ readonly final class RecordRoundResultsHandler
             'receipts' => $receipts,
             'rowsByParticipant' => self::rowsByParticipant($roundRows),
             'format' => self::readsFormat($message, $round) ? $this->pickRoundRecords->lockForRecording($round->id->toString()) : null,
+            // Competition toolkit P1 - nothing is read for a competition without time proposals
+            'proposals' => $round->competition->timeProposals && TimeProposalResolver::concerns($message->changes)
+                ? $this->timeProposalResolver->load($round, $message->changes)
+                : null,
         ];
 
         // Changes refused because of the whole set - a table number it would give twice, a `pick` round's record that
@@ -146,7 +161,8 @@ readonly final class RecordRoundResultsHandler
                 RoundResultField::TableNumber => $entry->assignTableNumber(self::tableNumber($change->to)),
                 RoundResultField::Qualified => $change->to === true ? $entry->markQualified($now) : $entry->unmarkQualified(),
                 RoundResultField::Puzzles => $entry->recordPuzzles(self::puzzles($change->to)),
-                null => throw new \LogicException('An applied change has a field.'),
+                // A proposal change writes no entry field - TimeProposalResolver decides the proposal below
+                RoundResultField::Proposal, null => throw new \LogicException('An applied change has a field of the entry.'),
             };
 
             $changed[$ref] = true;
@@ -168,7 +184,23 @@ readonly final class RecordRoundResultsHandler
             }
         }
 
-        return new RecordedRoundResults($plan['outcomes'], array_keys($changed), false);
+        $outcomes = $plan['outcomes'];
+        $changedProposalIds = [];
+
+        if ($context['proposals'] !== null) {
+            $resolved = $this->timeProposalResolver->resolve($message->changes, $outcomes, $context['proposals'], $receipts, $actor, $now);
+            $outcomes = $resolved['outcomes'];
+            $changedProposalIds = $resolved['changedProposalIds'];
+        } else {
+            // Proposals off: a confirmation names a proposal nobody can see - the result stands, the answer says so
+            foreach ($message->changes as $index => $change) {
+                if ($change->proposalId !== null && $change->field === RoundResultField::Result) {
+                    $outcomes[$index] = $outcomes[$index]->withProposal($change->proposalId, 'unknown');
+                }
+            }
+        }
+
+        return new RecordedRoundResults(array_values($outcomes), array_keys($changed), false, $changedProposalIds);
     }
 
     /**
@@ -300,10 +332,22 @@ readonly final class RecordRoundResultsHandler
                 $pendingNew[$refString] = $change->newEntry;
             }
 
+            if ($change->field === RoundResultField::Proposal) {
+                // A judge's "Not right" (competition toolkit P1): applied = rejected now, unchanged = no longer pending.
+                // Referees may send it (R-review-and-plan.md §1.2); it changes nothing of the entry
+                $status = $excluded[$index] ?? ($context['proposals'] === null ? 'proposals_off' : TimeProposalResolver::rejectionStatus($change, $context['proposals']));
+                $outcomes[] = is_string($status)
+                    ? self::outcome($change, RoundResultChangeStatus::Rejected, $status, null)
+                    : self::outcome($change, $status, null, null);
+
+                continue;
+            }
+
             $current = self::value($state[$refString], $change->field);
             $refusal = $excluded[$index] ?? (
-                // The puzzle choice is part of the result - a referee records both (A-round-formats.md §2.4)
-                $message->resultsOnly && !in_array($change->field, [RoundResultField::Result, RoundResultField::Puzzles], true) ? 'results_only' : null
+                // The puzzle choice is part of the result - a referee records both (A-round-formats.md §2.4), and decides
+                // a competitor's time proposal (competition toolkit P1)
+                $message->resultsOnly && !in_array($change->field, [RoundResultField::Result, RoundResultField::Puzzles, RoundResultField::Proposal], true) ? 'results_only' : null
             ) ?? self::valueRefusal($change, $round, $context['format']);
 
             if ($refusal !== null) {
@@ -706,6 +750,7 @@ readonly final class RecordRoundResultsHandler
             RoundResultField::TableNumber => $entryState['table_number'],
             RoundResultField::Qualified => $entryState['qualified'],
             RoundResultField::Puzzles => $entryState['puzzles'],
+            RoundResultField::Proposal => null,
         };
     }
 
@@ -738,6 +783,7 @@ readonly final class RecordRoundResultsHandler
             RoundResultField::TableNumber => self::tableNumber($a) === self::tableNumber($b),
             RoundResultField::Qualified => ($a === true) === ($b === true),
             RoundResultField::Puzzles => RoundEntryPuzzles::same(self::puzzles($a), self::puzzles($b)),
+            RoundResultField::Proposal => false,
         };
     }
 

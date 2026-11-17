@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundResultChange;
 use SpeedPuzzling\Web\Value\RoundResultField;
+use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
 
 /**
  * Reads the `changes` of an official results change set (RecordRoundResultsController) into RoundResultChange values:
@@ -27,6 +28,12 @@ use SpeedPuzzling\Web\Value\RoundResultField;
  *     {"clientEntryId": "<uuid>", "kind": "person", "name": "Jo Doe", "country": "cz"}
  *     {"clientEntryId": "<uuid>", "kind": "person", "participantId": "<uuid>"}
  *     {"clientEntryId": "<uuid>", "kind": "team", "name": "Puzzle Sharks", "members": ["Jo Doe", {"name": "Kim Example", "country": "de"}, {"participantId": "<uuid>"}]}
+ *
+ * Time proposals (competition toolkit P1): a `result` change may carry `"proposalId": "<uuid>"` (it confirms that
+ * proposal); a judge rejects one with
+ *
+ *     {"clientChangeId": "<uuid>", "entry": "team:<uuid>", "field": "proposal",
+ *      "from": {"id": "<proposalId>"}, "to": {"status": "rejected", "reason": "not_finished" | "wrong_entry" | "other"}}
  *
  * A change without a readable `clientChangeId` makes the whole request unreadable (UnreadableRoundResultChanges -
  * there is nothing to answer it by); any other problem refuses just that change (`invalid_change`).
@@ -81,6 +88,16 @@ final readonly class RoundResultChangesParser
             return RoundResultChange::unreadable($clientChangeId, 'invalid_change');
         }
 
+        $proposalId = $change['proposalId'] ?? null;
+
+        if ($proposalId !== null && ($field !== RoundResultField::Result || !is_string($proposalId) || !Uuid::isValid($proposalId))) {
+            return RoundResultChange::unreadable($clientChangeId, 'invalid_change');
+        }
+
+        if ($field === RoundResultField::Proposal) {
+            return self::proposalChange($clientChangeId, $change);
+        }
+
         if (isset($change['newEntry'])) {
             $entry = self::newEntry($change['newEntry']);
         } else {
@@ -98,7 +115,25 @@ final readonly class RoundResultChangesParser
             return RoundResultChange::unreadable($clientChangeId, 'invalid_change');
         }
 
-        return RoundResultChange::forEntry($clientChangeId, $entry, $field, $from, $to);
+        return RoundResultChange::forEntry($clientChangeId, $entry, $field, $from, $to, $proposalId);
+    }
+
+    /**
+     * @param array<mixed> $change
+     */
+    private static function proposalChange(string $clientChangeId, array $change): RoundResultChange
+    {
+        $entry = isset($change['newEntry']) ? null : RoundEntryRef::tryFromString($change['entry'] ?? null);
+        $from = $change['from'];
+        $to = $change['to'];
+        $proposalId = is_array($from) ? ($from['id'] ?? null) : null;
+        $reason = is_array($to) && ($to['status'] ?? null) === 'rejected' ? TimeProposalDecisionReason::tryFromJudge($to['reason'] ?? null) : null;
+
+        if ($entry === null || !is_string($proposalId) || !Uuid::isValid($proposalId) || $reason === null) {
+            return RoundResultChange::unreadable($clientChangeId, 'invalid_change');
+        }
+
+        return RoundResultChange::proposalRejection($clientChangeId, $entry, $proposalId, $reason);
     }
 
     /**
@@ -111,6 +146,7 @@ final readonly class RoundResultChangesParser
             RoundResultField::TableNumber => $value === null || is_int($value) ? $value : throw new \InvalidArgumentException('A table number is an integer or null.'),
             RoundResultField::Qualified => is_bool($value) ? $value : throw new \InvalidArgumentException('Qualified is true or false.'),
             RoundResultField::Puzzles => RoundEntryPuzzles::fromWire($value),
+            RoundResultField::Proposal => throw new \InvalidArgumentException('A proposal change is read by proposalChange().'),
         };
     }
 

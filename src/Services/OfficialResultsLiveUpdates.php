@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
+use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
@@ -29,6 +30,9 @@ use Symfony\Component\Mercure\Update;
  * - official_results.entries {roundId, entries: [RoundResultEntry...]} - the changed entries as they are now
  * - official_results.refresh {roundId} - too many entries changed at once: fetch the round's state again
  * - official_results.round {roundId, round: RoundResultsOverview} - publication, table numbers usage, counts
+ * - official_results.proposals {roundId, proposals: [TimeProposalView...]} - competitors' time proposals created,
+ *   withdrawn or decided (competition toolkit P1, proposalsChanged()); only a competition with time proposals has any.
+ *   One payload for both topics: a proposal names the participant as the organiser recorded them, never a profile.
  */
 final readonly class OfficialResultsLiveUpdates
 {
@@ -40,6 +44,7 @@ final readonly class OfficialResultsLiveUpdates
         private GetRoundResultEntries $getRoundResultEntries,
         private GetRoundResultsOverview $getRoundResultsOverview,
         private LoggerInterface $logger,
+        private GetTimeProposals $getTimeProposals,
     ) {
     }
 
@@ -96,6 +101,31 @@ final readonly class OfficialResultsLiveUpdates
     public function puzzlesRevealed(string $roundId): void
     {
         $this->refresh($roundId);
+    }
+
+    /**
+     * Time proposals of the round changed (competition toolkit P1) - more than MAX_ENTRIES_PER_UPDATE at once (a
+     * stopwatch reset) is a refresh signal instead.
+     *
+     * @param array<string> $proposalIds
+     */
+    public function proposalsChanged(string $roundId, array $proposalIds): void
+    {
+        if ($proposalIds === []) {
+            return;
+        }
+
+        $this->publish($roundId, function () use ($roundId, $proposalIds): array {
+            if (count($proposalIds) > self::MAX_ENTRIES_PER_UPDATE) {
+                return ['type' => 'official_results.refresh', 'roundId' => $roundId];
+            }
+
+            return [
+                'type' => 'official_results.proposals',
+                'roundId' => $roundId,
+                'proposals' => $this->getTimeProposals->byIds($roundId, $proposalIds),
+            ];
+        });
     }
 
     public function roundChanged(string $roundId): void

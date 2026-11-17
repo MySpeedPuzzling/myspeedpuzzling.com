@@ -10,6 +10,8 @@ namespace SpeedPuzzling\Web\Value;
  * - table_number: null or 1..9999
  * - qualified: true / false
  * - puzzles: RoundEntryPuzzles' wire format (null or a list) - `pick` rounds only (competition toolkit A3)
+ * - proposal: a judge rejects a competitor's time proposal (competition toolkit P1) - `from` {"id": "<proposalId>"},
+ *   `to` {"status": "rejected", "reason": "not_finished" | "wrong_entry" | "other"}; nothing of the entry changes
  */
 enum RoundResultField: string
 {
@@ -17,4 +19,5 @@ enum RoundResultField: string
     case TableNumber = 'table_number';
     case Qualified = 'qualified';
     case Puzzles = 'puzzles';
+    case Proposal = 'proposal';
 }

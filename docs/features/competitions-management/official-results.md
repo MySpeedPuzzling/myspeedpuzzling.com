@@ -308,12 +308,17 @@ Only for a competition with `time_proposals` on (Competitor pages & QR card; des
   `WithdrawTimeProposal`. Answer `{status: proposed|withdrawn|known|refused, reason, message, proposal}`. Both take
   `CompetitionParticipantsLock`.
 - **Who** (`TimeProposalOwnership`): the player linked to the solo entrant or a member of the pair/team, not removed,
-  going, **linked before the round's stopwatch start** (`linked_after_start` otherwise - the self-connect bypass).
+  going, **linked before the round's first stopwatch start** (`linked_after_start` otherwise - the self-connect bypass).
+  The first start is `competition_round.stopwatch_first_started_at` (`CompetitionRound::stopwatchOriginalStartAt()`):
+  kept through pause/resume (a resume moves `stopwatch_started_at` forward by the pause), the scheduled moment for a
+  scheduled start, cleared by a reset; NULL on rows from before P1F = the stored start. Re-picking your own participant
+  (join, connect, import/sheet) keeps `connected_at`.
   A known `proposalId` is answered only to the same entry and sender (`invalid_proposal_id` otherwise, nothing leaks);
   it must be a UUIDv7 made within 24 h of the receipt.
 - **When**: the tap moment (`tappedAtMs`, the phone's synced clock) must be a moment the stored stopwatch was running
+  - a stopped round ran from its start up to the Stop, so a tap before the Stop received after it counts (`late`)
   (`not_running`, `times_up` after the limit, `clock_ahead` > 2 s after the receipt, `too_late` received > 30 min after
-  the end); none once the entry has a result (`result_recorded`), one pending per entry (`already_proposed`; backed by
+  the end - the limit, or the Stop when it came first); none once the entry has a result (`result_recorded`), one pending per entry (`already_proposed`; backed by
   `custom_time_proposal_pending_solo|team`). Seconds from the stored start for the tap and the receipt; > 5 s between
   them = `late` (the judge's card defaults to the receipt time), another stopwatch state hash = `clockChanged`.
 - **In `RecordRoundResults`**: a `result` change may carry `proposalId` → that proposal is confirmed with the written

@@ -25,7 +25,9 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | Pkg | Lane | State | Commit(s) on branch | Notes |
 |---|---|---|---|---|
 | F0 | A | merged | 17a4fefc4..0ab0e5422 | flag+voter, hub, RoundPuzzlesVisibleNow, golden pins |
-| A1 | A | started | | |
+| A1 | A | merged (review running) | d8f21b453..b15c8ad40 | reveal mode `stopwatch`, RoundStopwatchReveal, checkbox unticked; NOT browser-tried yet (checkpoint 1); PluralMessagesTest OOM in paratest workers (H) |
+| A2 | A | started | | |
+| C2 | B | started | | |
 | C1 | B | merged | 1cbf47ff3, 1e1e8c729 | data-free live page, ?viewer=1/?entries=0, event-people endpoint (C3 skips it), browser-walked |
 | D1 | C | started | | |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |

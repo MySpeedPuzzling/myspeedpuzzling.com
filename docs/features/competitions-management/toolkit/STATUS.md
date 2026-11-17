@@ -34,5 +34,6 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | C5 | B | started | | |
 | C1 | B | merged | 1cbf47ff3, 1e1e8c729 | data-free live page, ?viewer=1/?entries=0, event-people endpoint (C3 skips it), browser-walked |
 | D1 | C | merged | ea158c6b0, cb60963d7 | competition_display + 7 messages, hub card + list/settings pages; copy-link 404 until D4; not browser-tried |
-| D2 | C | started | | |
+| D2 | C | merged | 74c8bfa6c..96f494ab4 | DisplayDesignSanitizer + schema.js + 42 shared fixtures, 7 presets, save endpoint (409/422, liveConfirmed) |
+| B2 | C | started | | |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |

@@ -4925,6 +4925,8 @@ live_results:
     forbidden: "Sin permiso"
     reload: "Recargar la página"
     gone: "Ronda eliminada"
+  another_account:
+    sync: "Otra cuenta"
   banner:
     auth: "Has cerrado sesión. No se pierde nada de lo que introdujiste: inicia sesión de nuevo (se abre en una pestaña nueva) y vuelve aquí."
     forbidden: "Esta cuenta no puede (ya) introducir resultados de este evento. No se pierde nada de lo que introdujiste: inicia sesión como organizador del evento y vuelve a intentarlo."
@@ -5036,6 +5038,11 @@ live_results:
       not_finished: "No terminado"
       wrong_entry: "Persona/mesa equivocada"
       other: "Otro motivo"
+    timing:
+      check: "Comprueba este tiempo"
+      check_times: "Tocado %tapped% (%tappedAt%), pero el móvil estaba conectado a las %heardAt% sin enviarlo; recibido %received% (%receivedAt%). Mira el puzzle; se usa el tiempo tocado salvo que elijas otra cosa."
+      use_received: "Usar el recibido %time%"
+      clock_uncertain: "Puede que el reloj del móvil no esté en hora: compáralo con el cronómetro."
   take_out:
     button: "Sacar de esta ronda"
     confirm: "¿Sacar a %name% de esta ronda? Sigue en el evento y en sus otras rondas: solo se puede sacar a un participante sin resultado ni marca de clasificado."
@@ -5482,6 +5489,8 @@ official_results:
     too_many_members: "Una pareja/equipo añadido aquí puede tener como máximo 20 personas."
     invalid_seconds: "Un tiempo va de 0:00:01 a 23:59:59."
     invalid_pieces_placed: "Las piezas colocadas deben ser al menos 1 y menos de las que tiene el puzzle; un puzzle terminado lleva un tiempo."
+    invalid_missing_pieces: "Las piezas que faltan deben ser al menos 1 y menos de las que tiene el puzzle."
+    missing_pieces_not_finished: "Las piezas que faltan solo se pueden registrar en un puzzle terminado, con su tiempo."
     invalid_table_number: "Un número de mesa va de 1 a 9999."
     table_number_taken: "Otro participante de esta ronda tiene este número de mesa."
     duplicate_entry: "Este participante aparece dos veces."
@@ -13923,6 +13932,31 @@ competition_toolkit:
             online_timing: "Esta ronda usa cronometraje en línea, que solo funciona con un resultado para la ronda."
             puzzle_in_results: "Hay resultados registrados de esta ronda que nombran este puzzle (participantes: %entries%). Cambia primero esos resultados en la mesa de resultados."
             conflicts_with_results: "Hay resultados por puzzle registrados en esta ronda que no encajan con este cambio (participantes: %entries%). Cambia o borra primero esos resultados en la mesa de resultados."
+        name:
+            total: "Un resultado para la ronda"
+            all: "{0}Resolver todos los puzzles (se registra el orden)|{1}Resolver el puzzle|]1,Inf[Resolver los %count% (se registra el orden)"
+            pick: "Elegir %count% de %puzzles%"
+            choice_all: "{0}Resolver todos los puzzles de la ronda: se registra el orden en que los resuelve cada participante|{1}Resolver el puzzle de la ronda|]1,Inf[Resolver los %count%: se registra el orden en que los resuelve cada participante"
+            choice_pick: "Elegir algunos: cada participante decide cuáles, en cualquier orden"
+            to_solve: "Puzzles que elige cada participante"
+            to_solve_help: "{0}Solo para «Elegir». Añade primero los puzzles de la ronda.|{1}Solo para «Elegir». La ronda tiene 1 puzzle.|]1,Inf[Solo para «Elegir»: menos que los %count% puzzles de la ronda (%count% = «Resolver todos»)."
+        missing:
+            mode_missing: "Faltan"
+            mode_placed: "Colocadas"
+            label: "Piezas que faltan"
+            hint: "Cuenta las piezas que aún faltan"
+            preview: "faltan %missing% → colocadas %placed% de %pieces%"
+            invalid: "Escribe las piezas que faltan: de 1 a %max%."
+            row_hint: "Faltan de %pieces%"
+            row_hint_placed: "Colocadas de %pieces%"
+            row_placed: "nada colocado (faltan las %pieces%)"
+            row_invalid: "No es posible en este puzzle (%max% piezas)."
+            finished: "Terminado ✓: toca si no"
+            not_finished: "No terminado: toca si terminó"
+            total: "%placed% piezas colocadas en total"
+            type_all: "Escribe un número para cada puzzle no terminado."
+            desk_mode: "No terminó (piezas que faltan)"
+            desk_row_invalid: "Puzzle %position%: escribe de 0 a %max% piezas que faltan."
     round_page:
         puzzles: "Puzzles que resolvió este participante, en orden"
         finished_at: "terminado en %time%"
@@ -15114,3 +15148,24 @@ analytics_studio:
   "organiser.link": "Estudio de análisis"
   "organiser.title": "Estudio de análisis"
   "organiser.help": "Una vista en vivo de cada ronda para comentaristas: cada participante frente a los puzzles de la ronda, su historial, sus predicciones y los resultados a medida que llegan. Ábrelo en una segunda pantalla."
+finished_missing:
+    export_column: "Piezas que faltan (terminado)"
+    missing_short: "{1}falta 1 pieza|[0,Inf[faltan %count% piezas"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + %penalty% de penalización · %missing%"
+        finished_penalised: "las piezas que faltan en un puzzle terminado también se penalizan"
+        finished_not_penalised: "las piezas que faltan en un puzzle terminado no se penalizan"
+        legend_unfinished: "* no terminado: el límite de tiempo de la ronda y, al lado, las piezas no colocadas; su penalización está en el total."
+        preview_legend: "* no terminado: el límite de tiempo y, al lado, las piezas no colocadas. El total = los tiempos + la penalización por pieza que falta. (n.) = el puesto en esa ronda."
+    standing_form:
+        penalise: "Penalizar también las piezas que faltan en un puzzle terminado"
+        penalise_help: "Un árbitro puede registrar un puzzle terminado al que le faltan piezas (p. ej., una pieza que faltaba de fábrica). Desactivado: se muestran, pero no cuestan tiempo. Activado: cada una cuesta la penalización de arriba, como una pieza no colocada a tiempo."
+    judge:
+        add: "Piezas que faltan"
+        label: "Piezas que faltan en el puzzle terminado"
+        hint: "P. ej., una pieza que faltaba de fábrica. Vacío = el puzzle está completo."
+        field: "Piezas que faltan"
+        none: "no falta ninguna pieza"
+    desk:
+        label: "piezas que faltan:"

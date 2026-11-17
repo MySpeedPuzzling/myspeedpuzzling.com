@@ -4914,6 +4914,8 @@ live_results:
     forbidden: "権限なし"
     reload: "ページを再読み込み"
     gone: "ラウンド削除済み"
+  another_account:
+    sync: "別のアカウント"
   banner:
     auth: "サインアウトされています。入力した内容は失われていません。再度サインインして（新しいタブで開きます）、ここに戻ってください。"
     forbidden: "このアカウントには、このイベントの結果を入力する権限がありません（もうありません）。入力した内容は失われていません。イベントの主催者としてサインインし直して、もう一度お試しください。"
@@ -5025,6 +5027,11 @@ live_results:
       not_finished: "未完成"
       wrong_entry: "人/テーブル違い"
       other: "その他"
+    timing:
+      check: "このタイムを確認"
+      check_times: "タップ %tapped%（%tappedAt%）。ただしスマートフォンは%heardAt%にオンラインでしたが送信されませんでした - 受信 %received%（%receivedAt%）。パズルを確認してください。別の選択をしない限り、タップ時のタイムを使います。"
+      use_received: "受信時の%time%を使う"
+      clock_uncertain: "スマートフォンの時計がずれている可能性があります。ストップウォッチと比べてください。"
   take_out:
     button: "このラウンドから外す"
     confirm: "%name%をこのラウンドから外しますか？イベントと他のラウンドにはそのまま残ります。外せるのは、結果も通過マークもないエントリーだけです。"
@@ -5471,6 +5478,8 @@ official_results:
     too_many_members: "ここで追加するペア/チームは20人までです。"
     invalid_seconds: "タイムは0:00:01～23:59:59の範囲で入力してください。"
     invalid_pieces_placed: "はめたピース数は1以上で、パズルのピース数より少ない数にしてください。完成したパズルにはタイムを入力してください。"
+    invalid_missing_pieces: "欠けたピース数は1以上で、パズルのピース数より少ない数にしてください。"
+    missing_pieces_not_finished: "欠けたピースは、タイムのある完成したパズルにのみ記録できます。"
     invalid_table_number: "テーブル番号は1～9999です。"
     table_number_taken: "このラウンドの別の出場者がこのテーブル番号を使っています。"
     duplicate_entry: "この出場者が重複して登録されています。"
@@ -13912,6 +13921,31 @@ competition_toolkit:
             online_timing: "このラウンドはオンライン計時を使っています。オンライン計時はラウンドで1つの結果の場合のみ使えます。"
             puzzle_in_results: "このラウンドの記録済みの結果にこのパズルが含まれています（出場者：%entries%）。先に結果デスクでそれらの結果を変更してください。"
             conflicts_with_results: "このラウンドのパズルごとの記録済み結果が、この変更と合いません（出場者：%entries%）。先に結果デスクでそれらの結果を変更またはクリアしてください。"
+        name:
+            total: "ラウンドで1つの結果"
+            all: "{0}すべてのパズルを解く（順序を記録）|{1}パズルを解く|]1,Inf[%count%個すべてを解く（順序を記録）"
+            pick: "%puzzles%個中%count%個を選択"
+            choice_all: "{0}ラウンドのパズルをすべて解く - 各出場者が解いた順序を記録します|{1}ラウンドのパズルを解く|]1,Inf[%count%個すべてを解く - 各出場者が解いた順序を記録します"
+            choice_pick: "一部を選ぶ - どれを解くかは各出場者が選び、順序は自由です"
+            to_solve: "各出場者が選ぶパズルの数"
+            to_solve_help: "{0}「選択」の場合のみ。先にラウンドのパズルを追加してください。|{1}「選択」の場合のみ。このラウンドのパズルは1個です。|]1,Inf[「選択」の場合のみ：ラウンドのパズル%count%個より少ない数（%count% = 「すべて解く」）。"
+        missing:
+            mode_missing: "欠けた数"
+            mode_placed: "はめた数"
+            label: "欠けたピース"
+            hint: "まだ欠けているピースを数えてください"
+            preview: "欠け %missing% → はめた %placed% / %pieces%"
+            invalid: "欠けたピース数を入力してください：1〜%max%。"
+            row_hint: "欠け / %pieces%"
+            row_hint_placed: "はめた / %pieces%"
+            row_placed: "はめたピースなし（%pieces%ピースすべて欠け）"
+            row_invalid: "このパズルでは不可能です（%max%ピース）。"
+            finished: "完成 ✓ - 違う場合はタップ"
+            not_finished: "未完成 - 完成ならタップ"
+            total: "合計%placed%ピースをはめました"
+            type_all: "未完成のパズルごとに数を入力してください。"
+            desk_mode: "未完成（欠けたピース）"
+            desk_row_invalid: "パズル%position%：欠けたピース数を0〜%max%で入力してください。"
     round_page:
         puzzles: "この出場者が解いたパズル（順番どおり）"
         finished_at: "%time%に完成"
@@ -15103,3 +15137,24 @@ analytics_studio:
   "organiser.link": "アナリティクススタジオ"
   "organiser.title": "アナリティクススタジオ"
   "organiser.help": "実況者向けに各ラウンドをライブで表示します：ラウンドのパズルに対する出場者全員の記録、予測、そして入ってくる結果。セカンドスクリーンで開いてください。"
+finished_missing:
+    export_column: "欠けたピース（完成）"
+    missing_short: "{1}欠けたピース1個|[0,Inf[欠けたピース%count%個"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + ペナルティ %penalty% · %missing%"
+        finished_penalised: "完成したパズルの欠けたピースにもペナルティがあります"
+        finished_not_penalised: "完成したパズルの欠けたピースにはペナルティはありません"
+        legend_unfinished: "* 未完成：ラウンドの制限時間と、その横にはめていないピース数。そのペナルティは合計に含まれます。"
+        preview_legend: "* 未完成：制限時間と、その横にはめていないピース数。合計 = タイム＋欠けたピース1個あたりのペナルティ。(n.) = そのラウンドでの順位。"
+    standing_form:
+        penalise: "完成したパズルの欠けたピースにもペナルティを科す"
+        penalise_help: "審判は、ピースが欠けた状態の完成したパズルを記録できます（例：製造時から欠けていたピース）。オフ：表示されますが、タイムは加算されません。オン：時間内にはめられなかったピースと同様に、1個ごとに上記のペナルティが加算されます。"
+    judge:
+        add: "欠けたピース"
+        label: "完成したパズルの欠けたピース"
+        hint: "例：製造時から欠けていたピース。空欄 = パズルは揃っています。"
+        field: "欠けたピース"
+        none: "欠けたピースなし"
+    desk:
+        label: "欠けたピース："

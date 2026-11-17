@@ -4999,6 +4999,8 @@ live_results:
     forbidden: "Bez oprávnění"
     reload: "Načíst stránku znovu"
     gone: "Kolo smazáno"
+  another_account:
+    sync: "Jiný účet"
   banner:
     auth: "Jste odhlášeni. Nic z toho, co jste zadali, se neztratí - přihlaste se znovu (otevře se na nové kartě) a vraťte se sem."
     forbidden: "Tento účet (už) nemůže zadávat výsledky této události. Nic z toho, co jste zadali, se neztratí - přihlaste se jako organizátor události a zkuste to znovu."
@@ -5110,6 +5112,11 @@ live_results:
       not_finished: "Nedokončeno"
       wrong_entry: "Jiný člověk/stůl"
       other: "Jiné"
+    timing:
+      check: "Ověřte tento čas"
+      check_times: "Klepnuto %tapped% (%tappedAt%), ale telefon byl v %heardAt% online a čas neodeslal - přijato %received% (%receivedAt%). Podívejte se na puzzle; použije se čas klepnutí, pokud nezvolíte jinak."
+      use_received: "Použít přijatý %time%"
+      clock_uncertain: "Hodiny telefonu možná nejdou přesně - porovnejte je se stopkami."
   take_out:
     button: "Odebrat z tohoto kola"
     confirm: "Odebrat soutěžícího %name% z tohoto kola? Zůstává v události a jejích dalších kolech - odebrat lze jen soutěžícího bez výsledku nebo značky postupu."
@@ -5556,6 +5563,8 @@ official_results:
     too_many_members: "Zde přidaná dvojice/tým může mít nejvýše 20 lidí."
     invalid_seconds: "Čas je mezi 0:00:01 a 23:59:59."
     invalid_pieces_placed: "Položené dílky musí být alespoň 1 a méně, než má puzzle - dokončené puzzle dostane čas."
+    invalid_missing_pieces: "Chybějící dílky musí být alespoň 1 a méně, než má puzzle."
+    missing_pieces_not_finished: "Chybějící dílky lze zapsat jen u dokončeného puzzle s časem."
     invalid_table_number: "Číslo stolu je od 1 do 9999."
     table_number_taken: "Jiný soutěžící tohoto kola má toto číslo stolu."
     duplicate_entry: "Tento soutěžící je uveden dvakrát."
@@ -13925,6 +13934,31 @@ competition_toolkit:
             online_timing: "Toto kolo používá online časomíru, která funguje jen s jedním výsledkem za kolo."
             puzzle_in_results: "Zapsané výsledky tohoto kola uvádějí toto puzzle (soutěžící: %entries%). Nejdřív tyto výsledky změňte na Výsledkovém pultu."
             conflicts_with_results: "Zapsané výsledky po puzzlích tohoto kola této změně neodpovídají (soutěžící: %entries%). Nejdřív tyto výsledky změňte nebo vymažte na Výsledkovém pultu."
+        name:
+            total: "Jeden výsledek za kolo"
+            all: "{0}Složit všechna puzzle (pořadí se zaznamená)|{1}Složit puzzle|[2,4]Složit všechna %count% (pořadí se zaznamená)|[5,Inf[Složit všech %count% (pořadí se zaznamená)"
+            pick: "Vybrat %count% z %puzzles%"
+            choice_all: "{0}Složit všechna puzzle kola - zaznamená se pořadí, v jakém je každý soutěžící složí|{1}Složit puzzle kola|[2,4]Složit všechna %count% - zaznamená se pořadí, v jakém je každý soutěžící složí|[5,Inf[Složit všech %count% - zaznamená se pořadí, v jakém je každý soutěžící složí"
+            choice_pick: "Vybrat některá z nich - každý soutěžící si zvolí která, v libovolném pořadí"
+            to_solve: "Puzzle, která si vybere každý soutěžící"
+            to_solve_help: "{0}Jen pro „Vybrat“. Nejdřív přidejte puzzle kola.|{1}Jen pro „Vybrat“. Kolo má 1 puzzle.|[2,4]Jen pro „Vybrat“: méně než %count% puzzle kola (%count% = „Složit všechna“).|[5,Inf[Jen pro „Vybrat“: méně než %count% puzzlí kola (%count% = „Složit všechna“)."
+        missing:
+            mode_missing: "Chybějící"
+            mode_placed: "Položené"
+            label: "Chybějící dílky"
+            hint: "Spočítejte dílky, které ještě chybí"
+            preview: "chybí %missing% → položeno %placed% z %pieces%"
+            invalid: "Zadejte chybějící dílky: 1 až %max%."
+            row_hint: "Chybí z %pieces%"
+            row_hint_placed: "Položeno z %pieces%"
+            row_placed: "nic nepoloženo (chybí všech %pieces%)"
+            row_invalid: "Pro toto puzzle nelze (%max% dílků)."
+            finished: "Dokončeno ✓ - klepněte, pokud ne"
+            not_finished: "Nedokončeno - klepněte, pokud dokončeno"
+            total: "Položeno celkem dílků: %placed%"
+            type_all: "Zadejte počet u každého nedokončeného puzzle."
+            desk_mode: "Nedokončeno (chybějící dílky)"
+            desk_row_invalid: "Puzzle %position%: zadejte 0 až %max% chybějících dílků."
     round_page:
         puzzles: "Puzzle, která tento soutěžící složil, v pořadí"
         finished_at: "dokončeno v %time%"
@@ -15116,3 +15150,24 @@ analytics_studio:
   "organiser.link": "Analytické studio"
   "organiser.title": "Analytické studio"
   "organiser.help": "Živý pohled na každé kolo pro komentátory: všichni soutěžící proti puzzle kola, jejich historie, predikce a výsledky, jak přicházejí. Otevřete ho na druhé obrazovce."
+finished_missing:
+    export_column: "Chybějící dílky (dokončeno)"
+    missing_short: "{1}chybí 1 dílek|[2,4]chybí %count% dílky|[0,Inf[chybí %count% dílků"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + %penalty% penalizace · %missing%"
+        finished_penalised: "chybějící dílky u dokončeného puzzle se penalizují také"
+        finished_not_penalised: "chybějící dílky u dokončeného puzzle se nepenalizují"
+        legend_unfinished: "* nedokončeno: časový limit kola, vedle něj nepoložené dílky - jejich penalizace je v celkovém součtu."
+        preview_legend: "* nedokončeno: časový limit, vedle něj nepoložené dílky. Celkem = časy + penalizace za každý chybějící dílek. (n.) = umístění v daném kole."
+    standing_form:
+        penalise: "Penalizovat i chybějící dílky u dokončeného puzzle"
+        penalise_help: "Rozhodčí může zapsat dokončené puzzle, kterému chybí dílky (např. dílek chyběl už z výroby). Vypnuto: zobrazí se, ale nestojí žádný čas. Zapnuto: každý stojí penalizaci uvedenou výše, jako dílek nepoložený včas."
+    judge:
+        add: "Chybějící dílky"
+        label: "Chybějící dílky v dokončeném puzzle"
+        hint: "Např. dílek chyběl už z výroby. Prázdné = puzzle je kompletní."
+        field: "Chybějící dílky"
+        none: "žádné chybějící dílky"
+    desk:
+        label: "chybějící dílky:"

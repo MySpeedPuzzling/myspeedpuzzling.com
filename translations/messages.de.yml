@@ -4924,6 +4924,8 @@ live_results:
     forbidden: "Keine Berechtigung"
     reload: "Seite neu laden"
     gone: "Runde gelöscht"
+  another_account:
+    sync: "Anderes Konto"
   banner:
     auth: "Sie sind abgemeldet. Nichts von Ihren Eingaben geht verloren – melden Sie sich erneut an (es öffnet sich in einem neuen Tab) und kommen Sie dann hierher zurück."
     forbidden: "Dieses Konto darf (nicht mehr) Ergebnisse dieser Veranstaltung eingeben. Nichts von Ihren Eingaben geht verloren – melden Sie sich als Veranstalter der Veranstaltung an und versuchen Sie es dann erneut."
@@ -5035,6 +5037,11 @@ live_results:
       not_finished: "Nicht fertig"
       wrong_entry: "Falsche Person/Tisch"
       other: "Anderes"
+    timing:
+      check: "Diese Zeit prüfen"
+      check_times: "Getippt %tapped% (%tappedAt%), aber das Handy war um %heardAt% online, ohne sie zu senden – empfangen %received% (%receivedAt%). Sehen Sie sich das Puzzle an; die getippte Zeit gilt, sofern Sie nichts anderes wählen."
+      use_received: "Empfangene %time% verwenden"
+      clock_uncertain: "Die Uhr des Handys geht vielleicht falsch – vergleichen Sie mit der Stoppuhr."
   take_out:
     button: "Aus dieser Runde nehmen"
     confirm: "%name% aus dieser Runde nehmen? Die Person bleibt in der Veranstaltung und ihren anderen Runden – nur ein Eintrag ohne Ergebnis oder Qualifiziert-Markierung kann herausgenommen werden."
@@ -5481,6 +5488,8 @@ official_results:
     too_many_members: "Ein hier hinzugefügtes Paar/Team darf höchstens 20 Personen haben."
     invalid_seconds: "Eine Zeit liegt zwischen 0:00:01 und 23:59:59."
     invalid_pieces_placed: "Gelegte Teile müssen mindestens 1 und weniger als das Puzzle hat sein – ein fertiges Puzzle bekommt eine Zeit."
+    invalid_missing_pieces: "Fehlende Teile müssen mindestens 1 und weniger als das Puzzle hat sein."
+    missing_pieces_not_finished: "Fehlende Teile können nur bei einem fertigen Puzzle mit Zeit erfasst werden."
     invalid_table_number: "Eine Tischnummer liegt zwischen 1 und 9999."
     table_number_taken: "Ein anderer Teilnehmer dieser Runde hat diese Tischnummer."
     duplicate_entry: "Dieser Teilnehmer ist doppelt aufgelistet."
@@ -13922,6 +13931,31 @@ competition_toolkit:
             online_timing: "Diese Runde nutzt Online-Zeitmessung, die nur mit einem Ergebnis für die Runde funktioniert."
             puzzle_in_results: "Erfasste Ergebnisse dieser Runde nennen dieses Puzzle (Teilnehmer: %entries%). Ändern Sie diese Ergebnisse zuerst im Ergebnisbüro."
             conflicts_with_results: "Erfasste Ergebnisse pro Puzzle dieser Runde passen nicht zu dieser Änderung (Teilnehmer: %entries%). Ändern oder löschen Sie diese Ergebnisse zuerst im Ergebnisbüro."
+        name:
+            total: "Ein Ergebnis für die Runde"
+            all: "{0}Alle Puzzles lösen (Reihenfolge wird erfasst)|{1}Das Puzzle lösen|]1,Inf[Alle %count% lösen (Reihenfolge wird erfasst)"
+            pick: "%count% von %puzzles% wählen"
+            choice_all: "{0}Alle Puzzles der Runde lösen – die Reihenfolge jedes Teilnehmers wird erfasst|{1}Das Puzzle der Runde lösen|]1,Inf[Alle %count% lösen – die Reihenfolge jedes Teilnehmers wird erfasst"
+            choice_pick: "Einige davon wählen – jeder Teilnehmer entscheidet, welche, in beliebiger Reihenfolge"
+            to_solve: "Puzzles, die jeder Teilnehmer wählt"
+            to_solve_help: "{0}Nur für „Wählen“. Fügen Sie zuerst die Puzzles der Runde hinzu.|{1}Nur für „Wählen“. Die Runde hat 1 Puzzle.|]1,Inf[Nur für „Wählen“: weniger als die %count% Puzzles der Runde (%count% = „Alle lösen“)."
+        missing:
+            mode_missing: "Fehlend"
+            mode_placed: "Gelegt"
+            label: "Fehlende Teile"
+            hint: "Zählen Sie die noch fehlenden Teile"
+            preview: "fehlen %missing% → gelegt %placed% von %pieces%"
+            invalid: "Geben Sie die fehlenden Teile ein: 1 bis %max%."
+            row_hint: "Fehlend von %pieces%"
+            row_hint_placed: "Gelegt von %pieces%"
+            row_placed: "nichts gelegt (alle %pieces% fehlen)"
+            row_invalid: "Für dieses Puzzle nicht möglich (%max% Teile)."
+            finished: "Fertig ✓ – tippen, wenn nicht"
+            not_finished: "Nicht fertig – tippen, wenn fertig"
+            total: "Insgesamt %placed% Teile gelegt"
+            type_all: "Geben Sie für jedes nicht fertige Puzzle eine Zahl ein."
+            desk_mode: "Nicht fertig (fehlende Teile)"
+            desk_row_invalid: "Puzzle %position%: Geben Sie 0 bis %max% fehlende Teile ein."
     round_page:
         puzzles: "Von diesem Eintrag gelöste Puzzles, in Reihenfolge"
         finished_at: "fertig bei %time%"
@@ -15113,3 +15147,24 @@ analytics_studio:
   "organiser.link": "Analysestudio"
   "organiser.title": "Analysestudio"
   "organiser.help": "Eine Live-Ansicht jeder Runde für Kommentatoren: alle Teilnehmer im Blick auf die Puzzles der Runde, ihre Historie, Vorhersagen und die Ergebnisse, sobald sie eintreffen. Öffnen Sie es auf einem zweiten Bildschirm."
+finished_missing:
+    export_column: "Fehlende Teile (fertig)"
+    missing_short: "{1}1 Teil fehlt|[0,Inf[%count% Teile fehlen"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + %penalty% Strafe · %missing%"
+        finished_penalised: "fehlende Teile eines fertigen Puzzles werden ebenfalls bestraft"
+        finished_not_penalised: "fehlende Teile eines fertigen Puzzles werden nicht bestraft"
+        legend_unfinished: "* nicht beendet: das Zeitlimit der Runde, daneben die nicht gelegten Teile – ihre Strafe ist in der Summe enthalten."
+        preview_legend: "* nicht beendet: das Zeitlimit, daneben die nicht gelegten Teile. Die Summe = die Zeiten + die Strafe pro fehlendem Teil. (n.) = der Platz in dieser Runde."
+    standing_form:
+        penalise: "Fehlende Teile eines fertigen Puzzles ebenfalls bestrafen"
+        penalise_help: "Ein Schiedsrichter kann ein fertiges Puzzle mit fehlenden Teilen erfassen (z. B. ein ab Werk fehlendes Teil). Aus: Sie werden angezeigt, kosten aber keine Zeit. An: Jedes kostet die Strafe oben, wie ein nicht rechtzeitig gelegtes Teil."
+    judge:
+        add: "Fehlende Teile"
+        label: "Fehlende Teile im fertigen Puzzle"
+        hint: "Z. B. ein ab Werk fehlendes Teil. Leer = das Puzzle ist vollständig."
+        field: "Fehlende Teile"
+        none: "keine fehlenden Teile"
+    desk:
+        label: "fehlende Teile:"

@@ -4991,6 +4991,8 @@ live_results:
     forbidden: "Accès refusé"
     reload: "Recharger la page"
     gone: "Manche supprimée"
+  another_account:
+    sync: "Autre compte"
   banner:
     auth: "Vous êtes déconnecté(e). Rien de ce que vous avez saisi n'est perdu - reconnectez-vous (dans un nouvel onglet), puis revenez ici."
     forbidden: "Ce compte n'est pas (ou plus) autorisé à saisir les résultats de cet événement. Rien de ce que vous avez saisi n'est perdu - connectez-vous en tant qu'organisateur de l'événement, puis réessayez."
@@ -5102,6 +5104,11 @@ live_results:
       not_finished: "Pas terminé"
       wrong_entry: "Mauvaise personne/table"
       other: "Autre"
+    timing:
+      check: "Vérifiez ce temps"
+      check_times: "Touché %tapped% (%tappedAt%), mais le téléphone était en ligne à %heardAt% sans l'envoyer - reçu %received% (%receivedAt%). Regardez le puzzle ; le temps touché est retenu, sauf si vous choisissez autrement."
+      use_received: "Retenir le reçu %time%"
+      clock_uncertain: "L'horloge du téléphone est peut-être décalée - comparez avec le chronomètre."
   take_out:
     button: "Retirer de cette manche"
     confirm: "Retirer %name% de cette manche ? Cette personne reste dans l'événement et ses autres manches - seul un concurrent sans résultat ni marque de qualification peut être retiré."
@@ -5548,6 +5555,8 @@ official_results:
     too_many_members: "Un duo/une équipe ajouté(e) ici peut compter au maximum 20 personnes."
     invalid_seconds: "Un temps est compris entre 0:00:01 et 23:59:59."
     invalid_pieces_placed: "Le nombre de pièces posées doit être d'au moins 1 et inférieur au nombre de pièces du puzzle - un puzzle terminé reçoit un temps."
+    invalid_missing_pieces: "Le nombre de pièces manquantes doit être d'au moins 1 et inférieur au nombre de pièces du puzzle."
+    missing_pieces_not_finished: "Les pièces manquantes ne peuvent être enregistrées que pour un puzzle terminé, avec son temps."
     invalid_table_number: "Un numéro de table est compris entre 1 et 9999."
     table_number_taken: "Un autre concurrent de cette manche a ce numéro de table."
     duplicate_entry: "Ce concurrent figure deux fois."
@@ -13918,6 +13927,31 @@ competition_toolkit:
             online_timing: "Cette manche utilise le chronométrage en ligne, qui ne fonctionne qu'avec un seul résultat par manche."
             puzzle_in_results: "Des résultats enregistrés de cette manche citent ce puzzle (concurrents : %entries%). Modifiez d'abord ces résultats au bureau des résultats."
             conflicts_with_results: "Des résultats par puzzle enregistrés dans cette manche ne correspondent pas à cette modification (concurrents : %entries%). Modifiez ou effacez d'abord ces résultats au bureau des résultats."
+        name:
+            total: "Un seul résultat pour la manche"
+            all: "{0}Assembler tous les puzzles (ordre enregistré)|{1}Assembler le puzzle|]1,Inf[Assembler les %count% (ordre enregistré)"
+            pick: "Choisir %count% sur %puzzles%"
+            choice_all: "{0}Assembler tous les puzzles de la manche - l'ordre dans lequel chaque concurrent les assemble est enregistré|{1}Assembler le puzzle de la manche|]1,Inf[Assembler les %count% - l'ordre dans lequel chaque concurrent les assemble est enregistré"
+            choice_pick: "En choisir certains - chaque concurrent décide lesquels, dans n'importe quel ordre"
+            to_solve: "Puzzles choisis par chaque concurrent"
+            to_solve_help: "{0}Uniquement pour « Choisir ». Ajoutez d'abord les puzzles de la manche.|{1}Uniquement pour « Choisir ». La manche a 1 puzzle.|]1,Inf[Uniquement pour « Choisir » : moins que les %count% puzzles de la manche (%count% = « Tout assembler »)."
+        missing:
+            mode_missing: "Manquantes"
+            mode_placed: "Posées"
+            label: "Pièces manquantes"
+            hint: "Comptez les pièces encore manquantes"
+            preview: "manquantes %missing% → posées %placed% sur %pieces%"
+            invalid: "Saisissez les pièces manquantes : 1 à %max%."
+            row_hint: "Manquantes sur %pieces%"
+            row_hint_placed: "Posées sur %pieces%"
+            row_placed: "rien de posé (les %pieces% manquent)"
+            row_invalid: "Impossible pour ce puzzle (%max% pièces)."
+            finished: "Terminé ✓ - touchez si non"
+            not_finished: "Pas terminé - touchez si terminé"
+            total: "%placed% pièces posées au total"
+            type_all: "Saisissez un nombre pour chaque puzzle non terminé."
+            desk_mode: "N'a pas terminé (pièces manquantes)"
+            desk_row_invalid: "Puzzle %position% : saisissez 0 à %max% pièces manquantes."
     round_page:
         puzzles: "Puzzles assemblés par ce concurrent, dans l'ordre"
         finished_at: "terminé à %time%"
@@ -15109,3 +15143,24 @@ analytics_studio:
   "organiser.link": "Studio d'analyse"
   "organiser.title": "Studio d'analyse"
   "organiser.help": "Une vue en direct de chaque manche pour les commentateurs : chaque concurrent face aux puzzles de la manche, son historique, ses prédictions et les résultats à mesure qu'ils arrivent. Ouvrez-la sur un second écran."
+finished_missing:
+    export_column: "Pièces manquantes (terminé)"
+    missing_short: "[0,1]%count% pièce manquante|]1,Inf[%count% pièces manquantes"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + %penalty% de pénalité · %missing%"
+        finished_penalised: "les pièces manquantes d'un puzzle terminé sont aussi pénalisées"
+        finished_not_penalised: "les pièces manquantes d'un puzzle terminé ne sont pas pénalisées"
+        legend_unfinished: "* non terminé : la limite de temps de la manche, à côté les pièces non posées - leur pénalité est comprise dans le total."
+        preview_legend: "* non terminé : la limite de temps, à côté les pièces non posées. Le total = les temps + la pénalité par pièce manquante. (n.) = la place dans cette manche."
+    standing_form:
+        penalise: "Pénaliser aussi les pièces manquantes d'un puzzle terminé"
+        penalise_help: "Un arbitre peut enregistrer un puzzle terminé auquel il manque des pièces (par ex. une pièce manquante d'usine). Désactivé : elles sont affichées, mais ne coûtent pas de temps. Activé : chacune coûte la pénalité ci-dessus, comme une pièce non posée à temps."
+    judge:
+        add: "Pièces manquantes"
+        label: "Pièces manquantes du puzzle terminé"
+        hint: "Par ex. une pièce manquante d'usine. Vide = le puzzle est complet."
+        field: "Pièces manquantes"
+        none: "aucune pièce manquante"
+    desk:
+        label: "pièces manquantes :"

@@ -266,7 +266,8 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        // Admins always have the event creation wizard - the classic form is ?classic=1 (EventCreationWizardFeature)
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         $values = $this->optionValues($crawler);
         foreach ([OrganizationFixture::ORGANIZATION_RIVERBEND, OrganizationFixture::ORGANIZATION_MAPLE_PENDING, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT] as $organizationId) {
             self::assertContains($organizationId, $values);

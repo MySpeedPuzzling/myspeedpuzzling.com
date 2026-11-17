@@ -1,0 +1,37 @@
+{#
+    The event creation wizard's step rail (W-creation-wizard-research.md §3.2): a list of the path's steps on the left
+    from 992 px, a "Step 2 of 3" bar above the form on phones. A step links back once the draft exists and it is done or
+    the current one; later steps not done yet are plain text.
+
+    Required: progress - EventWizardProgress, step - the EventWizardStep shown
+#}
+{%- set position = progress.position(step) -%}
+{%- set total = progress.steps|length -%}
+<div class="d-lg-none mb-3" data-event-wizard-bar>
+    <div class="d-flex justify-content-between small text-muted mb-1">
+        <span>{{ 'event_wizard.step_of'|trans({'%position%': position, '%total%': total}) }}</span>
+        <span class="fw-semibold text-body">{{ step.labelKey|trans }}</span>
+    </div>
+    <div class="progress" style="height: 4px;" role="progressbar" aria-valuenow="{{ position }}" aria-valuemin="1" aria-valuemax="{{ total }}" aria-label="{{ 'event_wizard.step_of'|trans({'%position%': position, '%total%': total}) }}">
+        <div class="progress-bar" style="width: {{ (100 * position / total)|round }}%"></div>
+    </div>
+</div>
+<nav class="d-none d-lg-block" aria-label="{{ 'event_wizard.steps'|trans }}" data-event-wizard-rail>
+    <ol class="list-unstyled mb-0">
+        {% for item in progress.steps %}
+            {%- set current = item == step -%}
+            {%- set done = progress.isDone(item) -%}
+            {%- set linked = progress.competitionId is not null and not current and (done or progress.position(item) < position) -%}
+            <li class="d-flex align-items-center py-2{{ current ? ' fw-semibold' : '' }}"{% if current %} aria-current="step"{% endif %}>
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 flex-shrink-0 {{ current ? 'bg-primary text-white' : (done ? 'bg-success text-white' : 'border text-muted') }}" style="width: 1.75rem; height: 1.75rem; font-size: .8rem;">
+                    {%- if done and not current %}<i class="ci-check"></i>{% else %}{{ loop.index }}{% endif -%}
+                </span>
+                {% if linked %}
+                    <a href="{{ path(item.route, {competitionId: progress.competitionId}) }}" class="text-decoration-none">{{ item.labelKey|trans }}</a>
+                {% else %}
+                    <span class="{{ current ? '' : 'text-muted' }}">{{ item.labelKey|trans }}</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>

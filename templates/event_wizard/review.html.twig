@@ -1,0 +1,94 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.review'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.review.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {% if error is not null %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-3" data-event-wizard-review-event>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <h2 class="h5 mb-1">{{ competition.name }}</h2>
+                <a class="small flex-shrink-0" href="{{ path('event_wizard_basics_edit', {competitionId: competition.id}) }}">{{ 'event_wizard.edit'|trans }}</a>
+            </div>
+            <p class="mb-1">
+                {% if competition.dateFrom is not null %}
+                    {{ events_date_range(competition.dateFrom, competition.dateTo ?? competition.dateFrom, 'yMMMd') }}
+                {% endif %}
+                · {{ competition.isOnline ? 'competition.form.event_type_online'|trans : competition.location }}{% if competition.locationCountryCode is not null %}, <span class="fi fi-{{ competition.locationCountryCode.name }}"></span>{% endif %}
+            </p>
+            {% if competition.organization is not null %}
+                <p class="small text-muted mb-0">{{ 'event_wizard.basics.under'|trans({'%organization%': competition.organization.name}) }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if round is not null %}
+        <div class="card shadow-sm mb-3" data-event-wizard-review-round>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <h2 class="h6 mb-2">{{ 'event_wizard.review.round'|trans }}</h2>
+                    <a class="small flex-shrink-0" href="{{ path('event_wizard_puzzle', {competitionId: competition.id}) }}">{{ 'event_wizard.edit'|trans }}</a>
+                </div>
+                <dl class="row small mb-0">
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.review.round_name'|trans }}</dt>
+                    <dd class="col-7 col-sm-8">
+                        {{ round.name }}
+                        {% if round_name_generated %}<span class="text-muted">· {{ 'event_wizard.review.round_name_generated'|trans }}</span>{% endif %}
+                        <a href="{{ path('edit_competition_round', {roundId: round.id}) }}" class="ms-1">{{ 'event_wizard.review.rename'|trans }}</a>
+                    </dd>
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.review.starts'|trans }}</dt>
+                    <dd class="col-7 col-sm-8">{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}</dd>
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.puzzle.who_competes'|trans }}</dt>
+                    <dd class="col-7 col-sm-8">
+                        {{- (round.category.value == 'solo' ? 'competition.round.category.solo' : (round.category.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans -}}
+                        {%- if round.category.value == 'team' and round.teamSize is not null %} ({{ 'event_wizard.review.team_of'|trans({'%count%': round.teamSize}) }}){% endif -%}
+                    </dd>
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'competition.round.form.minutes_limit'|trans }}</dt>
+                    <dd class="col-7 col-sm-8">{{ round.minutesLimit ?? '-' }}</dd>
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.review.puzzle'|trans }}</dt>
+                    <dd class="col-7 col-sm-8" data-event-wizard-review-puzzles>
+                        {% for round_puzzle in round_puzzles %}
+                            <div>
+                                {{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}
+                                {% if round_puzzle.hideUntilRoundStarts %}
+                                    <div class="text-muted">
+                                        <i class="ci-locked me-1"></i>
+                                        {%- if round_puzzle.revealMode.value == 'automatic' -%}
+                                            {{ 'event_wizard.review.secret_automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)}) }}
+                                        {%- else -%}
+                                            {{ ('event_wizard.review.secret_' ~ round_puzzle.revealMode.value)|trans }}
+                                        {%- endif -%}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">{{ 'event_wizard.review.puzzle_later'|trans }}</span>
+                        {% endfor %}
+                        {% if round.puzzleFormat.value == 'pick' %}
+                            <div>{{ 'event_wizard.review.pick'|trans({'%count%': round.puzzlesToSolve, '%total%': round_puzzles|length}) }}</div>
+                        {% endif %}
+                    </dd>
+                    <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.review.zone'|trans }}</dt>
+                    <dd class="col-7 col-sm-8">{{ timezone_name(round.displayTimezone, round.timezoneAssumed) }}</dd>
+                </dl>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="alert alert-light border d-flex align-items-start small" data-event-wizard-approval>
+        <i class="ci-announcement me-2 mt-1 text-primary"></i>
+        <span>{{ (approved_at_once ? 'event_wizard.review.public_at_once' : 'event_wizard.review.admin_checks')|trans }}</span>
+    </div>
+
+    <form method="post" action="{{ path('event_wizard_review', {competitionId: competition.id}) }}" class="d-flex flex-wrap align-items-center gap-2 mt-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('event_wizard_review_' ~ competition.id) }}">
+        <button type="submit" name="action" value="publish" class="btn btn-primary" data-event-wizard-publish>{{ 'event_wizard.review.publish'|trans }}</button>
+        <button type="submit" name="action" value="draft" class="btn btn-outline-secondary" data-event-wizard-keep-draft>{{ 'event_wizard.review.keep_draft'|trans }}</button>
+        <a href="{{ path(progress.previous(step).route, {competitionId: competition.id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+    </form>
+{% endblock %}

@@ -41,6 +41,9 @@ final class RoundPuzzleFormType extends AbstractType
     {
         /** @var string $competitionId */
         $competitionId = $options['competition_id'];
+        // The event creation wizard's Puzzle step builds these fields into its own form, the puzzle optional there
+        // ("Decide later" - EventWizardPuzzleFormType)
+        $puzzleRequired = ($options['puzzle_required'] ?? true) === true;
 
         // Only the organisers reach this form - they also see the brands of their own secret puzzles
         $brandChoices = $this->brandChoicesBuilder->build(
@@ -51,7 +54,7 @@ final class RoundPuzzleFormType extends AbstractType
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
             'help' => 'forms.brand_help',
-            'required' => true,
+            'required' => $puzzleRequired,
             'autocomplete' => true,
             'empty_data' => '',
             'options_as_html' => true,
@@ -74,7 +77,7 @@ final class RoundPuzzleFormType extends AbstractType
         $builder->add('puzzle', TextType::class, [
             'label' => 'forms.puzzle',
             'help' => 'forms.puzzle_help',
-            'required' => true,
+            'required' => $puzzleRequired,
             'autocomplete' => true,
             'options_as_html' => true,
             'tom_select_options' => [

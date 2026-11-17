@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\EventWizard\EventCreationWizardFeature;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -35,6 +36,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * "When it happens" (series), and "Save as draft" next to the normal submit. Created under an approved organization by
  * its team, it needs no admin approval (OrganizationApprovalPolicy in the handlers); an admin's own item does not
  * e-mail the admins.
+ *
+ * While the event creation wizard is available to the player (EventCreationWizardFeature), opening this page leads to
+ * the wizard's entry (`?organization=` kept) - `?classic=1` keeps this form ("Prefer one form?"), `?recurring=1`
+ * ticks "Recurring" (the wizard's "A regular series" until its own steps exist). Its POST is never redirected.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddCompetitionController extends AbstractController
@@ -48,6 +53,7 @@ final class AddCompetitionController extends AbstractController
         private readonly CompetitionRepository $competitionRepository,
         private readonly CompetitionSeriesRepository $competitionSeriesRepository,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
+        private readonly EventCreationWizardFeature $eventCreationWizardFeature,
     ) {
     }
 
@@ -70,11 +76,23 @@ final class AddCompetitionController extends AbstractController
             return $this->redirectToRoute('events');
         }
 
+        if (
+            $request->isMethod('GET')
+            && $request->query->getString('classic') !== '1'
+            && $this->eventCreationWizardFeature->isAvailableTo($player->playerId)
+        ) {
+            return $this->redirectToRoute('event_wizard', array_filter(['organization' => $request->query->getString('organization')]));
+        }
+
         $isAdmin = $this->isGranted(AdminAccessVoter::ADMIN_ACCESS);
         $organizationChoices = $this->organizationSelectChoices->forPlayer($player->playerId, $isAdmin);
 
         $formData = new CompetitionFormData();
         $formData->organizationId = OrganizationSelectChoices::pick($organizationChoices, $request->query->getString('organization'));
+        // The wizard's "A regular series" opens this form with "Recurring" ticked
+        if ($request->query->getString('recurring') === '1') {
+            $formData->isRecurring = true;
+        }
 
         $form = $this->createForm(CompetitionFormType::class, $formData, [
             // Nothing to choose from: no select

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
+use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -24,7 +25,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
  * GetRoundResultsOverview tells how many wait).
  *
  * Statements: the round, the entries, for a pair/team round their members, and for a `pick` round (competition toolkit
- * A3) the piece counts of its puzzles - entries of a `pick` round carry their per-puzzle record (`puzzles`).
+ * A3) the piece counts of its puzzles - entries of a `pick` round carry their per-puzzle record (`puzzles`). The round's
+ * statement reads its competition's competitor pages / QR tag mode too: while either is set, team entries carry their
+ * `lineupId` (competition toolkit P1, R-review-and-plan.md §1.8, CompetitionLineupId over the members listed).
  */
 readonly final class GetRoundResultEntries
 {
@@ -43,8 +46,13 @@ readonly final class GetRoundResultEntries
      */
     public function forRound(string $roundId): array
     {
-        /** @var false|array{category: string, puzzle_format: string, puzzles_to_solve: null|int} $round */
-        $round = $this->database->fetchAssociative('SELECT category, puzzle_format, puzzles_to_solve FROM competition_round WHERE id = :roundId', [
+        /** @var false|array{category: string, puzzle_format: string, puzzles_to_solve: null|int, competition_id: string, lineups: bool} $round */
+        $round = $this->database->fetchAssociative(<<<SQL
+SELECT r.category, r.puzzle_format, r.puzzles_to_solve, r.competition_id, (c.competitor_pages OR c.qr_tag_mode IS NOT NULL) AS lineups
+FROM competition_round r
+INNER JOIN competition c ON c.id = r.competition_id
+WHERE r.id = :roundId
+SQL, [
             'roundId' => $roundId,
         ]);
 
@@ -53,6 +61,13 @@ readonly final class GetRoundResultEntries
         }
 
         $entries = $round['category'] === 'solo' ? $this->people($roundId) : $this->teams($roundId);
+
+        if ($round['lineups'] && $round['category'] !== 'solo') {
+            $entries = array_map(static fn (RoundResultEntry $entry): RoundResultEntry => self::copy(
+                $entry,
+                lineupId: $entry->participantIds() === [] ? null : CompetitionLineupId::of($round['competition_id'], $entry->participantIds()),
+            ), $entries);
+        }
 
         if ($round['puzzle_format'] === RoundPuzzleFormat::Pick->value && $round['puzzles_to_solve'] !== null) {
             $entries = $this->withPuzzles($roundId, $round['puzzles_to_solve'], $entries);
@@ -79,7 +94,7 @@ readonly final class GetRoundResultEntries
         ), $entries);
     }
 
-    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null): RoundResultEntry
+    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null, null|string $lineupId = null): RoundResultEntry
     {
         return new RoundResultEntry(
             ref: $entry->ref,
@@ -104,6 +119,7 @@ readonly final class GetRoundResultEntries
             puzzles: $entry->puzzles,
             puzzlesUsed: $puzzlesUsed ?? $entry->puzzlesUsed,
             piecesCount: $piecesCount ?? $entry->piecesCount,
+            lineupId: $lineupId ?? $entry->lineupId,
         );
     }
 

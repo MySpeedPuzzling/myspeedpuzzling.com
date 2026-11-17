@@ -122,6 +122,13 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 hour',
             ],
+            // A competitor's "propose my time" (competition toolkit P1, ProposeRoundTimeController): per player and round -
+            // one tap, its resends and an undo/propose again or two are far below; a stuck button never floods the judges
+            'time_proposal' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '10 minutes',
+            ],
             // The feedback form (FeedbackController): every feedback is an e-mail to our inbox, up to 3 screenshots
             // attached (docs/features/feedback-screenshots.md). Per player - far above anybody writing to us, a stop
             // for a script.

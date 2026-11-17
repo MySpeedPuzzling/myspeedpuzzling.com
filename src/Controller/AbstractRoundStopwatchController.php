@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Query\GetRoundStopwatchState;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Results\TimeProposalsSuperseded;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -99,7 +101,7 @@ abstract class AbstractRoundStopwatchController extends AbstractController
 
         try {
             $dispatched = $message($round);
-            $this->messageBus->dispatch($dispatched);
+            $envelope = $this->messageBus->dispatch($dispatched);
         } catch (RoundStopwatchRefused $refused) {
             if ($wantsJson) {
                 return self::privateJson(['error' => $refused->reason->value], Response::HTTP_CONFLICT);
@@ -112,6 +114,13 @@ abstract class AbstractRoundStopwatchController extends AbstractController
 
         // After the commit - a rolled back write never reaches a page
         $state = $this->liveUpdates->stopwatchChanged($roundId);
+
+        // A reset superseded competitors' pending time proposals (competition toolkit P1)
+        $handled = $envelope->last(HandledStamp::class)?->getResult();
+
+        if ($handled instanceof TimeProposalsSuperseded) {
+            $this->officialResultsLiveUpdates->proposalsChanged($roundId, $handled->proposalIds);
+        }
 
         if (($dispatched instanceof StartRoundStopwatch || $dispatched instanceof ScheduleRoundStart) && $dispatched->revealPuzzles) {
             $this->officialResultsLiveUpdates->puzzlesRevealed($roundId);

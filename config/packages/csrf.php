@@ -100,6 +100,9 @@ return App::config([
                 // Editing one row of "My data" (docs/features/my-data.md "Editing one row"): the row sheets' forms and the
                 // cells edited in place (sent as the X-CSRF-Token header) - the table stays open while it is worked on
                 'my_data_edit',
+                // A competitor's "propose my time" / "Undo" (competition toolkit P1, TimeProposalApi): sent as the X-CSRF-Token
+                // header from the competitor page, which stays open for a whole round and resends from its outbox
+                'time_proposal',
             ],
         ],
     ],

@@ -8,6 +8,9 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionTimeProposalRepository;
+use SpeedPuzzling\Web\Results\TimeProposalsSuperseded;
+use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
 use SpeedPuzzling\Web\Repository\OnlineEntryRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use Psr\Clock\ClockInterface;
@@ -29,6 +32,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *
  * A countdown reset before its moment never ran: a reveal it was started with is taken back. A reset after a real start
  * hides nothing again - the puzzles are out (RoundStopwatchReveal).
+ *
+ * Competitors' pending time proposals of the round are superseded (`stopwatch_reset` - competition toolkit P1): they
+ * were timed against the stopwatch that is gone. Returns them (TimeProposalsSuperseded) for the controller to publish.
  */
 #[AsMessageHandler]
 readonly final class ResetRoundStopwatchHandler
@@ -40,6 +46,7 @@ readonly final class ResetRoundStopwatchHandler
         private OfficialResultsGuard $officialResultsGuard,
         private RoundStopwatchReveal $roundStopwatchReveal,
         private ClockInterface $clock,
+        private CompetitionTimeProposalRepository $timeProposalRepository,
     ) {
     }
 
@@ -47,7 +54,7 @@ readonly final class ResetRoundStopwatchHandler
      * @throws CompetitionRoundNotFound a round of another event
      * @throws RoundStopwatchRefused
      */
-    public function __invoke(ResetRoundStopwatch $message): void
+    public function __invoke(ResetRoundStopwatch $message): TimeProposalsSuperseded
     {
         // First - it clears the entity manager when it locks
         $withReveal = $this->roundStopwatchReveal->lockIfNeeded($message->roundId, false);
@@ -74,5 +81,14 @@ readonly final class ResetRoundStopwatchHandler
         if ($withReveal) {
             $this->roundStopwatchReveal->resync($this->roundStopwatchReveal->withdrawFuture($round, $this->clock->now()));
         }
+
+        $superseded = [];
+
+        foreach ($this->timeProposalRepository->findPendingOfRound($round) as $proposal) {
+            $proposal->supersede(TimeProposalDecisionReason::StopwatchReset, null, $this->clock->now());
+            $superseded[] = $proposal->id->toString();
+        }
+
+        return new TimeProposalsSuperseded($roundId, $superseded);
     }
 }

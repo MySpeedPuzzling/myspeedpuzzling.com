@@ -32,6 +32,30 @@ readonly final class CompetitionRoundRepository
     }
 
     /**
+     * The round with its competition in one statement - for a reader that needs the competition's settings and must not
+     * pay a statement of its own for them (RecordRoundResultsHandler: time proposals on or off).
+     *
+     * @throws CompetitionRoundNotFound
+     */
+    public function getWithCompetition(string $roundId): CompetitionRound
+    {
+        if (!Uuid::isValid($roundId)) {
+            throw new CompetitionRoundNotFound();
+        }
+
+        $round = $this->entityManager->createQueryBuilder()
+            ->select('r', 'c')
+            ->from(CompetitionRound::class, 'r')
+            ->innerJoin('r.competition', 'c')
+            ->where('r.id = :id')
+            ->setParameter('id', strtolower($roundId))
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $round instanceof CompetitionRound ? $round : throw new CompetitionRoundNotFound();
+    }
+
+    /**
      * The competition's rounds, by start
      *
      * @return list<CompetitionRound>

@@ -7947,6 +7947,8 @@ official_results:
         splits_out_of_order: "Finished puzzles come first, in the order they were finished, each at a later time than the one before."
         puzzles_mismatch: "The result does not match the puzzles - a finished result needs all its puzzles finished (the last one at the result's time), pieces placed must be the sum over the puzzles, and an entrant who did not start has no puzzles. Change both together."
         group_refused: "Saved together with another change of this entrant that was refused - nothing of the two was saved."
+        proposals_off: "This event does not take time proposals from competitors (any more)."
+        proposal_not_found: "This time proposal is not one of this entrant (any more)."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."
     guard:
@@ -14524,3 +14526,21 @@ competition_display:
             500: "Medium"
             700: "Bold"
             900: "Black"
+time_proposal:
+    reason:
+        sign_in_required: "Sign in to propose your time."
+        invalid_proposal: "This time proposal could not be read - tap Stop again."
+        rate_limited: "Too many time proposals in a short time - wait a few minutes and try again."
+        round_not_found: "This round does not exist any more."
+        proposals_off: "This event does not take time proposals from competitors."
+        invalid_proposal_id: "This time proposal could not be accepted - tap Stop again."
+        entry_not_in_round: "This entrant is not in this round."
+        not_your_entry: "Only the competitor signed in with their own profile can propose a time for this entrant."
+        linked_after_start: "Your profile was linked to this competitor after the round started, so you cannot propose a time in this round. Ask a judge to enter your time."
+        clock_ahead: "The time on this phone is off - your time was not sent. Reload the page and tap Stop again."
+        not_running: "The round is not running - nothing to stop."
+        times_up: "The time limit is over - a judge will record your result."
+        too_late: "This time proposal arrived too long after the round ended - a judge records your result."
+        result_recorded: "A judge has recorded your result already."
+        already_proposed: "A time is already waiting for the judge."
+        proposal_not_found: "This time proposal does not exist."

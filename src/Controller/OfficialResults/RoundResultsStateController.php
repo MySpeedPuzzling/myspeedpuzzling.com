@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
+use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
@@ -35,6 +36,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * - `?entries=0` leaves `entries` out (and its query) - the clock sync and the token renewal only.
  * A `pick` round (competition toolkit A2) carries `puzzleFormat` in `round` and `rounds[]` (GetRoundResultsOverview,
  * RoundPuzzleFormats) - absent on every other round.
+ * A competition with time proposals on (competition toolkit P1, R §1.8) adds `proposals`: the round's pending proposals
+ * and those decided in the last 10 minutes (GetTimeProposals, TimeProposalView) - absent otherwise.
  * docs/features/competitions-management/official-results.md - the JSON shape is documented there.
  */
 final class RoundResultsStateController extends AbstractController
@@ -47,6 +50,7 @@ final class RoundResultsStateController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly OfficialResultsSubscription $subscription,
         private readonly RefereeEntriesView $refereeEntriesView,
+        private readonly GetTimeProposals $getTimeProposals,
     ) {
     }
 
@@ -98,6 +102,11 @@ final class RoundResultsStateController extends AbstractController
 
         if ($withEntries) {
             $state['entries'] = $this->refereeEntriesView->entries($this->getRoundResultEntries->forRound($round->id->toString()), $organiser);
+        }
+
+        // Only while the competition takes them - every other competition's state keeps its shape
+        if ($competition->timeProposals) {
+            $state['proposals'] = $this->getTimeProposals->forRound($round->id->toString(), $serverNow);
         }
 
         $state['mercure'] = $this->subscription->forRound($round->id->toString(), $organiser);

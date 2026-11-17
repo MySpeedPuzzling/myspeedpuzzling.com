@@ -126,7 +126,13 @@ keeps its version, so open displays do not reload.
   diffing and opaque.
 - An unknown or regenerated token gets `not_found.html.twig` (standalone, 404). The kind is unknown then, so the page is
   transparent with one short "no longer valid" line for both kinds.
-- No rate limiter on the public routes (D §9.1's `display_public` was not built).
+- **Rate limit `display_public`** (competition toolkit G3, `CompetitionDisplayRateLimit`, config/packages/rate_limiter.php):
+  the page, `/state` and `/design` count together per **token + client IP**, sliding window **1200 a minute**, no lock
+  (no Postgres advisory lock per request). Why that many: a screen fetches at most once per 1.5 s while results stream in
+  (~40/min) plus the safety poll; 20 screens of one hall on one link behind one NAT address are ~820/min at the busiest,
+  and reconnecting together adds 3 requests each. A loop or a script is held to 20/s. Over it: **429** with
+  `Retry-After`, empty body, nothing read; logged at **info** (no token in the log). Another address, or another link
+  from the same address, goes on. Test env: 100,000 (the 429 test uses a key of its own) - `CompetitionDisplayRateLimitTest`.
 
 ## Design schema v1, sanitizer and parity
 
@@ -236,6 +242,10 @@ editor badges those elements. `DisplayPreset::fits()` checks the kind, both in t
   - every fetch is a clock sample (`createServerClock`, the shortest round trip wins);
   - a newer `designVersion` fetches `/design` and rebuilds;
   - **404** → the invalid view, the stream closed, a check every 5 minutes;
+  - **429** (`display_public`, `display.js` → `{status: 'busy', retryAfterMs}`) → the picture stays as it is, nothing
+    is fetched until `Retry-After` has passed (kept within 1 s-10 min, 30 s when missing) + up to 5 s jitter, so a
+    hall's screens do not come back at the same moment; signals and refreshes meanwhile fetch nothing (harness
+    scenarios "a 429 …");
   - **reload** when `rendererBuild` changed (a deploy) or after 20 h of uptime, only in a calm phase (idle, stopped,
     times_up) and only right after a successful fetch;
   - wake lock for screens only (asked again when visible);

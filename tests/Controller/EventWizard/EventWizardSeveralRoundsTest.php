@@ -279,6 +279,54 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertSame(3, $this->roundsCount($competitionId));
     }
 
+    /**
+     * A round added later in the schedule table joins the standing that adds up every round of its category
+     * (StandingsJoiningNewRounds) - never one the organiser narrowed by hand, never a qualification step (offered).
+     */
+    public function testARoundAddedLaterJoinsTheStandingOfEveryRoundOfItsCategory(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $competitionId = $this->startDraft('every_round_counts');
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'soloRounds' => '2', 'pairsRounds' => '2', 'teamsRounds' => '0']);
+        $this->createRounds($crawler, ['09:00', '10:00', '11:00', '12:00']);
+        self::assertResponseRedirects();
+
+        $rounds = $this->rounds($competitionId);
+        $byCategory = static fn (array $rounds, string $category): array => array_column(array_filter($rounds, static fn (array $round): bool => $round['category'] === $category), 'id');
+        $soloIds = $byCategory($rounds, 'solo');
+        $pairsIds = $byCategory($rounds, 'duo');
+
+        // The organiser narrowed the pairs standing to one round by hand: it no longer adds up every pairs round
+        $this->database()->executeStatement(
+            "UPDATE competition_standing SET round_ids = :ids WHERE competition_id = :id AND category = 'duo'",
+            ['ids' => json_encode([$pairsIds[0]]), 'id' => $competitionId],
+        );
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
+        // Said before saving: the solo standing takes new solo rounds, the narrowed pairs one nothing
+        self::assertCount(1, $crawler->filter('[data-event-wizard-standing-joins]'));
+        self::assertStringContainsString('new Solo rounds count in it', $crawler->filter('[data-event-wizard-standing-joins]')->text());
+        self::assertSelectorNotExists('[data-event-wizard-steps-not-joined]');
+
+        $form = $crawler->filter('form[name="event_wizard_schedule"]')->form();
+        $form['event_wizard_schedule[rows][new0][name]'] = 'Solo 3';
+        $form['event_wizard_schedule[rows][new0][start]'] = '2027-06-15T14:00';
+        $form['event_wizard_schedule[rows][new1][name]'] = 'Pairs 3';
+        $form['event_wizard_schedule[rows][new1][start]'] = '2027-06-15T15:00';
+        $form['event_wizard_schedule[rows][new1][category]'] = 'duo';
+        $this->browser->submit($form);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzles', 303);
+
+        $newSolo = array_values(array_diff($byCategory($this->rounds($competitionId), 'solo'), $soloIds));
+        self::assertCount(1, $newSolo);
+
+        /** @var array<string, string> $standings category => round ids */
+        $standings = array_column($this->database()->fetchAllAssociative('SELECT category, round_ids FROM competition_standing WHERE competition_id = :id', ['id' => $competitionId]), 'round_ids', 'category');
+        self::assertSame([...$soloIds, $newSolo[0]], json_decode($standings['solo'], true));
+        self::assertSame([$pairsIds[0]], json_decode($standings['duo'], true));
+    }
+
     public function testStructureIsReadOnlyOnceARoundHasBegun(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);

@@ -26,7 +26,8 @@ use Symfony\Contracts\Service\ResetInterface;
  * composite that is SerializedByLock under the same key itself (the event creation
  * wizard's SaveEventWizardBasics / SetUpEventWizardRound around EditCompetitionRound):
  * a key this process holds already passes through - the outer message keeps it until
- * its own commit, and acquiring it a second time would wait for itself.
+ * its own commit, and acquiring it a second time would wait for itself. A composite whose
+ * nested messages use several keys holds them all (SerializedByLocks).
  */
 final class LockUntilCommittedMiddleware implements MiddlewareInterface, ResetInterface
 {
@@ -56,32 +57,51 @@ final class LockUntilCommittedMiddleware implements MiddlewareInterface, ResetIn
             return $stack->next()->handle($envelope, $stack);
         }
 
-        $key = $message->lockKey();
+        // A composite holding several keys (SerializedByLocks): its own key first - the order every other composite
+        // takes them in (the event's key held, a nested message's key acquired inside) - then the others sorted, so two
+        // such composites never wait for each other crosswise
+        $keys = [$message->lockKey()];
+
+        if ($message instanceof SerializedByLocks) {
+            $more = array_values(array_diff(array_unique($message->moreLockKeys()), $keys));
+            sort($more);
+            $keys = [...$keys, ...$more];
+        }
 
         // Held by the outer message of a nested dispatch - it stays held until that one's commit
-        if (isset($this->heldKeys[$key])) {
+        $keys = array_values(array_filter($keys, fn (string $key): bool => isset($this->heldKeys[$key]) === false));
+
+        if ($keys === []) {
             return $stack->next()->handle($envelope, $stack);
         }
 
-        $lock = $this->lockFactory->createLock($key);
-        $this->acquire($lock, $key);
-        $this->heldKeys[$key] = true;
+        /** @var array<string, LockInterface> $locks */
+        $locks = [];
 
         try {
+            foreach ($keys as $key) {
+                $lock = $this->lockFactory->createLock($key);
+                $this->acquire($lock, $key);
+                $locks[$key] = $lock;
+                $this->heldKeys[$key] = true;
+            }
+
             return $stack->next()->handle($envelope, $stack);
         } finally {
-            unset($this->heldKeys[$key]);
+            foreach ($locks as $key => $lock) {
+                unset($this->heldKeys[$key]);
 
-            try {
-                $lock->release();
-            } catch (LockReleasingException $releasingException) {
-                // The work is already committed (or rolled back) at this point; failing the
-                // request now would only make the caller retry something that succeeded.
-                // An advisory lock that could not be released dies with its connection.
-                $this->logger->warning('Could not release message lock', [
-                    'lock_key' => $message->lockKey(),
-                    'exception' => $releasingException,
-                ]);
+                try {
+                    $lock->release();
+                } catch (LockReleasingException $releasingException) {
+                    // The work is already committed (or rolled back) at this point; failing the
+                    // request now would only make the caller retry something that succeeded.
+                    // An advisory lock that could not be released dies with its connection.
+                    $this->logger->warning('Could not release message lock', [
+                        'lock_key' => $key,
+                        'exception' => $releasingException,
+                    ]);
+                }
             }
         }
     }

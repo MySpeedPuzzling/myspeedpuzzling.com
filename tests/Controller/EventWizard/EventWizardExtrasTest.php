@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\EventWizard;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionDisplay;
+use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
+use SpeedPuzzling\Web\Value\DisplayKind;
+use SpeedPuzzling\Web\Value\DisplayPreset;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The event creation wizard's "Extras" step (W6, docs/features/competitions-management/toolkit/
@@ -123,6 +129,53 @@ final class EventWizardExtrasTest extends WebTestCase
         $this->submit($competitionId, ['elsewhere' => false, 'registrationLink' => 'not a link', 'capacity' => '-5']);
         self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
         self::assertSame($before, $this->snapshot($competitionId));
+    }
+
+    /**
+     * All or nothing (SaveEventWizardExtras): a row refused while writing - here the last one, a timer screen over the
+     * event's display limit - leaves every row before it unwritten, and the page says which row.
+     */
+    public function testARefusalInTheLastRowLeavesTheRowsBeforeItUnwritten(): void
+    {
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraft();
+
+        // The event has as many displays as it may have (overlays - the timer screen row is still offered)
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        for ($i = 0; $i < CompetitionDisplay::MAX_PER_COMPETITION; $i++) {
+            $bus->dispatch(new AddCompetitionDisplay(
+                displayId: Uuid::uuid7(),
+                competitionId: $competitionId,
+                kind: DisplayKind::Overlay,
+                name: 'Overlay ' . $i,
+                locale: 'en',
+                actorPlayerId: null,
+                presetKey: DisplayPreset::from('obs_corner_timer'),
+            ));
+        }
+        $before = $this->snapshot($competitionId);
+
+        $this->submit($competitionId, [
+            'registration' => true,
+            'capacity' => '80',
+            'opensAt' => '01.05.2027 10:00',
+            'closesAt' => '10.06.2027 20:00',
+            'elsewhere' => true,
+            'resultsLink' => 'https://example.com/results',
+            'qrTags' => true,
+            'qrTagMode' => 'table',
+            'timerScreen' => true,
+            'screenPreset' => 'timer_sponsor_bar',
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-event-wizard-extra="timer_screen"]', 'at most ' . CompetitionDisplay::MAX_PER_COMPETITION);
+        // Registration, the link and the QR tags were written before the refusal - and rolled back with it
+        self::assertSame($before, $this->snapshot($competitionId));
+
+        // The refused page shows the event as it is (nothing kept in memory from the rolled back rows)
+        $this->browser->request('GET', $this->url($competitionId));
+        self::assertNull($this->browser->getCrawler()->filter('input[name="' . self::FORM . '[registration]"]')->attr('checked'));
     }
 
     public function testLinksElsewhereKeepEveryOtherFieldOfTheEvent(): void

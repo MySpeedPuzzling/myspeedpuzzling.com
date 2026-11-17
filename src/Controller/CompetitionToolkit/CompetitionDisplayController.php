@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionDisplayNotFound;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayPayload;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayRateLimit;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -26,12 +28,20 @@ final class CompetitionDisplayController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionDisplayPayload $payload,
+        private readonly CompetitionDisplayRateLimit $rateLimit,
     ) {
     }
 
     #[Route(path: '/display/{token}', name: 'competition_display', methods: ['GET'])]
-    public function __invoke(string $token): Response
+    public function __invoke(Request $request, string $token): Response
     {
+        // Before anything is read (D-displays-overlays.md §9.1)
+        $refused = $this->rateLimit->refusal($request, $token);
+
+        if ($refused !== null) {
+            return $refused;
+        }
+
         try {
             $page = $this->payload->pageForToken($token);
             $response = $this->render('competition_display/display.html.twig', [

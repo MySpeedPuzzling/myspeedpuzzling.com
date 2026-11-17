@@ -97,6 +97,7 @@ use SpeedPuzzling\Web\Message\RegisterOnlineMedia;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Message\RestorePuzzleImage;
+use SpeedPuzzling\Web\Message\RevealPuzzlesTheStopwatchMissed;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
@@ -414,6 +415,7 @@ final class SerializedByLockMessagesTest extends TestCase
         ChangeRoundPuzzleReveal::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         KeepRoundPuzzleHiddenEverywhere::class => 'a round puzzle\' site-wide hide - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         RevealRoundPuzzleNow::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
+        RevealPuzzlesTheStopwatchMissed::class => 'the round puzzles\' reveal after a publish - SecretPuzzleHides takes its own row locks (the round, its secret puzzles); entries and results are not touched',
         UpdateWjpcPlayerId::class => 'writes only remote_id, a column nothing else writes; its handler waits for worldjigsawpuzzle.org, and the event\'s lock held across that call would hold up every registration',
     ];
 

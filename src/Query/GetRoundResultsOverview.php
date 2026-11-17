@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\RoundPuzzleFormats;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
@@ -44,6 +45,7 @@ SELECT
     c.is_online,
     puzzles.puzzles_count,
     puzzles.pieces_count,
+    puzzles.stopwatch_reveal_left,
     entries.total,
     entries.with_table_number,
     entries.with_result,
@@ -54,7 +56,8 @@ INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN LATERAL (
     SELECT
         COUNT(*) AS puzzles_count,
-        CASE WHEN COUNT(*) = 1 THEN MAX(puzzle.pieces_count) END AS pieces_count
+        CASE WHEN COUNT(*) = 1 THEN MAX(puzzle.pieces_count) END AS pieces_count,
+        COUNT(*) FILTER (WHERE crp.hide_until_round_starts AND crp.reveal_mode = '%stopwatch%' AND crp.reveal_at IS NULL) AS stopwatch_reveal_left
     FROM competition_round_puzzle crp
     INNER JOIN puzzle ON puzzle.id = crp.puzzle_id
     WHERE crp.round_id = cr.id
@@ -134,7 +137,36 @@ SQL;
         return strtr(self::SELECT, [
             '%going%' => CompetitionParticipantGoing::sql('cp'),
             '%waitlisted%' => RegistrationStatus::Waitlisted->value,
+            '%stopwatch%' => RoundPuzzleReveal::Stopwatch->value,
         ]);
+    }
+
+    /**
+     * Secret puzzles waiting for a stopwatch start with "Reveal" (no moment yet) once the round's time is over - the
+     * stopwatch ran or runs without the tick (the round puzzles page's "use Reveal now" notion), or it was never started
+     * and the round's planned start + limit (its start, without a limit) has passed (A-round-formats.md §4.4). A countdown
+     * still ahead is not over. Never an automatic reveal - only what the desk tells the organiser.
+     */
+    private static function stopwatchRevealMissed(
+        int $left,
+        null|string $stopwatchStatus,
+        null|DateTimeImmutable $stopwatchStartedAt,
+        DateTimeImmutable $startsAt,
+        null|int $minutesLimit,
+        DateTimeImmutable $now,
+    ): int {
+        if ($left === 0) {
+            return 0;
+        }
+
+        if (RoundStopwatchStatus::hasStarted($stopwatchStatus, $stopwatchStartedAt, $now)) {
+            return $left;
+        }
+
+        $plannedTimeOver = $stopwatchStatus === null
+            && $now->getTimestamp() - $startsAt->getTimestamp() >= ($minutesLimit ?? 0) * 60;
+
+        return $plannedTimeOver ? $left : 0;
     }
 
     /**
@@ -145,7 +177,7 @@ SQL;
      */
     private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, stopwatch_reveal_left: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
         $stopwatchStartedAt = $date($row['stopwatch_started_at']);
@@ -174,6 +206,7 @@ SQL;
             peopleOnWaitlist: $row['on_waitlist'],
             puzzleFormat: $row['puzzle_format'],
             puzzlesToSolve: $row['puzzles_to_solve'],
+            stopwatchRevealMissed: self::stopwatchRevealMissed((int) $row['stopwatch_reveal_left'], $row['stopwatch_status'], $stopwatchStartedAt, $startsAt, $row['minutes_limit'], $now),
             showsTablesReadiness: SeatingReadiness::isShown(
                 $row['is_online'],
                 $row['table_numbers_off'],

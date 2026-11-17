@@ -41,6 +41,23 @@
                         <p class="form-text mb-3" data-what-moves><i class="bi bi-info-circle me-1"></i>{{ 'event_duplicate.form.what_moves'|trans }}</p>
                         <p class="form-text mb-3">{{ 'event_duplicate.help'|trans }}</p>
 
+                        {#- Rounds are copied without puzzles: a `pick` round's copy is "One result for the round" (competition
+                            toolkit G3) - said here, and again in a flash after the copy -#}
+                        {% if pick_rounds|default([]) is not empty %}
+                            <div class="alert alert-warning small py-2 mb-3" data-duplicate-formats-reset>
+                                <i class="bi bi-exclamation-triangle me-1"></i>{{ 'event_duplicate.formats.notice'|trans }}
+                                <ul class="mb-0 mt-1 ps-4">
+                                    {% for round in pick_rounds %}
+                                        {#- The names of competition_toolkit/_round_format_summary.html.twig (as text, escaped once) -#}
+                                        {%- set format_name = round.puzzlesToSolve >= round.puzzleCount
+                                            ? 'competition_toolkit.round_format.name.all'|trans({'%count%': round.puzzleCount})
+                                            : 'competition_toolkit.round_format.name.pick'|trans({'%count%': round.puzzlesToSolve, '%puzzles%': round.puzzleCount}) -%}
+                                        <li data-duplicate-format-round="{{ round.id }}">{{ 'event_duplicate.formats.round'|trans({'%round%': round.name, '%format%': format_name}) }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-copy me-1"></i>{{ 'event_duplicate.form.submit'|trans }}

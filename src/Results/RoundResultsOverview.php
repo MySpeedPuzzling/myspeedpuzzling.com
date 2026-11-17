@@ -50,6 +50,10 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         // The `pick` round's format with its puzzles (RoundPuzzleFormats, the round state only) - the JSON's
         // `puzzleFormat`, absent while null
         public null|RoundPuzzleFormatView $puzzleFormatView = null,
+        // Secret puzzles still hidden although the round's time is over, because its stopwatch never started with
+        // "Reveal" ticked (RoundPuzzleReveal::Stopwatch without a moment - competition toolkit G3, A §4.4): the desk's
+        // notice and the publish dialog's "Also reveal" offer. The JSON's `stopwatchRevealMissed`, absent while 0
+        public int $stopwatchRevealMissed = 0,
     ) {
     }
 
@@ -102,6 +106,11 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         // Only on a `pick` round of the round state (R-review-and-plan.md §1.8) - every other answer is unchanged
         if ($this->puzzleFormatView !== null) {
             $json['puzzleFormat'] = $this->puzzleFormatView;
+        }
+
+        // Only on a round whose secret puzzles missed the stopwatch start (a count - labels and names stay where they were)
+        if ($this->stopwatchRevealMissed > 0) {
+            $json['stopwatchRevealMissed'] = $this->stopwatchRevealMissed;
         }
 
         return $json;

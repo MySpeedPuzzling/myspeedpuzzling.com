@@ -39,6 +39,8 @@ final class RoundEntryPuzzlesRecordingTest extends KernelTestCase
 {
     use RoundPuzzleFormatSetup;
 
+    private const array LOCALES = ['cs', 'de', 'en', 'es', 'fr', 'ja'];
+
     private const string IVAN = 'participant_round:' . OfficialResultsFixture::ENTRY_B_IVAN;
     private const string HUGO = 'participant_round:' . OfficialResultsFixture::ENTRY_B_HUGO;
 
@@ -256,19 +258,36 @@ final class RoundEntryPuzzlesRecordingTest extends KernelTestCase
         self::assertSame('results_only', $recorded->outcomes[2]->reason);
     }
 
+    /**
+     * In every locale of the site, not only English (a locale's own catalogue - never the English fallback a missing key
+     * would show): a refusal reads in the judge's language (competition toolkit G3).
+     */
     public function testEveryNewReasonIsTranslated(): void
     {
         $translator = self::getContainer()->get(TranslatorInterface::class);
+        $missing = [];
 
-        foreach (['puzzles_not_used', 'unknown_round_puzzle', 'puzzle_listed_twice', 'too_many_puzzles', 'invalid_split', 'splits_out_of_order', 'puzzles_mismatch', 'group_refused'] as $reason) {
-            $key = 'official_results.reason.' . $reason;
-            self::assertNotSame($key, $translator->trans($key, locale: 'en'), $key);
+        foreach (self::LOCALES as $locale) {
+            $catalogue = $translator->getCatalogue($locale);
+
+            foreach (['puzzles_not_used', 'unknown_round_puzzle', 'puzzle_listed_twice', 'too_many_puzzles', 'invalid_split', 'splits_out_of_order', 'puzzles_mismatch', 'group_refused'] as $reason) {
+                if (!$catalogue->defines('official_results.reason.' . $reason)) {
+                    $missing[] = $locale . ': official_results.reason.' . $reason;
+                }
+            }
+
+            foreach ([RoundPuzzleFormatRefused::PUZZLE_IN_RESULTS, RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS] as $reason) {
+                $refused = new RoundPuzzleFormatRefused($reason, 2, 3, 4);
+
+                if (!$catalogue->defines($refused->translationKey())) {
+                    $missing[] = $locale . ': ' . $refused->translationKey();
+                } else {
+                    self::assertStringContainsString('4', $translator->trans($refused->translationKey(), $refused->translationParameters(), locale: $locale), $locale . ': ' . $refused->translationKey());
+                }
+            }
         }
 
-        foreach ([RoundPuzzleFormatRefused::PUZZLE_IN_RESULTS, RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS] as $reason) {
-            $refused = new RoundPuzzleFormatRefused($reason, 2, 3, 4);
-            self::assertStringContainsString('4', $translator->trans($refused->translationKey(), $refused->translationParameters(), locale: 'en'));
-        }
+        self::assertSame([], $missing, 'Keys missing in a locale\'s own catalogue (the page would fall back to English)');
     }
 
     public function testARecordedChoiceIsOfficialData(): void

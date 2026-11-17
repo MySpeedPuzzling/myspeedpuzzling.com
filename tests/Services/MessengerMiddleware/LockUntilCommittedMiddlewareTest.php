@@ -12,6 +12,7 @@ use Psr\Log\NullLogger;
 use RuntimeException;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\LockUntilCommittedMiddleware;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLocks;
 use SpeedPuzzling\Web\Tests\TestDouble\FlakyLockStore;
 use Symfony\Component\Lock\Exception\LockAcquiringException;
 use Symfony\Component\Lock\LockFactory;
@@ -117,6 +118,45 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
     }
 
     /**
+     * A composite whose nested messages use several keys (SerializedByLocks - the creation wizard's Extras) holds every
+     * one of them until it is done: a nested message of any of them passes through, none is released in between.
+     */
+    public function testACompositeHoldsEveryKeyOfItsNestedMessagesUntilItIsDone(): void
+    {
+        $middleware = $this->middleware();
+        $composite = new Envelope(new class (self::LOCK_KEY) implements SerializedByLocks {
+            public function __construct(private string $key)
+            {
+            }
+
+            public function lockKey(): string
+            {
+                return $this->key;
+            }
+
+            public function moreLockKeys(): array
+            {
+                return ['other-key', $this->key, 'other-key'];
+            }
+        });
+        $inner = new Envelope($this->lockedMessage('other-key'));
+        $free = [];
+
+        $middleware->handle($composite, $this->stack(function () use ($middleware, $inner, $composite, &$free): Envelope {
+            $free['before'] = [$this->isLockFree(), $this->isLockFree('other-key')];
+            $middleware->handle($inner, $this->stack(static fn (): Envelope => $inner));
+            $free['after_inner'] = [$this->isLockFree(), $this->isLockFree('other-key')];
+
+            return $composite;
+        }));
+
+        self::assertSame([false, false], $free['before']);
+        self::assertSame([false, false], $free['after_inner'], 'The nested message must not release a key of the composite');
+        self::assertTrue($this->isLockFree());
+        self::assertTrue($this->isLockFree('other-key'));
+    }
+
+    /**
      * The lock store keeps its own long-lived database connection. After Postgres restarted,
      * the first lock of every worker failed with ConnectionLost (production 2026-09-03: a
      * Stripe webhook answered 500). DBAL closes a lost connection, so one more attempt
@@ -186,9 +226,9 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
         return new LockUntilCommittedMiddleware($this->lockFactory, new NullLogger());
     }
 
-    private function isLockFree(): bool
+    private function isLockFree(string $key = self::LOCK_KEY): bool
     {
-        $probe = $this->lockFactory->createLock(self::LOCK_KEY);
+        $probe = $this->lockFactory->createLock($key);
 
         if (!$probe->acquire(blocking: false)) {
             return false;
@@ -199,9 +239,9 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
         return true;
     }
 
-    private function lockedMessage(): SerializedByLock
+    private function lockedMessage(string $key = self::LOCK_KEY): SerializedByLock
     {
-        return new class (self::LOCK_KEY) implements SerializedByLock {
+        return new class ($key) implements SerializedByLock {
             public function __construct(private string $key)
             {
             }

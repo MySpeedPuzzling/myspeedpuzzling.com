@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDatesPrefill;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardSeriesAccess;
+use SpeedPuzzling\Web\Services\EventWizard\SeriesScheduleText;
 use SpeedPuzzling\Web\Services\SeriesEditions\EditionsPreview;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use SpeedPuzzling\Web\Value\NewEdition;
@@ -73,6 +74,7 @@ final class EventWizardSeriesDatesController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly EventWizardDefaults $defaults,
+        private readonly SeriesScheduleText $seriesScheduleText,
     ) {
     }
 
@@ -159,6 +161,8 @@ final class EventWizardSeriesDatesController extends AbstractController
                             isDraft: $series->isDraft,
                         ),
                         rounds: $rounds,
+                        // Filled only while the series has no "When it happens" (never over a typed one)
+                        schedule: $this->seriesScheduleText->of($formData, $request->getLocale()),
                     ))->last(HandledStamp::class)?->getResult();
 
                     // A form sent again creates nothing - and says nothing

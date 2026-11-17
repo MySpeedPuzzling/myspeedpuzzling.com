@@ -76,6 +76,47 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         self::assertInputValueSame('name', 'Results Cup');
         self::assertSelectorTextContains('[data-source-date]', 'Copy of');
         self::assertSelectorExists('[data-what-moves]');
+        // No `pick` round - nothing about formats
+        self::assertSelectorNotExists('[data-duplicate-formats-reset]');
+    }
+
+    /**
+     * Competition toolkit G3: rounds are copied without puzzles, so a `pick` round's copy is "One result for the round" -
+     * the form and a flash after the copy say which round had which format.
+     */
+    public function testAPickRoundsFormatIsSaidToResetOnTheFormAndAfterTheCopy(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition_round SET puzzle_format = 'pick', puzzles_to_solve = 1 WHERE id = :id",
+            ['id' => OfficialResultsFixture::ROUND_GROUP_A],
+        );
+        $name = self::text($connection->fetchOne('SELECT name FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_A]));
+        $puzzles = self::number($connection->fetchOne('SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_A]));
+        $format = $puzzles > 1
+            ? $this->trans('competition_toolkit.round_format.name.pick', ['%count%' => '1', '%puzzles%' => (string) $puzzles])
+            : $this->trans('competition_toolkit.round_format.name.all', ['%count%' => (string) $puzzles]);
+        $line = $this->trans('event_duplicate.formats.round', ['%round%' => $name, '%format%' => $format]);
+
+        $browser->request('GET', self::PATH);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(1, '[data-duplicate-formats-reset] li');
+        self::assertSelectorTextSame('[data-duplicate-format-round="' . OfficialResultsFixture::ROUND_GROUP_A . '"]', $line);
+
+        $browser->request('POST', self::PATH, ['_token' => 'csrf-token', 'dateFrom' => '2031-05-01', 'name' => 'Results Cup Pick'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+
+        self::assertResponseStatusCodeSame(303);
+        /** @var Session $session */
+        $session = $browser->getRequest()->getSession();
+        self::assertSame([$this->trans('event_duplicate.formats.flash', ['%rounds%' => $line])], array_values($session->getFlashBag()->peek('warning')));
+
+        // The copy's round is `total` - it has no puzzles to pick from
+        $copyFormats = $connection->fetchFirstColumn("SELECT cr.puzzle_format FROM competition_round cr INNER JOIN competition c ON c.id = cr.competition_id WHERE c.name = 'Results Cup Pick'");
+        self::assertNotSame([], $copyFormats);
+        self::assertSame(['total'], array_values(array_unique(array_map(self::text(...), $copyFormats))));
     }
 
     public function testTheNextEditionOfASeriesIsProposedWithTheNextNumberAndTheSameGap(): void

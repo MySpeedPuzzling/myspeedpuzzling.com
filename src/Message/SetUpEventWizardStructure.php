@@ -21,7 +21,9 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * 4. $adds - AddCompetitionRound (a template's rounds, the table's new rows);
  * 5. $advancementSteps - CreateCompetitionAdvancementStep per stage arrow (toolkit only, W7 - checked against the
  *    rounds just added by AdvancementStepGraph);
- * 6. $standings - CreateCompetitionStanding per category ("add up the times per category", toolkit only, W7).
+ * 6. $standings - CreateCompetitionStanding per category ("add up the times per category", toolkit only, W7);
+ * 7. $joinStandings (the schedule table) - the rounds of $adds join the standings that add up every round of their
+ *    category (StandingsJoiningNewRounds, decided on the event as it was before this step - EditCompetitionStanding).
  *
  * Whatever any of them refuses rolls everything back - never half a structure. Takes the event's participants lock
  * (the round deletes and edits, the steps and standings do); the nested ones pass through it
@@ -44,6 +46,7 @@ readonly final class SetUpEventWizardStructure implements SerializedByLock
         public array $adds = [],
         public array $advancementSteps = [],
         public array $standings = [],
+        public bool $joinStandings = false,
     ) {
         $competitionId = strtolower($competitionId);
 

@@ -10427,6 +10427,10 @@ event_duplicate:
         what_moves: "Kola i registrace se posunou o stejný počet dní; časy během dne zůstanou."
         submit: "Vytvořit kopii"
         cancel: "Zrušit"
+    formats:
+        notice: "Formáty puzzlí se resetují: kola kopie začínají bez puzzlí, takže každé je „Jeden výsledek za kolo“. Přidejte puzzle a pak formát nastavte znovu:"
+        round: "%round% mělo formát „%format%“"
+        flash: "Formáty puzzlí se resetovaly - přidejte do kol kopie puzzle a pak formát nastavte znovu: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Velké jednobarevné plochy"
@@ -13912,6 +13916,16 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "Puzzle k odhalení se mezitím změnila, nebo se změnil start - nic se nespustilo. Zkontrolujte seznam a zkuste to znovu."
             reveal_not_allowed: "Žádné puzzle tohoto kola už nečeká na spuštění stopek - nic se nespustilo. Spusťte znovu bez „Odhalit“."
+    reveal_missed:
+        desk: "{0}Stále skryté: stopky nebyly spuštěny s „Odhalit“, takže tajná puzzle tohoto kola nejsou venku.|{1}Stále skryté: stopky nebyly spuštěny s „Odhalit“, takže tajné puzzle tohoto kola není venku.|[2,4]Stále skryté: stopky nebyly spuštěny s „Odhalit“, takže %count% tajná puzzle tohoto kola nejsou venku.|[5,Inf[Stále skryté: stopky nebyly spuštěny s „Odhalit“, takže %count% tajných puzzlí tohoto kola není venku."
+        desk_link: "Odhalit teď na stránce puzzlí kola"
+        checkbox: "{0}Odhalit teď i skrytá puzzle|{1}Odhalit teď i skryté puzzle|[2,4]Odhalit teď i %count% skrytá puzzle|[5,Inf[Odhalit teď i %count% skrytých puzzlí"
+        help: "Samotné zveřejnění výsledků žádné skryté puzzle neodhalí. Odhalené puzzle už nikdy nelze znovu skrýt."
+        loading: "Hledáme skrytá puzzle kola…"
+        failed: "Skrytá puzzle se nepodařilo načíst. Zveřejněte teď a odhalte je na stránce puzzlí kola."
+        hidden_elsewhere: "jinde na MySpeedPuzzling zůstává skryté do %time%"
+        revealed: "Výsledky jsou zveřejněné a skrytá puzzle jsou venku."
+        changed: "Výsledky jsou zveřejněné. Skrytá puzzle se mezitím změnila, takže žádné nebylo odhaleno - zkontrolujte je na stránce puzzlí kola."
     round_format:
         form:
             label: "Jak se puzzle tohoto kola skládají?"
@@ -15294,3 +15308,40 @@ participant_linking:
         by_themselves: "sám/sama"
         import: "import"
         online_link: "osobní odkaz"
+event_wizard_more:
+    puzzle_search:
+        label: "Najít puzzle"
+        placeholder: "Název, EAN nebo kód výrobce"
+        by_brand: "Raději vybrat výrobce, nebo přidat nové puzzle"
+        no_results: "Nic nenalezeno - vyberte níže výrobce a přidejte ho jako nové puzzle."
+    schedule:
+        joins: "nová kola (%category%) se do něj započítají"
+        standing_published: "zveřejněno"
+        steps_not_joined: "Nová kola se do žádného kvalifikačního kroku samy nezapojí."
+        manage_steps: "Nastavit kvalifikaci"
+    when:
+        weekly:
+            1: "Každé pondělí"
+            2: "Každé úterý"
+            3: "Každou středu"
+            4: "Každý čtvrtek"
+            5: "Každý pátek"
+            6: "Každou sobotu"
+            7: "Každou neděli"
+        weekday:
+            1: "pondělí"
+            2: "úterý"
+            3: "středa"
+            4: "čtvrtek"
+            5: "pátek"
+            6: "sobota"
+            7: "neděle"
+        ordinal:
+            1: "1."
+            2: "2."
+            3: "3."
+            4: "4."
+        nth: "%ordinal% %weekday% v měsíci"
+        last: "Poslední %weekday% v měsíci"
+        at_time: "%when% v %time%"
+        picked_at_time: "V %time% v každém termínu"

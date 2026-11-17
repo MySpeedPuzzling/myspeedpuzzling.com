@@ -22,6 +22,8 @@ readonly final class AddEventWizardEditions implements SerializedByLock
     public function __construct(
         public AddEditions $editions,
         public array $rounds,
+        // "When it happens" from the Dates rule (SeriesScheduleText) - set only while the series has none
+        public null|string $schedule = null,
     ) {
         $editionIds = [];
         foreach ($editions->editions as $edition) {

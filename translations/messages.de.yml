@@ -10424,6 +10424,10 @@ event_duplicate:
         what_moves: "Runden und Registrierung verschieben sich um gleich viele Tage; die Uhrzeiten bleiben."
         submit: "Kopie erstellen"
         cancel: "Abbrechen"
+    formats:
+        notice: "Puzzle-Formate zurückgesetzt: Die Runden der Kopie beginnen ohne Puzzles, daher ist jede „Ein Ergebnis für die Runde“. Fügen Sie die Puzzles hinzu und legen Sie dann das Format erneut fest:"
+        round: "%round% war „%format%“"
+        flash: "Puzzle-Formate zurückgesetzt - fügen Sie den Runden der Kopie die Puzzles hinzu und legen Sie dann das Format erneut fest: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Große einfarbige Flächen"
@@ -13909,6 +13913,16 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "Die zu enthüllenden Puzzles oder der Start haben sich inzwischen geändert – nichts wurde gestartet. Prüfen Sie die Liste und versuchen Sie es erneut."
             reveal_not_allowed: "Kein Puzzle dieser Runde wartet mehr auf den Start der Stoppuhr – nichts wurde gestartet. Starten Sie erneut ohne „Enthüllen“."
+    reveal_missed:
+        desk: "{0}Noch verborgen: Die Stoppuhr wurde nie mit „Enthüllen“ gestartet, daher sind die geheimen Puzzles dieser Runde nicht enthüllt.|{1}Noch verborgen: Die Stoppuhr wurde nie mit „Enthüllen“ gestartet, daher ist das geheime Puzzle dieser Runde nicht enthüllt.|]1,Inf[Noch verborgen: Die Stoppuhr wurde nie mit „Enthüllen“ gestartet, daher sind die %count% geheimen Puzzles dieser Runde nicht enthüllt."
+        desk_link: "Jetzt enthüllen auf der Puzzle-Seite der Runde"
+        checkbox: "{0}Auch die verborgenen Puzzles jetzt enthüllen|{1}Auch das verborgene Puzzle jetzt enthüllen|]1,Inf[Auch die %count% verborgenen Puzzles jetzt enthüllen"
+        help: "Das Veröffentlichen der Ergebnisse allein enthüllt kein verborgenes Puzzle. Einmal enthüllt, kann ein Puzzle nie wieder verborgen werden."
+        loading: "Verborgene Puzzles der Runde werden gesucht…"
+        failed: "Die verborgenen Puzzles konnten nicht geladen werden. Veröffentlichen Sie jetzt und enthüllen Sie sie auf der Puzzle-Seite der Runde."
+        hidden_elsewhere: "bleibt anderswo auf MySpeedPuzzling bis %time% verborgen"
+        revealed: "Ergebnisse veröffentlicht, und die verborgenen Puzzles sind enthüllt."
+        changed: "Ergebnisse veröffentlicht. Die verborgenen Puzzles haben sich inzwischen geändert, daher wurde keines enthüllt - prüfen Sie sie auf der Puzzle-Seite der Runde."
     round_format:
         form:
             label: "Wie werden die Puzzles dieser Runde gelöst?"
@@ -15291,3 +15305,40 @@ participant_linking:
         by_themselves: "selbst"
         import: "Import"
         online_link: "persönlicher Link"
+event_wizard_more:
+    puzzle_search:
+        label: "Puzzle finden"
+        placeholder: "Name, EAN oder Herstellercode"
+        by_brand: "Stattdessen den Hersteller wählen oder ein neues Puzzle hinzufügen"
+        no_results: "Nichts gefunden - wählen Sie unten den Hersteller, um es als neues Puzzle hinzuzufügen."
+    schedule:
+        joins: "neue %category%-Runden zählen darin"
+        standing_published: "veröffentlicht"
+        steps_not_joined: "Neue Runden kommen von selbst in keinen Qualifikationsschritt."
+        manage_steps: "Qualifikation einrichten"
+    when:
+        weekly:
+            1: "Jeden Montag"
+            2: "Jeden Dienstag"
+            3: "Jeden Mittwoch"
+            4: "Jeden Donnerstag"
+            5: "Jeden Freitag"
+            6: "Jeden Samstag"
+            7: "Jeden Sonntag"
+        weekday:
+            1: "Montag"
+            2: "Dienstag"
+            3: "Mittwoch"
+            4: "Donnerstag"
+            5: "Freitag"
+            6: "Samstag"
+            7: "Sonntag"
+        ordinal:
+            1: "Erster"
+            2: "Zweiter"
+            3: "Dritter"
+            4: "Vierter"
+        nth: "%ordinal% %weekday% des Monats"
+        last: "Letzter %weekday% des Monats"
+        at_time: "%when% um %time%"
+        picked_at_time: "Um %time% an jedem Termin"

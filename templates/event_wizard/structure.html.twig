@@ -193,8 +193,15 @@
                         <div><i class="ci-arrow-right me-1"></i>{{ advancement_step.name ?? '' }}: {{ 'event_wizard.structure.advance_summary'|trans({'%count%': advancement_step.settings.qualifyCount ?? 0}) }}</div>
                     {% endfor %}
                     {% for standing in standings %}
-                        <div><i class="ci-list me-1"></i>{{ standing.name }} <span class="text-muted">· {{ 'event_wizard.structure.standing_unpublished'|trans }}</span></div>
+                        <div{% if standing.id in joining_standings %} data-event-wizard-standing-joins{% endif %}><i class="ci-list me-1"></i>{{ standing.name }} <span class="text-muted">· {{ standing.publishedAt is null ? 'event_wizard.structure.standing_unpublished'|trans : 'event_wizard_more.schedule.standing_published'|trans }}{% if standing.id in joining_standings %} · {{ 'event_wizard_more.schedule.joins'|trans({'%category%': (standing.category.value == 'solo' ? 'competition.round.category.solo' : (standing.category.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans}) }}{% endif %}</span></div>
                     {% endfor %}
+                    {% if advancement_steps is not empty %}
+                        {#- A new round is never guessed into a step: a group, a semifinal or a final is the organiser's call -#}
+                        <div class="text-muted mt-1" data-event-wizard-steps-not-joined>
+                            {{ 'event_wizard_more.schedule.steps_not_joined'|trans }}
+                            <a href="{{ path('competition_advancement_steps_manage', {competitionId: competition_id}) }}">{{ 'event_wizard_more.schedule.manage_steps'|trans }}</a>
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
 

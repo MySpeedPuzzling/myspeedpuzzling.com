@@ -307,6 +307,58 @@ export default class extends Controller {
         this.toggleNewPuzzle(true);
     }
 
+    /**
+     * A puzzle found by "Find the puzzle" across every brand (puzzle_search_picker, `puzzle-search-picker:picked`):
+     * its brand and the puzzle are selected - what the form sends is the brand path's. The brand is set silently and
+     * its whole list (megabytes for the largest brands) is fetched only when the puzzle picker is opened.
+     */
+    pickFound(event) {
+        const option = event.detail?.option;
+        const brandTom = this.brandTarget.tomselect;
+        const puzzleTom = this.puzzleTarget.tomselect;
+
+        if (!option || !option.brand || !brandTom || !puzzleTom) {
+            return;
+        }
+
+        if (!brandTom.getOption(option.brand)) {
+            brandTom.addOption({ value: option.brand, text: escapeHtml(option.brandName), name: option.brandName });
+        }
+
+        brandTom.addItem(option.brand, true);
+        this.initialBrandValue = option.brand;
+        this.initialPuzzleValue = '';
+
+        this.enablePuzzleField();
+        puzzleTom.clear(true);
+        puzzleTom.clearOptions();
+        puzzleTom.addOption(option);
+        puzzleTom.setValue(option.value);
+
+        const brand = option.brand;
+        const loadRest = () => {
+            puzzleTom.off('dropdown_open', loadRest);
+
+            if (this.brandTarget.value !== brand) {
+                return;
+            }
+
+            // Added to the picked one - the choice stays, the open list grows
+            const url = new URL(this.brandTarget.getAttribute('data-fetch-url'), window.location.href);
+            url.searchParams.set('brand', brand);
+            fetch(url)
+                .then((response) => (response.ok ? response.json() : null))
+                .then((data) => {
+                    if (data && this.brandTarget.value === brand) {
+                        puzzleTom.addOptions(data.results);
+                        puzzleTom.refreshOptions(puzzleTom.isOpen);
+                    }
+                })
+                .catch(() => {});
+        };
+        puzzleTom.on('dropdown_open', loadRest);
+    }
+
     // The edit form has no new-puzzle fields
     toggleNewPuzzle(show) {
         if (!this.hasNewPuzzleTarget) {

@@ -96,6 +96,14 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 minute',
             ],
+            // The displays' public endpoints: every test comes from one IP with the fixtures' links - a test of the 429
+            // uses up a key of its own
+            'display_public' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+            ],
             // Fixture players start photo uploads in many tests and runs
             'photo_upload' => [
                 'policy' => 'sliding_window',

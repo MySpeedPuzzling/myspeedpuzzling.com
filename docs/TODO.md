@@ -4,11 +4,6 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Creation wizard - backfill path (`docs/features/competitions-management/creation-wizard.md` "Backfill", 2026-11-17)
-- [ ] "Link my results" has no entry point outside the wizard yet - an event page button ("Were you there? Link my results") for signed-in players would make linking to an existing event one click from its page
-- [ ] The puzzles step searches by brand + puzzle only (W1's picker) - a cross-brand search by name / EAN would help players who don't know the brand
-- [ ] Result detail / My data do not say "linked once an admin approves the event" next to a waiting result yet (only Link my results + Done do) - both have pinned statement budgets
-
 ## Competition toolkit v2 (`docs/features/competitions-management/README.md` "Competition toolkit", `toolkit/STATUS.md`, deferred list = `toolkit/R-review-and-plan.md` §3, 2026-11-17)
 
 Ops steps of the rollout:
@@ -17,7 +12,7 @@ Ops steps of the rollout:
 - [x] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals") - **done by reliability T4: production mode, 100 proposals within 1 s p95 106 ms, the event lock held ~20 ms per save - no per-round lock needed**
 - [ ] Real-device walks (no native apps exist - PWA only): iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
 - [ ] Browser walk of display live signals (D5) - the dev hub's origin blocked it
-- [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
+- [x] Displays: the `display_public` rate limiter of D §9.1 - **done in G3 (token + IP, 1200/min, 429 + Retry-After, the display waits it out keeping its picture - `displays.md`)**
 - [x] Open the toolkit to every organiser - the organiser flag was retired on 2026-11-17 (`feature_flags.md` "Retired")
 
 Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11):
@@ -26,11 +21,12 @@ Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11
 - [ ] S3 walk gaps: a stopwatch push through Mercure reaching the page in a browser (the walk relied on the polls and the reveal timer), real phones/tablets, a 300-entrant round on screen
 
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
-- [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy
+- [x] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - **said on the copy in G3 (form notice + flash; copying puzzles not built - secret reveal moments, `round-formats.md` "Known edges")**
 - [x] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner) - **done in H1 (line-up id from the server; tag links stay in the tool)**
 - [ ] Panther `tests/Panther/LiveEntryOfflineTest.php` (R §4.4 step 4, C §7.4) does not exist - the offline flows were walked by hand only; write it or drop it from the plan
 - [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3); preferences `scanAfterSave` / `myTables` are stored but unused (deferred features); `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build")
-- [ ] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales for `official_results.reason.*`; the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
+- [x] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales - **done in G3 (also `TimeProposalResolverTest`)**
+- [ ] A3 review leftovers: the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
 - [x] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed" - **done in H1 (name on pair/team cards only) + H3 (an undone confirmation supersedes the proposal)**
 - [x] B8 polish: pending/sending boxes in a neutral style (not `$primary` pink) - **done in H1**
 - [x] Standings: drop the category badge when the standing's name already says it - **done in H1**
@@ -40,8 +36,8 @@ Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Not browser-tried yet: reveal while a judge's card is open, an offline group save (C10); the reveal checkbox end to end (A1, checkpoint 1)
 
 From A1 (reveal at the stopwatch start):
-- [ ] Results desk: "Still hidden: the stopwatch was never started with Reveal" once the round's time is over (A §4.4) - the control page and the round puzzles page say it today
-- [ ] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox dispatching `RevealRoundPuzzleNow` per row after the publish (A §4.4, R §2.1.5)
+- [x] Results desk: "Still hidden: the stopwatch was never started with Reveal" once the round's time is over (A §4.4) - **done in G3**
+- [x] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox after the publish (A §4.4, R §2.1.5) - **done in G3 (`RevealPuzzlesTheStopwatchMissed`, all rows or none under the round's locks, confirmed hash)**
 
 Deferred by design (R §3):
 - [ ] Round formats: `every` as its own mode (= pick K = N today); judge-side split times (the desk can enter `atSeconds`); the participants sheet's per-puzzle popover (read-only chips; `puzzles_mismatch` points to the desk); internal API **writes** of format/labels (read-only output ships)
@@ -53,7 +49,8 @@ Deferred by design (R §3):
 Event creation wizard (`docs/features/competitions-management/creation-wizard.md`, built 2026-11-17, W1-W6 + WF on main):
 - [x] W4: Duplicate asks for the new date; editing an event's date moves its rounds
 - [ ] Validate with 2-3 organisers (research §7) now that it is live - adjust from their findings
-- [ ] Open: an Extras row written after a refused later row stays (separate transactions); "When it happens" text of a series not filled from the Dates rule; rounds added later in the schedule table do not join standings/advancement steps; "try" checklist items are tips without a tick (would need timestamps)
+- [x] Extras all or nothing (`SaveEventWizardExtras`), a series' "When it happens" from the Dates rule (`SeriesScheduleText`), rounds added later join the full-category standings (`StandingsJoiningNewRounds`; steps offered, never guessed), cross-brand puzzle search (`puzzle_search_autocomplete`) - **done in G2**; the "Were you there? Link my results" entry on event/edition pages + the waiting-link note on result detail / My data - **done in G1**
+- [ ] Open: "try" checklist items are tips without a tick (would need timestamps)
 - [ ] W9: the wizard is every player's "Add event" since WF (2026-11-17, no flag) - Jan decides when to retire the classic forms it still links (`add_competition?classic=1` "Use the classic form", "Add several dates" on the series page)
 
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)

@@ -164,6 +164,35 @@ readonly final class SecretRevealPreview
     }
 
     /**
+     * The round's rows still waiting for a stopwatch start with "Reveal" that never came (RoundPuzzleReveal::Stopwatch,
+     * hidden, no moment - a countdown started with the tick is not listed): what "Also reveal the hidden puzzles now"
+     * of the results desk's publish reveals (competition toolkit G3, A-round-formats.md §4.4) - each with how far it comes
+     * out now. The organiser confirms exactly this list (hash()).
+     *
+     * @return list<RevealedPuzzle>
+     */
+    public function byRevealingWhatTheStopwatchMissed(CompetitionRound $round): array
+    {
+        return array_values(array_filter(
+            $this->byStopwatchStart($round),
+            static fn (array $item): bool => $item['previousRevealsAt'] === null,
+        ));
+    }
+
+    /**
+     * The round's rows byRevealingWhatTheStopwatchMissed() lists - the ones a confirmed reveal turns out now.
+     *
+     * @return list<CompetitionRoundPuzzle>
+     */
+    public static function rowsTheStopwatchMissed(CompetitionRound $round, DateTimeImmutable $now): array
+    {
+        return array_values(array_filter(
+            $round->roundPuzzles->toArray(),
+            static fn (CompetitionRoundPuzzle $row): bool => $row->waitsForStopwatchStart($now) && $row->revealAt === null,
+        ));
+    }
+
+    /**
      * What the organiser confirmed by ticking "Reveal the puzzles" (R-review-and-plan.md §2.1): the list (hash()) AND the
      * round's stopwatch as the page showed it - a countdown scheduled, moved or called off meanwhile asks again, even
      * when the list itself reads the same.

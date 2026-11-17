@@ -38,6 +38,7 @@ use SpeedPuzzling\Web\Query\GetEventWizardStructureLock;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\EventWizardPlannedRound;
+use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Results\EventWizardProgress;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
@@ -45,6 +46,7 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardStructurePlanner;
+use SpeedPuzzling\Web\Services\EventWizard\StandingsJoiningNewRounds;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SpeedPuzzling\Web\Value\AdvancementQualifyScope;
 use SpeedPuzzling\Web\Value\AdvancementStepSettings;
@@ -551,6 +553,8 @@ final class EventWizardStructureController extends AbstractController
             deletes: $deletes,
             edits: $edits,
             adds: $adds,
+            // A new round joins the standings adding up every round of its category (StandingsJoiningNewRounds)
+            joinStandings: true,
         ), $form);
     }
 
@@ -749,6 +753,20 @@ final class EventWizardStructureController extends AbstractController
         $competitionId = $competition->id->toString();
         $refused = $refused || ($templateForm?->isSubmitted() === true && $templateForm->isValid() === false)
             || ($scheduleForm?->isSubmitted() === true && $scheduleForm->isValid() === false);
+        $standings = $toolkit && $rounds !== [] ? $this->getCompetitionStandings->ofCompetition($competitionId) : [];
+        $roundCategories = [];
+
+        foreach ($rounds as $round) {
+            $roundCategories[$round->id->toString()] = $round->category;
+        }
+
+        // Said under the table before it is saved: which standings the table's new rounds join
+        $joining = $locked ? [] : StandingsJoiningNewRounds::of(array_map(static fn (CompetitionStandingOverview $standing): array => [
+            'id' => $standing->id,
+            'category' => $standing->category,
+            'roundIds' => $standing->roundIds,
+            'published' => $standing->publishedAt !== null,
+        ], $standings), $roundCategories);
 
         return $this->render('event_wizard/structure.html.twig', [
             'progress' => $progress,
@@ -764,7 +782,8 @@ final class EventWizardStructureController extends AbstractController
             'event_days' => [$competition->dateFrom?->format('Y-m-d'), ($competition->dateTo ?? $competition->dateFrom)?->format('Y-m-d')],
             'template_open' => $templateOpen,
             'advancement_steps' => $toolkit && $rounds !== [] ? $this->getCompetitionAdvancementSteps->ofCompetition($competitionId) : [],
-            'standings' => $toolkit && $rounds !== [] ? $this->getCompetitionStandings->ofCompetition($competitionId) : [],
+            'standings' => $standings,
+            'joining_standings' => $joining,
         ], new Response(status: $refused ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 

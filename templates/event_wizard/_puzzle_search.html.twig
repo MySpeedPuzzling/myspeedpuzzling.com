@@ -1,0 +1,8 @@
+{#- "Find the puzzle" across every brand (puzzle_search_picker_controller.js, creation-wizard.md "Puzzle search") - the
+    field has no name, it never reaches the server: a pick selects the brand and puzzle of the brand path below.
+    Expects `search_id` (unique on the page) -#}
+<div class="mb-2" data-event-wizard-puzzle-search>
+    <label class="form-label" for="{{ search_id }}">{{ 'event_wizard_more.puzzle_search.label'|trans }}</label>
+    <input type="text" id="{{ search_id }}" class="form-control" autocomplete="off" data-puzzle-search-picker-target="input" placeholder="{{ 'event_wizard_more.puzzle_search.placeholder'|trans }}">
+    <button type="button" class="btn btn-link btn-sm px-0" data-puzzle-search-picker-target="toggle" data-action="puzzle-search-picker#showBrand" data-event-wizard-puzzle-by-brand hidden>{{ 'event_wizard_more.puzzle_search.by_brand'|trans }}</button>
+</div>

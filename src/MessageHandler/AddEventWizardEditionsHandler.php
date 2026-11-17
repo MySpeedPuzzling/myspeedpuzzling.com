@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddEventWizardEditions;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -22,6 +23,7 @@ readonly final class AddEventWizardEditionsHandler
     public function __construct(
         private MessageBusInterface $messageBus,
         private CompetitionRepository $competitionRepository,
+        private CompetitionSeriesRepository $seriesRepository,
     ) {
     }
 
@@ -43,6 +45,11 @@ readonly final class AddEventWizardEditionsHandler
             if (($existedBefore[$competitionId] ?? true) === false && $this->competitionRepository->has(Uuid::fromString($competitionId))) {
                 $this->messageBus->dispatch($round);
             }
+        }
+
+        // "When it happens" from the rule, only when dates were created and the series has no text of its own
+        if ($message->schedule !== null && is_int($created) && $created > 0) {
+            $this->seriesRepository->get($message->editions->seriesId)->scheduleFromDatesRule($message->schedule);
         }
 
         return is_int($created) ? $created : 0;

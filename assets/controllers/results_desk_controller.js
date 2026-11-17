@@ -49,7 +49,7 @@ export default class extends Controller {
     static targets = [
         'tbody', 'tableColumn', 'syncPill', 'banner', 'conflictBar', 'counts', 'readiness', 'publication', 'search',
         'filter', 'emptyState', 'helperModal', 'helperBody', 'helperSummary', 'helperApply', 'publishModal',
-        'publishModalTitle', 'publishModalBody', 'publishConfirm',
+        'publishModalTitle', 'publishModalBody', 'publishConfirm', 'revealMissed',
     ];
 
     static values = {
@@ -78,6 +78,9 @@ export default class extends Controller {
         this.ownWrites = new Map();
         this.helper = null;
         this.publishAction = null;
+        // "Also reveal the hidden puzzles now" of the publish dialog (competition toolkit G3): the list's hash, once loaded
+        this.revealOffer = null;
+        this.revealOfferRequest = 0;
         this.hiddenSince = null;
         // Counts every merge of newer entries - a state fetched meanwhile may be older than them (resync)
         this.generation = 0;
@@ -215,6 +218,11 @@ export default class extends Controller {
         if (overview && overview.id === this.round.id) {
             // The JSON endpoints answer the overview only - keep what the page knows on top (colours, public URL)
             this.round = { ...this.round, ...overview };
+
+            // A key the overview carries only while it applies (competition toolkit G3) - gone = not any more
+            if (!('stopwatchRevealMissed' in overview)) {
+                delete this.round.stopwatchRevealMissed;
+            }
         }
     }
 
@@ -263,6 +271,7 @@ export default class extends Controller {
         this.renderCounts();
         this.renderSync();
         this.renderPublication();
+        this.renderRevealMissed();
     }
 
     visibleEntries() {
@@ -767,6 +776,30 @@ export default class extends Controller {
         if (since) {
             since.textContent = published && this.round.resultsPublishedAt ? this.t('published_since', { time: this.formatTime(this.round.resultsPublishedAt) }) : '';
         }
+    }
+
+    /**
+     * "Still hidden: the stopwatch was never started with Reveal" (competition toolkit G3) - only on a desk that has the
+     * notice (a round using the stopwatch reveal)
+     */
+    renderRevealMissed() {
+        if (!this.hasRevealMissedTarget) {
+            return;
+        }
+
+        const missed = this.revealMissedCount();
+        this.revealMissedTarget.hidden = missed === 0;
+        const text = this.revealMissedTarget.querySelector('[data-reveal-missed-text]');
+
+        if (text && missed > 0) {
+            text.textContent = this.tc('reveal_missed_text', missed);
+        }
+    }
+
+    revealMissedCount() {
+        const missed = this.round.stopwatchRevealMissed;
+
+        return Number.isInteger(missed) && missed > 0 ? missed : 0;
     }
 
     // ---------------------------------------------------------------- editing
@@ -2063,6 +2096,10 @@ export default class extends Controller {
             if (withoutResult > 0) {
                 lines.push(`<div class="alert alert-warning py-2 mb-2"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.tc('publish_without_result', withoutResult))}</div>`);
             }
+
+            if (this.revealMissedCount() > 0 && typeof this.urlsValue.missedReveal === 'string') {
+                lines.push(`<div class="border rounded p-2 mb-2" data-reveal-missed-offer><span class="small text-body-secondary">${escapeHtml(this.t('reveal_missed_loading'))}</span></div>`);
+            }
         } else {
             lines.push(`<p>${escapeHtml(this.t('unpublish_intro'))}</p>`);
         }
@@ -2076,7 +2113,58 @@ export default class extends Controller {
         this.publishConfirmTarget.textContent = this.t(this.publishAction === 'publish' ? 'publish_confirm' : 'unpublish_confirm');
         this.publishConfirmTarget.className = `btn ${this.publishAction === 'publish' ? 'btn-primary' : 'btn-outline-danger'}`;
         this.publishConfirmTarget.disabled = false;
+        this.revealOffer = null;
         this.modal(this.publishModalTarget).show();
+        this.loadRevealOffer();
+    }
+
+    /**
+     * The hidden puzzles the publish may reveal too - names and how far each comes out (the same preview "Reveal now"
+     * confirms against): asked when the dialog opens, never before. The box is UNTICKED, always: publishing alone
+     * reveals nothing, and an early reveal is the one thing that must never happen.
+     */
+    async loadRevealOffer() {
+        const box = this.publishModalBodyTarget.querySelector('[data-reveal-missed-offer]');
+
+        if (box === null) {
+            return;
+        }
+
+        this.revealOfferRequest += 1;
+        const request = this.revealOfferRequest;
+        const answer = await officialResultsRequest(this.urlsValue.missedReveal);
+
+        if (request !== this.revealOfferRequest || !box.isConnected) {
+            return;
+        }
+
+        const puzzles = answer.kind === 'ok' && Array.isArray(answer.data?.puzzles) ? answer.data.puzzles : null;
+
+        if (puzzles === null || typeof answer.data.hash !== 'string') {
+            box.innerHTML = `<span class="small text-body-secondary">${escapeHtml(this.t('reveal_missed_failed'))}</span>`;
+
+            return;
+        }
+
+        if (puzzles.length === 0) {
+            box.remove();
+
+            return;
+        }
+
+        const items = puzzles.map((puzzle) => {
+            const scope = this.t(`reveal_scope_${puzzle.scope}`);
+            const until = typeof puzzle.hiddenElsewhereUntil === 'string' ? ` (${this.t('reveal_missed_elsewhere', { time: this.formatTime(puzzle.hiddenElsewhereUntil) })})` : '';
+
+            return `<li data-reveal-missed-item>${escapeHtml(puzzle.name)} – <span class="text-body-secondary">${escapeHtml(scope + until)}</span></li>`;
+        });
+
+        box.innerHTML = `<div class="form-check mb-1">`
+            + `<input class="form-check-input" type="checkbox" id="results-desk-reveal-missed" data-reveal-missed-checkbox>`
+            + `<label class="form-check-label fw-semibold" for="results-desk-reveal-missed">${escapeHtml(this.tc('reveal_missed_checkbox', puzzles.length))}</label>`
+            + `</div><ul class="small mb-1 ps-4">${items.join('')}</ul>`
+            + `<div class="form-text mt-0">${escapeHtml(this.t('reveal_missed_help'))}</div>`;
+        this.revealOffer = { hash: answer.data.hash };
     }
 
     async confirmPublish() {
@@ -2086,10 +2174,15 @@ export default class extends Controller {
             return;
         }
 
+        const revealTicked = action === 'publish'
+            && this.revealOffer !== null
+            && this.publishModalBodyTarget.querySelector('[data-reveal-missed-checkbox]')?.checked === true;
+        const body = revealTicked ? { revealMissed: true, revealHash: this.revealOffer.hash } : {};
+
         this.publishConfirmTarget.disabled = true;
         const answer = await officialResultsRequest(action === 'publish' ? this.urlsValue.publish : this.urlsValue.unpublish, {
             method: 'POST',
-            body: {},
+            body,
             csrfToken: this.csrfTokenValue,
         });
         this.publishConfirmTarget.disabled = false;
@@ -2099,7 +2192,15 @@ export default class extends Controller {
             this.modal(this.publishModalTarget).hide();
             this.publishAction = null;
             this.render();
-            this.toast(this.t(action === 'publish' ? 'published_toast' : 'unpublished_toast'), 'success');
+            this.revealOffer = null;
+
+            if (answer.data.reveal === 'revealed') {
+                this.toast(this.t('reveal_missed_revealed'), 'success');
+            } else if (answer.data.reveal === 'changed') {
+                this.toast(this.t('reveal_missed_changed'), 'warning');
+            } else {
+                this.toast(this.t(action === 'publish' ? 'published_toast' : 'unpublished_toast'), 'success');
+            }
 
             return;
         }

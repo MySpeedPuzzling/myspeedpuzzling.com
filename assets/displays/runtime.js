@@ -10,6 +10,9 @@
 //   means the server may pick another round now - a state fetch.
 // - Every fetch is a clock sample (createServerClock: the shortest round trip wins), so the timer follows the server.
 // - A newer `designVersion` fetches the design and rebuilds the picture.
+// - 429 (too many requests on this link from this address - the display_public limit): the picture stays as it is,
+//   nothing is fetched until Retry-After has passed (bounded, + up to BUSY_JITTER_MS so a hall's screens do not come
+//   back at the same moment) - a signal meanwhile waits for it too.
 // - 404: the link is no longer valid - the invalid view, no stream, a check every 5 minutes (a regenerated token by
 //   mistake: the organiser opens the new URL; a restored one comes back by itself).
 // - Reload after a deploy (`rendererBuild` changed) or after 20 h - only while no round counts down or runs, and only
@@ -27,6 +30,11 @@ export const REFRESH_JITTER_MS = 250;
 export const MAX_UPTIME_MS = 20 * 3600 * 1000;
 export const BEFORE_START_MS = 2000;
 export const AFTER_START_MS = 1000;
+// A 429 without a readable Retry-After waits this long; any wait is kept between the bounds, plus a jitter
+export const BUSY_DEFAULT_MS = 30 * 1000;
+export const BUSY_MIN_MS = 1000;
+export const BUSY_MAX_MS = 10 * 60 * 1000;
+export const BUSY_JITTER_MS = 5000;
 // setTimeout's limit is ~24.8 days; nothing a display waits for is that far
 const MAX_DELAY_MS = 24 * 3600 * 1000;
 const CALM_PHASES = ['idle', 'stopped', 'times_up'];
@@ -37,8 +45,8 @@ export class DisplayRuntime {
      * @param {object} options.state                   the first state (inline in the page)
      * @param {object} options.design                  the stored design
      * @param {object} options.renderer                render.js createRenderer()
-     * @param {function(): Promise<{status: 'ok'|'gone'|'error', state?: object, sentAtMs?: number, receivedAtMs?: number}>} options.fetchState
-     * @param {function(): Promise<{status: 'ok'|'gone'|'error', designVersion?: number, design?: object}>} options.fetchDesign
+     * @param {function(): Promise<{status: 'ok'|'gone'|'error'|'busy', state?: object, sentAtMs?: number, receivedAtMs?: number, retryAfterMs?: null|number}>} options.fetchState
+     * @param {function(): Promise<{status: 'ok'|'gone'|'error'|'busy', designVersion?: number, design?: object}>} options.fetchDesign
      * @param {function(): void} options.reload
      * @param {function(): number} [options.now]
      * @param {function(function(), number): *} [options.schedule]
@@ -85,6 +93,8 @@ export class DisplayRuntime {
         this.startedAtMs = now();
         this.invalid = false;
         this.lastFetchOk = true;
+        // Rate limited (429): nothing is fetched before this moment (on the monotonic clock), null = not limited
+        this.busyUntil = null;
         this.events = null;
         this.closed = false;
         this.reloading = false;
@@ -225,6 +235,11 @@ export class DisplayRuntime {
             return this.inFlight;
         }
 
+        // Asked to wait (429): the poll fetches when the wait is over - the picture stays meanwhile
+        if (this.busyUntil !== null && this.now() < this.busyUntil) {
+            return Promise.resolve('error');
+        }
+
         this.inFlight = Promise.resolve()
             .then(() => this.fetchStateFn())
             .catch(() => ({ status: 'error' }))
@@ -262,6 +277,16 @@ export class DisplayRuntime {
             return 'forbidden';
         }
 
+        if (answer?.status === 'busy') {
+            this.lastFetchOk = false;
+            const asked = typeof answer.retryAfterMs === 'number' && Number.isFinite(answer.retryAfterMs) ? answer.retryAfterMs : BUSY_DEFAULT_MS;
+            const wait = Math.min(BUSY_MAX_MS, Math.max(BUSY_MIN_MS, asked)) + this.random() * BUSY_JITTER_MS;
+            this.busyUntil = this.now() + wait;
+            this.set('poll', wait, () => this.refresh());
+
+            return 'error';
+        }
+
         if (answer?.status !== 'ok' || answer.state === null || typeof answer.state !== 'object') {
             this.lastFetchOk = false;
             this.schedulePoll();
@@ -270,6 +295,7 @@ export class DisplayRuntime {
         }
 
         this.lastFetchOk = true;
+        this.busyUntil = null;
         this.clock.observe({ sentAtMs: answer.sentAtMs, receivedAtMs: answer.receivedAtMs, serverNowMs: answer.state.serverNowMs });
 
         if (this.invalid) {

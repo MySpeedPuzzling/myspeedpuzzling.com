@@ -209,6 +209,20 @@ return App::config([
                 'limit' => 600,
                 'interval' => '1 minute',
             ],
+            // The public display endpoints reached by a display token - the page, its state, its design
+            // (CompetitionDisplayRateLimit, D-displays-overlays.md §9.1, competition toolkit G3) - per token AND client IP.
+            // A screen fetches its state at most once per 1.5 s while results stream in (the runtime's signal debounce,
+            // ~40/min) plus a safety poll a minute; 20 screens of one hall on one link behind one NAT address are then
+            // ~820/min at the busiest, and reconnecting all at once adds 3 requests each (page, state, design). 1200 a
+            // minute keeps that whole hall far from the limit and stops a loop or a script hammering a link at 20/s.
+            // No lock (never LOCK_DSN's Postgres advisory lock per request): a count a few off under a race is fine for
+            // a limit this generous. 429 with Retry-After; the display keeps its picture and waits (runtime.js)
+            'display_public' => [
+                'policy' => 'sliding_window',
+                'limit' => 1200,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

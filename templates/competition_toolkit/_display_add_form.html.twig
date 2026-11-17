@@ -1,0 +1,29 @@
+{#
+    "New display" (D-displays-overlays.md §8.1) - posts to add_competition_display, which comes back to where it was.
+    Variables: add_display_form, displays (to know whether the cap is reached).
+#}
+{% if displays|length >= constant('SpeedPuzzling\\Web\\Entity\\CompetitionDisplay::MAX_PER_COMPETITION') %}
+    <p class="small text-muted mb-0" data-displays-limit>{{ 'competition_display.list.limit'|trans({'%max%': constant('SpeedPuzzling\\Web\\Entity\\CompetitionDisplay::MAX_PER_COMPETITION')}) }}</p>
+{% else %}
+    {% set form = add_display_form %}
+    {{ form_start(form, {attr: {'data-display-add-form': ''}}) }}
+        <h4 class="h6">{{ 'competition_display.form.new'|trans }}</h4>
+        {{ form_errors(form) }}
+        <fieldset class="mb-2">
+            <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.kind)|striptags }}</legend>
+            {{ form_errors(form.kind) }}
+            {% for choice in form.kind %}
+                <div class="form-check mb-1">
+                    {{ form_widget(choice) }}
+                    {{ form_label(choice) }}
+                    <div class="form-text mt-0">{{ ('competition_display.kind.' ~ choice.vars.value ~ '_help')|trans }}</div>
+                </div>
+            {% endfor %}
+        </fieldset>
+        {{ form_row(form.name, {row_attr: {class: 'mb-2'}}) }}
+        {{ form_row(form.locale, {row_attr: {class: 'mb-3'}}) }}
+        <button type="submit" class="btn btn-sm btn-primary" data-display-add>
+            <i class="bi bi-plus-lg me-1"></i>{{ 'competition_display.form.add'|trans }}
+        </button>
+    {{ form_end(form) }}
+{% endif %}

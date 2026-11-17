@@ -41,8 +41,10 @@
 import { escapeHtml } from '../sheet_grid.js';
 import {
     addPerson,
+    approveRequest,
     cleanFieldValue,
     combine,
+    declineRequest,
     isEmpty,
     linkProfile,
     newTeamRow,
@@ -94,6 +96,9 @@ export const LARGE_REMOVAL_MIN = 10;
 // The result count of a search is read out once the typing pauses, not after every letter
 export const SEARCH_ANNOUNCE_MS = 700;
 const UNLINK = '__unlink';
+const NOT_THEM = '__not_them';
+const APPROVE_PREFIX = '__approve:';
+const DECLINE_PREFIX = '__decline:';
 const OPEN = '__open';
 const NO_COUNTRY = '__none';
 const SELECT = 'select';
@@ -112,6 +117,10 @@ export const FILTERS = [
     { key: 'no_solo', soloRounds: 1, mixed: true },
     { key: 'multi_solo', soloRounds: 2 },
     { key: 'joined' },
+    // Participant linking (participant-linking.md §7.1)
+    { key: 'not_linked' },
+    { key: 'asks' },
+    { key: 'linked_themselves' },
     { key: 'waitlist', managed: true },
     { key: 'not_paid', managed: true },
     { key: 'paid', managed: true },
@@ -122,7 +131,10 @@ export const FILTERS = [
 ];
 
 // Optional filters that would show nobody stay out of the way (All and the active one are always there)
-export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed', 'checked_in'];
+export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed', 'checked_in', 'asks', 'linked_themselves'];
+
+/** The link methods that are the player's own act (ParticipantLinkMethod::isThePlayersOwn()) - "Linked by themselves". */
+export const LINKED_BY_THEMSELVES = ['self_join', 'claim', 'claim_approved', 'claim_link', 'online_link'];
 
 /**
  * The columns of the Columns menu (D10): `rounds` = every round column; `name` is always shown. Registration columns
@@ -239,6 +251,12 @@ export function matchesFilter(model, person, filter, duplicateKeys = null) {
             return soloRoundCount(model, person.id) >= 2;
         case 'joined':
             return person.source === 'self_joined';
+        case 'not_linked':
+            return (person.player ?? null) === null;
+        case 'asks':
+            return typeof model.pendingRequests === 'function' && model.pendingRequests(person.id).length > 0;
+        case 'linked_themselves':
+            return (person.player ?? null) !== null && LINKED_BY_THEMSELVES.includes(person.linkedVia ?? '');
         case 'duplicates':
             return (duplicateKeys ?? new Set(model.duplicateNames().keys())).has(nameKey(person.name));
         case 'waitlist':
@@ -1470,9 +1488,10 @@ export class PeopleView {
     playerCell(person) {
         const marker = this.marker(`person:${person.id}:player`);
         const player = person.player;
+        const chip = this.requestChip(person);
 
         if (player === null || player === undefined) {
-            return { text: '', html: '', marker, copy: '' };
+            return { text: chip.text, html: chip.html, marker, copy: '' };
         }
 
         // How the link was made (participant-linking.md §7.1) - nothing for the organiser's own links
@@ -1482,7 +1501,7 @@ export class PeopleView {
         if (player.visible !== true) {
             const text = this.t('people_profile_hidden');
 
-            return { text, html: `<span class="sheet-muted">${escapeHtml(text)}</span>${viaHtml}`, marker, copy: '' };
+            return { text, html: `<span class="sheet-muted">${escapeHtml(text)}</span>${viaHtml}${chip.html}`, marker, copy: '' };
         }
 
         const code = player.code ? `#${String(player.code).toUpperCase()}` : '';
@@ -1496,10 +1515,91 @@ export class PeopleView {
 
         return {
             text: [name, code !== name ? code : ''].filter(Boolean).join(' '),
-            html: `${avatar}${escapeHtml(name)}${code && code !== name ? ` <span class="sheet-muted">${escapeHtml(code)}</span>` : ''}${link}${viaHtml}`,
+            html: `${avatar}${escapeHtml(name)}${code && code !== name ? ` <span class="sheet-muted">${escapeHtml(code)}</span>` : ''}${link}${viaHtml}${chip.html}`,
             marker,
             copy: code,
         };
+    }
+
+    /**
+     * The yellow chip of the person's pending link requests (participant-linking.md §7.1): "Asks: Jan M. #JAN" with
+     * Approve ✓ / Decline ✗, or "2 ask" opening the person editor where each is decided.
+     */
+    requestChip(person) {
+        const requests = typeof this.model.pendingRequests === 'function' && person.removedAt === null ? this.model.pendingRequests(person.id) : [];
+
+        if (requests.length === 0) {
+            return { text: '', html: '' };
+        }
+
+        if (requests.length > 1) {
+            const text = this.t('link_requests_count', { count: requests.length });
+
+            return {
+                text,
+                html: ` <button type="button" class="sheet-request-chip" data-row-action="requests" tabindex="-1">${escapeHtml(text)}</button>`,
+            };
+        }
+
+        const [request] = requests;
+        const who = requestedBy(request);
+        const text = this.t(request.kind === 'dispute' ? 'link_request_dispute' : 'link_request_asks', { player: who });
+        const approve = this.t('link_request_approve_label', { player: who });
+        const decline = this.t('link_request_decline_label', { player: who });
+
+        return {
+            text,
+            html: ` <span class="sheet-request-chip" data-link-request="${escapeHtml(request.id)}">${escapeHtml(text)}`
+                + ` <button type="button" class="sheet-request-action" data-row-action="approve:${escapeHtml(request.id)}" tabindex="-1" title="${escapeHtml(approve)}" aria-label="${escapeHtml(approve)}"><i class="bi bi-check-lg" aria-hidden="true"></i></button>`
+                + `<button type="button" class="sheet-request-action" data-row-action="decline:${escapeHtml(request.id)}" tabindex="-1" title="${escapeHtml(decline)}" aria-label="${escapeHtml(decline)}"><i class="bi bi-x-lg" aria-hidden="true"></i></button></span>`,
+        };
+    }
+
+    /** Approve a pending link request - the `player` change to the claimant (§5.3). */
+    approveLinkRequest(requestId) {
+        const request = this.model.request(requestId);
+
+        if (request === null || request.status !== 'pending') {
+            return;
+        }
+
+        const outcome = this.context.act(approveRequest(this.model, request, this.options()));
+
+        if (outcome?.errors?.length > 0) {
+            this.notify(reasonFor(this.context, outcome.errors[0]), { kind: 'warning' });
+        }
+    }
+
+    /** Decline a pending link request (§5.3) - asked first: it is never undone. */
+    declineLinkRequest(requestId) {
+        const request = this.model.request(requestId);
+
+        if (request === null || request.status !== 'pending') {
+            return;
+        }
+
+        if (!window.confirm(this.t('link_request_decline_confirm', { player: requestedBy(request), name: this.model.person(request.participantId)?.name ?? '' }))) {
+            return;
+        }
+
+        this.context.act(declineRequest(this.model, request, this.options()));
+    }
+
+    /** "Not this person" (D11): the unlink as a refused pair - asked first. */
+    notThisPerson(personId, options = this.options()) {
+        const person = this.model.person(personId);
+
+        if (person?.player === null || person?.player === undefined) {
+            return undefined;
+        }
+
+        const who = person.player.visible === true ? (person.player.name ?? `#${String(person.player.code ?? '').toUpperCase()}`) : this.t('people_profile_hidden');
+
+        if (!window.confirm(this.t('not_this_person_confirm', { player: who }))) {
+            return undefined;
+        }
+
+        return this.perform(linkProfile(this.model, personId, null, { ...options, notThem: true }));
     }
 
     teamCell(person, round) {
@@ -1743,6 +1843,16 @@ export class PeopleView {
             }
 
             options.push({ value: UNLINK, label: this.t('people_profile_unlink'), className: 'sheet-option-action', action: true });
+            options.push({ value: NOT_THEM, label: this.t('not_this_person'), detail: this.t('not_this_person_help'), className: 'sheet-option-action', action: true });
+        }
+
+        // The person's pending link requests (participant-linking.md §7.1): Approve / Decline while nothing is typed
+        if (person && query.trim() === '' && typeof this.model.pendingRequests === 'function') {
+            for (const request of this.model.pendingRequests(person.id)) {
+                const who = requestedBy(request);
+                options.push({ value: APPROVE_PREFIX + request.id, label: this.t('link_request_approve_label', { player: who }), className: 'sheet-option-action', action: true });
+                options.push({ value: DECLINE_PREFIX + request.id, label: this.t('link_request_decline_label', { player: who }), className: 'sheet-option-action', action: true });
+            }
         }
 
         const text = query.trim();
@@ -1838,6 +1948,22 @@ export class PeopleView {
 
             if (option?.value === UNLINK) {
                 return this.perform(linkProfile(this.model, row, null, options));
+            }
+
+            if (option?.value === NOT_THEM) {
+                return this.notThisPerson(row, options);
+            }
+
+            if (typeof option?.value === 'string' && option.value.startsWith(APPROVE_PREFIX)) {
+                this.approveLinkRequest(option.value.slice(APPROVE_PREFIX.length));
+
+                return undefined;
+            }
+
+            if (typeof option?.value === 'string' && option.value.startsWith(DECLINE_PREFIX)) {
+                this.declineLinkRequest(option.value.slice(DECLINE_PREFIX.length));
+
+                return undefined;
             }
 
             if (option?.player) {
@@ -2457,6 +2583,25 @@ export class PeopleView {
     rowAction(personId, kind, cell) {
         if (kind === 'restore') {
             this.restore([personId]);
+
+            return;
+        }
+
+        // The link request chip (participant-linking.md §7.1)
+        if (kind.startsWith('approve:')) {
+            this.approveLinkRequest(kind.slice('approve:'.length));
+
+            return;
+        }
+
+        if (kind.startsWith('decline:')) {
+            this.declineLinkRequest(kind.slice('decline:'.length));
+
+            return;
+        }
+
+        if (kind === 'requests') {
+            this.openEditor(personId);
 
             return;
         }
@@ -3323,6 +3468,8 @@ export function linkedViaText(linkedVia, t) {
         case 'self_join':
         case 'claim':
             return t('people_linked_by_themselves');
+        case 'claim_approved':
+            return t('people_linked_approved');
         case 'import':
             return t('people_linked_import');
         case 'online_link':
@@ -3330,6 +3477,13 @@ export function linkedViaText(linkedVia, t) {
         default:
             return null;
     }
+}
+
+/** Who asks, as the request shows them: their name and #code (the claimant's own snapshot, participant-linking.md §3.3). */
+export function requestedBy(request) {
+    const code = request.playerCode ? `#${String(request.playerCode).toUpperCase()}` : '';
+
+    return [request.playerName, code !== request.playerName ? code : ''].filter(Boolean).join(' ');
 }
 
 /** O1: `Corners · Table 2 · Kim Example, Pat Sample` - without "Table n" when it has none, "(no name)" when unnamed. */

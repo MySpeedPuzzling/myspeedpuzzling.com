@@ -129,6 +129,12 @@ export class SheetUndo {
     reverse(stack, model, kind) {
         while (stack.length > 0) {
             const step = stack.pop();
+
+            if (step.irreversible === true && kind === 'undo') {
+                // A declined link request is never taken back - the claimant was told (participant-linking.md §7.1)
+                return { label: step.label, kind, origin: step.origin ?? null, groups: [], inverse: [], errors: [], results: [], inverseResults: [], skipped: [], irreversible: true };
+            }
+
             const skipped = [];
             const groups = step.inverse
                 .filter((group) => this.wentThrough(group.inverseOf))

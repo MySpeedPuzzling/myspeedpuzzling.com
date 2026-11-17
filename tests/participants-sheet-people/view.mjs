@@ -191,6 +191,55 @@ export default function (test) {
         assert.equal(model.person('l3').linkedVia, null);
     });
 
+    test('participant linking L2a: a request chip with Approve / Decline, "Not this person", a decline never undone', async () => {
+        const state = smallState();
+        state.requests = [
+            { id: 'r1', participantId: 'p-ana', kind: 'claim', playerId: 'pl-x', playerName: 'Xena Claimer', playerCode: 'xena', createdAt: '2026-10-08T08:00:00+00:00' },
+            { id: 'r2', participantId: 'p-jo', kind: 'claim', playerId: 'pl-y', playerName: 'Yan', playerCode: 'yan', createdAt: '2026-10-08T08:00:00+00:00' },
+        ];
+        const { view, model, changes, editor, acted } = await setup({ state });
+        const cell = view.playerCell(model.person('p-ana'));
+        assert.match(cell.html, /sheet-request-chip/);
+        assert.match(cell.html, /data-row-action="approve:r1"/);
+        assert.match(cell.html, /data-row-action="decline:r1"/);
+        assert.match(cell.text, /link_request_asks/);
+
+        view.rowAction('p-ana', 'approve:r1', null);
+        assert.deepEqual(changes(), [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-x' }]);
+        assert.equal(model.request('r1').status, 'approved');
+        assert.doesNotMatch(view.playerCell(model.person('p-ana')).html, /sheet-request-chip/);
+
+        // Decline asks first - cancelled = nothing sent
+        const before = acted.length;
+        window.confirm = () => false;
+        view.rowAction('p-jo', 'decline:r2', null);
+        assert.equal(acted.length, before);
+        window.confirm = () => true;
+        view.rowAction('p-jo', 'decline:r2', null);
+        assert.deepEqual(changes(before), [{ op: 'declineLinkRequest', request: 'r2', from: 'pending' }]);
+        assert.equal(acted[acted.length - 1].irreversible, true);
+        assert.equal(acted[acted.length - 1].inverse.length, 0);
+
+        // "Not this person" in the person editor: the unlink with notThem
+        const personEditor = editor();
+        assert.match(personEditor.playerHtml(model.person('p-kim')), /data-not-them/);
+        const unlink = view.notThisPerson('p-kim');
+        assert.equal(unlink, undefined);
+        assert.deepEqual(changes().at(-1), { op: 'player', participant: 'p-kim', from: 'pl-kim', to: null, notThem: true });
+    });
+
+    test('participant linking L2a: an irreversible step says so on undo and is gone', async () => {
+        const { SheetUndo } = await import('../../assets/participants_sheet/sheet_undo.js');
+        const undo = new SheetUndo({ newId: () => 'id' });
+        undo.record({ label: { key: 'link' }, groups: [{ id: 'g1', changes: [] }], inverse: [{ id: 'i1', inverseOf: 'g1', changes: [{ op: 'player', participant: 'p', from: 'x', to: null }] }] });
+        undo.record({ label: { key: 'decline' }, groups: [{ id: 'g2', changes: [] }], inverse: [], irreversible: true });
+
+        const first = undo.undo({ isRemoved: () => false, scratch: () => ({ applyGroup: () => [], lastAutoDeleted: [] }), now: () => 0 });
+        assert.equal(first.irreversible, true);
+        assert.equal(first.groups.length, 0);
+        assert.equal(undo.peekUndo().label.key, 'link');
+    });
+
     test('M1: a block pasted on the selection column lands on the names - renamed only through the preview, nothing on the selection', async () => {
         const { view, acted, changes } = await setup();
         view.paste({ row: 'p-ana', col: 'select' }, [['Zed Newperson', 'cz'], ['Yan Other', 'us']], [{ row: 'p-ana', col: 'select' }]);

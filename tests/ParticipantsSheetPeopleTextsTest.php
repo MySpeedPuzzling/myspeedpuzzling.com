@@ -26,7 +26,7 @@ final class ParticipantsSheetPeopleTextsTest extends KernelTestCase
 
     // Keys built from a prefix in the JS (`filter_${key}`...) - each listed value must exist
     private const array DYNAMIC = [
-        'filter_' => ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed'],
+        'filter_' => ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'not_linked', 'asks', 'linked_themselves', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed'],
         'column_' => ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
         'col_' => ['onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
         'source_' => ['self_joined', 'imported', 'manual'],

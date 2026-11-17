@@ -22,12 +22,12 @@ final class ParticipantsSheetCoreTextsTest extends KernelTestCase
         'round_kind_' => ['solo', 'duo', 'team'],
         'preview_status_' => ['new', 'change', 'same', 'warning', 'error', 'skip'],
         'field_' => ['name', 'country', 'externalId', 'note', 'result', 'table_number', 'qualified'],
-        'op_' => ['newParticipant', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize'],
-        'action_' => ['edit', 'field', 'link', 'unlink', 'add_person', 'remove', 'restore', 'place', 'round_in', 'round_out', 'new_team', 'put_in_team', 'clear_member', 'rename_team', 'delete_team', 'team_size', 'results', 'paste', 'clear', 'fill', 'keep_mine'],
+        'op_' => ['newParticipant', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize', 'declineLinkRequest'],
+        'action_' => ['edit', 'field', 'link', 'unlink', 'add_person', 'remove', 'restore', 'place', 'round_in', 'round_out', 'new_team', 'put_in_team', 'clear_member', 'rename_team', 'delete_team', 'team_size', 'results', 'paste', 'clear', 'fill', 'keep_mine', 'approve', 'decline', 'not_them'],
         'help_keys_' => ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime'],
         'help_does_' => ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime'],
         'help_task_' => ['saving', 'saving_title', 'names', 'names_title', 'pairs', 'pairs_title', 'results', 'results_title', 'undo', 'undo_title', 'leave', 'leave_title'],
-        'reason_' => ['participant_not_found', 'participant_removed', 'name_blank', 'name_too_long', 'external_id_too_long', 'note_too_long', 'invalid_country', 'team_name_too_long', 'id_taken', 'round_not_found', 'not_a_team_round', 'team_not_found', 'team_of_another_round', 'player_not_found', 'player_linked_elsewhere', 'has_result_in_round', 'has_result_in_event', 'team_has_result', 'invalid_team_size', 'invalid_change', 'external_id_taken', 'too_many_changes', 'has_result_in_round_own_time', 'has_result_in_event_own_time', 'team_has_result_emptied', 'team_has_result_waitlisted_only'],
+        'reason_' => ['participant_not_found', 'participant_removed', 'name_blank', 'name_too_long', 'external_id_too_long', 'note_too_long', 'invalid_country', 'team_name_too_long', 'id_taken', 'round_not_found', 'not_a_team_round', 'team_not_found', 'team_of_another_round', 'player_not_found', 'player_linked_elsewhere', 'has_result_in_round', 'has_result_in_event', 'team_has_result', 'invalid_team_size', 'invalid_change', 'external_id_taken', 'too_many_changes', 'has_result_in_round_own_time', 'has_result_in_event_own_time', 'team_has_result_emptied', 'team_has_result_waitlisted_only', 'request_not_found', 'claimant_registration_paid'],
     ];
 
     public function testEveryTextTheCoreScriptsUseIsInTheJson(): void
@@ -55,7 +55,7 @@ final class ParticipantsSheetCoreTextsTest extends KernelTestCase
         }
 
         // Undo/redo labels, plural counts of the tabs and the problems panel toggle are chosen in a ternary
-        $used = [...$used, 'undo_label', 'undo_label_none', 'redo_label', 'redo_label_none', 'undo_refused', 'redo_refused', 'tab_count_pairs', 'tab_count_teams', 'problems_show', 'problems_hide', 'people_no_pair_yet', 'people_no_team_yet', 'people_change_round_in', 'people_change_round_out', 'grid_cut', 'grid_copied', 'login_url', 'undo_unsaved', 'redo_unsaved', 'undo_label_mac', 'redo_label_mac', 'status_attention_offline', 'undo_nothing', 'redo_nothing', 'undo_done', 'redo_done', 'undo_done_elsewhere', 'redo_done_elsewhere', 'grid_dropped', 'grid_dropped_empty'];
+        $used = [...$used, 'undo_label', 'undo_label_none', 'redo_label', 'redo_label_none', 'undo_refused', 'redo_refused', 'tab_count_pairs', 'tab_count_teams', 'problems_show', 'problems_hide', 'people_no_pair_yet', 'people_no_team_yet', 'people_change_round_in', 'people_change_round_out', 'grid_cut', 'grid_copied', 'login_url', 'undo_unsaved', 'redo_unsaved', 'undo_label_mac', 'redo_label_mac', 'status_attention_offline', 'undo_nothing', 'redo_nothing', 'undo_done', 'redo_done', 'undo_done_elsewhere', 'redo_done_elsewhere', 'grid_dropped', 'grid_dropped_empty', 'link_request_asks', 'link_request_dispute', 'undo_irreversible'];
 
         $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
 

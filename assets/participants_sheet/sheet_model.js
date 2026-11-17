@@ -105,6 +105,8 @@ export class Working {
         this.places = new Map(source.places);
         this.teams = new Map(source.teams);
         this.rounds = new Map(source.rounds);
+        // Pending link requests by id (participant-linking.md §7.1) - a decision changes their `status`
+        this.requests = new Map(source.requests ?? []);
         this.order = source.order.slice();
         this.journal = null;
         this.journalOrders = null;
@@ -180,6 +182,39 @@ export class Working {
 
     person(id) {
         return this.people.get(id) ?? null;
+    }
+
+    request(id) {
+        return this.requests.get(id) ?? null;
+    }
+
+    /** The player's pending link request for the participant, null when none (participant-linking.md §5.3). */
+    pendingRequestFor(participantId, playerId) {
+        for (const request of this.requests.values()) {
+            if (request.status === 'pending' && request.participantId === participantId && request.playerId === playerId) {
+                return request;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * What a link does to the requests (ParticipantLinks::link(), §4 step 3): the player's request for the row approved,
+     * the row's other requests and the player's request for another row superseded.
+     */
+    linkedForRequests(participantId, playerId) {
+        for (const request of [...this.requests.values()]) {
+            if (request.status !== 'pending') {
+                continue;
+            }
+
+            if (request.participantId === participantId) {
+                this.write('requests', request.id, { ...request, status: request.playerId === playerId ? 'approved' : 'superseded' });
+            } else if (request.playerId === playerId) {
+                this.write('requests', request.id, { ...request, status: 'superseded' });
+            }
+        }
     }
 
     place(participantId, roundId) {
@@ -284,9 +319,23 @@ export class Working {
                             ? { visible: true, name: null, code: null, country: null, avatar: null, profileUrl: null, ...shown, id: change.to }
                             : { id: change.to, visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null },
                         connectedAt: person.player?.id === change.to ? person.connectedAt : new Date(now).toISOString(),
-                        // The organiser's own link shows no method (participant-linking.md §7.1)
-                        linkedVia: person.player?.id === change.to ? (person.linkedVia ?? null) : 'organiser',
+                        // The organiser's own link shows no method (participant-linking.md §7.1); linking a claimant who
+                        // asked for this row is their approval
+                        linkedVia: person.player?.id === change.to
+                            ? (person.linkedVia ?? null)
+                            : (this.pendingRequestFor(person.id, change.to) !== null ? 'claim_approved' : 'organiser'),
                     });
+                    this.linkedForRequests(person.id, change.to);
+                }
+
+                return;
+            }
+
+            case 'declineLinkRequest': {
+                const request = this.requests.get(change.request) ?? null;
+
+                if (request !== null && request.status === 'pending') {
+                    this.write('requests', request.id, { ...request, status: 'declined' });
                 }
 
                 return;
@@ -649,7 +698,13 @@ export class SheetModel {
             rounds.set(round.id, { teamSize: null, ...round });
         }
 
-        this.base = { people, places, teams, rounds, order };
+        // The state lists the pending ones only (participant-linking.md §7.1)
+        const requests = new Map();
+        for (const request of state.requests ?? []) {
+            requests.set(request.id, { ...request, status: 'pending' });
+        }
+
+        this.base = { people, places, teams, rounds, requests, order };
     }
 
     /** Recomputes what views read: base + the pending groups in order. */
@@ -754,6 +809,21 @@ export class SheetModel {
 
     team(id) {
         return this.current.team(id);
+    }
+
+    /** A link request the state listed (any status it has now on the page), null when unknown. */
+    request(id) {
+        return this.current.requests.get(id) ?? null;
+    }
+
+    pendingRequestFor(participantId, playerId) {
+        return this.current.pendingRequestFor(participantId, playerId);
+    }
+
+    /** The pending link requests, oldest first - or the person's only. */
+    pendingRequests(personId = null) {
+        return this.cached(`requests:${personId ?? '*'}`, () => [...this.current.requests.values()]
+            .filter((request) => request.status === 'pending' && (personId === null || request.participantId === personId)));
     }
 
     place(participantId, roundId) {
@@ -1536,6 +1606,21 @@ function diff(before, after) {
 
     if (before.rounds.size !== after.rounds.size) {
         delta.all = true;
+    }
+
+    // A link request decided or gone: its person's row (the chip) and the filters' counts
+    const requestIds = new Set([...(before.requests?.keys() ?? []), ...(after.requests?.keys() ?? [])]);
+
+    for (const id of requestIds) {
+        const old = before.requests?.get(id) ?? null;
+        const request = after.requests?.get(id) ?? null;
+
+        if (old === request || same(old, request)) {
+            continue;
+        }
+
+        delta.people.add((request ?? old).participantId);
+        delta.rows = true;
     }
 
     return delta;

@@ -46,7 +46,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | D6 | C | merged | b40f91d85, 11887a63a | editor page `edit_competition_display` (lazy Stimulus), geometry/editor_state/sample_data pure modules, upload picker, 409/live confirm flows; browser-walked |
 | D6F | C | merged | 306fcbfe1, 028e5debf, 86adaded1 | toolbar below header (--header-height), viewport-sized work surface, two-line layer labels, add → editor, placeFrame() avoids overlaps; stage 16:9 verified at 5 sizes |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |
-| A3 | A | merged (review running) | b035ed2b5..e4e333f72 | RoundEntryPuzzles + result_puzzles jsonb, field `puzzles` (group pass, group_refused), locks only on puzzle requests, guards, official_results_puzzles.js + parity; referees may send puzzles |
+| A3 | A | merged, reviewed (no data-loss; total rounds unaffected) | b035ed2b5..e4e333f72 | RoundEntryPuzzles + result_puzzles jsonb, field `puzzles` (group pass, group_refused), locks only on puzzle requests, guards, official_results_puzzles.js + parity; referees may send puzzles |
 | P1 | A | started | | |
 | C10 | B | started | | |
 | A5 | C (swap) | started | | |
@@ -59,3 +59,5 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - C8 edges: waitlisted member line-up hash; tag-URL link leave prompt.
 - Real devices: native apps live page (C3), iPhone Safari offline, camera scan.
 - Translations of every new key (5 locales).
+- A3 review: translate official_results.reason.* toolkit reasons + loop testEveryNewReasonIsTranslated over 6 locales; JS twin lacks shape rules (doc or add); live puzzle.pieces_count changes can block a stored record (doc + a clear path).
+- **A4 scope add:** the participants SHEET (not only the desk) must handle pick rounds - send/clear `puzzles` with results, else result edits on entries with a record are refused `puzzles_mismatch`.

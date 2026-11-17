@@ -10420,6 +10420,10 @@ event_duplicate:
         what_moves: "Les manches et les inscriptions sont décalées du même nombre de jours ; les heures restent les mêmes."
         submit: "Créer une copie"
         cancel: "Annuler"
+    formats:
+        notice: "Formats de puzzles réinitialisés : les manches de la copie commencent sans puzzles, chacune est donc « Un seul résultat pour la manche ». Ajoutez les puzzles, puis choisissez à nouveau le format :"
+        round: "%round% était « %format% »"
+        flash: "Formats de puzzles réinitialisés - ajoutez les puzzles aux manches de la copie, puis choisissez à nouveau le format : %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Grandes zones d'une seule couleur"
@@ -13905,6 +13909,16 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "Les puzzles à révéler ont changé entre-temps, ou le départ a été modifié - rien n'a démarré. Vérifiez la liste et réessayez."
             reveal_not_allowed: "Plus aucun puzzle de cette manche n'attend le démarrage du chronomètre - rien n'a démarré. Démarrez à nouveau sans « Révéler »."
+    reveal_missed:
+        desk: "[0,1]Toujours masqué : le chronomètre n'a jamais été démarré avec « Révéler », le puzzle secret de cette manche n'est donc pas révélé.|]1,Inf[Toujours masqués : le chronomètre n'a jamais été démarré avec « Révéler », les %count% puzzles secrets de cette manche ne sont donc pas révélés."
+        desk_link: "Révéler maintenant sur la page des puzzles de la manche"
+        checkbox: "[0,1]Révéler aussi le puzzle masqué maintenant|]1,Inf[Révéler aussi les %count% puzzles masqués maintenant"
+        help: "Publier les résultats ne révèle à lui seul aucun puzzle masqué. Une fois révélé, un puzzle ne peut plus jamais être masqué."
+        loading: "Recherche des puzzles masqués de la manche…"
+        failed: "Les puzzles masqués n'ont pas pu être chargés. Publiez maintenant et révélez-les sur la page des puzzles de la manche."
+        hidden_elsewhere: "reste masqué ailleurs sur MySpeedPuzzling jusqu'à %time%"
+        revealed: "Résultats publiés, et les puzzles masqués sont révélés."
+        changed: "Résultats publiés. Les puzzles masqués ont changé entre-temps, aucun n'a donc été révélé - vérifiez-les sur la page des puzzles de la manche."
     round_format:
         form:
             label: "Comment les puzzles de cette manche sont-ils assemblés ?"
@@ -15287,3 +15301,40 @@ participant_linking:
         by_themselves: "par lui-même"
         import: "import"
         online_link: "lien personnel"
+event_wizard_more:
+    puzzle_search:
+        label: "Trouver le puzzle"
+        placeholder: "Nom, EAN ou code de la marque"
+        by_brand: "Choisir plutôt la marque, ou ajouter un nouveau puzzle"
+        no_results: "Rien trouvé - choisissez la marque ci-dessous pour l'ajouter comme nouveau puzzle."
+    schedule:
+        joins: "les nouvelles manches %category% y comptent"
+        standing_published: "publié"
+        steps_not_joined: "Les nouvelles manches ne rejoignent d'elles-mêmes aucune étape de qualification."
+        manage_steps: "Configurer la qualification"
+    when:
+        weekly:
+            1: "Chaque lundi"
+            2: "Chaque mardi"
+            3: "Chaque mercredi"
+            4: "Chaque jeudi"
+            5: "Chaque vendredi"
+            6: "Chaque samedi"
+            7: "Chaque dimanche"
+        weekday:
+            1: "lundi"
+            2: "mardi"
+            3: "mercredi"
+            4: "jeudi"
+            5: "vendredi"
+            6: "samedi"
+            7: "dimanche"
+        ordinal:
+            1: "Premier"
+            2: "Deuxième"
+            3: "Troisième"
+            4: "Quatrième"
+        nth: "%ordinal% %weekday% du mois"
+        last: "Dernier %weekday% du mois"
+        at_time: "%when% à %time%"
+        picked_at_time: "À %time% à chaque date"

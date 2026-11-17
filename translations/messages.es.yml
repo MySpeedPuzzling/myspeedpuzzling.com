@@ -10425,6 +10425,10 @@ event_duplicate:
         what_moves: "Las rondas y la inscripción se mueven los mismos días; las horas del día se mantienen."
         submit: "Crear copia"
         cancel: "Cancelar"
+    formats:
+        notice: "Formatos de puzzles restablecidos: las rondas de la copia empiezan sin puzzles, así que cada una es «Un resultado para la ronda». Añade los puzzles y luego vuelve a elegir el formato:"
+        round: "%round% era «%format%»"
+        flash: "Formatos de puzzles restablecidos: añade los puzzles a las rondas de la copia y luego vuelve a elegir el formato: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Grandes zonas de un solo color"
@@ -13910,6 +13914,16 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "Los puzzles por revelar cambiaron mientras tanto, o se cambió el inicio: no se inició nada. Revisa la lista e inténtalo de nuevo."
             reveal_not_allowed: "Ya no hay ningún puzzle de esta ronda esperando al inicio del cronómetro: no se inició nada. Inicia de nuevo sin «Revelar»."
+    reveal_missed:
+        desk: "{0}Aún ocultos: el cronómetro nunca se inició con «Revelar», así que los puzzles secretos de esta ronda no se han revelado.|{1}Aún oculto: el cronómetro nunca se inició con «Revelar», así que el puzzle secreto de esta ronda no se ha revelado.|]1,Inf[Aún ocultos: el cronómetro nunca se inició con «Revelar», así que los %count% puzzles secretos de esta ronda no se han revelado."
+        desk_link: "Revelar ahora en la página de puzzles de la ronda"
+        checkbox: "{0}Revelar también ahora los puzzles ocultos|{1}Revelar también ahora el puzzle oculto|]1,Inf[Revelar también ahora los %count% puzzles ocultos"
+        help: "Publicar los resultados por sí solo no revela ningún puzzle oculto. Una vez revelado, un puzzle nunca puede volver a ocultarse."
+        loading: "Buscando los puzzles ocultos de la ronda…"
+        failed: "No se pudieron cargar los puzzles ocultos. Publica ahora y revélalos en la página de puzzles de la ronda."
+        hidden_elsewhere: "sigue oculto en el resto de MySpeedPuzzling hasta %time%"
+        revealed: "Resultados publicados y puzzles ocultos revelados."
+        changed: "Resultados publicados. Los puzzles ocultos cambiaron mientras tanto, así que no se reveló ninguno: revísalos en la página de puzzles de la ronda."
     round_format:
         form:
             label: "¿Cómo se resuelven los puzzles de esta ronda?"
@@ -15292,3 +15306,40 @@ participant_linking:
         by_themselves: "por su cuenta"
         import: "importación"
         online_link: "enlace personal"
+event_wizard_more:
+    puzzle_search:
+        label: "Buscar el puzzle"
+        placeholder: "Nombre, EAN o código de marca"
+        by_brand: "Elegir la marca o añadir un puzzle nuevo"
+        no_results: "No se encontró nada: elige la marca abajo para añadirlo como puzzle nuevo."
+    schedule:
+        joins: "las nuevas rondas de %category% cuentan en ella"
+        standing_published: "publicada"
+        steps_not_joined: "Las rondas nuevas no se unen solas a ningún paso de clasificación."
+        manage_steps: "Configurar la clasificación"
+    when:
+        weekly:
+            1: "Todos los lunes"
+            2: "Todos los martes"
+            3: "Todos los miércoles"
+            4: "Todos los jueves"
+            5: "Todos los viernes"
+            6: "Todos los sábados"
+            7: "Todos los domingos"
+        weekday:
+            1: "lunes"
+            2: "martes"
+            3: "miércoles"
+            4: "jueves"
+            5: "viernes"
+            6: "sábado"
+            7: "domingo"
+        ordinal:
+            1: "Primer"
+            2: "Segundo"
+            3: "Tercer"
+            4: "Cuarto"
+        nth: "%ordinal% %weekday% del mes"
+        last: "Último %weekday% del mes"
+        at_time: "%when% a las %time%"
+        picked_at_time: "A las %time% en cada fecha"

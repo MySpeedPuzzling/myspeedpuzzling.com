@@ -20,9 +20,136 @@ export const RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
 export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
 
-const FONT_WEIGHTS = [300, 400, 500, 700, 900];
-const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date'];
-const PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
+export const FONT_WEIGHTS = [300, 400, 500, 700, 900];
+export const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date'];
+export const PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
+export const BACKGROUND_TYPES = ['color', 'transparent', 'image', 'chroma'];
+export const BACKGROUND_FITS = ['cover', 'contain'];
+export const WHEN_RESULTS = ['any', 'published', 'not_published'];
+export const WHEN_PUZZLE = ['any', 'revealed', 'not_revealed'];
+
+// [min, max, default] - percent of the canvas (2 decimals), rotate in degrees
+export const FRAME_LIMITS = { x: [0, 100, 0], y: [0, 100, 0], w: [0.5, 100, 10], h: [0.5, 100, 10], rotate: [-180, 180, 0] };
+export const Z_LIMITS = [0, 999, 0];
+export const NAME_MAX_LENGTH = 60;
+const URL_MAX_LENGTH = 300;
+
+// The one list of what an element's style may hold (§4.1) - the normaliser below and the editor's property panel both
+// read it. Every key is optional: missing = the theme's / the type's default.
+export const STYLE_SPEC = [
+    { key: 'font', kind: 'enum', options: FONTS },
+    { key: 'fontSize', kind: 'int', min: 8, max: 900 },
+    { key: 'fontWeight', kind: 'weight', options: FONT_WEIGHTS },
+    { key: 'color', kind: 'color' },
+    { key: 'background', kind: 'color' },
+    { key: 'gradient', kind: 'gradient', angle: [0, 359, 180] },
+    { key: 'border', kind: 'border', width: [0, 40, 1] },
+    { key: 'radius', kind: 'int', min: 0, max: 540 },
+    { key: 'padding', kind: 'int', min: 0, max: 200 },
+    { key: 'opacity', kind: 'decimal', min: 0, max: 1 },
+    { key: 'align', kind: 'enum', options: ['left', 'center', 'right'] },
+    { key: 'valign', kind: 'enum', options: ['top', 'middle', 'bottom'] },
+    { key: 'shadow', kind: 'enum', options: ['none', 'soft', 'strong', 'outline'] },
+    { key: 'uppercase', kind: 'bool' },
+    { key: 'letterSpacing', kind: 'decimal', min: -10, max: 40 },
+    { key: 'lineHeight', kind: 'decimal', min: 0.8, max: 2 },
+    { key: 'fit', kind: 'enum', options: ['none', 'shrink', 'fill'] },
+];
+
+const RESULTS_SOURCE_SPEC = [
+    { key: 'source', kind: 'enum', options: ['published', 'live'], default: 'published' },
+    { key: 'whenUnpublished', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+    { key: 'unpublishedText', kind: 'text', max: 80, multiline: false, trim: true },
+];
+
+// The props of every element type (§5), in the order they are stored - the normaliser and the property panel read it
+export const PROP_SPECS = {
+    timer: [
+        { key: 'mode', kind: 'enum', options: ['auto', 'elapsed', 'remaining'], default: 'auto' },
+        { key: 'format', kind: 'enum', options: ['auto', 'hh:mm:ss', 'mm:ss'], default: 'auto' },
+        { key: 'bigCountdown', kind: 'int', min: 0, max: 30, default: 0 },
+        { key: 'phaseColors', kind: 'colorMap', keys: PHASE_COLORS },
+        { key: 'warningSeconds', kind: 'int', min: 0, max: 3600, default: 0 },
+        { key: 'idleText', kind: 'enum', options: ['dashes', 'zero', 'blank'], default: 'dashes' },
+    ],
+    status: [
+        { key: 'texts', kind: 'textMap', keys: PHASES, max: 80 },
+    ],
+    progress: [
+        { key: 'direction', kind: 'enum', options: ['fill', 'drain'], default: 'fill' },
+        { key: 'orientation', kind: 'enum', options: ['horizontal', 'vertical'], default: 'horizontal' },
+        { key: 'trackColor', kind: 'color', default: null },
+        { key: 'barColor', kind: 'color', default: null },
+        { key: 'warningColor', kind: 'color', default: null },
+        { key: 'warningSeconds', kind: 'int', min: 0, max: 3600, default: 0 },
+    ],
+    text: [
+        { key: 'text', kind: 'text', max: 300, multiline: true, trim: true },
+    ],
+    field: [
+        { key: 'field', kind: 'enum', options: FIELDS, default: 'round_name' },
+        { key: 'prefix', kind: 'text', max: 60, multiline: false, trim: false },
+        { key: 'suffix', kind: 'text', max: 60, multiline: false, trim: false },
+    ],
+    round_badge: [
+        { key: 'useRoundColors', kind: 'bool', default: true },
+    ],
+    image: [
+        { key: 'source', kind: 'enum', options: ['upload', 'competition_logo', 'series_logo', 'organization_logo'], default: 'upload' },
+        { key: 'path', kind: 'path', onlyWhen: { key: 'source', value: 'upload' } },
+        { key: 'fit', kind: 'enum', options: ['contain', 'cover'], default: 'contain' },
+    ],
+    rotator: [
+        { key: 'images', kind: 'images', max: MAX_IMAGES },
+        { key: 'seconds', kind: 'int', min: 3, max: 120, default: 8 },
+        { key: 'transition', kind: 'enum', options: ['none', 'fade'], default: 'fade' },
+        { key: 'fit', kind: 'enum', options: ['contain', 'cover'], default: 'contain' },
+    ],
+    clock: [
+        { key: 'zone', kind: 'enum', options: ['round', 'device'], default: 'round' },
+        { key: 'format', kind: 'enum', options: ['24h', '12h'], default: '24h' },
+        { key: 'seconds', kind: 'bool', default: false },
+    ],
+    puzzle: [
+        { key: 'layout', kind: 'enum', options: ['row', 'column', 'grid'], default: 'row' },
+        { key: 'show', kind: 'subset', options: ['image', 'name', 'brand', 'pieces'], default: ['image', 'name'] },
+        { key: 'max', kind: 'int', min: 1, max: 6, default: 3 },
+        { key: 'whenHidden', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'hiddenText', kind: 'text', max: 80, multiline: false, trim: true },
+        { key: 'imageFit', kind: 'enum', options: ['contain', 'cover'], default: 'contain' },
+    ],
+    finished_count: [
+        { key: 'format', kind: 'enum', options: ['fraction', 'count', 'percent'], default: 'fraction' },
+        ...RESULTS_SOURCE_SPEC,
+    ],
+    leaderboard: [
+        { key: 'rows', kind: 'int', min: 1, max: 30, default: 10 },
+        { key: 'columns', kind: 'subset', options: ['rank', 'flag', 'name', 'members', 'result', 'table'], default: ['rank', 'flag', 'name', 'result'] },
+        { key: 'highlightLatestSeconds', kind: 'int', min: 0, max: 60, default: 10 },
+        {
+            key: 'rowStyle',
+            kind: 'object',
+            fields: [
+                { key: 'background', kind: 'color', default: null },
+                { key: 'altBackground', kind: 'color', default: null },
+                { key: 'gap', kind: 'int', min: 0, max: 40, default: 4 },
+            ],
+        },
+        ...RESULTS_SOURCE_SPEC,
+    ],
+    ticker: [
+        { key: 'rows', kind: 'int', min: 1, max: 10, default: 5 },
+        ...RESULTS_SOURCE_SPEC,
+    ],
+    qr: [
+        { key: 'target', kind: 'enum', options: ['event_page', 'round_results', 'custom'], default: 'event_page' },
+        { key: 'url', kind: 'url', max: URL_MAX_LENGTH, onlyWhen: { key: 'target', value: 'custom' } },
+        { key: 'fg', kind: 'color', default: '#000000' },
+        { key: 'bg', kind: 'color', default: '#ffffff' },
+        { key: 'quietZone', kind: 'bool', default: true },
+    ],
+    box: [],
+};
 
 const DEFAULT_BACKGROUND_COLOR = '#0d1017';
 const DEFAULT_CHROMA_COLOR = '#00b140';
@@ -34,7 +161,6 @@ const COLOR_PATTERN = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
 const ID_PATTERN = /^[a-z0-9]{8}$/;
 const URL_PATTERN = /^https:\/\/[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::[0-9]{1,5})?(?:[/?#][A-Za-z0-9\-._~:/?#[\]@!$&()*+,;=%]*)?$/;
 const CONTROL_CHARACTERS = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g;
-const URL_MAX_LENGTH = 300;
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
 export function normaliseDesign(input, { competitionId }) {
@@ -178,7 +304,7 @@ function normaliseCanvas(input, competitionId, errors) {
         if (path !== null) {
             image = {
                 path,
-                fit: oneOf(get(imageInput, 'fit'), ['cover', 'contain'], 'cover'),
+                fit: oneOf(get(imageInput, 'fit'), BACKGROUND_FITS, 'cover'),
                 opacity: decimal(get(imageInput, 'opacity'), 0, 1, 1),
             };
         }
@@ -187,7 +313,7 @@ function normaliseCanvas(input, competitionId, errors) {
     return {
         aspect: '16:9',
         background: {
-            type: oneOf(get(background, 'type'), ['color', 'transparent', 'image', 'chroma'], 'color'),
+            type: oneOf(get(background, 'type'), BACKGROUND_TYPES, 'color'),
             color: color(get(background, 'color')) ?? DEFAULT_BACKGROUND_COLOR,
             chroma: color(get(background, 'chroma')) ?? DEFAULT_CHROMA_COLOR,
             image,
@@ -250,21 +376,21 @@ function normaliseElement(input, path, competitionId, errors, seenIds) {
     return {
         id,
         type,
-        name: plain(get(input, 'name'), 60, false, true),
+        name: plain(get(input, 'name'), NAME_MAX_LENGTH, false, true),
         frame: {
-            x: decimal(get(frame, 'x'), 0, 100, 0),
-            y: decimal(get(frame, 'y'), 0, 100, 0),
-            w: decimal(get(frame, 'w'), 0.5, 100, 10),
-            h: decimal(get(frame, 'h'), 0.5, 100, 10),
-            rotate: decimal(get(frame, 'rotate'), -180, 180, 0),
+            x: decimal(get(frame, 'x'), ...FRAME_LIMITS.x),
+            y: decimal(get(frame, 'y'), ...FRAME_LIMITS.y),
+            w: decimal(get(frame, 'w'), ...FRAME_LIMITS.w),
+            h: decimal(get(frame, 'h'), ...FRAME_LIMITS.h),
+            rotate: decimal(get(frame, 'rotate'), ...FRAME_LIMITS.rotate),
         },
-        z: integer(get(input, 'z'), 0, 999, 0),
+        z: integer(get(input, 'z'), ...Z_LIMITS),
         hidden: boolean(get(input, 'hidden'), false),
         locked: boolean(get(input, 'locked'), false),
         when: {
             phases: subset(get(when, 'phases'), PHASES, PHASES),
-            results: oneOf(get(when, 'results'), ['any', 'published', 'not_published'], 'any'),
-            puzzle: oneOf(get(when, 'puzzle'), ['any', 'revealed', 'not_revealed'], 'any'),
+            results: oneOf(get(when, 'results'), WHEN_RESULTS, 'any'),
+            puzzle: oneOf(get(when, 'puzzle'), WHEN_PUZZLE, 'any'),
         },
         style: normaliseStyle(get(input, 'style')),
         props,
@@ -275,171 +401,116 @@ function normaliseElement(input, path, competitionId, errors, seenIds) {
 function normaliseStyle(input) {
     const style = {};
 
-    const font = get(input, 'font');
-    if (typeof font === 'string' && FONTS.includes(font)) {
-        style.font = font;
+    for (const spec of STYLE_SPEC) {
+        put(style, spec.key, styleValue(spec, get(input, spec.key)));
     }
-
-    put(style, 'fontSize', optionalInteger(get(input, 'fontSize'), 8, 900));
-
-    const weight = get(input, 'fontWeight');
-    if (isNumber(weight)) {
-        let nearest = FONT_WEIGHTS[0];
-        for (const candidate of FONT_WEIGHTS) {
-            if (Math.abs(weight - candidate) < Math.abs(weight - nearest)) {
-                nearest = candidate;
-            }
-        }
-        style.fontWeight = nearest;
-    }
-
-    put(style, 'color', color(get(input, 'color')));
-    put(style, 'background', color(get(input, 'background')));
-
-    const gradient = get(input, 'gradient');
-    const from = color(get(gradient, 'from'));
-    const to = color(get(gradient, 'to'));
-    if (from !== null && to !== null) {
-        style.gradient = { from, to, angle: integer(get(gradient, 'angle'), 0, 359, 180) };
-    }
-
-    const border = get(input, 'border');
-    const borderColor = color(get(border, 'color'));
-    if (borderColor !== null) {
-        style.border = { width: integer(get(border, 'width'), 0, 40, 1), color: borderColor };
-    }
-
-    put(style, 'radius', optionalInteger(get(input, 'radius'), 0, 540));
-    put(style, 'padding', optionalInteger(get(input, 'padding'), 0, 200));
-    put(style, 'opacity', optionalDecimal(get(input, 'opacity'), 0, 1));
-    put(style, 'align', optionalOneOf(get(input, 'align'), ['left', 'center', 'right']));
-    put(style, 'valign', optionalOneOf(get(input, 'valign'), ['top', 'middle', 'bottom']));
-    put(style, 'shadow', optionalOneOf(get(input, 'shadow'), ['none', 'soft', 'strong', 'outline']));
-
-    const uppercase = get(input, 'uppercase');
-    if (typeof uppercase === 'boolean') {
-        style.uppercase = uppercase;
-    }
-
-    put(style, 'letterSpacing', optionalDecimal(get(input, 'letterSpacing'), -10, 40));
-    put(style, 'lineHeight', optionalDecimal(get(input, 'lineHeight'), 0.8, 2));
-    put(style, 'fit', optionalOneOf(get(input, 'fit'), ['none', 'shrink', 'fill']));
 
     return style;
 }
 
-function normaliseProps(type, input, path, competitionId, errors) {
-    switch (type) {
-        case 'timer':
-            return {
-                mode: oneOf(get(input, 'mode'), ['auto', 'elapsed', 'remaining'], 'auto'),
-                format: oneOf(get(input, 'format'), ['auto', 'hh:mm:ss', 'mm:ss'], 'auto'),
-                bigCountdown: integer(get(input, 'bigCountdown'), 0, 30, 0),
-                phaseColors: colorMap(get(input, 'phaseColors'), PHASE_COLORS),
-                warningSeconds: integer(get(input, 'warningSeconds'), 0, 3600, 0),
-                idleText: oneOf(get(input, 'idleText'), ['dashes', 'zero', 'blank'], 'dashes'),
-            };
-        case 'status':
-            return { texts: textMap(get(input, 'texts'), PHASES, 80) };
-        case 'progress':
-            return {
-                direction: oneOf(get(input, 'direction'), ['fill', 'drain'], 'fill'),
-                orientation: oneOf(get(input, 'orientation'), ['horizontal', 'vertical'], 'horizontal'),
-                trackColor: color(get(input, 'trackColor')),
-                barColor: color(get(input, 'barColor')),
-                warningColor: color(get(input, 'warningColor')),
-                warningSeconds: integer(get(input, 'warningSeconds'), 0, 3600, 0),
-            };
-        case 'text':
-            return { text: plain(get(input, 'text'), 300, true, true) };
-        case 'field':
-            return {
-                field: oneOf(get(input, 'field'), FIELDS, 'round_name'),
-                prefix: plain(get(input, 'prefix'), 60, false, false),
-                suffix: plain(get(input, 'suffix'), 60, false, false),
-            };
-        case 'round_badge':
-            return { useRoundColors: boolean(get(input, 'useRoundColors'), true) };
-        case 'image':
-            return imageProps(input, path, competitionId, errors);
-        case 'rotator':
-            return rotatorProps(input, path, competitionId, errors);
-        case 'clock':
-            return {
-                zone: oneOf(get(input, 'zone'), ['round', 'device'], 'round'),
-                format: oneOf(get(input, 'format'), ['24h', '12h'], '24h'),
-                seconds: boolean(get(input, 'seconds'), false),
-            };
-        case 'puzzle':
-            return {
-                layout: oneOf(get(input, 'layout'), ['row', 'column', 'grid'], 'row'),
-                show: subset(get(input, 'show'), ['image', 'name', 'brand', 'pieces'], ['image', 'name']),
-                max: integer(get(input, 'max'), 1, 6, 3),
-                whenHidden: oneOf(get(input, 'whenHidden'), ['nothing', 'text'], 'nothing'),
-                hiddenText: plain(get(input, 'hiddenText'), 80, false, true),
-                imageFit: oneOf(get(input, 'imageFit'), ['contain', 'cover'], 'contain'),
-            };
-        case 'finished_count':
-            return {
-                format: oneOf(get(input, 'format'), ['fraction', 'count', 'percent'], 'fraction'),
-                ...resultsSource(input),
-            };
-        case 'leaderboard': {
-            const rowStyle = get(input, 'rowStyle');
+function styleValue(spec, value) {
+    switch (spec.kind) {
+        case 'enum':
+            return optionalOneOf(value, spec.options);
+        case 'int':
+            return optionalInteger(value, spec.min, spec.max);
+        case 'decimal':
+            return optionalDecimal(value, spec.min, spec.max);
+        case 'color':
+            return color(value);
+        case 'bool':
+            return typeof value === 'boolean' ? value : null;
+        case 'weight': {
+            if (!isNumber(value)) {
+                return null;
+            }
 
-            return {
-                rows: integer(get(input, 'rows'), 1, 30, 10),
-                columns: subset(get(input, 'columns'), ['rank', 'flag', 'name', 'members', 'result', 'table'], ['rank', 'flag', 'name', 'result']),
-                highlightLatestSeconds: integer(get(input, 'highlightLatestSeconds'), 0, 60, 10),
-                rowStyle: {
-                    background: color(get(rowStyle, 'background')),
-                    altBackground: color(get(rowStyle, 'altBackground')),
-                    gap: integer(get(rowStyle, 'gap'), 0, 40, 4),
-                },
-                ...resultsSource(input),
-            };
+            let nearest = spec.options[0];
+            for (const candidate of spec.options) {
+                if (Math.abs(value - candidate) < Math.abs(value - nearest)) {
+                    nearest = candidate;
+                }
+            }
+
+            return nearest;
         }
-        case 'ticker':
-            return {
-                rows: integer(get(input, 'rows'), 1, 10, 5),
-                ...resultsSource(input),
-            };
-        case 'qr':
-            return qrProps(input);
+        case 'gradient': {
+            const from = color(get(value, 'from'));
+            const to = color(get(value, 'to'));
+
+            return from !== null && to !== null ? { from, to, angle: integer(get(value, 'angle'), ...spec.angle) } : null;
+        }
+        case 'border': {
+            const borderColor = color(get(value, 'color'));
+
+            return borderColor !== null ? { width: integer(get(value, 'width'), ...spec.width), color: borderColor } : null;
+        }
         default:
-            return {}; // box
+            return null;
     }
 }
 
-function resultsSource(input) {
-    return {
-        source: oneOf(get(input, 'source'), ['published', 'live'], 'published'),
-        whenUnpublished: oneOf(get(input, 'whenUnpublished'), ['nothing', 'text'], 'nothing'),
-        unpublishedText: plain(get(input, 'unpublishedText'), 80, false, true),
-    };
+function normaliseProps(type, input, path, competitionId, errors) {
+    return propsOf(PROP_SPECS[type] ?? [], input, path, competitionId, errors);
 }
 
-function imageProps(input, path, competitionId, errors) {
-    const source = oneOf(get(input, 'source'), ['upload', 'competition_logo', 'series_logo', 'organization_logo'], 'upload');
-    const picture = imagePath(get(input, 'path'), `${path}/path`, competitionId, errors);
+function propsOf(specs, input, path, competitionId, errors) {
+    const props = {};
 
-    return {
-        source,
-        path: source === 'upload' ? picture : null,
-        fit: oneOf(get(input, 'fit'), ['contain', 'cover'], 'contain'),
-    };
+    for (const spec of specs) {
+        props[spec.key] = propValue(spec, get(input, spec.key), path, competitionId, errors);
+    }
+
+    // A value that only counts with a certain choice of another prop (an uploaded picture, a custom QR link)
+    for (const spec of specs) {
+        if (spec.onlyWhen && props[spec.onlyWhen.key] !== spec.onlyWhen.value) {
+            props[spec.key] = null;
+        }
+    }
+
+    return props;
 }
 
-function rotatorProps(input, path, competitionId, errors) {
+function propValue(spec, value, path, competitionId, errors) {
+    switch (spec.kind) {
+        case 'enum':
+            return oneOf(value, spec.options, spec.default);
+        case 'int':
+            return integer(value, spec.min, spec.max, spec.default);
+        case 'bool':
+            return boolean(value, spec.default);
+        case 'color':
+            return color(value) ?? spec.default;
+        case 'text':
+            return plain(value, spec.max, spec.multiline, spec.trim);
+        case 'subset':
+            return subset(value, spec.options, spec.default);
+        case 'colorMap':
+            return colorMap(value, spec.keys);
+        case 'textMap':
+            return textMap(value, spec.keys, spec.max);
+        case 'object':
+            return propsOf(spec.fields, value, path, competitionId, errors);
+        case 'path':
+            return imagePath(value, `${path}/${spec.key}`, competitionId, errors);
+        case 'url':
+            return typeof value === 'string' && Array.from(value).length <= spec.max && URL_PATTERN.test(value) ? value : null;
+        case 'images':
+            return imageList(value, `${path}/${spec.key}`, competitionId, errors);
+        default:
+            return null;
+    }
+}
+
+function imageList(input, path, competitionId, errors) {
     const images = [];
-    const imagesInput = get(input, 'images');
 
-    if (isList(imagesInput) && Array.isArray(imagesInput)) {
-        if (imagesInput.length > MAX_IMAGES) {
-            errors.push({ path: `${path}/images`, code: 'too_many_images' });
+    if (isList(input) && Array.isArray(input)) {
+        if (input.length > MAX_IMAGES) {
+            errors.push({ path, code: 'too_many_images' });
         } else {
-            imagesInput.forEach((image, index) => {
-                const picture = imagePath(get(image, 'path'), `${path}/images/${index}/path`, competitionId, errors);
+            input.forEach((image, index) => {
+                const picture = imagePath(get(image, 'path'), `${path}/${index}/path`, competitionId, errors);
 
                 if (picture !== null) {
                     images.push({ path: picture });
@@ -448,25 +519,7 @@ function rotatorProps(input, path, competitionId, errors) {
         }
     }
 
-    return {
-        images,
-        seconds: integer(get(input, 'seconds'), 3, 120, 8),
-        transition: oneOf(get(input, 'transition'), ['none', 'fade'], 'fade'),
-        fit: oneOf(get(input, 'fit'), ['contain', 'cover'], 'contain'),
-    };
-}
-
-function qrProps(input) {
-    const target = oneOf(get(input, 'target'), ['event_page', 'round_results', 'custom'], 'event_page');
-    const url = get(input, 'url');
-
-    return {
-        target,
-        url: target === 'custom' && typeof url === 'string' && Array.from(url).length <= URL_MAX_LENGTH && URL_PATTERN.test(url) ? url : null,
-        fg: color(get(input, 'fg')) ?? '#000000',
-        bg: color(get(input, 'bg')) ?? '#ffffff',
-        quietZone: boolean(get(input, 'quietZone'), true),
-    };
+    return images;
 }
 
 // A picture uploaded for this event's displays - never an external URL, never another event's file

@@ -18,6 +18,8 @@
         {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
         {label: 'competition_display.list.title'|trans},
     ]}) }}
+    {#- Back to where the organiser came from (the stopwatch page, the control room - D8), else the toolkit hub -#}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_toolkit', {competitionId: competition.id}), fallbackTitle: 'competition_toolkit.title'|trans}) }}
 
     <div class="pb-4" style="max-width: 48rem;" data-competition-displays>
         <h1 class="h2">{{ competition.name }}</h1>

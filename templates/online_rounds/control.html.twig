@@ -70,7 +70,10 @@
             <a href="{{ path('round_stopwatch', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="projector" target="_blank" rel="noopener">
                 <i class="bi bi-display me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.stopwatch'|trans }}
             </a>
-            <a href="{{ path('online_accuracy', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="accuracy">
+            {% if is_granted('COMPETITION_TOOLKIT_MANAGE', competition.id.toString) %}{# Timer screens and stream overlays (competition toolkit D8) - only for whom the toolkit is on; byte-identical without it #}<a href="{{ path('competition_displays', {competitionId: competition.id, return: path('online_control_room', {roundId: round_id}), return_title: 'online_rounds.control.title'|trans}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="displays">
+                <i class="bi bi-tv me-1" aria-hidden="true"></i>{{ 'competition_display.list.title'|trans }}
+            </a>
+            {% endif %}<a href="{{ path('online_accuracy', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="accuracy">
                 <i class="bi bi-bullseye me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.accuracy'|trans }}
             </a>{{ (video_console ?? false) ? include('online_rounds/control_video_tool.html.twig') }}
         </div>

@@ -164,6 +164,10 @@ return static function (ContainerConfigurator $configurator): void {
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 
+    // The competition toolkit (docs/features/feature_flags.md): organisers may open its settings and editors only while 1,
+    // admins always.
+    $parameters->set('competitionToolkitForOrganisers', '%env(bool:COMPETITION_TOOLKIT_FOR_ORGANISERS)%');
+
     // Online competitions' evidence uploads: an empty ONLINE_MEDIA_PUBLIC_ENDPOINT falls back to this (OnlineMediaStores)
     $parameters->set('online_media_s3_endpoint', '%env(S3_ENDPOINT)%');
 
@@ -202,6 +206,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
+        ->bind('$competitionToolkitForOrganisers', '%competitionToolkitForOrganisers%')
         ->bind('$insightsPublic', '%insightsPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')

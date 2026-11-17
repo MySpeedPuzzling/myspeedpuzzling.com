@@ -227,6 +227,19 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 - **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('ONLINE_ROUNDS_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/OnlineRoundsVoterTest.php`, `tests/Controller/ScheduledStartFeatureFlagTest.php`
 - **Remove when:** the public launch opens online competitions to every organiser (implementation-plan.md 4.7) - delete the flag and `OnlineRoundsFeature`; `ONLINE_ROUNDS_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes). The scheduled start may open earlier, right after the test cups (docs/TODO.md "Online competitions"): drop `can_schedule` and the two `requiredAttribute` arguments
 
+## Competition toolkit for organisers (`COMPETITION_TOOLKIT_FOR_ORGANISERS`)
+
+- **Feature:** the competition toolkit (`docs/features/competitions-management/toolkit/`, plan of record `R-review-and-plan.md`) - round formats and the reveal at the stopwatch start, competitor pages and QR tags, time proposals, the judge page, displays and overlays, standings. Every part is opt-in per competition or per round: an untouched competition behaves as before
+- **Flag:** env var `COMPETITION_TOOLKIT_FOR_ORGANISERS` → parameter `competitionToolkitForOrganisers` (`config/services.php`, bound as `$competitionToolkitForOrganisers`) → `CompetitionToolkitFeature::isAvailableTo(?string $playerId)`, the single decision point → voter attribute `COMPETITION_TOOLKIT_MANAGE` (`CompetitionToolkitVoter`, subject = competition id: `COMPETITION_EDIT` **and** the feature). Not a Twig global - templates ask `is_granted('COMPETITION_TOOLKIT_MANAGE', competitionId)`
+- **Default:** `0` (`.env`, and `.env.test` like production). Admins (`is_granted('ADMIN_ACCESS')`) always have it - Jan can run a real event before the flag is on; `1` opens it to every organiser of an event (anyone with `COMPETITION_EDIT` on it)
+- **Gated files** (the toolkit packages add theirs here):
+  - `src/Services/CompetitionToolkit/CompetitionToolkitFeature.php` — `isAvailableTo()`
+  - `src/Security/CompetitionToolkitVoter.php` — `COMPETITION_TOOLKIT_MANAGE`
+  - F0: the hub page `competition_toolkit` (`src/Controller/CompetitionToolkit/CompetitionToolkitController.php`, `templates/competition_toolkit/hub.html.twig` - 403 without the voter) and its one link, the "Competition toolkit" button on the event's edit page (`templates/edit_competition.html.twig`)
+- **Not gated:** using what an admin (or a flagged organiser) switched on - recording per-puzzle results, the reveal checkbox at the stopwatch start, competitor pages, displays by token, public standings (`00-context.md` rule 2)
+- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('COMPETITION_TOOLKIT_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/CompetitionToolkitVoterTest.php`, `tests/Controller/CompetitionToolkit/CompetitionToolkitHubTest.php`
+- **Remove when:** the toolkit is opened to every organiser - delete the flag and `CompetitionToolkitFeature`; `COMPETITION_TOOLKIT_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes)
+
 ## Live video of online competitions (`LIVEKIT_*` = the switch, no flag)
 
 - **Feature:** live video of online rounds - puzzle cameras in the control room, the host's voice, the studio, spectators (`docs/features/online-competitions/README.md` §5.12, `contracts/phase-1b.md`)

@@ -115,7 +115,7 @@ function roundState(roundId, extra = {}) {
     };
 }
 
-function setup({ storage = createMemorySnapshotStorage(), playerId = ANNA, cookie = ANNA, marker = null } = {}) {
+function setup({ storage = createMemorySnapshotStorage(), playerId = ANNA, cookie = ANNA, marker = null, firstAtOnce = false } = {}) {
     const clock = { now: T0 };
     const timers = fakeTimers();
     const device = { cookie };
@@ -127,6 +127,7 @@ function setup({ storage = createMemorySnapshotStorage(), playerId = ANNA, cooki
         marker,
         schedule: timers.schedule,
         cancel: timers.cancel,
+        firstAtOnce,
     });
 
     return { store, storage, clock, timers, device };
@@ -168,6 +169,87 @@ const scenarios = {
         assert.deepEqual(stored[0].state.entries, []);
         assert.equal(stored[0].savedAt, T0 + 500);
         assert.equal(SNAPSHOT_WRITE_DELAY_MS, 2000);
+    },
+
+    async 'a steady stream of updates never postpones the write - at most 2 s after the first unsaved one (D4)'() {
+        // A real clock for the timers: 30 saves 500 ms apart (another judge saving all the time)
+        const clock = { now: T0 };
+        const pending = [];
+        const storage = createMemorySnapshotStorage();
+        const writes = [];
+        const put = storage.put.bind(storage);
+        storage.put = async (record) => {
+            writes.push(record.savedAt);
+            await put(record);
+        };
+        const store = new SnapshotStore({
+            storage,
+            playerId: ANNA,
+            devicePlayer: () => ANNA,
+            now: () => clock.now,
+            schedule: (task, ms) => {
+                const timer = { task, at: clock.now + ms };
+                pending.push(timer);
+
+                return timer;
+            },
+            cancel: (timer) => {
+                const index = pending.indexOf(timer);
+
+                if (index >= 0) {
+                    pending.splice(index, 1);
+                }
+            },
+        });
+        const runDue = async () => {
+            for (const timer of pending.filter((candidate) => candidate.at <= clock.now)) {
+                pending.splice(pending.indexOf(timer), 1);
+                timer.task();
+            }
+
+            await store.queue;
+        };
+
+        for (let i = 0; i < 30; i += 1) {
+            store.save({ roundId: ROUND_A, state: roundState(ROUND_A, { entries: [{ ref: `participant_round:${i}`, name: `N${i}` }] }) });
+            clock.now += 500;
+            await runDue();
+        }
+
+        assert.ok(writes.length >= 6, `${writes.length} writes in 15 s`);
+        // Each write carries the newest state of its moment, never older than the pause
+        for (let i = 1; i < writes.length; i += 1) {
+            assert.ok(writes[i] - writes[i - 1] <= SNAPSHOT_WRITE_DELAY_MS, 'never more than the pause between two writes');
+        }
+
+        const stored = await storage.getAll();
+        assert.equal(stored.length, 1);
+        assert.equal(stored[0].savedAt, writes[writes.length - 1]);
+    },
+
+    async 'the first state of a page load is stored at once, later ones after the pause (D3)'() {
+        const { store, storage, timers } = setup({ firstAtOnce: true });
+
+        assert.equal(store.save({ roundId: ROUND_A, state: roundState(ROUND_A) }), true);
+        await store.queue;
+        assert.equal(timers.count, 0, 'no pause for the first one');
+        assert.deepEqual((await storage.getAll()).map((record) => record.roundId), [ROUND_A]);
+
+        store.save({ roundId: ROUND_A, state: roundState(ROUND_A, { entries: [] }) });
+        assert.equal(timers.count, 1, 'the second one waits');
+        assert.equal((await storage.getAll())[0].state.entries.length, 1);
+
+        // Another round's first state of this page load: at once too
+        store.save({ roundId: ROUND_B, state: roundState(ROUND_B) });
+        await store.queue;
+        assert.equal((await storage.getAll()).length, 2);
+
+        // A write at once (prefetch) drops an older one waiting for the same round
+        await store.saveNow({ roundId: ROUND_A, state: roundState(ROUND_A, { entries: [{ ref: 'participant_round:9', name: 'Newest' }] }) });
+        assert.equal(timers.count, 0);
+        timers.runAll();
+        await store.queue;
+        assert.equal((await store.read(ROUND_A)).state.entries[0].name, 'Newest');
     },
 
     async 'flush writes what waits at once (the page is hidden or closed)'() {

@@ -6,8 +6,11 @@
  *
  * - Own IndexedDB database `msp-live-entry`, store `snapshots`, key `<playerId>:<roundId>` - never a store in the
  *   outbox's database (a version upgrade there would block while another tab holds it open).
- * - Written on every state the page gets (state fetches, live updates merged in), debounced per round; the state's
- *   Mercure subscription is never stored (a credential, and useless offline).
+ * - Written on every state the page gets (state fetches, live updates merged in) at most SNAPSHOT_WRITE_DELAY_MS after
+ *   the first change not yet written, the newest state of the round then (reliability hardening F1, D4: a steady
+ *   stream of updates never postpones the write); with `firstAtOnce` the first state of the page load is written at
+ *   once (D3 - a reload offline a second after opening still finds the round). The state's Mercure subscription is
+ *   never stored (a credential, and useless offline).
  * - Only for the player the device cookie names (live_entry_device.js): no cookie, or another player → nothing is
  *   read or written; start() deletes every other player's snapshots, those older than 36 h, and more than 30 per player.
  * - Like the outbox: store operations run one after another, a store that refuses a write keeps the snapshot in memory
@@ -200,6 +203,7 @@ export class SnapshotStore {
      * @param {function(): (string|null)} options.devicePlayer  the player the device cookie names right now
      * @param {function(): number} [options.now]
      * @param {object|null} [options.marker]    a Storage (localStorage) - the device's marker (live_entry_device.js)
+     * @param {boolean} [options.firstAtOnce]    a round's first save() of this page load is written at once (D3)
      */
     constructor({
         storage,
@@ -210,8 +214,12 @@ export class SnapshotStore {
         delayMs = SNAPSHOT_WRITE_DELAY_MS,
         schedule = (task, ms) => setTimeout(task, ms),
         cancel = (timer) => clearTimeout(timer),
+        firstAtOnce = false,
     }) {
         this.storage = storage;
+        this.firstAtOnce = firstAtOnce;
+        // Rounds saved by this page load (firstAtOnce)
+        this.savedRounds = new Set();
         this.playerId = String(playerId ?? '').toLowerCase();
         this.devicePlayer = devicePlayer;
         this.now = now;
@@ -313,7 +321,9 @@ export class SnapshotStore {
     }
 
     /**
-     * The round's state changed: stored after a short pause (a later change within it replaces this one).
+     * The round's state changed: stored at most `delayMs` after the first change not yet written - a later change
+     * within the pause replaces the record, never the pause (D4). The page load's first state of a round is written at
+     * once with `firstAtOnce` (D3).
      */
     save({ roundId, state, clockOffsetMs = null, clockMeasuredAt = null, eventPeople = null }) {
         if (!this.allowed()) {
@@ -323,16 +333,32 @@ export class SnapshotStore {
         const record = snapshotOf({ playerId: this.playerId, roundId, state, savedAt: this.now(), clockOffsetMs, clockMeasuredAt, eventPeople });
         const before = this.waiting.get(record.key);
 
-        if (before !== undefined) {
-            this.cancel(before.timer);
+        if (this.firstAtOnce && !this.savedRounds.has(record.key)) {
+            this.savedRounds.add(record.key);
+
+            if (before !== undefined) {
+                this.cancel(before.timer);
+                this.waiting.delete(record.key);
+            }
+
+            this.serial(() => this.write(record));
+
+            return true;
         }
 
-        const timer = this.schedule(() => {
+        if (before !== undefined) {
+            before.record = record;
+
+            return true;
+        }
+
+        const waiting = { record, timer: null };
+        waiting.timer = this.schedule(() => {
             this.waiting.delete(record.key);
-            this.serial(() => this.write(record));
+            this.serial(() => this.write(waiting.record));
         }, this.delayMs);
 
-        this.waiting.set(record.key, { record, timer });
+        this.waiting.set(record.key, waiting);
 
         return true;
     }
@@ -348,6 +374,13 @@ export class SnapshotStore {
         }
 
         const record = snapshotOf({ playerId: this.playerId, roundId, state, savedAt: this.now(), clockOffsetMs, clockMeasuredAt, eventPeople });
+        const before = this.waiting.get(record.key);
+
+        // An older state waiting for its pause would overwrite this one
+        if (before !== undefined) {
+            this.cancel(before.timer);
+            this.waiting.delete(record.key);
+        }
 
         return this.serial(() => this.write(record)).then(() => true);
     }

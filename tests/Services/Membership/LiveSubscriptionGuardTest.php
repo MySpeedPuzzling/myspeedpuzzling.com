@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Membership;
 
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -14,39 +15,35 @@ use Stripe\Exception\InvalidRequestException;
 use Stripe\Service\SubscriptionService;
 use Stripe\StripeClient;
 use Stripe\Subscription;
+use Symfony\Component\Clock\MockClock;
 
 final class LiveSubscriptionGuardTest extends TestCase
 {
     private const string SUBSCRIPTION = 'sub_test_live_guard';
     private const string INVOICE_URL = 'https://invoice.stripe.com/i/acct_test/live_test';
+    private const string NOW = '2026-11-17 12:00:00';
 
-    #[DataProvider('unpaidStatuses')]
-    public function testUnpaidSubscriptionSendsThePlayerToItsOpenInvoice(string $status): void
+    public function testRetryPeriodOfTheCurrentBillingPeriodLeadsToTheOpenInvoice(): void
     {
         try {
-            $this->guard($status, ['id' => 'in_test', 'object' => 'invoice', 'status' => 'open', 'hosted_invoice_url' => self::INVOICE_URL])
+            $this->guard(Subscription::STATUS_PAST_DUE, '2026-12-16 10:00:00', 'open')
                 ->assertNoLiveSubscription(self::SUBSCRIPTION);
-            self::fail('A new checkout must not start next to an unpaid subscription');
+            self::fail('A new checkout must not start next to a subscription Stripe still retries');
         } catch (MembershipPaymentPending $pending) {
             self::assertSame(self::INVOICE_URL, $pending->hostedInvoiceUrl);
         }
     }
 
-    /**
-     * @return iterable<string, array{string}>
-     */
-    public static function unpaidStatuses(): iterable
+    public function testComingBackAfterTheBillingPeriodGetsANewCheckout(): void
     {
-        yield 'past_due' => [Subscription::STATUS_PAST_DUE];
-        yield 'unpaid' => [Subscription::STATUS_UNPAID];
-        yield 'incomplete' => [Subscription::STATUS_INCOMPLETE];
+        // Half a year later - never an old invoice for months the player did not use
+        $this->guard(Subscription::STATUS_PAST_DUE, '2026-06-16 10:00:00', 'open')
+            ->assertNoLiveSubscription(self::SUBSCRIPTION);
     }
 
-    public function testUnpaidSubscriptionWithoutAnOpenInvoiceGoesToTheBillingPortal(): void
+    public function testPastDueWithoutAnOpenInvoiceGetsANewCheckout(): void
     {
-        $this->expectException(PlayerAlreadyHaveMembership::class);
-
-        $this->guard(Subscription::STATUS_PAST_DUE, ['id' => 'in_test', 'object' => 'invoice', 'status' => 'paid', 'hosted_invoice_url' => self::INVOICE_URL])
+        $this->guard(Subscription::STATUS_PAST_DUE, '2026-12-16 10:00:00', 'paid')
             ->assertNoLiveSubscription(self::SUBSCRIPTION);
     }
 
@@ -55,7 +52,7 @@ final class LiveSubscriptionGuardTest extends TestCase
     {
         $this->expectException(PlayerAlreadyHaveMembership::class);
 
-        $this->guard($status, null)->assertNoLiveSubscription(self::SUBSCRIPTION);
+        $this->guard($status, '2026-12-16 10:00:00', null)->assertNoLiveSubscription(self::SUBSCRIPTION);
     }
 
     /**
@@ -67,49 +64,55 @@ final class LiveSubscriptionGuardTest extends TestCase
         yield 'trialing' => [Subscription::STATUS_TRIALING];
     }
 
-    #[DataProvider('endedStatuses')]
-    public function testEndedOrPausedSubscriptionAllowsANewCheckout(string $status): void
+    #[DataProvider('checkoutAsBeforeStatuses')]
+    public function testOtherStatusesGetANewCheckoutAsBefore(string $status): void
     {
-        // No exception = a new checkout may start; the mock's retrieve() expectation is the assertion
-        $this->guard($status, null)->assertNoLiveSubscription(self::SUBSCRIPTION);
+        // No exception = the checkout goes on; the mock's retrieve() expectation is the assertion
+        $this->guard($status, '2026-12-16 10:00:00', 'open')->assertNoLiveSubscription(self::SUBSCRIPTION);
     }
 
     /**
      * @return iterable<string, array{string}>
      */
-    public static function endedStatuses(): iterable
+    public static function checkoutAsBeforeStatuses(): iterable
     {
         yield 'canceled' => [Subscription::STATUS_CANCELED];
         yield 'incomplete_expired' => [Subscription::STATUS_INCOMPLETE_EXPIRED];
+        yield 'unpaid' => [Subscription::STATUS_UNPAID];
+        yield 'incomplete' => [Subscription::STATUS_INCOMPLETE];
         yield 'paused' => [Subscription::STATUS_PAUSED];
     }
 
-    public function testStripeErrorAllowsANewCheckoutAsBeforeTheGuard(): void
+    public function testStripeErrorGetsANewCheckoutAsBefore(): void
     {
         $subscriptions = $this->createMock(SubscriptionService::class);
         $subscriptions->expects(self::once())
             ->method('retrieve')
             ->willThrowException(InvalidRequestException::factory('No such subscription', 404));
 
-        $stripeClient = $this->createStub(StripeClient::class);
-        $stripeClient->method('__get')->willReturnCallback(
-            static fn (string $name) => $name === 'subscriptions' ? $subscriptions : null,
-        );
-
-        // No exception = the checkout goes on
-        new LiveSubscriptionGuard($stripeClient, new NullLogger())->assertNoLiveSubscription(self::SUBSCRIPTION);
+        $this->guardWith($subscriptions)->assertNoLiveSubscription(self::SUBSCRIPTION);
     }
 
-    /**
-     * @param null|array<string, mixed> $latestInvoice
-     */
-    private function guard(string $status, null|array $latestInvoice): LiveSubscriptionGuard
+    private function guard(string $status, string $periodEnd, null|string $invoiceStatus): LiveSubscriptionGuard
     {
         $subscription = Subscription::constructFrom([
             'id' => self::SUBSCRIPTION,
             'object' => 'subscription',
             'status' => $status,
-            'latest_invoice' => $latestInvoice,
+            'items' => [
+                'object' => 'list',
+                'data' => [[
+                    'id' => 'si_test',
+                    'object' => 'subscription_item',
+                    'current_period_end' => new DateTimeImmutable($periodEnd)->getTimestamp(),
+                ]],
+            ],
+            'latest_invoice' => $invoiceStatus === null ? null : [
+                'id' => 'in_test',
+                'object' => 'invoice',
+                'status' => $invoiceStatus,
+                'hosted_invoice_url' => self::INVOICE_URL,
+            ],
         ]);
 
         $subscriptions = $this->createMock(SubscriptionService::class);
@@ -118,11 +121,16 @@ final class LiveSubscriptionGuardTest extends TestCase
             ->with(self::SUBSCRIPTION, ['expand' => ['latest_invoice']])
             ->willReturn($subscription);
 
+        return $this->guardWith($subscriptions);
+    }
+
+    private function guardWith(SubscriptionService $subscriptions): LiveSubscriptionGuard
+    {
         $stripeClient = $this->createStub(StripeClient::class);
         $stripeClient->method('__get')->willReturnCallback(
             static fn (string $name) => $name === 'subscriptions' ? $subscriptions : null,
         );
 
-        return new LiveSubscriptionGuard($stripeClient, new NullLogger());
+        return new LiveSubscriptionGuard($stripeClient, new NullLogger(), new MockClock(self::NOW));
     }
 }

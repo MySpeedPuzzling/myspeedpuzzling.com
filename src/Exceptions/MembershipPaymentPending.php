@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Exceptions;
 
 /**
- * The player's Stripe subscription still lives but its last invoice is unpaid (past_due/unpaid/incomplete) -
+ * The player's Stripe subscription is in the retry period of its current billing period (past_due) -
  * paying that invoice keeps the subscription and its price, a new checkout would start a second one.
  */
 final class MembershipPaymentPending extends \Exception

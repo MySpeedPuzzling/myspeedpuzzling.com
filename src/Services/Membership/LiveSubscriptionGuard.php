@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Membership;
 
+use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipPaymentPending;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
-use Psr\Log\LoggerInterface;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Invoice;
 use Stripe\StripeClient;
@@ -17,18 +18,23 @@ use Stripe\Subscription;
  * A failed renewal pauses the membership at once (ends_at = now, docs/features/stripe.md state 5) while Stripe
  * keeps the subscription and retries its invoice - a new checkout then started a second subscription at today's
  * price next to the old one (a 100 CZK early adopter who changed cards was offered 150 CZK, 2026-11-17).
+ *
+ * Narrow on purpose: only the retry period of the current billing period leads to the open invoice. A player who
+ * comes back after the period is over (half a year later) gets a new checkout as before - never an old invoice for
+ * months they did not use.
  */
 readonly final class LiveSubscriptionGuard
 {
     public function __construct(
         private StripeClient $stripeClient,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws PlayerAlreadyHaveMembership the subscription is running - manage it in the billing portal
-     * @throws MembershipPaymentPending its open invoice waits for a payment - pay that one
+     * @throws MembershipPaymentPending Stripe retries this billing period's invoice - pay that one
      */
     public function assertNoLiveSubscription(string $stripeSubscriptionId): void
     {
@@ -46,31 +52,34 @@ readonly final class LiveSubscriptionGuard
             return;
         }
 
-        switch ($subscription->status) {
-            case Subscription::STATUS_ACTIVE:
-            case Subscription::STATUS_TRIALING:
-                throw new PlayerAlreadyHaveMembership();
+        if (
+            $subscription->status === Subscription::STATUS_ACTIVE
+            || $subscription->status === Subscription::STATUS_TRIALING
+        ) {
+            throw new PlayerAlreadyHaveMembership();
+        }
 
-            case Subscription::STATUS_PAST_DUE:
-            case Subscription::STATUS_UNPAID:
-            case Subscription::STATUS_INCOMPLETE:
-                $invoice = $subscription->latest_invoice;
+        if ($subscription->status !== Subscription::STATUS_PAST_DUE) {
+            // canceled, incomplete_expired, unpaid (retries over), incomplete, paused: a new checkout as before
+            return;
+        }
 
-                if (
-                    $invoice instanceof Invoice
-                    && $invoice->status === Invoice::STATUS_OPEN
-                    && is_string($invoice->hosted_invoice_url)
-                ) {
-                    throw new MembershipPaymentPending($invoice->hosted_invoice_url);
-                }
+        // In Stripe API v2025+, current_period_end moved from Subscription to SubscriptionItem
+        $periodEnd = $subscription->items->data[0]->current_period_end ?? null;
 
-                // Nothing to pay here, yet the subscription lives - the billing portal shows what it needs
-                throw new PlayerAlreadyHaveMembership();
+        if (!is_int($periodEnd) || $periodEnd <= $this->clock->now()->getTimestamp()) {
+            // The period the open invoice is for is over - a new checkout as before
+            return;
+        }
 
-            default:
-                // canceled, incomplete_expired: gone for good. paused (a checkout trial ended without a card):
-                // never charges, so a new subscription cannot double-bill
-                return;
+        $invoice = $subscription->latest_invoice;
+
+        if (
+            $invoice instanceof Invoice
+            && $invoice->status === Invoice::STATUS_OPEN
+            && is_string($invoice->hosted_invoice_url)
+        ) {
+            throw new MembershipPaymentPending($invoice->hosted_invoice_url);
         }
     }
 }

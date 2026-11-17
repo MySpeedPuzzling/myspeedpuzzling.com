@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\RoundPuzzlesNow;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
+use SpeedPuzzling\Web\Results\TimeProposalView;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
@@ -52,7 +53,8 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *   (competitor_pages_live_results) or to the competitor themself - never a place.
  *
  * Statements: the competition with its rounds (1), the tag's entries with their people (1), the round puzzles (1), the
- * published rounds' official entries (0-2: OfficialEntrantsView runs one per category of rounds it is asked for).
+ * published rounds' official entries (0-2: OfficialEntrantsView runs one per category of rounds it is asked for), the
+ * signed-in competitor's own time proposals (0-1: only with time proposals on and an own entry shown - B8).
  *
  * @phpstan-type RoundRow array{id: string, name: string, category: RoundCategory, starts_at: DateTimeImmutable, zone: string, zone_assumed: bool, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, published: bool, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int}
  * @phpstan-type EntryRow array{kind: string, id: string, round_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, puzzles: null|RoundEntryPuzzles, team_name: null|string, entrants: list<PublishedRoundEntrant>}
@@ -64,6 +66,7 @@ readonly final class GetCompetitorPage
         private OfficialEntrantsView $officialEntrantsView,
         private RoundPuzzlesVisibleNow $roundPuzzlesVisibleNow,
         private PrivateProfileAccess $privateProfileAccess,
+        private GetTimeProposals $getTimeProposals,
     ) {
     }
 
@@ -156,6 +159,16 @@ readonly final class GetCompetitorPage
         }
         $official = $published !== [] ? $this->officialEntrantsView->forRounds($published, $viewerPlayerId) : [];
 
+        // Time proposals (B8): the viewer's own entries get their latest proposal (one statement, only then)
+        $timeProposals = $competition['time_proposals'];
+        $ownRefs = [];
+        foreach ($entryRows as $index => $row) {
+            if ($timeProposals && $masked[$index] === false && in_array($row['kind'], ['participant_round', 'team'], true) && OfficialEntrantsView::isViewers($row['entrants'], $viewerPlayerId)) {
+                $ownRefs[] = $row['kind'] === 'team' ? RoundEntryRef::team($row['id']) : RoundEntryRef::participantRound($row['id']);
+            }
+        }
+        $proposals = $ownRefs !== [] ? $this->getTimeProposals->latestOfEntries($ownRefs) : [];
+
         $pageRounds = [];
         foreach ($entryRows as $index => $row) {
             $round = $rounds[(string) $row['round_id']];
@@ -169,6 +182,8 @@ readonly final class GetCompetitorPage
                 $competition['competitor_pages_live_results'],
                 $viewerPlayerId,
                 $now,
+                $timeProposals,
+                $proposals,
             );
         }
 
@@ -195,12 +210,14 @@ readonly final class GetCompetitorPage
             isDraft: $competition['is_draft'],
             rounds: $pageRounds,
             serverNow: $now,
+            timeProposals: $timeProposals,
         );
     }
 
     /**
      * @param RoundRow $round
      * @param EntryRow $row
+     * @param array<string, TimeProposalView> $proposals the viewer's own latest proposals by entry ref
      */
     private function round(
         array $round,
@@ -212,9 +229,22 @@ readonly final class GetCompetitorPage
         bool $liveResults,
         null|string $viewerPlayerId,
         DateTimeImmutable $now,
+        bool $timeProposals,
+        array $proposals,
     ): CompetitorPageRound {
         $isPick = $round['puzzle_format'] === 'pick';
         $entry = $masked ? null : $this->entry($round, $row, $puzzles, $official, $liveResults, $viewerPlayerId);
+
+        // Who may tap Stop here: the signed-in competitor on their own entry (the server checks again); a guest on a
+        // page whose entrant has a linked profile is told to sign in - nothing says who
+        $canPropose = $timeProposals && $entry !== null && $entry->unpaired === false && $entry->isViewers;
+        $signInToPropose = $timeProposals
+            && $viewerPlayerId === null
+            && $entry !== null
+            && $entry->unpaired === false
+            && $round['published'] === false
+            && $entry->result === null
+            && array_any($entry->entrants, static fn (PublishedRoundEntrant $entrant): bool => $entrant->linkedPlayerId !== null);
 
         return new CompetitorPageRound(
             roundId: $round['id'],
@@ -240,6 +270,9 @@ readonly final class GetCompetitorPage
             nextRevealAtMs: $puzzles->nextRevealAtMs,
             entry: $entry,
             masked: $masked,
+            canPropose: $canPropose,
+            proposal: $canPropose ? ($proposals[$entry->ref->toString()] ?? null)?->forCompetitor() : null,
+            signInToPropose: $signInToPropose,
         );
     }
 
@@ -358,7 +391,7 @@ readonly final class GetCompetitorPage
     /**
      * The competition with its competitor page settings and its rounds in schedule order - one statement.
      *
-     * @return null|array{name: string, slug: null|string, series_name: null|string, series_slug: null|string, is_draft: bool, competitor_pages: bool, competitor_pages_live_results: bool, rounds: array<string, RoundRow>}
+     * @return null|array{name: string, slug: null|string, series_name: null|string, series_slug: null|string, is_draft: bool, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, rounds: array<string, RoundRow>}
      */
     private function competition(string $competitionId): null|array
     {
@@ -369,6 +402,7 @@ SELECT
     c.slug,
     c.competitor_pages,
     c.competitor_pages_live_results,
+    (c.competitor_pages AND c.time_proposals AND NOT c.is_online) AS time_proposals,
     (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
     cs.name AS series_name,
     cs.slug AS series_slug,
@@ -400,7 +434,7 @@ SQL,
             return null;
         }
 
-        /** @var array{name: string, slug: null|string, competitor_pages: bool, competitor_pages_live_results: bool, is_draft: bool, series_name: null|string, series_slug: null|string, location_country_code: null|string, series_country_code: null|string} $first */
+        /** @var array{name: string, slug: null|string, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, is_draft: bool, series_name: null|string, series_slug: null|string, location_country_code: null|string, series_country_code: null|string} $first */
         $first = $rows[0];
         $rounds = [];
 
@@ -437,6 +471,7 @@ SQL,
             'is_draft' => $first['is_draft'],
             'competitor_pages' => $first['competitor_pages'],
             'competitor_pages_live_results' => $first['competitor_pages_live_results'],
+            'time_proposals' => $first['time_proposals'],
             'rounds' => $rounds,
         ];
     }

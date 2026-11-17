@@ -101,6 +101,47 @@ SQL;
     }
 
     /**
+     * The competitor's own latest proposal per entry (competitor page, B8): the pending one, else the last tapped -
+     * whatever its status, so the phone shows "confirmed", "not accepted" or "withdrawn". Keyed by the entry's ref.
+     *
+     * @param list<RoundEntryRef> $entries
+     * @return array<string, TimeProposalView>
+     */
+    public function latestOfEntries(array $entries): array
+    {
+        $solo = [];
+        $teams = [];
+
+        foreach ($entries as $entry) {
+            if ($entry->isTeam()) {
+                $teams[] = strtolower($entry->id);
+            } else {
+                $solo[] = strtolower($entry->id);
+            }
+        }
+
+        if ($solo === [] && $teams === []) {
+            return [];
+        }
+
+        $rows = $this->database->fetchAllAssociative(
+            'SELECT DISTINCT ON (COALESCE(latest.participant_round_id, latest.team_id)) * FROM (' . self::SELECT . "\nWHERE tp.participant_round_id IN (:solo) OR tp.team_id IN (:teams)) latest\n"
+            . "ORDER BY COALESCE(latest.participant_round_id, latest.team_id), (latest.status = 'pending') DESC, latest.tapped_at_ms DESC, latest.id DESC",
+            ['solo' => $solo === [] ? [Uuid::NIL] : $solo, 'teams' => $teams === [] ? [Uuid::NIL] : $teams],
+            ['solo' => ArrayParameterType::STRING, 'teams' => ArrayParameterType::STRING],
+        );
+
+        $latest = [];
+
+        foreach ($rows as $row) {
+            $view = self::view($row);
+            $latest[$view->entry] = $view;
+        }
+
+        return $latest;
+    }
+
+    /**
      * Where a proposal lives - for a controller that must lock its event before the dispatch.
      *
      * @return null|array{roundId: string, competitionId: string}

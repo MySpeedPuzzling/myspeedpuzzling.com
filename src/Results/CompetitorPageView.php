@@ -35,6 +35,8 @@ readonly final class CompetitorPageView implements \JsonSerializable
         public bool $isDraft,
         public array $rounds,
         public DateTimeImmutable $serverNow,
+        // The event takes time proposals from competitors (competitor pages on, in person) - B8
+        public bool $timeProposals = false,
     ) {
     }
 
@@ -52,6 +54,14 @@ readonly final class CompetitorPageView implements \JsonSerializable
         }
 
         return null;
+    }
+
+    /**
+     * A round where the viewer may propose their own time - the page then carries the Stop button's endpoints
+     */
+    public function anyCanPropose(): bool
+    {
+        return array_any($this->rounds, static fn (CompetitorPageRound $round): bool => $round->canPropose);
     }
 
     /**

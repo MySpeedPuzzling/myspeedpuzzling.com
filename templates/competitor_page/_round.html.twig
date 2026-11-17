@@ -26,6 +26,14 @@
     </div>
     {#- B8: the competitor's "Done - propose my time" button goes here (filled by the page's controller) -#}
     <div class="competitor-round-actions" data-competitor-round-actions></div>
+    {#- B8: a guest on a page whose entrant has a linked profile - before the round starts only, never a nag during it
+        (the controller hides it once the round runs); it never says who is linked -#}
+    {% if round.signInToPropose and phase in [null, 'idle', 'scheduled'] %}
+        <p class="competitor-round-signin small" data-competitor-signin-hint>
+            <a href="{{ path('login', {return: app.request.requestUri}) }}" class="fw-medium"><i class="bi bi-person me-1" aria-hidden="true"></i>{{ 'competitor_page.proposal.sign_in'|trans }}</a>
+            <span class="d-block text-muted">{{ 'competitor_page.proposal.sign_in_help'|trans }}</span>
+        </p>
+    {% endif %}
 
     <p class="competitor-round-meta small text-muted">
         <span data-round-category>{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>

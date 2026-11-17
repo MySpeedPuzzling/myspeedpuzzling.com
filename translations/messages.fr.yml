@@ -15053,6 +15053,11 @@ event_wizard_backfill:
         submit: "Lier les résultats cochés"
         flash_linked: "[0,1]%count% résultat lié à l'événement.|]1,Inf[%count% résultats liés à l'événement."
         flash_waiting: "[0,1]%count% résultat sera lié dès qu'un administrateur aura approuvé l'événement (généralement sous un jour).|]1,Inf[%count% résultats seront liés dès qu'un administrateur aura approuvé l'événement (généralement sous un jour)."
+        back_to_event: "Retour à l'événement"
+    event_page:
+        title: "Vous y étiez ?"
+        count: "[0,1]%count% de vos résultats pourrait venir de cet événement.|]1,Inf[%count% de vos résultats pourraient venir de cet événement."
+        action: "Lier mes résultats"
     done:
         title: "C'est fait"
         pending: "En attente de l'approbation d'un administrateur - d'ici là, vous seul le voyez."

@@ -15057,6 +15057,11 @@ event_wizard_backfill:
         submit: "Angehakte verknüpfen"
         flash_linked: "{1}1 Ergebnis mit der Veranstaltung verknüpft.|[0,Inf[%count% Ergebnisse mit der Veranstaltung verknüpft."
         flash_waiting: "{1}1 Ergebnis wird verknüpft, sobald ein Administrator die Veranstaltung genehmigt (meist innerhalb eines Tages).|[0,Inf[%count% Ergebnisse werden verknüpft, sobald ein Administrator die Veranstaltung genehmigt (meist innerhalb eines Tages)."
+        back_to_event: "Zurück zur Veranstaltung"
+    event_page:
+        title: "Waren Sie dabei?"
+        count: "{1}1 Ihrer Ergebnisse könnte von dieser Veranstaltung stammen.|[0,Inf[%count% Ihrer Ergebnisse könnten von dieser Veranstaltung stammen."
+        action: "Meine Ergebnisse verknüpfen"
     done:
         title: "Alles erledigt"
         pending: "Wartet auf die Genehmigung eines Administrators – bis dahin sehen nur Sie sie."

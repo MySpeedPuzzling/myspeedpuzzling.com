@@ -15058,6 +15058,11 @@ event_wizard_backfill:
         submit: "Vincular los resultados marcados"
         flash_linked: "{1}1 resultado vinculado al evento.|[0,Inf[%count% resultados vinculados al evento."
         flash_waiting: "{1}1 resultado se vinculará cuando un administrador apruebe el evento (normalmente en un día).|[0,Inf[%count% resultados se vincularán cuando un administrador apruebe el evento (normalmente en un día)."
+        back_to_event: "Volver al evento"
+    event_page:
+        title: "¿Estuviste allí?"
+        count: "{1}1 de tus resultados puede ser de este evento.|[0,Inf[%count% de tus resultados pueden ser de este evento."
+        action: "Vincular mis resultados"
     done:
         title: "Todo listo"
         pending: "Pendiente de la aprobación de un administrador: hasta entonces solo tú lo ves."

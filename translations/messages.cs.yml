@@ -15060,6 +15060,11 @@ event_wizard_backfill:
         submit: "Propojit zaškrtnuté výsledky"
         flash_linked: "{1}1 výsledek propojen s událostí.|[2,4]%count% výsledky propojeny s událostí.|[0,Inf[%count% výsledků propojeno s událostí."
         flash_waiting: "{1}1 výsledek se propojí, jakmile administrátor událost schválí (obvykle do jednoho dne).|[2,4]%count% výsledky se propojí, jakmile administrátor událost schválí (obvykle do jednoho dne).|[0,Inf[%count% výsledků se propojí, jakmile administrátor událost schválí (obvykle do jednoho dne)."
+        back_to_event: "Zpět na událost"
+    event_page:
+        title: "Byli jste tam?"
+        count: "{1}1 z vašich výsledků může být z této události.|[2,4]%count% z vašich výsledků mohou být z této události.|[0,Inf[%count% z vašich výsledků může být z této události."
+        action: "Propojit mé výsledky"
     done:
         title: "Hotovo"
         pending: "Čeká na schválení administrátorem – do té doby ji vidíte jen vy."

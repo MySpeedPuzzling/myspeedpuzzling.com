@@ -57,12 +57,15 @@ final class LockUntilCommittedMiddleware implements MiddlewareInterface, ResetIn
             return $stack->next()->handle($envelope, $stack);
         }
 
-        // A composite holding several keys (SerializedByLocks) takes them in one order - never crosswise with another
+        // A composite holding several keys (SerializedByLocks): its own key first - the order every other composite
+        // takes them in (the event's key held, a nested message's key acquired inside) - then the others sorted, so two
+        // such composites never wait for each other crosswise
         $keys = [$message->lockKey()];
 
         if ($message instanceof SerializedByLocks) {
-            $keys = array_values(array_unique([...$keys, ...$message->moreLockKeys()]));
-            sort($keys);
+            $more = array_values(array_diff(array_unique($message->moreLockKeys()), $keys));
+            sort($more);
+            $keys = [...$keys, ...$more];
         }
 
         // Held by the outer message of a nested dispatch - it stays held until that one's commit

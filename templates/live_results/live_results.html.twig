@@ -184,8 +184,7 @@
         .lr-actions .btn { min-height: 3.25rem; padding: .375rem .5rem; font-weight: 500; white-space: normal; line-height: 1.2; }
         .lr-finished-now { font-variant-numeric: tabular-nums; }
         .lr-confirm { text-align: center; }
-        .lr-confirm-table { font-size: 1rem; color: var(--bs-secondary-color, #6c757d); }
-        .lr-confirm-name { font-size: 1.5rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+        .lr-confirming .lr-entry-step { display: none !important; }
         .lr-confirm-result { margin: .75rem 0; font-size: 3rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
         .lr-problem { margin: .5rem 0; }
         .lr-toast { position: fixed; left: .75rem; right: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1080; display: flex; align-items: center; gap: .75rem; max-width: 38.5rem; margin: 0 auto; padding: .5rem .5rem .5rem 1rem; border-radius: .75rem; background: #212529; color: #fff; box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.25); }
@@ -314,13 +313,24 @@
             <div class="lr-entry-now" data-live-results-target="entryNow" aria-live="polite"></div>
             <div data-live-results-target="entryProblems"></div>
 
+            {# 3. Confirm - on the same card (competition toolkit C7): the value large, what it replaces, Save focused
+               where "Finished now" was. Save ignores a tap within 350 ms of this showing up (a double tap) #}
+            <div class="lr-confirm" data-live-results-target="confirmView" hidden role="group" aria-labelledby="lr-entry-name">
+                <div class="lr-confirm-result" data-live-results-target="confirmResult"></div>
+                <div class="small mb-3" data-live-results-target="confirmNote"></div>
+                <button type="button" class="btn btn-success w-100 lr-big-btn" data-live-results-target="saveButton" data-action="pointerdown->live-results#savePointerDown live-results#save">
+                    <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'live_results.confirm.save'|trans }}
+                </button>
+                <button type="button" class="btn btn-outline-secondary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#backToEntry">{{ 'live_results.confirm.change'|trans }}</button>
+            </div>
+
             {# While the round's stopwatch runs, the usual case is "finished just now" - first, and without a keyboard over it #}
-            <button type="button" class="btn btn-success w-100 lr-big-btn lr-finished-now mb-3" data-live-results-target="finishedNow" data-action="live-results#finishedNow" hidden>
+            <button type="button" class="btn btn-success w-100 lr-big-btn lr-finished-now lr-entry-step mb-3" data-live-results-target="finishedNow" data-action="live-results#finishedNow" hidden>
                 <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'live_results.entry.finished_now'|trans }}
                 <span class="ms-1" data-live-results-target="finishedNowClock"></span>
             </button>
 
-            <form data-live-results-target="timeForm" data-action="submit->live-results#reviewTime" novalidate>
+            <form class="lr-entry-step" data-live-results-target="timeForm" data-action="submit->live-results#reviewTime" novalidate>
                 <label for="lr-time" class="form-label mb-1">{{ 'live_results.entry.time'|trans }}</label>
                 <input type="text"
                        id="lr-time"
@@ -328,7 +338,7 @@
                        data-live-results-target="timeInput"
                        data-action="input->live-results#timeTyped"
                        inputmode="numeric"
-                       enterkeyhint="next"
+                       enterkeyhint="done"
                        autocomplete="off"
                        autocorrect="off"
                        spellcheck="false"
@@ -338,7 +348,7 @@
                 <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.entry.review'|trans }}</button>
             </form>
 
-            <form class="lr-hidden" data-live-results-target="piecesForm" data-action="submit->live-results#reviewPieces" novalidate>
+            <form class="lr-hidden lr-entry-step" data-live-results-target="piecesForm" data-action="submit->live-results#reviewPieces" novalidate>
                 <label for="lr-pieces" class="form-label mb-1">{{ 'live_results.entry.pieces_placed'|trans }}</label>
                 <input type="text"
                        id="lr-pieces"
@@ -347,7 +357,7 @@
                        data-action="input->live-results#piecesTyped"
                        inputmode="numeric"
                        pattern="[0-9]*"
-                       enterkeyhint="next"
+                       enterkeyhint="done"
                        autocomplete="off"
                        aria-describedby="lr-pieces-parsed">
                 <div class="lr-parsed" id="lr-pieces-parsed" data-live-results-target="piecesParsed" aria-live="polite"></div>
@@ -355,23 +365,11 @@
                 <button type="button" class="btn btn-link w-100 mt-1" data-action="live-results#showTimeForm">{{ 'live_results.entry.back_to_time'|trans }}</button>
             </form>
 
-            <div class="lr-actions">
+            <div class="lr-actions lr-entry-step">
                 <button type="button" class="btn btn-outline-secondary" data-action="live-results#didNotFinish">{{ 'live_results.entry.did_not_finish'|trans }}</button>
                 <button type="button" class="btn btn-outline-secondary" data-action="live-results#didNotStart">{{ 'live_results.entry.did_not_start'|trans }}</button>
                 <button type="button" class="btn btn-outline-danger" data-live-results-target="clearButton" data-action="live-results#clearResult">{{ 'live_results.entry.clear'|trans }}</button>
             </div>
-        </section>
-
-        {# 3. Confirm #}
-        <section class="lr-section lr-confirm" data-live-results-target="confirmView" hidden aria-labelledby="lr-confirm-name">
-            <div class="lr-confirm-table" data-live-results-target="confirmTable"></div>
-            <div class="lr-confirm-name" id="lr-confirm-name" data-live-results-target="confirmName"></div>
-            <div class="lr-confirm-result" data-live-results-target="confirmResult"></div>
-            <div class="small mb-3" data-live-results-target="confirmNote"></div>
-            <button type="button" class="btn btn-success w-100 lr-big-btn" data-live-results-target="saveButton" data-action="live-results#save">
-                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'live_results.confirm.save'|trans }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#backToEntry">{{ 'live_results.confirm.change'|trans }}</button>
         </section>
 
         {# 4. Quick add #}
@@ -436,6 +434,13 @@
                 </button>
             </div>
             <div class="lr-section" data-live-results-target="sheetBody"></div>
+            {# This phone's preferences (localStorage msp.liveResults.prefs) - rounds with table numbers #}
+            <div class="lr-section pt-0" data-live-results-prefs hidden>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="lr-auto-open" data-live-results-target="autoOpenToggle" data-action="change->live-results#toggleAutoOpen" checked>
+                    <label class="form-check-label small" for="lr-auto-open">{{ 'live_results.prefs.auto_open_table'|trans }}</label>
+                </div>
+            </div>
         </div>
 
         {# Name tag scanner #}

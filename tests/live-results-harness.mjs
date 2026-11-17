@@ -8,16 +8,22 @@ import { createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from
 import { isGone, officialResultsRequest, retryAfterMs } from '../assets/official_results_api.js';
 import {
     buildSearchIndex,
+    confirmTapAllowed,
+    CONFIRM_GUARD_MS,
     describeResult,
+    entriesWithWaitingTables,
     entryForEnter,
     entryOfParticipant,
+    findRows,
     foldText,
     keepWithheldPlayers,
+    outboxByEntry,
     preferredRound,
     recentEntries,
     sameValue,
     searchEntries,
     shownValue,
+    uniqueTable,
 } from '../assets/official_results_live.js';
 import { parseNameTagUrl } from '../assets/official_results_scan.js';
 import {
@@ -1008,6 +1014,447 @@ const scenarios = {
         assert.equal(urlWithoutLanding('https://x.test/en/live-results/r?table=3'), 'https://x.test/en/live-results/r');
         assert.equal(urlWithoutLanding('https://x.test/en/live-results/r'), null, 'nothing to replace');
         assert.equal(urlWithoutLanding('https://x.test/en/live-results/r?keep=1'), null);
+    },
+
+    // ---- Competition toolkit C7: speed ----
+
+    async 'uniqueTable: a table opens as soon as no other table number starts with what is typed'() {
+        const tables = (numbers) => buildSearchIndex(numbers.map((number, i) => entry(`participant_round:t${i}`, `Player ${i}`, number)));
+        const opens = (index, text, options) => uniqueTable(index, text, options)?.tableNumber ?? null;
+
+        // 1-20
+        const twenty = tables(Array.from({ length: 20 }, (_, i) => i + 1));
+        assert.equal(opens(twenty, '3'), 3);
+        assert.equal(opens(twenty, '1'), null, '1 waits for 1x');
+        assert.equal(opens(twenty, '12'), 12);
+        assert.equal(opens(twenty, '2'), null, '2 waits for 20');
+        assert.equal(opens(twenty, '20'), 20);
+        assert.equal(opens(twenty, '21'), null, 'nobody there');
+        assert.equal(opens(twenty, ' 7 '), 7, 'spaces around');
+
+        // 1-9: every digit opens
+        const nine = tables(Array.from({ length: 9 }, (_, i) => i + 1));
+        assert.deepEqual(['1', '5', '9'].map((text) => opens(nine, text)), [1, 5, 9]);
+
+        // 1-120
+        const many = tables(Array.from({ length: 120 }, (_, i) => i + 1));
+        assert.equal(opens(many, '1'), null);
+        assert.equal(opens(many, '11'), null, '110-119 start with it');
+        assert.equal(opens(many, '110'), 110);
+        assert.equal(opens(many, '12'), null, '120 starts with it');
+        assert.equal(opens(many, '120'), 120);
+        assert.equal(opens(many, '13'), 13);
+        assert.equal(opens(many, '99'), 99);
+
+        // Gaps: only 3 and 30
+        const gaps = tables([3, 30]);
+        assert.equal(opens(gaps, '3'), null, '30 starts with 3');
+        assert.equal(opens(gaps, '30'), 30);
+        assert.equal(opens(tables([3, 40]), '3'), 3);
+
+        // Entries without a table count for nothing; no tables at all = nothing opens
+        assert.equal(opens(tables([null, 5, null]), '5'), 5);
+        assert.equal(opens(tables([null, null]), '1'), null);
+        assert.equal(opens(tables([]), '1'), null);
+
+        // Table numbers off, names, codes, a leading zero, two entries at one table (ambiguous): nothing opens
+        assert.equal(opens(twenty, '3', { tableNumbersOff: true }), null);
+        assert.equal(opens(twenty, 'pla'), null);
+        assert.equal(opens(twenty, '#3'), null);
+        assert.equal(opens(twenty, '03'), null);
+        assert.equal(opens(twenty, ''), null);
+        assert.equal(opens(tables([4, 4, 7]), '4'), null);
+        assert.equal(opens(tables([4, 4, 7]), '7'), 7);
+    },
+
+    async 'the confirm step ignores a tap that started within 350 ms of it showing up'() {
+        assert.equal(CONFIRM_GUARD_MS, 350);
+        assert.equal(confirmTapAllowed(1000, 1000), false, 'the second tap of a double tap');
+        assert.equal(confirmTapAllowed(1000, 1349), false);
+        assert.equal(confirmTapAllowed(1000, 1350), true);
+        assert.equal(confirmTapAllowed(1000, 4000), true);
+        assert.equal(confirmTapAllowed(1000, 900), false, 'a tap that began before the step showed');
+        assert.equal(confirmTapAllowed(undefined, 1000), true, 'never shown by this page (nothing to guard)');
+    },
+
+    async 'a group is stored in one write and sent in one request'() {
+        const memory = createMemoryStorage();
+        const writes = [];
+        const storage = {
+            ...memory,
+            put: async (item) => { writes.push([item.id]); await memory.put(item); },
+            putMany: async (items) => { writes.push(items.map((item) => item.id)); await memory.putMany(items); },
+        };
+        const { outbox, server } = setup({ storage });
+
+        const { items, groupId, persisted } = outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', serverValue: null, to: [{ roundPuzzleId: 'p1', done: true }] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', serverValue: null, to: { seconds: 2700 } },
+        ]);
+        await persisted;
+
+        assert.equal(items.length, 2);
+        assert.ok(items.every((item) => item.groupId === groupId));
+        assert.deepEqual(writes, [items.map((item) => item.id)], 'one write for the whole group');
+        assert.ok((await memory.getAll()).every((item) => item.groupId === groupId), 'the group survives a reload');
+
+        await outbox.flush();
+
+        assert.equal(server.requests.length, 1);
+        assert.deepEqual(server.requests[0].changes.map((change) => change.field), ['puzzles', 'result']);
+        assert.ok(server.requests[0].changes.every((change) => !('groupId' in change)), 'the group is the device\'s - the wire format is unchanged');
+        assert.equal(outbox.hasUnsent(), false);
+
+        // One change is no group
+        assert.equal(outbox.enqueueGroup([{ roundId: ROUND_A, entryRef: BEN, field: 'result', to: { seconds: 1 } }]).groupId, null);
+    },
+
+    async 'a group is never split by the batch size (100)'() {
+        const fill = (outbox, count) => {
+            for (let i = 0; i < count; i += 1) {
+                outbox.enqueue({ roundId: ROUND_A, entryRef: `participant_round:filler-${i}`, field: 'result', to: { seconds: 100 + i } });
+            }
+        };
+        const group = (outbox, ref) => outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ref, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+            { roundId: ROUND_A, entryRef: ref, field: 'result', to: { seconds: 2700 } },
+        ]);
+        const sizes = (server) => server.requests.map((request) => request.changes.length);
+        const together = (server) => server.requests.filter((request) => request.changes.some((change) => change.entry === ANNA));
+
+        // 99 changes before the group: the group does not fit into the first request - it goes whole in the second
+        {
+            const { outbox, server } = setup();
+            fill(outbox, 99);
+            await group(outbox, ANNA).persisted;
+            await outbox.flush();
+            assert.deepEqual(sizes(server), [99, 2]);
+            assert.equal(together(server).length, 1);
+            assert.equal(together(server)[0].changes.length, 2);
+        }
+
+        // 98 before it: exactly 100 in one request
+        {
+            const { outbox, server } = setup();
+            fill(outbox, 98);
+            await group(outbox, ANNA).persisted;
+            fill(outbox, 5);
+            await outbox.flush();
+            assert.deepEqual(sizes(server), [100, 5]);
+        }
+
+        // Nothing behind the group overtakes it when it waits for the next request
+        {
+            const { outbox, server } = setup();
+            fill(outbox, 99);
+            await group(outbox, ANNA).persisted;
+            outbox.enqueue({ roundId: ROUND_A, entryRef: BEN, field: 'result', to: { seconds: 5 } });
+            await outbox.flush();
+            assert.deepEqual(sizes(server), [99, 3]);
+            assert.deepEqual(server.requests[1].changes.map((change) => change.entry), [ANNA, ANNA, BEN]);
+        }
+
+        // A group larger than a batch goes alone, whole
+        {
+            const { outbox, server } = setup({ batchSize: 2 });
+            fill(outbox, 1);
+            outbox.enqueueGroup([
+                { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [] },
+                { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 1 } },
+                { roundId: ROUND_A, entryRef: ANNA, field: 'qualified', to: true },
+            ]);
+            await outbox.flush();
+            assert.deepEqual(sizes(server), [1, 3]);
+        }
+    },
+
+    async 'a group waits as a whole behind a pausing change of one of its fields'() {
+        const { outbox, server, clock } = setup();
+        await save(outbox, ANNA, { seconds: 100 });
+        server.answers.push({ kind: 'server', status: 503 });
+        await outbox.flush();
+        assert.equal(outbox.all()[0].attempts, 1, 'Anna\'s result pauses');
+
+        await outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', serverValue: null, to: { seconds: 110 } },
+        ]).persisted;
+        await save(outbox, BEN, { seconds: 200 });
+        await outbox.flush();
+
+        assert.deepEqual(server.requests[1].changes.map((change) => [change.entry, change.field]), [[BEN, 'result']], 'the puzzles change does not go without its result');
+
+        clock.now += 5000;
+        await outbox.flush();
+        assert.deepEqual(server.requests[2].changes.map((change) => change.field), ['result', 'puzzles', 'result']);
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'a failing set is isolated a group at a time - never a member alone'() {
+        const { outbox, server, clock } = setup();
+        await save(outbox, BEN, { seconds: 200 });
+        await outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 110 } },
+        ]).persisted;
+        await save(outbox, CARA, { seconds: 300 });
+        // The set fails, Ben alone goes (a success ends isolating), the rest fails again, the group alone fails,
+        // Cara alone goes
+        server.answers.push({ kind: 'server', status: 500 }, 'decide', { kind: 'server', status: 500 }, { kind: 'server', status: 500 });
+
+        await outbox.flush();
+
+        assert.deepEqual(server.requests.map((request) => request.changes.length), [4, 1, 3, 2, 1]);
+        assert.deepEqual(outbox.all().map((item) => [item.entryRef, item.field, item.attempts]), [[ANNA, 'puzzles', 1], [ANNA, 'result', 1]], 'the group pauses as a whole');
+
+        clock.now += 5000;
+        await outbox.flush();
+        assert.deepEqual(server.requests[5].changes.map((change) => change.field), ['puzzles', 'result']);
+        assert.equal(outbox.hasUnsent(), false);
+
+        // A group the server cannot read is refused as a whole
+        const second = setup();
+        await second.outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 1 } },
+        ]).persisted;
+        second.server.answers.push({ kind: 'client', status: 400, data: { error: 'invalid_change', message: 'Could not be read' } });
+        await second.outbox.flush();
+        assert.deepEqual(second.outbox.all().map((item) => item.state), ['rejected', 'rejected']);
+        assert.equal(second.server.requests.length, 1);
+    },
+
+    async 'a group in conflict: keep mine sends both again as one group, take theirs drops both, undo takes both back'() {
+        const conflicted = async () => {
+            const context = setup();
+            context.server.decide = (change) => ({ status: 'conflict', current: change.field === 'result' ? { seconds: 999 } : [], enteredBy: { playerId: 'p', name: 'Eva' }, enteredAt: '2026-11-17T10:00:00+00:00' });
+            await context.outbox.enqueueGroup([
+                { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+                { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 110 } },
+            ]).persisted;
+            await context.outbox.flush();
+            context.server.decide = () => ({ status: 'applied' });
+
+            return context;
+        };
+
+        {
+            const { outbox, server } = await conflicted();
+            assert.deepEqual(outbox.all().map((item) => item.state), ['conflict', 'conflict']);
+            const oldGroup = outbox.all()[0].groupId;
+            const replacements = await outbox.keepMine(outbox.all()[1].id);
+            assert.equal(replacements.length, 2);
+            assert.equal(new Set(outbox.all().map((item) => item.groupId)).size, 1);
+            assert.notEqual(outbox.all()[0].groupId, oldGroup);
+            assert.deepEqual(outbox.all().map((item) => item.from), [[], { seconds: 999 }], 'from the other device\'s values');
+            await outbox.flush();
+            assert.equal(server.requests.length, 2);
+            assert.deepEqual(server.requests[1].changes.map((change) => change.field), ['puzzles', 'result']);
+            assert.equal(outbox.hasUnsent(), false);
+        }
+
+        {
+            const { outbox } = await conflicted();
+            await outbox.takeTheirs(outbox.all()[0].id);
+            assert.equal(outbox.hasUnsent(), false);
+        }
+
+        // Undo of a waiting group drops both; of a sent group saves both opposites as a group
+        {
+            const { outbox, server } = setup();
+            const { items, persisted } = outbox.enqueueGroup([
+                { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+                { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 110 } },
+            ]);
+            await persisted;
+            assert.equal(await outbox.undo(items[1]), null);
+            assert.equal(outbox.hasUnsent(), false);
+
+            const second = outbox.enqueueGroup([
+                { roundId: ROUND_A, entryRef: BEN, field: 'puzzles', to: [{ roundPuzzleId: 'p1', done: true }] },
+                { roundId: ROUND_A, entryRef: BEN, field: 'result', to: { seconds: 120 } },
+            ]);
+            await second.persisted;
+            await outbox.flush();
+            const opposites = await outbox.undo(second.items);
+            assert.equal(opposites.length, 2);
+            assert.ok(opposites[0].groupId && opposites[0].groupId === opposites[1].groupId);
+            assert.deepEqual(opposites.map((item) => item.to), [null, null]);
+            await outbox.flush();
+            assert.deepEqual(server.requests.at(-1).changes.map((change) => [change.field, change.to]), [['puzzles', null], ['result', null]]);
+        }
+    },
+
+    async 'back online: what waited only for the connection goes at once - set-apart changes stay apart'() {
+        const { outbox, server, clock } = setup();
+        // Round B's event: no rights any more
+        server.send = async (roundId, changes) => {
+            server.requests.push({ roundId, changes });
+
+            if (server.answers.length > 0) {
+                return server.answers.shift();
+            }
+
+            if (roundId === ROUND_B) {
+                return { kind: 'forbidden', status: 403, data: { error: 'forbidden' } };
+            }
+
+            return { kind: 'ok', status: 200, data: { outcomes: changes.map((change) => ({ clientChangeId: change.clientChangeId, status: change.entry === CARA ? 'rejected' : 'applied', reason: 'invalid_time' })), entries: [] } };
+        };
+        await save(outbox, BEN, { seconds: 50 }, { roundId: ROUND_B });
+        await save(outbox, CARA, { seconds: 60 });
+        await outbox.flush();
+        assert.deepEqual(outbox.all().map((item) => item.state).sort(), ['forbidden', 'rejected']);
+        const before = server.requests.length;
+
+        // Offline for a while: the pause grows to 30 s
+        server.answers.push(...Array.from({ length: 6 }, () => ({ kind: 'offline' })));
+        await save(outbox, ANNA, { seconds: 100 });
+
+        for (let i = 0; i < 6; i += 1) {
+            await outbox.flush();
+            clock.now = outbox.retryAt;
+        }
+
+        clock.now -= 29000;
+        assert.equal(outbox.status().offline, true);
+        assert.ok(outbox.retryAt - clock.now > 20000, 'a long offline pause is running');
+        const offlineRequests = server.requests.length;
+        await outbox.flush();
+        assert.equal(server.requests.length, offlineRequests, 'the pause holds a plain flush');
+
+        await outbox.connectionBack();
+
+        assert.equal(server.requests.length, offlineRequests + 1, 'sent at once');
+        assert.deepEqual(server.requests.at(-1).changes.map((change) => change.entry), [ANNA], 'only the change that waited for the connection');
+        assert.equal(outbox.status().offline, false);
+        assert.deepEqual(outbox.all().map((item) => item.state).sort(), ['forbidden', 'rejected'], 'refused and forbidden stay apart');
+        assert.ok(server.requests.length - before >= 7);
+
+        // A busy server's pause is not a connection problem: connectionBack does not cut it short
+        const busy = setup();
+        busy.server.answers.push({ kind: 'server', status: 429, busy: true, retryAfter: 30000 });
+        await save(busy.outbox, ANNA, { seconds: 1 });
+        await busy.outbox.flush();
+        await busy.outbox.connectionBack();
+        assert.equal(busy.server.requests.length, 1);
+
+        // A change pausing after a server error keeps its own pause too
+        const failing = setup();
+        failing.server.answers.push({ kind: 'server', status: 500 }, { kind: 'offline' });
+        await save(failing.outbox, ANNA, { seconds: 1 });
+        await failing.outbox.flush();
+        await save(failing.outbox, BEN, { seconds: 2 });
+        await failing.outbox.flush();
+        assert.equal(failing.outbox.status().offline, true);
+        await failing.outbox.connectionBack();
+        assert.deepEqual(failing.server.requests.at(-1).changes.map((change) => change.entry), [BEN]);
+        assert.deepEqual(failing.outbox.all().map((item) => item.entryRef), [ANNA]);
+    },
+
+    async 'find rows: the result shown, the sync mark, the exact table'() {
+        const entries = [
+            entry(ANNA, 'Anna', 12, { result: { seconds: 100 } }),
+            entry(BEN, 'Ben', 120),
+            entry(CARA, 'Cara', 3),
+        ];
+        const items = [
+            { entryRef: BEN, field: 'result', to: { seconds: 200 }, state: 'pending', seq: 1, roundId: ROUND_A, createdAt: 1 },
+            { entryRef: CARA, field: 'result', to: { seconds: 300 }, state: 'rejected', seq: 2, roundId: ROUND_A, createdAt: 2 },
+        ];
+        const index = buildSearchIndex(entries);
+        const { typed, rows } = findRows(index, '12', items);
+
+        assert.equal(typed, true);
+        assert.deepEqual(rows.map((row) => [row.entry.ref, row.exact, row.sync, row.result.value]), [
+            [ANNA, true, 'saved', { seconds: 100 }],
+            [BEN, false, 'waiting', { seconds: 200 }],
+        ]);
+        assert.deepEqual(findRows(index, 'cara', items).rows.map((row) => row.sync), ['problem']);
+
+        const recent = findRows(index, '', items, { entries, roundId: ROUND_A });
+        assert.equal(recent.typed, false);
+        assert.deepEqual(recent.rows.map((row) => row.entry.ref), [CARA, BEN], 'this device\'s unsent ones, newest first');
+        assert.equal(findRows(index, '', items, { entries, roundId: ROUND_B }).rows.length, 0, 'another round\'s changes, no server results entered: nothing recent');
+
+        // Waiting table numbers on top, one map lookup per entry
+        const view = entriesWithWaitingTables(entries, [{ entryRef: CARA, field: 'table_number', to: 30, state: 'pending', seq: 1 }, { entryRef: BEN, field: 'table_number', to: 7, state: 'rejected', seq: 2 }]);
+        assert.equal(view.byRef.get(CARA).tableNumber, 30);
+        assert.equal(view.byRef.get(BEN).tableNumber, 120, 'a refused table number is no table');
+        assert.equal(view.byRef.size, 3);
+        assert.equal(entriesWithWaitingTables(entries, []).list, entries, 'nothing waiting: the same list');
+    },
+
+    async 'perf budget: 300 entries and 300 unsent changes - search and rows under 5 ms'() {
+        const entries = Array.from({ length: 300 }, (_, i) => entry(
+            `participant_round:018d0020-0000-0000-0000-${String(i).padStart(12, '0')}`,
+            `Kateřina Nováková ${i}`,
+            i + 1,
+            {
+                displayName: i % 3 === 0 ? `Puzzle Sharks ${i}` : `Kateřina Nováková ${i}`,
+                kind: i % 3 === 0 ? 'team' : 'person',
+                members: i % 3 === 0 ? [{ name: `Jana Dvořák ${i}`, playerCode: `jd${i}` }, { name: `Petr Šťastný ${i}`, playerCode: null }] : [],
+                playerCode: `kn${i}`,
+                result: i % 2 === 0 ? { seconds: 2000 + i } : null,
+                enteredAt: i % 2 === 0 ? new Date(1_800_000_000_000 + i * 1000).toISOString() : null,
+            },
+        ));
+        const items = Array.from({ length: 300 }, (_, i) => ({
+            id: `c${i}`,
+            entryRef: entries[(i * 7) % 300].ref,
+            field: i % 10 === 0 ? 'table_number' : 'result',
+            to: i % 10 === 0 ? 400 + i : { seconds: 3000 + i },
+            state: i % 25 === 0 ? 'conflict' : 'pending',
+            seq: i,
+            roundId: ROUND_A,
+            createdAt: 1_800_000_100_000 + i,
+        }));
+        const median = (run) => {
+            const times = [];
+
+            for (let i = 0; i < 31; i += 1) {
+                const start = performance.now();
+                run();
+                times.push(performance.now() - start);
+            }
+
+            return times.sort((a, b) => a - b)[15];
+        };
+
+        // Warm up (JIT) as a page does over its first keystrokes
+        let view;
+        let index;
+
+        for (let i = 0; i < 20; i += 1) {
+            view = entriesWithWaitingTables(entries, items);
+            index = buildSearchIndex(view.list);
+            findRows(index, 'kat', items);
+        }
+
+        // Per change of the entries or the outbox
+        const rebuild = median(() => {
+            view = entriesWithWaitingTables(entries, items);
+            index = buildSearchIndex(view.list);
+        });
+        assert.ok(rebuild < 5, `entries view + search index: ${rebuild.toFixed(2)} ms`);
+
+        // Per keystroke: every kind of query, and the recent list
+        for (const query of ['1', '12', '123', 'kat', 'katerina nov', 'shark', '#kn1', 'zzz', '']) {
+            const took = median(() => {
+                uniqueTable(index, query);
+                findRows(index, query, items, { entries: view.list, roundId: ROUND_A });
+            });
+            assert.ok(took < 5, `"${query}": ${took.toFixed(2)} ms`);
+        }
+
+        // An entry's lookup is one map read
+        const lookup = median(() => {
+            for (const item of items) {
+                view.byRef.get(item.entryRef);
+            }
+        });
+        assert.ok(lookup < 1, `300 lookups: ${lookup.toFixed(3)} ms`);
+        assert.equal(outboxByEntry(items).get(entries[0].ref).length, items.filter((item) => item.entryRef === entries[0].ref).length);
     },
 };
 

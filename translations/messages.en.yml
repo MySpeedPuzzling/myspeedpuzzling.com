@@ -5545,6 +5545,8 @@ live_results:
     offline_ready:
         ready: "Ready offline - this page opens on this device without a connection (saved %time%)."
         no_worker: "This app cannot reopen the page without a connection - keep it open, or use the browser."
+    prefs:
+        auto_open_table: "Open a table as soon as no other table number starts with what is typed (on this phone)"
 
 name_tags:
     button: "Name tags"

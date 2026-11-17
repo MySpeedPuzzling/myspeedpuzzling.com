@@ -91,7 +91,10 @@ first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceW
    Scan. Client-side (`searchEntries()`): an exact table number first (`12` + Enter opens table 12), then tables
    starting with it, then names; names, pair/team names, members' names and player names accent-insensitive, every
    word as a word start; `#code` = the linked player's code (members' too). Enter opens the exact table, else the only
-   match. With table numbers off (or online) only names. Empty input = **Recent entries** (`recentEntries()`):
+   match. **A unique table opens without Enter** (competition toolkit C7, `uniqueTable()`): digits that are the table
+   number of exactly one entry while no other table number starts with them open it at once (tables 1-20: `3` opens,
+   `1` waits for `1x`, `12` opens) - a per-phone preference (`msp.liveResults.prefs.autoOpenTable`, on by default, a
+   switch in the unsent-results sheet on rounds with tables). With table numbers off (or online) only names. Empty input = **Recent entries** (`recentEntries()`):
    results by `enteredAt` from any device plus this device's unsent ones, newest first, one row per entry, each with its
    sync state (✓ saved / clock = not sent / ⚠ needs you). The "recommended: give every entry a table number" hint
    shows while not everybody is seated and the round's seating step holds (`tablesReadiness`, the one rule of
@@ -106,8 +109,12 @@ first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceW
    the time field (`inputmode="numeric"`, the shared `parseResultTime()`, the parsed value always shown under it,
    "longer than the 90 min limit" as a note), **Didn't finish** → pieces placed (1..pieces−1 for a single-puzzle round),
    **Did not start**, **Clear**.
-3. **Confirm** - table, name, the result in large type, what it replaces ("Replaces 1:24:00 (Eva, 10:42)") and Save
-   (focused - Enter saves). Same value as saved = "Nothing changed", no write.
+3. **Confirm** - on the same entry card (competition toolkit C7): the inputs give way to the result in large type, what it
+   replaces ("Replaces 1:24:00 (Eva, 10:42)") and Save (focused - Enter saves; the time and pieces fields'
+   `enterkeyhint="done"` goes here) with Change under it. Save ignores a tap that started within 350 ms of the step
+   showing up (`confirmTapAllowed()`, the tap's `pointerdown`): a double tap on Finished now never saves a value nobody
+   saw. Same value as saved = "Nothing changed", no write. Taps with the stopwatch running: table (unique) → Finished
+   now → Save = 4 (`1`,`2` + 2 taps); table → typed time → Save = 10.
 4. **Saved** - the change goes into the outbox, a toast "Saved: Puzzle Sharks · 1:23:45" with **Undo** (a waiting
    change is just dropped; a sent one gets the opposite change; then the entry opens again), back to Find with the
    input empty and focused.
@@ -179,7 +186,11 @@ player; an edition is a competition - series owners and maintainers stay full or
 - **From** = what the device believes the server holds: its own earlier waiting change's value, the other device's
   value of a conflict being overwritten, else the server value.
 - **Sending**: per round, in saving order, batches of ≤ 100 (the server chains changes of one field in a set). A change
-  waits only behind earlier changes of the same entry's field; other entries go on. Every change of every round of the
+  waits only behind earlier changes of the same entry's field; other entries go on. **Groups** (competition toolkit C7,
+  `enqueueGroup()` - one Save of several fields of an entry, e.g. a K-of-N round's `puzzles` + `result`): one `groupId`
+  on the device only (not on the wire), stored in one IndexedDB transaction, sent only as a whole - a group that does
+  not fit the batch waits for the next request, isolating a failing set takes a group as one unit, one held member holds
+  the group; "Keep mine" sends the group again as a new group, "Take theirs" and Undo take the whole group. Every change of every round of the
   signed-in organiser is sent from any live entry page (a round switch loses nothing).
 - **Answers**: applied/unchanged → gone; conflict → kept with the other value and who/when ("Keep mine" = all my changes
   of that field sent again as one, from their value; "Take theirs" = mine dropped); refused → kept with the server's
@@ -196,7 +207,9 @@ player; an edition is a competition - series owners and maintainers stay full or
     with "Show" (the list: Retry, and Discard with a confirmation, "Discard them" for all); the page's own round
     forbidden (its state fetch too) shows "This account may not enter results of this event";
   - 404 `round_not_found` (the round was deleted) → that round's waiting changes are refused with the reason;
-  - offline/timeout (15 s) → retry after 1, 2, 4 … 30 s, and on `online`/visibility;
+  - offline/timeout (15 s) → retry after 1, 2, 4 … 30 s; the `online` event or any state answered (an offline copy
+    going live included) cuts that pause short (`connectionBack()`, competition toolkit C7) - changes set apart for
+    rights, refusals, conflicts, a busy server's or a server error's own pause stay as they are;
   - busy: 408 / 425 / 429 and every 4xx that is not our JSON (a rate limiter's or CrowdSec's HTML page, a proxy) → no
     verdict on any change: everything pauses for the `Retry-After` the answer asks (at most 15 min - Retry sends at
     once), else 5 s, 15 s … 2 min; nothing is refused, no batch is split;

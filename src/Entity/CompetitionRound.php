@@ -50,6 +50,14 @@ class CompetitionRound implements EntityWithEvents
     #[Column(type: Types::SMALLINT, nullable: true)]
     public null|int $puzzlesToSolve = null;
 
+    // The moment the round's clock first started (competition toolkit P1F) - the stopwatch start, or the scheduled
+    // moment. Unlike $stopwatchStartedAt (which a resume after a pause moves forward by the pause) it stays through
+    // pause/resume and the scheduled start firing; cleared only by a reset (resetStopwatch(), a cancelled countdown).
+    // Read through stopwatchOriginalStartAt(): null on rows from before the column = falls back to $stopwatchStartedAt.
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $stopwatchFirstStartedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -386,6 +394,20 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
+     * When the round's clock first started - kept through pause/resume (startedAt moves forward by every pause), the
+     * scheduled moment for a scheduled start; null for a clock that never started. A row stopped/started before the
+     * column existed has no first start: the stored start answers (today's behaviour for those rounds).
+     */
+    public function stopwatchOriginalStartAt(): null|DateTimeImmutable
+    {
+        if ($this->stopwatchStartedAt === null) {
+            return null;
+        }
+
+        return $this->stopwatchFirstStartedAt ?? $this->stopwatchStartedAt;
+    }
+
+    /**
      * "Start" - now, or resume a stopped stopwatch (in-person rounds: stopped = paused, startedAt moves forward by the
      * pause). A running stopwatch - a scheduled start whose moment passed included - is left as it is: a second "Start"
      * from another device or a stale page never restarts the clock. While a start is scheduled it is refused: starting
@@ -427,6 +449,7 @@ class CompetitionRound implements EntityWithEvents
             );
         } else {
             $this->stopwatchStartedAt = $startedAt;
+            $this->stopwatchFirstStartedAt = $startedAt;
         }
         $this->stopwatchStatus = RoundStopwatchStatus::RUNNING;
         $this->stopwatchStoppedAt = null;
@@ -465,6 +488,8 @@ class CompetitionRound implements EntityWithEvents
         }
 
         $this->stopwatchStartedAt = $startsAt;
+        // Nothing is written when the moment comes - the scheduled moment IS the start (moved with the countdown)
+        $this->stopwatchFirstStartedAt = $startsAt;
         $this->stopwatchStatus = RoundStopwatchStatus::SCHEDULED;
         $this->stopwatchStoppedAt = null;
     }
@@ -531,6 +556,7 @@ class CompetitionRound implements EntityWithEvents
     public function resetStopwatch(): void
     {
         $this->stopwatchStartedAt = null;
+        $this->stopwatchFirstStartedAt = null;
         $this->stopwatchStatus = null;
         $this->stopwatchStoppedAt = null;
     }

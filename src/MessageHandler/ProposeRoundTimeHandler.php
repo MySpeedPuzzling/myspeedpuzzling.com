@@ -33,8 +33,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * 3. `entry_not_in_round`, then ownership (TimeProposalOwnership): `not_your_entry`, `linked_after_start`.
  * 4. Timing against the stopwatch as stored - the tap moment is the phone's synced clock (`tappedAtMs`):
  *    `clock_ahead` (more than 2 s after the receipt - impossible beyond a sane clock error), `not_running` (the stopwatch
- *    was not running at the tap: not started, a countdown, paused), `times_up` (after the time limit - unfinished
- *    results are the judge's: pieces count), `too_late` (received more than 30 min after the round's end).
+ *    was not running at the tap: not started, a countdown, after the Stop - a tap before it counts), `times_up`
+ *    (after the time limit - unfinished results are the judge's: pieces count), `too_late` (received more than 30 min
+ *    after the round's end).
  * 5. `result_recorded` (the entry has an official result), `already_proposed` (one is pending - its id comes along).
  *
  * The seconds are counted from the stored start, both for the tap and for the receipt; more than 5 s between them is
@@ -104,7 +105,7 @@ readonly final class ProposeRoundTimeHandler
             return TimeProposalAnswer::refused($proposer, $roundId);
         }
 
-        $timingRefusal = self::timingRefusal($round->stopwatchStatus, $round->stopwatchStartedAt, $round->minutesLimit, $message->tappedAtMs, $message->receivedAtMs);
+        $timingRefusal = self::timingRefusal($round->stopwatchStatus, $round->stopwatchStartedAt, $round->stopwatchStoppedAt, $round->minutesLimit, $message->tappedAtMs, $message->receivedAtMs);
 
         if ($timingRefusal !== null) {
             return TimeProposalAnswer::refused($timingRefusal, $roundId);
@@ -151,9 +152,12 @@ readonly final class ProposeRoundTimeHandler
     }
 
     /**
-     * The stopwatch as stored, at the tap - null when the tap is a moment the round was running.
+     * The stopwatch as stored, at the tap - null when the tap is a moment the round was running. A round stopped since
+     * (the judge's Stop - in person a pause) was running at every tap from its start up to the stop: an honest tap made
+     * before the stop and received after it is accepted (flagged late by the receipt, and the 30-min `too_late` grace
+     * applies); only a tap after the stop is `not_running` (P1F). Whole seconds, like the stored stop.
      */
-    public static function timingRefusal(null|string $status, null|DateTimeImmutable $startedAt, null|int $minutesLimit, int $tappedAtMs, int $receivedAtMs): null|string
+    public static function timingRefusal(null|string $status, null|DateTimeImmutable $startedAt, null|DateTimeImmutable $stoppedAt, null|int $minutesLimit, int $tappedAtMs, int $receivedAtMs): null|string
     {
         if ($tappedAtMs > $receivedAtMs + self::CLOCK_AHEAD_TOLERANCE_MS) {
             return 'clock_ahead';
@@ -161,7 +165,15 @@ readonly final class ProposeRoundTimeHandler
 
         $tappedAt = new DateTimeImmutable('@' . intdiv($tappedAtMs, 1000));
 
-        if ($startedAt === null || RoundStopwatchStatus::at($status, $startedAt, $tappedAt) !== RoundStopwatchStatus::RUNNING) {
+        if ($startedAt === null) {
+            return 'not_running';
+        }
+
+        if ($status === RoundStopwatchStatus::STOPPED) {
+            if ($stoppedAt === null || $tappedAt->getTimestamp() > $stoppedAt->getTimestamp()) {
+                return 'not_running';
+            }
+        } elseif (RoundStopwatchStatus::at($status, $startedAt, $tappedAt) !== RoundStopwatchStatus::RUNNING) {
             return 'not_running';
         }
 
@@ -171,16 +183,18 @@ readonly final class ProposeRoundTimeHandler
             return 'not_running';
         }
 
-        if ($minutesLimit !== null) {
-            $endsAtMs = $startedAtMs + $minutesLimit * 60_000;
+        $limitEndsAtMs = $minutesLimit !== null ? $startedAtMs + $minutesLimit * 60_000 : null;
 
-            if ($tappedAtMs > $endsAtMs) {
-                return 'times_up';
-            }
+        if ($limitEndsAtMs !== null && $tappedAtMs > $limitEndsAtMs) {
+            return 'times_up';
+        }
 
-            if ($receivedAtMs > $endsAtMs + self::ACCEPTED_AFTER_END_MS) {
-                return 'too_late';
-            }
+        // The round's end: the time limit, or the Stop when it came first
+        $stoppedAtMs = $status === RoundStopwatchStatus::STOPPED && $stoppedAt !== null ? $stoppedAt->getTimestamp() * 1000 : null;
+        $endsAtMs = $stoppedAtMs !== null && ($limitEndsAtMs === null || $stoppedAtMs < $limitEndsAtMs) ? $stoppedAtMs : $limitEndsAtMs;
+
+        if ($endsAtMs !== null && $receivedAtMs > $endsAtMs + self::ACCEPTED_AFTER_END_MS) {
+            return 'too_late';
         }
 
         return null;

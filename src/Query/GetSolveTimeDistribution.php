@@ -58,7 +58,7 @@ readonly final class GetSolveTimeDistribution
     {
         // A group time always carries its puzzling_team_id; the tracker is only a fallback.
         $solversExpression = $puzzlingType === PuzzlingType::Solo
-            ? 'pst.player_id'
+            ? 'COALESCE(pst.player_id, pst.id)'
             : 'COALESCE(pst.puzzling_team_id, pst.player_id)';
 
         $groupSizeCondition = $puzzlersCount !== null

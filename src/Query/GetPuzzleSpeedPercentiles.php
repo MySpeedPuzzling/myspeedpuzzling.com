@@ -36,7 +36,8 @@ readonly class GetPuzzleSpeedPercentiles
         $sql = <<<SQL
 SELECT
     puzzle_id,
-    COUNT(DISTINCT player_id) AS distinct_solvers,
+    -- An imported single person nobody has claimed is a solver of their own (solo-and-relays.md §1)
+    COUNT(DISTINCT COALESCE(player_id, id)) AS distinct_solvers,
     PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY seconds_to_solve) AS median_seconds,
     PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY seconds_to_solve) AS p25_seconds,
     PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY seconds_to_solve) AS p10_seconds

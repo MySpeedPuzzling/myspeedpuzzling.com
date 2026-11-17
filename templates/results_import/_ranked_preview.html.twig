@@ -31,7 +31,8 @@
                         <td class="player-name">
                             <span class="lb-player lb-anonymous-team">
                                 <span class="lb-name lb-name-guest text-break">{{ row.teamName }}</span>
-                                <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': row.teamSize}) }}</span>
+                                {#- A single person (Team Size 1, solo-and-relays.md §1): the name says it all, like on the round page -#}
+                                {% if row.teamSize > 1 %}<span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': row.teamSize}) }}</span>{% endif %}
                             </span>
                             {% if row.keptClaimed %}<div class="small text-warning-emphasis" data-results-import-kept>{{ 'results_import.differences.kept_claimed'|trans }}</div>{% endif %}
                         </td>

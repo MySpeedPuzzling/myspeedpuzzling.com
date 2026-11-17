@@ -249,13 +249,14 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
             return null;
         }
 
-        // A pair at a teams event is fine (README D10): imported as the pair's result, ranked in the event's round. Not
-        // a single person yet - a result of one nobody tracks would be a solo result without its player, not built
-        // (README D10, "Not in scope"); and never more than two at a pairs event
+        // A pair or a single person at a teams event is fine (README D10, solo-and-relays.md §1): imported as the pair's
+        // or the person's own result, ranked in the event's round. A pairs event takes pairs and single people, never
+        // more; a solo event single people only
         $fits = match ($category) {
-            RoundCategory::Duo => $teamSize === 2,
-            RoundCategory::Team => $teamSize >= 2,
-            RoundCategory::Solo, null => true,
+            RoundCategory::Duo => $teamSize <= 2,
+            RoundCategory::Team => true,
+            RoundCategory::Solo => $teamSize === 1,
+            null => true,
         };
 
         if ($fits === false) {
@@ -542,6 +543,7 @@ final class SarahDoesPuzzlesFormat implements ResultsFormat
         return match (mb_strtolower($type)) {
             'teams', 'team' => RoundCategory::Team,
             'pairs', 'pair', 'duo', 'duos' => RoundCategory::Duo,
+            'solo', 'individual', 'individuals', 'single', 'singles' => RoundCategory::Solo,
             default => null,
         };
     }

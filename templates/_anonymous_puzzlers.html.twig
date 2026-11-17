@@ -5,7 +5,8 @@
 
     Inputs:
       - players: the result's people (Puzzler, RoundResultPlayer - anything with anonymousSlot)
-      - team_name (string, optional): the pair's/team's name
+      - team_name (string, optional): the pair's/team's name - or a single person's from the sheet (one spot
+        `s:<time id>`, docs/features/event-results-import/solo-and-relays.md §1)
       - unclaimed_count (int, optional): instead of players, where the list holds only the claimers (the profile's
         SolvedPuzzle::$anonymousCount) - always "+N" there: the profile's player is in the result
 #}
@@ -21,8 +22,10 @@
             {%- if team_name is defined and team_name is not null -%}
                 <span class="lb-name lb-name-guest">{{ team_name }}</span>
             {%- endif -%}
-            {#- Its own line, smaller than the team's name -#}
-            <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': anonymous_count}) }}</span>
+            {#- Its own line, smaller than the team's name - not for a single person, whose name says it all -#}
+            {%- if anonymous_count > 1 -%}
+                <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': anonymous_count}) }}</span>
+            {%- endif -%}
         </span>
     {%- else -%}
         <span class="lb-player lb-anonymous-more text-muted" data-testid="anonymous-more">+{{ anonymous_count }}</span>

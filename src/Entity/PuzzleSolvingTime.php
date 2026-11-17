@@ -289,6 +289,65 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
     }
 
+    /**
+     * A single person's result from an organizer's results sheet (docs/features/event-results-import/solo-and-relays.md
+     * §1, shape A): an ordinary solo result without its player - no team snapshot, no pair/team - until the person claims
+     * it. The sheet's name lives on EventImportedResult::$name. Either its time or its unfinished result, like a team's.
+     */
+    public static function importedSoloFromEvent(
+        UuidInterface $id,
+        Puzzle $puzzle,
+        Competition $competition,
+        CompetitionRound $competitionRound,
+        null|int $secondsToSolve,
+        DateTimeImmutable $solvedAt,
+        null|UnfinishedResult $unfinished = null,
+    ): self {
+        if (($secondsToSolve === null) === ($unfinished === null)) {
+            throw new LogicException('An imported event result has either a time or an unfinished result.');
+        }
+
+        return new self(
+            id: $id,
+            secondsToSolve: $secondsToSolve,
+            player: null,
+            puzzle: $puzzle,
+            trackedAt: $solvedAt,
+            verified: false,
+            team: null,
+            finishedAt: $solvedAt,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            competitionRound: $competitionRound,
+            competition: $competition,
+            piecesPlaced: $unfinished?->piecesPlaced,
+            finishedLaterSeconds: $unfinished?->finishedLaterSeconds,
+            puzzlingTeam: null,
+            createdVia: SolvingTimeSource::EventImport,
+            secondsSpent: $unfinished?->secondsSpent,
+        );
+    }
+
+    /**
+     * The organizer changed the team to a single person, before anybody claimed it - an anonymous solo result now
+     * (solo-and-relays.md §1 "Size changes"). Back to a pair/team: replaceAnonymousGroup().
+     */
+    public function becomeAnonymousSolo(): void
+    {
+        if ($this->isImportedFromEvent() === false || $this->isClaimedByAnybody()) {
+            throw new LogicException('Only an imported event result nobody has claimed becomes another anonymous person.');
+        }
+
+        $this->replaceTeam(null);
+        $this->puzzlingTeam = null;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
     public function isImportedFromEvent(): bool
     {
         return $this->createdVia === SolvingTimeSource::EventImport;
@@ -456,6 +515,9 @@ class PuzzleSolvingTime implements EntityWithEvents
 
         if ($this->player === null) {
             $this->firstAttempt = false;
+            // Nobody's again: what was predicted for the claimer is not this result's any more (a single person's claimed
+            // result was predicted like any solo one, solo-and-relays.md §1) - like transferOwnership()
+            $this->forgetPrediction();
         }
 
         $this->recordThat(

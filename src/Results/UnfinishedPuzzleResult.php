@@ -98,7 +98,8 @@ readonly final class UnfinishedPuzzleResult
             competitionSeriesShortcut: $row['competition_series_shortcut'],
             competitionSeriesSlug: $row['competition_series_slug'],
             teamId: $row['puzzling_type'] === PuzzlingType::Solo->value ? null : $row['team_id'],
-            teamName: $row['puzzling_type'] === PuzzlingType::Solo->value ? null : $row['team_name'],
+            // A solo result has no team - an imported single person nobody has claimed is named by the sheet (UnclaimedSolo)
+            teamName: $row['team_name'],
             importedFromEvent: ($row['imported_from_event'] ?? false) === true,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
         );

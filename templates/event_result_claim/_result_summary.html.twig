@@ -23,7 +23,7 @@
 
     <div class="fs-sm mt-2" data-testid="event-result-claimers">
         {% if context.claimers is empty %}
-            {{ 'event_result_claim.nobody_claimed'|trans({'%count%': context.puzzlersCount}) }}
+            {{ context.isSolo ? 'event_result_solo.nobody_claimed'|trans : 'event_result_claim.nobody_claimed'|trans({'%count%': context.puzzlersCount}) }}
         {% else %}
             <span class="text-muted">{{ 'event_result_claim.claimed_by'|trans }}</span>
             {% for claimer in context.claimers %}

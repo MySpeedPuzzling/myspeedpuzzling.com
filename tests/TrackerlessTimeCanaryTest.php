@@ -10,13 +10,18 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
+use SpeedPuzzling\Web\Message\SnapshotPlayerInsights;
 use SpeedPuzzling\Web\Message\ReleaseEventResultSlot;
 use SpeedPuzzling\Web\Query\GetFastestGroups;
 use SpeedPuzzling\Web\Query\GetFastestPairs;
+use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
+use SpeedPuzzling\Web\Query\GetPlayersWithPendingPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Query\GetSolveTimeDistribution;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
@@ -26,6 +31,7 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\Community\CommunityStatsCalculator;
+use SpeedPuzzling\Web\Services\Insights\InsightsProfileRecalculator;
 use SpeedPuzzling\Web\Services\ParticipantImport\SiteSnapshotReader;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
@@ -60,6 +66,11 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
     private const string PUZZLE = PuzzleFixture::PUZZLE_1000_01;
     private const string PALS = 'Puzzle Pals';
     private const string CREW = 'Corner Crew';
+    private const string JANE = 'Jane Doe';
+    private const string JOHN = 'John Roe';
+    private const string KIM = 'Kim Out-of-Time';
+    private const string LONE = 'Lone Wolf';
+    private const string SOLO_EVENT_SLUG = 'maple-street-solo-night';
 
     private KernelBrowser $browser;
 
@@ -438,6 +449,218 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
         self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
         self::assertSame([['player_id' => null]], $connection->fetchAllAssociative('SELECT player_id FROM solving_time_graveyard WHERE solving_time_id = :id', ['id' => $timeId]));
         self::assertEquals(0, $connection->fetchOne('SELECT COUNT(*) FROM solving_time_tombstone WHERE solving_time_id = :id', ['id' => $timeId]));
+    }
+
+    /**
+     * A single person nobody has claimed (solo-and-relays.md §1): on the puzzle's solo tab, the round's results and the
+     * result detail by the sheet's name - each their own row, "This was me" for a signed-in viewer, no "1 puzzler" -
+     * an unfinished one as a bottom row; at a team event ranked with the teams.
+     */
+    public function testPagesShowEverySinglePersonAsTheirOwnResult(): void
+    {
+        [$jane, , $kim] = $this->seedSolo();
+        $teamRound = $this->seedTrackerlessEvent(self::PUZZLE);
+        $this->seedTrackerlessTime($teamRound, self::PUZZLE, self::PALS, 3600);
+        $lone = $this->seedTrackerlessSoloTime($teamRound, self::PUZZLE, self::LONE, 3500);
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $this->page('/en/puzzle/' . self::PUZZLE);
+
+            $solo = $this->createLiveComponent('PuzzleTimes', [
+                'puzzleId' => self::PUZZLE,
+                'piecesCount' => 1000,
+                'category' => 'solo',
+            ], $this->browser);
+            $solo->setRouteLocale('en');
+            $html = $solo->render()->toString();
+            foreach ([self::JANE, self::JOHN, self::KIM, self::LONE] as $name) {
+                self::assertStringContainsString($name, $html);
+            }
+            self::assertSame(4, substr_count($html, 'data-testid="anonymous-team"'), 'Every single person is their own row.');
+            self::assertSame(1, substr_count($html, 'data-testid="unfinished-row"'));
+            self::assertStringNotContainsString('1 puzzler', $html);
+            self::assertSame($viewer === null ? 0 : 4, substr_count($html, 'This was me'));
+
+            $round = $this->page('/en/events/' . self::SOLO_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+            self::assertStringContainsString(self::JANE, $round);
+            self::assertStringContainsString(self::JOHN, $round);
+            self::assertStringContainsString('700 / 1', $round);
+            self::assertSame(3, substr_count($round, 'data-testid="anonymous-team"'));
+
+            $teams = $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+            self::assertStringContainsString(self::LONE, $teams);
+            self::assertStringContainsString(self::PALS, $teams);
+
+            $detail = $this->page('/en/result/' . $jane->id->toString());
+            self::assertStringContainsString(self::JANE, $detail);
+            self::assertStringNotContainsString('1 puzzler', $detail);
+            self::assertStringContainsString(self::LONE, $this->page('/en/result/' . $lone->id->toString()));
+            self::assertStringContainsString('700 / 1', $this->page('/en/result/' . $kim->id->toString()));
+
+            if ($viewer !== null) {
+                $claim = $this->page('/en/event-result/' . $jane->id->toString() . '/claim');
+                self::assertStringContainsString('Yes, this was me', $claim);
+                self::assertStringContainsString('Nobody has claimed this result yet.', $claim);
+            }
+        }
+    }
+
+    /**
+     * Claimed, a single person's result is the claimer's ordinary solo result (still the event's: "Remove from my
+     * profile", never Edit); released, it is the sheet's name again.
+     */
+    public function testASinglePersonIsClaimedShownAndReleased(): void
+    {
+        [$jane] = $this->seedSolo();
+        $janeId = $jane->id->toString();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        $bus->dispatch(new ClaimEventResultSlot($janeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $solo = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => self::PUZZLE, 'piecesCount' => 1000, 'category' => 'solo'], $this->browser);
+        $solo->setRouteLocale('en');
+        $html = $solo->render()->toString();
+        self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $html);
+        self::assertSame(2, substr_count($html, 'data-testid="anonymous-team"'), 'John and Kim stay nobody\'s');
+        self::assertStringNotContainsString('/edit-time/' . $janeId, $html);
+
+        $detail = $this->page('/en/result/' . $janeId);
+        self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $detail);
+        self::assertStringContainsString('data-testid="event-result-release-link"', $detail);
+        $profile = $this->page('/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertStringContainsString(self::TRACKERLESS_EVENT_NAME, $profile);
+        // Still the event's: the results' ⋯ menu offers "Remove from my profile" (an Edit link elsewhere - the feed - leads
+        // there too, EditTimeController)
+        self::assertStringContainsString('/en/event-result/' . $janeId . '/remove-from-profile', $profile);
+        $this->browser->request('GET', '/en/edit-time/' . $janeId);
+        self::assertResponseRedirects('/en/event-result/' . $janeId . '/remove-from-profile');
+
+        // Claimed, it is the claimer's solo result: the backfill predicts it like any other
+        $bus->dispatch(new BackfillSolvingTimePredictions(PlayerFixture::PLAYER_WITH_FAVORITES));
+        $database = self::getContainer()->get(Connection::class);
+        self::assertNotNull($database->fetchOne('SELECT predictable FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]));
+
+        $bus->dispatch(new ReleaseEventResultSlot($janeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        // Nobody's again - and nobody's prediction: the batch jobs never see a predicted row without a tracker
+        self::assertSame(
+            ['player_id' => null, 'predictable' => null, 'predicted_seconds' => null],
+            $database->fetchAssociative('SELECT player_id, predictable, predicted_seconds FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]),
+        );
+        self::getContainer()->get(PuzzleIntelligenceRecalculator::class)->recalculate();
+        self::assertNotContains(null, self::getContainer()->get(GetPlayersWithPendingPredictions::class)->all());
+
+        $solo = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => self::PUZZLE, 'piecesCount' => 1000, 'category' => 'solo'], $this->browser);
+        $solo->setRouteLocale('en');
+        self::assertSame(3, substr_count($solo->render()->toString(), 'data-testid="anonymous-team"'));
+        self::assertStringContainsString(self::JANE, $this->page('/en/result/' . $janeId));
+    }
+
+    public function testStatisticsCountSinglePeopleEachTheirOwn(): void
+    {
+        $statistics = self::getContainer()->get(GetStatistics::class);
+        $calculator = self::getContainer()->get(PuzzleStatisticsCalculator::class);
+        $distribution = self::getContainer()->get(GetSolveTimeDistribution::class);
+
+        $before = $statistics->globally();
+        $puzzleBefore = $calculator->calculateForPuzzle(Uuid::fromString(self::PUZZLE));
+        $soloBefore = $distribution->byPiecesCounts([1000], PuzzlingType::Solo)[1000] ?? null;
+
+        $this->seedSolo();
+
+        $after = $statistics->globally();
+        // Two finished, one unfinished: pieces and time spent count, the unfinished one is no solve (D9)
+        self::assertSame($before->solvedPuzzlesCount + 2, $after->solvedPuzzlesCount);
+        self::assertSame($before->totalSeconds + 700 + 800 + 5400, $after->totalSeconds);
+        self::assertSame($before->totalPieces + 2000 + 700, $after->totalPieces);
+
+        $puzzleAfter = $calculator->calculateForPuzzle(Uuid::fromString(self::PUZZLE));
+        self::assertSame($puzzleBefore->soloCount + 2, $puzzleAfter->soloCount);
+        // Faster than every tracked time of the puzzle: by their own best, each one their own solver
+        self::assertSame(700, $puzzleAfter->fastestTimeSolo);
+
+        // Pairs and teams count exactly as before
+        foreach (['duoCount', 'fastestTimeDuo', 'averageTimeDuo', 'medianTimeDuo', 'teamCount', 'fastestTimeTeam', 'averageTimeTeam'] as $field) {
+            self::assertSame($puzzleBefore->{$field}, $puzzleAfter->{$field}, $field);
+        }
+
+        $soloAfter = $distribution->byPiecesCounts([1000], PuzzlingType::Solo)[1000] ?? null;
+        self::assertNotNull($soloAfter);
+        self::assertSame(($soloBefore->playersCount ?? 0) + 2, $soloAfter->playersCount, 'Each single person is one solver.');
+    }
+
+    /**
+     * D4: the global solo board, a player's rank on the puzzle and the Hub's feed show a single person only once claimed.
+     */
+    public function testSoloBoardsRankingsAndTheHubFeedLeaveThemOutUntilClaimed(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $solver = $database->fetchOne("SELECT player_id FROM puzzle_solving_time WHERE puzzle_id = :puzzle AND puzzling_type = 'solo' AND seconds_to_solve IS NOT NULL AND suspicious = false LIMIT 1", ['puzzle' => self::PUZZLE]);
+        self::assertIsString($solver);
+        $ranking = self::getContainer()->get(GetRanking::class);
+        $rankBefore = $ranking->ofPuzzleForPlayer(self::PUZZLE, $solver);
+        $ranking->reset();
+
+        $ours = self::idsOf(...$this->seedSolo());
+
+        $rankAfter = $ranking->ofPuzzleForPlayer(self::PUZZLE, $solver);
+        self::assertSame($rankBefore?->rank, $rankAfter?->rank);
+        self::assertSame($rankBefore?->totalPlayers, $rankAfter?->totalPlayers);
+
+        $board = self::getContainer()->get(GetFastestPlayers::class)->perPiecesCount(1000, 10000, null);
+        self::assertSame([], array_values(array_intersect($ours, array_map(static fn (SolvedPuzzle $row): string => $row->timeId, $board))));
+
+        $feed = self::getContainer()->get(GetRecentActivity::class)->latest(10000);
+        self::assertSame([], array_values(array_intersect($ours, array_map(static fn (RecentActivityItem $item): string => $item->id, $feed))));
+    }
+
+    public function testBackgroundJobsSkipSinglePeople(): void
+    {
+        [$jane] = $this->seedSolo();
+        $container = self::getContainer();
+        $ours = [$jane->id->toString()];
+
+        foreach ($container->get(GetSuspiciousTimeCandidates::class)->batches(SuspiciousTimeClassifier::VERSION, TestClock::now()->modify('-1 year'), 1000, self::PUZZLE) as $batch) {
+            foreach ($batch as $candidate) {
+                self::assertNotContains($candidate->timeId, $ours);
+            }
+        }
+        $container->get(MessageBusInterface::class)->dispatch(new DetectSuspiciousTimes(onlyPuzzleId: self::PUZZLE));
+
+        // Insights (baselines, skill, difficulty, derived metrics, rating), predictions, insights profiles and snapshots
+        $container->get(PuzzleIntelligenceRecalculator::class)->recalculate();
+        self::assertNotContains(null, $container->get(GetPlayersWithPendingPredictions::class)->all());
+        $container->get(InsightsProfileRecalculator::class)->recalculate(TestClock::now());
+        $container->get(MessageBusInterface::class)->dispatch(new SnapshotPlayerInsights());
+
+        $xp = $container->get(XpChainRecomputer::class);
+        $xp->awardForNewSolve($jane->id->toString());
+        $xp->rebuildChainForEditedSolve($jane->id->toString());
+        self::assertNull($container->get(GetSolvingTimePrediction::class)->resultForTime($jane->id->toString()));
+
+        $container->get(CommunityStatsCalculator::class)->recalculate(TestClock::now());
+    }
+
+    /**
+     * A Solo event (Jane 11:40, John 13:20, Kim out of time with 700 pieces) on the puzzle - the import's shape
+     *
+     * @return array{PuzzleSolvingTime, PuzzleSolvingTime, PuzzleSolvingTime}
+     */
+    private function seedSolo(): array
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE, self::TRACKERLESS_EVENT_NAME, self::SOLO_EVENT_SLUG, RoundCategory::Solo);
+
+        return [
+            $this->seedTrackerlessSoloTime($round, self::PUZZLE, self::JANE, 700),
+            $this->seedTrackerlessSoloTime($round, self::PUZZLE, self::JOHN, 800),
+            $this->seedTrackerlessSoloTime($round, self::PUZZLE, self::KIM, 0, piecesPlaced: 700),
+        ];
     }
 
     /**

@@ -54,3 +54,26 @@ GetRecentActivity::forPlayer() / ofPlayerFavorites().
 GetPiecesHub, GetMostSolvedPuzzles, CountCompetitionResults, GetCompetitionPuzzles, team page queries, sitemaps,
 existence checks, write-side handlers, `HiddenPlayers` NULL-safe fragments, ...) and 94 only ever read a given
 player's times or solo times. The per-file list is in `TrackerlessTimeQueryCoverageTest`.
+
+## A single person without a player (2026-11-17)
+
+[solo-and-relays.md](solo-and-relays.md) §1 adds a second kind of row with `player_id` NULL: an imported single
+person's **solo** result (`puzzling_type = solo`, no `team`, no `puzzling_team_id`). The old `SOLO` reason of
+`TrackerlessTimeQueryCoverageTest` ("an imported result is always a pair's or a team's") was no longer true; every file
+it listed was read again (`SOLO` now means "a given player's solo results, or an inner join on the player",
+`SOLO_NEEDS_UNFLAGGED` "only rows such a result never has: unboxed, a personal prediction, a first try").
+
+| File | Problem | Fix |
+|---|---|---|
+| `Query/GetPuzzleSolvers.php` (solo tab, unfinished rows) | inner join on the player dropped the row while the tab's counts go by type; the unfinished condition dropped it too | kept: a `PuzzleSolversGroup` of one anonymous spot `s:<time id>` (`UnclaimedSolo`), named by the sheet |
+| `Query/GetRoundResults.php` | owner asserted; `identification()` folded every unclaimed solo into one | one anonymous spot, keyed by it |
+| `Query/GetPuzzleResultDetail.php` | no name, no claim; the solo standing inner-joined the player | the spot + name; the standing counts them like the tab |
+| `Query/GetEventResultClaims.php` | spots counted from the team snapshot; claimed events by members only | a solo branch; `pst.player_id` leg in `claimabilityOf()` |
+| `MessageHandler/DeletePlayerHandler.php` | a claimed single result found by members only - kept with a deleted player | also by `pst.player_id` |
+| `MessageHandler/RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange.php` | NULL into `calculateForPlayer(string)` | returns without a tracker |
+| `MessageHandler/SnapshotPlayerInsightsHandler.php`, `Query/GetPlayersWithPendingPredictions.php`, `Services/Insights/InsightsProfileRecalculator.php`, `Services/PuzzleIntelligence/DerivedMetricsCalculator.php` | `DISTINCT` / `GROUP BY player_id` returned NULL into string parameters | `player_id IS NOT NULL` |
+| `Services/PuzzleIntelligence/PlayerBaselineCalculator.php` (also feeds `GetGroupPuzzleFirstAttempts`, `PlayerPaceHistoryWriter`), `PlayerSkillCalculator.php`, `ImprovementRatioCalculator.php`, `PredictionReconstructor.php`, `Query/GetCloseCalls.php` | every NULL row one fake "player" (`PARTITION BY` / `GROUP BY player_id`) | `player_id IS NOT NULL` |
+| `Query/GetSolveTimeDistribution.php`, `Query/GetPuzzleSpeedPercentiles.php` | `COUNT(DISTINCT player_id)` skipped them while their times counted | `COALESCE(player_id, id)` |
+
+Kept out until claimed (D4), pinned by `TrackerlessTimeCanaryTest`: `GetFastestPlayers`, `GetRanking`, the MSP rating,
+`GetRecentActivity::latest()`, every per-player surface.

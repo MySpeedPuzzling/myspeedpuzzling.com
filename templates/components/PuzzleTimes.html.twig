@@ -494,7 +494,7 @@
                             <td class="rank"><span class="lb-rank" title="{{ 'unfinished_result.no_rank'|trans }}">–</span></td>
 
                             <td class="lb-solver">
-                                {%~ if lead.isSolo %}
+                                {%~ if lead.isSolo and not lead.nobodyClaimed %}
                                     {{~ include('_leaderboard_player.html.twig', {player: lead.players|first}) }}
                                 {%~ else %}
                                     {%~ for puzzle_solver in lead.players|filter(p => p.anonymousSlot is null) %}

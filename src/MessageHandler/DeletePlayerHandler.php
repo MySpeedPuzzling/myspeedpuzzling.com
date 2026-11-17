@@ -250,9 +250,14 @@ final class DeletePlayerHandler
     {
         $ids = $this->entityManager->getConnection()
             ->executeQuery(
+                // A spot in a pair/team, or a single person's result the player claimed (solo-and-relays.md §1) - never
+                // left with a deleted player
                 'SELECT pst.id FROM puzzle_solving_time pst
-                    INNER JOIN puzzling_team_member member ON member.team_id = pst.puzzling_team_id AND member.player_id = :playerId
-                    WHERE pst.created_via = :source',
+                    WHERE pst.created_via = :source
+                        AND (
+                            pst.player_id = :playerId
+                            OR EXISTS (SELECT 1 FROM puzzling_team_member member WHERE member.team_id = pst.puzzling_team_id AND member.player_id = :playerId)
+                        )',
                 ['playerId' => $playerId, 'source' => SolvingTimeSource::EventImport->value],
             )
             ->fetchFirstColumn();

@@ -94,6 +94,7 @@ final class DerivedMetricsCalculator implements ResetInterface
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
                 AND {$condition}
+                AND pst.player_id IS NOT NULL
             ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
         ";
         $rows = $stream
@@ -145,7 +146,7 @@ final class DerivedMetricsCalculator implements ResetInterface
         if ($exponent !== null) {
             /** @var list<string> $solvers */
             $solvers = $this->connection->fetchFirstColumn(
-                "SELECT DISTINCT player_id FROM puzzle_solving_time WHERE puzzle_id = :puzzleId AND puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve IS NOT NULL",
+                "SELECT DISTINCT player_id FROM puzzle_solving_time WHERE puzzle_id = :puzzleId AND puzzling_type = 'solo' AND puzzle_solving_time.player_id IS NOT NULL AND suspicious = false AND seconds_to_solve IS NOT NULL",
                 ['puzzleId' => $puzzleId],
             );
             $timeline = $this->paceTimelineLoader->forPlayers($solvers, $exponent);

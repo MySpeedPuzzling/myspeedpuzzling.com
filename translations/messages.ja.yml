@@ -13663,9 +13663,9 @@ results_import:
     format_guide:
         sarah_does_puzzles:
             intro: "シートの各タブが1つのイベントです。1行目に列名、2行目にイベントと最初のチーム、それ以降の各行にチームを1つずつ記入します。"
-            event_columns: "イベント（2行目）：Contest Name、Location、City and State、Date、Competition Type（Pairs または Teams）、そして Link to MySpeedPuzzling に MySpeedPuzzling のパズルページ。Start time と Time limit は任意です。"
+            event_columns: "イベント（2行目）：Contest Name、Location、City and State、Date、Competition Type（Pairs、Teams または Solo）、そして Link to MySpeedPuzzling に MySpeedPuzzling のパズルページ。Start time と Time limit は任意です。"
             team_columns: "各チーム：Name、Team Size、Time（h:mm:ss）。制限時間内に完成しなかったチームは、タイムの代わりに Pieces placed を記入します。その場合、タブには Time limit が必要です。"
-            smaller_teams: "Teams のイベントにペア（Team Size 2）が参加していても大丈夫です。すべてのチームと一緒にタイム順で順位が付き、ペアの結果として数えられます。1 人での参加はまだインポートできません。"
+            smaller_teams: "Teams のイベントにペア（Team Size 2）や 1 人（Team Size 1）が参加していても、Pairs のイベントに 1 人が参加していても大丈夫です。全員と一緒にタイム順で順位が付き、ペアの結果、または本人の結果として数えられます。Solo のイベントでは各行が 1 人です（Team Size 1）。1 人の結果は、本人がプロフィールに追加するまでシートの名前で表示されます。"
             example: "例"
     title: "結果のインポート"
     meta_title: "結果のインポート - %organization%"
@@ -13755,7 +13755,7 @@ results_import:
         team_name_too_long: "チーム名「%detail%」が50文字を超えています。この行はスキップされます。"
         team_named_twice: "チーム「%detail%」がシートに2回あります。どちらの行もインポートされません。"
         unreadable_team_size: "「%detail%」のチーム人数を読み取れません。この行はスキップされます。"
-        team_size_does_not_fit_category: "「%detail%」はこのイベントにインポートできません。Pairs のイベントはペアのみで、1 人での参加はまだインポートできません。この行はスキップされます。"
+        team_size_does_not_fit_category: "「%detail%」はこのイベントにインポートできません。Pairs のイベントはペアと 1 人での参加、Solo のイベントは 1 人での参加のみです。この行はスキップされます。"
         unreadable_time: "タイムを読み取れません：%detail%。この行はスキップされます。"
         row_without_result: "「%detail%」にはタイムも置いたピース数もありません。この行はスキップされます。"
         time_and_pieces_placed: "「%detail%」にタイムと置いたピース数の両方があります。この行はスキップされます。"
@@ -15158,3 +15158,18 @@ finished_missing:
         none: "欠けたピースなし"
     desk:
         label: "欠けたピース："
+
+event_result_solo:
+    button: "これは私でした"
+    title: "これは私でした"
+    intro: "この結果はあなたのプロフィールに表示され、統計に含まれます。結果はイベントのものとして残り、変更できるのは主催者の結果シートだけです。"
+    submit: "はい、これは私でした"
+    already_yours: "この結果はすでにあなたのものです。"
+    taken: "この結果はすでに申告されています。"
+    nobody_claimed: "この結果はまだ誰も申告していません。"
+    flash_claimed: "結果があなたのプロフィールに追加されました。"
+    claim_removed: "%event% での結果の申告が取り消されました"
+    remove_title: "この人ではありません"
+    remove_button: "この人ではありません：%player%"
+    remove_intro: "%player% はこの結果に表示されなくなります。申告が取り消されたことは本人に伝えられますが、誰が取り消したかは伝えられません。"
+    remove_submit: "申告を取り消す"

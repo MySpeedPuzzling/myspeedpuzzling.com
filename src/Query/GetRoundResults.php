@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\DatePrecision;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnclaimedSolo;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -46,6 +47,9 @@ readonly final class GetRoundResults
      */
     public function forRound(EditionRoundDetail $round, null|string $viewerPlayerId): array
     {
+        // An imported single person nobody has claimed: named by the sheet (solo-and-relays.md §1)
+        $unclaimedSoloName = UnclaimedSolo::sqlName('pst');
+
         $rows = $this->database->executeQuery(
             <<<SQL
 SELECT
@@ -61,7 +65,10 @@ SELECT
     p.pieces_count,
     -- From the organizer's results sheet (docs/features/event-results-import/) - the event's official results
     pst.created_via = 'event_import' AS from_organizer,
-    (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    COALESCE(
+        (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id),
+        {$unclaimedSoloName}
+    ) AS team_name,
     owner.id AS owner_id,
     owner.name AS owner_name,
     owner.code AS owner_code,
@@ -264,7 +271,7 @@ SQL,
     }
 
     /**
-     * @param array{team: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string, ...} $row
+     * @param array{time_id: string, team: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string, ...} $row
      * @param array<string, array{name: null|string, code: string, country: null|string, is_private: bool, ranking_opted_out: bool, skill_tiers: array<int, int>}> $members
      * @return non-empty-list<RoundResultPlayer>
      */
@@ -272,9 +279,22 @@ SQL,
     {
         $team = $this->decodeTeam($row['team']);
 
+        if ($team === [] && $row['owner_id'] === null) {
+            // An imported single person nobody has claimed (solo-and-relays.md §1): one anonymous spot, shown by its name
+            return [new RoundResultPlayer(
+                playerId: null,
+                playerName: null,
+                playerCode: null,
+                playerCountry: null,
+                isPrivate: false,
+                skillTierName: null,
+                rankingOptedOut: false,
+                anonymousSlot: UnclaimedSolo::slotOf($row['time_id']),
+            )];
+        }
+
         if ($team === []) {
-            // A solo time always has its tracker - only an imported pair's/team's result may have none
-            assert($row['owner_id'] !== null && $row['owner_code'] !== null);
+            assert($row['owner_code'] !== null);
 
             return [new RoundResultPlayer(
                 playerId: $row['owner_id'],
@@ -333,7 +353,8 @@ SQL,
     private function identification(array $row, array $players): string
     {
         if ($row['team'] === null) {
-            return (string) $row['owner_id'];
+            // An imported single person nobody has claimed is their own result (the slot carries the time id)
+            return $row['owner_id'] ?? $players[0]->anonymousSlot ?? '';
         }
 
         $identifiers = array_map(

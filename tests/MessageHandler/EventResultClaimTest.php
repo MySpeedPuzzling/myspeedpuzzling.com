@@ -459,6 +459,89 @@ final class EventResultClaimTest extends KernelTestCase
         }
     }
 
+    /**
+     * A single person's result (solo-and-relays.md §1): no people to convert - the claimer tracks it, the log's slot is
+     * `s:<time id>`; nothing about a team appears.
+     */
+    public function testASinglePersonsResultIsClaimedWhole(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE, category: RoundCategory::Solo);
+        $janeId = $this->seedTrackerlessSoloTime($round, self::PUZZLE, 'Jane Doe', 3300)->id->toString();
+        $johnId = $this->seedTrackerlessSoloTime($round, self::PUZZLE, 'John Roe', 3400)->id->toString();
+
+        $this->claim($janeId, PlayerFixture::PLAYER_REGULAR, firstTry: true);
+
+        self::assertSame(
+            ['player_id' => PlayerFixture::PLAYER_REGULAR, 'team' => null, 'puzzling_team_id' => null, 'puzzling_type' => 'solo', 'first_attempt' => true],
+            $this->database->fetchAssociative('SELECT player_id, team, puzzling_team_id, puzzling_type, first_attempt FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]),
+        );
+        self::assertSame(
+            [['action' => 'claimed', 'slot_key' => 's:' . $janeId, 'player_id' => PlayerFixture::PLAYER_REGULAR]],
+            $this->database->fetchAllAssociative('SELECT action, slot_key, player_id FROM result_claim_log WHERE solving_time_id = :id', ['id' => $janeId]),
+        );
+
+        // Nobody else claimed it - nobody to tell
+        $this->notifyAboutClaim($janeId, PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(0, $this->notificationCount('EventResultClaimed', $janeId));
+
+        // Taken: nobody else, and the claimer holds their one spot of the round
+        $this->assertRefused(EventResultClaimRefusal::TeamFull, fn () => $this->claim($janeId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->assertRefused(EventResultClaimRefusal::AlreadyInRound, fn () => $this->claim($johnId, PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testASinglePersonAtATeamEventSharesTheOneSpotPerRound(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE);
+        $pals = $this->seedTrackerlessTime($round, self::PUZZLE, 'Puzzle Pals', 3600)->id->toString();
+        $janeId = $this->seedTrackerlessSoloTime($round, self::PUZZLE, 'Jane Doe', 3300)->id->toString();
+
+        $this->claim($pals, PlayerFixture::PLAYER_REGULAR);
+
+        $this->assertRefused(EventResultClaimRefusal::AlreadyInRound, fn () => $this->claim($janeId, PlayerFixture::PLAYER_REGULAR));
+        self::assertNull($this->database->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]));
+    }
+
+    public function testReleasingASinglePersonsResultLeavesItNobodysWithoutAFirstTry(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE, category: RoundCategory::Solo);
+        $janeId = $this->seedTrackerlessSoloTime($round, self::PUZZLE, 'Jane Doe', 3300)->id->toString();
+        $this->claim($janeId, PlayerFixture::PLAYER_REGULAR, firstTry: true);
+
+        $this->messageBus->dispatch(new ReleaseEventResultSlot($janeId, PlayerFixture::PLAYER_REGULAR));
+        $this->entityManager->clear();
+
+        self::assertSame(
+            ['player_id' => null, 'first_attempt' => false, 'puzzling_type' => 'solo'],
+            $this->database->fetchAssociative('SELECT player_id, first_attempt, puzzling_type FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]),
+        );
+        self::assertSame(
+            ['released', 's:' . $janeId],
+            ($this->database->fetchNumeric("SELECT action, slot_key FROM result_claim_log WHERE solving_time_id = :id AND action <> 'claimed'", ['id' => $janeId]) ?: []),
+        );
+
+        // Free again - claimed by somebody else
+        $this->claim($janeId, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->database->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]));
+    }
+
+    public function testAWrongClaimOfASinglePersonsResultIsRemovedByTheEventsTeamOrAnAdmin(): void
+    {
+        $round = $this->seedTrackerlessEvent(self::PUZZLE, category: RoundCategory::Solo);
+        $janeId = $this->seedTrackerlessSoloTime($round, self::PUZZLE, 'Jane Doe', 3300)->id->toString();
+        $this->claim($janeId, PlayerFixture::PLAYER_REGULAR);
+
+        $this->assertRefused(EventResultClaimRefusal::NotAllowed, fn () => $this->messageBus->dispatch(new RemoveEventResultClaim($janeId, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE)));
+
+        $this->messageBus->dispatch(new RemoveEventResultClaim($janeId, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN, 'Not her'));
+        $this->entityManager->clear();
+
+        self::assertNull($this->database->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]));
+        self::assertSame(
+            [['player_id' => PlayerFixture::PLAYER_REGULAR]],
+            $this->database->fetchAllAssociative("SELECT player_id FROM notification WHERE type = 'EventResultClaimRemoved' AND target_solving_time_id = :id", ['id' => $janeId]),
+        );
+    }
+
     private function seedTeam(string $name, int $seconds, int $size = 4, RoundCategory $category = RoundCategory::Team): PuzzleSolvingTime
     {
         $round = $this->seedTrackerlessEvent(self::PUZZLE, category: $category);

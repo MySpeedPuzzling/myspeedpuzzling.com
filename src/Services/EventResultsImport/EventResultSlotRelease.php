@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventResultClaimRefusal;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnclaimedSolo;
 use SpeedPuzzling\Web\Value\TeamComposition;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -58,12 +59,18 @@ readonly final class EventResultSlotRelease
             throw new EventResultClaimRefused(EventResultClaimRefusal::NotAClaimer);
         }
 
-        $slot = TeamComposition::ANONYMOUS_PREFIX . Uuid::uuid7()->toString();
+        if ($time->team === null) {
+            // A single person's result (solo-and-relays.md §1): no people to convert - nobody's again
+            $slot = UnclaimedSolo::slotOf($time->id->toString());
+            $time->slotReleasedBy($player, null);
+        } else {
+            $slot = TeamComposition::ANONYMOUS_PREFIX . Uuid::uuid7()->toString();
 
-        $this->puzzlingTeamMemberConversion->playerToAnonymousSlot($time->id->toString(), $playerId, $slot);
-        // The people and the pair/team changed in SQL - the entity reads them again before its own change
-        $this->solvingTimeRepository->reload($time);
-        $time->slotReleasedBy($player, $time->isTrackedBy($player) ? $this->nextTracker($time, $playerId) : null);
+            $this->puzzlingTeamMemberConversion->playerToAnonymousSlot($time->id->toString(), $playerId, $slot);
+            // The people and the pair/team changed in SQL - the entity reads them again before its own change
+            $this->solvingTimeRepository->reload($time);
+            $time->slotReleasedBy($player, $time->isTrackedBy($player) ? $this->nextTracker($time, $playerId) : null);
+        }
 
         // No longer on the result: their own values of it go with them (docs/features/custom-fields.md)
         $customValues = $this->solvingTimeCustomValuesRepository->find($time, $player);

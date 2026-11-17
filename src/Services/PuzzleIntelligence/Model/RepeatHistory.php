@@ -56,6 +56,7 @@ final class RepeatHistory
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE pst.puzzling_type = 'solo'
+                    AND pst.player_id IS NOT NULL
                     AND pst.suspicious = false
                     AND pst.unboxed = false
                     AND pst.seconds_to_solve IS NOT NULL

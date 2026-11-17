@@ -13676,9 +13676,9 @@ results_import:
     format_guide:
         sarah_does_puzzles:
             intro: "Každá záložka vaší tabulky je jedna událost. Řádek 1 obsahuje názvy sloupců, řádek 2 událost a její první tým, každý další řádek další tým."
-            event_columns: "Událost, na řádku 2: Contest Name, Location, City and State, Date a Competition Type (Pairs nebo Teams) a stránka puzzle na MySpeedPuzzling ve sloupci Link to MySpeedPuzzling. Start time a Time limit jsou nepovinné."
+            event_columns: "Událost, na řádku 2: Contest Name, Location, City and State, Date a Competition Type (Pairs, Teams nebo Solo) a stránka puzzle na MySpeedPuzzling ve sloupci Link to MySpeedPuzzling. Start time a Time limit jsou nepovinné."
             team_columns: "Každý tým: Name, Team Size a Time (h:mm:ss). Tým, který nedoskládal v časovém limitu, má místo času Pieces placed - záložka pak potřebuje Time limit."
-            smaller_teams: "Dvojice (Team Size 2) na akci Teams nevadí: seřadí se se všemi týmy podle času a počítá se jako výsledek dvojice. Jednotlivce zatím importovat nejde."
+            smaller_teams: "Dvojice (Team Size 2) nebo jednotlivec (Team Size 1) na akci Teams nevadí, jednotlivec na akci Pairs také: seřadí se se všemi podle času a počítá se jako výsledek dvojice, nebo jako vlastní výsledek jednotlivce. Na akci Solo je každý řádek jeden člověk (Team Size 1). Výsledek jednotlivce ukazuje jméno z tabulky, dokud si ho dotyčný nepřidá do profilu."
             example: "Příklad"
     title: "Import výsledků"
     meta_title: "Import výsledků - %organization%"
@@ -13768,7 +13768,7 @@ results_import:
         team_name_too_long: "Jméno týmu „%detail%“ má víc než 50 znaků - řádek se přeskočí."
         team_named_twice: "Tým „%detail%“ je v tabulce dvakrát - neimportuje se ani jeden řádek."
         unreadable_team_size: "Velikost týmu „%detail%“ neumíme přečíst - řádek se přeskočí."
-        team_size_does_not_fit_category: "„%detail%“ na této akci importovat nejde - akce Pairs bere jen dvojice a jednotlivce zatím importovat nejde. Řádek se přeskočí."
+        team_size_does_not_fit_category: "„%detail%“ na této akci importovat nejde - akce Pairs bere dvojice a jednotlivce, akce Solo jen jednotlivce. Řádek se přeskočí."
         unreadable_time: "Čas neumíme přečíst: %detail% - řádek se přeskočí."
         row_without_result: "„%detail%“ nemá čas ani položené dílky - řádek se přeskočí."
         time_and_pieces_placed: "„%detail%“ má čas i položené dílky - řádek se přeskočí."
@@ -15171,3 +15171,18 @@ finished_missing:
         none: "žádné chybějící dílky"
     desk:
         label: "chybějící dílky:"
+
+event_result_solo:
+    button: "Tohle jsem byl(a) já"
+    title: "Tohle jsem byl(a) já"
+    intro: "Výsledek se ti zobrazí v profilu a započítá do statistik. Zůstává ale výsledkem akce: měnit ho může jen tabulka výsledků pořadatele."
+    submit: "Ano, tohle jsem byl(a) já"
+    already_yours: "Tento výsledek už je tvůj."
+    taken: "K tomuto výsledku se už někdo přihlásil."
+    nobody_claimed: "K tomuto výsledku se zatím nikdo nepřihlásil."
+    flash_claimed: "Výsledek je teď ve tvém profilu."
+    claim_removed: "Tvoje přihlášení k výsledku na akci %event% bylo odebráno"
+    remove_title: "Tohle nebyl tento člověk"
+    remove_button: "Tohle nebyl(a): %player%"
+    remove_intro: "%player% se už u tohoto výsledku nebude zobrazovat. Dozví se, že bylo přihlášení odebráno, nikdy kým."
+    remove_submit: "Odebrat přihlášení"

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -44,6 +45,7 @@ final class GetPuzzleSolversTest extends KernelTestCase
 
         // Each solver should have the correct puzzle
         foreach ($solvers as $solver) {
+            self::assertInstanceOf(PuzzleSolver::class, $solver);
             self::assertSame(PuzzleFixture::PUZZLE_500_01, $solver->puzzleId);
         }
 
@@ -62,6 +64,7 @@ final class GetPuzzleSolversTest extends KernelTestCase
         // Check that all results are solo (no team members)
         foreach ($solvers as $solver) {
             // Solo solvers have no team context in PuzzleSolver result
+            self::assertInstanceOf(PuzzleSolver::class, $solver);
             self::assertSame(PuzzleFixture::PUZZLE_1000_01, $solver->puzzleId);
         }
     }

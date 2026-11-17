@@ -70,6 +70,97 @@ final class PuzzleSolvingTimeEventImportTest extends KernelTestCase
         self::assertFalse($time->canBeModifiedBy($player));
     }
 
+    public function testAnImportedSinglePersonIsASoloResultWithoutItsPlayer(): void
+    {
+        $time = $this->importedSoloTime();
+
+        // Shape A (solo-and-relays.md §1): an ordinary solo row without its player - no team, no pair/team
+        self::assertNull($time->player);
+        self::assertNull($time->team);
+        self::assertNull($time->puzzlingTeam);
+        self::assertSame(1, $time->puzzlersCount);
+        self::assertSame(PuzzlingType::Solo, $time->puzzlingType);
+        self::assertSame(SolvingTimeSource::EventImport, $time->createdVia);
+        self::assertFalse($time->firstAttempt);
+        self::assertFalse($time->isClaimedByAnybody());
+        self::assertTrue($time->keepsItsRound());
+    }
+
+    public function testAClaimedSoloIsTheClaimersAndAReleaseMakesItNobodysAgain(): void
+    {
+        $time = $this->importedSoloTime();
+        $player = self::getContainer()->get(EntityManagerInterface::class)->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($player);
+
+        $time->slotClaimedBy($player, firstTry: true);
+
+        self::assertTrue($time->isTrackedBy($player));
+        self::assertTrue($time->isClaimedByAnybody());
+        self::assertTrue($time->firstAttempt);
+        self::assertSame(PuzzlingType::Solo, $time->puzzlingType);
+        // Still the event's: released, never edited
+        self::assertFalse($time->canBeModifiedBy($player));
+        self::assertFalse($time->canBeDeletedBy($player));
+
+        $time->slotReleasedBy($player, null);
+
+        self::assertNull($time->player);
+        self::assertFalse($time->firstAttempt);
+        self::assertFalse($time->isClaimedByAnybody());
+    }
+
+    public function testATeamTheSheetTurnsIntoOnePersonBecomesASoloResultAndBack(): void
+    {
+        $time = $this->importedTime(['a:1', 'a:2', 'a:3']);
+
+        $time->becomeAnonymousSolo();
+
+        self::assertNull($time->team);
+        self::assertNull($time->puzzlingTeam);
+        self::assertSame(1, $time->puzzlersCount);
+        self::assertSame(PuzzlingType::Solo, $time->puzzlingType);
+
+        $group = PuzzlersGroup::anonymous(['a:5', 'a:6']);
+        $time->replaceAnonymousGroup($group, new PuzzlingTeam(Uuid::uuid7(), TeamComposition::fromGroup($group)->key, 2, new DateTimeImmutable('2025-10-09 08:00:00'), 'Two of Us'));
+
+        self::assertSame(2, $time->puzzlersCount);
+        self::assertSame(PuzzlingType::Duo, $time->puzzlingType);
+        self::assertNotNull($time->puzzlingTeam);
+    }
+
+    public function testAClaimedSoloNeverBecomesAnybodyElse(): void
+    {
+        $time = $this->importedSoloTime();
+        $player = self::getContainer()->get(EntityManagerInterface::class)->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($player);
+        $time->slotClaimedBy($player, firstTry: false);
+
+        $this->expectException(\LogicException::class);
+        $time->becomeAnonymousSolo();
+    }
+
+    private function importedSoloTime(): PuzzleSolvingTime
+    {
+        self::bootKernel();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_500_01);
+        $competition = $entityManager->find(Competition::class, CompetitionFixture::COMPETITION_WJPC_2024);
+        $round = $entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        self::assertNotNull($puzzle);
+        self::assertNotNull($competition);
+        self::assertNotNull($round);
+
+        return PuzzleSolvingTime::importedSoloFromEvent(
+            id: Uuid::uuid7(),
+            puzzle: $puzzle,
+            competition: $competition,
+            competitionRound: $round,
+            secondsToSolve: 2405,
+            solvedAt: new DateTimeImmutable('2025-10-08 19:00:00'),
+        );
+    }
+
     /**
      * @param non-empty-list<string> $slots
      */

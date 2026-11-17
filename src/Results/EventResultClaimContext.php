@@ -36,6 +36,8 @@ readonly final class EventResultClaimContext
         public array $sameResultCandidates,
         // An unfinished team (the round's time ran out): its pieces placed - $seconds is null then
         public null|int $piecesPlaced = null,
+        // A single person's result (solo-and-relays.md §1): no team, $teamName is the sheet's name, one spot
+        public bool $isSolo = false,
     ) {
     }
 

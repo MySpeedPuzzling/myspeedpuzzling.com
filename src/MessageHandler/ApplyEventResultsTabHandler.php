@@ -452,7 +452,7 @@ readonly final class ApplyEventResultsTabHandler
                 continue;
             }
 
-            if ($this->updateResult($imported->solvingTime, $row, $unfinished[$row->teamKey] ?? null, $problems)) {
+            if ($this->updateResult($imported, $row, $unfinished[$row->teamKey] ?? null, $problems)) {
                 $updated++;
             }
         }
@@ -462,7 +462,7 @@ readonly final class ApplyEventResultsTabHandler
             $time = $imported->solvingTime;
 
             if ($time->isClaimedByAnybody()) {
-                $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamRemovedFromSheet, $time->puzzlingTeam?->name);
+                $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamRemovedFromSheet, $time->puzzlingTeam->name ?? $imported->name);
                 continue;
             }
 
@@ -483,22 +483,36 @@ readonly final class ApplyEventResultsTabHandler
         DateTimeImmutable $eventDay,
         null|UnfinishedResult $unfinished,
     ): void {
-        [$group, $puzzlingTeam] = $this->anonymousTeam($row);
+        if ($row->teamSize === 1) {
+            // A single person: a solo result without its player, the sheet's name on the imported row
+            // (solo-and-relays.md §1) - at a teams or pairs event too, in the tab's one round (D10)
+            $time = PuzzleSolvingTime::importedSoloFromEvent(
+                id: Uuid::uuid7(),
+                puzzle: $puzzle,
+                competition: $competition,
+                competitionRound: $round,
+                secondsToSolve: $unfinished === null ? $row->seconds : null,
+                solvedAt: $eventDay,
+                unfinished: $unfinished,
+            );
+        } else {
+            [$group, $puzzlingTeam] = $this->anonymousTeam($row);
 
-        $time = PuzzleSolvingTime::importedFromEvent(
-            id: Uuid::uuid7(),
-            puzzle: $puzzle,
-            competition: $competition,
-            competitionRound: $round,
-            anonymousGroup: $group,
-            puzzlingTeam: $puzzlingTeam,
-            secondsToSolve: $unfinished === null ? $row->seconds : null,
-            solvedAt: $eventDay,
-            unfinished: $unfinished,
-        );
+            $time = PuzzleSolvingTime::importedFromEvent(
+                id: Uuid::uuid7(),
+                puzzle: $puzzle,
+                competition: $competition,
+                competitionRound: $round,
+                anonymousGroup: $group,
+                puzzlingTeam: $puzzlingTeam,
+                secondsToSolve: $unfinished === null ? $row->seconds : null,
+                solvedAt: $eventDay,
+                unfinished: $unfinished,
+            );
+        }
 
         $this->solvingTimeRepository->save($time);
-        $this->importedResultRepository->save(new EventImportedResult(Uuid::uuid7(), $tab, $row->teamKey, $time));
+        $this->importedResultRepository->save(new EventImportedResult(Uuid::uuid7(), $tab, $row->teamKey, $time, $row->teamName));
     }
 
     /**
@@ -508,8 +522,13 @@ readonly final class ApplyEventResultsTabHandler
      * @param list<EventTabProblem> $problems
      * @return bool whether anything of the result changed
      */
-    private function updateResult(PuzzleSolvingTime $time, ParsedEventRow $row, null|UnfinishedResult $unfinished, array &$problems): bool
+    private function updateResult(EventImportedResult $imported, ParsedEventRow $row, null|UnfinishedResult $unfinished, array &$problems): bool
     {
+        $time = $imported->solvingTime;
+        // The sheet's name of every row (solo-and-relays.md §1) - shown only for a single person nobody has claimed, so
+        // only there a change of it is a change of the result (a team's row imported before the column just gets it)
+        $nameChanged = $imported->nameFromSheet($row->teamName) && $time->team === null && $time->player === null;
+
         if ($unfinished !== null) {
             $changed = $time->correctImportedUnfinishedResult($unfinished);
         } else {
@@ -538,6 +557,12 @@ readonly final class ApplyEventResultsTabHandler
         }
 
         if ($time->puzzlersCount !== $row->teamSize) {
+            if ($row->teamSize === 1) {
+                $time->becomeAnonymousSolo();
+
+                return true;
+            }
+
             [$group, $puzzlingTeam] = $this->anonymousTeam($row);
             $time->replaceAnonymousGroup($group, $puzzlingTeam);
 
@@ -551,7 +576,7 @@ readonly final class ApplyEventResultsTabHandler
             return true;
         }
 
-        return $changed;
+        return $changed || $nameChanged;
     }
 
     /**

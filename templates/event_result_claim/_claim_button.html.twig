@@ -1,5 +1,6 @@
 {#
-    "This was my team" on an imported event result with a spot left, for a signed-in viewer who may claim it
+    "This was my team" ("This was me" on a single person's result: one person, solo-and-relays.md §1) on an imported
+    event result with a spot left, for a signed-in viewer who may claim it
     (docs/features/event-results-import/README.md "Claiming a spot"). Nothing for anybody else - guests included.
 
     Inputs:
@@ -13,5 +14,5 @@
        data-turbo-frame="modal-frame"
        data-testid="event-result-claim-button"
        rel="nofollow"
-    ><i class="bi bi-person-plus"></i> {{ 'event_result_claim.button'|trans }}</a>
+    ><i class="bi bi-person-plus"></i> {{ (players|length == 1 ? 'event_result_solo.button' : 'event_result_claim.button')|trans }}</a>
 {%- endif -%}

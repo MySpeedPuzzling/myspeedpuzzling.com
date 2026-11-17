@@ -107,6 +107,37 @@ final class RoundEntryPuzzlesRecordingTest extends KernelTestCase
         self::assertSame([], $replayed->changedEntryRefs);
     }
 
+    /**
+     * The judge's "Finished now" per puzzle (real events W5, live_entry_splits.js): puzzle 1's split alone while the
+     * round runs, then the K-th puzzle's split + the result as one group (puzzles first, as the page sends it), then a
+     * typed correction of the first split alone.
+     */
+    public function testPuzzlesFinishedOneByOneThenTheResultWithTheLastSplit(): void
+    {
+        $this->clearIvan();
+        $first = [self::done(self::PUBLIC, 1500), ['roundPuzzleId' => self::SECRET, 'done' => false]];
+
+        self::assertSame(['applied'], self::statuses($this->record([self::change(self::IVAN, 'puzzles', null, $first)])));
+
+        // A split before the one recorded is refused by itself - nothing changes
+        $early = [self::done(self::PUBLIC, 1500), self::done(self::SECRET, 1400)];
+        self::assertSame(['splits_out_of_order'], self::reasons($this->record([self::change(self::IVAN, 'puzzles', $first, $early)])));
+
+        $both = [self::done(self::PUBLIC, 1500), self::done(self::SECRET, 3100)];
+        $recorded = $this->record([
+            self::change(self::IVAN, 'puzzles', $first, $both),
+            self::change(self::IVAN, 'result', null, ['seconds' => 3100]),
+        ]);
+
+        self::assertSame(['applied', 'applied'], self::statuses($recorded));
+        self::assertSame($both, $this->storedPuzzles(OfficialResultsFixture::ENTRY_B_IVAN));
+        self::assertSame(3100, $this->database->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_B_IVAN]));
+
+        $corrected = [self::done(self::PUBLIC, 1450), self::done(self::SECRET, 3100)];
+        self::assertSame(['applied'], self::statuses($this->record([self::change(self::IVAN, 'puzzles', $both, $corrected)])));
+        self::assertSame($corrected, $this->storedPuzzles(OfficialResultsFixture::ENTRY_B_IVAN));
+    }
+
     public function testAPuzzlesChangeFromAnOutdatedValueIsAConflictWithWhatIsThereNow(): void
     {
         $this->clearIvan();

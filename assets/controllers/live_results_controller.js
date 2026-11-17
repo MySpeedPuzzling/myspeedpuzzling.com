@@ -38,6 +38,7 @@ import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
+import { finishChoice, finishFields, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
@@ -120,7 +121,7 @@ export default class extends Controller {
     static targets = [
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
         'bannerBelow', 'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
-        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'proposal',
+        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'splits', 'proposal',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle', 'missingToggle', 'missingField', 'missingInput', 'missingHint',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
@@ -1894,6 +1895,7 @@ export default class extends Controller {
 
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
         this.renderPuzzles(entry, items);
+        this.renderSplits(entry, items);
         this.renderProposal(entry, items);
 
         this.checkMeanwhile(entry, items);
@@ -2434,6 +2436,10 @@ export default class extends Controller {
         const running = status === 'running' && elapsed !== null;
         this.finishedNowTarget.hidden = !running;
 
+        if (this.splitsRunning !== running && this.openRef !== null) {
+            this.renderSplits();
+        }
+
         if (running) {
             this.finishedNowClockTarget.textContent = formatResultTime(elapsed);
             this.finishedNowTarget.classList.toggle('btn-success', !(limit > 0 && elapsed >= limit));
@@ -2593,6 +2599,9 @@ export default class extends Controller {
         this.entryNowHtml = null;
         this.entryProblemsHtml = null;
         this.puzzlesHtml = null;
+        this.splitEditing = null;
+        this.splitNote = null;
+        this.splitsTarget.dataset.shape = '';
         this.proposalHtml = null;
         this.proposalKey = null;
         this.proposalEditing = null;
@@ -2804,6 +2813,14 @@ export default class extends Controller {
             this.timeInputTarget.focus();
 
             return;
+        }
+
+        // Puzzles finished one by one (real events W5): the one left finishes with the round's time as its split
+        const entry = this.entry(ref);
+        const finishing = entry === null ? null : finishChoice(splitFormat(this.round), shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value, this.choice);
+
+        if (finishing !== null) {
+            this.choice = finishing;
         }
 
         this.review({ seconds: Math.min(elapsed, 86399) }, { finishedNow: true, tappedAt });
@@ -3096,6 +3113,164 @@ export default class extends Controller {
         this.backToFind();
     }
 
+    // ---- Finished now per puzzle (real events W5, live_entry_splits.js) ----
+
+    /**
+     * A pick round where an entry solves 2+ puzzles: the puzzles finished so far with their splits, and - while the
+     * entry has no result - "Finished now" per puzzle (stopwatch running) and a typed time. Built again only when its
+     * shape changes - never under the judge's thumb (the typed field stays).
+     */
+    renderSplits(entry = null, items = null) {
+        const open = entry ?? (this.openRef !== null ? this.entry(this.openRef) : null);
+        const format = splitFormat(this.round);
+        const all = items ?? (this.outbox ? this.outbox.all() : []);
+        const running = this.elapsedSeconds() !== null;
+        this.splitsRunning = running;
+        const view = open === null || format === null
+            ? { show: false, rows: [] }
+            : splitRows(format, shownValue(open, 'puzzles', all).value, this.choice, shownValue(open, 'result', all).value, running);
+        const shape = JSON.stringify([view.rows, this.splitEditing, this.splitNote ?? null]);
+
+        if (this.splitsTarget.dataset.shape === shape) {
+            return;
+        }
+
+        this.splitsTarget.dataset.shape = shape;
+        this.splitsTarget.hidden = !view.show;
+
+        if (!view.show) {
+            this.splitsTarget.innerHTML = '';
+
+            return;
+        }
+
+        const rows = view.rows.map((row) => {
+            const id = escapeHtml(row.id);
+            const at = row.at !== null ? `✓ ${formatResultTime(row.at)}${row.own !== null && row.order > 1 ? ` · ${this.t('splitOwn', { '%time%': formatResultTime(row.own) })}` : ''}` : (row.done ? '✓' : '');
+            const form = this.splitEditing === row.id
+                ? `<form class="lr-split-form" data-id="${id}" data-action="submit->live-results#typedSplit" novalidate><input class="form-control" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('splitPlaceholder'))}" aria-label="${escapeHtml(row.label)}" inputmode="numeric" enterkeyhint="done" autocomplete="off"><button type="submit" class="btn btn-primary">${escapeHtml(this.t('splitSave'))}</button></form>`
+                : '';
+
+            return `<div class="lr-srow"><span class="lr-chip-order${row.done ? '' : ' lr-srow-open'}">${row.done ? row.order : ''}</span><strong class="lr-srow-label">${escapeHtml(row.label)}</strong><span class="lr-srow-at">${escapeHtml(at)}</span>${row.tap ? `<button type="button" class="btn btn-success lr-split-now" data-id="${id}" data-action="live-results#finishPuzzle"><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>${escapeHtml(this.t('splitFinishedNow'))}</button>` : ''}${row.edit ? `<button type="button" class="btn btn-link px-1 lr-split-edit" data-id="${id}" data-action="live-results#editSplit" title="${escapeHtml(this.t('splitType'))}" aria-label="${escapeHtml(this.t('splitType'))} - ${escapeHtml(row.label)}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ''}${form}</div>`;
+        }).join('');
+
+        this.splitsTarget.innerHTML = `<div class="small fw-medium text-muted mb-1">${escapeHtml(this.t('splitTitle'))}</div>${rows}${this.splitNote ? `<div class="small text-danger mt-1" role="alert">${escapeHtml(this.splitNote)}</div>` : ''}`;
+    }
+
+    /** A second tap of a double tap right after a split was saved hits the row below - ignored for 350 ms. */
+    splitTapAllowed(event) {
+        return confirmTapAllowed(this.splitSavedAt ?? null, typeof event?.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : performance.now());
+    }
+
+    async finishPuzzle(event) {
+        // Frozen the moment it is tapped - on the server's clock, exactly like the round's Finished now
+        const tappedAt = this.serverNow();
+        const id = event.currentTarget.dataset.id;
+        const ref = this.openRef;
+
+        if (!this.splitTapAllowed(event) || this.view !== 'entry') {
+            return;
+        }
+
+        if (!this.stopwatchTrusted()) {
+            await this.refreshState();
+
+            if (this.openRef !== ref || this.view !== 'entry') {
+                return;
+            }
+        }
+
+        const elapsed = this.elapsedSeconds(tappedAt);
+
+        if (elapsed === null || elapsed < 1) {
+            this.splitNote = this.t('finishedNowStopped');
+            this.renderSplits();
+
+            return;
+        }
+
+        this.recordSplit(id, Math.min(elapsed, 86399), tappedAt);
+    }
+
+    editSplit(event) {
+        if (!this.splitTapAllowed(event)) {
+            return;
+        }
+
+        const id = event.currentTarget.dataset.id;
+        this.splitEditing = this.splitEditing === id ? null : id;
+        this.splitNote = null;
+        this.renderSplits();
+        this.splitsTarget.querySelector('.lr-split-form input')?.focus();
+    }
+
+    typedSplit(event) {
+        event.preventDefault();
+        const parsed = parseResultTime(event.currentTarget.querySelector('input')?.value ?? '');
+
+        if (parsed.empty || parsed.error) {
+            this.splitNote = this.t('timeInvalid');
+            this.renderSplits();
+            this.splitsTarget.querySelector('.lr-split-form input')?.focus();
+
+            return;
+        }
+
+        this.recordSplit(event.currentTarget.dataset.id, parsed.seconds, null);
+    }
+
+    /**
+     * Puzzle `id` finished at `seconds`: the K-th goes to the confirm step with the round's result (Save = `puzzles` +
+     * `result`, one group); any other is saved at once - the record alone, Undo in the toast, the card stays open.
+     */
+    recordSplit(id, seconds, tappedAt) {
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const format = splitFormat(this.round);
+
+        if (entry === null || format === null) {
+            return;
+        }
+
+        const items = this.outbox.all();
+        const known = shownValue(entry, 'puzzles', items).value;
+        const step = splitStep(format, known, this.choice, id, seconds, shownValue(entry, 'result', items).value);
+
+        if (step.refusal !== null) {
+            this.splitNote = step.refusal === 'splits_out_of_order' ? this.t('splitOutOfOrder') : this.t('invalidChange');
+            this.renderSplits();
+
+            return;
+        }
+
+        this.splitNote = null;
+        this.splitEditing = null;
+        this.choice = step.choice;
+
+        if (step.finishes) {
+            this.review({ seconds }, { finishedNow: tappedAt !== null, tappedAt, shownFrom: this.shownFrom });
+
+            return;
+        }
+
+        const saved = this.enqueueGroup(entry, withShownFrom([{ field: 'puzzles', to: step.record }], this.shownFrom));
+
+        // The card shows this record now - it is the next change's `from`
+        if (this.shownFrom) {
+            this.shownFrom = { ...this.shownFrom, puzzles: step.record };
+        }
+
+        this.splitSavedAt = performance.now();
+
+        if (navigator.vibrate) {
+            navigator.vibrate(30);
+        }
+
+        const label = puzzleChips(format, []).find((chip) => chip.id === String(id).toLowerCase())?.label ?? '';
+        this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.t('splitToast', { '%label%': label, '%time%': formatResultTime(seconds) }) }), saved);
+        this.renderEntryInfo();
+        this.rememberDraft();
+    }
+
     toggleMissing() {
         this.missingOnly = !this.missingOnly;
         this.proposalsOnly = false;
@@ -3255,6 +3430,8 @@ export default class extends Controller {
         // The result, and on a pick round the puzzle record that fits it - one group (toolkit C10, A rule 7)
         const format = pickFormat(this.round);
         let { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all(), this.notDone(value));
+        // Puzzles finished one by one (real events W5): the last split is the time
+        ({ fields, record } = finishFields(splitFormat(this.round), fields, record, value, shownValue(entry, 'puzzles', this.outbox.all()).value));
         // Change on a proposal (toolkit C9): the judge's value confirms it - the result carries the proposal
         const editing = this.proposalEditing !== null ? this.openProposal(this.proposalEditing) : null;
 

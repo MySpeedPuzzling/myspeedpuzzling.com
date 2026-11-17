@@ -150,6 +150,14 @@
     puzzleHidden: 'live_results.puzzles.hidden'|trans,
     puzzleMissing: 'live_results.puzzles.missing_filter'|trans({'%count%': '%count%'}),
     fieldPuzzles: 'live_results.puzzles.field'|trans,
+    splitTitle: 'live_results.puzzle_split.title'|trans,
+    splitFinishedNow: 'live_results.puzzle_split.finished_now'|trans,
+    splitOwn: 'live_results.puzzle_split.own'|trans({'%time%': '%time%'}),
+    splitType: 'live_results.puzzle_split.type'|trans,
+    splitPlaceholder: 'live_results.entry.time_placeholder'|trans,
+    splitSave: 'live_results.puzzle_split.save'|trans,
+    splitToast: 'live_results.puzzle_split.toast'|trans({'%label%': '%label%', '%time%': '%time%'}),
+    splitOutOfOrder: 'live_results.puzzle_split.out_of_order'|trans,
     fieldMissing: 'finished_missing.judge.field'|trans,
     missingNone: 'finished_missing.judge.none'|trans,
     proposalTitle: 'live_results.proposals.title'|trans,
@@ -271,6 +279,13 @@
         .lr-prow .lr-time-input { height: 3rem; font-size: 1.5rem; padding: .25rem .5rem; }
         .lr-prow .lr-pparsed { grid-column: 1 / -1; font-size: .875rem; text-align: right; font-variant-numeric: tabular-nums; }
         .lr-chips { display: flex; flex-wrap: wrap; gap: .375rem; }
+        .lr-srow { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; padding: .375rem 0; border-top: 1px solid var(--bs-border-color, #e3e9ef); }
+        .lr-srow-label { flex: 1 1 4rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lr-srow-at { font-variant-numeric: tabular-nums; font-size: .875rem; }
+        .lr-srow .lr-srow-open { background: var(--bs-secondary-bg, #e9ecef); }
+        .lr-split-now { min-height: 3rem; }
+        .lr-split-form { flex: 1 1 100%; display: flex; gap: .5rem; }
+        .lr-split-form .form-control { height: 3rem; font-size: 1.25rem; }
         .lr-chip { flex: 1 1 6rem; display: flex; align-items: center; gap: .375rem; min-height: 3rem; min-width: 0; padding: .25rem .5rem; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; background: var(--bs-body-bg, #fff); color: inherit; text-align: left; }
         .lr-chip-on { border-color: var(--bs-success, #198754); box-shadow: 0 0 0 1px var(--bs-success, #198754); background: #e9f7ef; }
         .lr-chip img { flex: 0 0 auto; border-radius: .25rem; object-fit: cover; }
@@ -405,6 +420,9 @@
 
             {# A pick round's puzzle chips (toolkit C10): put in by the controller #}
             <div class="mb-3" data-live-results-target="puzzles" hidden></div>
+
+            {# Finished now per puzzle on a pick round of 2+ puzzles (real events W5): put in by the controller #}
+            <div class="lr-entry-step mb-3" data-live-results-target="splits" hidden></div>
 
             {# A competitor's time proposal (toolkit C9): put in by the controller #}
             <div class="lr-entry-step" data-live-results-target="proposal" hidden></div>

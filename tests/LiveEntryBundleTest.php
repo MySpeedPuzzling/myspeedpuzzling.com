@@ -40,13 +40,15 @@ use Symfony\Component\Process\Process;
  *   confirm step); budget stays 205 KB / 56 KB gzip. 2026-11-17 (reliability hardening F2): 205.1 KB / 56.2 KB gzip - the
  *   card's Save carries what it showed as `from` (a value saved meanwhile is a conflict or a deliberate "Replace", never
  *   silently overwritten); budget 210 KB / 57 KB gzip - the live entry carries the judge's whole offline flow, keep
- *   further additions in pure modules and measure;
+ *   further additions in pure modules and measure. 2026-11-17 (real events W5): 206.0 → 214.3 KB / 56.6 → 58.7 KB gzip
+ *   - the judge's "Finished now" per puzzle on pick rounds (live_entry_splits.js + the card's split rows, tap, typed
+ *   correction); budget 216 KB / 59 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 210_000;
-    private const int GZIP_BUDGET_BYTES = 57_000;
+    private const int MINIFIED_BUDGET_BYTES = 216_000;
+    private const int GZIP_BUDGET_BYTES = 59_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

@@ -658,8 +658,9 @@ challenge, the display's shared clock, a competitor phone's per-entrant clock.
 As designed in §4 with the amendments W1-a/b/c; the as-built summary is in [standings.md](standings.md) "No-show".
 Deviations / details:
 - The judge card's help line (W1-c) is **not** built - it needs logic in `live_results_controller.js` (the page fills
-  from the state; another lane's file at the time). The desk's result editor shows it; `round.penalisedMissing` is in
-  `official_results_round_state` for the judge card to use later.
+  from the state; another lane's file at the time). The desk's result editor shows it. `round.penalisedMissing` is NOT added to
+  `official_results_round_state` (the judge page's hot path - no statement more per poll); the judge-card help line
+  would ride on an existing statement later (v3).
 - `penalisedMissing` needs `penalise_finished_missing` on **and** a penalty > 0 (with 0 nothing costs a penalty).
 - The no-show penalty always uses the round's no-show pieces (`StandingRoundInput::$noShowPiecesCount`), also for an
   explicit "Did not start" with chosen puzzles - the public view never sees that entry, so ranks stay = preview.

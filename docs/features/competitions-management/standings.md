@@ -81,9 +81,8 @@ no qualification, the winner per category has the lowest sum.
   the desk's state, from `GetRoundStandingRules` - one statement). **Defect pieces (W1-c):** no new field; the desk's
   "Pieces missing" in the result editor gets the help "Only pieces that cost a penalty under your rules." when a standing
   of the round penalises them (`penalise_finished_missing` on, penalty > 0) - `round.penalisedMissing: true` on the desk
-  state and on `official_results_round_state` (additive, absent otherwise - goldens unchanged; +1 statement per state
-  answer). The judge card does not show it yet (it needs `live_results_controller.js` logic - another lane's file then);
-  the key is in the state for it.
+  state only (additive, absent otherwise). `official_results_round_state` is unchanged (the judge page's hot path - no
+  statement more per poll), so the judge card does not show the help line yet.
 - **Organiser view** (`GetStandingResults::organiserView()`): every round of the standing, published or not, through
   `GetRoundResultEntries` (people going to the event, the official in-round rank shown per cell); a round counts once
   anything is recorded in it; "provisional" while a round does not count or is unpublished. Piece totals: a `pick`

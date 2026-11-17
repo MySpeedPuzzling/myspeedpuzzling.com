@@ -31,7 +31,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 /**
  * The World Series no-show (world-series-rules.md §4 + review amendments W1-a/b/c): `missing_rule = as_zero_pieces` in
  * the organiser's preview and on the public page (same ranks once everything is published), the form, the substitutes
- * warning, the results desk's publish line and help line, and the round state's `penalisedMissing`.
+ * warning, the results desk's publish line and help line, and the round state staying unchanged.
  *
  * World Series fixture (WorldSeriesSetup): rounds 1-3 of each category published; Dora did not start solo round 4; solo
  * round 6 has a 500-piece puzzle, the other rounds none (unknown pieces = no penalty part); 60 minutes each.
@@ -200,9 +200,9 @@ final class NoShowStandingTest extends WebTestCase
         self::assertTrue($known->penalisedMissing);
         self::assertSame(['World Series - Solo'], $known->noShowStandings);
 
-        // The judge's state: only `penalisedMissing`; the desk: both (the publish readiness line, the help line)
+        // The judge's state stays as it was (a hot path - no statement more); the desk: both keys
         $state = $this->roundState($round);
-        self::assertTrue($state['round']['penalisedMissing']);
+        self::assertArrayNotHasKey('penalisedMissing', $state['round']);
         self::assertArrayNotHasKey('noShowStandings', $state['round']);
         $desk = $this->deskState($round);
         self::assertTrue($desk['round']['penalisedMissing']);

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
@@ -90,6 +91,11 @@ final class RemovePuzzleFromRoundController extends AbstractController
             ));
         } catch (SecretPuzzlesWouldBeRevealed $changed) {
             return $this->askFirst($request, $this->competitionRoundPuzzleRepository->get($roundPuzzleId)->round, $roundPuzzleId, $changed->puzzles);
+        } catch (RoundPuzzleFormatRefused $refused) {
+            // A `pick` round keeps at least as many puzzles as its entries pick (competition toolkit A2)
+            $this->addFlash('danger', $this->translator->trans($refused->translationKey(), $refused->translationParameters()));
+
+            return $backToPuzzles;
         }
 
         if ($revealed !== []) {

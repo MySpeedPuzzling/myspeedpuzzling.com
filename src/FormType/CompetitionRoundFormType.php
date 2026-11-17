@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
@@ -194,6 +195,34 @@ final class CompetitionRoundFormType extends AbstractType
             'attr_translation_parameters' => ['%size%' => $teamSizeGuess],
         ]);
 
+        // How the round's puzzles are solved (competition toolkit A2) - only when the caller says so (EditCompetitionRoundController:
+        // COMPETITION_TOOLKIT_MANAGE, or a round using `pick` already); without it the form is the one it always was
+        if ($options['puzzle_format'] === true) {
+            /** @var int $puzzlesCount */
+            $puzzlesCount = $options['puzzles_count'];
+
+            $builder->add('puzzleFormat', EnumType::class, [
+                'class' => RoundPuzzleFormat::class,
+                'label' => 'competition_toolkit.round_format.form.label',
+                'choice_label' => static fn (RoundPuzzleFormat $format): string => 'competition_toolkit.round_format.form.' . $format->value,
+                'expanded' => true,
+            ]);
+
+            $builder->add('puzzlesToSolve', IntegerType::class, [
+                'label' => 'competition_toolkit.round_format.form.to_solve',
+                'help' => 'competition_toolkit.round_format.form.to_solve_help',
+                'help_translation_parameters' => ['%count%' => $puzzlesCount],
+                'required' => false,
+                'attr' => [
+                    'min' => 1,
+                    'max' => max(1, $puzzlesCount),
+                    'step' => 1,
+                    'inputmode' => 'numeric',
+                    'class' => 'w-auto',
+                ],
+            ]);
+        }
+
         $builder->add('resultsLink', UrlType::class, [
             'label' => 'competition.round.form.results_link',
             'help' => 'competition.round.form.results_link_help',
@@ -225,6 +254,9 @@ final class CompetitionRoundFormType extends AbstractType
             'timezone_assumed' => false,
             // The most common size of a team round's teams - the "Members per team" placeholder, null = none
             'team_size_guess' => null,
+            // Competition toolkit A2: ask how the round's puzzles are solved; the round's puzzle count for the help text
+            'puzzle_format' => false,
+            'puzzles_count' => 0,
         ]);
 
         $resolver->setAllowedTypes('single_day', 'bool');
@@ -232,5 +264,7 @@ final class CompetitionRoundFormType extends AbstractType
         $resolver->setAllowedTypes('reveal_confirmation', 'bool');
         $resolver->setAllowedTypes('timezone_assumed', 'bool');
         $resolver->setAllowedTypes('team_size_guess', ['null', 'int']);
+        $resolver->setAllowedTypes('puzzle_format', 'bool');
+        $resolver->setAllowedTypes('puzzles_count', 'int');
     }
 }

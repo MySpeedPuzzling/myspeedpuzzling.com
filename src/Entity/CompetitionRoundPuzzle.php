@@ -17,6 +17,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 #[Entity]
@@ -28,6 +29,19 @@ class CompetitionRoundPuzzle implements EntityWithEvents
      * What the puzzle's site-wide hide dates say while a manual reveal waits for "Reveal now" - never reached.
      */
     public const string HIDDEN_UNTIL_REVEALED = '9999-12-31 00:00:00';
+
+    // The organiser's order of the round's puzzles, 1..N (competition toolkit A2). Null = never arranged (every row saved
+    // before positions existed, and a puzzle added after an arrangement): such rows follow the arranged ones in the
+    // order they were added - RoundPuzzleLabel::sqlOrder() / sort(). Changed only through placeAt().
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $position = null;
+
+    // The neutral name judges and competitors see before the reveal ("Blue box") - null = the letter of its place
+    // (RoundPuzzleLabel::default()). Changed only through placeAt().
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: RoundPuzzleLabel::MAX_LENGTH, nullable: true)]
+    public null|string $label = null;
 
     public function __construct(
         #[Id]
@@ -182,6 +196,19 @@ class CompetitionRoundPuzzle implements EntityWithEvents
     {
         $this->revealMode = RoundPuzzleReveal::Scheduled;
         $this->revealAt = $revealedAt->setTimezone(new DateTimeZone('UTC'));
+    }
+
+    /**
+     * The organiser arranged the round's puzzles (ArrangeRoundPuzzles): its place 1..N and its own label.
+     */
+    public function placeAt(int $position, null|string $label): void
+    {
+        if ($position < 1) {
+            throw new \InvalidArgumentException('A round puzzle\'s position starts at 1.');
+        }
+
+        $this->position = $position;
+        $this->label = RoundPuzzleLabel::normalise($label);
     }
 
     /**

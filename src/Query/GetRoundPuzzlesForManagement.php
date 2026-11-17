@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\RoundPuzzleForManagement;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundPuzzleOwnership;
 use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
@@ -22,6 +23,8 @@ readonly final class GetRoundPuzzlesForManagement
     }
 
     /**
+     * By name, like the page always listed them; each knows its place in the organiser's order (position, label).
+     *
      * @return array<RoundPuzzleForManagement>
      */
     public function ofRound(string $roundId): array
@@ -55,6 +58,8 @@ SELECT
     crp.reveal_mode,
     crp.reveal_at,
     crp.hides_everywhere,
+    crp.position,
+    crp.label,
     cr.starts_at AS round_starts_at,
     cr.reveal_delay_minutes AS round_reveal_delay_minutes,
     p.id AS puzzle_id,
@@ -81,7 +86,19 @@ SQL;
 
         $now = $this->clock->now();
 
-        return array_map(static function (array $row) use ($now): RoundPuzzleForManagement {
+        // The organiser's order (competition toolkit A2) - position, then the order they were added in
+        $places = [];
+        foreach ($data as $row) {
+            /** @var array{round_puzzle_id: string, position: null|int|string} $row */
+            $places[] = [$row['position'] !== null ? (int) $row['position'] : null, $row['round_puzzle_id']];
+        }
+        /** @var array<string, int> $positions */
+        $positions = [];
+        foreach (RoundPuzzleLabel::sort($places, static fn (array $place): array => $place) as $index => [, $roundPuzzleId]) {
+            $positions[$roundPuzzleId] = $index + 1;
+        }
+
+        return array_map(static function (array $row) use ($now, $positions): RoundPuzzleForManagement {
             /**
              * @var array{
              *     round_puzzle_id: string,
@@ -103,8 +120,10 @@ SQL;
              *     shown_by_another_round: bool|string,
              *     name_held_by_another_round: bool|string,
              *     puzzle_hide_image_until: null|string,
+             *     label: null|string,
              * } $row
              */
+            $position = $positions[$row['round_puzzle_id']];
 
             $hideUntilRoundStarts = self::bool($row['hide_until_round_starts']);
             $revealMode = RoundPuzzleReveal::from($row['reveal_mode']);
@@ -145,6 +164,9 @@ SQL;
                 mayBecomeSecret: $hideUntilRoundStarts === false
                     && new DateTimeImmutable($row['round_starts_at']) > $now
                     && self::bool($row['shown_by_another_round']) === false,
+                position: $position,
+                label: RoundPuzzleLabel::effective($row['label'], $position),
+                customLabel: $row['label'],
             );
         }, $data);
     }

@@ -20,8 +20,10 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -35,6 +37,18 @@ class CompetitionRound implements EntityWithEvents
 
     public const int TEAM_SIZE_MIN = 2;
     public const int TEAM_SIZE_MAX = 20;
+
+    // How the round's puzzles are solved (RoundPuzzleFormat, competition toolkit A2) - a new round is always `total`
+    // (it has no puzzles to pick from yet); changed only through changePuzzleFormat(). The column default keeps a round
+    // inserted by an older release (blue-green deploy) at today's behaviour.
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 16, enumType: RoundPuzzleFormat::class, options: ['default' => 'total'])]
+    public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total;
+
+    // `pick` only: how many of the round's puzzles every entry solves (K, 1..N); null for `total`
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $puzzlesToSolve = null;
 
     public function __construct(
         #[Id]
@@ -280,6 +294,54 @@ class CompetitionRound implements EntityWithEvents
         $roundPuzzle = $this->roundPuzzles->first();
 
         return $roundPuzzle === false ? null : $roundPuzzle->puzzle->piecesCount;
+    }
+
+    /**
+     * K for a `pick` round (K = N is "solve all of them"), null for one result for the whole round.
+     */
+    public function puzzlesToSolveCount(): null|int
+    {
+        return $this->puzzleFormat === RoundPuzzleFormat::Pick ? $this->puzzlesToSolve : null;
+    }
+
+    /**
+     * The guard every caller runs before anything changes: `pick` needs 1 ≤ K ≤ the round's puzzles.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public static function assertPuzzleFormat(RoundPuzzleFormat $format, null|int $toSolve, int $puzzlesCount): void
+    {
+        if ($format === RoundPuzzleFormat::Pick && RoundPuzzleFormat::isValidPick($toSolve, $puzzlesCount) === false) {
+            throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::TO_SOLVE_RANGE, $toSolve ?? 0, $puzzlesCount);
+        }
+    }
+
+    /**
+     * The organiser's choice (EditCompetitionRoundHandler, after its checks). `total` forgets K.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public function changePuzzleFormat(RoundPuzzleFormat $format, null|int $toSolve): void
+    {
+        self::assertPuzzleFormat($format, $toSolve, $this->roundPuzzles->count());
+
+        $this->puzzleFormat = $format;
+        $this->puzzlesToSolve = $format === RoundPuzzleFormat::Pick ? $toSolve : null;
+    }
+
+    /**
+     * Removing puzzles never leaves a `pick` round fewer puzzles than its entries pick - refused, the organiser lowers K
+     * first (A-round-formats.md §2.5). Called before anything is removed.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public function assertKeepsEnoughPuzzles(int $puzzlesCountAfter): void
+    {
+        $toSolve = $this->puzzlesToSolveCount();
+
+        if ($toSolve !== null && $puzzlesCountAfter < $toSolve) {
+            throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::TOO_FEW_PUZZLES, $toSolve, $puzzlesCountAfter);
+        }
     }
 
     public function edit(

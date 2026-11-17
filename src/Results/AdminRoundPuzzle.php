@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
+
 readonly final class AdminRoundPuzzle
 {
     public function __construct(
@@ -16,6 +18,10 @@ readonly final class AdminRoundPuzzle
         public string $revealMode = 'automatic',
         public null|string $revealsAt = null,
         public bool $hidesEverywhere = false,
+        // Competition toolkit A2: its place in the organiser's order (1..N) and the organiser's label (null = the letter
+        // of its place - effectiveLabel in the JSON)
+        public int $position = 0,
+        public null|string $label = null,
     ) {
     }
 
@@ -32,6 +38,9 @@ readonly final class AdminRoundPuzzle
             'revealMode' => $this->revealMode,
             'revealsAt' => $this->revealsAt,
             'hidesEverywhere' => $this->hidesEverywhere,
+            'position' => $this->position,
+            'label' => $this->label,
+            'effectiveLabel' => RoundPuzzleLabel::effective($this->label, $this->position),
         ];
     }
 }

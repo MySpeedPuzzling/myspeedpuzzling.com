@@ -9832,6 +9832,7 @@ online_rounds:
         unavailable:
             in_person_event: "Online timing is for online events - this event takes place in person."
             not_solo: "Online timing works for solo rounds for now. Pairs and teams come later."
+            pick_format: "Online timing works for rounds with one result for the round. This round lets each entrant pick some of its puzzles - change that in the round's settings first."
             edit_event: "Edit the event"
         off:
             title: "This round does not use online timing yet"
@@ -9918,6 +9919,7 @@ online_rounds:
             "off": "Off"
             in_person_event: "In person"
             not_solo: "Solo rounds only"
+            pick_format: "One result per round only"
             set_up: "Set up"
             settings: "Settings"
         list_title: "Links"
@@ -14016,6 +14018,38 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "The puzzles to reveal changed meanwhile, or the start was changed - nothing started. Check the list and try again."
             reveal_not_allowed: "No puzzle of this round waits for the stopwatch start any more - nothing started. Start again without “Reveal”."
+    round_format:
+        form:
+            label: "How are this round's puzzles solved?"
+            total: "One result for the round (as before)"
+            pick: "Each entrant solves some or all of the puzzles, in any order"
+            to_solve: "Puzzles each entrant solves"
+            to_solve_help: "{0}Add the round's puzzles first.|{1}The round has 1 puzzle.|]1,Inf[The round has %count% puzzles. Enter %count% for “Solve all”, fewer to let each entrant pick."
+        summary:
+            total: "One result for the round"
+            all: "{0}Solve all puzzles|{1}Solve the puzzle|]1,Inf[Solve all %count%"
+            pick: "Pick %count% of %puzzles%"
+        page_line: "How the puzzles are solved:"
+        change: "Change"
+        reveal:
+            none: "No secret puzzles"
+            automatic: "{0}Revealed at the start|{1}Revealed 1 minute after the start|]1,Inf[Revealed %count% minutes after the start"
+            scheduled: "Revealed at a set time"
+            manual: "Revealed with “Reveal now”"
+            stopwatch: "Revealed at the stopwatch start"
+            mixed: "Puzzles revealed at different times"
+        arrange:
+            title: "Order and labels"
+            help: "Judges and competitors see these labels before the puzzles are revealed - for example the colour of the box or the sign on the table. Empty = the letter."
+            position: "Position"
+            label: "Label"
+            save: "Save order and labels"
+            saved: "Order and labels saved."
+            label_too_long: "A label can have at most %max% characters - nothing was saved."
+        refused:
+            to_solve_range: "The number of puzzles each entrant solves must be at least 1 and at most the round's puzzles (%puzzles% now). Add the puzzles on the round's puzzles page first."
+            too_few_puzzles: "{0}This round lets each entrant pick its puzzles - change that first.|{1}Each entrant of this round solves 1 puzzle, so the round keeps at least 1. Change how its puzzles are solved first.|]1,Inf[Each entrant of this round solves %count% puzzles, so the round keeps at least %count%. Lower that number in the round's settings first."
+            online_timing: "This round uses online timing, which works with one result for the round only."
 competitor_page:
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."

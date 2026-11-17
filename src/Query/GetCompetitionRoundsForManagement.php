@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionRoundsForManagement
@@ -35,7 +36,11 @@ SELECT
     cr.timezone,
     c.location_country_code,
     tz_cs.location_country_code AS series_country_code,
-    COUNT(crp.id) AS puzzle_count
+    cr.puzzle_format,
+    cr.puzzles_to_solve,
+    cr.reveal_delay_minutes,
+    COUNT(crp.id) AS puzzle_count,
+    STRING_AGG(DISTINCT crp.reveal_mode, ',' ORDER BY crp.reveal_mode) FILTER (WHERE crp.hide_until_round_starts) AS secret_reveal_modes
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN competition_series tz_cs ON tz_cs.id = c.series_id
@@ -66,6 +71,10 @@ SQL;
              *     location_country_code: null|string,
              *     series_country_code: null|string,
              *     puzzle_count: int|string,
+             *     puzzle_format: string,
+             *     puzzles_to_solve: null|int|string,
+             *     reveal_delay_minutes: int|string,
+             *     secret_reveal_modes: null|string,
              * } $row
              */
 
@@ -85,6 +94,10 @@ SQL;
                 category: RoundCategory::from($row['category']),
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
                 timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
+                puzzleFormat: RoundPuzzleFormat::from($row['puzzle_format']),
+                puzzlesToSolve: $row['puzzles_to_solve'] !== null ? (int) $row['puzzles_to_solve'] : null,
+                revealDelayMinutes: (int) $row['reveal_delay_minutes'],
+                secretRevealModes: $row['secret_reveal_modes'] !== null ? explode(',', $row['secret_reveal_modes']) : [],
             );
         }, $data, array_keys($data));
     }

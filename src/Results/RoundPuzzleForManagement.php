@@ -36,6 +36,11 @@ readonly final class RoundPuzzleForManagement
         // Not secret yet, and may still become secret (ChangeRoundPuzzleRevealHandler: the round has not started and no
         // other round shows the puzzle)
         public bool $mayBecomeSecret = false,
+        // Its place in the organiser's order, 1..N, and the label judges and competitors see before the reveal - the
+        // organiser's own (customLabel) or the letter of the place (RoundPuzzleLabel, competition toolkit A2)
+        public int $position = 0,
+        public string $label = '',
+        public null|string $customLabel = null,
     ) {
     }
 }

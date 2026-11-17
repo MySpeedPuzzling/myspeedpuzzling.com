@@ -6,10 +6,15 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class CompetitionRoundForManagement
 {
+    /**
+     * @param list<string> $secretRevealModes
+     */
     public function __construct(
         public string $id,
         public string $name,
@@ -29,6 +34,12 @@ readonly final class CompetitionRoundForManagement
         public string $timezone = RoundTimezone::FALLBACK,
         // Nobody said where the event is - $timezone is only the fallback, named without a place (timezone_name())
         public bool $timezoneAssumed = false,
+        // How its puzzles are solved and K for `pick` (competition toolkit A2)
+        public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total,
+        public null|int $puzzlesToSolve = null,
+        public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
+        // The reveal modes (RoundPuzzleReveal values) of its secret puzzles, sorted - [] = no secret puzzle
+        public array $secretRevealModes = [],
     ) {
     }
 }

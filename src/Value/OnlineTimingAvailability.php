@@ -19,13 +19,16 @@ enum OnlineTimingAvailability: string
     case Available = 'available';
     case InPersonEvent = 'in_person_event';
     case NotSolo = 'not_solo';
+    // A round whose entries pick some of its puzzles (RoundPuzzleFormat::Pick, competition toolkit A2) - the compete
+    // page, its evidence and its review are built around one puzzle
+    case PickFormat = 'pick_format';
 
     public static function ofRound(CompetitionRound $round): self
     {
-        return self::of(EventIsOnline::of($round->competition), $round->category);
+        return self::of(EventIsOnline::of($round->competition), $round->category, $round->puzzleFormat);
     }
 
-    public static function of(bool $competitionIsOnline, RoundCategory $category): self
+    public static function of(bool $competitionIsOnline, RoundCategory $category, RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total): self
     {
         if ($competitionIsOnline === false) {
             return self::InPersonEvent;
@@ -33,6 +36,10 @@ enum OnlineTimingAvailability: string
 
         if ($category !== RoundCategory::Solo) {
             return self::NotSolo;
+        }
+
+        if ($puzzleFormat !== RoundPuzzleFormat::Total) {
+            return self::PickFormat;
         }
 
         return self::Available;

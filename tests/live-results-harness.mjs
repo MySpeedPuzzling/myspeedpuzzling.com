@@ -21,9 +21,12 @@ import {
     preferredRound,
     recentEntries,
     sameValue,
+    savedMeanwhile,
     searchEntries,
+    shownFromOf,
     shownValue,
     uniqueTable,
+    withShownFrom,
 } from '../assets/official_results_live.js';
 import { parseNameTagUrl } from '../assets/official_results_scan.js';
 import {
@@ -2118,6 +2121,110 @@ const scenarios = {
         assert.equal(sameValue(1, null), false);
     },
 
+
+    // ---- Reliability F2 (D7): the `from` of a Save is what the judge's card showed ----
+
+    async 'D7: a value saved meanwhile while the confirm step is open - the Save carries the shown from, the server answers a conflict'() {
+        const { outbox, server } = setup();
+        const michael = { playerId: 'referee-2', name: 'Michael' };
+        // Judge B opens table 47 (no result yet), types 1:10:47 and is on the confirm step
+        const opened = entry(ANNA, 'Anna', 47);
+        const shown = shownFromOf(opened);
+        assert.deepEqual(shown, { result: null, puzzles: null, missing_pieces: null });
+        // Judge A saves 1:00:47 - the live update merges it into B's state
+        const merged = { ...opened, result: { seconds: 3647 }, enteredBy: michael, enteredAt: '2026-11-17T18:35:00+00:00' };
+        assert.equal(savedMeanwhile(shown, merged, outbox.all()), true);
+        // The server's three-way check: a `from` that is not what it holds is a conflict
+        server.decide = (change) => (sameValue(change.from, { seconds: 3647 }) ? { status: 'applied' } : { status: 'conflict', reason: 'changed_meanwhile', current: { seconds: 3647 }, enteredBy: michael, enteredAt: '2026-11-17T18:35:00+00:00' });
+        // B's Save (without the card having shown the new value): from = what the card showed, never the merged value
+        const { fields } = saveFields(null, [], { seconds: 4247 }, merged, outbox.all());
+        const changes = withShownFrom(fields, shown);
+        assert.deepEqual(changes, [{ field: 'result', to: { seconds: 4247 }, from: null }]);
+        const { items, persisted } = outbox.enqueueGroup(changes.map(({ field, to, from }) => ({ roundId: ROUND_A, entryRef: ANNA, field, serverValue: from, to })));
+        await persisted;
+        await outbox.flush();
+        assert.equal(server.requests[0].changes[0].from, null);
+        assert.equal(outbox.all()[0].id, items[0].id);
+        assert.equal(outbox.all()[0].state, 'conflict');
+        assert.equal(outbox.all()[0].enteredBy.name, 'Michael');
+    },
+
+    async 'D7: the card shows the meanwhile value (Replace …) - the deliberate Save goes over it'() {
+        const { outbox, server } = setup();
+        const opened = entry(ANNA, 'Anna', 47);
+        let shown = shownFromOf(opened);
+        const merged = { ...opened, result: { seconds: 3647 }, enteredBy: { playerId: 'referee-2', name: 'Michael' } };
+        assert.equal(savedMeanwhile(shown, merged, []), true);
+        // The confirm step re-rendered ("Saved meanwhile by Michael", Save = "Replace 1:00:47"): that is what it shows now
+        shown = shownFromOf(merged);
+        assert.equal(savedMeanwhile(shown, merged, []), false);
+        server.decide = (change) => (sameValue(change.from, { seconds: 3647 }) ? { status: 'applied' } : { status: 'conflict', current: { seconds: 3647 } });
+        const changes = withShownFrom(saveFields(null, [], { seconds: 4247 }, merged, []).fields, shown);
+        await outbox.enqueueGroup(changes.map(({ field, to, from }) => ({ roundId: ROUND_A, entryRef: ANNA, field, serverValue: from, to }))).persisted;
+        await outbox.flush();
+        assert.deepEqual(server.requests[0].changes[0].from, { seconds: 3647 });
+        assert.equal(outbox.all().length, 0);
+    },
+
+    async 'D7: no live update - unchanged behaviour, the from is the server value the card opened with'() {
+        const { outbox, server } = setup();
+        const opened = entry(ANNA, 'Anna', 47, { result: { seconds: 3000 } });
+        const shown = shownFromOf(opened);
+        assert.equal(savedMeanwhile(shown, opened, []), false);
+        assert.equal(savedMeanwhile(null, opened, []), false);
+        const changes = withShownFrom(saveFields(null, [], { seconds: 3100 }, opened, []).fields, shown);
+        assert.deepEqual(changes, [{ field: 'result', to: { seconds: 3100 }, from: { seconds: 3000 } }]);
+        // No snapshot (a draft of an older page): the fields go as they are, the outbox takes the server's value
+        assert.deepEqual(withShownFrom([{ field: 'result', to: 1 }], null), [{ field: 'result', to: 1 }]);
+        await outbox.enqueueGroup(changes.map(({ field, to, from }) => ({ roundId: ROUND_A, entryRef: ANNA, field, serverValue: from, to }))).persisted;
+        await outbox.flush();
+        assert.deepEqual(server.requests[0].changes[0].from, { seconds: 3000 });
+        assert.equal(outbox.all().length, 0);
+    },
+
+    async 'D7: an own waiting change is not news - the outbox chains from it'() {
+        const { outbox, server } = setup();
+        const opened = entry(ANNA, 'Anna', 47, { result: { seconds: 3000 } });
+        const shown = shownFromOf(opened);
+        await save(outbox, ANNA, { seconds: 3100 }, { serverValue: { seconds: 3000 } });
+        // Another judge's value arrives while this device's own change of the field waits: that one meets it as a conflict
+        const merged = { ...opened, result: { seconds: 3200 } };
+        assert.equal(savedMeanwhile(shown, merged, outbox.all()), false);
+        const changes = withShownFrom([{ field: 'result', to: { seconds: 3300 } }], shown);
+        await outbox.enqueueGroup(changes.map(({ field, to, from }) => ({ roundId: ROUND_A, entryRef: ANNA, field, serverValue: from, to }))).persisted;
+        await outbox.flush();
+        assert.deepEqual(server.requests[0].changes.map((change) => [change.from, change.to]), [[{ seconds: 3000 }, { seconds: 3100 }], [{ seconds: 3100 }, { seconds: 3300 }]]);
+    },
+
+    'D7: a grouped Save - result, puzzles and pieces missing each take their shown from; a proposal keeps its own'() {
+        const record = [{ roundPuzzleId: P_A, done: true, atSeconds: 3000 }];
+        const opened = entry(ANNA, 'Anna', 47, { result: { seconds: 3000 }, puzzles: record, missingPieces: 1 });
+        const shown = shownFromOf(opened);
+        const merged = { ...opened, result: { seconds: 2900 }, puzzles: [], missingPieces: 3 };
+        assert.equal(savedMeanwhile(shown, merged, []), true);
+        // Only the count changed meanwhile: news as well
+        assert.equal(savedMeanwhile(shown, { ...opened, missingPieces: 2 }, []), true);
+        const changes = withShownFrom([
+            { field: 'puzzles', to: [] },
+            { field: 'result', to: { seconds: 3100 } },
+            { field: 'missing_pieces', to: 2 },
+            { field: 'table_number', to: 5 },
+            { field: 'result', to: { seconds: 3100 }, from: { seconds: 1 }, proposalId: 'x' },
+        ], shown);
+        assert.deepEqual(changes.map((change) => change.from), [record, { seconds: 3000 }, 1, undefined, { seconds: 1 }]);
+    },
+
+    'D7: a restored confirm step keeps the from it was opened with'() {
+        const shownFrom = { result: { seconds: 3000 }, puzzles: [{ roundPuzzleId: P_A, done: true, atSeconds: 3000 }], missing_pieces: 2 };
+        const base = { playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'confirm', pending: { value: { seconds: 4247 } }, savedAt: 1 };
+        assert.deepEqual(normaliseDraft({ ...base, shownFrom }).shownFrom, shownFrom);
+        assert.deepEqual(normaliseDraft({ ...base, shownFrom: { result: null, puzzles: null, missing_pieces: null } }).shownFrom, { result: null, puzzles: null, missing_pieces: null });
+        // An older page's draft, or one that does not read: no snapshot (the Save starts from the server's value)
+        assert.equal(normaliseDraft(base).shownFrom, null);
+        assert.equal(normaliseDraft({ ...base, shownFrom: { result: 'x' } }).shownFrom, null);
+        assert.equal(normaliseDraft({ ...base, shownFrom: { missing_pieces: -1 } }).shownFrom, null);
+        assert.equal(normaliseDraft({ ...base, shownFrom: { puzzles: [null] } }).shownFrom, null);
+    },
 };
 
 const P_A = '018d0020-0000-0000-0000-00000000a001';

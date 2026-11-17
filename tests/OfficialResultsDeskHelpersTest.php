@@ -350,6 +350,26 @@ final class OfficialResultsDeskHelpersTest extends TestCase
         self::assertSame(['from' => ['seconds' => 90], 'to' => ['seconds' => 110]], array_intersect_key(self::rows(self::path($ownValueRefused, 3, 'taken'))[0], ['from' => 0, 'to' => 0]));
     }
 
+    /**
+     * Reliability F2 (D7): the result editor's pieces-missing count (toolkit T6) is sent with the count the editor showed
+     * when it opened as `from` - a count another organiser saved meanwhile comes back as a conflict.
+     */
+    public function testTheMissingPiecesCountSendsWhatTheEditorShowedWhenItOpened(): void
+    {
+        [$missing] = $this->runInNode([
+            ['fn' => 'pending', 'steps' => [
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'missing_pieces', 'server' => 1],
+                ['op' => 'meanwhile', 'server' => 3],
+                ['op' => 'saveEditor', 'to' => 2],
+                ['op' => 'take'],
+            ]],
+        ]);
+
+        self::assertSame(1, self::path($missing, 0, 'seen'));
+        self::assertSame(['current' => 3, 'enteredBy' => null], self::path($missing, 1, 'meanwhile'));
+        self::assertSame(['from' => 1, 'to' => 2], array_intersect_key(self::rows(self::path($missing, 2, 'taken'))[0], ['from' => 0, 'to' => 0]));
+    }
+
     public function testAConflictKeepsBothValuesUntilTheOrganiserDecides(): void
     {
         [$keepMine, $takeTheirs, $typedOver] = $this->runInNode([

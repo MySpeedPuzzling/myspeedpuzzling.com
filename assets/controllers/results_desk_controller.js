@@ -794,6 +794,11 @@ export default class extends Controller {
         // What the organiser sees now is the `from` of the save - never the server's value at save time
         this.editor = editorOpened(this.pending, ref, field, this.serverValue(entry, field));
 
+        // Finished with pieces missing (toolkit T6): the count the editor shows is its `from` too (reliability F2)
+        if (field === RESULT) {
+            this.editor.missing = editorOpened(this.pending, ref, MISSING_PIECES, this.serverValue(entry, MISSING_PIECES));
+        }
+
         // A `pick` round's result cell opens the per-puzzle editor: the result and the record are saved as one group,
         // both with what the organiser saw when it opened. The plain total editor only for an entry without a record.
         if (field === RESULT && this.pickFormat() !== null) {
@@ -1244,7 +1249,7 @@ export default class extends Controller {
     commitEditor(value, missing = undefined) {
         const entry = this.entries.get(this.editor.ref);
         const missingChange = entry !== undefined && !this.editor.pick && this.editor.field === RESULT
-            ? missingPiecesChange(value, missing, this.shown(entry, MISSING_PIECES))
+            ? missingPiecesChange(value, missing, this.editor.missing?.seen ?? this.shown(entry, MISSING_PIECES))
             : null;
 
         if (missingChange !== null) {
@@ -1252,9 +1257,14 @@ export default class extends Controller {
             // the entry is finished at that point; alone (the time stays) just the count
             const group = `missing:${this.editor.ref}`;
             const resultChanges = !sameValue(value, this.shown(entry, RESULT));
+            // `from` = the count the editor showed when it opened, never the one merged in since (reliability F2, D7); an
+            // own unsent count replaced here starts from the server's, as before
+            const missingFrom = this.pending.get(this.editor.ref, MISSING_PIECES) === null && this.editor.missing !== undefined
+                ? this.editor.missing.seen
+                : this.serverValue(entry, MISSING_PIECES);
             this.pending.discard(this.editor.ref, MISSING_PIECES);
             this.pending.set(this.editor.ref, RESULT, value, this.editor.seen, resultChanges ? group : null);
-            this.pending.set(this.editor.ref, MISSING_PIECES, missingChange.to, this.serverValue(entry, MISSING_PIECES), resultChanges ? group : null);
+            this.pending.set(this.editor.ref, MISSING_PIECES, missingChange.to, missingFrom, resultChanges ? group : null);
             this.closeEditor(true);
             this.flush();
 

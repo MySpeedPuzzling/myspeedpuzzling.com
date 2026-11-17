@@ -19,9 +19,12 @@ import {
     keepWithheldPlayers,
     preferredRound,
     sameValue,
+    savedMeanwhile,
     searchEntries,
+    shownFromOf,
     shownValue,
     uniqueTable,
+    withShownFrom,
 } from '../official_results_live.js';
 import { nativeReadsQr, parseCompetitionTagUrl, startQrScan } from '../official_results_scan.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
@@ -186,6 +189,9 @@ export default class extends Controller {
         this.openRef = null;
         this.pendingValue = null;
         this.pendingFinishedNow = false;
+        // What the open card showed of the server's values (shownFromOf()) - the `from` of its Save, never the value
+        // merged in at Save (reliability F2, D7)
+        this.shownFrom = null;
         // A pick round (toolkit C10): the open entry's puzzle choice (round puzzle ids, solving order); the find view's
         // "Puzzle missing" list on/off
         this.choice = [];
@@ -760,6 +766,7 @@ export default class extends Controller {
             choice: pickFormat(this.round) ? this.choice : null,
             proposalId: this.proposalEditing,
             pending: confirm ? { value: this.pendingValue } : null,
+            shownFrom: this.shownFrom,
             finishedNow: confirm && this.pendingFinishedNow && this.pendingTappedAt !== null ? { seconds: this.pendingValue?.seconds, tappedAt: this.pendingTappedAt } : null,
         }, Date.now());
     }
@@ -810,7 +817,10 @@ export default class extends Controller {
         }
 
         if (draft.view === 'confirm') {
-            this.review(draft.pending.value, { finishedNow: draft.finishedNow !== null, tappedAt: draft.finishedNow?.tappedAt ?? null, restored: true });
+            this.review(draft.pending.value, { finishedNow: draft.finishedNow !== null, tappedAt: draft.finishedNow?.tappedAt ?? null, restored: true, shownFrom: draft.shownFrom });
+        } else if (draft.shownFrom !== null) {
+            // The card's `from` is what it showed before the reload, not what the server holds now
+            this.shownFrom = draft.shownFrom;
         }
 
         return true;
@@ -1858,6 +1868,62 @@ export default class extends Controller {
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
         this.renderPuzzles(entry, items);
         this.renderProposal(entry, items);
+
+        this.checkMeanwhile(entry, items);
+    }
+
+    /**
+     * A live update of the open entry while its confirm step is open (D7): another judge saved meanwhile. The note says
+     * so, Save becomes "Replace …" and ignores taps for 350 ms again - the next tap is a deliberate one over the value
+     * the card now shows, which is its new `from`. Nothing is overwritten that the judge did not see.
+     */
+    checkMeanwhile(entry, items) {
+        const server = this.serverEntries.get(entry.ref);
+
+        if (!savedMeanwhile(this.shownFrom, server, items)) {
+            return;
+        }
+
+        if (this.view !== 'confirm') {
+            // The entry step: this judge's own earlier Save arrived (its outbox change is gone) - the card showed it as
+            // theirs. Another judge's value stays news: a Save from the entry step meets it as a conflict
+            if (server.enteredBy && samePlayer(server.enteredBy.playerId, this.userId)) {
+                this.shownFrom = shownFromOf(server);
+                this.rememberDraft();
+            }
+
+            return;
+        }
+
+        this.shownFrom = shownFromOf(server);
+        const shown = shownValue(entry, 'result', items);
+        const same = sameValue(shown.value, this.pendingValue) && this.missingChange(entry) === null;
+        this.confirmNoteTarget.textContent = same ? this.t('same') : this.meanwhileNote(entry);
+        this.confirmNoteTarget.className = `small mb-3 ${same ? 'text-muted' : 'text-warning-emphasis fw-medium'}`;
+        this.setSaveLabel(same ? null : this.t('replaceSaved', { '%result%': this.describe(shown.value, this.shownMissing(entry, items)) }));
+        this.renderConfirmResult();
+        this.confirmShownAt = performance.now();
+        this.savePointerAt = null;
+        this.rememberDraft();
+    }
+
+    meanwhileNote(entry) {
+        const result = this.describe(entry.result ?? null, this.shownMissing(entry));
+
+        return entry.enteredBy
+            ? this.t('meanwhileBy', { '%result%': result, '%name%': this.whoName(entry.enteredBy), '%time%': this.timeOfDay(entry.enteredAt) })
+            : this.t('meanwhile', { '%result%': result });
+    }
+
+    /**
+     * Save's text: "Save", or "Replace 1:00:47" after a value saved meanwhile (null = the template's own).
+     */
+    setSaveLabel(text) {
+        const button = this.saveButtonTarget;
+        button.dataset.saveHtml ??= button.innerHTML;
+        button.innerHTML = text === null ? button.dataset.saveHtml : `<i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>${escapeHtml(text)}`;
+        button.classList.toggle('btn-success', text === null);
+        button.classList.toggle('btn-warning', text !== null);
     }
 
     /**
@@ -2496,6 +2562,7 @@ export default class extends Controller {
         this.closeOverlays({ keepHistory: true });
         this.openRef = ref;
         this.pendingValue = null;
+        this.shownFrom = shownFromOf(this.serverEntries.get(ref));
         this.entryNowHtml = null;
         this.entryProblemsHtml = null;
         this.puzzlesHtml = null;
@@ -2578,6 +2645,7 @@ export default class extends Controller {
         this.forgetDraft();
         this.openRef = null;
         this.pendingValue = null;
+        this.shownFrom = null;
         this.proposalEditing = null;
         this.rejecting = false;
         this.findInputTarget.value = '';
@@ -2996,7 +3064,7 @@ export default class extends Controller {
             return;
         }
 
-        const saved = this.enqueueGroup(entry, fields);
+        const saved = this.enqueueGroup(entry, withShownFrom(fields, this.shownFrom));
         this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.describeField('puzzles', record) }), saved);
         this.backToFind();
     }
@@ -3015,13 +3083,17 @@ export default class extends Controller {
         this.review(null);
     }
 
-    review(value, { finishedNow = false, tappedAt = null, restored = false } = {}) {
+    review(value, { finishedNow = false, tappedAt = null, restored = false, shownFrom = null } = {}) {
         const entry = this.entry(this.openRef);
 
         if (entry === null) {
             return;
         }
 
+        // The confirm step's note names what Save replaces - that is its `from`; a restored step keeps the one it was
+        // opened with, so a value saved meanwhile elsewhere comes back as "Saved meanwhile" or a conflict
+        this.shownFrom = shownFrom ?? shownFromOf(this.serverEntries.get(entry.ref));
+        this.setSaveLabel(null);
         this.pendingValue = value;
         this.prepareMissing(entry, value);
         this.pendingFinishedNow = finishedNow;
@@ -3183,6 +3255,10 @@ export default class extends Controller {
 
             return;
         }
+
+        // Every change carries what the card showed as its `from` (D7) - the server's three-way check answers a conflict
+        // for a value saved elsewhere that this card never showed
+        fields = withShownFrom(fields, this.shownFrom);
 
         // Every change of the Save goes to Undo - a group already sent is no longer on the device to be found by its id
         const item = this.enqueueGroup(entry, fields);

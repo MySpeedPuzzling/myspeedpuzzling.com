@@ -43,6 +43,24 @@ function ids(list) {
     return Array.isArray(list) ? list.filter((id) => typeof id === 'string').slice(0, 20).map((id) => id.slice(0, 36)) : [];
 }
 
+function normaliseShownFrom(shownFrom) {
+    if (shownFrom === null || typeof shownFrom !== 'object' || Array.isArray(shownFrom)) {
+        return null;
+    }
+
+    const { result = null, puzzles = null, missing_pieces: missing = null } = shownFrom;
+
+    if (!isResultValue(result) || (puzzles !== null && (!Array.isArray(puzzles) || puzzles.length > 20 || puzzles.some((item) => item === null || typeof item !== 'object'))) || (missing !== null && (!Number.isInteger(missing) || missing < 0))) {
+        return null;
+    }
+
+    return {
+        result: result === null ? null : { ...result },
+        puzzles: puzzles === null ? null : puzzles.map((item) => ({ ...item })),
+        missing_pieces: missing,
+    };
+}
+
 /**
  * A draft as stored, checked field by field - null when anything does not fit (a draft of an older page, a hand edit).
  */
@@ -51,7 +69,7 @@ export function normaliseDraft(raw) {
         return null;
     }
 
-    const { playerId, roundId, ref, view, mode, typed, pieces, piecesMode, open, texts, choice, proposalId, pending, finishedNow, savedAt } = raw;
+    const { playerId, roundId, ref, view, mode, typed, pieces, piecesMode, open, texts, choice, proposalId, pending, finishedNow, shownFrom, savedAt } = raw;
 
     if (typeof playerId !== 'string' || typeof roundId !== 'string' || typeof ref !== 'string' || ref === '' || typeof savedAt !== 'number') {
         return null;
@@ -82,6 +100,9 @@ export function normaliseDraft(raw) {
         proposalId: typeof proposalId === 'string' && proposalId !== '' ? proposalId.slice(0, 36) : null,
         pending: null,
         finishedNow: null,
+        // What the card showed of the server's values when it opened - the `from` of its Save (reliability F2, D7); null
+        // for a draft of an older page (the Save then starts from the server's value, as before)
+        shownFrom: normaliseShownFrom(shownFrom),
         savedAt,
     };
 

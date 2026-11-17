@@ -5446,6 +5446,9 @@ live_results:
         replaces: "Replaces %result%"
         replaces_by: "Replaces %result% (%name%, %time%)"
         same: "This is the saved result already."
+        meanwhile: "Saved meanwhile on another phone: %result% - Save replaces it"
+        meanwhile_by: "Saved meanwhile by %name% (%time%): %result% - Save replaces it"
+        replace_saved: "Replace %result%"
         clear_result: "No result"
     toast:
         saved: "Saved: %name% · %result%"

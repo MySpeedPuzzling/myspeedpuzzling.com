@@ -395,6 +395,46 @@ export function shownValue(entry, field, outboxItems) {
     return latest !== null ? { value: latest.to, item: latest } : { value: entryValue(entry, field), item: null };
 }
 
+// The fields one Save of the judge's card can change - their `from` is what the card showed (reliability F2, D7)
+export const SHOWN_FIELDS = ['result', 'puzzles', 'missing_pieces'];
+
+/**
+ * The server's values of an entry as the judge's card shows them now - taken when the card / its confirm step opens and
+ * sent as the changes' `from`, so a value another judge saved meanwhile comes back as a conflict, never silently
+ * replaced. `serverEntry` undefined/null = not on the server yet.
+ *
+ * @returns {{result: *, puzzles: *, missing_pieces: *}}
+ */
+export function shownFromOf(serverEntry) {
+    return Object.fromEntries(SHOWN_FIELDS.map((field) => [field, serverEntry ? entryValue(serverEntry, field) : null]));
+}
+
+/**
+ * The changes of a Save, each with the `from` the card showed (one already set - a proposal's - stays). Without a
+ * snapshot (null) the outbox takes the server's value at Save, as before.
+ */
+export function withShownFrom(fields, shownFrom) {
+    if (shownFrom === null || shownFrom === undefined) {
+        return fields;
+    }
+
+    return fields.map((change) => (change.from !== undefined || !(change.field in shownFrom) ? change : { ...change, from: shownFrom[change.field] }));
+}
+
+/**
+ * Saved meanwhile on another device while the confirm step is open: true when a field the card showed has another
+ * value on the server now, and no own change of that field waits on this device (that one meets the other value as a
+ * conflict anyway).
+ */
+export function savedMeanwhile(shownFrom, serverEntry, outboxItems) {
+    if (shownFrom === null || shownFrom === undefined || !serverEntry) {
+        return false;
+    }
+
+    return SHOWN_FIELDS.some((field) => !sameValue(shownFrom[field], entryValue(serverEntry, field))
+        && !outboxItems.some((item) => item.entryRef === serverEntry.ref && item.field === field));
+}
+
 /**
  * The "recent entries" list: results entered on any device (the server's `enteredAt`) and this device's own
  * unsent ones, newest first, one row per entry.

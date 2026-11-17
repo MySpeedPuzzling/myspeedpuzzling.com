@@ -1,0 +1,22 @@
+{#
+    "Reveal the puzzles" in an online round's control room (docs/features/competitions-management/toolkit/
+    A-round-formats.md §4.3) - only for a round with puzzles waiting for the stopwatch start. UNTICKED on every load;
+    online_control_controller.js sends `reveal=1` + `reveal_hash` with "Start in 10 s" / "Start at" when ticked (after a
+    confirm). The list lives in the page only - never in the control state or the public stopwatch topic.
+    Variables: reveal (SecretRevealPreview::byStopwatchStart()), reveal_hash, status (the round's screen)
+#}
+<div class="border rounded p-3 mb-3" data-online-control-when="waiting" data-online-control-reveal {{ status != 'waiting' ? 'hidden' }}>
+    <div class="form-check mb-1">
+        <input class="form-check-input" type="checkbox" id="online-control-reveal" autocomplete="off"
+               data-online-control-target="revealCheckbox"
+               data-reveal-hash="{{ reveal_hash }}"
+               data-reveal-confirm="{{ 'competition_toolkit.reveal_stopwatch.confirm'|trans({'%count%': reveal|length}) }}">
+        <label class="form-check-label fw-semibold" for="online-control-reveal">{{ 'competition_toolkit.reveal_stopwatch.checkbox'|trans({'%count%': reveal|length}) }}</label>
+    </div>
+    <ul class="small mb-1 ps-4">
+        {% for item in reveal %}
+            <li>{{ item.name }} – <span class="text-muted">{{ ('competition_toolkit.reveal_stopwatch.scope.' ~ item.scope)|trans }}</span></li>
+        {% endfor %}
+    </ul>
+    <div class="form-text mt-0">{{ 'competition_toolkit.reveal_stopwatch.help'|trans }}</div>
+</div>

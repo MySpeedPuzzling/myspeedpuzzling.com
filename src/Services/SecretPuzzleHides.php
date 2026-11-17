@@ -216,9 +216,11 @@ readonly final class SecretPuzzleHides
      * @param array<string, DateTimeImmutable> $automaticRevealsAt round id => the automatic reveal to assume for its rows
      *     with an automatic reveal that are still hidden (RoundPuzzleReveal::automaticRevealAt() of the new start and
      *     delay)
+     * @param array<string, DateTimeImmutable> $stopwatchRevealsAt round id => the moment to assume for its rows waiting
+     *     for a stopwatch start with the tick (RoundPuzzleReveal::Stopwatch, still hidden) - a start that reveals
      * @return null|array{hiddenUntil: null|DateTimeImmutable, imageHiddenUntil: DateTimeImmutable}
      */
-    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $automaticRevealsAt = []): null|array
+    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $automaticRevealsAt = [], array $stopwatchRevealsAt = []): null|array
     {
         $hiddenUntil = null;
         $imageHiddenUntil = null;
@@ -237,9 +239,12 @@ readonly final class SecretPuzzleHides
             // A round edit pins reveals that already happened (EditCompetitionRoundHandler) - only the automatic reveals
             // still ahead move; scheduled and manual ones are the organiser's own and never follow the round
             $assumed = $automaticRevealsAt[$row->round->id->toString()] ?? null;
-            $revealsAt = $assumed !== null && $row->revealMode === RoundPuzzleReveal::Automatic && $row->isHiddenAt($now)
-                ? $assumed
-                : ($row->revealsAt() ?? $neverRevealed);
+            $assumedStopwatch = $stopwatchRevealsAt[$row->round->id->toString()] ?? null;
+            $revealsAt = match (true) {
+                $assumed !== null && $row->revealMode === RoundPuzzleReveal::Automatic && $row->isHiddenAt($now) => $assumed,
+                $assumedStopwatch !== null && $row->waitsForStopwatchStart($now) => $assumedStopwatch,
+                default => $row->revealsAt() ?? $neverRevealed,
+            };
 
             if ($imageHiddenUntil === null || $revealsAt > $imageHiddenUntil) {
                 $imageHiddenUntil = $revealsAt;

@@ -40,14 +40,18 @@
         </div>
 
         <div class="card mt-4"
-             data-controller="round-stopwatch"
+             data-controller="round-stopwatch{{ stopwatch_reveal is not empty ? ' round-stopwatch-reveal' }}"
              data-round-stopwatch-state-value="{{ stopwatch|json_encode|e('html_attr') }}"
              data-round-stopwatch-server-now-ms-value="{{ server_now_ms }}"
              data-round-stopwatch-mercure-url-value="{{ mercure_public_url }}"
              data-round-stopwatch-topic-value="/round-stopwatch/{{ round.id }}"
              data-round-stopwatch-state-url-value="{{ state_url }}"
              data-label-starts-in="{{ 'competition.stopwatch.starts_in'|trans({'%time%': '%time%'}) }}"
-             data-stopwatch-phase="{{ phase }}"
+             data-stopwatch-phase="{{ phase }}"{% if stopwatch_reveal is not empty %}
+             data-action="submit->round-stopwatch-reveal#submit"
+             data-round-stopwatch-reveal-hash-value="{{ stopwatch_reveal_hash }}"
+             data-round-stopwatch-reveal-confirm-value="{{ 'competition_toolkit.reveal_stopwatch.confirm'|trans({'%count%': stopwatch_reveal|length}) }}"
+             data-round-stopwatch-reveal-suffix-value="{{ 'competition_toolkit.reveal_stopwatch.button_suffix'|trans({'%count%': stopwatch_reveal|length}) }}"{% endif %}
         >
             <div class="card-body">
                 {% if round.minutesLimit is not null %}
@@ -83,13 +87,18 @@
                 </div>
 
                 {# The actions the clock allows now - each in a plain wrapper that takes `hidden` (Bootstrap's d-flex would win
-                   over it); round_stopwatch_controller.js switches them when the phase changes #}
+                   over it); round_stopwatch_controller.js switches them when the phase changes #}{{ stopwatch_reveal is not empty ? include('competition_toolkit/_stopwatch_reveal.html.twig', {
+                    reveal: stopwatch_reveal,
+                    start_phases: online_timing ? ['idle'] : ['idle', 'stopped'],
+                    phase: phase,
+                    round: round,
+                }) }}
                 <div class="d-flex flex-wrap gap-2">
                     {# Start now - a resumed start for a stopped clock (in person: stopped = paused); a round with online
                        timing that ended is never resumed - only Reset runs it again #}
                     {% set start_phases = online_timing ? ['idle'] : ['idle', 'stopped'] %}
                     <div data-stopwatch-when="{{ start_phases|join(' ') }}" {{ phase not in start_phases ? 'hidden' }}>
-                        <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
+                        <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}"{{ stopwatch_reveal is not empty ? ' data-stopwatch-reveal-start' }}>
                             <input type="hidden" name="_token" value="{{ csrf }}">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-play-fill me-1"></i>{{ 'competition.stopwatch.start'|trans }}
@@ -100,7 +109,7 @@
                     {% if can_schedule %}
                         {# A countdown every device shows by itself - only for a clock that never ran #}
                         <div data-stopwatch-when="idle" {{ phase != 'idle' ? 'hidden' }}>
-                            <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}">
+                            <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}"{{ stopwatch_reveal is not empty ? ' data-stopwatch-reveal-start' }}>
                                 <input type="hidden" name="_token" value="{{ csrf }}">
                                 <input type="hidden" name="countdown" value="10">
                                 <button type="submit" class="btn btn-primary">
@@ -141,7 +150,7 @@
 
                 {% if can_schedule %}
                     {# A start at a chosen moment - a wall time of the round's zone; the server says what is wrong with it #}
-                    <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}" class="mt-4" novalidate data-stopwatch-when="idle" {{ phase != 'idle' ? 'hidden' }}>
+                    <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}" class="mt-4" novalidate{{ stopwatch_reveal is not empty ? ' data-stopwatch-reveal-start' }} data-stopwatch-when="idle" {{ phase != 'idle' ? 'hidden' }}>
                         <input type="hidden" name="_token" value="{{ csrf }}">
                         <label for="round-stopwatch-start-at" class="form-label fw-semibold">{{ 'competition.stopwatch.start_at'|trans }}</label>
                         <div class="d-flex flex-wrap gap-2">

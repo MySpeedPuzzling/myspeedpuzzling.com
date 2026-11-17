@@ -28,9 +28,19 @@ enum RoundStopwatchRefusal: string
     // resume - participants kept solving on the other side of the world - so it runs again only from a Reset (a fresh
     // run, README §5.1). In person a stopped clock is a pause and Start resumes it.
     case EndedUseReset = 'ended_use_reset';
+    // "Reveal the puzzles" ticked, but what the start would reveal is not what the page listed any more - another
+    // puzzle, another scope, or the stopwatch was scheduled, moved or called off meanwhile (SecretRevealPreview::
+    // stopwatchStartHash()). Nothing started: the page shows the list as it is now, unticked.
+    case RevealChangedMeanwhile = 'reveal_changed_meanwhile';
+    // "Reveal the puzzles" ticked on a round with nothing waiting for the stopwatch start (a stale page) - nothing started
+    case RevealNotAllowed = 'reveal_not_allowed';
 
     public function translationKey(): string
     {
-        return 'competition.stopwatch.refused.' . $this->value;
+        // The competition toolkit's own texts (one block under its prefix, toolkit/R-review-and-plan.md §4.1)
+        return match ($this) {
+            self::RevealChangedMeanwhile, self::RevealNotAllowed => 'competition_toolkit.reveal_stopwatch.refused.' . $this->value,
+            default => 'competition.stopwatch.refused.' . $this->value,
+        };
     }
 }

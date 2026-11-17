@@ -9,7 +9,8 @@
     studio's tool link and the panel (control_video*.html.twig); without it the page is the same to the byte, so every
     addition is an inline condition that leaves no line behind.
     Variables: competition, round (CompetitionRound), online_round, state (OnlineLiveState), timezone, csrf_token_id,
-    start_at_value, start_at_min, video_console
+    start_at_value, start_at_min, video_console, stopwatch_reveal + stopwatch_reveal_hash (the round's puzzles waiting
+    for the stopwatch start - "Reveal the puzzles" next to the start, only when there are any)
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -84,7 +85,7 @@
                 <div class="online-control-clock-digits font-monospace" data-online-control-target="clock" aria-live="off">00:00:00</div>
                 <p class="mb-3 text-body-secondary" data-online-control-target="clockLine">{{ round.minutesLimit > 0 ? 'online_rounds.control.clock.limit'|trans({'%count%': round.minutesLimit}) }}</p>
 
-                {# The actions the clock allows now - each wrapper takes `hidden` (the controller switches them by the screen) #}
+                {# The actions the clock allows now - each wrapper takes `hidden` (the controller switches them by the screen) #}{{ stopwatch_reveal is not empty ? include('competition_toolkit/_online_control_reveal.html.twig', {reveal: stopwatch_reveal, reveal_hash: stopwatch_reveal_hash, status: state.round.status}) }}
                 <div class="d-flex flex-wrap align-items-start gap-3">
                     <div data-online-control-when="waiting" {{ state.round.status != 'waiting' ? 'hidden' }}>
                         <button type="button" class="btn btn-success" data-action="online-control#startInTen" data-online-control-target="actionButton">

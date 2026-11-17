@@ -87,6 +87,17 @@ final readonly class OfficialResultsLiveUpdates
         ]);
     }
 
+    /**
+     * The reveal push (toolkit/R-review-and-plan.md §1.5): what of the round's puzzles is visible changed, or will at a
+     * new moment - a stopwatch start with "Reveal the puzzles", "Reveal now", a reveal setting saved. The open pages
+     * fetch the round again (they read the puzzles through RoundPuzzlesVisibleNow, never from this message: it carries
+     * no puzzle). Called by the controller after the dispatch returned - after the commit.
+     */
+    public function puzzlesRevealed(string $roundId): void
+    {
+        $this->refresh($roundId);
+    }
+
     public function roundChanged(string $roundId): void
     {
         $this->publish($roundId, fn (): array => [

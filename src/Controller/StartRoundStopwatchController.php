@@ -11,7 +11,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * "Start" - now, or resume a stopped stopwatch; then the projector page (AbstractRoundStopwatchController).
+ * "Start" - now, or resume a stopped stopwatch; then the projector page (AbstractRoundStopwatchController). With
+ * "Reveal the puzzles" ticked the round's puzzles waiting for the stopwatch start come out now.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class StartRoundStopwatchController extends AbstractRoundStopwatchController
@@ -33,7 +34,11 @@ final class StartRoundStopwatchController extends AbstractRoundStopwatchControll
         return $this->act(
             $request,
             $roundId,
-            static fn (): StartRoundStopwatch => new StartRoundStopwatch(roundId: $roundId),
+            static function () use ($request, $roundId): StartRoundStopwatch {
+                $reveal = self::revealedFields($request);
+
+                return new StartRoundStopwatch($roundId, revealPuzzles: $reveal['revealPuzzles'], revealListHash: $reveal['revealListHash']);
+            },
             'round_stopwatch',
         );
     }

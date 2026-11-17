@@ -49,10 +49,14 @@ final class ScheduleRoundStartController extends AbstractRoundStopwatchControlle
                     ? ScheduledRoundStart::inSeconds($countdown, $this->now())
                     : ScheduledRoundStart::at($request->request->getString('at'), $round->displayTimezone());
 
+                $reveal = self::revealedFields($request);
+
                 return new ScheduleRoundStart(
                     roundId: $round->id->toString(),
                     startsAt: $startsAt,
                     actingPlayerId: $this->actingPlayerId(),
+                    revealPuzzles: $reveal['revealPuzzles'],
+                    revealListHash: $reveal['revealListHash'],
                 );
             },
             'manage_round_stopwatch',

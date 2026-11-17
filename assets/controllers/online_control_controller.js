@@ -37,7 +37,7 @@ const BACKOFF_MS = [5000, 10000, 20000, 30000];
  *   and updates each tile (updateTile()) and follows every drawing (afterGrid()). Without it nothing here changes.
  */
 export default class extends Controller {
-    static targets = ['initialState', 'statusBadge', 'clock', 'clockLine', 'startAt', 'notice', 'presence', 'counts', 'updated', 'grid', 'empty', 'endDialog', 'actionButton'];
+    static targets = ['initialState', 'statusBadge', 'clock', 'clockLine', 'startAt', 'notice', 'presence', 'counts', 'updated', 'grid', 'empty', 'endDialog', 'actionButton', 'revealCheckbox'];
 
     static values = {
         urls: Object,
@@ -50,6 +50,12 @@ export default class extends Controller {
 
     connect() {
         this.state = JSON.parse(this.initialStateTarget.textContent);
+
+        // "Reveal the puzzles" is never ticked by a restored form
+        if (this.hasRevealCheckboxTarget) {
+            this.revealCheckboxTarget.checked = false;
+        }
+
         this.filter = 'all';
         this.tiles = new Map();
         this.busy = false;
@@ -253,12 +259,36 @@ export default class extends Controller {
     // ---------------------------------------------------------------- the actions
 
     startInTen() {
-        this.act(this.urlsValue.schedule, { countdown: '10' }, 'done_scheduled');
+        const reveal = this.revealFields();
+
+        if (reveal !== null) {
+            this.act(this.urlsValue.schedule, { countdown: '10', ...reveal }, 'done_scheduled');
+        }
     }
 
     scheduleAt(event) {
         event.preventDefault();
-        this.act(this.urlsValue.schedule, { at: this.startAtTarget.value }, 'done_scheduled');
+        const reveal = this.revealFields();
+
+        if (reveal !== null) {
+            this.act(this.urlsValue.schedule, { at: this.startAtTarget.value, ...reveal }, 'done_scheduled');
+        }
+    }
+
+    /**
+     * "Reveal the puzzles" (only on a round with puzzles waiting for the stopwatch start, unticked on every load): the
+     * fields a start sends - none unticked, `reveal` + the list it confirmed ticked; null = the organiser said no.
+     */
+    revealFields() {
+        if (!this.hasRevealCheckboxTarget || !this.revealCheckboxTarget.checked || this.revealCheckboxTarget.disabled) {
+            return {};
+        }
+
+        if (!window.confirm(this.revealCheckboxTarget.dataset.revealConfirm)) {
+            return null;
+        }
+
+        return { reveal: '1', reveal_hash: this.revealCheckboxTarget.dataset.revealHash };
     }
 
     cancelStart() {
@@ -318,6 +348,15 @@ export default class extends Controller {
         }
 
         this.busy = false;
+
+        if (this.hasRevealCheckboxTarget) {
+            // A start goes through once - and a list that changed meanwhile is not confirmed again from this page: the
+            // organiser reloads it to see the list as it is now
+            this.revealCheckboxTarget.checked = false;
+            this.revealCheckboxTarget.disabled = answer.stopwatch !== undefined
+                || answer.error === 'reveal_changed_meanwhile'
+                || answer.error === 'reveal_not_allowed';
+        }
 
         if (answer.stopwatch) {
             this.state = adoptRoundClock(this.state, answer.stopwatch);

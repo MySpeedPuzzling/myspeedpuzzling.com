@@ -35,6 +35,12 @@ const ICON_FONT_KEY_PREFIXES = [
     'build/fonts/bootstrap-icons.woff2',
 ];
 
+// Encore entries NOT precached on install: their files are cached on first use only (cache-first like every /build
+// file). Every other entry is precached for every visitor - the live result entry (`live_entry`, ~40 KB gzip) on
+// purpose, so a referee's page works offline after any visit. `display` (the competition timer screens and stream
+// overlays, competition toolkit D4) is for a handful of venue screens - never downloaded by every visitor.
+const PRECACHE_SKIP_ENTRIES = ['display'];
+
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [
     '/_components/', // Symfony Live Components
@@ -55,13 +61,7 @@ self.addEventListener('install', (event) => {
             try {
                 const response = await fetch(ENTRYPOINTS_URL, { cache: 'no-cache' });
                 if (response.ok) {
-                    const data = await response.json();
-                    const urls = [];
-                    for (const entry of Object.values(data.entrypoints || {})) {
-                        if (entry.js) urls.push(...entry.js);
-                        if (entry.css) urls.push(...entry.css);
-                    }
-                    await cache.addAll(urls);
+                    await cache.addAll(precacheUrls(await response.json()));
                 }
             } catch (e) {
                 // First visit may be offline — skip precaching
@@ -386,6 +386,19 @@ async function pruneStaticCache() {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
+
+// The files install() precaches: every entry's JS and CSS of entrypoints.json, except the entries in
+// PRECACHE_SKIP_ENTRIES (a file a precached entry shares with a skipped one - runtime.js - is still precached).
+function precacheUrls(entrypoints) {
+    const urls = new Set();
+    for (const [name, entry] of Object.entries((entrypoints && entrypoints.entrypoints) || {})) {
+        if (PRECACHE_SKIP_ENTRIES.includes(name)) continue;
+        for (const fileUrl of [...(entry.js || []), ...(entry.css || [])]) {
+            urls.add(fileUrl);
+        }
+    }
+    return [...urls];
+}
 
 // Opaque (cross-origin) responses expose no headers - type 'opaque' reports an
 // empty Content-Type - so they read as "not HTML" and stay cacheable as today.

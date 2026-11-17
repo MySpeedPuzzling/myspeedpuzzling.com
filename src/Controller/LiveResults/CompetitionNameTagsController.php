@@ -7,10 +7,13 @@ namespace SpeedPuzzling\Web\Controller\LiveResults;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionNameTags;
+use SpeedPuzzling\Web\Query\GetCompetitorPageSettings;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Results\CompetitionNameTag;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionTagSheet;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +26,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * name, flag, #CODE when linked, the table of the first round, and a QR that opens the participant in the live
  * entry. `?sort=name|table`, `?round=<roundId>` (only that round's people, with its table numbers), `?waitlist=1`
  * (the waitlist too - somebody may get a place at the door). A standalone print page like the table layout's.
+ *
+ * The competition toolkit's tags (B-qr-competitor-page.md §3.4, CompetitionTagSheet): `?kind=people|lineups|tables|
+ * entries` and `?layout=tags|tents` - offered once the competition has a QR mode or competitor pages (the organiser
+ * uses what an admin switched on), or to whom COMPETITION_TOOLKIT_MANAGE grants when they ask for a kind or layout.
+ * Otherwise the page is the name tags page of before, byte for byte (CompetitionNameTagsGoldenTest).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class CompetitionNameTagsController extends AbstractController
@@ -32,6 +40,8 @@ final class CompetitionNameTagsController extends AbstractController
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly GetCompetitionNameTags $getCompetitionNameTags,
         private readonly NameTagQrCode $nameTagQrCode,
+        private readonly GetCompetitorPageSettings $getCompetitorPageSettings,
+        private readonly CompetitionTagSheet $competitionTagSheet,
     ) {
     }
 
@@ -64,6 +74,18 @@ final class CompetitionNameTagsController extends AbstractController
             }
         }
 
+        $settings = $this->getCompetitorPageSettings->of($competitionId);
+        $toolkitConfigured = $settings->qrTagMode !== null || $settings->competitorPages;
+        $asksForToolkit = $request->query->has('kind') || $request->query->has('layout');
+
+        if ($toolkitConfigured || ($asksForToolkit && $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId))) {
+            return self::privatePage($this->render('live_results/competition_tags.html.twig', [
+                'competition' => $competition,
+                'rounds' => $rounds,
+                'uses_table_numbers' => array_any($rounds, static fn (RoundResultsOverview $overview): bool => $overview->tableNumbersOff === false),
+            ] + $this->competitionTagSheet->variables($request, $competitionId, $rounds, $round, $settings)));
+        }
+
         $sort = $request->query->getString('sort') === GetCompetitionNameTags::SORT_TABLE
             ? GetCompetitionNameTags::SORT_TABLE
             : GetCompetitionNameTags::SORT_NAME;
@@ -93,6 +115,11 @@ final class CompetitionNameTagsController extends AbstractController
             'uses_table_numbers' => array_any($rounds, static fn (RoundResultsOverview $overview): bool => $overview->tableNumbersOff === false),
         ]);
 
+        return self::privatePage($response);
+    }
+
+    private static function privatePage(Response $response): Response
+    {
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');

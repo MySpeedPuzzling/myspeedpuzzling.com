@@ -1,0 +1,80 @@
+{
+    "_comment": "CompetitionLineupId::of() (PHP) and lineupIdOf() of assets/live_entry_tag.js (JS) must give the same line-up id - printed on tags (toolkit B2/C8). Run by tests/Value/CompetitionLineupIdTest.php and tests/live-entry-shell-harness.mjs.",
+    "cases": [
+        {
+            "case": "a pair",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000202"
+            ],
+            "lineupId": "f4d51bdb-407d-5f89-a7a4-ddece5c79823"
+        },
+        {
+            "case": "the pair the other way round, upper case",
+            "competitionId": "018D0020-0000-0000-0000-000000000001",
+            "members": [
+                "018D0020-0000-0000-0000-000000000202",
+                "018d0020-0000-0000-0000-000000000201"
+            ],
+            "lineupId": "f4d51bdb-407d-5f89-a7a4-ddece5c79823"
+        },
+        {
+            "case": "another partner",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000203"
+            ],
+            "lineupId": "792e0142-d2d0-5f1c-a9f2-7a7de0d0c19b"
+        },
+        {
+            "case": "a team of three",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000203",
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000202"
+            ],
+            "lineupId": "050f9b1d-c108-5b38-8aba-0d59e4d13777"
+        },
+        {
+            "case": "one member",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201"
+            ],
+            "lineupId": "90de4231-1086-5752-bc34-db072fa550f6"
+        },
+        {
+            "case": "the same pair at another event",
+            "competitionId": "018d0020-0000-0000-0000-000000000002",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000202"
+            ],
+            "lineupId": "388ac41d-da82-50ff-a196-2cf5f42ecd58"
+        },
+        {
+            "case": "random v7 ids",
+            "competitionId": "019a7c3e-5b1f-7d2a-9c4e-8f0b1a2c3d4e",
+            "members": [
+                "019a7c3e-77aa-7bcd-8123-abcdefabcdef",
+                "019a7c3e-11bb-7c00-b999-0123456789ab",
+                "019a7c3f-0000-7000-8000-ffffffffffff",
+                "019a7c3e-11bb-7c00-b999-0123456789ac"
+            ],
+            "lineupId": "39b148b5-9e77-5d77-a7b9-837791cf9e7f"
+        },
+        {
+            "case": "the pair with a third member on the waitlist - every member not removed counts (GetRoundResultEntries' lineupId, the tag route), not only the going ones the round state lists",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000202",
+                "018d0020-0000-0000-0000-0000000002ff"
+            ],
+            "lineupId": "3d33c848-036e-5511-82b6-cae19ad980fa"
+        }
+    ]
+}

@@ -58,6 +58,8 @@ final class CompetitionFormData
         // "When it happens" (series only)
         #[Assert\Length(max: 160)]
         public null|string $schedule = null,
+        // "Move the rounds too" (edit form, `move_rounds_field`) - ticked by default where it is offered
+        public bool $moveRoundsWithDate = false,
     ) {
     }
 

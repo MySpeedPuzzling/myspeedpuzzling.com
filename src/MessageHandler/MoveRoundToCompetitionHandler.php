@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Exceptions\RoundNotMovable;
 use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Query\EventIsOnline;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
+use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
+use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -42,6 +44,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 readonly final class MoveRoundToCompetitionHandler
 {
     public function __construct(
+        private CompetitionStandingRepository $standingRepository,
+        private CompetitionAdvancementStepRepository $advancementStepRepository,
         private CompetitionRoundRepository $competitionRoundRepository,
         private CompetitionRepository $competitionRepository,
         private CompetitionParticipantRoundRepository $participantRoundRepository,
@@ -122,6 +126,19 @@ readonly final class MoveRoundToCompetitionHandler
         }
 
         $round->moveToCompetition($target, $this->freeSlug($round, $target));
+
+        // The source event's standings lose it (competition toolkit A6) - a round with entries never moves (refused
+        // above), so no standing loses a result
+        foreach ($this->standingRepository->ofCompetition($source) as $standing) {
+            $standing->pruneRound($round->id->toString());
+        }
+
+        // ... and its advancement steps (competition toolkit A8): a step left without sources or targets goes too
+        foreach ($this->advancementStepRepository->ofCompetition($source) as $step) {
+            if ($step->pruneRound($round->id->toString()) && $step->isEmpty()) {
+                $this->advancementStepRepository->delete($step);
+            }
+        }
 
         foreach ($times as $time) {
             $time->competitionRoundMovedTo($target);

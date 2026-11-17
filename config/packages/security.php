@@ -74,7 +74,13 @@ return App::config([
                 // (docs/features/online-competitions/README.md §5.2) - asked several times per page load.
                 // /-/livekit-webhook: the live video server's webhooks (LiveKitWebhookController), server to server,
                 // authenticated by LiveKit's signature on the body - no user, no session.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                // /{locale}/live-results-shell, /zadavani-vysledku-shell: the live result entry page's offline copy
+                // (LiveResultsShellController) - the same for everybody, kept by the service worker; it must never carry
+                // a cookie or anything of the person who fetched it.
+                // /display/{token}/state, /display/{token}/design (+ the page /display/{token}, D4): a competition display's
+                // token in the path is the access right (D-displays-overlays.md §9.1) - no viewer, so nothing in the answer depends
+                // on who opened the link (no blocklist, no allow list), and it never starts a session or sets a cookie.
+                'pattern' => '^(/(en|es|ja|fr|de)/live-results-shell$|/display/[1-9A-HJ-NP-Za-km-z]{22}(/state|/design)?$|/zadavani-vysledku-shell$|/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

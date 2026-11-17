@@ -11,6 +11,11 @@
  *
  * Statuses: queued (to send) · sending · conflict (somebody else saved another value) · error (refused, `message`).
  *
+ * Groups (competition toolkit A4): cells set with the same `group` - a `pick` round entry's `result` and `puzzles` -
+ * travel in one request or not at all (the server applies them together, A rule 7): take() sends a group only when every
+ * cell of it is queued and fits the request, and keep mine / try again / discard on one cell act on its whole group.
+ * A cell without a group behaves exactly as before.
+ *
  * The functions before the class are the inline editors' half (openEditor … saveEditor): what the organiser saw when
  * an editor opened is the `from` of its save.
  */
@@ -94,18 +99,23 @@ export class PendingChanges {
     }
 
     /**
-     * The organiser changed a field. `serverValue` = the field as the desk has it from the server right now.
+     * The organiser changed a field. `serverValue` = the field as the desk has it from the server right now. `group`
+     * (optional) = the cells that must be sent together with this one (see the header).
      */
-    set(ref, field, to, serverValue) {
+    set(ref, field, to, serverValue, group = null) {
         const key = PendingChanges.key(ref, field);
         const cell = this.cells.get(key);
 
         if (cell === undefined) {
             if (!sameValue(to, serverValue)) {
-                this.cells.set(key, { ref, field, base: serverValue, to, status: 'queued', changeId: null, inFlight: null, conflict: null, message: null });
+                this.cells.set(key, { ref, field, base: serverValue, to, status: 'queued', changeId: null, inFlight: null, conflict: null, message: null, ...(group !== null ? { group } : {}) });
             }
 
             return;
+        }
+
+        if (group !== null) {
+            cell.group = group;
         }
 
         if (cell.status === 'conflict' && cell.inFlight === null) {
@@ -143,28 +153,62 @@ export class PendingChanges {
      */
     take(newId, limit = 500, accept = null) {
         const changes = [];
+        const sendable = (cell) => cell.status === 'queued' && cell.inFlight === null && (accept === null || accept(cell));
 
         for (const cell of this.cells.values()) {
             if (changes.length >= limit) {
                 break;
             }
 
-            if (cell.status !== 'queued' || cell.inFlight !== null || (accept !== null && !accept(cell))) {
+            if (cell.inFlight !== null || !sendable(cell)) {
                 continue;
             }
 
-            if (cell.changeId === null || !sameValue(cell.changeTo, cell.to) || !sameValue(cell.changeFrom, cell.base)) {
-                cell.changeId = newId();
-                cell.changeTo = cell.to;
-                cell.changeFrom = cell.base;
+            if (cell.group === undefined) {
+                changes.push(this.send(cell, newId));
+
+                continue;
             }
 
-            cell.inFlight = { clientChangeId: cell.changeId, to: cell.to };
-            cell.status = 'sending';
-            changes.push({ clientChangeId: cell.changeId, entry: cell.ref, field: cell.field, from: cell.base, to: cell.to });
+            // A group goes whole or waits: every cell of it queued (none on its way, refused or in conflict) and room
+            // for all of them in this request (a group bigger than a request still goes alone)
+            const members = this.groupOf(cell);
+
+            if (members[0] !== cell || !members.every(sendable)) {
+                continue;
+            }
+
+            if (changes.length > 0 && changes.length + members.length > limit) {
+                break;
+            }
+
+            members.forEach((member) => changes.push(this.send(member, newId)));
         }
 
         return changes;
+    }
+
+    /** One cell marked as in flight - its change as sent. A cell sent again with the same value keeps its change id. */
+    send(cell, newId) {
+        if (cell.changeId === null || !sameValue(cell.changeTo, cell.to) || !sameValue(cell.changeFrom, cell.base)) {
+            cell.changeId = newId();
+            cell.changeTo = cell.to;
+            cell.changeFrom = cell.base;
+        }
+
+        cell.inFlight = { clientChangeId: cell.changeId, to: cell.to };
+        cell.status = 'sending';
+
+        return { clientChangeId: cell.changeId, entry: cell.ref, field: cell.field, from: cell.base, to: cell.to };
+    }
+
+    /** The cells sent together with `cell` (itself included, in the order they were set) - just itself without a group. */
+    groupOf(cell) {
+        if (cell.group === undefined) {
+            return [cell];
+        }
+
+        return [...this.cells.values()].filter((candidate) => candidate.group === cell.group);
     }
 
     /**
@@ -245,6 +289,25 @@ export class PendingChanges {
             return;
         }
 
+        // Its group goes again with it: a partner in conflict keeps the organiser's value too, a refused one is retried
+        for (const member of this.groupOf(cell)) {
+            if (member === cell) {
+                continue;
+            }
+
+            if (member.status === 'conflict') {
+                this.keepOne(member);
+            } else if (member.status === 'error') {
+                member.status = 'queued';
+                member.message = null;
+            }
+        }
+
+        this.keepOne(cell);
+    }
+
+    keepOne(cell) {
+        const { ref, field } = cell;
         cell.base = cell.conflict.current;
         cell.conflict = null;
 
@@ -263,8 +326,15 @@ export class PendingChanges {
     discard(ref, field) {
         const cell = this.get(ref, field);
 
-        if (cell !== null && cell.inFlight === null) {
-            this.cells.delete(PendingChanges.key(ref, field));
+        if (cell === null || cell.inFlight !== null) {
+            return;
+        }
+
+        // A group is never half kept: its partners go too (unless one is on its way - its answer decides)
+        for (const member of this.groupOf(cell)) {
+            if (member.inFlight === null) {
+                this.cells.delete(PendingChanges.key(member.ref, member.field));
+            }
         }
     }
 
@@ -274,9 +344,15 @@ export class PendingChanges {
     retry(ref, field) {
         const cell = this.get(ref, field);
 
-        if (cell !== null && cell.status === 'error') {
-            cell.status = 'queued';
-            cell.message = null;
+        if (cell === null || cell.status !== 'error') {
+            return;
+        }
+
+        for (const member of this.groupOf(cell)) {
+            if (member.status === 'error') {
+                member.status = 'queued';
+                member.message = null;
+            }
         }
     }
 

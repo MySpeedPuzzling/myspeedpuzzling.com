@@ -50,6 +50,11 @@
              editor_table: 'results_desk.editor.table'|trans,
              mode_time: 'results_desk.editor.mode_time'|trans,
              mode_pieces: 'results_desk.editor.mode_pieces'|trans,
+             mode_missing: 'competition_toolkit.round_format.missing.desk_mode'|trans,
+             placeholder_missing: 'competition_toolkit.round_format.missing.label'|trans,
+             preview_missing: 'competition_toolkit.round_format.missing.preview'|trans,
+             error_missing: 'competition_toolkit.round_format.missing.invalid'|trans,
+             error_missing_row: 'competition_toolkit.round_format.missing.desk_row_invalid'|trans,
              mode_dns: 'results_desk.editor.mode_dns'|trans,
              mode_none: 'results_desk.editor.mode_none'|trans,
              placeholder_time: 'results_desk.editor.placeholder_time'|trans,
@@ -125,7 +130,42 @@
              take_out_done: 'results_desk.take_out.done'|trans,
              table_taken_by: 'results_desk.table.taken_by'|trans,
              swap_tables: 'results_desk.table.swap'|trans,
-         }|json_encode|e('html_attr') }}">
+         }|merge(round.overview.puzzleFormatView is not null ? {
+             puzzles_format: 'competition_toolkit.desk_puzzles.format'|trans,
+             puzzles_format_all: 'competition_toolkit.desk_puzzles.format_all'|trans,
+             puzzles_row: 'competition_toolkit.desk_puzzles.row'|trans,
+             puzzles_row_status: 'competition_toolkit.desk_puzzles.row_status'|trans,
+             puzzles_row_at: 'competition_toolkit.desk_puzzles.row_at'|trans,
+             puzzles_row_pieces: 'competition_toolkit.desk_puzzles.row_pieces'|trans,
+             puzzles_choose: 'competition_toolkit.desk_puzzles.choose'|trans,
+             puzzles_status_done: 'competition_toolkit.desk_puzzles.status_done'|trans,
+             puzzles_status_open: 'competition_toolkit.desk_puzzles.status_open'|trans,
+             puzzles_placeholder_at: 'competition_toolkit.desk_puzzles.placeholder_at'|trans,
+             puzzles_placeholder_time: 'competition_toolkit.desk_puzzles.placeholder_time'|trans,
+             puzzles_preview_pieces: 'competition_toolkit.desk_puzzles.preview_pieces'|trans,
+             puzzles_clear: 'competition_toolkit.desk_puzzles.clear'|trans,
+             puzzles_cleared: 'competition_toolkit.desk_puzzles.cleared'|trans,
+             puzzles_total_only: 'competition_toolkit.desk_puzzles.total_only'|trans,
+             puzzles_no_record: 'competition_toolkit.desk_puzzles.no_record'|trans,
+             puzzles_record_label: 'competition_toolkit.desk_puzzles.record_label'|trans,
+             puzzles_error_choose_all: 'competition_toolkit.desk_puzzles.error_choose_all'|trans,
+             puzzles_error_time_missing: 'competition_toolkit.desk_puzzles.error_time_missing'|trans,
+             puzzles_error_choose_one: 'competition_toolkit.desk_puzzles.error_choose_one'|trans,
+             puzzles_error_pieces_missing: 'competition_toolkit.desk_puzzles.error_pieces_missing'|trans,
+             puzzles_error_split: 'competition_toolkit.desk_puzzles.error_split'|trans,
+             puzzles_error_pieces: 'competition_toolkit.desk_puzzles.error_pieces'|trans,
+             reason_unknown_round_puzzle: 'official_results.reason.unknown_round_puzzle'|trans,
+             reason_puzzle_listed_twice: 'official_results.reason.puzzle_listed_twice'|trans,
+             reason_too_many_puzzles: 'official_results.reason.too_many_puzzles'|trans,
+             reason_invalid_split: 'official_results.reason.invalid_split'|trans,
+             reason_splits_out_of_order: 'official_results.reason.splits_out_of_order'|trans,
+             reason_invalid_pieces_placed: 'official_results.reason.invalid_pieces_placed'|trans,
+             reason_puzzles_mismatch: 'official_results.reason.puzzles_mismatch'|trans,
+         } : {})|merge(advancement_steps|default([]) is not empty ? {
+             step_overall_loading: 'advancement_step.banner.overall_loading'|trans,
+             step_overall_failed: 'advancement_step.banner.overall_failed'|trans,
+             step_overall_note: 'advancement_step.banner.overall_note'|trans,
+         } : {})|json_encode|e('html_attr') }}">
 
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
             <div>
@@ -167,7 +207,7 @@
                 return_url: desk_url,
                 return_title: 'results_desk.title'|trans,
             }) }}
-            {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds, source_round_id: round.id}) }}
+            {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds, source_round_id: round.id, with_steps: advancement_steps|default([]) is not empty}) }}
             <div class="dropdown">
                 <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'results_desk.export.button'|trans }}
@@ -203,7 +243,32 @@
                     </button>
                 </span>
             </div>
+        </div>{% for item in advancement_steps|default([]) %}
+        {#- The advancement steps this round feeds (competition toolkit A8): presets only - "Mark top N" opens the Top N
+            review dialog, "Advance" opens the Advance dialog prefilled; nothing is marked or moved before the organiser
+            confirms there. Glued to the card above, so a desk without steps renders exactly as before -#}
+        {%- set settings = item.step.settings %}
+
+        <div class="alert alert-info py-2 d-flex flex-wrap align-items-center gap-2" data-advancement-step-banner="{{ item.step.id }}">
+            <span class="me-auto">
+                <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i><span class="fw-semibold">{{ 'advancement_step.banner.step'|trans({'%name%': item.label}) }}</span>
+                · {{ include('competition_toolkit/_advancement_step_summary.html.twig') }}
+            </span>
+            <span class="d-flex flex-wrap gap-2">
+                {% if settings.qualifyCount is not null %}
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-helper="top" data-helper-count="{{ settings.qualifyCount }}"
+                            {% if item.step.overall %}data-helper-preset-url="{{ path('official_results_advancement_step_preset', {stepId: item.step.id}) }}"{% endif %}
+                            data-action="results-desk#openHelper" data-advancement-step-mark>
+                        {{ (item.step.overall ? 'advancement_step.banner.mark_overall' : 'advancement_step.banner.mark_top')|trans({'%count%': settings.qualifyCount}) }}
+                    </button>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-primary" data-step="{{ item.step|json_encode|e('html_attr') }}" data-action="results-desk#advanceStep" data-advancement-step-advance>
+                    <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'advancement_step.banner.advance'|trans }}
+                </button>
+            </span>
         </div>
+        {%- endfor %}
+
 
         {# `hidden` sits on wrappers only - a display utility (d-flex) would win over it #}
         <div hidden data-results-desk-target="banner">

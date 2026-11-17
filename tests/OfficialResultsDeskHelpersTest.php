@@ -77,6 +77,81 @@ final class OfficialResultsDeskHelpersTest extends TestCase
         self::assertSame(['D', 'I'], self::path($tie, 'tiedAtCut'));
     }
 
+    /**
+     * An advancement step's "Mark top N overall" (competition toolkit A8): the server's seed over every source round,
+     * narrowed to this desk's ranked entries - another round's refs, and unranked ones, are never proposed here.
+     */
+    public function testTheOverallProposalIsNarrowedToThisRoundsRankedEntries(): void
+    {
+        [$narrowed, $nothing, $broken] = $this->runInNode([
+            ['fn' => 'overallForRound', 'entries' => self::ENTRIES, 'answer' => [
+                'selected' => [['ref' => 'A', 'roundId' => 'a'], ['ref' => 'X', 'roundId' => 'b'], ['ref' => 'B', 'roundId' => 'a'], ['ref' => 'C', 'roundId' => 'a'], ['ref' => 'F', 'roundId' => 'a']],
+                'tiedAtCut' => ['B', 'C', 'X'],
+            ]],
+            ['fn' => 'overallForRound', 'entries' => self::ENTRIES, 'answer' => ['selected' => [], 'tiedAtCut' => []]],
+            ['fn' => 'overallForRound', 'entries' => self::ENTRIES, 'answer' => null],
+        ]);
+
+        self::assertSame(['selected' => ['A', 'B', 'C'], 'tiedAtCut' => ['B', 'C']], $narrowed);
+        self::assertSame(['selected' => [], 'tiedAtCut' => []], $nothing);
+        self::assertSame(['selected' => [], 'tiedAtCut' => []], $broken);
+    }
+
+    /**
+     * The Advance dialog prefilled from a declared step (competition toolkit A8): the step's choices, with what the
+     * dialog cannot offer left out - a round it does not know or of another category, a distribution that does not fit
+     * the targets any more (the organiser chooses), a map entry onto a round outside the step.
+     */
+    public function testTheAdvanceDialogIsPrefilledFromAStep(): void
+    {
+        $rounds = [
+            ['id' => 'group-a', 'category' => 'solo'],
+            ['id' => 'group-b', 'category' => 'solo'],
+            ['id' => 'semi-1', 'category' => 'solo'],
+            ['id' => 'semi-2', 'category' => 'solo'],
+            ['id' => 'final', 'category' => 'solo'],
+            ['id' => 'pairs', 'category' => 'duo'],
+        ];
+        $step = [
+            'id' => 'step',
+            'sourceRoundIds' => ['group-a', 'group-b'],
+            'targetRoundIds' => ['semi-1', 'semi-2'],
+            'distribution' => 'by_source',
+            'targetBySource' => ['group-a' => 'semi-2', 'group-b' => 'semi-1'],
+            'qualifyCount' => 8,
+            'qualifyScope' => 'per_round',
+            'bestOfEachCountry' => 1,
+        ];
+
+        [$full, $balanced, $lostTarget, $mixed, $gone, $garbage] = $this->runInNode([
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => $step],
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => ['distribution' => 'balanced', 'targetBySource' => ['group-a' => 'semi-1'], 'bestOfEachCountry' => null] + $step],
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => ['targetRoundIds' => ['semi-1', 'gone'], 'distribution' => 'balanced'] + $step],
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => ['sourceRoundIds' => ['group-a', 'pairs'], 'targetRoundIds' => ['final', 'pairs', 'group-a'], 'distribution' => 'single'] + $step],
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => ['targetRoundIds' => ['gone']] + $step],
+            ['fn' => 'prefillFromStep', 'rounds' => $rounds, 'step' => null],
+        ]);
+
+        self::assertSame([
+            'sources' => ['group-a', 'group-b'],
+            'targets' => ['semi-1', 'semi-2'],
+            'distribution' => 'by_source',
+            'targetBySource' => ['group-a' => 'semi-2', 'group-b' => 'semi-1'],
+            'countryRule' => 1,
+        ], $full);
+        // The map is only for "by the round they come from"
+        self::assertSame(['sources' => ['group-a', 'group-b'], 'targets' => ['semi-1', 'semi-2'], 'distribution' => 'balanced', 'targetBySource' => [], 'countryRule' => null], $balanced);
+        // "Spread evenly" over one round left: the organiser chooses
+        self::assertSame(['semi-1'], self::path($lostTarget, 'targets'));
+        self::assertNull(self::path($lostTarget, 'distribution'));
+        // The first source decides the category; a source can never be a target
+        self::assertSame(['group-a'], self::path($mixed, 'sources'));
+        self::assertSame(['final'], self::path($mixed, 'targets'));
+        self::assertSame('single', self::path($mixed, 'distribution'));
+        self::assertNull($gone);
+        self::assertNull($garbage);
+    }
+
     public function testTheDiffMarksTheSelectionAndUnmarksTheRestUnlessKept(): void
     {
         [$replace, $keep] = $this->runInNode([
@@ -342,6 +417,20 @@ final class OfficialResultsDeskHelpersTest extends TestCase
 
         self::assertSame(['r1', 'r2'], array_column(self::rows(self::path($limited, 0, 'taken')), 'entry'));
         self::assertSame(['r3'], array_column(self::rows(self::path($limited, 1, 'taken')), 'entry'));
+    }
+
+    /**
+     * Competition toolkit A4 - the per-puzzle editor of `pick` rounds and the groups of PendingChanges
+     * (tests/official-results-desk/puzzles.mjs): a `result` + `puzzles` pair is never split, the total is computed by
+     * official_results_puzzles.js, keep mine / try again / discard act on both, clearing a record, hidden puzzles by label.
+     */
+    public function testPickRoundEditorAndGroupsSuitePasses(): void
+    {
+        [$result] = $this->runInNode([['fn' => 'suite', 'name' => 'puzzles']]);
+
+        self::assertIsArray($result);
+        self::assertSame([], $result['failures'] ?? null, (string) json_encode($result['failures'] ?? null, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        self::assertGreaterThan(8, $result['passed'] ?? 0);
     }
 
     /**

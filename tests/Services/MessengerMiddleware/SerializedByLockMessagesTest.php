@@ -38,6 +38,7 @@ use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CancelRoundStart;
+use SpeedPuzzling\Web\Message\ChangeCompetitionDisplayFollow;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
@@ -47,13 +48,21 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
+use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
+use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
+use SpeedPuzzling\Web\Message\DeleteCompetitionAdvancementStep;
+use SpeedPuzzling\Web\Message\DeleteCompetitionStanding;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
+use SpeedPuzzling\Web\Message\EditCompetitionAdvancementStep;
+use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
+use SpeedPuzzling\Web\Message\UnpublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishImport;
@@ -69,6 +78,7 @@ use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Message\MoveEditionToSeries;
 use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
+use SpeedPuzzling\Web\Message\ProposeRoundTime;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\ReconcileRoundResults;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
@@ -88,6 +98,7 @@ use SpeedPuzzling\Web\Message\UndoImportRows;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Message\UnpublishCompetition;
+use SpeedPuzzling\Web\Message\WithdrawTimeProposal;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
@@ -101,7 +112,11 @@ use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\StandingRules;
+use SpeedPuzzling\Web\Value\AdvancementStepSettings;
+use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -222,6 +237,41 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
         // A Reset of an online round checks the round's official results and starts a fresh run
         self::assertSame($key, (new ResetRoundStopwatch('round', $competitionId))->lockKey());
+        // A competitor's time proposal and its undo (competition toolkit P1) - "one pending per entry" and "none once a
+        // result exists" are checked under the same lock as the judges' result writes
+        self::assertSame($key, (new ProposeRoundTime($competitionId, 'round', 'team:' . $participantId, 'proposal', 'player', 1, 1))->lockKey());
+        self::assertSame($key, (new WithdrawTimeProposal(strtolower($competitionId), 'proposal', 'player'))->lockKey());
+    }
+
+    /**
+     * The standings' writes (competition toolkit A6) take turns with round deletes and moves, which prune standings - a
+     * round going away is never saved into a standing meanwhile.
+     */
+    public function testStandingWritesLockTheEventLikeRoundDeletes(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+
+        self::assertSame($key, (new DeleteCompetitionRound('round', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new CreateCompetitionStanding(Uuid::uuid7(), $competitionId, 'Overall', RoundCategory::Solo, ['round'], new StandingRules()))->lockKey());
+        self::assertSame($key, (new EditCompetitionStanding('standing', $competitionId, 'Overall', RoundCategory::Duo, ['round'], new StandingRules()))->lockKey());
+        self::assertSame($key, (new DeleteCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new PublishCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new UnpublishCompetitionStanding('standing', $competitionId))->lockKey());
+    }
+
+    /**
+     * The advancement steps' writes (competition toolkit A8) take turns with round deletes and moves, which prune steps.
+     */
+    public function testAdvancementStepWritesLockTheEventLikeRoundDeletes(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+        $settings = new AdvancementStepSettings(['group'], ['final'], AdvanceDistribution::Single);
+
+        self::assertSame($key, (new CreateCompetitionAdvancementStep(Uuid::uuid7(), $competitionId, null, $settings))->lockKey());
+        self::assertSame($key, (new EditCompetitionAdvancementStep('step', $competitionId, 'Groups', $settings))->lockKey());
+        self::assertSame($key, (new DeleteCompetitionAdvancementStep('step', strtolower($competitionId)))->lockKey());
     }
 
     /**
@@ -299,6 +349,7 @@ final class SerializedByLockMessagesTest extends TestCase
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
         CancelRoundStart::class => 'the round\'s stopwatch only - calls a countdown off',
+        ChangeCompetitionDisplayFollow::class => 'a competition display\'s round to follow - only reads the event\'s rounds to check the chosen ones are its own; entries and results are not touched',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
         CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DuplicateCompetition::class => 'creates a new draft event with empty rounds - only reads the source\'s round settings, never its entries or results, and nobody can be entered in the copy before it exists',

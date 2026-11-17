@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The display design editor (EditCompetitionDisplayController, D-displays-overlays.md §8.2, competition toolkit D6).
+    display_editor_controller.js (lazy, this page only) builds the stage, layers and properties from `config`.
+    Variables: competition, display (CompetitionDisplayOverview), config.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition_display.editor.title'|trans }} - {{ display.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}
+    {{ include('competition_display/_fonts.html.twig') }}
+{% endblock %}
+
+{% block full_content %}
+    <section class="container-fluid px-3 pt-2 pt-md-3 mb-4">
+        {{ include('_breadcrumb.html.twig', {items: [
+            {label: 'events.title'|trans, url: path('events')},
+            {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+            {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+            {label: 'competition_display.list.title'|trans, url: path('competition_displays', {competitionId: competition.id})},
+            {label: display.name},
+        ]}) }}
+
+        <div class="display-editor"
+             data-display-editor-page
+             data-controller="display-editor"
+             data-display-editor-config-value="{{ config|json_encode }}">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h1 class="h4 mb-0">{{ display.name }}</h1>
+                <span class="badge {{ display.kind.value == 'overlay' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ ('competition_display.kind.' ~ display.kind.value)|trans }}</span>
+                <span class="display-editor__status ms-1" data-display-editor-target="status" role="status" aria-live="polite"></span>
+                <span class="ms-auto d-flex flex-wrap gap-2">
+                    <a href="{{ path('competition_display_settings', {displayId: display.id, return: app.request.requestUri}) }}" class="btn btn-sm btn-outline-secondary" data-display-editor-settings>
+                        <i class="bi bi-gear me-1"></i>{{ 'competition_display.list.settings'|trans }}
+                    </a>
+                    <a href="{{ url('competition_display', {token: display.token}) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer" data-turbo="false" data-display-editor-open>
+                        <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'competition_display.editor.open_display'|trans }}
+                    </a>
+                </span>
+            </div>
+
+            <p class="small text-muted d-md-none">{{ 'competition_display.editor.narrow'|trans }}</p>
+
+            <div class="display-editor__toolbar" data-display-editor-target="toolbar">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" data-display-editor-target="undo" data-action="display-editor#undo" title="{{ 'competition_display.editor.undo'|trans }} (Ctrl+Z)" aria-label="{{ 'competition_display.editor.undo'|trans }}" disabled><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" data-display-editor-target="redo" data-action="display-editor#redo" title="{{ 'competition_display.editor.redo'|trans }} (Ctrl+Shift+Z)" aria-label="{{ 'competition_display.editor.redo'|trans }}" disabled><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+
+                <label class="small mb-0" for="display-editor-data">{{ 'competition_display.editor.data'|trans }}</label>
+                <select id="display-editor-data" class="form-select form-select-sm" data-display-editor-target="data" data-action="display-editor#previewChanged">
+                    <option value="sample" selected>{{ 'competition_display.editor.data_sample'|trans }}</option>
+                    <option value="display">{{ 'competition_display.editor.data_display'|trans }}</option>
+                </select>
+
+                <label class="small mb-0" for="display-editor-phase">{{ 'competition_display.editor.preview_phase'|trans }}</label>
+                <select id="display-editor-phase" class="form-select form-select-sm" data-display-editor-target="phase" data-action="display-editor#previewChanged">
+                    {% for phase in ['idle', 'scheduled', 'last_seconds', 'running', 'warning', 'times_up', 'stopped'] %}
+                        <option value="{{ phase }}"{{ phase == 'running' ? ' selected' }}>{{ ('competition_display.editor.phase.' ~ phase)|trans }}</option>
+                    {% endfor %}
+                </select>
+
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="display-editor-published" data-display-editor-target="published" data-action="display-editor#previewChanged" checked>
+                    <label class="form-check-label small" for="display-editor-published">{{ 'competition_display.editor.published'|trans }}</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="display-editor-revealed" data-display-editor-target="revealed" data-action="display-editor#previewChanged" checked>
+                    <label class="form-check-label small" for="display-editor-revealed">{{ 'competition_display.editor.revealed'|trans }}</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="display-editor-snap" data-display-editor-target="snap" checked>
+                    <label class="form-check-label small" for="display-editor-snap">{{ 'competition_display.editor.snap'|trans }}</label>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-primary ms-auto" data-display-editor-target="save" data-action="display-editor#saveClicked:prevent" data-display-editor-save>
+                    <i class="bi bi-check2 me-1"></i>{{ 'competition_display.editor.save'|trans }}
+                </button>
+            </div>
+
+            <div class="alert py-2 px-3 small mb-2" data-display-editor-target="notice" role="alert" hidden></div>
+
+            <div class="display-editor__body">
+                <aside class="display-editor__left">
+                    <div class="display-editor__box">
+                        <h2 class="display-editor__box-title"><label for="display-editor-add">{{ 'competition_display.editor.add'|trans }}</label></h2>
+                        <div class="input-group input-group-sm">
+                            <select id="display-editor-add" class="form-select" data-display-editor-target="catalogue"></select>
+                            <button type="button" class="btn btn-outline-primary" data-action="display-editor#add" data-display-editor-add>
+                                <i class="bi bi-plus-lg"></i><span class="visually-hidden">{{ 'competition_display.editor.add_button'|trans }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="display-editor__box">
+                        <h2 class="display-editor__box-title">{{ 'competition_display.editor.layers'|trans }}</h2>
+                        <ul class="display-editor__layers" data-display-editor-target="layers"></ul>
+                        <button type="button" class="btn btn-sm btn-link px-0" data-action="display-editor#selectCanvas" data-display-editor-canvas>{{ 'competition_display.editor.canvas_and_theme'|trans }}</button>
+                    </div>
+                </aside>
+
+                <div class="display-editor__centre">
+                    <div class="display-editor__stage-wrap" data-display-editor-target="stageWrap">
+                        <div class="display-editor__stage" data-display-editor-target="stage"></div>
+                        <div class="display-editor__overlay" data-display-editor-target="overlay" tabindex="0" aria-label="{{ 'competition_display.editor.stage'|trans }}"></div>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">{{ 'competition_display.editor.hint'|trans }}</p>
+                </div>
+
+                <aside class="display-editor__right" data-display-editor-target="panel" aria-label="{{ 'competition_display.editor.properties'|trans }}"></aside>
+            </div>
+        </div>
+    </section>
+{% endblock %}

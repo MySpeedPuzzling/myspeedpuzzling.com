@@ -11,7 +11,8 @@ import { Controller } from '@hotwired/stimulus';
  *     <div data-organizer-form-target="part" data-show-field="isRecurring" data-show-values="1">…</div>
  *
  * `data-show-field` is the field's name (`how`) or the last part of it (`competition_form[isRecurring]`),
- * `data-show-values` the values (space separated) that show the part; an unticked checkbox has the value "".
+ * `data-show-values` the values (space separated) that show the part; an unticked checkbox has the value "". `*` shows
+ * the part for any value but "" (the event creation wizard: "Keep it secret" once a puzzle is chosen).
  */
 export default class extends Controller {
     static targets = ['part'];
@@ -23,7 +24,8 @@ export default class extends Controller {
     update() {
         this.partTargets.forEach((part) => {
             const values = (part.dataset.showValues || '').split(' ');
-            part.hidden = !values.includes(this.valueOf(part.dataset.showField || ''));
+            const value = this.valueOf(part.dataset.showField || '');
+            part.hidden = values.includes('*') ? value === '' : !values.includes(value);
         });
     }
 

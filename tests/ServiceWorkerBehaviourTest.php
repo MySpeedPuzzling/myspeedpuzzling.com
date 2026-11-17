@@ -22,6 +22,11 @@ use Symfony\Component\Process\Process;
  * twice to see a time they had just added or a new notification: the first
  * refresh replayed the copy stored by the previous one.
  *
+ * One exception, on purpose (competition toolkit C6, R-review-and-plan.md §2.7): a live result entry URL whose network
+ * request failed gets the data-free offline copy `live-shell-v7` stored for it - never a copy of the real page, and
+ * never while the network answers (the live entry scenarios below are fresh documents like any other).
+ * ServiceWorkerLiveShellTest pins the copy itself.
+ *
  * Node is part of the base image the suite runs in, locally and in CI. A
  * missing binary fails instead of skipping - a skipped guard guards nothing.
  */
@@ -76,6 +81,19 @@ final class ServiceWorkerBehaviourTest extends TestCase
 
         self::assertTrue($result['intercepted']);
         self::assertSame('STALE', $result['body']);
+    }
+
+    /**
+     * The one document answered from a cache: the live entry page's data-free offline copy, read from the copy's own
+     * URL (never the URL asked for) only after the network failed.
+     */
+    public function testOfflineLiveEntryNavigationGetsOnlyTheStoredOfflineCopy(): void
+    {
+        $result = self::answerTo('live entry navigation offline');
+
+        self::assertSame(['https://myspeedpuzzling.com/en/live-results-shell'], $result['cacheReads']);
+        self::assertSame([], $result['cacheWrites']);
+        self::assertCount(2, $result['networkFetches'], 'the network first, with its one retry');
     }
 
     public function testOfflineNavigationGetsTheOfflinePageNotACachedCopyOfThePage(): void
@@ -273,6 +291,9 @@ final class ServiceWorkerBehaviourTest extends TestCase
             ['name' => 'navigation to a URL that looks like an image', 'expect' => 'fresh-document', 'path' => '/en/result-image/abc.png', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT],
             ['name' => 'navigation with an image-only Accept header', 'expect' => 'fresh-document', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_IMAGE_ACCEPT],
             ['name' => 'iframe document', 'expect' => 'fresh-document', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'iframe', 'accept' => self::CHROME_NAVIGATION_ACCEPT],
+            ['name' => 'live entry navigation (round)', 'expect' => 'fresh-document', 'path' => '/en/live-results/018d0020-0000-0000-0000-000000000101', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT],
+            ['name' => 'live entry navigation (printed table tag)', 'expect' => 'fresh-document', 'path' => '/live/018d0020-0000-0000-0000-000000000c01/t/12', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::SAFARI_NAVIGATION_ACCEPT],
+            ['name' => 'live entry navigation offline', 'expect' => 'offline-copy', 'path' => '/en/live-results/018d0020-0000-0000-0000-000000000101', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT, 'offline' => true],
             ['name' => 'image', 'expect' => 'cached', 'path' => '/img/speedpuzzling-logo.png', 'mode' => 'no-cors', 'destination' => 'image', 'accept' => self::CHROME_IMAGE_ACCEPT, 'cachedContentType' => 'image/png', 'networkContentType' => 'image/png'],
             ['name' => 'offline navigation', 'expect' => 'offline', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT, 'offline' => true],
             ['name' => 'navigation failing once', 'expect' => 'fresh-document', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::SAFARI_NAVIGATION_ACCEPT, 'failingFetches' => 1],

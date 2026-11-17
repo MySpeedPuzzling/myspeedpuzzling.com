@@ -1,0 +1,31 @@
+{#
+    The frame of every wizard step: breadcrumb, the step rail (left from 992 px, a bar on phones), the step's content.
+    Blocks: wizard_title, wizard_content.
+#}
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: 'competition.add_event'|trans},
+    ]}) }}
+
+    <div class="pb-5">
+        <div class="row gy-3">
+            <div class="col-lg-3 order-lg-1">
+                {{ include('event_wizard/_rail.html.twig', {progress: progress, step: step}, with_context = false) }}
+            </div>
+            <div class="col-lg-8 col-xl-7 order-lg-2">
+                <h1 class="h3 mb-3">{% block wizard_title %}{% endblock %}</h1>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success"><i class="ci-check-circle me-2"></i>{{ flash_message }}</div>
+                {% endfor %}
+
+                {% block wizard_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

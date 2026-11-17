@@ -8,13 +8,15 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Message\CancelRoundStart;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Calls a countdown off - only before its moment, a round that runs is never reset by a late cancel
  * (CompetitionRound::cancelScheduledStart()). The caller checked the rights (COMPETITION_EDIT); the acting player is not
  * stored. Publishes nothing: the controller tells the open pages once the dispatch returned, after the commit
- * (RoundStopwatchLiveUpdates).
+ * (RoundStopwatchLiveUpdates). A countdown started with "Reveal the puzzles" takes its reveal back - the puzzles wait
+ * for the next start (RoundStopwatchReveal).
  */
 #[AsMessageHandler]
 readonly final class CancelRoundStartHandler
@@ -22,6 +24,7 @@ readonly final class CancelRoundStartHandler
     public function __construct(
         private CompetitionRoundRepository $competitionRoundRepository,
         private ClockInterface $clock,
+        private RoundStopwatchReveal $roundStopwatchReveal,
     ) {
     }
 
@@ -30,8 +33,16 @@ readonly final class CancelRoundStartHandler
      */
     public function __invoke(CancelRoundStart $message): void
     {
+        // First - it clears the entity manager when it locks
+        $withReveal = $this->roundStopwatchReveal->lockIfNeeded($message->roundId, false);
+        // After the lock - a wait for it never leaves the action at a moment already past
+        $now = $this->clock->now();
         $round = $this->competitionRoundRepository->get($message->roundId);
 
-        $round->cancelScheduledStart($this->clock->now());
+        $round->cancelScheduledStart($now);
+
+        if ($withReveal) {
+            $this->roundStopwatchReveal->resync($this->roundStopwatchReveal->withdrawFuture($round, $now));
+        }
     }
 }

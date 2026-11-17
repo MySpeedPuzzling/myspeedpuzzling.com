@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\RoundPuzzleFormats;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -18,7 +19,9 @@ use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
  * (docs/features/competitions-management/official-results.md). One statement for all rounds of the event; the
  * counts follow GetRoundResultEntries (solo round: its people; pair/team round: its teams; only people going to the
  * event - CompetitionParticipantGoing), and say how many people of the round wait on the event's waitlist (left out
- * until the organiser gives them a spot).
+ * until the organiser gives them a spot). A `pick` round (competition toolkit A2) comes with its format and puzzles
+ * (RoundPuzzleFormats - by label only while hidden, the public rule for every viewer), so every answer and update that
+ * carries a round (the round state, Mercure `official_results.round` / `.entries`, the desk's actions) has them.
  */
 readonly final class GetRoundResultsOverview
 {
@@ -36,6 +39,8 @@ SELECT
     cr.results_published_at,
     cr.results_first_published_at,
     cr.table_numbers_off,
+    cr.puzzle_format,
+    cr.puzzles_to_solve,
     c.is_online,
     puzzles.puzzles_count,
     puzzles.pieces_count,
@@ -91,6 +96,7 @@ SQL;
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private RoundPuzzleFormats $roundPuzzleFormats,
     ) {
     }
 
@@ -105,7 +111,8 @@ SQL;
         );
         $now = $this->clock->now();
 
-        return array_map(fn (array $row): RoundResultsOverview => $this->hydrate($row, $now), $rows);
+        // `pick` rounds with their format and puzzles (competition toolkit A2) - no statement for an event without one
+        return $this->roundPuzzleFormats->attachTo(array_map(fn (array $row): RoundResultsOverview => $this->hydrate($row, $now), $rows));
     }
 
     /**
@@ -119,7 +126,7 @@ SQL;
             throw new CompetitionRoundNotFound();
         }
 
-        return $this->hydrate($row, $this->clock->now());
+        return $this->roundPuzzleFormats->attachTo([$this->hydrate($row, $this->clock->now())])[0];
     }
 
     private static function select(): string
@@ -138,7 +145,7 @@ SQL;
      */
     private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
         $stopwatchStartedAt = $date($row['stopwatch_started_at']);
@@ -165,6 +172,8 @@ SQL;
             entriesQualified: $row['qualified'],
             competitionIsOnline: $row['is_online'],
             peopleOnWaitlist: $row['on_waitlist'],
+            puzzleFormat: $row['puzzle_format'],
+            puzzlesToSolve: $row['puzzles_to_solve'],
             showsTablesReadiness: SeatingReadiness::isShown(
                 $row['is_online'],
                 $row['table_numbers_off'],

@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * A referee (docs/features/competitions-management/live-results.md "Referees") never sees the #code, profile name or id
@@ -56,14 +55,17 @@ final class RefereePrivatePlayersTest extends WebTestCase
         // The organiser's record stays: the referee finds her by the name on the list
         self::assertSame('Gina Quick', $gina['name']);
 
-        $crawler = $this->browser->request('GET', '/en/live-results/' . self::GROUP_B);
+        // ... nor in the state the live entry page fills itself from (`?viewer=1`), nor in the page itself
+        $this->browser->request('GET', '/en/official-results/rounds/' . self::GROUP_B . '?viewer=1');
         self::assertResponseIsSuccessful();
-        self::assertNull($this->entryOf($this->initialState($crawler), self::GINA)['playerCode']);
+        self::assertNull($this->entryOf($this->json(), self::GINA)['playerCode']);
+        self::assertStringNotContainsStringIgnoringCase('player2', (string) $this->browser->getResponse()->getContent());
+        $this->browser->request('GET', '/en/live-results/' . self::GROUP_B);
+        self::assertResponseIsSuccessful();
         self::assertStringNotContainsStringIgnoringCase('player2', (string) $this->browser->getResponse()->getContent());
 
         // ... nor in the quick add's people of the event (Gina is no entry of Group A)
-        $crawler = $this->browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A);
-        self::assertSame([null], array_column(array_filter($this->eventPeople($crawler), static fn (array $person): bool => $person['name'] === 'Gina Quick'), 'playerCode'));
+        self::assertSame([null], array_column(array_filter($this->eventPeople(OfficialResultsFixture::ROUND_GROUP_A), static fn (array $person): bool => $person['name'] === 'Gina Quick'), 'playerCode'));
 
         // ... nor in the answer to the referee's own save
         $this->post('/en/official-results/rounds/' . self::GROUP_B . '/changes', ['changes' => [[
@@ -86,8 +88,7 @@ final class RefereePrivatePlayersTest extends WebTestCase
         self::assertSame('player2', $gina['playerCode']);
         self::assertArrayNotHasKey('playerWithheld', $gina);
 
-        $crawler = $this->browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A);
-        self::assertSame(['PLAYER2'], array_column(array_filter($this->eventPeople($crawler), static fn (array $person): bool => $person['name'] === 'Gina Quick'), 'playerCode'));
+        self::assertSame(['PLAYER2'], array_column(array_filter($this->eventPeople(OfficialResultsFixture::ROUND_GROUP_A), static fn (array $person): bool => $person['name'] === 'Gina Quick'), 'playerCode'));
     }
 
     public function testTheRefereesLiveUpdatesWithholdEveryPrivatePlayer(): void
@@ -137,20 +138,19 @@ final class RefereePrivatePlayersTest extends WebTestCase
     }
 
     /**
-     * @return array<mixed>
-     */
-    private function initialState(Crawler $crawler): array
-    {
-        return self::decode($crawler->filter('script[data-live-results-target="initialState"]')->text());
-    }
-
-    /**
+     * The quick add's people of the event (official_results_event_people - the live entry asks for them).
+     *
      * @return list<array{name: string, playerCode: null|string}>
      */
-    private function eventPeople(Crawler $crawler): array
+    private function eventPeople(string $roundId): array
     {
+        $this->browser->request('GET', '/en/official-results/rounds/' . $roundId . '/event-people');
+        self::assertResponseIsSuccessful();
+        $answer = $this->json();
+        self::assertIsArray($answer['people'] ?? null);
+
         /** @var list<array{name: string, playerCode: null|string}> $people */
-        $people = self::decode($crawler->filter('script[data-live-results-target="eventPeople"]')->text());
+        $people = $answer['people'];
 
         return $people;
     }

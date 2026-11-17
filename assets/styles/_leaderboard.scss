@@ -992,3 +992,59 @@ $lb-chart-switch-width: 68px; // two buttons sharing a border (measured 63-67 px
     padding: .5rem 0;
     cursor: pointer;
 }
+
+// A pick round's chosen puzzles on the public round page (competition toolkit A5, round_results/_entry_puzzles.html.twig)
+.lb-table .official-entry-puzzles {
+    margin: 4px 0 2px $lb-indent;
+    font-size: .8125rem;
+}
+
+.official-entry-puzzle-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.official-entry-puzzle {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 4px;
+    max-width: 100%;
+    padding: 1px 8px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    // Not a full pill: on a phone a chip may take two lines
+    border-radius: .75rem;
+    background: var(--bs-body-bg, #fff);
+
+    &.is-done {
+        border-color: #b5e2c6;
+    }
+}
+
+.official-entry-puzzle-label {
+    font-weight: 600;
+}
+
+.official-entry-puzzle-name {
+    overflow-wrap: anywhere;
+}
+
+.official-entry-puzzle-time {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.lb-table .official-entry-puzzles .official-profile-action {
+    margin-left: 0;
+
+    // A phone's name column is narrow: the per-puzzle buttons wrap rather than run into the result column
+    .btn {
+        max-width: 100%;
+        white-space: normal;
+        text-align: start;
+    }
+}

@@ -86,11 +86,13 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
-        $crawler = $this->browser->request('GET', self::LIVE);
+        // The live entry carries no state of its own (competition toolkit C1) - it asks for it with `?viewer=1`
+        $this->browser->request('GET', self::LIVE);
         self::assertResponseIsSuccessful();
-        $state = json_decode($crawler->filter('script[data-live-results-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($state);
-        self::assertSubscription(self::ROUND_TOPICS, $state['mercure'] ?? null);
+        self::assertNoRoundTopicInTheCookie($this->browser);
+        $this->browser->request('GET', self::STATE . '?viewer=1');
+        self::assertResponseIsSuccessful();
+        self::assertSubscription(self::ROUND_TOPICS, $this->json()['mercure'] ?? null);
         self::assertNoRoundTopicInTheCookie($this->browser);
 
         $crawler = $this->browser->request('GET', self::DESK);
@@ -176,11 +178,11 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSubscription(self::REFEREE_TOPICS, $this->json()['mercure'] ?? null);
 
-        $crawler = $this->browser->request('GET', self::LIVE);
+        $this->browser->request('GET', self::LIVE);
         self::assertResponseIsSuccessful();
-        $state = json_decode($crawler->filter('script[data-live-results-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($state);
-        self::assertSubscription(self::REFEREE_TOPICS, $state['mercure'] ?? null);
+        $this->browser->request('GET', self::STATE . '?viewer=1');
+        self::assertResponseIsSuccessful();
+        self::assertSubscription(self::REFEREE_TOPICS, $this->json()['mercure'] ?? null);
 
         // The organiser tools - and their tokens - stay closed
         foreach ([self::DESK, self::SEATING, self::OVERVIEW] as $url) {

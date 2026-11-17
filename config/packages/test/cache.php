@@ -88,6 +88,11 @@ return App::config([
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Read from the displays a test seeds and DAMA rolls back - never what an earlier test saw
+                'competition_displays_presence_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                    'tags' => true,
+                ],
             ],
         ],
     ],

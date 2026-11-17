@@ -30,7 +30,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  * Call resync() after anything that may move a reveal: adding a puzzle to a round, a reveal change, "Reveal now",
  * a round's start or its reveal delay (CompetitionRound::changeRevealDelay()), removing the puzzle from a round,
  * deleting a round or an event, a merge. With no such row left the dates stay as they are - a puzzle is never revealed
- * by accident.
+ * by accident. So a reveal still ahead on a row going away (a countdown with the stopwatch tick) is taken back before
+ * the removal, while the row exists (RoundStopwatchReveal::withdrawBeforeRemoving()).
  *
  * Works on the unit of work as it is now (rows added or removed in this handler count), since a handler only flushes
  * at its end (doctrine_transaction).
@@ -216,9 +217,11 @@ readonly final class SecretPuzzleHides
      * @param array<string, DateTimeImmutable> $automaticRevealsAt round id => the automatic reveal to assume for its rows
      *     with an automatic reveal that are still hidden (RoundPuzzleReveal::automaticRevealAt() of the new start and
      *     delay)
+     * @param array<string, DateTimeImmutable> $stopwatchRevealsAt round id => the moment to assume for its rows waiting
+     *     for a stopwatch start with the tick (RoundPuzzleReveal::Stopwatch, still hidden) - a start that reveals
      * @return null|array{hiddenUntil: null|DateTimeImmutable, imageHiddenUntil: DateTimeImmutable}
      */
-    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $automaticRevealsAt = []): null|array
+    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $automaticRevealsAt = [], array $stopwatchRevealsAt = []): null|array
     {
         $hiddenUntil = null;
         $imageHiddenUntil = null;
@@ -237,9 +240,12 @@ readonly final class SecretPuzzleHides
             // A round edit pins reveals that already happened (EditCompetitionRoundHandler) - only the automatic reveals
             // still ahead move; scheduled and manual ones are the organiser's own and never follow the round
             $assumed = $automaticRevealsAt[$row->round->id->toString()] ?? null;
-            $revealsAt = $assumed !== null && $row->revealMode === RoundPuzzleReveal::Automatic && $row->isHiddenAt($now)
-                ? $assumed
-                : ($row->revealsAt() ?? $neverRevealed);
+            $assumedStopwatch = $stopwatchRevealsAt[$row->round->id->toString()] ?? null;
+            $revealsAt = match (true) {
+                $assumed !== null && $row->revealMode === RoundPuzzleReveal::Automatic && $row->isHiddenAt($now) => $assumed,
+                $assumedStopwatch !== null && $row->waitsForStopwatchStart($now) => $assumedStopwatch,
+                default => $row->revealsAt() ?? $neverRevealed,
+            };
 
             if ($imageHiddenUntil === null || $revealsAt > $imageHiddenUntil) {
                 $imageHiddenUntil = $revealsAt;

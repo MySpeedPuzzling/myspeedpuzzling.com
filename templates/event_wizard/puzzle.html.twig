@@ -1,0 +1,145 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.puzzle'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.puzzle.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {%- set automatic_time = zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed) -%}
+    <div class="card shadow-sm">
+        <div class="card-body"
+             data-controller="time-form-autocomplete"
+             data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+             data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
+             data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}">
+            {{ form_start(form) }}
+            {# The automatic reveal named under "Keep it secret" - a secret puzzle is added only while the round still has
+               it (AddPuzzleToCompetitionRound) #}
+            <input type="hidden" name="automatic_reveal_at" value="{{ round.automaticRevealAt.timestamp }}">
+            <div data-controller="organizer-form" data-action="change->organizer-form#update">
+                {{ form_errors(form) }}
+
+                <div class="mb-3">
+                    {{ form_label(form.category, null, {label_attr: {class: 'form-label'}}) }}
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for child in form.category %}
+                            <div class="form-check">
+                                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {{ form_errors(form.category) }}
+                </div>
+                <div data-organizer-form-target="part" data-show-field="category" data-show-values="team">
+                    {{ form_row(form.teamSize) }}
+                </div>
+
+                <div class="required">{{ form_row(form.minutesLimit) }}</div>
+
+                <hr class="my-4">
+
+                {% if round_puzzles is not empty %}
+                    <div class="mb-3" data-event-wizard-round-puzzles>
+                        <div class="form-label">{{ 'event_wizard.puzzle.round_has'|trans }}</div>
+                        <ul class="list-group mb-2">
+                            {% for round_puzzle in round_puzzles %}
+                                <li class="list-group-item d-flex align-items-center gap-2">
+                                    <span class="badge bg-light text-dark border">{{ round_puzzle.label }}</span>
+                                    <span class="text-truncate">{{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}</span>
+                                    {% if round_puzzle.hideUntilRoundStarts %}<span class="badge bg-dark ms-auto"><i class="ci-locked me-1"></i>{{ 'event_wizard.puzzle.secret'|trans }}</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <a class="small" href="{{ path('manage_round_puzzles', {roundId: round.id}) }}">{{ 'event_wizard.puzzle.manage_existing'|trans }}</a>
+                    </div>
+                    <p class="form-label mt-3 mb-2">{{ 'event_wizard.puzzle.add_another_label'|trans }}</p>
+                {% endif %}
+
+                {{ form_row(form.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}}) }}
+                {{ form_row(form.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+                <p class="form-text mt-n2 mb-3" data-event-wizard-decide-later><i class="ci-time me-1"></i>{{ 'event_wizard.puzzle.decide_later'|trans }}</p>
+
+                <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
+                    {{ form_row(form.piecesCount) }}
+                    <div class="mb-3">
+                        {{ form_label(form.puzzlePhoto) }}
+                        {{ include('photo_stash/_photo_drop_area.html.twig', {
+                            field: form.puzzlePhoto,
+                            stash_field: 'puzzlePhoto',
+                            kept_photo: (kept_photos|default({})).puzzlePhoto ?? null,
+                        }, with_context = false) }}
+                        {{ form_help(form.puzzlePhoto) }}
+                    </div>
+                    {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleEans, label: 'forms.ean'|trans}, with_context = false) }}
+                    {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleBrandCodes, label: 'forms.identification_number'|trans}, with_context = false) }}
+                </div>
+
+                {# "Keep it secret" once a puzzle is chosen, its choices once it is ticked #}
+                <div data-organizer-form-target="part" data-show-field="puzzle" data-show-values="*" data-event-wizard-secret>
+                    {{ form_row(form.hideUntilRoundStarts, {
+                        label: 'event_wizard.puzzle.keep_secret',
+                        help: revealed_right_away ? 'competition.round_puzzle.form.hide_help_round_started'|trans({'%date%': automatic_time}) : null,
+                    }) }}
+                    <div class="ms-4" data-organizer-form-target="part" data-show-field="hideUntilRoundStarts" data-show-values="1">
+                        <div class="mb-3">
+                            <div class="form-label">{{ 'event_wizard.puzzle.reveal_label'|trans }}</div>
+                            {% for child in form.revealMode %}
+                                <div class="mb-1">
+                                    {#- The bootstrap theme renders a radio with its label - the automatic one names its moment -#}
+                                    {% if child.vars.value == 'automatic' %}
+                                        {{ form_widget(child, {label: 'event_wizard.puzzle.reveal_automatic_at'|trans({'%after_start%': 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}), '%time%': automatic_time})}) }}
+                                    {% else %}
+                                        {{ form_widget(child) }}
+                                    {% endif %}
+                                    {% if child.vars.value == 'stopwatch' %}
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_stopwatch_help'|trans }}</div>
+                                    {% elseif child.vars.value == 'manual' %}
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_manual_help'|trans }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                            {{ form_errors(form.revealMode) }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-label">{{ 'event_wizard.puzzle.hide_what'|trans }}</div>
+                            {% for child in form.hideMode %}
+                                <div class="form-check mb-1">
+                                    {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                    {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                    <div class="form-text mt-0">{{ ('competition.round_puzzle.form.hide_mode_' ~ child.vars.value ~ '_help')|trans }}</div>
+                                </div>
+                            {% endfor %}
+                            {{ form_errors(form.hideMode) }}
+                        </div>
+                    </div>
+                </div>
+
+                {#- Several puzzles (competition toolkit A2): asked once the round has a puzzle and another may come -#}
+                {% if form.puzzleFormat is defined %}
+                    <div class="mb-3 border rounded p-3" data-event-wizard-format>
+                        {{ form_label(form.puzzleFormat, null, {label_attr: {class: 'form-label'}}) }}
+                        {% for child in form.puzzleFormat %}
+                            <div class="form-check">
+                                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                            </div>
+                        {% endfor %}
+                        {{ form_errors(form.puzzleFormat) }}
+                        <div class="mt-2" data-organizer-form-target="part" data-show-field="puzzleFormat" data-show-values="pick">
+                            {{ form_row(form.puzzlesToSolve) }}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.save_continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                    {{ form_widget(form.another, {attr: {class: 'btn btn-outline-secondary'}}) }}
+                    <a href="{{ path('event_wizard_basics_edit', {competitionId: progress.competitionId}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+                    {{ form_widget(form.later, {attr: {class: 'btn btn-link text-muted ms-auto'}}) }}
+                </div>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

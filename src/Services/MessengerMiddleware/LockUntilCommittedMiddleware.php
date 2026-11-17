@@ -13,6 +13,7 @@ use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 use Symfony\Component\Messenger\Middleware\StackInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Serializes handling of SerializedByLock messages per lock key, for the whole
@@ -21,14 +22,30 @@ use Symfony\Component\Messenger\Middleware\StackInterface;
  * Must stay BEFORE (outside) doctrine_transaction in the bus middleware list, so the
  * lock is released only after the transaction committed or rolled back. A message
  * dispatched from inside another handler's transaction would release its lock before
- * the outer commit - none of the SerializedByLock messages is dispatched that way.
+ * the outer commit - so a SerializedByLock message is dispatched that way only by a
+ * composite that is SerializedByLock under the same key itself (the event creation
+ * wizard's SaveEventWizardBasics / SetUpEventWizardRound around EditCompetitionRound):
+ * a key this process holds already passes through - the outer message keeps it until
+ * its own commit, and acquiring it a second time would wait for itself.
  */
-final readonly class LockUntilCommittedMiddleware implements MiddlewareInterface
+final class LockUntilCommittedMiddleware implements MiddlewareInterface, ResetInterface
 {
+    /**
+     * The keys held by messages being handled right now (outer ones of a nested dispatch)
+     *
+     * @var array<string, true>
+     */
+    private array $heldKeys = [];
+
     public function __construct(
-        private LockFactory $lockFactory,
-        private LoggerInterface $logger,
+        readonly private LockFactory $lockFactory,
+        readonly private LoggerInterface $logger,
     ) {
+    }
+
+    public function reset(): void
+    {
+        $this->heldKeys = [];
     }
 
     public function handle(Envelope $envelope, StackInterface $stack): Envelope
@@ -39,12 +56,22 @@ final readonly class LockUntilCommittedMiddleware implements MiddlewareInterface
             return $stack->next()->handle($envelope, $stack);
         }
 
-        $lock = $this->lockFactory->createLock($message->lockKey());
-        $this->acquire($lock, $message->lockKey());
+        $key = $message->lockKey();
+
+        // Held by the outer message of a nested dispatch - it stays held until that one's commit
+        if (isset($this->heldKeys[$key])) {
+            return $stack->next()->handle($envelope, $stack);
+        }
+
+        $lock = $this->lockFactory->createLock($key);
+        $this->acquire($lock, $key);
+        $this->heldKeys[$key] = true;
 
         try {
             return $stack->next()->handle($envelope, $stack);
         } finally {
+            unset($this->heldKeys[$key]);
+
             try {
                 $lock->release();
             } catch (LockReleasingException $releasingException) {

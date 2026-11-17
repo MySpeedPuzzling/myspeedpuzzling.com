@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The advancement steps of an event (competition toolkit A8, competition_advancement_steps_manage).
+    Variables: competition, rounds, view (AdvancementStepsView), brackets (list<Bracket>, competition toolkit A9),
+    public_bracket_url (null|string).
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'advancement_step.list.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'advancement_step.list.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_toolkit', {competitionId: competition.id}), fallbackTitle: 'competition_toolkit.title'|trans}) }}
+
+    <div class="pb-4" data-advancement-steps>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <h1 class="h2 mb-0">{{ 'advancement_step.list.title'|trans }}</h1>
+            {% if rounds|length > 1 %}
+                <a href="{{ path('add_competition_advancement_step', {competitionId: competition.id}) }}" class="btn btn-sm btn-primary ms-auto" data-advancement-step-add-link>
+                    <i class="bi bi-plus-lg me-1"></i>{{ 'advancement_step.list.add'|trans }}
+                </a>
+            {% endif %}
+        </div>
+        <p class="text-muted" style="max-width: 48rem;">{{ 'advancement_step.list.intro'|trans }}</p>
+
+        {% if rounds|length < 2 %}
+            <p class="text-muted">{{ 'advancement_step.list.no_rounds'|trans }}</p>
+        {% endif %}
+
+        {% if brackets is not empty %}
+            {# The bracket of the working steps (competition toolkit A9): every round with its results progress #}
+            <section class="mb-4" data-advancement-stages data-organiser-bracket>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 class="h5 mb-0">{{ 'bracket.organiser.title'|trans }}</h2>
+                    {% if public_bracket_url is not null %}
+                        <a href="{{ public_bracket_url }}" class="btn btn-sm btn-outline-secondary ms-auto" data-public-bracket-link>
+                            <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{{ 'bracket.organiser.public_page'|trans }}
+                        </a>
+                    {% endif %}
+                </div>
+                {% for bracket in brackets %}
+                    {% if brackets|length > 1 %}<h3 class="h6 mt-3 mb-2">{{ ('competition.round.category.' ~ bracket.category.value)|trans }}</h3>{% endif %}
+                    {{ include('bracket/_bracket.html.twig', {bracket: bracket, organiser: true}) }}
+                {% endfor %}
+                <p class="small text-muted mb-0">{{ 'bracket.organiser.note'|trans }}</p>
+            </section>
+        {% endif %}
+
+        {% for item in view.items %}
+            <section class="card shadow-sm mb-3" data-advancement-step="{{ item.step.id }}">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <h2 class="h5 mb-0">{{ item.label }}</h2>
+                        <div class="ms-auto d-flex gap-2">
+                            <a href="{{ path('edit_competition_advancement_step', {competitionId: competition.id, stepId: item.step.id}) }}" class="btn btn-sm btn-outline-secondary" data-advancement-step-edit-link>
+                                <i class="bi bi-pencil me-1"></i>{{ 'advancement_step.list.edit'|trans }}
+                            </a>
+                            <form method="post" action="{{ path('delete_competition_advancement_step', {competitionId: competition.id, stepId: item.step.id}) }}" onsubmit="return confirm({{ 'advancement_step.list.delete_confirm'|trans({'%name%': item.label})|json_encode }});">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-advancement-step-' ~ item.step.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-advancement-step-delete>
+                                    <i class="bi bi-trash"></i><span class="visually-hidden">{{ 'advancement_step.list.delete'|trans }}</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <p class="mb-1">{{ include('competition_toolkit/_advancement_step_summary.html.twig') }}</p>
+                    <p class="small text-muted mb-0">
+                        {{ 'advancement_step.list.from'|trans }} {{ item.sources|join(', ') }}
+                        · {{ ('results_desk.advance.distribution.' ~ item.step.settings.distribution.value)|trans }}
+                        {% for pair in item.map %}<br>{{ pair[0] }} → {{ pair[1] }}{% endfor %}
+                    </p>
+                    {% if item.problem is not null %}
+                        <div class="alert alert-warning py-2 mt-2 mb-0" data-advancement-step-problem>
+                            <i class="bi bi-exclamation-triangle me-1"></i>{{ 'advancement_step.list.broken'|trans }} {{ item.problem|trans }}
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        {% else %}
+            <p class="text-muted" data-advancement-steps-empty>{{ 'advancement_step.list.empty'|trans }}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

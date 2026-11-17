@@ -200,7 +200,7 @@ A round whose results are published leads its public page (`event_round_results`
   organiser's - never shown. Below it, folded in a `<details>` "Times added by puzzlers (N)", main's list of times with
   its note ("not the official placings"). The round's external results link turns into **Organiser's results** (the MSP
   table is the official result now). The meta description says "Official results of …"; the round has no JSON-LD.
-- **Read model `GetPublishedRoundResults::forRound()`**: entries with a ranked result (people removed from the event left
+- **Read model `GetPublishedRoundResults::forRound()`** (entries through `OfficialEntrantsView` since competition toolkit A5 - shared with the competitor pages and standings; pick rounds' chips and per-puzzle "Add to my profile": round-formats.md "Public round page of `pick` rounds"): entries with a ranked result (people removed from the event left
   out, like the organiser's tools), ranked with `OfficialResultsRanking` over all of them, then the rows hidden from the
   viewer (`HiddenPlayers`) dropped **without renumbering** - a solo row of a hidden player; a pair/team with a hidden
   linked member unless the viewer is a linked member too (main's group rule). Names are always the organiser's participant
@@ -277,7 +277,8 @@ unsent changes of that round are refused one by one (`round_not_found`).
 
 | Method + path | Message | Answer |
 |---|---|---|
-| `GET rounds/{roundId}` | - | `serverNow`, `serverNowMs` (the live entry's clock offset - the state answer with the shortest round trip wins), `topic`, `competition`, `round`, `rounds`, `entries`, `mercure` |
+| `GET rounds/{roundId}` | - | `serverNow`, `serverNowMs` (the live entry's clock offset - the state answer with the shortest round trip wins), `topic`, `competition`, `round`, `rounds`, `entries`, `mercure`; opt-in (competition toolkit C1, R §1.8): `?viewer=1` adds `viewer: {playerId, organiser}` (the live entry always asks - it renders no user data of its own), `?entries=0` leaves `entries` out (and its query). Without them the answer is byte-identical to before (`RoundResultsStateGoldenTest`) |
+| `GET rounds/{roundId}/event-people` (organisers and referees - the live entry's quick add) | - | `people`: the event's people going who are no entry of the round (`GetLiveResultsEventPeople`; a referee gets no #code of a player private to them) |
 | `GET competitions/{competitionId}` (organisers only - the results overview) | - | `rounds` (every round's progress), `mercure` |
 | `POST rounds/{roundId}/changes` | `RecordRoundResults` | `dryRun`, `outcomes`, `entries` (400 unreadable set) |
 | `POST rounds/{roundId}/publish` / `unpublish` | `PublishRoundResults` / `UnpublishRoundResults` | `round` |
@@ -293,6 +294,51 @@ the round - fetch the state again),
 `official_results.round` (publication / table numbers usage). The same updates go to the referees' topic
 `/round-results/{roundId}/referees` with every private linked player withheld (live-results.md "Private players") -
 one update for both topics when nothing is withheld, two otherwise.
+
+### Time proposals (competition toolkit P1)
+
+Only for a competition with `time_proposals` on (Competitor pages & QR card; design: `toolkit/B-qr-competitor-page.md`
+§5-6 with `toolkit/R-review-and-plan.md` §1.2, §2.4). A competitor signed in on their own page taps Stop → a **pending**
+`competition_time_proposal`, never official on its own.
+
+- **Competitor endpoints** (`TimeProposalApi`: signed in, JSON, stateless CSRF `csrf_token('time_proposal')` in
+  `X-CSRF-Token`, limiter `time_proposal` 10 per player and round in 10 min): `POST
+  /{_locale}/competitor-proposals/rounds/{roundId}` `{proposalId (the phone's UUIDv7), entry, tappedAtMs, offsetMs?,
+  rttMs?, stateHash?}` → `ProposeRoundTime`; `POST /{_locale}/competitor-proposals/{proposalId}/withdraw` →
+  `WithdrawTimeProposal`. Answer `{status: proposed|withdrawn|known|refused, reason, message, proposal}`. Both take
+  `CompetitionParticipantsLock`.
+- **Who** (`TimeProposalOwnership`): the player linked to the solo entrant or a member of the pair/team, not removed,
+  going, **linked before the round's first stopwatch start** (`linked_after_start` otherwise - the self-connect bypass).
+  The first start is `competition_round.stopwatch_first_started_at` (`CompetitionRound::stopwatchOriginalStartAt()`):
+  kept through pause/resume (a resume moves `stopwatch_started_at` forward by the pause), the scheduled moment for a
+  scheduled start, cleared by a reset; NULL on rows from before P1F = the stored start. Re-picking your own participant
+  (join, connect, import/sheet) keeps `connected_at`.
+  A known `proposalId` is answered only to the same entry and sender (`invalid_proposal_id` otherwise, nothing leaks);
+  it must be a UUIDv7 made within 24 h of the receipt.
+- **When**: the tap moment (`tappedAtMs`, the phone's synced clock) must be a moment the stored stopwatch was running
+  - a stopped round ran from its start up to the Stop, so a tap before the Stop received after it counts (`late`)
+  (`not_running`, `times_up` after the limit, `clock_ahead` > 2 s after the receipt, `too_late` received > 30 min after
+  the end - the limit, or the Stop when it came first); none once the entry has a result (`result_recorded`), one pending per entry (`already_proposed`; backed by
+  `custom_time_proposal_pending_solo|team`). Seconds from the stored start for the tap and the receipt; > 5 s between
+  them = `late` (the judge's card defaults to the receipt time), another stopwatch state hash = `clockChanged`.
+- **In `RecordRoundResults`**: a `result` change may carry `proposalId` → that proposal is confirmed with the written
+  seconds (a non-finished result rejects it `not_finished`; no longer pending = the result stands, `not_pending`); a
+  judge's "Not right" is `{"field": "proposal", "entry", "from": {"id"}, "to": {"status": "rejected", "reason":
+  "not_finished|wrong_entry|other"}}` (applied = rejected now, unchanged = no longer pending, referees may send it);
+  any other applied result on an entry with a pending proposal confirms it (same seconds) or supersedes it
+  (`result_recorded`). Every applied result after that which is no longer a confirmed proposal's seconds - cleared (the
+  judge's Undo) or changed to another value - takes the confirmation away: the proposal turns `superseded`
+  (`result_cleared` / `result_changed`, `supersedeConfirmation()`; `decided_seconds` keeps what it was confirmed as),
+  in the same transaction, pushed like any decision (toolkit H3). The resolver's one read therefore loads the round's
+  pending **and confirmed** proposals. Outcomes then carry `proposal: {id, status}`. A replay touches nothing. With proposals off the
+  resolver runs no statement (`RecordRoundResultsStatementPinTest`), a `proposal` change is `proposals_off`.
+- A stopwatch **reset** supersedes the round's pending proposals (`stopwatch_reset`).
+- **Reads**: the round state carries `proposals` (pending + decided in the last 10 minutes, `TimeProposalView`) only
+  while the competition has them on; team entries carry `lineupId` while competitor pages or a QR tag mode is set.
+- **Live**: `official_results.proposals {roundId, proposals}` on both round topics (identical payload - the participant
+  as the organiser recorded them, never a profile), after the commit, from the propose/withdraw/changes/reset
+  controllers; more than 50 at once = `official_results.refresh`.
+- Load (`tools/time-proposals-load/run.php`, real lock + Postgres, no HTTP): see the script's header for how to run it.
 
 ### Subscribing: a token per page, never the cookie
 

@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionAlreadyInSeries;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotConvertible;
+use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Query\GetEventUrlRedirect;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
+use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\EventUrlPath;
 use SpeedPuzzling\Web\Value\SeriesConversionBlocker;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -344,6 +346,14 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
             [SeriesConversionBlocker::Referees, SeriesConversionBlocker::PageSections],
             $this->refusalOf(EventsPageFixture::COMPETITION_MEADOW_TBA),
         );
+    }
+
+    public function testADisplayRefusesTheEventBecomingTheSeries(): void
+    {
+        // A round-less event with one display (competition toolkit D8) - the display would cascade away with the event
+        $this->messageBus->dispatch(new AddCompetitionDisplay(Uuid::uuid7(), EventsPageFixture::COMPETITION_MEADOW_TBA, DisplayKind::Screen, 'Hall A', 'en', PlayerFixture::PLAYER_ADMIN));
+
+        self::assertSame([SeriesConversionBlocker::Displays], $this->refusalOf(EventsPageFixture::COMPETITION_MEADOW_TBA));
     }
 
     public function testDroppingTheParticipantsLetsTheEventBecomeTheSeries(): void

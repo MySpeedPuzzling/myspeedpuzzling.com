@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -32,6 +34,10 @@ use Symfony\Component\HttpFoundation\Response;
  * series itself), a draft organization, a past draft event; a surface that shows an item only in another place (the
  * organization page, the past) gets it there by SQL first. **Add every new event-listing surface here.**
  * DraftVisibilityCoverageTest keeps every reader of the event tables decided; DraftPagesTest covers the item pages.
+ *
+ * Documented exemption: competition displays (`/display/{token}/state|design`, toolkit D-displays-overlays.md §2) work
+ * for a draft by their token on purpose - a rehearsal before publishing, the token is the organiser's capability - and
+ * are no listing: nothing links to them (CompetitionDisplayStateControllerTest::testADraftEventsDisplayWorksByItsToken).
  */
 final class DraftCanaryTest extends WebTestCase
 {
@@ -415,6 +421,160 @@ final class DraftCanaryTest extends WebTestCase
     /**
      * @param self::COMPETITION|self::SERIES|self::ORGANIZATION $table
      */
+    /**
+     * The public competitor pages and their state JSON (competition toolkit B4): a page of an event's own, open to
+     * anybody once the event is published and has competitor pages on, a 404 for a guest and a player off its team
+     * while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
+     * competitor pages and an entry by SQL; Quiet Pines #1 (an edition of a draft series) a table page.
+     */
+    public function testTheCompetitorPagesOfADraftAreNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            'UPDATE competition SET competitor_pages = true WHERE id IN (:night, :pines)',
+            ['night' => $draftNight, 'pines' => OrganizationFixture::EDITION_QUIET_PINES_1],
+        );
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, table_number) VALUES (:id, :participant, :round, 3)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+
+        $items = [
+            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId], '/live/' . $draftNight . '/t/3'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
+        ];
+
+        foreach ($items as [$table, $id, $urls, $tag]) {
+            foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $this->setDraft($table, $id, false);
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseIsSuccessful('No canary: ' . $url . ' is not there once published');
+                }
+                $browser->request('GET', $tag);
+                self::assertStringContainsString('/competitor/', (string) $browser->getResponse()->headers->get('Location'), 'No canary: ' . $tag);
+
+                $this->setDraft($table, $id, true);
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s competitor page is public: ' . $url);
+                }
+                $browser->request('GET', $tag);
+                self::assertResponseRedirects('/en/events', null, 'A tag leads into a draft: ' . $tag);
+            }
+        }
+    }
+
+    /**
+     * The public standings (competition toolkit A7): a published standing of Draft Night (its round's results published,
+     * a ranked entry) is a page and a sitemap entry once the event is published - and a 404, out of the sitemap and not
+     * linked while it is a draft, for a guest and a player off its team.
+     */
+    public function testTheStandingsOfADraftAreNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start) VALUES (:id, :participant, :round, 3000, false)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $category = $connection->fetchOne('SELECT category FROM competition_round WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        assert(is_string($category));
+        PublishedStanding::insert($connection, $draftNight, 'night-overall', 'Night overall', $category, [OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $url = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/standings/night-overall';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $draftNight, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('No canary: the standing is not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the standing');
+
+            $this->setDraft(self::COMPETITION, $draftNight, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing is public');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
+        }
+    }
+
+    /**
+     * The public bracket (competition toolkit A9): Draft Night with a declared step (its round published, a qualified
+     * entry) has a bracket page, a sitemap entry and a link on its page once published - and a 404, no sitemap entry
+     * and no link while it is a draft, for a guest and a player off its team.
+     */
+    public function testTheBracketOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start, qualified_at) VALUES (:id, :participant, :round, 3000, false, ' . TestClock::SQL_NOW . ')',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $finalId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, starts_at, category) SELECT :id, competition_id, 'Night Final', starts_at + INTERVAL '2 hours', category FROM competition_round WHERE id = :round",
+            ['id' => $finalId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        DeclaredAdvancementStep::insert($connection, $draftNight, [OrganizationFixture::ROUND_DRAFT_NIGHT], [$finalId], qualifyCount: 1);
+        $eventUrl = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG;
+        $url = $eventUrl . '/bracket';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $draftNight, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('No canary: the bracket is not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
+            $browser->request('GET', $eventUrl);
+            self::assertSelectorExists('[data-event-bracket-link]', 'No canary: the event page does not link the bracket');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the bracket');
+
+            $this->setDraft(self::COMPETITION, $draftNight, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s bracket is public');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringNotContainsString('/bracket<', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s bracket');
+        }
+    }
+
     private function setDraft(string $table, string $id, bool $isDraft): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(

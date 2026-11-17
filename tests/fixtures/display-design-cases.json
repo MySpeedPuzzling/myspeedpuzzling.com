@@ -1,0 +1,5181 @@
+{
+  "_doc": "Shared cases of the display design schema v1 (D-displays-overlays.md §4): run by DisplayDesignSanitizerTest (PHP) and tests/display-schema-harness.mjs (assets/displays/schema.js) - both must give `expect` (the normalised design, plus `uses` = usesResults/usesLiveResults when given) or exactly `errors` in this order. `repeat` replaces input.elements with `count` copies of `element`, {i8} / {i12} = the copy's index padded to 8 / 12 digits. Empty `style` / `props` are {} here; PHP stores them as [].",
+  "competitionId": "018d0004-0000-0000-0000-00000000c0de",
+  "cases": [
+    {
+      "name": "only the schema: every default",
+      "input": {
+        "schema": 1
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": []
+      },
+      "uses": {
+        "results": false,
+        "live": false
+      }
+    },
+    {
+      "name": "the stored blank screen design is already normalised",
+      "input": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": []
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": []
+      }
+    },
+    {
+      "name": "schema 1.0 is schema 1",
+      "input": {
+        "schema": 1.0,
+        "elements": {}
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": []
+      }
+    },
+    {
+      "name": "every v1 element type with its defaults",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "el000000",
+            "type": "timer",
+            "frame": {}
+          },
+          {
+            "id": "el000001",
+            "type": "status",
+            "frame": {}
+          },
+          {
+            "id": "el000002",
+            "type": "progress",
+            "frame": {}
+          },
+          {
+            "id": "el000003",
+            "type": "text",
+            "frame": {}
+          },
+          {
+            "id": "el000004",
+            "type": "field",
+            "frame": {}
+          },
+          {
+            "id": "el000005",
+            "type": "round_badge",
+            "frame": {}
+          },
+          {
+            "id": "el000006",
+            "type": "image",
+            "frame": {}
+          },
+          {
+            "id": "el000007",
+            "type": "rotator",
+            "frame": {}
+          },
+          {
+            "id": "el000008",
+            "type": "clock",
+            "frame": {}
+          },
+          {
+            "id": "el000009",
+            "type": "puzzle",
+            "frame": {}
+          },
+          {
+            "id": "el000010",
+            "type": "finished_count",
+            "frame": {}
+          },
+          {
+            "id": "el000011",
+            "type": "leaderboard",
+            "frame": {}
+          },
+          {
+            "id": "el000012",
+            "type": "ticker",
+            "frame": {}
+          },
+          {
+            "id": "el000013",
+            "type": "qr",
+            "frame": {}
+          },
+          {
+            "id": "el000014",
+            "type": "box",
+            "frame": {}
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "el000000",
+            "type": "timer",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "mode": "auto",
+              "format": "auto",
+              "bigCountdown": 0,
+              "phaseColors": {
+                "idle": null,
+                "scheduled": null,
+                "running": null,
+                "warning": null,
+                "times_up": null,
+                "stopped": null
+              },
+              "warningSeconds": 0,
+              "idleText": "dashes"
+            }
+          },
+          {
+            "id": "el000001",
+            "type": "status",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "texts": {
+                "idle": null,
+                "scheduled": null,
+                "running": null,
+                "times_up": null,
+                "stopped": null
+              }
+            }
+          },
+          {
+            "id": "el000002",
+            "type": "progress",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "direction": "fill",
+              "orientation": "horizontal",
+              "trackColor": null,
+              "barColor": null,
+              "warningColor": null,
+              "warningSeconds": 0
+            }
+          },
+          {
+            "id": "el000003",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "el000004",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "round_name",
+              "prefix": "",
+              "suffix": ""
+            }
+          },
+          {
+            "id": "el000005",
+            "type": "round_badge",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "useRoundColors": true
+            }
+          },
+          {
+            "id": "el000006",
+            "type": "image",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "source": "upload",
+              "path": null,
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "el000007",
+            "type": "rotator",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "images": [],
+              "seconds": 8,
+              "transition": "fade",
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "el000008",
+            "type": "clock",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "zone": "round",
+              "format": "24h",
+              "seconds": false
+            }
+          },
+          {
+            "id": "el000009",
+            "type": "puzzle",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "layout": "row",
+              "show": [
+                "image",
+                "name"
+              ],
+              "max": 3,
+              "whenHidden": "nothing",
+              "hiddenText": "",
+              "imageFit": "contain"
+            }
+          },
+          {
+            "id": "el000010",
+            "type": "finished_count",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "format": "fraction",
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "el000011",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "el000012",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 5,
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "el000013",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "event_page",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "el000014",
+            "type": "box",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {}
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "frame, z, style numbers clamped and rounded",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "clamp001",
+            "type": "text",
+            "frame": {
+              "x": -5,
+              "y": 150,
+              "w": 0.1,
+              "h": 1000,
+              "rotate": 270
+            },
+            "z": 5000,
+            "style": {
+              "fontSize": 2,
+              "fontWeight": 650,
+              "opacity": 1.5,
+              "letterSpacing": -99,
+              "lineHeight": 0.123,
+              "radius": 1000000000.0,
+              "padding": -3,
+              "border": {
+                "width": 99,
+                "color": "#FFFFFF"
+              },
+              "gradient": {
+                "from": "#000000",
+                "to": "#ffffff",
+                "angle": 720
+              }
+            }
+          },
+          {
+            "id": "round001",
+            "type": "text",
+            "frame": {
+              "x": 33.333333,
+              "y": 12.345,
+              "w": 50.005,
+              "h": 0.499,
+              "rotate": -45.555
+            },
+            "z": 2.5,
+            "style": {
+              "fontSize": 99.5,
+              "fontWeight": 600,
+              "opacity": 0.333,
+              "letterSpacing": -0.5,
+              "lineHeight": 1.155
+            }
+          },
+          {
+            "id": "round002",
+            "type": "text",
+            "frame": {
+              "x": 0.001,
+              "y": -0.001,
+              "w": 99.999,
+              "h": 7.125,
+              "rotate": -0.004
+            },
+            "z": -1,
+            "style": {
+              "fontWeight": 350,
+              "fontSize": 900.4
+            }
+          },
+          {
+            "id": "bignum01",
+            "type": "timer",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "z": 1e400,
+            "props": {
+              "bigCountdown": 1e400,
+              "warningSeconds": -1e400
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "clamp001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 100,
+              "w": 0.5,
+              "h": 100,
+              "rotate": 180
+            },
+            "z": 999,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "fontSize": 8,
+              "fontWeight": 700,
+              "gradient": {
+                "from": "#000000",
+                "to": "#ffffff",
+                "angle": 359
+              },
+              "border": {
+                "width": 40,
+                "color": "#ffffff"
+              },
+              "radius": 540,
+              "padding": 0,
+              "opacity": 1,
+              "letterSpacing": -10,
+              "lineHeight": 0.8
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "round001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 33.33,
+              "y": 12.35,
+              "w": 50.01,
+              "h": 0.5,
+              "rotate": -45.56
+            },
+            "z": 3,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "fontSize": 100,
+              "fontWeight": 500,
+              "opacity": 0.33,
+              "letterSpacing": -0.5,
+              "lineHeight": 1.16
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "round002",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 100,
+              "h": 7.13,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "fontSize": 900,
+              "fontWeight": 300
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "bignum01",
+            "type": "timer",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "mode": "auto",
+              "format": "auto",
+              "bigCountdown": 0,
+              "phaseColors": {
+                "idle": null,
+                "scheduled": null,
+                "running": null,
+                "warning": null,
+                "times_up": null,
+                "stopped": null
+              },
+              "warningSeconds": 0,
+              "idleText": "dashes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "unknown keys are dropped everywhere",
+      "input": {
+        "schema": 1,
+        "evil": "<script>",
+        "canvas": {
+          "css": "body{}",
+          "background": {
+            "type": "color",
+            "onload": "x"
+          }
+        },
+        "theme": {
+          "html": "<b>"
+        },
+        "elements": [
+          {
+            "id": "unknown1",
+            "type": "box",
+            "frame": {
+              "x": 1,
+              "y": 2,
+              "w": 3,
+              "h": 4,
+              "transform": "scale(9)"
+            },
+            "onclick": "alert(1)",
+            "html": "<b>x</b>",
+            "className": "evil",
+            "style": {
+              "css": "color:red",
+              "class": "x",
+              "cssText": "position:fixed",
+              "filter": "url(#x)"
+            },
+            "props": {
+              "html": "<b>",
+              "src": "https://evil.example/x.js"
+            },
+            "when": {
+              "phases": [
+                "running"
+              ],
+              "script": "x"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "unknown1",
+            "type": "box",
+            "name": "",
+            "frame": {
+              "x": 1,
+              "y": 2,
+              "w": 3,
+              "h": 4,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "running"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {}
+          }
+        ]
+      }
+    },
+    {
+      "name": "colours: #rrggbb(aa) lowercased, anything else is the default",
+      "input": {
+        "schema": 1,
+        "canvas": {
+          "background": {
+            "type": "chroma",
+            "color": "#FFF",
+            "chroma": "#00FF00"
+          }
+        },
+        "theme": {
+          "color": "red",
+          "accent": "#AABBCCDD"
+        },
+        "elements": [
+          {
+            "id": "colour01",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "color": "rgb(255,0,0)",
+              "background": "#12345678"
+            }
+          },
+          {
+            "id": "colour02",
+            "type": "progress",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "trackColor": "#ffffff33",
+              "barColor": "transparent",
+              "warningColor": "#GGGGGG"
+            }
+          },
+          {
+            "id": "colour03",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "fg": "#FfFfFf",
+              "bg": "#000"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "chroma",
+            "color": "#0d1017",
+            "chroma": "#00ff00",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#aabbccdd"
+        },
+        "elements": [
+          {
+            "id": "colour01",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "background": "#12345678"
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "colour02",
+            "type": "progress",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "direction": "fill",
+              "orientation": "horizontal",
+              "trackColor": "#ffffff33",
+              "barColor": null,
+              "warningColor": null,
+              "warningSeconds": 0
+            }
+          },
+          {
+            "id": "colour03",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "event_page",
+              "url": null,
+              "fg": "#ffffff",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "fonts: the 4 v1 fonts only",
+      "input": {
+        "schema": 1,
+        "theme": {
+          "font": "comic_sans"
+        },
+        "elements": [
+          {
+            "id": "font0001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "font": "orbitron"
+            }
+          },
+          {
+            "id": "font0002",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "font": "bebas"
+            }
+          },
+          {
+            "id": "font0003",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "font": "roboto_mono"
+            }
+          },
+          {
+            "id": "font0004",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "font": "Courier Prime"
+            }
+          },
+          {
+            "id": "font0005",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "font": "inter"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "font0001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "font0002",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "font": "bebas"
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "font0003",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "font": "roboto_mono"
+            },
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "font0004",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "font0005",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "XSS strings stay plain text",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "xss00001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "name": "<img src=x onerror=alert(1)>",
+            "props": {
+              "text": "<img src=x onerror=alert(1)></script><script>alert(1)</script>"
+            }
+          },
+          {
+            "id": "xss00002",
+            "type": "field",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "field": "location",
+              "prefix": "<b>",
+              "suffix": "javascript:alert(1)"
+            }
+          },
+          {
+            "id": "xss00003",
+            "type": "status",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "texts": {
+                "running": "<svg onload=alert(1)>",
+                "idle": "{{ 7*7 }}"
+              }
+            }
+          },
+          {
+            "id": "xss00004",
+            "type": "puzzle",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "whenHidden": "text",
+              "hiddenText": "\"><iframe src=javascript:alert(1)>"
+            }
+          },
+          {
+            "id": "xss00005",
+            "type": "leaderboard",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "whenUnpublished": "text",
+              "unpublishedText": "<a href=\"javascript:x\">x</a>"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "xss00001",
+            "type": "text",
+            "name": "<img src=x onerror=alert(1)>",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": "<img src=x onerror=alert(1)></script><script>alert(1)</script>"
+            }
+          },
+          {
+            "id": "xss00002",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "location",
+              "prefix": "<b>",
+              "suffix": "javascript:alert(1)"
+            }
+          },
+          {
+            "id": "xss00003",
+            "type": "status",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "texts": {
+                "idle": "{{ 7*7 }}",
+                "scheduled": null,
+                "running": "<svg onload=alert(1)>",
+                "times_up": null,
+                "stopped": null
+              }
+            }
+          },
+          {
+            "id": "xss00004",
+            "type": "puzzle",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "layout": "row",
+              "show": [
+                "image",
+                "name"
+              ],
+              "max": 3,
+              "whenHidden": "text",
+              "hiddenText": "\"><iframe src=javascript:alert(1)>",
+              "imageFit": "contain"
+            }
+          },
+          {
+            "id": "xss00005",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "text",
+              "unpublishedText": "<a href=\"javascript:x\">x</a>"
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "CSS injection attempts are dropped",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "css00001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "color": "red;background:url(javascript:alert(1))",
+              "background": "#000000;}body{display:none",
+              "fontSize": "12px;position:fixed",
+              "gradient": {
+                "from": "expression(alert(1))",
+                "to": "#ffffff"
+              },
+              "border": {
+                "width": 2,
+                "color": "#fff;behavior:url(x.htc)"
+              },
+              "align": "center;color:red",
+              "shadow": "0 0 9px red",
+              "fit": "none!important",
+              "uppercase": "true",
+              "opacity": "0.5"
+            }
+          },
+          {
+            "id": "css00002",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "gradient": {
+                "from": "#000000",
+                "to": "#ffffff",
+                "angle": "90deg"
+              },
+              "border": {
+                "color": "#ff0000"
+              }
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "css00001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "css00002",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {
+              "gradient": {
+                "from": "#000000",
+                "to": "#ffffff",
+                "angle": 180
+              },
+              "border": {
+                "width": 1,
+                "color": "#ff0000"
+              }
+            },
+            "props": {
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "QR links: https only, only for the custom target",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "qrurl001",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "javascript:alert(1)"
+            }
+          },
+          {
+            "id": "qrurl002",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "http://example.com"
+            }
+          },
+          {
+            "id": "qrurl003",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://example.com/results?round=2&lang=en#top"
+            }
+          },
+          {
+            "id": "qrurl004",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://exa mple.com"
+            }
+          },
+          {
+            "id": "qrurl005",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://example.com/\"onload=alert(1)"
+            }
+          },
+          {
+            "id": "qrurl006",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "event_page",
+              "url": "https://example.com"
+            }
+          },
+          {
+            "id": "qrurl007",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://user@evil.example/"
+            }
+          },
+          {
+            "id": "qrurl008",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          {
+            "id": "qrurl009",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://example.com\n"
+            }
+          },
+          {
+            "id": "qrurl010",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://localhost/x"
+            }
+          },
+          {
+            "id": "qrurl011",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "https://příklad.cz/"
+            }
+          },
+          {
+            "id": "qrurl012",
+            "type": "qr",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "target": "custom",
+              "url": "HTTPS://example.com/"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "qrurl001",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl002",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl003",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": "https://example.com/results?round=2&lang=en#top",
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl004",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl005",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl006",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "event_page",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl007",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl008",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl009",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl010",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl011",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          },
+          {
+            "id": "qrurl012",
+            "type": "qr",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "target": "custom",
+              "url": null,
+              "fg": "#000000",
+              "bg": "#ffffff",
+              "quietZone": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "texts: control characters, line breaks, trimming, length in characters",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "txt00001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "name": "  Hall\nA \u0007 ",
+            "props": {
+              "text": "  a\u0000b\u0007c\r\nd\tef g\n\n"
+            }
+          },
+          {
+            "id": "txt00002",
+            "type": "field",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "prefix": "  Round: ",
+              "suffix": "  min\n"
+            }
+          },
+          {
+            "id": "txt00003",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          },
+          {
+            "id": "txt00004",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "name": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "props": {
+              "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+            }
+          },
+          {
+            "id": "txt00005",
+            "type": "status",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "texts": {
+                "idle": "",
+                "scheduled": "   ",
+                "running": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                "times_up": 5,
+                "stopped": "Paused\nfor now"
+              }
+            }
+          },
+          {
+            "id": "txt00006",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "text": 12345
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "txt00001",
+            "type": "text",
+            "name": "Hall A",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": "abc\ndef g"
+            }
+          },
+          {
+            "id": "txt00002",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "round_name",
+              "prefix": "  Round: ",
+              "suffix": "  min "
+            }
+          },
+          {
+            "id": "txt00003",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          },
+          {
+            "id": "txt00004",
+            "type": "text",
+            "name": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+            }
+          },
+          {
+            "id": "txt00005",
+            "type": "status",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "texts": {
+                "idle": null,
+                "scheduled": null,
+                "running": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                "times_up": null,
+                "stopped": "Paused for now"
+              }
+            }
+          },
+          {
+            "id": "txt00006",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "lists: subsets in their own order, each once",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "list0001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "when": {
+              "phases": [
+                "running",
+                "idle",
+                "running",
+                "bogus",
+                5
+              ],
+              "results": "published",
+              "puzzle": "revealed"
+            }
+          },
+          {
+            "id": "list0002",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "when": {
+              "phases": [],
+              "results": "maybe",
+              "puzzle": "not_revealed"
+            }
+          },
+          {
+            "id": "list0003",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "when": {
+              "phases": "running"
+            }
+          },
+          {
+            "id": "list0004",
+            "type": "puzzle",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "show": [
+                "pieces",
+                "name",
+                "secret",
+                "name"
+              ],
+              "max": 99,
+              "layout": "grid"
+            }
+          },
+          {
+            "id": "list0005",
+            "type": "leaderboard",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "columns": [],
+              "rows": 0
+            },
+            "when": {
+              "phases": {}
+            }
+          },
+          {
+            "id": "list0006",
+            "type": "leaderboard",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "columns": "rank",
+              "rowStyle": {
+                "background": "#111111",
+                "gap": 100
+              }
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "list0001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "running"
+              ],
+              "results": "published",
+              "puzzle": "revealed"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "list0002",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "not_revealed"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "list0003",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "list0004",
+            "type": "puzzle",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "layout": "grid",
+              "show": [
+                "name",
+                "pieces"
+              ],
+              "max": 6,
+              "whenHidden": "nothing",
+              "hiddenText": "",
+              "imageFit": "contain"
+            }
+          },
+          {
+            "id": "list0005",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 1,
+              "columns": [],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "list0006",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": "#111111",
+                "altBackground": null,
+                "gap": 40
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "own pictures are kept, logos and empty paths have none",
+      "input": {
+        "schema": 1,
+        "canvas": {
+          "background": {
+            "type": "image",
+            "image": {
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5c.jpg",
+              "fit": "contain",
+              "opacity": 0.5
+            }
+          }
+        },
+        "elements": [
+          {
+            "id": "pict0001",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png",
+              "fit": "cover"
+            }
+          },
+          {
+            "id": "pict0002",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "competition_logo",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+            }
+          },
+          {
+            "id": "pict0003",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": ""
+            }
+          },
+          {
+            "id": "pict0004",
+            "type": "rotator",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                "not an object",
+                {
+                  "path": null
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5c.jpg"
+                },
+                {}
+              ],
+              "seconds": 1,
+              "transition": "slide"
+            }
+          },
+          {
+            "id": "pict0005",
+            "type": "rotator",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "images": "x"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "image",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": {
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5c.jpg",
+              "fit": "contain",
+              "opacity": 0.5
+            }
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "pict0001",
+            "type": "image",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png",
+              "fit": "cover"
+            }
+          },
+          {
+            "id": "pict0002",
+            "type": "image",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "source": "competition_logo",
+              "path": null,
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "pict0003",
+            "type": "image",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "source": "upload",
+              "path": null,
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "pict0004",
+            "type": "rotator",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5c.jpg"
+                }
+              ],
+              "seconds": 3,
+              "transition": "fade",
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "pict0005",
+            "type": "rotator",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "images": [],
+              "seconds": 8,
+              "transition": "fade",
+              "fit": "contain"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a background image without a path is no image",
+      "input": {
+        "schema": 1,
+        "canvas": {
+          "background": {
+            "type": "image",
+            "image": {
+              "fit": "cover"
+            }
+          }
+        }
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "image",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": []
+      }
+    },
+    {
+      "name": "results sources: hidden or never shown elements ask for no data",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "res00001",
+            "type": "leaderboard",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "hidden": true,
+            "props": {
+              "source": "live"
+            }
+          },
+          {
+            "id": "res00002",
+            "type": "ticker",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "when": {
+              "phases": []
+            },
+            "props": {
+              "source": "live"
+            }
+          },
+          {
+            "id": "res00003",
+            "type": "finished_count",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "published",
+              "format": "percent"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "res00001",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": true,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "res00002",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 5,
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "res00003",
+            "type": "finished_count",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "format": "percent",
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "a shown live element",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "live0001",
+            "type": "ticker",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "live",
+              "rows": 3
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "live0001",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 3,
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": true
+      }
+    },
+    {
+      "name": "a live source on a non-results element means nothing",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "live0002",
+            "type": "timer",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "live"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "live0002",
+            "type": "timer",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "mode": "auto",
+              "format": "auto",
+              "bigCountdown": 0,
+              "phaseColors": {
+                "idle": null,
+                "scheduled": null,
+                "running": null,
+                "warning": null,
+                "times_up": null,
+                "stopped": null
+              },
+              "warningSeconds": 0,
+              "idleText": "dashes"
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": false,
+        "live": false
+      }
+    },
+    {
+      "name": "empty lists and objects are interchangeable where PHP cannot tell them apart",
+      "input": {
+        "schema": 1,
+        "canvas": [],
+        "theme": [],
+        "elements": [
+          {
+            "id": "empty001",
+            "type": "box",
+            "frame": [],
+            "style": [],
+            "props": [],
+            "when": []
+          },
+          {
+            "id": "empty002",
+            "type": "rotator",
+            "frame": {},
+            "style": {},
+            "props": {
+              "images": {}
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "empty001",
+            "type": "box",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {}
+          },
+          {
+            "id": "empty002",
+            "type": "rotator",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "images": [],
+              "seconds": 8,
+              "transition": "fade",
+              "fit": "contain"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "wrong JSON types are defaults",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "types001",
+            "type": "clock",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "z": "5",
+            "hidden": "true",
+            "locked": 1,
+            "name": [
+              "x"
+            ],
+            "props": {
+              "seconds": "yes",
+              "zone": 1,
+              "format": null
+            }
+          },
+          {
+            "id": "types002",
+            "type": "round_badge",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "hidden": null,
+            "locked": true,
+            "props": {
+              "useRoundColors": 0
+            }
+          },
+          {
+            "id": "types003",
+            "type": "timer",
+            "frame": {
+              "x": "10",
+              "y": null,
+              "w": true,
+              "h": [
+                5
+              ]
+            },
+            "props": {
+              "phaseColors": [
+                "#ff0000"
+              ],
+              "mode": "remaining",
+              "format": "mm:ss",
+              "idleText": "zero"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "types001",
+            "type": "clock",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "zone": "round",
+              "format": "24h",
+              "seconds": false
+            }
+          },
+          {
+            "id": "types002",
+            "type": "round_badge",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": true,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "useRoundColors": true
+            }
+          },
+          {
+            "id": "types003",
+            "type": "timer",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "mode": "remaining",
+              "format": "mm:ss",
+              "bigCountdown": 0,
+              "phaseColors": {
+                "idle": null,
+                "scheduled": null,
+                "running": null,
+                "warning": null,
+                "times_up": null,
+                "stopped": null
+              },
+              "warningSeconds": 0,
+              "idleText": "zero"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "__proto__ and constructor keys are plain unknown keys",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "proto001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "style": {
+              "__proto__": {
+                "color": "#ff0000"
+              },
+              "constructor": {
+                "prototype": {
+                  "x": 1
+                }
+              }
+            },
+            "props": {
+              "__proto__": {
+                "text": "polluted"
+              }
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "proto001",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "not an object: a string",
+      "input": "design",
+      "errors": [
+        {
+          "path": "",
+          "code": "not_object"
+        }
+      ]
+    },
+    {
+      "name": "not an object: null",
+      "input": null,
+      "errors": [
+        {
+          "path": "",
+          "code": "not_object"
+        }
+      ]
+    },
+    {
+      "name": "not an object: a list",
+      "input": [
+        1,
+        2
+      ],
+      "errors": [
+        {
+          "path": "",
+          "code": "not_object"
+        }
+      ]
+    },
+    {
+      "name": "an empty list is an empty object without a schema",
+      "input": [],
+      "errors": [
+        {
+          "path": "/schema",
+          "code": "unknown_schema"
+        }
+      ]
+    },
+    {
+      "name": "schema missing",
+      "input": {
+        "elements": []
+      },
+      "errors": [
+        {
+          "path": "/schema",
+          "code": "unknown_schema"
+        }
+      ]
+    },
+    {
+      "name": "schema 2",
+      "input": {
+        "schema": 2
+      },
+      "errors": [
+        {
+          "path": "/schema",
+          "code": "unknown_schema"
+        }
+      ]
+    },
+    {
+      "name": "schema as a string",
+      "input": {
+        "schema": "1"
+      },
+      "errors": [
+        {
+          "path": "/schema",
+          "code": "unknown_schema"
+        }
+      ]
+    },
+    {
+      "name": "elements not a list",
+      "input": {
+        "schema": 1,
+        "elements": "x"
+      },
+      "errors": [
+        {
+          "path": "/elements",
+          "code": "not_list"
+        }
+      ]
+    },
+    {
+      "name": "elements an object",
+      "input": {
+        "schema": 1,
+        "elements": {
+          "a": {
+            "id": "aaaaaaaa",
+            "type": "box",
+            "frame": {}
+          }
+        }
+      },
+      "errors": [
+        {
+          "path": "/elements",
+          "code": "not_list"
+        }
+      ]
+    },
+    {
+      "name": "61 elements",
+      "input": {
+        "schema": 1
+      },
+      "errors": [
+        {
+          "path": "/elements",
+          "code": "too_many_elements"
+        }
+      ],
+      "repeat": {
+        "count": 61,
+        "element": {
+          "id": "{i8}",
+          "type": "box",
+          "frame": {}
+        }
+      }
+    },
+    {
+      "name": "element not an object",
+      "input": {
+        "schema": 1,
+        "elements": [
+          5,
+          [
+            1
+          ],
+          "x",
+          null
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0",
+          "code": "element_not_object"
+        },
+        {
+          "path": "/elements/1",
+          "code": "element_not_object"
+        },
+        {
+          "path": "/elements/2",
+          "code": "element_not_object"
+        },
+        {
+          "path": "/elements/3",
+          "code": "element_not_object"
+        }
+      ]
+    },
+    {
+      "name": "bad ids",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "ABCDEFGH",
+            "type": "box",
+            "frame": {}
+          },
+          {
+            "id": "short",
+            "type": "box",
+            "frame": {}
+          },
+          {
+            "id": 12345678,
+            "type": "box",
+            "frame": {}
+          },
+          {
+            "type": "box",
+            "frame": {}
+          },
+          {
+            "id": "abcdefgh\n",
+            "type": "box",
+            "frame": {}
+          },
+          {
+            "id": "abcd-fgh",
+            "type": "box",
+            "frame": {}
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/1/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/2/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/3/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/4/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/5/id",
+          "code": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "duplicate ids",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "same0001",
+            "type": "box",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "other001",
+            "type": "box",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "same0001",
+            "type": "text",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/2/id",
+          "code": "duplicate_id"
+        }
+      ]
+    },
+    {
+      "name": "unknown types, the cut v1 ones included",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "type0001",
+            "type": "spotlight",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "type0002",
+            "type": "message",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "type0003",
+            "type": "html",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "type0004",
+            "type": "standings",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "type0005",
+            "type": "Timer",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "type0006",
+            "frame": {}
+          },
+          {
+            "id": "type0007",
+            "type": "box",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/1/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/2/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/3/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/4/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/5/type",
+          "code": "unknown_type"
+        }
+      ]
+    },
+    {
+      "name": "missing frames",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "frame001",
+            "type": "box"
+          },
+          {
+            "id": "frame002",
+            "type": "box",
+            "frame": "0,0,10,10"
+          },
+          {
+            "id": "frame003",
+            "type": "box",
+            "frame": [
+              0,
+              0,
+              10,
+              10
+            ]
+          },
+          {
+            "id": "frame004",
+            "type": "box",
+            "frame": null
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0/frame",
+          "code": "missing_frame"
+        },
+        {
+          "path": "/elements/1/frame",
+          "code": "missing_frame"
+        },
+        {
+          "path": "/elements/2/frame",
+          "code": "missing_frame"
+        },
+        {
+          "path": "/elements/3/frame",
+          "code": "missing_frame"
+        }
+      ]
+    },
+    {
+      "name": "foreign picture paths",
+      "input": {
+        "schema": 1,
+        "canvas": {
+          "background": {
+            "type": "image",
+            "image": {
+              "path": "competition-displays/018d0004-0000-0000-0000-000000000bad/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+            }
+          }
+        },
+        "elements": [
+          {
+            "id": "for00000",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "https://evil.example/logo.png"
+            }
+          },
+          {
+            "id": "for00001",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "competition_logo",
+              "path": "../competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+            }
+          },
+          {
+            "id": "for00002",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.svg"
+            }
+          },
+          {
+            "id": "for00003",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193A7B2-1C3D-7E4F-8A9B-0C1D2E3F4A5B.png"
+            }
+          },
+          {
+            "id": "for00004",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png\n"
+            }
+          },
+          {
+            "id": "for00005",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/../018d0004-0000-0000-0000-000000000bad/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+            }
+          },
+          {
+            "id": "for00006",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "source": "upload",
+              "path": "javascript:alert(1)"
+            }
+          },
+          {
+            "id": "rotfor01",
+            "type": "rotator",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "/competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/notauuid.png"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/canvas/background/image/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/0/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/1/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/2/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/3/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/4/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/5/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/6/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/7/props/images/1/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/7/props/images/2/path",
+          "code": "foreign_image"
+        }
+      ]
+    },
+    {
+      "name": "a rotator with 31 pictures",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "rot31001",
+            "type": "rotator",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0/props/images",
+          "code": "too_many_images"
+        }
+      ]
+    },
+    {
+      "name": "31 different pictures in one design",
+      "input": {
+        "schema": 1
+      },
+      "errors": [
+        {
+          "path": "/elements",
+          "code": "too_many_images"
+        }
+      ],
+      "repeat": {
+        "count": 31,
+        "element": {
+          "id": "{i8}",
+          "type": "image",
+          "frame": {},
+          "props": {
+            "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-{i12}.webp"
+          }
+        }
+      }
+    },
+    {
+      "name": "30 different pictures are fine, the same picture twice counts once",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "same1111",
+            "type": "image",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+            }
+          },
+          {
+            "id": "same2222",
+            "type": "rotator",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            },
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "same1111",
+            "type": "image",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "source": "upload",
+              "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png",
+              "fit": "contain"
+            }
+          },
+          {
+            "id": "same2222",
+            "type": "rotator",
+            "name": "",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "images": [
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                },
+                {
+                  "path": "competition-displays/018d0004-0000-0000-0000-00000000c0de/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png"
+                }
+              ],
+              "seconds": 8,
+              "transition": "fade",
+              "fit": "contain"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "over 64 KB normalised",
+      "input": {
+        "schema": 1
+      },
+      "errors": [
+        {
+          "path": "",
+          "code": "too_large"
+        }
+      ],
+      "repeat": {
+        "count": 60,
+        "element": {
+          "id": "{i8}",
+          "type": "status",
+          "frame": {},
+          "name": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+          "props": {
+            "texts": {
+              "idle": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+              "scheduled": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+              "running": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+              "times_up": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+              "stopped": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "every error of a design at once, in document order",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "BAD",
+            "type": "image",
+            "frame": {},
+            "props": {
+              "path": "https://evil.example/x.png"
+            }
+          },
+          {
+            "id": "okokokok",
+            "type": "html",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "okokokok",
+            "type": "box",
+            "frame": {
+              "x": 10,
+              "y": 10,
+              "w": 20,
+              "h": 10
+            }
+          },
+          {
+            "id": "noframe1",
+            "type": "text"
+          }
+        ]
+      },
+      "errors": [
+        {
+          "path": "/elements/0/id",
+          "code": "invalid_id"
+        },
+        {
+          "path": "/elements/0/props/path",
+          "code": "foreign_image"
+        },
+        {
+          "path": "/elements/1/type",
+          "code": "unknown_type"
+        },
+        {
+          "path": "/elements/2/id",
+          "code": "duplicate_id"
+        },
+        {
+          "path": "/elements/3/frame",
+          "code": "missing_frame"
+        }
+      ]
+    }
+  ]
+}

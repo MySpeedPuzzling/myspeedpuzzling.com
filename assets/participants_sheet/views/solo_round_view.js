@@ -50,6 +50,7 @@ import {
     usesTables,
 } from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
+import { roundPickFormat } from '../sheet_puzzles.js';
 import {
     CHOOSE,
     SKIP,
@@ -172,7 +173,7 @@ export class SoloRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [usesTables(this.model, round), this.showResults, round?.name ?? ''].join('|');
+        return [usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null].join('|');
     }
 
     rebuild() {
@@ -345,6 +346,8 @@ export class SoloRoundView {
         if (this.showResults) {
             columns.push(
                 { key: 'result', label: this.t('col_result'), kind: 'list', width: 150, autoHighlight: false, className: 'sheet-col-result' },
+                // A `pick` round: the per-puzzle record by label, read-only (competition toolkit A4)
+                ...(roundPickFormat(this.model, this.roundId) !== null ? [{ key: 'puzzles', label: this.t('col_puzzles'), kind: 'readonly', width: 200, className: 'sheet-col-puzzles' }] : []),
                 { key: 'rank', label: this.t('col_rank'), kind: 'readonly', width: 64, className: 'sheet-col-rank' },
                 { key: 'qualified', label: this.t('col_qualified'), kind: 'checkbox', width: 96 },
             );
@@ -542,6 +545,8 @@ export class SoloRoundView {
             }
             case 'result':
                 return this.results.resultCell(entry.ref, entry.place.result, entry.place.enteredBy, entry.place.enteredAt, { readonly: reason !== '', reason });
+            case 'puzzles':
+                return this.results.puzzlesCell(entry.ref);
             case 'rank':
                 return this.results.rankCell(entry.ref, this.ranks.get(entry.place.id) ?? null, entry.result, entry.place.result);
             case 'qualified':

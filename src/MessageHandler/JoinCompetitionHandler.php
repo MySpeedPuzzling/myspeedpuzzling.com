@@ -79,7 +79,11 @@ readonly final class JoinCompetitionHandler
             }
 
             $this->competitionSelfJoin->releaseOtherParticipants($message->competitionId, $player, keep: $participant);
-            $participant->connect($player, $this->clock->now());
+
+            // Re-picking your own name keeps the link's moment (TimeProposalOwnership)
+            if ($participant->isConnectedTo($player) === false) {
+                $participant->connect($player, $this->clock->now());
+            }
 
             return;
         }

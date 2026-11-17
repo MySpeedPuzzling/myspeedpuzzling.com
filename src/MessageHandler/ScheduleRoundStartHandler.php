@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -17,6 +18,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * stored. A round with online timing that ended is told to be reset first (RoundStopwatchRefusal::EndedUseReset).
  * Publishes nothing: the controller tells the open pages once the dispatch returned, after the commit
  * (RoundStopwatchLiveUpdates).
+ *
+ * The reveal on the stopwatch start (RoundStopwatchReveal): a reveal still ahead from an earlier countdown is withdrawn
+ * first - always, ticked or not, so moving a countdown never reveals at its old moment - then "Reveal the puzzles"
+ * (ScheduleRoundStart::$revealPuzzles) sets the new start's moment: hidden until the countdown ends.
  */
 #[AsMessageHandler]
 readonly final class ScheduleRoundStartHandler
@@ -25,6 +30,7 @@ readonly final class ScheduleRoundStartHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private OnlineRoundRepository $onlineRoundRepository,
         private ClockInterface $clock,
+        private RoundStopwatchReveal $roundStopwatchReveal,
     ) {
     }
 
@@ -33,12 +39,33 @@ readonly final class ScheduleRoundStartHandler
      */
     public function __invoke(ScheduleRoundStart $message): void
     {
+        // First - it clears the entity manager when it locks
+        $withReveal = $this->roundStopwatchReveal->lockIfNeeded($message->roundId, $message->revealPuzzles);
+        // After the lock - a wait for it never leaves the action at a moment already past
+        $now = $this->clock->now();
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        // Every check before anything changes
+        if ($withReveal && $message->revealPuzzles) {
+            $this->roundStopwatchReveal->checkConfirmed($round, $now, $message->revealListHash);
+        }
 
         $round->scheduleStopwatchStart(
             $message->startsAt,
-            $this->clock->now(),
+            $now,
             onlineTiming: $this->onlineRoundRepository->ofRound($round->id->toString()) !== null,
         );
+
+        if ($withReveal === false) {
+            return;
+        }
+
+        $changed = $this->roundStopwatchReveal->withdrawFuture($round, $now);
+
+        if ($message->revealPuzzles) {
+            $changed += $this->roundStopwatchReveal->revealAt($round, $message->startsAt);
+        }
+
+        $this->roundStopwatchReveal->resync($changed);
     }
 }

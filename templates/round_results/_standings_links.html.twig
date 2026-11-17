@@ -1,0 +1,15 @@
+{#
+    "Part of Overall - Solo →": the published standings this round counts in (competition toolkit A7) - read with the
+    event (CompetitionEvent::$publishedStandings). Expects the round page's context (event, round, round_route,
+    round_route_params).
+#}
+{% set round_standings = event.publishedStandings|filter(standing => standing.includesRound(round.id)) %}
+{% if round_standings is not empty %}
+    <p class="small mb-3" data-round-standings>
+        {% for standing in round_standings %}
+            <a href="{{ path(round_route == 'event_round_results' ? 'event_standing' : 'edition_standing', round_route_params|merge({standingSlug: standing.slug})) }}" class="me-2 text-nowrap" data-round-standing-link>
+                <i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ 'public_standing.part_of'|trans({'%name%': standing.name}) }} <span aria-hidden="true">→</span>
+            </a>
+        {% endfor %}
+    </p>
+{% endif %}

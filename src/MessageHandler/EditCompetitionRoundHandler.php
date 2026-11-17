@@ -7,7 +7,10 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -19,6 +22,8 @@ use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Query\GetRoundPuzzlePiecesCounts;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
@@ -34,6 +39,8 @@ readonly final class EditCompetitionRoundHandler
         private SecretRevealPreview $secretRevealPreview,
         private OfficialResultsGuard $officialResultsGuard,
         private OnlineRoundRepository $onlineRoundRepository,
+        private PickRoundRecords $pickRoundRecords,
+        private GetRoundPuzzlePiecesCounts $getRoundPuzzlePiecesCounts,
     ) {
     }
 
@@ -46,6 +53,8 @@ readonly final class EditCompetitionRoundHandler
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsProtected
      * @throws OnlineTimingInUse a round using online timing changed away from solo
+     * @throws RoundPuzzleFormatRefused `pick` with K outside 1..N, on a round using online timing, or breaking an
+     *                                  entry's per-puzzle record
      */
     public function __invoke(EditCompetitionRound $message): void
     {
@@ -80,6 +89,35 @@ readonly final class EditCompetitionRoundHandler
         }
 
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
+
+        // The round's format (competition toolkit A2) - only when the caller sends one; checked before anything changes:
+        // K within the round's puzzles, and a round using online timing stays "one result for the round" (its compete
+        // page is built around one puzzle)
+        if ($message->puzzleFormat !== null) {
+            $puzzlesCount = $round->roundPuzzles->count();
+            CompetitionRound::assertPuzzleFormat($message->puzzleFormat, $message->puzzlesToSolve, $puzzlesCount);
+
+            if (
+                $message->puzzleFormat === RoundPuzzleFormat::Pick
+                && $this->onlineRoundRepository->ofRound($round->id->toString()) !== null
+            ) {
+                throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::ONLINE_TIMING, $message->puzzlesToSolve ?? 0, $puzzlesCount);
+            }
+
+            // Entries' per-puzzle records (competition toolkit A3) stay valid: a change of the format or K that would
+            // break one is refused - the organiser clears or corrects those results first. Records exist on `pick`
+            // rounds only; RecordRoundResults reads the round FOR SHARE, so none is written while this lock is held
+            $toSolve = $message->puzzleFormat === RoundPuzzleFormat::Pick ? $message->puzzlesToSolve : null;
+
+            if ($round->puzzleFormat === RoundPuzzleFormat::Pick && ($message->puzzleFormat !== $round->puzzleFormat || $toSolve !== $round->puzzlesToSolve)) {
+                $roundId = $round->id->toString();
+                $broken = $this->pickRoundRecords->countRecordsBrokenBy($roundId, $message->puzzleFormat, $toSolve, $this->getRoundPuzzlePiecesCounts->ofRounds([$roundId]));
+
+                if ($broken > 0) {
+                    throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS, $toSolve ?? 0, $puzzlesCount, $broken);
+                }
+            }
+        }
 
         // Null = the round's expected team size as it is now, under the lock; checked before anything changes. Only a
         // team round has one - a solo or pair round has none, whatever was sent (a round changed away from team loses it)
@@ -144,6 +182,10 @@ readonly final class EditCompetitionRoundHandler
 
         // Null for a solo or pair round (a pair always has 2)
         $round->changeTeamSize($teamSize);
+
+        if ($message->puzzleFormat !== null) {
+            $round->changePuzzleFormat($message->puzzleFormat, $message->puzzlesToSolve);
+        }
 
         // An automatic reveal follows the round's start and its delay - the puzzles it keeps secret on the whole site
         // follow too (a longer delay hides them longer). Scheduled and manual reveals are the organiser's own and stay

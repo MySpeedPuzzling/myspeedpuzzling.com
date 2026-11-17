@@ -76,16 +76,26 @@ final class RefereeRightsTest extends WebTestCase
         $this->browser->request('GET', self::LIVE);
 
         self::assertResponseIsSuccessful();
-        $html = (string) $this->browser->getResponse()->getContent();
-        self::assertStringNotContainsString('/en/manage-event-rounds/', $html);
-        self::assertStringNotContainsString('/en/manage-round-results/', $html);
-        self::assertStringNotContainsString('/en/round-seating/', $html);
-        self::assertSelectorNotExists('[data-live-results-target="addTable"]');
-        self::assertSelectorNotExists('[data-live-results-target="readiness"]');
+        // The page is the same for everybody (competition toolkit C1): the organiser tools are there hidden, with
+        // placeholder links, and only the state's `viewer.organiser` shows them (live_entry_page.js pageSettings())
+        self::assertSelectorExists('[data-live-results-target="organiserLink"][hidden]');
+        self::assertSelectorNotExists('[data-live-results-target="organiserLink"]:not([hidden])');
+        self::assertSelectorExists('[data-live-results-target="readiness"][hidden]');
+        self::assertSelectorExists('[data-live-results-target="addTableField"][hidden]');
         self::assertSelectorExists('[data-live-results-target="findInput"]');
         self::assertSelectorExists('[data-live-results-target="addButton"]');
-        // A referee cannot save table numbers - the quick add does not promise it
+        $html = (string) $this->browser->getResponse()->getContent();
+        self::assertStringNotContainsString('/en/manage-round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $html);
+        self::assertStringNotContainsString('/en/round-seating/' . OfficialResultsFixture::ROUND_GROUP_A, $html);
+        self::assertStringNotContainsString('/en/manage-event-rounds/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $html);
+        // A referee cannot save table numbers - the quick add does not promise it (the default text, kept for them)
         self::assertSelectorTextSame('[data-live-results-add-note]', 'The entrant is added to this round with the first result you save.');
+
+        $this->browser->request('GET', self::STATE . '?viewer=1');
+        self::assertResponseIsSuccessful();
+        $state = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($state);
+        self::assertSame(['playerId' => self::REFEREE, 'organiser' => false], $state['viewer']);
     }
 
     public function testTheOrganiserKeepsTheirTools(): void
@@ -93,12 +103,19 @@ final class RefereeRightsTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $this->browser->request('GET', self::LIVE);
-
+        self::assertResponseIsSuccessful();
+        // The links are templates the page fills in for an organiser
         $html = (string) $this->browser->getResponse()->getContent();
-        self::assertStringContainsString('/en/manage-event-rounds/', $html);
-        self::assertStringContainsString('/en/manage-round-results/', $html);
-        self::assertSelectorExists('[data-live-results-target="addTable"]');
-        self::assertSelectorTextSame('[data-live-results-add-note]', 'The entrant is added to this round with the first result or table number you save.');
+        self::assertStringContainsString('data-href="/en/manage-event-rounds/', $html);
+        self::assertStringContainsString('data-href="/en/manage-round-results/', $html);
+        $messages = json_decode((string) $this->browser->getCrawler()->filter('[data-controller="live-results"]')->attr('data-live-results-messages-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($messages);
+        self::assertSame('The entrant is added to this round with the first result or table number you save.', $messages['addNote']);
+
+        $this->browser->request('GET', self::STATE . '?viewer=1');
+        $state = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($state);
+        self::assertSame(['playerId' => self::ORGANISER, 'organiser' => true], $state['viewer']);
     }
 
     public function testTheRefereeRecordsAResult(): void

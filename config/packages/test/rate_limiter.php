@@ -63,6 +63,17 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // Per player and round, and the fixture rounds are the same in every run - the test of the limit sets its own
+            'time_proposal' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '10 minutes',
+            ],
+            'competition_display_image_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
             // Fixture players start imports in many tests and runs - the test of the limit uses the budget up itself
             'data_import_upload' => [
                 'policy' => 'sliding_window',

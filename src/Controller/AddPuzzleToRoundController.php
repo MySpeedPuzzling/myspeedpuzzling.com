@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,6 +38,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddPuzzleToRoundController extends AbstractController
@@ -51,6 +53,7 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly FormPhotoStash $formPhotoStash,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -167,11 +170,20 @@ final class AddPuzzleToRoundController extends AbstractController
                 return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
             }
 
+            // After the commit: the event's displays read the round's visible puzzles again (competition toolkit D5)
+            $this->displayLiveUpdates->puzzlesChanged($roundId);
+
             if ($playerId !== null) {
                 $this->formPhotoStash->forget($restoredPhotos, $playerId);
             }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));
+
+            // Opened from a page that wants the organiser back (the series page's quick "Add puzzle", W3)
+            $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+            if ($returnUrl !== null) {
+                return $this->redirect((string) $returnUrl);
+            }
 
             return $this->redirectToRoute('manage_round_puzzles', ['roundId' => $roundId]);
         }

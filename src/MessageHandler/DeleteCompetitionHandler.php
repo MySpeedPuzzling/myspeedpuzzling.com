@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
+use SpeedPuzzling\Web\Message\DeleteCompetitionDisplayImages;
+use SpeedPuzzling\Web\Query\GetCompetitionDisplayImagePaths;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 readonly final class DeleteCompetitionHandler
@@ -20,6 +27,11 @@ readonly final class DeleteCompetitionHandler
         private Connection $database,
         private SecretPuzzleHides $secretPuzzleHides,
         private OfficialResultsGuard $officialResultsGuard,
+        private CompetitionRoundRepository $competitionRoundRepository,
+        private RoundStopwatchReveal $roundStopwatchReveal,
+        private ClockInterface $clock,
+        private GetCompetitionDisplayImagePaths $getCompetitionDisplayImagePaths,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -50,6 +62,16 @@ readonly final class DeleteCompetitionHandler
         $roundIds = $this->database->fetchFirstColumn('SELECT id FROM competition_round WHERE competition_id = :id', $params);
         // Locks the rounds, then their secret puzzles - waits for every other change of them (SecretPuzzleHides)
         $secretPuzzleIds = $this->secretPuzzleHides->lockRoundsForChange($roundIds);
+
+        // A countdown with "Reveal the puzzles" still ahead never reveals at its moment once the rounds are gone: taken
+        // back while their rows exist - without them the puzzles' dates stay as they are (RoundStopwatchReveal)
+        if ($secretPuzzleIds !== []) {
+            $now = $this->clock->now();
+
+            foreach ($roundIds as $roundId) {
+                $this->roundStopwatchReveal->withdrawBeforeRemoving($this->competitionRoundRepository->get($roundId)->roundPuzzles, $now);
+            }
+        }
 
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL
@@ -88,11 +110,18 @@ readonly final class DeleteCompetitionHandler
             $params,
         );
 
+        // Its displays cascade with it - their uploaded pictures are deleted once the deletion committed
+        $displayImages = $this->getCompetitionDisplayImagePaths->ofCompetition($competitionId);
+
         $competition = $this->competitionRepository->get($competitionId);
         // An edition: its series' picks are re-matched once it is gone (SeriesEditionsChanged)
         $competition->recordRemoval();
         $this->competitionRepository->delete($competition);
 
         $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);
+
+        if ($displayImages !== []) {
+            $this->messageBus->dispatch(new DeleteCompetitionDisplayImages($displayImages), [new DispatchAfterCurrentBusStamp()]);
+        }
     }
 }

@@ -3,7 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
 import { officialResultsRequest } from '../official_results_api.js';
 import { formatResultTime } from '../official_results_time.js';
-import { seatAdvanced } from '../official_results_qualification.js';
+import { prefillFromStep, seatAdvanced } from '../official_results_qualification.js';
 import { chooseTranslation } from '../translation_choice.js';
 
 const ROUND_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
@@ -82,14 +82,45 @@ export default class extends Controller {
 
     // ---------------------------------------------------------------- choosing
 
-    async open() {
-        this.chosenSources = new Set(this.sourceValue && this.round(this.sourceValue) ? [this.sourceValue] : []);
-        this.chosenTargets = new Set();
-        this.distribution = null;
-        this.targetBySource = {};
+    open() {
+        this.start(null);
+    }
+
+    /**
+     * A declared advancement step's "Advance" (competition toolkit A8, window event `advance-qualified:open-step` from
+     * the results desk's step banner): the same dialog, its choices prefilled from the step. Nothing else differs -
+     * the organiser reviews the plan and applies it with its plan hash.
+     */
+    openStep(event) {
+        const prefill = prefillFromStep(event.detail?.step ?? null, this.rounds);
+
+        if (prefill !== null) {
+            this.start(prefill);
+        }
+    }
+
+    async start(prefill) {
+        this.chosenSources = new Set(prefill !== null
+            ? prefill.sources
+            : (this.sourceValue && this.round(this.sourceValue) ? [this.sourceValue] : []));
+        this.chosenTargets = new Set(prefill?.targets ?? []);
+        this.distribution = prefill?.distribution ?? null;
+        this.targetBySource = { ...(prefill?.targetBySource ?? {}) };
         this.countryRule = null;
         this.plan = null;
         this.resetCountryRule();
+
+        if (prefill !== null && prefill.countryRule !== null && this.hasCountryRuleTarget) {
+            const checkbox = this.countryRuleTarget.querySelector('[data-kind="country_rule"]');
+            const count = this.countryRuleTarget.querySelector('[data-kind="country_count"]');
+
+            if (checkbox && count) {
+                checkbox.checked = true;
+                count.value = String(prefill.countryRule);
+                this.readCountryRule();
+            }
+        }
+
         this.showStep('choose');
         this.renderChoose();
         Modal.getOrCreateInstance(this.modalTarget).show();

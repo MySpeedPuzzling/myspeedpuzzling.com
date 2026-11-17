@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A new standing or a standing's settings (competition toolkit A6) - with the live preview once it exists.
+    Variables: competition, form, standing (edit only), table (StandingTable, edit only).
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set page_title = standing is defined ? standing.name : 'competition_standing.list.add'|trans %}
+
+{% block title %}{{ page_title }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'competition_standing.list.title'|trans, url: path('competition_standings_manage', {competitionId: competition.id})},
+        {label: page_title},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_standings_manage', {competitionId: competition.id}), fallbackTitle: 'competition_standing.list.title'|trans}) }}
+
+    <div class="pb-4" data-competition-standing-form>
+        <h1 class="h2">{{ page_title }}</h1>
+
+        <div style="max-width: 40rem;">
+            {{ form_start(form, {attr: {'data-standing-form': ''}}) }}
+                {{ form_errors(form) }}
+                {{ form_row(form.name, {row_attr: {class: 'mb-3'}}) }}
+
+                <fieldset class="mb-3">
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.category)|striptags }}</legend>
+                    {{ form_errors(form.category) }}
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for choice in form.category %}
+                            <div class="form-check">{{ form_widget(choice) }}{{ form_label(choice) }}</div>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.roundIds)|striptags }}</legend>
+                    <div class="form-text mt-0 mb-1">{{ 'competition_standing.form.rounds_help'|trans }}</div>
+                    {{ form_errors(form.roundIds) }}
+                    {% for choice in form.roundIds %}
+                        <div class="form-check">{{ form_widget(choice) }}{{ form_label(choice) }}</div>
+                    {% else %}
+                        <p class="small text-muted">{{ 'competition_standing.list.no_rounds'|trans }}</p>
+                    {% endfor %}
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.orderRule)|striptags }}</legend>
+                    {{ form_errors(form.orderRule) }}
+                    {% for choice in form.orderRule %}
+                        <div class="form-check mb-1">
+                            {{ form_widget(choice) }}{{ form_label(choice) }}
+                            <div class="form-text mt-0">{{ ('competition_standing.order.' ~ choice.vars.value ~ '_help')|trans }}</div>
+                        </div>
+                    {% endfor %}
+                </fieldset>
+
+                {{ form_row(form.penaltySecondsPerPiece, {row_attr: {class: 'mb-3'}, attr: {style: 'max-width: 8rem;'}}) }}
+
+                <p class="small text-muted">{{ 'competition_standing.form.missing_rule'|trans }}</p>
+
+                <button type="submit" class="btn btn-primary" data-standing-save>{{ 'competition_standing.form.save'|trans }}</button>
+            {{ form_end(form) }}
+        </div>
+
+        {% if table %}
+            <h2 class="h5 mt-5">{{ 'competition_standing.preview.title'|trans }}</h2>
+            {{ include('competition_toolkit/_standing_table.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

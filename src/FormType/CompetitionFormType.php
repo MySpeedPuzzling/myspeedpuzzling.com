@@ -237,6 +237,16 @@ final class CompetitionFormType extends AbstractType
             });
         }
 
+        // Edit form of an event whose rounds may still move with its date (EventDateShift::roundsCanMove()) - shown by
+        // date_move_rounds_controller.js only once the start date changed
+        if ($options['move_rounds_field'] === true) {
+            $builder->add('moveRoundsWithDate', CheckboxType::class, [
+                'label' => 'competition.form.move_rounds_with_date',
+                'help' => 'competition.form.move_rounds_with_date_help',
+                'required' => false,
+            ]);
+        }
+
         // Edit forms only - a new event's first URL comes from its name
         if ($options['url_field'] === true) {
             $builder->add('slug', TextType::class, [
@@ -338,6 +348,7 @@ final class CompetitionFormType extends AbstractType
             'organization_choices' => null,
             'schedule_field' => false,
             'draft_button' => false,
+            'move_rounds_field' => false,
         ]);
 
         $resolver->setAllowedTypes('url_field', 'bool');
@@ -345,6 +356,7 @@ final class CompetitionFormType extends AbstractType
         $resolver->setAllowedTypes('organization_choices', ['null', 'array']);
         $resolver->setAllowedTypes('schedule_field', 'bool');
         $resolver->setAllowedTypes('draft_button', 'bool');
+        $resolver->setAllowedTypes('move_rounds_field', 'bool');
     }
 
     private function buildPlayerOptionHtml(

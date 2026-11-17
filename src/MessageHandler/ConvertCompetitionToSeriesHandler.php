@@ -204,18 +204,19 @@ SELECT
             SELECT 1 FROM competition_participant_round cpr
             INNER JOIN competition_round cr ON cr.id = cpr.round_id
             WHERE cr.competition_id = :competitionId
-                AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL)
+                AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL)
         )
         OR EXISTS (
             SELECT 1 FROM competition_team ct
             INNER JOIN competition_round cr ON cr.id = ct.round_id
             WHERE cr.competition_id = :competitionId
-                AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL)
+                AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL OR ct.result_puzzles IS NOT NULL)
         )
     ) AS official_results,
     EXISTS (SELECT 1 FROM competition_referee WHERE competition_id = :competitionId) AS referees,
     EXISTS (SELECT 1 FROM competition_page_section WHERE competition_id = :competitionId) AS page_sections,
     EXISTS (SELECT 1 FROM sell_swap_list_item_event WHERE competition_id = :competitionId) AS marketplace_marks,
+    EXISTS (SELECT 1 FROM competition_display WHERE competition_id = :competitionId) AS displays,
     EXISTS (SELECT 1 FROM competition_participant WHERE competition_id = :competitionId AND deleted_at IS NULL) AS participants
 SQL,
             ['competitionId' => $competition->id->toString()],

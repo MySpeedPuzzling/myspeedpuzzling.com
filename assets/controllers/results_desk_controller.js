@@ -5,7 +5,7 @@ import { officialResultsRequest, newClientId, isGone } from '../official_results
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { rankEntries } from '../official_results_ranking.js';
-import { bestOfEachCountry, qualificationDiff, topN } from '../official_results_qualification.js';
+import { bestOfEachCountry, overallForRound, qualificationDiff, topN } from '../official_results_qualification.js';
 import {
     PendingChanges,
     sameValue,
@@ -15,10 +15,14 @@ import {
     saveEditor as saveEditorValue,
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
+import { editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
+import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 
 const RESULT = 'result';
 const TABLE = 'table_number';
 const QUALIFIED = 'qualified';
+// A `pick` round's per-puzzle record (competition toolkit A4) - saved with the result as one group (A rule 7)
+const PUZZLES = 'puzzles';
 const RETRY_SECONDS = [2, 5, 10, 20, 30];
 const RESYNC_EVERY_MS = 60000;
 const OWN_WRITE_WINDOW_MS = 5000;
@@ -175,7 +179,7 @@ export default class extends Controller {
 
             // An answer or an update that arrives late must not undo a newer result
             if (current !== undefined && current.enteredAt && incoming.enteredAt && Date.parse(incoming.enteredAt) < Date.parse(current.enteredAt)) {
-                merged = { ...incoming, result: current.result, enteredAt: current.enteredAt, enteredBy: current.enteredBy };
+                merged = { ...incoming, result: current.result, enteredAt: current.enteredAt, enteredBy: current.enteredBy, ...('puzzles' in current ? { puzzles: current.puzzles } : {}) };
             }
 
             if (current !== undefined && fromLiveUpdate) {
@@ -198,7 +202,12 @@ export default class extends Controller {
     }
 
     fields(entry) {
-        return [entry.result, entry.tableNumber, entry.qualified];
+        return 'puzzles' in entry ? [entry.result, entry.tableNumber, entry.qualified, entry.puzzles] : [entry.result, entry.tableNumber, entry.qualified];
+    }
+
+    /** The round's `puzzleFormat` when it is a `pick` round (each entrant solves K of its N puzzles), else null. */
+    pickFormat() {
+        return pickFormat(this.round);
     }
 
     updateRound(overview) {
@@ -215,6 +224,10 @@ export default class extends Controller {
 
         if (field === TABLE) {
             return entry.tableNumber ?? null;
+        }
+
+        if (field === PUZZLES) {
+            return entry.puzzles ?? null;
         }
 
         return entry.qualified === true;
@@ -274,7 +287,7 @@ export default class extends Controller {
             case 'qualified':
                 return entry.qualified === true;
             case 'not_saved':
-                return [RESULT, TABLE, QUALIFIED].some((field) => this.pending.get(entry.ref, field) !== null);
+                return [RESULT, TABLE, QUALIFIED, PUZZLES].some((field) => this.pending.get(entry.ref, field) !== null);
             default:
                 return true;
         }
@@ -395,7 +408,9 @@ export default class extends Controller {
         cells.push(`<td class="text-nowrap">${this.flagsHtml(entry.countries ?? [])}</td>`);
         cells.push(`<td>
             <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none text-nowrap results-desk-cell results-desk-result" data-action="results-desk#editResult" data-ref="${ref}" data-focus-key="result:${ref}" aria-label="${escapeHtml(this.t('edit_result_label', { name }))}">${entry.result === null ? `<span class="text-body-secondary">${escapeHtml(this.t('add_result'))}</span>` : escapeHtml(this.formatResult(entry.result))}</button>
+            ${this.recordHtml(entry)}
             ${this.cellState(entry, RESULT)}
+            ${this.pickFormat() !== null ? this.cellState(entry, PUZZLES) : ''}
         </td>`);
         cells.push(`<td class="small text-body-secondary">${this.enteredHtml(this.entries.get(entry.ref))}</td>`);
         cells.push(`<td class="text-center">
@@ -431,7 +446,7 @@ export default class extends Controller {
     takeOutHtml(entry) {
         const server = this.entries.get(entry.ref);
 
-        if (!server || server.result !== null || server.qualified === true || [RESULT, QUALIFIED].some((field) => this.pending.get(entry.ref, field) !== null)) {
+        if (!server || server.result !== null || server.qualified === true || [RESULT, QUALIFIED, PUZZLES].some((field) => this.pending.get(entry.ref, field) !== null)) {
             return '';
         }
 
@@ -466,6 +481,25 @@ export default class extends Controller {
         const cell = this.pending.get(entry.ref, field);
 
         if (cell === null) {
+            return '';
+        }
+
+        // The group's other cell already says what happened (both were refused together) - one line, not two
+        if (cell.status === 'error' && cell.reason === 'group_refused') {
+            const partner = this.pending.get(entry.ref, field === PUZZLES ? RESULT : PUZZLES);
+
+            if (partner !== null && (partner.status === 'error' || partner.status === 'conflict') && partner.reason !== 'group_refused') {
+                return '';
+            }
+        }
+
+        // Both of a group in conflict: one line - the result's, naming the record saved meanwhile too
+        if (field === PUZZLES && cell.status === 'conflict' && this.pending.get(entry.ref, RESULT)?.status === 'conflict') {
+            return '';
+        }
+
+        // One spinner per result cell - the record travels with the result
+        if (field === PUZZLES && this.pending.get(entry.ref, RESULT) !== null && (cell.status === 'sending' || cell.status === 'queued')) {
             return '';
         }
 
@@ -507,7 +541,13 @@ export default class extends Controller {
         }
 
         // Conflict: somebody else saved another value meanwhile
-        const theirs = this.formatField(field, cell.conflict?.current ?? null);
+        let theirs = this.formatField(field, cell.conflict?.current ?? null);
+        const record = field === RESULT ? this.pending.get(entry.ref, PUZZLES) : null;
+
+        if (record !== null && record.status === 'conflict') {
+            theirs = `${theirs} (${this.formatField(PUZZLES, record.conflict?.current ?? null)})`;
+        }
+
         const who = cell.conflict?.enteredBy?.name;
         const text = who ? this.t('conflict_by', { name: who, value: theirs }) : this.t('conflict', { value: theirs });
 
@@ -529,6 +569,12 @@ export default class extends Controller {
             return value === null ? this.t('no_table') : String(value);
         }
 
+        if (field === PUZZLES) {
+            const text = recordText(this.pickFormat(), value, { pieces: this.t('pieces_placed') });
+
+            return text === '' ? this.t('puzzles_no_record') : text;
+        }
+
         return value ? this.t('qualified_yes') : this.t('qualified_no');
     }
 
@@ -548,6 +594,39 @@ export default class extends Controller {
         }
 
         return result.didNotStart ? this.t('did_not_start') : '';
+    }
+
+    /**
+     * A `pick` round row's record under its result: the chosen puzzles in solving order - label (the name only of a
+     * puzzle that is out), ✓ + the time it was finished at, or the pieces of a puzzle not finished. Unsaved values show.
+     */
+    recordHtml(entry) {
+        const format = this.pickFormat();
+
+        if (format === null) {
+            return '';
+        }
+
+        const chips = recordChips(format, this.shown(entry, PUZZLES));
+
+        if (chips.length === 0) {
+            return '';
+        }
+
+        const html = chips.map((chip) => {
+            const name = chip.name !== null ? ` <span class="text-body-secondary">${escapeHtml(chip.name)}</span>` : '';
+            let state = '';
+
+            if (chip.done) {
+                state = ` <i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(this.t('puzzles_status_done'))}</span>${chip.atSeconds !== null ? ` ${escapeHtml(formatResultTime(chip.atSeconds))}` : ''}`;
+            } else if (chip.piecesPlaced !== null) {
+                state = ` ${escapeHtml(this.t('pieces_placed', { placed: chip.piecesPlaced }))}`;
+            }
+
+            return `<span class="badge rounded-pill text-bg-light border fw-normal text-wrap text-start" data-record-chip>${escapeHtml(chip.label)}${name}${state}</span>`;
+        });
+
+        return `<div class="d-flex flex-wrap gap-1 mt-1 small" data-record aria-label="${escapeHtml(this.t('puzzles_record_label'))}">${html.join('')}</div>`;
     }
 
     /**
@@ -689,7 +768,7 @@ export default class extends Controller {
         this.openEditor(event.currentTarget.dataset.ref, TABLE);
     }
 
-    openEditor(ref, field) {
+    openEditor(ref, field, { totalOnly = false } = {}) {
         const entry = this.entries.get(ref);
 
         if (entry === undefined) {
@@ -704,6 +783,13 @@ export default class extends Controller {
         // What the organiser sees now is the `from` of the save - never the server's value at save time
         this.editor = editorOpened(this.pending, ref, field, this.serverValue(entry, field));
 
+        // A `pick` round's result cell opens the per-puzzle editor: the result and the record are saved as one group,
+        // both with what the organiser saw when it opened. The plain total editor only for an entry without a record.
+        if (field === RESULT && this.pickFormat() !== null) {
+            this.editor.puzzles = editorOpened(this.pending, ref, PUZZLES, this.serverValue(entry, PUZZLES));
+            this.editor.pick = !(totalOnly && this.editor.puzzles.seen === null);
+        }
+
         const row = this.rows.get(ref);
         if (row === undefined) {
             return;
@@ -717,7 +803,7 @@ export default class extends Controller {
             return;
         }
 
-        cell.innerHTML = field === RESULT ? this.resultEditorHtml(entry) : this.tableEditorHtml(entry);
+        cell.innerHTML = field === RESULT ? (this.editor.pick ? this.puzzlesEditorHtml(entry) : this.resultEditorHtml(entry)) : this.tableEditorHtml(entry);
         this.editorPreview();
         this.renderEditorMeanwhile();
         cell.querySelector('[data-editor-input]:not([hidden])')?.focus();
@@ -735,6 +821,7 @@ export default class extends Controller {
                 <select class="form-select form-select-sm w-auto" data-editor-mode aria-label="${escapeHtml(this.t('editor_kind'))}" data-action="change->results-desk#editorPreview">
                     ${option('time', this.t('mode_time'))}
                     ${option('pieces', this.t('mode_pieces'))}
+                    ${Number.isInteger(this.round.piecesCount) && this.round.piecesCount > 1 ? option('missing', this.t('mode_missing')) : ''}
                     ${option('dns', this.t('mode_dns'))}
                     ${option('none', this.t('mode_none'))}
                 </select>
@@ -745,6 +832,195 @@ export default class extends Controller {
             <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
             <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
         </form>`;
+    }
+
+    /**
+     * The per-puzzle editor of a `pick` round entry: the outcome (finished / didn't finish / did not start / no result),
+     * then K rows in solving order - the puzzle by its label (the name only of a puzzle that is out), finished or not,
+     * the time it was finished at (the last one's = the result's time) or its pieces placed. The total is computed by
+     * official_results_puzzles.js.
+     */
+    puzzlesEditorHtml(entry) {
+        const format = this.pickFormat();
+        const shown = this.shown(entry, RESULT);
+        const record = this.shown(entry, PUZZLES);
+        const mode = shown === null ? (record === null ? 'time' : 'none') : (Number.isInteger(shown.seconds) ? 'time' : (Number.isInteger(shown.piecesPlaced) ? 'pieces' : (shown.didNotStart ? 'dns' : 'time')));
+        const option = (key, label) => `<option value="${key}" ${key === mode ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+        const puzzles = puzzleOptions(format);
+        const rows = editorRows(format, record).map((row, index) => {
+            const choices = puzzles.map((puzzle) => `<option value="${escapeHtml(puzzle.id)}" ${puzzle.id === row.id ? 'selected' : ''}>${escapeHtml(puzzle.name !== null ? `${puzzle.label} - ${puzzle.name}` : puzzle.label)}</option>`).join('');
+            const position = index + 1;
+
+            return `<li class="d-flex flex-wrap gap-1 align-items-center mb-1" data-puzzle-row>
+                <span class="small text-body-secondary results-desk-puzzle-position">${position}.</span>
+                <select class="form-select form-select-sm w-auto" data-row-puzzle ${index === 0 ? 'data-editor-input' : ''} aria-label="${escapeHtml(this.t('puzzles_row', { position }))}" data-action="change->results-desk#editorPreview">
+                    <option value="">${escapeHtml(this.t('puzzles_choose'))}</option>${choices}
+                </select>
+                <select class="form-select form-select-sm w-auto" data-row-status aria-label="${escapeHtml(this.t('puzzles_row_status', { position }))}" data-action="change->results-desk#editorPreview">
+                    <option value="done" ${row.done ? 'selected' : ''}>${escapeHtml(this.t('puzzles_status_done'))}</option>
+                    <option value="open" ${row.done ? '' : 'selected'}>${escapeHtml(this.t('puzzles_status_open'))}</option>
+                </select>
+                <input type="text" class="form-control form-control-sm results-desk-input" data-row-at inputmode="numeric" autocomplete="off" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('puzzles_placeholder_at'))}" aria-label="${escapeHtml(this.t('puzzles_row_at', { position }))}" data-action="input->results-desk#editorPreview">
+                <input type="text" class="form-control form-control-sm results-desk-input" data-row-pieces inputmode="numeric" autocomplete="off" value="${row.pieces !== null ? escapeHtml(String(row.pieces)) : ''}" placeholder="${escapeHtml(this.t('placeholder_pieces'))}" aria-label="${escapeHtml(this.t('puzzles_row_pieces', { position }))}" data-action="input->results-desk#editorPreview">
+            </li>`;
+        }).join('');
+        const clear = record !== null ? `<button type="button" class="btn btn-sm btn-outline-danger" data-action="results-desk#clearRecord">${escapeHtml(this.t('puzzles_clear'))}</button>` : '';
+        const totalOnly = record === null ? `<button type="button" class="btn btn-sm btn-link" data-action="results-desk#totalOnly">${escapeHtml(this.t('puzzles_total_only'))}</button>` : '';
+
+        return `<form class="results-desk-editor results-desk-puzzles-editor" data-editor="puzzles" novalidate data-action="submit->results-desk#saveEditor keydown->results-desk#editorKeydown">
+            <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                <select class="form-select form-select-sm w-auto" data-editor-mode aria-label="${escapeHtml(this.t('editor_kind'))}" data-action="change->results-desk#editorPreview">
+                    ${option('time', this.t('mode_time'))}
+                    ${option('pieces', this.t('mode_pieces'))}
+                    ${option('missing', this.t('mode_missing'))}
+                    ${option('dns', this.t('mode_dns'))}
+                    ${option('none', this.t('mode_none'))}
+                </select>
+                <span class="small text-body-secondary">${escapeHtml(this.t(format.toSolve >= format.puzzles.length ? 'puzzles_format_all' : 'puzzles_format', { count: format.toSolve, total: format.puzzles.length }))}</span>
+            </div>
+            <ol class="list-unstyled mb-1" data-puzzle-rows>${rows}</ol>
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <button type="submit" class="btn btn-sm btn-primary" data-editor-save>${escapeHtml(this.t('save'))}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
+                ${clear}${totalOnly}
+            </div>
+            <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
+            <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
+        </form>`;
+    }
+
+    /**
+     * The per-puzzle editor's rows as typed - {rows} or {error} (a split or pieces that cannot be read). Shows the inputs
+     * the outcome uses: status not for a finished result (all finished), the split of a finished puzzle, the pieces of
+     * one not finished (didn't finish only), no rows for did not start.
+     */
+    puzzlesEditorRows(form, mode) {
+        const rows = [];
+        let error = null;
+        const rowsTarget = form.querySelector('[data-puzzle-rows]');
+        rowsTarget.hidden = mode === 'dns';
+        const all = [...form.querySelectorAll('[data-puzzle-row]')];
+        const lastChosen = all.map((row) => row.querySelector('[data-row-puzzle]').value !== '').lastIndexOf(true);
+        // Didn't finish counted as missing pieces (reliability hardening T1): per puzzle, placed = its pieces − missing
+        const missing = mode === 'missing';
+        const piecesOf = new Map((this.pickFormat()?.puzzles ?? []).map((puzzle) => [String(puzzle.roundPuzzleId).toLowerCase(), puzzle.piecesCount ?? null]));
+        const counted = [];
+
+        all.forEach((row, index) => {
+            const status = row.querySelector('[data-row-status]');
+            const at = row.querySelector('[data-row-at]');
+            const pieces = row.querySelector('[data-row-pieces]');
+            const id = row.querySelector('[data-row-puzzle]').value;
+            const done = mode === 'time' || status.value === 'done';
+
+            status.hidden = mode === 'time';
+            at.hidden = !done;
+            pieces.hidden = done || !(mode === 'pieces' || missing);
+            pieces.placeholder = this.t(missing ? 'placeholder_missing' : 'placeholder_pieces');
+            // A finished result's time is the last puzzle's "finished at"
+            at.placeholder = mode === 'time' && index === lastChosen ? this.t('puzzles_placeholder_time') : this.t('puzzles_placeholder_at');
+
+            const atText = at.value.trim();
+            const piecesText = pieces.value.trim();
+            let atSeconds = null;
+            let piecesPlaced = null;
+
+            if (done && atText !== '') {
+                const parsed = parseResultTime(atText);
+
+                if (parsed.error || parsed.empty) {
+                    error ??= this.t('puzzles_error_split', { position: index + 1 });
+                } else {
+                    atSeconds = parsed.seconds;
+                }
+            }
+
+            if (!done && missing && piecesText !== '') {
+                const count = piecesOf.get(id.toLowerCase()) ?? null;
+                const read = typedPieces(piecesText, MISSING, count, { allowNone: true });
+
+                if (read.error) {
+                    error ??= this.t('error_missing_row', { position: index + 1, max: count ?? '?' });
+                } else {
+                    piecesPlaced = read.placed > 0 ? read.placed : null;
+                    counted.push(this.t('preview_missing', { missing: read.missing, placed: read.placed, pieces: count }));
+                }
+            } else if (!done && mode === 'pieces' && piecesText !== '') {
+                if (!/^\d{1,6}$/.test(piecesText) || Number(piecesText) < 1) {
+                    error ??= this.t('puzzles_error_pieces', { position: index + 1 });
+                } else {
+                    piecesPlaced = Number(piecesText);
+                }
+            }
+
+            rows.push({ id, done, at: atSeconds, pieces: piecesPlaced });
+        });
+
+        return error !== null ? { error } : { rows, counted };
+    }
+
+    /**
+     * What the per-puzzle editor would save: {value: {result, puzzles}, preview} or {error}.
+     */
+    puzzlesEditorValue(form) {
+        const format = this.pickFormat();
+        const mode = form.querySelector('[data-editor-mode]').value;
+        const typed = this.puzzlesEditorRows(form, mode);
+
+        if (typed.error !== undefined) {
+            return { error: typed.error };
+        }
+
+        const outcome = editorOutcome(format, mode === 'missing' ? 'pieces' : mode, typed.rows);
+
+        if (outcome.error !== null) {
+            return { error: this.t(`puzzles_error_${outcome.error}`, { count: format.toSolve }) };
+        }
+
+        if (outcome.refusal !== null) {
+            return { error: this.t(`reason_${outcome.refusal}`) };
+        }
+
+        let preview = this.t('preview_none');
+
+        if (outcome.result?.didNotStart) {
+            preview = this.t('preview_dns');
+        } else if (Number.isInteger(outcome.result?.seconds)) {
+            preview = this.t('preview_time', { time: formatResultTime(outcome.result.seconds) });
+        } else if (Number.isInteger(outcome.result?.piecesPlaced)) {
+            preview = [this.t('puzzles_preview_pieces', { placed: outcome.result.piecesPlaced }), ...typed.counted].join(' · ');
+        }
+
+        return { value: { result: outcome.result, puzzles: outcome.record }, preview };
+    }
+
+    /**
+     * "Clear the per-puzzle record": the record alone goes (the result stays) - from = what the editor showed when it
+     * opened. The plain total editor works again afterwards.
+     */
+    clearRecord() {
+        if (this.editor === null || !this.editor.pick) {
+            return;
+        }
+
+        const ref = this.editor.ref;
+
+        if (this.entries.has(ref)) {
+            saveEditorValue(this.pending, this.editor.puzzles, null);
+        }
+
+        this.closeEditor(true);
+        this.flush();
+        this.toast(this.t('puzzles_cleared', { name: this.entries.get(ref)?.displayName ?? '' }), 'info');
+    }
+
+    /** "Total only" (an entry without a record): the plain result editor instead of the per-puzzle one. */
+    totalOnly() {
+        if (this.editor === null || !this.editor.pick || this.editor.puzzles.seen !== null) {
+            return;
+        }
+
+        this.openEditor(this.editor.ref, RESULT, { totalOnly: true });
     }
 
     tableEditorHtml(entry) {
@@ -779,6 +1055,10 @@ export default class extends Controller {
             return { error: '' };
         }
 
+        if (form.dataset.editor === 'puzzles') {
+            return this.puzzlesEditorValue(form);
+        }
+
         const input = form.querySelector('[data-editor-input]');
         const text = input.value.trim();
 
@@ -796,7 +1076,7 @@ export default class extends Controller {
 
         const mode = form.querySelector('[data-editor-mode]').value;
         input.hidden = mode === 'dns' || mode === 'none';
-        input.placeholder = mode === 'pieces' ? this.t('placeholder_pieces') : this.t('placeholder_time');
+        input.placeholder = this.t(mode === 'missing' ? 'placeholder_missing' : (mode === 'pieces' ? 'placeholder_pieces' : 'placeholder_time'));
 
         if (mode === 'dns') {
             return { value: { didNotStart: true }, preview: this.t('preview_dns') };
@@ -806,7 +1086,20 @@ export default class extends Controller {
             return { value: null, preview: this.t('preview_none') };
         }
 
+        if (mode === 'missing') {
+            // Counted as missing pieces (reliability hardening T1): placed = the round's pieces − missing, both shown
+            const pieces = this.round.piecesCount;
+            const read = typedPieces(text, MISSING, pieces);
+
+            if (read.empty || read.error) {
+                return { error: this.t('error_missing', { max: pieces - 1 }) };
+            }
+
+            return { value: { piecesPlaced: read.placed }, preview: this.t('preview_missing', { missing: read.missing, placed: read.placed, pieces }) };
+        }
+
         if (mode === 'pieces') {
+            // A `pick` round entry without a record: K × the biggest puzzle − 1 (official_results_puzzles.js)
             const max = Number.isInteger(this.round.piecesCount) ? this.round.piecesCount - 1 : null;
 
             if (!/^\d{1,6}$/.test(text) || Number(text) < 1 || (max !== null && Number(text) > max)) {
@@ -829,6 +1122,30 @@ export default class extends Controller {
         return { value: { seconds: parsed.seconds }, preview: this.t('preview_time', { time: formatResultTime(parsed.seconds) }) };
     }
 
+    /**
+     * Didn't finish ↔ Didn't finish (missing pieces): the counts typed or prefilled keep what they meant - 4900 placed of
+     * 5000 becomes 100 missing (reliability hardening T1).
+     */
+    convertCounts(form) {
+        const select = form.querySelector('[data-editor-mode]');
+        const was = form.dataset.counts ?? select?.querySelector('[selected]')?.value;
+        const mode = select?.value;
+        form.dataset.counts = mode ?? '';
+
+        if (select === null || was === mode || ![was, mode].every((one) => one === 'pieces' || one === 'missing')) {
+            return;
+        }
+
+        const piecesOf = new Map((this.pickFormat()?.puzzles ?? []).map((puzzle) => [String(puzzle.roundPuzzleId).toLowerCase(), puzzle.piecesCount ?? null]));
+        const fields = form.dataset.editor === 'puzzles'
+            ? [...form.querySelectorAll('[data-puzzle-row]')].map((row) => [row.querySelector('[data-row-pieces]'), piecesOf.get(row.querySelector('[data-row-puzzle]').value.toLowerCase()) ?? null])
+            : [[form.querySelector('[data-editor-input]'), this.round.piecesCount ?? null]];
+
+        for (const [input, pieces] of fields) {
+            input.value = convertTyped(input.value, was === 'missing' ? MISSING : PLACED, mode === 'missing' ? MISSING : PLACED, pieces);
+        }
+    }
+
     editorPreview() {
         const form = this.editorForm();
 
@@ -836,6 +1153,7 @@ export default class extends Controller {
             return;
         }
 
+        this.convertCounts(form);
         const outcome = this.editorValue();
         const preview = form.querySelector('[data-editor-preview]');
         const input = form.querySelector('[data-editor-input]');
@@ -871,7 +1189,7 @@ export default class extends Controller {
         const meanwhile = this.editorMeanwhile();
 
         if (meanwhile !== null) {
-            if (sameValue(outcome.value, meanwhile.current)) {
+            if (sameValue(meanwhile.field === PUZZLES ? outcome.value.puzzles : (this.editor.pick ? outcome.value.result : outcome.value), meanwhile.current)) {
                 // Both typed the same - nothing to decide
                 this.editorTakeTheirs();
 
@@ -890,7 +1208,15 @@ export default class extends Controller {
 
     commitEditor(value) {
         if (this.entries.has(this.editor.ref)) {
-            saveEditorValue(this.pending, this.editor, value);
+            if (this.editor.pick) {
+                // One group: the server applies the result and the record together or not at all (A rule 7), and
+                // the desk never sends one without the other
+                const group = `puzzles:${this.editor.ref}`;
+                this.pending.set(this.editor.ref, RESULT, value.result, this.editor.seen, group);
+                this.pending.set(this.editor.ref, PUZZLES, value.puzzles, this.editor.puzzles.seen, group);
+            } else {
+                saveEditorValue(this.pending, this.editor, value);
+            }
         }
 
         this.closeEditor(true);
@@ -912,10 +1238,19 @@ export default class extends Controller {
             return null;
         }
 
-        return savedMeanwhile(this.pending, this.editor, {
+        const result = savedMeanwhile(this.pending, this.editor, {
             value: this.serverValue(entry, this.editor.field),
             enteredBy: this.editor.field === RESULT ? (entry.enteredBy ?? null) : null,
         });
+
+        if (result !== null || this.editor.puzzles === undefined) {
+            return result === null ? null : { ...result, field: this.editor.field };
+        }
+
+        // The record of a `pick` round entry changed meanwhile (a judge chose the puzzles) - the organiser decides too
+        const puzzles = savedMeanwhile(this.pending, this.editor.puzzles, { value: this.serverValue(entry, PUZZLES), enteredBy: entry.enteredBy ?? null });
+
+        return puzzles === null ? null : { ...puzzles, field: PUZZLES };
     }
 
     renderEditorMeanwhile() {
@@ -941,7 +1276,7 @@ export default class extends Controller {
             return;
         }
 
-        const theirs = this.formatField(this.editor.field, meanwhile.current);
+        const theirs = this.formatField(meanwhile.field ?? this.editor.field, meanwhile.current);
         const who = meanwhile.enteredBy?.name;
         const text = who ? this.t('conflict_by', { name: who, value: theirs }) : this.t('conflict', { value: theirs });
 
@@ -972,7 +1307,12 @@ export default class extends Controller {
         const entry = this.entries.get(this.editor.ref);
 
         if (entry !== undefined) {
+            const puzzles = this.editor.puzzles;
             this.editor = keepMineInEditor(this.pending, this.editor, this.serverValue(entry, this.editor.field));
+
+            if (puzzles !== undefined) {
+                this.editor.puzzles = keepMineInEditor(this.pending, puzzles, this.serverValue(entry, PUZZLES));
+            }
         }
 
         this.commitEditor(outcome.value);
@@ -986,10 +1326,12 @@ export default class extends Controller {
             return;
         }
 
-        const cell = this.pending.get(this.editor.ref, this.editor.field);
+        for (const field of this.editor.puzzles !== undefined ? [this.editor.field, PUZZLES] : [this.editor.field]) {
+            const cell = this.pending.get(this.editor.ref, field);
 
-        if (cell !== null && cell.status === 'conflict') {
-            this.pending.discard(this.editor.ref, this.editor.field);
+            if (cell !== null && cell.status === 'conflict') {
+                this.pending.discard(this.editor.ref, field);
+            }
         }
 
         this.closeEditor(true);
@@ -1127,7 +1469,7 @@ export default class extends Controller {
 
         if (answer.kind === 'ok') {
             this.entries.delete(ref);
-            [RESULT, TABLE, QUALIFIED].forEach((field) => this.pending.discard(ref, field));
+            [RESULT, TABLE, QUALIFIED, PUZZLES].forEach((field) => this.pending.discard(ref, field));
             this.generation++;
             this.updateRound(answer.data.round);
             this.render();
@@ -1392,8 +1734,19 @@ export default class extends Controller {
     // ---------------------------------------------------------------- qualification helpers
 
     openHelper(event) {
-        const mode = event.currentTarget.dataset.helper;
-        this.helper = { mode, count: mode === 'top' ? Math.max(1, this.rankedEntries().filter((entry) => entry.qualified).length || 10) : 1, keepOthers: mode === 'country', include: new Map() };
+        const button = event.currentTarget;
+        const mode = button.dataset.helper;
+        // An advancement step's "Mark top N" (competition toolkit A8) brings its N - and for "top N over all its rounds"
+        // the address of the server's proposal; the review dialog and "Apply" are the same as by hand
+        const preset = Math.floor(Number(button.dataset.helperCount) || 0);
+        const presetUrl = mode === 'top' ? (button.dataset.helperPresetUrl ?? null) : null;
+        this.helper = {
+            mode,
+            count: preset > 0 ? preset : (mode === 'top' ? Math.max(1, this.rankedEntries().filter((entry) => entry.qualified).length || 10) : 1),
+            keepOthers: mode === 'country',
+            include: new Map(),
+            overall: presetUrl ? { url: presetUrl, answer: null, failed: false, requestId: 0 } : null,
+        };
 
         this.helperBodyTarget.querySelectorAll('[data-helper-section]').forEach((section) => {
             section.hidden = section.dataset.helperSection !== mode;
@@ -1413,6 +1766,43 @@ export default class extends Controller {
         this.helperModalTarget.querySelector('[data-helper-title]').textContent = this.t(`helper_title_${mode}`);
         this.renderHelper();
         this.modal(this.helperModalTarget).show();
+
+        if (this.helper.overall !== null) {
+            this.loadOverallProposal();
+        }
+    }
+
+    /**
+     * "Top N over all the step's rounds" (competition toolkit A8): the server ranks every source round together by the
+     * advancement seed (saved results); the dialog shows this round's part of it. The latest request wins.
+     */
+    async loadOverallProposal() {
+        const helper = this.helper;
+        const overall = helper?.overall;
+
+        if (!overall) {
+            return;
+        }
+
+        const requestId = ++overall.requestId;
+        overall.answer = null;
+        overall.failed = false;
+        this.renderHelper();
+
+        const separator = overall.url.includes('?') ? '&' : '?';
+        const answer = await officialResultsRequest(`${overall.url}${separator}count=${encodeURIComponent(String(helper.count))}`);
+
+        if (this.helper !== helper || overall.requestId !== requestId) {
+            return;
+        }
+
+        if (answer.kind === 'ok') {
+            overall.answer = answer.data;
+        } else {
+            overall.failed = true;
+        }
+
+        this.renderHelper();
     }
 
     helperChanged(event) {
@@ -1425,6 +1815,12 @@ export default class extends Controller {
         if (target.matches('[data-helper-count]')) {
             this.helper.count = Math.max(0, Math.floor(Number(target.value) || 0));
             this.helper.include = new Map();
+
+            if (this.helper.overall !== null) {
+                this.loadOverallProposal();
+
+                return;
+            }
         } else if (target.matches('[data-helper-keep]')) {
             this.helper.keepOthers = target.checked;
         } else if (target.matches('[data-helper-include]')) {
@@ -1450,7 +1846,7 @@ export default class extends Controller {
         }
 
         if (helper.mode === 'top') {
-            const proposal = topN(ranked, helper.count);
+            const proposal = helper.overall !== null ? overallForRound(helper.overall.answer, ranked) : topN(ranked, helper.count);
             const tied = new Set(proposal.tiedAtCut);
 
             return {
@@ -1481,6 +1877,19 @@ export default class extends Controller {
     }
 
     renderHelper(withLists = true) {
+        // An advancement step's overall proposal is on its way (or failed): nothing to review or apply yet
+        if (this.helper.overall !== null && this.helper.overall.answer === null) {
+            const decide = this.helperBodyTarget.querySelector('[data-helper-decide]');
+            if (decide) {
+                decide.innerHTML = '';
+            }
+
+            this.helperSummaryTarget.innerHTML = `<p class="text-body-secondary mb-0">${escapeHtml(this.t(this.helper.overall.failed ? 'step_overall_failed' : 'step_overall_loading'))}</p>`;
+            this.helperApplyTarget.disabled = true;
+
+            return;
+        }
+
         const ranked = this.rankedEntries();
         const byRef = new Map(ranked.map((entry) => [entry.ref, entry]));
         const proposal = this.helperProposal();
@@ -1517,7 +1926,7 @@ export default class extends Controller {
         const listOf = (refs) => refs.map((ref) => `<li>${label(ref)}</li>`).join('');
         const qualifiedNow = ranked.filter((entry) => entry.qualified === true).length;
         const total = qualifiedNow + diff.mark.length - diff.unmark.length;
-        this.helperSummaryTarget.innerHTML = `<p class="fw-semibold mb-2">${escapeHtml(this.t('helper_diff', { mark: diff.mark.length, unmark: diff.unmark.length, total }))}</p>
+        this.helperSummaryTarget.innerHTML = `${this.helper.overall !== null ? `<p class="small text-body-secondary mb-2">${escapeHtml(this.t('step_overall_note'))}</p>` : ''}<p class="fw-semibold mb-2">${escapeHtml(this.t('helper_diff', { mark: diff.mark.length, unmark: diff.unmark.length, total }))}</p>
             ${diff.mark.length > 0 ? `<details><summary>${escapeHtml(this.tc('helper_will_mark', diff.mark.length))}</summary><ul class="small mb-2">${listOf(diff.mark)}</ul></details>` : ''}
             ${diff.unmark.length > 0 ? `<details><summary>${escapeHtml(this.tc('helper_will_unmark', diff.unmark.length))}</summary><ul class="small mb-2">${listOf(diff.unmark)}</ul></details>` : ''}`;
 
@@ -1547,6 +1956,22 @@ export default class extends Controller {
         this.render();
         this.flush();
         this.toast(this.t('helper_applied', { mark: mark.length, unmark: unmark.length }), 'info');
+    }
+
+    /**
+     * An advancement step's "Advance" (competition toolkit A8): the Advance dialog on this page opens prefilled from
+     * the step (advance_qualified_controller.js `openStep`) - the dry run, plan hash and apply are unchanged.
+     */
+    advanceStep(event) {
+        let step;
+
+        try {
+            step = JSON.parse(event.currentTarget.dataset.step ?? 'null');
+        } catch {
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent('advance-qualified:open-step', { detail: { step } }));
     }
 
     // ---------------------------------------------------------------- publishing

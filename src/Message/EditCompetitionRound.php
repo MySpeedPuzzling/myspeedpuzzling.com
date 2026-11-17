@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 
 /**
  * Takes turns with every write to the event's participants (CompetitionParticipantsLock): a category change is refused
@@ -54,6 +55,10 @@ readonly final class EditCompetitionRound implements SerializedByLock
         public null|int $teamSize = null,
         // The organiser emptied the expected team size (the form's blank field, the internal API's `"teamSize": null`)
         public bool $clearTeamSize = false,
+        // How the round's puzzles are solved (competition toolkit A2) with K for `pick`. Null = keep the round's format
+        // as it is under the handler's lock (every caller but the toolkit's round form field)
+        public null|RoundPuzzleFormat $puzzleFormat = null,
+        public null|int $puzzlesToSolve = null,
     ) {
     }
 

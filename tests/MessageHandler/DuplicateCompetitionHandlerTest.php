@@ -9,11 +9,18 @@ use Doctrine\DBAL\Connection;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
+use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Message\AddPageSection;
+use SpeedPuzzling\Web\Message\ChangeCompetitionDisplayFollow;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
+use SpeedPuzzling\Web\Message\SaveCompetitionDisplayDesign;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\DisplayFollowMode;
+use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\PageSectionType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -197,6 +204,126 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         self::assertEquals(['images' => [['path' => $copiedPicture, 'caption' => 'The hall']]], json_decode($sections[1]['content'], true));
         self::assertSame('jpeg bytes', $filesystem->read($copiedPicture));
         self::assertTrue($filesystem->fileExists($picture));
+    }
+
+    /**
+     * Competition toolkit D8: every display with a new link, its design and settings, a pinned round and the followed
+     * rounds remapped onto the copied rounds, its pictures copied under the copy's own prefix (the sanitizer accepts
+     * only the event's own uploads) - a picture missing from the storage is left out. The competitor-page settings are
+     * event settings and copied too.
+     */
+    public function testDisplaysAndCompetitorPageSettingsAreCopiedOntoTheCopysRounds(): void
+    {
+        $source = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $this->database->executeStatement(
+            "UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true, time_proposals = true, qr_tag_mode = 'table' WHERE id = :id",
+            ['id' => $source],
+        );
+
+        $filesystem = self::getContainer()->get(Filesystem::class);
+        $paths = [];
+        for ($i = 0; $i < 3; $i++) {
+            $path = DisplayImages::newPath($source, 'image/png');
+            self::assertNotNull($path);
+            $paths[] = $path;
+        }
+        [$background, $logo, $missing] = $paths;
+        $filesystem->write($background, 'background bytes');
+        $filesystem->write($logo, 'logo bytes');
+
+        /** @var list<string> $sourceRounds */
+        $sourceRounds = $this->database->fetchFirstColumn('SELECT id FROM competition_round WHERE competition_id = :id ORDER BY starts_at, id', ['id' => $source]);
+        self::assertGreaterThanOrEqual(2, count($sourceRounds));
+        $sourceRoundSlugs = $this->roundSlugs($source);
+
+        $pinnedId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddCompetitionDisplay($pinnedId, $source, DisplayKind::Screen, 'Hall A', 'cs', PlayerFixture::PLAYER_ADMIN));
+        $this->messageBus->dispatch(new SaveCompetitionDisplayDesign(
+            displayId: $pinnedId->toString(),
+            design: json_decode(json_encode([
+                'schema' => 1,
+                'canvas' => ['background' => ['type' => 'image', 'image' => ['path' => $background]]],
+                'elements' => [
+                    ['id' => 'timer001', 'type' => 'timer', 'frame' => ['x' => 0, 'y' => 0, 'w' => 50, 'h' => 20]],
+                    ['id' => 'image001', 'type' => 'image', 'frame' => ['x' => 0, 'y' => 50, 'w' => 20, 'h' => 20], 'props' => ['source' => 'upload', 'path' => $logo]],
+                    ['id' => 'rotat001', 'type' => 'rotator', 'frame' => ['x' => 50, 'y' => 50, 'w' => 20, 'h' => 20], 'props' => ['images' => [['path' => $logo], ['path' => $missing]]]],
+                ],
+            ], JSON_THROW_ON_ERROR), false, flags: JSON_THROW_ON_ERROR),
+            baseVersion: 1,
+        ));
+        $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($pinnedId->toString(), DisplayFollowMode::Pinned, $sourceRounds[1]));
+
+        $followingId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddCompetitionDisplay($followingId, $source, DisplayKind::Overlay, 'OBS lower third', 'en', PlayerFixture::PLAYER_ADMIN));
+        $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($followingId->toString(), DisplayFollowMode::Current, null, [$sourceRounds[0]]));
+
+        /** @var list<array<string, mixed>> $sourceDisplays */
+        $sourceDisplays = $this->database->fetchAllAssociative('SELECT * FROM competition_display WHERE competition_id = :id ORDER BY created_at, id', ['id' => $source]);
+
+        $copy = $this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $row = $this->competition($copy);
+        self::assertTrue($row['competitor_pages']);
+        self::assertTrue($row['competitor_pages_live_results']);
+        self::assertTrue($row['time_proposals']);
+        self::assertSame('table', $row['qr_tag_mode']);
+
+        /** @var array<string, string> $copyRoundBySlug */
+        $copyRoundBySlug = $this->database->fetchAllKeyValue('SELECT slug, id FROM competition_round WHERE competition_id = :id', ['id' => $copy]);
+        /** @var list<array<string, mixed>> $copies */
+        $copies = $this->database->fetchAllAssociative('SELECT * FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $copy]);
+        self::assertSame(['Hall A', 'OBS lower third'], array_column($copies, 'name'));
+        [$pinnedCopy, $followingCopy] = $copies;
+
+        foreach ($copies as $display) {
+            self::assertNotContains($display['token'], array_column($sourceDisplays, 'token'), 'A new link - the source\'s TVs keep showing the source');
+            self::assertNotContains($display['id'], array_column($sourceDisplays, 'id'));
+            self::assertSame(1, self::number($display['design_version']));
+            self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $display['created_by_id']);
+        }
+
+        self::assertSame('screen', $pinnedCopy['kind']);
+        self::assertSame('cs', $pinnedCopy['locale']);
+        self::assertSame('pinned', $pinnedCopy['follow_mode']);
+        self::assertSame($copyRoundBySlug[$sourceRoundSlugs[$sourceRounds[1]]], $pinnedCopy['pinned_round_id']);
+        self::assertNull($pinnedCopy['follow_round_ids']);
+
+        self::assertSame('overlay', $followingCopy['kind']);
+        self::assertSame('current', $followingCopy['follow_mode']);
+        self::assertNull($followingCopy['pinned_round_id']);
+        self::assertSame([$copyRoundBySlug[$sourceRoundSlugs[$sourceRounds[0]]]], json_decode(self::text($followingCopy['follow_round_ids']), true));
+
+        // The pictures are the copy's own files, the missing one left out; the source keeps its files
+        $copiedBackground = str_replace($source, $copy, $background);
+        $copiedLogo = str_replace($source, $copy, $logo);
+        /** @var array<string, mixed> $design */
+        $design = json_decode(self::text($pinnedCopy['design']), true);
+        self::assertSame([$copiedBackground, $copiedLogo], DisplayDesignSanitizer::imagePaths($design));
+        self::assertSame('background bytes', $filesystem->read($copiedBackground));
+        self::assertSame('logo bytes', $filesystem->read($copiedLogo));
+        self::assertTrue($filesystem->fileExists($background));
+        self::assertFalse($filesystem->fileExists(str_replace($source, $copy, $missing)));
+
+        /** @var array<string, mixed> $sourceDesign */
+        $sourceDesign = json_decode(self::text($sourceDisplays[0]['design']), true);
+        self::assertSame([$background, $logo, $missing], DisplayDesignSanitizer::imagePaths($sourceDesign));
+
+        // The copied design is one the copy's editor saves as it is - no picture of another event in it
+        $sanitizer = self::getContainer()->get(DisplayDesignSanitizer::class);
+        self::assertEquals($design, $sanitizer->normaliseArray($design, $copy));
+        self::assertSame($pinnedCopy['uses_results'], $sourceDisplays[0]['uses_results']);
+        self::assertSame($pinnedCopy['uses_live_results'], $sourceDisplays[0]['uses_live_results']);
+    }
+
+    /**
+     * @return array<string, string> round id => slug
+     */
+    private function roundSlugs(string $competitionId): array
+    {
+        /** @var array<string, string> $slugs */
+        $slugs = $this->database->fetchAllKeyValue('SELECT id, slug FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
+
+        return $slugs;
     }
 
     private function duplicate(

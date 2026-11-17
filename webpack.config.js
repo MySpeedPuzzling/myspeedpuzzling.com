@@ -21,6 +21,16 @@ Encore
      * and one CSS file (e.g. app.css) if your JavaScript imports CSS.
      */
     .addEntry('app', './assets/app.js')
+    // The live result entry page's own bundle, without Turbo and the site's controllers (competition toolkit C2,
+    // assets/live_entry.js) - not precached for every visitor (service worker PRECACHE_SKIP_ENTRIES): referees' devices
+    // store it with the page's offline copy
+    .addEntry('live_entry', './assets/live_entry.js')
+    // ...and, only inside the native apps (Hotwire Native), Turbo for it: the apps' WebView finishes a visit only on a
+    // page that runs Turbo (assets/live_entry_native.js) - the web page stays without it
+    .addEntry('live_entry_native', './assets/live_entry_native.js')
+    // A competition display - timer screen or stream overlay (competition toolkit D4, assets/display.js): a standalone
+    // page with nothing of the site, never precached for every visitor (service worker PRECACHE_SKIP_ENTRIES)
+    .addEntry('display', './assets/display.js')
     // Page stylesheets of the online competitions (docs/features/online-competitions/), linked only on their pages
     .addStyleEntry('compete', './assets/styles/compete.scss')
     .addStyleEntry('online_rounds', './assets/styles/online_rounds.scss')
@@ -31,6 +41,12 @@ Encore
 
     // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
     .splitEntryChunks()
+    // ...except the live entry (and its native-app Turbo) and the display: one file of its own each (+ runtime.js),
+    // sharing no split chunk with `app` - the site's pages keep exactly the script tags they had, and each of these is
+    // complete in itself
+    .configureSplitChunks((splitChunks) => {
+        splitChunks.chunks = (chunk) => !['live_entry', 'live_entry_native', 'display'].includes(chunk.name);
+    })
 
     // will require an extra script tag for runtime.js
     // but, you probably want this, unless you're building a single-page app

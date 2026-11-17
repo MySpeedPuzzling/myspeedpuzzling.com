@@ -40,6 +40,16 @@ readonly final class CompetitionPermissions
     }
 
     /**
+     * Every competition canEditCompetition() says yes to (the event creation wizard's "Copy one of your events")
+     *
+     * @return list<string>
+     */
+    public function editableCompetitionIds(): array
+    {
+        return array_map(strval(...), array_keys($this->editableCompetitionIds));
+    }
+
+    /**
      * Organiser (see canEditCompetition()) or referee of the competition - the live result entry
      * (docs/features/competitions-management/live-results.md "Referees").
      */

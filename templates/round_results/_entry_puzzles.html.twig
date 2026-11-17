@@ -1,0 +1,43 @@
+{#
+    The puzzles a `pick` round's entry chose, in solving order (competition toolkit A5, A-round-formats.md §2.7) - part of
+    round_results/_official.html.twig, only for a row whose entry has a per-puzzle record. A puzzle hidden from everybody
+    (RoundPuzzlesVisibleNow, the public rule) is named by its label only: no name, picture, piece count or id of it here.
+    "Add to my profile" per puzzle (PublishedRoundEntry::puzzleProfileTime()) carries `round_puzzle`.
+    Expects: entry, round, event.
+#}
+<div class="official-entry-puzzles" data-official-entry-puzzles>
+    <span class="visually-hidden">{{ 'competition_toolkit.round_page.puzzles'|trans }}</span>
+    <ol class="official-entry-puzzle-list">
+        {% for chip in entry.puzzleChips %}
+            <li class="official-entry-puzzle{{ chip.done ? ' is-done' }}" data-official-entry-puzzle="{{ chip.position }}"{% if chip.puzzle is null %} data-official-entry-puzzle-hidden{% endif %}>
+                <span class="official-entry-puzzle-label">{{ chip.label }}</span>
+                {%- if chip.puzzle is not null %} <span class="official-entry-puzzle-name">{{ chip.puzzle.puzzleName }}</span>{% endif %}
+                {%- if chip.done %}
+                    <i class="bi bi-check-lg text-success" aria-hidden="true"></i>
+                    {%- if chip.atSeconds is not null %} <span class="official-entry-puzzle-time" title="{{ 'competition_toolkit.round_page.finished_at'|trans({'%time%': chip.atSeconds|puzzlingTime}) }}">{{ chip.atSeconds|puzzlingTime }}</span>{% endif %}
+                {%- else %}
+                    <span class="text-muted">{{ chip.piecesPlaced is not null ? 'competition_toolkit.round_page.pieces_placed'|trans({'%count%': chip.piecesPlaced}) : 'competition_toolkit.round_page.not_finished'|trans }}</span>
+                {%- endif %}
+            </li>
+        {% endfor %}
+    </ol>
+
+    {% if entry.hasPuzzleProfileStates %}
+        <div class="official-profile-action">
+            {% for chip in entry.puzzleChips|filter(chip => chip.profileState is not null) %}
+                {% set seconds = round.puzzlesToSolve == 1 ? entry.result.seconds : chip.duration %}
+                {% if chip.profileState.value == 'offer' %}
+                    <a class="btn btn-sm btn-outline-primary mb-1" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: chip.profilePuzzleId, competition: event.id, official_entry: entry.ref.toString(), round_puzzle: chip.roundPuzzleId}) }}" data-official-add-to-profile data-official-round-puzzle="{{ chip.roundPuzzleId }}">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ seconds is not null ? 'competition_toolkit.round_page.add_puzzle'|trans({'%puzzle%': chip.puzzle.puzzleName, '%time%': seconds|puzzlingTime}) : 'competition_toolkit.round_page.add_puzzle_unfinished'|trans({'%puzzle%': chip.puzzle.puzzleName}) }}
+                    </a>
+                {% else %}
+                    <span class="small text-success d-inline-block me-2" data-official-on-profile data-official-round-puzzle="{{ chip.roundPuzzleId }}"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'competition_toolkit.round_page.on_profile'|trans({'%puzzle%': chip.puzzle.puzzleName}) }}</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if entry.missesSplits(round.puzzlesToSolve) %}
+        <p class="small text-muted mb-0" data-official-splits-missing>{{ 'competition_toolkit.round_page.splits_missing'|trans }}</p>
+    {% endif %}
+</div>

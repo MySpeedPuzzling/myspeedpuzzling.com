@@ -19,6 +19,12 @@ const HUB = 'https://myspeedpuzzling.test/.well-known/mercure';
 const ROUND_TOPIC = '/round-results/018d0020-0000-0000-0000-000000000101';
 const STOPWATCH_TOPIC = '/round-stopwatch/018d0020-0000-0000-0000-000000000101';
 
+const OTHER_STOPWATCH_TOPIC = '/round-stopwatch/018d0020-0000-0000-0000-000000000102';
+
+function publicSubscription(topics = [STOPWATCH_TOPIC]) {
+    return { url: HUB, topics, public: true };
+}
+
 function subscription(token, expiresIn = 3600) {
     return { url: HUB, topics: [ROUND_TOPIC, STOPWATCH_TOPIC], token, expiresAt: '2026-10-07T12:00:00+00:00', expiresIn };
 }
@@ -627,6 +633,104 @@ const scenarios = {
         await settle();
         assert.equal(hub.requests.length, 1);
         assert.ok(timers.every((timer) => timer.ms === WATCH_EVERY_MS || timer.ms >= RECONNECT_MS[0]));
+    },
+
+    async 'a public subscription (competitor page): no token, no Authorization header, nothing to renew'() {
+        assert.equal(readSubscription({ url: HUB, topics: [STOPWATCH_TOPIC] }, 0), null, 'no token and not public');
+        assert.equal(readSubscription({ url: HUB, topics: [], public: true }, 0), null);
+        assert.deepEqual(readSubscription(publicSubscription(), 0), { url: HUB, topics: [STOPWATCH_TOPIC], token: null, public: true, expiresAt: Infinity });
+
+        const { events, hub, timers, page, messages, advanceWithHeartbeats } = setup({ initial: publicSubscription() });
+        page.next = publicSubscription();
+        events.start();
+        await settle();
+
+        assert.equal(hub.requests.length, 1);
+        assert.equal(hub.last().init.headers.Authorization, undefined);
+        assert.deepEqual(hub.last().url.searchParams.getAll('match'), [STOPWATCH_TOPIC]);
+        assert.equal(hub.last().init.credentials, 'omit');
+        hub.last().open();
+        await settle();
+        assert.ok(timers.every((timer) => timer.ms === WATCH_EVERY_MS), 'no renewal timer');
+
+        hub.last().send(frame('urn:p1', { roundId: 'r', status: 'running' }));
+        await settle();
+        assert.deepEqual(messages, [{ roundId: 'r', status: 'running' }]);
+
+        // Hours with states answering the same topics: the one stream stays
+        for (let i = 0; i < 10; i++) {
+            events.update(publicSubscription());
+            await advanceWithHeartbeats(600_000);
+        }
+        assert.equal(hub.requests.length, 1);
+        assert.equal(page.refreshes, 0);
+    },
+
+    async 'a public subscription with other topics opens their stream first, then drops the old one'() {
+        const { events, hub } = setup({ initial: publicSubscription() });
+        events.start();
+        await settle();
+        const first = hub.last();
+        first.open();
+        await settle();
+
+        events.update(publicSubscription([STOPWATCH_TOPIC, OTHER_STOPWATCH_TOPIC]));
+        await settle();
+        assert.equal(hub.requests.length, 2);
+        assert.deepEqual(hub.last().url.searchParams.getAll('match'), [STOPWATCH_TOPIC, OTHER_STOPWATCH_TOPIC]);
+        assert.equal(first.aborted, false, 'the old stream stays until the new one is open');
+
+        hub.last().open();
+        await settle();
+        assert.equal(first.aborted, true);
+        assert.equal(events.isLive(), true);
+
+        // The same topics in another order: nothing new
+        events.update(publicSubscription([OTHER_STOPWATCH_TOPIC, STOPWATCH_TOPIC]));
+        await settle();
+        assert.equal(hub.requests.length, 2);
+    },
+
+    async 'a public stream that dropped keeps its pause when a state with the same topics answers'() {
+        const { events, hub, advance } = setup({ initial: publicSubscription() });
+        events.start();
+        await settle();
+        hub.last().answer(502);
+        await settle();
+        await advance(RECONNECT_MS[0]);
+        hub.last().answer(502);
+        await settle();
+        assert.equal(hub.requests.length, 2);
+
+        // The page polls its state every 15 s meanwhile - the backoff (2 s, then 5 s ...) is not cut short
+        events.update(publicSubscription());
+        await settle();
+        assert.equal(hub.requests.length, 2);
+        await advance(RECONNECT_MS[1]);
+        assert.equal(hub.requests.length, 3);
+
+        // Other topics are worth a try at once
+        hub.last().answer(502);
+        await settle();
+        events.update(publicSubscription([OTHER_STOPWATCH_TOPIC]));
+        await settle();
+        assert.equal(hub.requests.length, 4);
+    },
+
+    async 'a public subscription the hub refuses: no stream any more, no state fetch loop'() {
+        const { events, hub, page, advance } = setup({ initial: publicSubscription() });
+        page.next = publicSubscription();
+        events.start();
+        await settle();
+        hub.last().answer(401);
+        await settle();
+        await advance(3600_000);
+        events.update(publicSubscription([OTHER_STOPWATCH_TOPIC]));
+        await advance(3600_000);
+
+        assert.equal(hub.requests.length, 1);
+        assert.ok(page.refreshes <= 1, `refreshes: ${page.refreshes}`);
+        assert.equal(events.isLive(), false);
     },
 
     async 'closed (the page left): everything stops and nothing reopens'() {

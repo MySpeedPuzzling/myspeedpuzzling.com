@@ -103,6 +103,8 @@ final class RecordRoundResultsController extends AbstractController
 
         // Committed by now - the other devices of the round learn about it
         $this->liveUpdates->entriesChanged($round->id->toString(), $recorded->changedEntryRefs);
+        // A time proposal the set decided (competition toolkit P1) - only when the competition has them
+        $this->liveUpdates->proposalsChanged($round->id->toString(), $recorded->changedProposalIds);
 
         $refs = array_values(array_unique(array_filter(array_map(
             static fn (RoundResultChangeOutcome $outcome): null|string => $outcome->entryRef,

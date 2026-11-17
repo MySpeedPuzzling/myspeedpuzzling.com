@@ -66,6 +66,38 @@ final class SitemapEventsController extends AbstractController
             ]));
         }
 
+        // Published standings (competition toolkit A7)
+        foreach ($this->getCompetitionSlugsForSitemap->standingSlugs() as $standing) {
+            if ($standing['series_slug'] === null) {
+                array_push($entries, ...$this->localizedEntries('event_standing', [
+                    'slug' => $standing['event_slug'],
+                    'standingSlug' => $standing['standing_slug'],
+                ]));
+
+                continue;
+            }
+
+            array_push($entries, ...$this->localizedEntries('edition_standing', [
+                'seriesSlug' => $standing['series_slug'],
+                'editionSlug' => $standing['event_slug'],
+                'standingSlug' => $standing['standing_slug'],
+            ]));
+        }
+
+        // Brackets with a published round (competition toolkit A9)
+        foreach ($this->getCompetitionSlugsForSitemap->bracketSlugs() as $bracket) {
+            if ($bracket['series_slug'] === null) {
+                array_push($entries, ...$this->localizedEntries('event_bracket', ['slug' => $bracket['event_slug']]));
+
+                continue;
+            }
+
+            array_push($entries, ...$this->localizedEntries('edition_bracket', [
+                'seriesSlug' => $bracket['series_slug'],
+                'editionSlug' => $bracket['event_slug'],
+            ]));
+        }
+
         // One page per year of past events (docs/features/events-page/README.md, "SEO")
         foreach ($this->getCompetitionSlugsForSitemap->archiveYears() as $year) {
             array_push($entries, ...$this->localizedEntries('events_archive', [

@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The public page of a published standing (competition toolkit A7, A-round-formats.md §3.4/§3.6;
+    docs/features/competitions-management/standings.md): the sum of the standing's rounds whose official results are
+    published, "Provisional" until all are. Ranks are the standing's places over every entrant - rows hidden from the
+    viewer are dropped without renumbering, private players keep the organiser's name only. Mobile first: rank, name and
+    total always; the round columns from lg up, a compact per-round line under the name below that.
+
+    Variables: page (PublicStandingPage), event_url, standing_route, round_route, route_params.
+#}
+
+{% set table = page.table %}
+{% set standing = page.standing %}
+{% set event = page.event %}
+
+{% block title %}{{ 'public_standing.meta.title'|trans({'%standing%': standing.name, '%event%': page.eventTitle.label}) }}{% endblock %}
+
+{% block meta_description %}{{ 'public_standing.meta.description'|trans({'%standing%': standing.name, '%event%': page.eventTitle.label, '%counted%': table.roundsCounted, '%count%': table.roundsTotal}) }}{% endblock %}
+
+{# Nothing counted yet = nothing to index #}
+{% block robots %}{% if table.roundsCounted == 0 %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
+
+    <p class="mb-1 small">
+        <a href="{{ event_url }}" class="text-muted">{{ page.eventTitle.label }}</a>
+    </p>
+
+    <h1 class="h4 mb-2" data-standing-title>
+        <i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ standing.name }}
+        {# the category badge only when the standing's own name does not say it already ("Overall - Solo" needs no [Solo]) #}
+        {% set category_label = ('competition.round.category.' ~ standing.category.value)|trans %}
+        {% if category_label|lower not in standing.name|lower %}
+            <span class="badge text-bg-light border align-middle fw-normal small" data-standing-category>{{ category_label }}</span>
+        {% endif %}
+    </h1>
+
+    {% if page.standings|length > 1 %}
+        <nav class="mb-3" aria-label="{{ 'public_standing.other_standings'|trans }}">
+            <ul class="nav nav-pills small flex-nowrap overflow-auto" data-standing-tabs>
+                {% for other in page.standings %}
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap py-1 px-3 {{ other.slug == standing.slug ? 'active' }}" {% if other.slug == standing.slug %}aria-current="page"{% endif %} href="{{ path(standing_route, route_params|merge({standingSlug: other.slug})) }}">{{ other.name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+
+    <p class="small mb-1" data-standing-state>
+        {% if table.provisional %}
+            <span class="badge bg-warning text-dark" data-standing-provisional>{{ 'public_standing.provisional'|trans }}</span>
+            <span class="text-muted">{{ 'public_standing.after_rounds'|trans({'%counted%': table.roundsCounted, '%count%': table.roundsTotal}) }}</span>
+        {% else %}
+            <span class="badge bg-success" data-standing-final>{{ 'public_standing.final'|trans({'%count%': table.roundsTotal}) }}</span>
+        {% endif %}
+    </p>
+    <p class="small text-muted mb-3" data-standing-rules>
+        {{ ('competition_standing.order.' ~ table.table.standing.rules.order.value)|trans }}
+        {%- if table.table.standing.rules.penaltySecondsPerPiece > 0 %} · {{ 'competition_standing.penalty_short'|trans({'%seconds%': table.table.standing.rules.penaltySecondsPerPiece}) }}{% endif %}
+    </p>
+
+    {% if table.rows is empty %}
+        <p class="text-muted" data-standing-empty>{{ (table.roundsCounted == 0 ? 'public_standing.nothing_published' : 'public_standing.no_results')|trans }}</p>
+    {% else %}
+        <div class="custom-table-wrapper lb-wrapper mb-2">
+            <table class="table custom-table lb-table standing-table mb-0" data-standing-table>
+                <caption class="visually-hidden">{{ standing.name }}</caption>
+                <thead>
+                <tr>
+                    <th scope="col" class="lb-rank-head"><abbr title="{{ 'public_standing.rank'|trans }}">#</abbr></th>
+                    <th scope="col">{{ ('round_results.official.entrant.' ~ standing.category.value)|trans }}</th>
+                    {% for round in table.table.rounds %}
+                        <th scope="col" class="text-end text-nowrap d-none d-lg-table-cell {{ round.counted ? '' : 'text-muted' }}">
+                            {%- if round.slug is not null and round.counted -%}
+                                <a href="{{ path(round_route, route_params|merge({roundSlug: round.slug})) }}">{{ round.name }}</a>
+                            {%- else -%}
+                                {{ round.name }}
+                            {%- endif -%}
+                        </th>
+                    {% endfor %}
+                    <th scope="col" class="text-end">{{ 'public_standing.total'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for public_row in table.rows %}
+                    {% set row = public_row.row %}
+                    <tr class="{{ public_row.isViewers ? 'table-active-player' }}" data-standing-row data-standing-rank="{{ row.rank }}">
+                        <td class="rank">
+                            {% if row.rank is not null %}
+                                <span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank }}</span>
+                            {% else %}
+                                <span class="text-muted">–</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="lb-solver">
+                            {% for entrant in public_row.entrants %}
+                                {{ include('_leaderboard_player.html.twig', {player: entrant, small: public_row.isTeam, show_tier: false}) }}
+                            {% endfor %}
+
+                            {% if (public_row.isTeam and public_row.teamName is not null) or not row.complete %}
+                                <div class="lb-badges">
+                                    {%- if public_row.isTeam and public_row.teamName is not null -%}
+                                        <span class="badge rounded-pill lb-team-badge"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ public_row.teamName }}</span>
+                                    {%- endif -%}
+                                    {%- if not row.complete -%}
+                                        <span class="badge rounded-pill text-bg-light border" data-standing-incomplete>{{ 'public_standing.rounds_of'|trans({'%scored%': row.roundsScored, '%count%': table.roundsCounted}) }}</span>
+                                    {%- endif -%}
+                                </div>
+                            {% endif %}
+
+                            {# Below lg the round columns are hidden - the same scores in one compact line #}
+                            <ol class="standing-round-line list-inline small text-muted mb-0 mt-1 d-lg-none" data-standing-round-line>
+                                {% for round in table.table.rounds %}
+                                    {% set score = row.perRound[round.id] %}
+                                    <li class="list-inline-item text-nowrap me-2"><span class="fw-semibold">{{ 'public_standing.round_short'|trans({'%number%': loop.index}) }}</span> {{ include('standing/_score.html.twig') }}</li>
+                                {% endfor %}
+                            </ol>
+                        </td>
+
+                        {% for round in table.table.rounds %}
+                            {% set score = row.perRound[round.id] %}
+                            <td class="text-end text-nowrap d-none d-lg-table-cell" data-standing-score="{{ score.status.value }}"><span class="lb-time-value small">{{ include('standing/_score.html.twig') }}</span></td>
+                        {% endfor %}
+
+                        <td class="lb-time">
+                            <span class="lb-time-value" data-standing-total>{{ row.totalSeconds|puzzlingTime }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <ul class="small text-muted list-unstyled mb-4" data-standing-legend>
+            <li class="d-lg-none">{{ 'public_standing.legend.rounds'|trans }}
+                {%- for round in table.table.rounds %}{{ loop.first ? ' ' : ', ' }}{{ 'public_standing.round_short'|trans({'%number%': loop.index}) }} = {% if round.slug is not null and round.counted %}<a href="{{ path(round_route, route_params|merge({roundSlug: round.slug})) }}">{{ round.name }}</a>{% else %}{{ round.name }}{% endif %}{% endfor %}</li>
+            <li>{{ 'public_standing.legend.places'|trans }}</li>
+            {% if table.hasUnfinishedScores %}<li>{{ 'public_standing.legend.unfinished'|trans }}</li>{% endif %}
+            {% if table.hasIncomplete %}<li>{{ 'public_standing.legend.incomplete'|trans }}</li>{% endif %}
+            {% if table.provisional %}<li>{{ 'public_standing.legend.not_published'|trans }}</li>{% endif %}
+        </ul>
+    {% endif %}
+{% endblock %}

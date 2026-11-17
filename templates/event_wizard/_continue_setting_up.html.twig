@@ -1,0 +1,19 @@
+{#
+    "Continue setting up" of a draft the event creation wizard can resume (W2): one link to event_wizard_continue (the
+    draft's first step not done). The caller decides it is offered (event_wizard_resumable*, EventWizardResume).
+
+    Variables: competition_id; layout: 'edit' (a line on the edit page) | 'banner' (the draft banner) | 'action' (an
+    ev-action of "You organize" / the ⋯ menu)
+#}
+{%- set url = path('event_wizard_continue', {competitionId: competition_id}) -%}
+{%- if layout == 'action' -%}
+    <a class="ev-action" href="{{ url }}" data-turbo-frame="_top" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }}</a>
+{%- elseif layout == 'banner' -%}
+    <a class="btn btn-outline-primary ev-draft-banner-button" href="{{ url }}" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }}</a>
+{%- else -%}
+    <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2" role="status" data-event-wizard-continue-line>
+        <i class="bi bi-magic" aria-hidden="true"></i>
+        <span class="me-auto">{{ 'event_wizard.get_ready.continue_text'|trans }}</span>
+        <a class="btn btn-sm btn-primary" href="{{ url }}" data-event-wizard-continue>{{ 'event_wizard.get_ready.continue'|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>
+    </div>
+{%- endif -%}

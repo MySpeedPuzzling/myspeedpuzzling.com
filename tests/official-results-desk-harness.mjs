@@ -3,7 +3,7 @@
 // stdin, and prints one result per case as JSON.
 
 import { readFileSync } from 'node:fs';
-import { bestOfEachCountry, qualificationDiff, seatAdvanced, topN } from '../assets/official_results_qualification.js';
+import { bestOfEachCountry, overallForRound, prefillFromStep, qualificationDiff, seatAdvanced, topN } from '../assets/official_results_qualification.js';
 import { PendingChanges, keepMineInEditor, openEditor, saveEditor, savedMeanwhile } from '../assets/official_results_pending_changes.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
@@ -19,7 +19,7 @@ function runPending(steps) {
     for (const step of steps) {
         switch (step.op) {
             case 'set':
-                pending.set(step.ref, step.field, step.to, step.server);
+                pending.set(step.ref, step.field, step.to, step.server, step.group ?? null);
                 break;
             case 'take': {
                 const taken = pending.take(newId, step.limit ?? 500);
@@ -76,6 +76,37 @@ function runPending(steps) {
     return output;
 }
 
+// {"fn": "suite", "name": "puzzles"} runs tests/official-results-desk/<name>.mjs (node:assert tests) and answers
+// {"suite", "passed", "failures": [{"name", "message"}]}
+async function runSuite(name) {
+    if (!['puzzles'].includes(name)) {
+        throw new Error(`Unknown suite ${name}`);
+    }
+
+    const tests = [];
+    (await import(`./official-results-desk/${name}.mjs`)).default((testName, fn) => tests.push({ name: testName, fn }));
+    const failures = [];
+    let passed = 0;
+
+    for (const { name: testName, fn } of tests) {
+        try {
+            await fn();
+            passed++;
+        } catch (error) {
+            failures.push({ name: testName, message: String(error?.stack ?? error).split('\n').slice(0, 6).join('\n') });
+        }
+    }
+
+    return { suite: name, passed, failures };
+}
+
+const suites = new Map();
+for (const testCase of cases) {
+    if (testCase.fn === 'suite') {
+        suites.set(testCase.name, await runSuite(testCase.name));
+    }
+}
+
 process.stdout.write(JSON.stringify(cases.map((testCase) => {
     switch (testCase.fn) {
         case 'topN':
@@ -86,8 +117,14 @@ process.stdout.write(JSON.stringify(cases.map((testCase) => {
             return qualificationDiff(testCase.entries, testCase.selected, testCase.keepOthers);
         case 'seatAdvanced':
             return seatAdvanced(testCase.targetEntries, testCase.refs, testCase.slowestFirst ?? false);
+        case 'overallForRound':
+            return overallForRound(testCase.answer, testCase.entries);
+        case 'prefillFromStep':
+            return prefillFromStep(testCase.step, testCase.rounds);
         case 'pending':
             return runPending(testCase.steps);
+        case 'suite':
+            return suites.get(testCase.name);
         default:
             throw new Error(`Unknown case ${testCase.fn}`);
     }

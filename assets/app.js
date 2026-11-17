@@ -38,6 +38,12 @@ import { installCreateOptionLabels } from './tom_select_create_option.js';
 
 installCreateOptionLabels();
 
+// After a sign-out (or another player signing in) the live result entry's saved rounds and drafts of the previous
+// player leave the device (competition toolkit C4, live_entry_device.js) - one localStorage read on every other device
+import { leftLiveEntryCleanup } from './live_entry_device.js';
+
+document.addEventListener('turbo:load', () => leftLiveEntryCleanup());
+
 Turbo.config.drive.progressBarDelay = 0;
 
 // Force native browser navigation for back/forward (restoration visits)

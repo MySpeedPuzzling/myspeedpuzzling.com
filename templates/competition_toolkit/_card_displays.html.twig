@@ -1,0 +1,19 @@
+{#
+    Displays & overlays (lane C: D1) - R §1.4 card 2: the event's displays with their links and buttons, "New display",
+    and the full displays page. Variables: competition, rounds, displays, add_display_form, displays_return.
+#}
+<div class="col-lg-6">
+    <div class="card shadow-sm h-100" data-toolkit-card="displays">
+        <div class="card-body">
+            <h3 class="h5"><i class="bi bi-display me-2"></i>{{ 'competition_toolkit.cards.displays.title'|trans }}</h3>
+            <p class="small text-muted">{{ 'competition_toolkit.cards.displays.help'|trans }}</p>
+
+            {{ include('competition_toolkit/_displays_table.html.twig') }}
+            {{ include('competition_toolkit/_display_add_form.html.twig') }}
+
+            <a href="{{ path('competition_displays', {competitionId: competition.id}) }}" class="btn btn-sm btn-link px-0 mt-2" data-displays-page-link>
+                {{ 'competition_display.list.all'|trans }} <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>

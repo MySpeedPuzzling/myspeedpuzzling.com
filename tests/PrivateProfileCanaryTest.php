@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -377,6 +379,203 @@ final class PrivateProfileCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::FRIEND);
         self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The public standings (competition toolkit A7): her row names her by the organiser's name only ("Gina Quick") - no
+     * profile name, link, #code or id - except for the friend, and the same in a pair's row (Edge Hunters).
+     */
+    public function testAPublicStandingLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:b, :pairs)', ['b' => OfficialResultsFixture::ROUND_GROUP_B, 'pairs' => OfficialResultsFixture::ROUND_PAIRS]);
+        PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]);
+        PublishedStanding::insert($database, $cup, 'overall-pairs', 'Overall pairs', 'duo', [OfficialResultsFixture::ROUND_PAIRS]);
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $pages = ['/en/events/results-cup/standings/overall-solo', '/en/events/results-cup/standings/overall-pairs'];
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ($pages as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsString('PLAYER2', $content, $url);
+            }
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        foreach ($pages as $url) {
+            self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary: ' . $url);
+        }
+    }
+
+    /**
+     * The public bracket (competition toolkit A9): her qualified row in Group B and in the pairs round (Edge Hunters)
+     * names her by the organiser's name only ("Gina Quick") - no profile name, link, #code or id - except for the friend.
+     */
+    public function testTheBracketLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:b, :pairs)', ['b' => OfficialResultsFixture::ROUND_GROUP_B, 'pairs' => OfficialResultsFixture::ROUND_PAIRS]);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_PAIRS], [OfficialResultsFixture::ROUND_PAIRS_FINAL]);
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $url = '/en/events/results-cup/bracket';
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content, 'No canary: the bracket does not list her');
+            self::assertStringContainsString('Edge Hunters', $content, 'No canary: the bracket does not list her pair');
+            self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player');
+            self::assertStringNotContainsString(self::OWNER_NAME, $content);
+            self::assertStringNotContainsString(self::OWNER, $content);
+            self::assertStringNotContainsString('PLAYER2', $content);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary');
+    }
+
+    /**
+     * The public competitor pages (competition toolkit B4): her person page and the table she sits at name her by the
+     * organiser's name only ("Gina Quick") - no profile name, link, #code or id - except for the friend; the state JSON
+     * never carries a player id or code at all.
+     */
+    public function testHerCompetitorPageLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $cup]);
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $pages = ['/en/competitor/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_GINA, '/en/competitor/' . $cup . '/t/1'];
+        $state = '/competitor-state/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_GINA;
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ([...$pages, $state] as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsString('#PLAYER2', $content, $url);
+            }
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        foreach ($pages as $url) {
+            self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary: ' . $url);
+        }
+        self::assertStringContainsString('#PLAYER2', $this->get($browser, $pages[0]), 'her code, for the friend');
+        self::assertStringNotContainsString(self::OWNER, $this->get($browser, $state), 'the JSON names people only');
+    }
+
+    /**
+     * The same on a `pick` round's page (competition toolkit A5): her row with its chosen puzzles names her by the
+     * organiser's name only (OfficialEntrantsView), except for the friend.
+     */
+    public function testAPickRoundsPublishedOfficialResultsLinkHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b';
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $database = self::getContainer()->get(Connection::class);
+        $roundPuzzleId = $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_GROUP_B]);
+        $database->executeStatement(
+            "UPDATE competition_round SET puzzle_format = 'pick', puzzles_to_solve = 1, results_published_at = " . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['id' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant_round SET result_puzzles = :puzzles WHERE round_id = :round',
+            ['puzzles' => json_encode([['roundPuzzleId' => $roundPuzzleId, 'done' => true]], JSON_THROW_ON_ERROR), 'round' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the official results do not list her.');
+        self::assertStringContainsString('data-official-entry-puzzles', $content, 'No canary: the rows show no chosen puzzles.');
+        self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+    }
+
+    /**
+     * A competition display (timer screen / stream overlay, toolkit D-displays-overlays.md §9.4) with live results of
+     * Group B lists her by the organiser's name ("Gina Quick") and nothing of her profile - for everybody, the friend
+     * included: a display has no viewer (an anonymous capability URL, the stateless firewall), so no allow list unmasks.
+     */
+    public function testACompetitionDisplayNeverNamesHer(): void
+    {
+        $browser = self::createClient();
+        $token = 'DispPrivate11111111111';
+        self::getContainer()->get(Connection::class)->insert('competition_display', [
+            'id' => Uuid::uuid7()->toString(),
+            'competition_id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            'kind' => 'screen',
+            'name' => 'Hall',
+            'token' => $token,
+            'locale' => 'en',
+            'design' => '{"schema": 1, "elements": [{"id": "board001", "type": "leaderboard", "hidden": false, "when": {"phases": ["idle"]}, "props": {"rows": 10, "source": "live"}}, {"id": "ticker01", "type": "ticker", "hidden": false, "when": {"phases": ["idle"]}, "props": {"rows": 10, "source": "live"}}]}',
+            'created_at' => TestClock::FROZEN_NOW,
+            'updated_at' => TestClock::FROZEN_NOW,
+            'follow_mode' => 'pinned',
+            'pinned_round_id' => OfficialResultsFixture::ROUND_GROUP_B,
+            'uses_results' => true,
+            'uses_live_results' => true,
+        ], ['uses_results' => 'boolean', 'uses_live_results' => 'boolean']);
+        // The state answer and the display page (toolkit D4), which carries the same state inline (as an HTML
+        // attribute - read decoded, so an escaped name could not slip past)
+        $urls = ['/display/' . $token . '/state', '/display/' . $token];
+        $read = fn (string $url): string => html_entity_decode($this->get($browser, $url), ENT_QUOTES | ENT_HTML5);
+
+        foreach ($urls as $url) {
+            $content = $read($url);
+            self::assertStringContainsString('Gina Quick', $content, "No canary: the display does not list her ({$url}).");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A guest is shown a private player ({$url}).");
+            self::assertStringNotContainsString(self::OWNER, $content);
+        }
+
+        foreach ([...self::STRANGERS, 'friend' => self::FRIEND] as $who => $viewerId) {
+            TestingLogin::asPlayer($browser, $viewerId);
+            // The first request after loginUser() carries the test's token in the container - the second is a browser's
+            $read($urls[0]);
+
+            foreach ($urls as $url) {
+                $content = $read($url);
+                self::assertStringContainsString('Gina Quick', $content);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display names a private player ({$who}, {$url}).");
+                self::assertStringNotContainsString(self::OWNER, $content, "A display carries a private player's id ({$who}, {$url}).");
+                self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+            }
+        }
     }
 
     /**

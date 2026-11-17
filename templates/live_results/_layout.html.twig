@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+{# The live entry page's own layout (competition toolkit C2, docs/features/competitions-management/judge-offline.md
+   "Lean layout + bundle (C2)") - deliberately not base.html.twig: every pixel of a referee's 375 px screen goes to the page, so no site
+   header, footer, flashes, e-mail banners, modals, global search, comparison launcher or analytics, and no Turbo or
+   site bundle - its own Encore entry `live_entry` (assets/live_entry.js) with the site's CSS (cached by every other page).
+   Renders nothing of the person reading it (the page's data comes from the round state - C1), so the same layout can
+   carry the offline shell (`live_entry_shell`, LiveResultsShellController - no `msp-rendered-at` there). The self-heal
+   scripts are the very partials base.html.twig includes. Inside the native apps the page adds Turbo
+   (`live_entry_native`): their WebView needs it to finish loading a page. #}
+<html lang="{{ app.request.locale }}">
+    <head>
+        <meta charset="UTF-8">
+        <title>{%- block title -%}{%- endblock %} – MySpeedPuzzling</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+        <meta name="format-detection" content="telephone=no">
+        {% if sandbox %}<meta name="robots" content="noindex, nofollow, noarchive">{% else %}<meta name="robots" content="noindex, nofollow">{% endif %}
+
+        {{ include('_asset_self_heal.html.twig') }}
+
+        {{ include('_stale_document_check.html.twig') }}
+
+        <link rel="preload" href="{{ asset('fonts/rubik/rubik-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="{{ asset('fonts/rubik/rubik-latin-ext.woff2') }}" as="font" type="font/woff2" crossorigin>
+
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=2">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v=2">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v=2">
+        <link rel="manifest" href="{{ asset('site.webmanifest') }}?v=2">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v=2">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="theme-color" content="#fe696a">
+
+        {# The fonts as base.html.twig declares them (its critical CSS) - the rest comes with the site's stylesheet #}
+        <style>@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin-ext.woff2') }}) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin.woff2') }}) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-display:swap;font-family:bootstrap-icons;src:url({{ asset('build/fonts/bootstrap-icons.woff2?') }}) format("woff2"),url({{ asset('build/fonts/bootstrap-icons.woff?') }}) format("woff")}</style>
+        {{ encore_entry_link_tags('app') }}
+        {{ encore_entry_script_tags('live_entry') }}
+        {% if is_native_app() and not (live_entry_shell ?? false) %}
+            {# The native apps (Hotwire Native) finish a visit only on a page that runs Turbo - assets/live_entry_native.js.
+               Never in the offline copy: the apps run no service worker, and that copy is the same for everybody. #}
+            {{ encore_entry_script_tags('live_entry_native') }}
+        {% endif %}
+        {% if live_entry_shell ?? false %}
+            {# The offline copy's files: the service worker stores them all before the copy itself (live-shell:prepare, toolkit C6) #}
+            <script type="application/json" id="msp-live-shell-assets">{{ live_shell_assets|json_encode|raw }}</script>
+        {% endif %}
+    </head>
+    <body class="lang-{{ app.request.locale }}">
+        {% if sandbox %}
+            {# Every page of the sandbox says what it is (docs/features/sandbox/README.md) #}
+            <div class="bg-warning text-dark text-center small py-1 px-3" role="note" data-testid="sandbox-banner">
+                <i class="bi bi-cone-striped me-1" aria-hidden="true"></i>{{ 'sandbox_banner.text'|trans }}
+                <a href="https://myspeedpuzzling.com" class="text-dark fw-semibold ms-1">{{ 'sandbox_banner.link'|trans }}</a>
+            </div>
+        {% endif %}
+        <main id="main-content">
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

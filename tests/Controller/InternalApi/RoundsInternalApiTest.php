@@ -12,6 +12,11 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
+use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -136,6 +141,41 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
         self::assertIsArray($answer['errors']);
         self::assertArrayHasKey('startsAt', $answer['errors']);
+    }
+
+    /**
+     * "When the stopwatch starts" (toolkit/A-round-formats.md §4.3): `revealMode` = `stopwatch`, `revealsAt` null until a
+     * start with "Reveal the puzzles" ticked writes its moment; moving the round's start never lists it (it never follows
+     * the round)
+     */
+    public function testAStopwatchRevealIsReadAsItsOwnMode(): void
+    {
+        $browser = self::createClient();
+        [$roundId, $puzzleId, $start] = $this->roundWithASecretPuzzle($browser);
+        $roundPuzzle = $this->entityManager()->getRepository(CompetitionRoundPuzzle::class)->findOneBy(['round' => $roundId, 'puzzle' => $puzzleId]);
+        self::assertNotNull($roundPuzzle);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch));
+        $this->entityManager()->clear();
+
+        $item = self::roundPuzzle(self::round($browser, $roundId), $puzzleId);
+        self::assertSame('stopwatch', $item['revealMode']);
+        self::assertNull($item['revealsAt']);
+
+        // An earlier start asks nothing: the stopwatch reveal does not follow the round
+        self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['startsAt' => self::iso($start - 3600)]);
+        self::assertResponseIsSuccessful();
+
+        $startsAt = TestClock::now()->modify('+1 hour');
+        $round = $this->entityManager()->find(CompetitionRound::class, $roundId);
+        self::assertNotNull($round);
+        $hash = SecretRevealPreview::stopwatchStartHash(self::getContainer()->get(SecretRevealPreview::class)->byStopwatchStart($round), $round);
+        $bus->dispatch(new ScheduleRoundStart($roundId, $startsAt, PlayerFixture::PLAYER_ADMIN, revealPuzzles: true, revealListHash: $hash));
+        $this->entityManager()->clear();
+
+        $item = self::roundPuzzle(self::round($browser, $roundId), $puzzleId);
+        self::assertSame('stopwatch', $item['revealMode']);
+        self::assertSame($startsAt->getTimestamp(), self::timestamp($item['revealsAt']));
     }
 
     public function testAChangeThatRevealsASecretPuzzleNeedsAYes(): void

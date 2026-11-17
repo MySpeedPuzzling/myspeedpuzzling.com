@@ -129,51 +129,55 @@ readonly final class SecretRevealPreview
             $revealsAt = $rightAway ? null : $newAutomaticReveal;
             $after = $this->secretPuzzleHides->hideOf($puzzle, [], [$round->id->toString() => $newAutomaticReveal]);
 
-            // No row keeps it hidden on the whole site: its dates stay as they are (SecretPuzzleHides::resync())
-            $nameHiddenUntil = $after !== null ? $after['hiddenUntil'] : $puzzle->hideUntil;
-            $imageHiddenUntil = $after !== null ? $after['imageHiddenUntil'] : $puzzle->hideImageUntil;
-            // The name is hidden elsewhere only while the picture is too (Puzzle::isImageHiddenAt())
-            $imageHiddenUntil = self::later($imageHiddenUntil, $nameHiddenUntil);
-
-            $nameHiddenElsewhere = $nameHiddenUntil !== null && $nameHiddenUntil > $outFrom;
-            $imageHiddenElsewhere = $imageHiddenUntil !== null && $imageHiddenUntil > $outFrom;
-            $rowHidesName = ($row->hideMode ?? PuzzleHideMode::Entirely) === PuzzleHideMode::Entirely;
-
-            if ($row->hidesEverywhere === false) {
-                // The row keeps the puzzle secret on this event's pages only - the rest of the site never followed it:
-                // there the puzzle is public all along (null), or something else hides it until then
-                $item = self::item(
-                    $puzzle,
-                    $revealsAt,
-                    $previousRevealsAt,
-                    self::SCOPE_EVENT,
-                    match (true) {
-                        $rowHidesName && $nameHiddenElsewhere => $nameHiddenUntil,
-                        $imageHiddenElsewhere => $imageHiddenUntil,
-                        default => null,
-                    },
-                );
-            } elseif ($rowHidesName && $nameHiddenElsewhere) {
-                // Nothing of it comes out elsewhere before the name does
-                $item = self::item($puzzle, $revealsAt, $previousRevealsAt, self::SCOPE_EVENT, $nameHiddenUntil);
-            } elseif ($imageHiddenElsewhere) {
-                // The row hides the name too: it comes out everywhere, the picture stays hidden elsewhere. An image-only
-                // row: only its picture comes out, on this event
-                $item = self::item(
-                    $puzzle,
-                    $revealsAt,
-                    $previousRevealsAt,
-                    $rowHidesName ? self::SCOPE_NAME_EVERYWHERE : self::SCOPE_EVENT,
-                    $imageHiddenUntil,
-                );
-            } else {
-                $item = self::item($puzzle, $revealsAt, $previousRevealsAt, self::SCOPE_EVERYWHERE, null);
-            }
-
-            $revealed[] = $item;
+            $revealed[] = self::scopedItem($row, $revealsAt, $previousRevealsAt, $after, $outFrom);
         }
 
         return $revealed;
+    }
+
+    /**
+     * A stopwatch start with "Reveal the puzzles" ticked (StartRoundStopwatch / ScheduleRoundStart): the round's rows
+     * waiting for it (RoundPuzzleReveal::Stopwatch, still hidden - with no moment, or with one still ahead from a
+     * countdown that will be withdrawn first), each with how far it comes out (scope, judged at $now). revealsAt is
+     * null = "at the start" (the moment is the start's: now, or the one typed in), previousRevealsAt = the moment it
+     * waits for now (null = none) - so a page opened before a countdown was scheduled or moved confirms nothing.
+     *
+     * @return list<RevealedPuzzle>
+     */
+    public function byStopwatchStart(CompetitionRound $round, null|DateTimeImmutable $now = null): array
+    {
+        $now ??= $this->clock->now();
+        $revealed = [];
+
+        foreach ($round->roundPuzzles as $row) {
+            if ($row->waitsForStopwatchStart($now) === false) {
+                continue;
+            }
+
+            $after = $this->secretPuzzleHides->hideOf($row->puzzle, [], [], [$round->id->toString() => $now]);
+            $revealed[] = self::scopedItem($row, null, $row->revealAt, $after, $now);
+        }
+
+        usort($revealed, static fn (array $a, array $b): int => [$a['name'], $a['id']] <=> [$b['name'], $b['id']]);
+
+        return $revealed;
+    }
+
+    /**
+     * What the organiser confirmed by ticking "Reveal the puzzles" (R-review-and-plan.md §2.1): the list (hash()) AND the
+     * round's stopwatch as the page showed it - a countdown scheduled, moved or called off meanwhile asks again, even
+     * when the list itself reads the same.
+     *
+     * @param list<RevealedPuzzle> $revealed
+     */
+    public static function stopwatchStartHash(array $revealed, CompetitionRound $round): string
+    {
+        return hash('sha256', implode('|', [
+            self::hash($revealed),
+            $round->stopwatchStatus ?? '',
+            $round->stopwatchStartedAt !== null ? (string) $round->stopwatchStartedAt->getTimestamp() : '',
+            $round->stopwatchStoppedAt !== null ? (string) $round->stopwatchStoppedAt->getTimestamp() : '',
+        ]));
     }
 
     /**
@@ -219,6 +223,66 @@ readonly final class SecretRevealPreview
         sort($items);
 
         return hash('sha256', implode(',', $items));
+    }
+
+    /**
+     * How far the row's puzzle comes out from $outFrom on (byChangingRound(), byStopwatchStart()): against the other
+     * rows that keep it secret on the whole site ($after = SecretPuzzleHides::hideOf() with this change assumed).
+     *
+     * @param null|array{hiddenUntil: null|DateTimeImmutable, imageHiddenUntil: DateTimeImmutable} $after
+     * @return RevealedPuzzle
+     */
+    private static function scopedItem(
+        CompetitionRoundPuzzle $row,
+        null|DateTimeImmutable $revealsAt,
+        null|DateTimeImmutable $previousRevealsAt,
+        null|array $after,
+        DateTimeImmutable $outFrom,
+    ): array {
+        $puzzle = $row->puzzle;
+
+        // No row keeps it hidden on the whole site: its dates stay as they are (SecretPuzzleHides::resync())
+        $nameHiddenUntil = $after !== null ? $after['hiddenUntil'] : $puzzle->hideUntil;
+        $imageHiddenUntil = $after !== null ? $after['imageHiddenUntil'] : $puzzle->hideImageUntil;
+        // The name is hidden elsewhere only while the picture is too (Puzzle::isImageHiddenAt())
+        $imageHiddenUntil = self::later($imageHiddenUntil, $nameHiddenUntil);
+
+        $nameHiddenElsewhere = $nameHiddenUntil !== null && $nameHiddenUntil > $outFrom;
+        $imageHiddenElsewhere = $imageHiddenUntil !== null && $imageHiddenUntil > $outFrom;
+        $rowHidesName = ($row->hideMode ?? PuzzleHideMode::Entirely) === PuzzleHideMode::Entirely;
+
+        if ($row->hidesEverywhere === false) {
+            // The row keeps the puzzle secret on this event's pages only - the rest of the site never followed it:
+            // there the puzzle is public all along (null), or something else hides it until then
+            $item = self::item(
+                $puzzle,
+                $revealsAt,
+                $previousRevealsAt,
+                self::SCOPE_EVENT,
+                match (true) {
+                    $rowHidesName && $nameHiddenElsewhere => $nameHiddenUntil,
+                    $imageHiddenElsewhere => $imageHiddenUntil,
+                    default => null,
+                },
+            );
+        } elseif ($rowHidesName && $nameHiddenElsewhere) {
+            // Nothing of it comes out elsewhere before the name does
+            $item = self::item($puzzle, $revealsAt, $previousRevealsAt, self::SCOPE_EVENT, $nameHiddenUntil);
+        } elseif ($imageHiddenElsewhere) {
+            // The row hides the name too: it comes out everywhere, the picture stays hidden elsewhere. An image-only
+            // row: only its picture comes out, on this event
+            $item = self::item(
+                $puzzle,
+                $revealsAt,
+                $previousRevealsAt,
+                $rowHidesName ? self::SCOPE_NAME_EVERYWHERE : self::SCOPE_EVENT,
+                $imageHiddenUntil,
+            );
+        } else {
+            $item = self::item($puzzle, $revealsAt, $previousRevealsAt, self::SCOPE_EVERYWHERE, null);
+        }
+
+        return $item;
     }
 
     /**

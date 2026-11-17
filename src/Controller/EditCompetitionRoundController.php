@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
@@ -21,12 +22,15 @@ use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetRoundTeamSizes;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,6 +43,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
@@ -56,6 +61,8 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly SecretRevealPreview $secretRevealPreview,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly GetRoundTeamSizes $getRoundTeamSizes,
+        private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -102,6 +109,11 @@ final class EditCompetitionRoundController extends AbstractController
             'reveal_confirmation' => $hasSecretPuzzles,
             'timezone_assumed' => $round->isTimezoneNeverSaved(),
             'team_size_guess' => $this->guessedTeamSize($round),
+            // How the round's puzzles are solved (competition toolkit A2): a toolkit setting - and a round using it keeps
+            // the field for every organiser, so it can be switched back
+            'puzzle_format' => $round->puzzleFormat !== RoundPuzzleFormat::Total
+                || $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId),
+            'puzzles_count' => $round->roundPuzzles->count(),
         ]);
         $form->handleRequest($request);
         $revealedEarlier = [];
@@ -117,6 +129,7 @@ final class EditCompetitionRoundController extends AbstractController
             assert($revealDelayMinutes !== null);
 
             $previousStartsAt = $round->startsAt;
+            $previousPuzzleFormat = [$round->puzzleFormat, $round->puzzlesToSolve];
             $previousAutomaticRevealAt = $round->automaticRevealAt();
             $startsAt = null;
             $ticked = $form->has('confirmReveal') && $form->get('confirmReveal')->getData() === true;
@@ -167,11 +180,25 @@ final class EditCompetitionRoundController extends AbstractController
                         // An empty field (untouched or emptied) means no expected size; solo and pair rounds have none
                         teamSize: $data->teamSize,
                         clearTeamSize: $data->teamSize === null,
+                        // Null = keep (the form without the toolkit field)
+                        puzzleFormat: $form->has('puzzleFormat') ? $data->puzzleFormat : null,
+                        puzzlesToSolve: $form->has('puzzleFormat') && $data->puzzleFormat === RoundPuzzleFormat::Pick ? $data->puzzlesToSolve : null,
                     ));
 
                     // The handler worked on freshly read rows - read the round again for the flash
+                    $updatedRound = $this->competitionRoundRepository->get($roundId);
+
+                    // A changed puzzle format: the round's open judge pages read it again (after the commit)
+                    if ([$updatedRound->puzzleFormat, $updatedRound->puzzlesToSolve] !== $previousPuzzleFormat) {
+                        $this->officialResultsLiveUpdates->roundChanged($roundId);
+                    } else {
+                        // The event's displays show the round's name, start, limit and badge (competition toolkit D5) -
+                        // a changed format told them above
+                        $this->displayLiveUpdates->roundChanged($roundId);
+                    }
+
                     $this->flashRoundUpdated(
-                        $this->competitionRoundRepository->get($roundId),
+                        $updatedRound,
                         $previousStartsAt,
                         $previousAutomaticRevealAt,
                         $data->timezone,
@@ -199,6 +226,12 @@ final class EditCompetitionRoundController extends AbstractController
                     // The round's category stays while it has official results - read the round again, like below
                     $round = $this->competitionRoundRepository->get($roundId);
                     $form->get('category')->addError(new FormError($this->translator->trans($protected->translationKey())));
+                } catch (RoundPuzzleFormatRefused $refused) {
+                    // K outside the round's puzzles, a round using online timing (competition toolkit A2), or entries'
+                    // per-puzzle records the change would break (A3) - read it again
+                    $round = $this->competitionRoundRepository->get($roundId);
+                    $form->get(in_array($refused->reason, [RoundPuzzleFormatRefused::ONLINE_TIMING, RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS], true) ? 'puzzleFormat' : 'puzzlesToSolve')
+                        ->addError(new FormError($this->translator->trans($refused->translationKey(), $refused->translationParameters())));
                 } catch (OnlineTimingInUse $inUse) {
                     // A round using online timing stays solo (docs/features/online-competitions/) - read it again too
                     $round = $this->competitionRoundRepository->get($roundId);

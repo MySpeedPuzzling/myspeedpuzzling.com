@@ -1,9 +1,11 @@
 {# "Advance the qualified" - trigger button + dialog (controllers/advance_qualified_controller.js), on the results desk
    (source_round_id preselected) and on the results overview. Expects: competition (CompetitionEvent), rounds
-   (list of OfficialResultsRound); optional: source_round_id, button_class #}
+   (list of OfficialResultsRound); optional: source_round_id, button_class, with_steps (the desk shows advancement
+   steps - their "Advance" buttons open this dialog prefilled through a window event, competition toolkit A8) #}
 {%- set placeholder = '00000000-0000-0000-0000-000000000000' -%}
 <div class="d-inline-block"
-     data-controller="advance-qualified"
+     data-controller="advance-qualified"{% if with_steps|default(false) %} data-action="advance-qualified:open-step@window->advance-qualified#openStep"{% endif %}{# Twig eats the newline after a tag - the blank line keeps the markup as it was #}
+
      data-advance-qualified-rounds-value="{{ rounds|json_encode|e('html_attr') }}"
      data-advance-qualified-source-value="{{ source_round_id|default('') }}"
      data-advance-qualified-is-online-value="{{ competition.isOnline ? 'true' : 'false' }}"

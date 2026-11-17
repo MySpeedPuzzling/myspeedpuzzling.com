@@ -14,6 +14,14 @@
  *   long as its Retry-After asks; a server error retries the change alone (isolating a batch first), each change
  *   with its own pause. A round that is gone refuses its changes (`round_not_found`).
  * - One tab sends at a time (`lock`); every tab reads the shared store, so a change saved in one tab is sent by another.
+ * - A group (`enqueueGroup()`, one Save that changes several fields of an entry - a K-of-N round's `puzzles` + `result`,
+ *   competition toolkit R §1.1) is stored in one write, sent only as a whole and never split across requests: not by
+ *   the batch size, not by isolating a failing set. The server applies it together or not at all (A rule 7).
+ * - Time proposals (competition toolkit C9): a `result` change may carry `proposalId` (it confirms that proposal), a
+ *   `proposal` change rejects one (`from: {id}`, never chained); undo never opposes a rejection, the server's
+ *   `proposal: {id, status}` annotations go to `onProposals`.
+ * - The connection back (`connectionBack()`: the `online` event, a state answered) sends what waited only for being
+ *   offline at once, without waiting out the offline pause; changes set apart (rights, refusals, conflicts) stay apart.
  *
  * Storage, the network, the clock and the lock are injected: tests/LiveResultsScriptsTest.php drives the state machine
  * under node with an in-memory store.
@@ -60,6 +68,11 @@ export function createMemoryStorage(initial = []) {
         },
         async put(item) {
             items.set(item.id, clone(item));
+        },
+        async putMany(many) {
+            for (const item of many) {
+                items.set(item.id, clone(item));
+            }
         },
         async delete(id) {
             items.delete(id);
@@ -120,6 +133,22 @@ export async function createIndexedDbStorage(factory = globalThis.indexedDB) {
         getAll: () => run('readonly', (store) => store.getAll()),
         get: async (id) => (await run('readonly', (store) => store.get(id))) ?? null,
         put: (item) => run('readwrite', (store) => store.put(item)),
+        // A group in one transaction - a reload never finds half of it
+        putMany: async (many) => {
+            const transaction = database.transaction(OUTBOX_STORE, 'readwrite');
+            const store = transaction.objectStore(OUTBOX_STORE);
+            const done = new Promise((resolve, reject) => {
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+                transaction.onabort = () => reject(transaction.error ?? new Error('aborted'));
+            });
+
+            for (const item of many) {
+                store.put(item);
+            }
+
+            await done;
+        },
         delete: (id) => run('readwrite', (store) => store.delete(id)),
     };
 }
@@ -187,6 +216,8 @@ export function createTabLock(name, { locks = globalThis.navigator?.locks, stora
  * @property {object|null} newEntry    {clientEntryId, kind, name, members?} until the server has it
  * @property {string|null} label       the entry's name when saved - for lists of unsent changes
  * @property {string} field            result | table_number | qualified
+ * @property {string} [groupId]        changes saved together (enqueueGroup) - sent together, never split
+ * @property {string} [proposalId]     a result change confirming a competitor's time proposal (toolkit C9)
  * @property {*} from
  * @property {*} to
  * @property {'pending'|'conflict'|'rejected'|'forbidden'} state  forbidden: no rights for the round's event (any more)
@@ -210,8 +241,9 @@ export class Outbox {
      * @param {function(function(): Promise): Promise<boolean>} [options.lock]
      * @param {function(object[], string): void} [options.onEntries]  the server's entries after a set (roundId)
      * @param {function(): void} [options.onChange]  the outbox changed (status, items)
+     * @param {function(object[], string): void} [options.onProposals]  the server's `proposal` annotations of a set (roundId)
      */
-    constructor({ storage, send, userId, now = () => Date.now(), newId, lock = null, onEntries = () => {}, onChange = () => {}, batchSize = BATCH_SIZE }) {
+    constructor({ storage, send, userId, now = () => Date.now(), newId, lock = null, onEntries = () => {}, onChange = () => {}, onProposals = () => {}, batchSize = BATCH_SIZE }) {
         this.storage = storage;
         this.send = send;
         this.userId = userId;
@@ -220,6 +252,7 @@ export class Outbox {
         this.lock = lock ?? (async (task) => { await task(); return true; });
         this.onEntries = onEntries;
         this.onChange = onChange;
+        this.onProposals = onProposals;
         this.batchSize = batchSize;
 
         /** @type {OutboxItem[]} */
@@ -277,6 +310,25 @@ export class Outbox {
         }
     }
 
+    async writeMany(many) {
+        if (many.length === 1 || typeof this.storage.putMany !== 'function') {
+            for (const item of many) {
+                await this.write(item);
+            }
+
+            return;
+        }
+
+        try {
+            await this.storage.putMany(many);
+            many.forEach((item) => this.unpersisted.delete(item.id));
+        } catch (e) {
+            many.forEach((item) => this.unpersisted.set(item.id, item));
+            this.storageFailed = true;
+            throw e;
+        }
+    }
+
     async erase(id) {
         this.unpersisted.delete(id);
 
@@ -321,86 +373,144 @@ export class Outbox {
      *
      * @returns {{item: OutboxItem, persisted: Promise<void>}}
      */
-    enqueue({ roundId, entryRef, newEntry = null, field, serverValue = null, to, label = null }) {
-        const earlier = this.itemsOf(entryRef, field);
-        const superseded = earlier.filter((item) => item.state !== 'pending' && !this.inFlight.has(item.id));
-        const waiting = earlier.filter((item) => !superseded.includes(item));
-        const conflict = superseded.filter((item) => item.state === 'conflict').pop();
+    enqueue(change) {
+        const { items, persisted } = this.enqueueAll([change], null);
 
-        let from = serverValue;
-
-        if (waiting.length > 0) {
-            from = waiting[waiting.length - 1].to;
-        } else if (conflict !== undefined) {
-            from = conflict.current ?? null;
-        }
-
-        const item = {
-            id: this.newId(),
-            userId: this.userId,
-            roundId,
-            seq: this.nextSeq(),
-            createdAt: this.now(),
-            entryRef,
-            newEntry: newEntry === null ? null : clone(newEntry),
-            label,
-            field,
-            from: clone(from) ?? null,
-            to: clone(to) ?? null,
-            state: 'pending',
-            attempts: 0,
-            nextAttemptAt: 0,
-            lastError: null,
-        };
-
-        this.items = this.items.filter((candidate) => !superseded.includes(candidate));
-        this.items.push(item);
-        this.onChange();
-
-        this.unpersisted.set(item.id, item);
-        const persisted = this.serial(async () => {
-            for (const old of superseded) {
-                await this.erase(old.id);
-            }
-
-            await this.write(item);
-        });
-
-        return { item, persisted };
+        return { item: items[0], persisted };
     }
 
     /**
-     * Takes a saved change back: still waiting → it simply goes; sent already → the opposite change is saved.
+     * Saves changes that belong together (one Save of several fields of an entry - a K-of-N round's `puzzles` and
+     * `result`): one write to the store, one shared `groupId`; they are sent in one request or not at all.
      *
-     * @returns {Promise<OutboxItem|null>} the opposite change, if one was needed
+     * @param {object[]} changes  each as for enqueue(); one round
+     * @returns {{items: OutboxItem[], groupId: string|null, persisted: Promise<void>}}
      */
-    async undo(item) {
-        const stored = this.items.find((candidate) => candidate.id === item.id);
+    enqueueGroup(changes) {
+        const groupId = changes.length > 1 ? this.newId() : null;
+        const { items, persisted } = this.enqueueAll(changes, groupId);
 
-        if (stored !== undefined && !this.inFlight.has(stored.id) && stored.state === 'pending') {
-            await this.remove(stored.id);
+        return { items, groupId, persisted };
+    }
 
-            return null;
+    enqueueAll(changes, groupId) {
+        const created = [];
+        const supersededAll = [];
+
+        for (const { roundId, entryRef, newEntry = null, field, serverValue = null, to, label = null, proposalId = null } of changes) {
+            const earlier = this.itemsOf(entryRef, field);
+            const superseded = earlier.filter((item) => item.state !== 'pending' && !this.inFlight.has(item.id));
+            const waiting = earlier.filter((item) => !superseded.includes(item));
+            const conflict = superseded.filter((item) => item.state === 'conflict').pop();
+
+            let from = serverValue;
+
+            // A rejection names its proposal - never a chain of values
+            if (field === 'proposal') {
+                from = serverValue;
+            } else if (waiting.length > 0) {
+                from = waiting[waiting.length - 1].to;
+            } else if (conflict !== undefined) {
+                from = conflict.current ?? null;
+            }
+
+            const item = {
+                id: this.newId(),
+                userId: this.userId,
+                roundId,
+                seq: this.nextSeq(),
+                createdAt: this.now(),
+                entryRef,
+                newEntry: newEntry === null ? null : clone(newEntry),
+                label,
+                field,
+                from: clone(from) ?? null,
+                to: clone(to) ?? null,
+                state: 'pending',
+                attempts: 0,
+                nextAttemptAt: 0,
+                lastError: null,
+            };
+
+            if (groupId !== null) {
+                item.groupId = groupId;
+            }
+
+            if (proposalId !== null && field === 'result') {
+                item.proposalId = proposalId;
+            }
+
+            this.items = this.items.filter((candidate) => !superseded.includes(candidate));
+            this.items.push(item);
+            this.unpersisted.set(item.id, item);
+            created.push(item);
+            supersededAll.push(...superseded);
         }
 
-        if (stored !== undefined && stored.state !== 'pending') {
-            await this.remove(stored.id);
+        this.onChange();
 
-            return null;
-        }
+        const persisted = this.serial(async () => {
+            for (const old of supersededAll) {
+                await this.erase(old.id);
+            }
 
-        const { item: opposite, persisted } = this.enqueue({
-            roundId: item.roundId,
-            entryRef: item.entryRef,
-            newEntry: item.newEntry,
-            field: item.field,
-            serverValue: item.to,
-            to: item.from,
-            label: item.label ?? null,
+            await this.writeMany(created);
         });
+
+        return { items: created, persisted };
+    }
+
+    /**
+     * Takes a saved change back: still waiting → it simply goes; sent already → the opposite change is saved. A
+     * change of a group takes the group back (its members still on the device go with it; the opposite changes are
+     * a group again).
+     *
+     * @param {OutboxItem|OutboxItem[]} saved  the change, or every change of one Save
+     * @returns {Promise<OutboxItem|OutboxItem[]|null>} the opposite change(s), if needed
+     */
+    async undo(saved) {
+        const originals = Array.isArray(saved) ? [...saved] : [saved];
+
+        for (const member of this.items) {
+            if (originals[0]?.groupId && member.groupId === originals[0].groupId && !originals.some((original) => original.id === member.id)) {
+                originals.push(member);
+            }
+        }
+
+        const opposites = [];
+
+        for (const original of originals) {
+            const stored = this.items.find((candidate) => candidate.id === original.id);
+
+            if (stored !== undefined && (stored.state !== 'pending' || !this.inFlight.has(stored.id))) {
+                await this.remove(stored.id);
+                continue;
+            }
+
+            // A rejection sent is the server's now - there is no opposite of it
+            if (original.field === 'proposal') {
+                continue;
+            }
+
+            opposites.push({
+                roundId: original.roundId,
+                entryRef: original.entryRef,
+                newEntry: original.newEntry,
+                field: original.field,
+                serverValue: original.to,
+                to: original.from,
+                label: original.label ?? null,
+            });
+        }
+
+        if (opposites.length === 0) {
+            return null;
+        }
+
+        const { items, persisted } = this.enqueueGroup(opposites);
         await persisted;
 
-        return opposite;
+        return Array.isArray(saved) ? items : items[0];
     }
 
     remove(id) {
@@ -412,13 +522,60 @@ export class Outbox {
     }
 
     /**
-     * Conflict → "keep mine": every change of this field is sent again as one, from the other device's value.
+     * Conflict → "keep mine": every change of this field is sent again as one, from the other device's value. A
+     * change of a group sends its group again: every member in conflict that way, a refused member as it was - a new
+     * group.
      */
     keepMine(id) {
-        return this.serial(() => this.replaceChain(id));
+        return this.serial(async () => {
+            const item = this.items.find((candidate) => candidate.id === id);
+
+            if (item === undefined || item.state !== 'conflict') {
+                return null;
+            }
+
+            if (!item.groupId) {
+                return this.replaceChain(id);
+            }
+
+            const groupId = this.newId();
+            const members = this.items.filter((candidate) => candidate.groupId === item.groupId && !this.inFlight.has(candidate.id));
+            const replacements = [];
+
+            for (const member of members) {
+                if (member.state === 'conflict') {
+                    replacements.push(await this.replaceChain(member.id, groupId));
+                } else if (member.state === 'rejected' || member.state === 'pending') {
+                    replacements.push(await this.resend(member, groupId));
+                }
+            }
+
+            return replacements;
+        });
     }
 
-    async replaceChain(id) {
+    async resend(item, groupId) {
+        const replacement = {
+            ...clone(item),
+            id: this.newId(),
+            groupId,
+            state: 'pending',
+            attempts: 0,
+            nextAttemptAt: 0,
+            lastError: null,
+            reason: undefined,
+            message: undefined,
+        };
+
+        this.items = this.items.map((candidate) => (candidate.id === item.id ? replacement : candidate));
+        await this.erase(item.id);
+        this.onChange();
+        await this.write(replacement);
+
+        return replacement;
+    }
+
+    async replaceChain(id, groupId = undefined) {
         const item = this.items.find((candidate) => candidate.id === id);
 
         if (item === undefined || item.state !== 'conflict') {
@@ -441,6 +598,10 @@ export class Outbox {
             enteredAt: undefined,
         };
 
+        if (groupId !== undefined) {
+            replacement.groupId = groupId;
+        }
+
         this.items = this.items.filter((candidate) => !chain.includes(candidate));
         this.items.push(replacement);
         this.items.sort((a, b) => a.seq - b.seq);
@@ -456,7 +617,7 @@ export class Outbox {
     }
 
     /**
-     * Conflict → "take theirs": this device's changes of the field go.
+     * Conflict → "take theirs": this device's changes of the field go (of every field of the change's group).
      */
     async takeTheirs(id) {
         const item = this.items.find((candidate) => candidate.id === id);
@@ -465,8 +626,15 @@ export class Outbox {
             return;
         }
 
-        for (const old of this.itemsOf(item.entryRef, item.field).filter((candidate) => !this.inFlight.has(candidate.id))) {
-            await this.remove(old.id);
+        const members = item.groupId ? this.items.filter((candidate) => candidate.groupId === item.groupId) : [item];
+        const fields = [...new Set(members.map((member) => `${member.entryRef}|${member.field}`))];
+
+        for (const key of fields) {
+            const [entryRef, field] = [key.slice(0, key.lastIndexOf('|')), key.slice(key.lastIndexOf('|') + 1)];
+
+            for (const old of this.itemsOf(entryRef, field).filter((candidate) => !this.inFlight.has(candidate.id))) {
+                await this.remove(old.id);
+            }
         }
     }
 
@@ -542,28 +710,116 @@ export class Outbox {
 
     /**
      * The changes that may go now, in order: pending, not pausing, and no earlier change of the same field
-     * waiting for anything.
+     * waiting for anything. A group goes only as a whole: one member that may not go holds the others (and what
+     * waits behind them).
      */
     ready(now) {
-        const held = new Set();
-        const ready = [];
+        const sizes = new Map();
 
         for (const item of this.items) {
-            const key = `${item.entryRef}|${item.field}`;
-
-            if (held.has(key)) {
-                continue;
+            if (item.groupId) {
+                sizes.set(item.groupId, (sizes.get(item.groupId) ?? 0) + 1);
             }
-
-            if (item.state !== 'pending' || item.nextAttemptAt > now || this.inFlight.has(item.id)) {
-                held.add(key);
-                continue;
-            }
-
-            ready.push(item);
         }
 
-        return ready;
+        const heldGroups = new Set();
+
+        for (;;) {
+            const held = new Set();
+            const ready = [];
+            const readyInGroup = new Map();
+
+            for (const item of this.items) {
+                const key = `${item.entryRef}|${item.field}`;
+
+                if (held.has(key)) {
+                    continue;
+                }
+
+                if (item.state !== 'pending' || item.nextAttemptAt > now || this.inFlight.has(item.id) || (item.groupId && heldGroups.has(item.groupId))) {
+                    held.add(key);
+                    continue;
+                }
+
+                ready.push(item);
+
+                if (item.groupId) {
+                    readyInGroup.set(item.groupId, (readyInGroup.get(item.groupId) ?? 0) + 1);
+                }
+            }
+
+            let incomplete = false;
+
+            for (const [groupId, count] of readyInGroup) {
+                if (count < sizes.get(groupId)) {
+                    heldGroups.add(groupId);
+                    incomplete = true;
+                }
+            }
+
+            if (!incomplete) {
+                return ready;
+            }
+        }
+    }
+
+    /**
+     * The next request's changes of one round: whole units (a group, or a single change) in order, at most
+     * `batchSize` changes - a group that does not fit waits for the next request (one larger than a batch goes
+     * alone); one unit while a failing set is being isolated.
+     *
+     * @returns {{batch: OutboxItem[], units: number}}
+     */
+    nextBatch(ready, roundId) {
+        const units = [];
+        const byGroup = new Map();
+
+        for (const item of ready) {
+            if (item.roundId !== roundId) {
+                continue;
+            }
+
+            if (item.groupId) {
+                if (!byGroup.has(item.groupId)) {
+                    const unit = [];
+                    byGroup.set(item.groupId, unit);
+                    units.push(unit);
+                }
+
+                byGroup.get(item.groupId).push(item);
+            } else {
+                units.push([item]);
+            }
+        }
+
+        const batch = [];
+        let taken = 0;
+
+        for (const unit of units) {
+            if (taken > 0 && (this.isolate || batch.length + unit.length > this.batchSize)) {
+                break;
+            }
+
+            batch.push(...unit);
+            taken += 1;
+        }
+
+        return { batch, units: taken };
+    }
+
+    /**
+     * The connection is back (the `online` event, a state answered): what waited only for being offline goes now -
+     * not after the rest of the offline pause. Changes set apart (no rights, refused, in conflict, a server error's
+     * own pause) and a busy server's pause stay as they are.
+     */
+    connectionBack() {
+        if (this.offline && this.blocked === null) {
+            this.retryAt = 0;
+            this.offlineAttempts = 0;
+            this.onChange();
+        }
+
+        return this.flush();
     }
 
     /**
@@ -612,7 +868,7 @@ export class Outbox {
             }
 
             const roundId = ready[0].roundId;
-            const batch = ready.filter((item) => item.roundId === roundId).slice(0, this.isolate ? 1 : this.batchSize);
+            const { batch, units } = this.nextBatch(ready, roundId);
 
             batch.forEach((item) => this.inFlight.add(item.id));
             this.onChange();
@@ -627,7 +883,7 @@ export class Outbox {
                 batch.forEach((item) => this.inFlight.delete(item.id));
             }
 
-            await this.serial(() => this.settle(roundId, batch.map((item) => item.id), answer));
+            await this.serial(() => this.settle(roundId, batch.map((item) => item.id), answer, units));
 
             // Signed out, a stale page (blocked), offline or a busy server (retryAt) end the round of sending;
             // a round without rights only sets its own changes apart
@@ -653,10 +909,14 @@ export class Outbox {
             change.entry = item.entryRef;
         }
 
+        if (item.proposalId) {
+            change.proposalId = item.proposalId;
+        }
+
         return change;
     }
 
-    async settle(roundId, batchIds, answer) {
+    async settle(roundId, batchIds, answer, units = batchIds.length) {
         const now = this.now();
         // The items as they are now - a reload may have replaced the objects while the request was out
         const batch = batchIds.map((id) => this.items.find((item) => item.id === id)).filter((item) => item !== undefined);
@@ -733,33 +993,30 @@ export class Outbox {
         }
 
         if (answer.kind === 'server' || answer.kind === 'client') {
-            if (batchIds.length > 1) {
-                // Which change does the server choke on? One at a time from here
+            if (units > 1) {
+                // Which change does the server choke on? One at a time (a group as one) from here
                 this.isolate = true;
 
                 return;
             }
 
-            const item = batch[0];
+            // A single change, or one group - it pauses or is refused as a whole
+            for (const item of batch) {
+                if (answer.kind === 'server') {
+                    item.attempts += 1;
+                    item.nextAttemptAt = now + Math.max(backoff(SERVER_BACKOFF_MS, item.attempts), Math.min(answer.retryAfter ?? 0, MAX_RETRY_AFTER_MS));
+                    item.lastError = { kind: 'server', status: answer.status ?? null };
+                } else {
+                    // A change the server cannot read at all
+                    item.state = 'rejected';
+                    item.reason = answer.data?.error ?? 'invalid_change';
+                    item.message = answer.data?.message ?? null;
+                    item.lastError = { kind: 'client', status: answer.status ?? null };
+                    this.isolate = false;
+                }
 
-            if (item === undefined) {
-                return;
+                await this.write(item).catch(() => {});
             }
-
-            if (answer.kind === 'server') {
-                item.attempts += 1;
-                item.nextAttemptAt = now + Math.max(backoff(SERVER_BACKOFF_MS, item.attempts), Math.min(answer.retryAfter ?? 0, MAX_RETRY_AFTER_MS));
-                item.lastError = { kind: 'server', status: answer.status ?? null };
-            } else {
-                // A single change the server cannot read at all
-                item.state = 'rejected';
-                item.reason = answer.data?.error ?? 'invalid_change';
-                item.message = answer.data?.message ?? null;
-                item.lastError = { kind: 'client', status: answer.status ?? null };
-                this.isolate = false;
-            }
-
-            await this.write(item).catch(() => {});
 
             return;
         }
@@ -768,6 +1025,7 @@ export class Outbox {
         this.isolate = false;
         const outcomes = new Map((answer.data?.outcomes ?? []).map((outcome) => [String(outcome.clientChangeId).toLowerCase(), outcome]));
         const createdEntries = new Set();
+        const proposals = (answer.data?.outcomes ?? []).map((outcome) => outcome?.proposal).filter((proposal) => proposal && typeof proposal.id === 'string');
 
         for (const item of batch) {
             const outcome = outcomes.get(item.id.toLowerCase());
@@ -817,6 +1075,10 @@ export class Outbox {
 
         if (Array.isArray(answer.data?.entries)) {
             this.onEntries(answer.data.entries, roundId);
+        }
+
+        if (proposals.length > 0) {
+            this.onProposals(proposals, roundId);
         }
     }
 }

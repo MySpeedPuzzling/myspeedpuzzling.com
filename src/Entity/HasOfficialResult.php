@@ -10,13 +10,15 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
  * The organiser's official record of one round entry - a person in a solo round (CompetitionParticipantRound) or a
  * pair/team (CompetitionTeam): the result, who entered it and when, the qualified mark and the table number for this
- * round (docs/features/competitions-management/official-results.md). Written only through RecordRoundResults,
- * AssignTableNumbers and AdvanceQualified - the methods below never check anything, the handlers do.
+ * round, and a `pick` round's per-puzzle record (docs/features/competitions-management/official-results.md). Written
+ * only through RecordRoundResults, AssignTableNumbers and AdvanceQualified - the methods below never check anything,
+ * the handlers do.
  */
 trait HasOfficialResult
 {
@@ -55,6 +57,13 @@ trait HasOfficialResult
     #[Column(type: Types::SMALLINT, nullable: true)]
     public null|int $tableNumber = null;
 
+    // A `pick` round's per-puzzle record (RoundEntryPuzzles' wire format, competition toolkit A3): the round puzzles the
+    // entry chose in solving order, each finished or not. Null = nothing recorded - every entry of a `total` round
+    /** @var null|list<array{roundPuzzleId: string, done: bool, atSeconds?: int, piecesPlaced?: int}> */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $resultPuzzles = null;
+
     public function officialResult(): RoundEntryResult
     {
         return RoundEntryResult::fromColumns($this->resultSeconds, $this->resultPiecesPlaced, $this->resultDidNotStart);
@@ -71,6 +80,19 @@ trait HasOfficialResult
         $this->resultDidNotStart = $result->didNotStart;
         $this->resultEnteredBy = $enteredBy;
         $this->resultEnteredAt = $enteredAt;
+    }
+
+    public function officialPuzzles(): null|RoundEntryPuzzles
+    {
+        return RoundEntryPuzzles::fromStored($this->resultPuzzles);
+    }
+
+    /**
+     * Checked by RecordRoundResultsHandler against the round and the result (RoundEntryPuzzles' rules) - never here.
+     */
+    public function recordPuzzles(null|RoundEntryPuzzles $puzzles): void
+    {
+        $this->resultPuzzles = $puzzles?->toWire();
     }
 
     public function isQualified(): bool
@@ -94,11 +116,12 @@ trait HasOfficialResult
     }
 
     /**
-     * A result or a qualified mark - official data that must never disappear as a side effect of another change
-     * (removing the entry, deleting the team, removing the person from the event).
+     * A result, a qualified mark or a recorded puzzle choice - official data that must never disappear as a side effect
+     * of another change (removing the entry, deleting the team, removing the person from the event).
+     * OfficialResultsGuard::sqlEntryHoldsOfficialData() is the SQL twin.
      */
     public function hasOfficialData(): bool
     {
-        return $this->officialResult()->isNone() === false || $this->isQualified();
+        return $this->officialResult()->isNone() === false || $this->isQualified() || $this->resultPuzzles !== null;
     }
 }

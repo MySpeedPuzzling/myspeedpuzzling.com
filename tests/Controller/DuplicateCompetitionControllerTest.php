@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use IntlDateFormatter;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -16,7 +20,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * "Duplicate" (docs/features/competitions-management/README.md "Duplicating an event"): signed in, COMPETITION_EDIT,
- * the stateless CSRF token - a 303 to the new draft's edit page with a flash; offered in the ⋯ menu and on the edit page.
+ * the stateless CSRF token on POST. GET asks for the new date (+ name, proposed for a series' next edition), POST makes
+ * the copy on that date - a 303 to the new draft's edit page with a flash naming the date, 422 without a date; offered
+ * in the ⋯ menu and on the edit page as a link.
  */
 final class DuplicateCompetitionControllerTest extends WebTestCase
 {
@@ -56,27 +62,111 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         self::assertSame($before, $this->copies());
     }
 
-    public function testTheOrganiserGetsADraftCopyAndLandsOnItsEditPage(): void
+    public function testTheOrganiserIsAskedForTheNewDateAndTheName(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('GET', self::PATH);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[data-duplicate-form][action^="' . self::PATH . '"] input[type="date"][name="dateFrom"][required]');
+        // A one-time event: no date proposed, the same name
+        self::assertInputValueSame('dateFrom', '');
+        self::assertInputValueSame('name', 'Results Cup');
+        self::assertSelectorTextContains('[data-source-date]', 'Copy of');
+        self::assertSelectorExists('[data-what-moves]');
+    }
+
+    public function testTheNextEditionOfASeriesIsProposedWithTheNextNumberAndTheSameGap(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $connection = self::getContainer()->get(Connection::class);
+        $session2 = new DateTimeImmutable(self::text($connection->fetchOne('SELECT date_from FROM competition WHERE id = :id', ['id' => EventsPageFixture::EDITION_HARBOR_2])));
+        $session1 = new DateTimeImmutable(self::text($connection->fetchOne('SELECT date_from FROM competition WHERE id = :id', ['id' => EventsPageFixture::EDITION_HARBOR_1])));
+        $gap = (int) $session1->diff($session2)->format('%a');
+
+        $browser->request('GET', '/en/duplicate-event/' . EventsPageFixture::EDITION_HARBOR_2);
+
+        self::assertResponseIsSuccessful();
+        // "Session 2" → "Session 3", one gap after it
+        self::assertInputValueSame('name', 'Session 3');
+        self::assertInputValueSame('dateFrom', $session2->modify(sprintf('+%d days', $gap))->format('Y-m-d'));
+    }
+
+    public function testTheCopyIsMadeOnTheNewDateWithItsRoundsAndRegistrationMoved(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition SET registration_opens_at = '2030-01-01 08:00:00', registration_closes_at = '2030-01-20 20:00:00' WHERE id = :id",
+            ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
+        );
+        $sourceFrom = new DateTimeImmutable(self::text($connection->fetchOne('SELECT date_from FROM competition WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP])));
+        $newDay = $sourceFrom->modify('+21 days');
+        $before = $this->copies();
+
+        $browser->request('POST', self::PATH, ['_token' => 'csrf-token', 'dateFrom' => $newDay->format('Y-m-d'), 'name' => 'Results Cup II'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertSame($before, $this->copies());
+
+        /** @var array{id: string, date_from: string, date_to: string, registration_opens_at: string, registration_closes_at: string, is_draft: bool} $copy */
+        $copy = $connection->fetchAssociative("SELECT id, date_from, date_to, registration_opens_at, registration_closes_at, is_draft FROM competition WHERE name = 'Results Cup II'");
+        self::assertResponseRedirects('/en/edit-event/' . $copy['id']);
+        self::assertTrue($copy['is_draft']);
+        self::assertSame($newDay->format('Y-m-d'), substr($copy['date_from'], 0, 10));
+        self::assertSame($newDay->format('Y-m-d'), substr($copy['date_to'], 0, 10));
+        self::assertSame('2030-01-22 08:00:00', $copy['registration_opens_at']);
+        self::assertSame('2030-02-10 20:00:00', $copy['registration_closes_at']);
+
+        $sourceStarts = $connection->fetchFirstColumn('SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        $copyStarts = $connection->fetchFirstColumn('SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at', ['id' => $copy['id']]);
+        self::assertCount(5, $copyStarts);
+
+        // Three weeks later at the same time of day in the rounds' zone (Brno)
+        $prague = new DateTimeZone('Europe/Prague');
+
+        foreach ($sourceStarts as $index => $start) {
+            self::assertSame(
+                (new DateTimeImmutable(self::text($start), new DateTimeZone('UTC')))->setTimezone($prague)->modify('+21 days')->format('Y-m-d H:i'),
+                (new DateTimeImmutable(self::text($copyStarts[$index]), new DateTimeZone('UTC')))->setTimezone($prague)->format('Y-m-d H:i'),
+            );
+        }
+
+        $formatted = (new IntlDateFormatter('en', IntlDateFormatter::LONG, IntlDateFormatter::NONE, 'UTC'))->format($newDay);
+        self::assertIsString($formatted);
+        self::assertSame([$this->trans('event_duplicate.flash_dated', ['%date%' => $formatted])], $this->flashes($browser));
+
+        $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a[data-duplicate-link][href^="/en/duplicate-event/' . $copy['id'] . '"]');
+    }
+
+    public function testWithoutADateTheFormComesBackWith422(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $before = $this->copies();
 
-        $browser->request('POST', self::PATH, ['_token' => 'csrf-token'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        $browser->request('POST', self::PATH, ['_token' => 'csrf-token', 'dateFrom' => '', 'name' => 'Results Cup'], server: ['HTTP_ORIGIN' => 'http://localhost']);
 
-        self::assertResponseStatusCodeSame(303);
-        self::assertSame($before + 1, $this->copies());
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('form[data-duplicate-form]');
+        self::assertSelectorTextContains('form[data-duplicate-form]', $this->trans('event_duplicate.form.date_required'));
+        self::assertSame($before, $this->copies());
+    }
 
-        $copyId = self::text(self::getContainer()->get(Connection::class)->fetchOne(
-            "SELECT id FROM competition WHERE name = 'Results Cup' AND id <> :id ORDER BY id DESC LIMIT 1",
-            ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
-        ));
-        self::assertResponseRedirects('/en/edit-event/' . $copyId);
-        self::assertSame([$this->trans('event_duplicate.flash')], $this->flashes($browser));
+    public function testAPlayerWhoCannotEditTheEventCannotOpenTheForm(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->followRedirect();
-        self::assertResponseIsSuccessful();
-        self::assertSelectorExists('form[data-duplicate-form][action="/en/duplicate-event/' . $copyId . '"]');
+        $browser->request('GET', self::PATH);
+
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testTheManageMenuOffersIt(): void
@@ -88,7 +178,7 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         $browser->request('GET', '/en/event-actions/competition/' . OrganizationFixture::EDITION_LANTERN_1);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('form[action="/en/duplicate-event/' . OrganizationFixture::EDITION_LANTERN_1 . '"] button[data-duplicate]');
+        self::assertSelectorExists('a[data-duplicate][href^="/en/duplicate-event/' . OrganizationFixture::EDITION_LANTERN_1 . '"]');
     }
 
     private function copies(): int
@@ -107,9 +197,12 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         return array_values($session->getFlashBag()->peek('success'));
     }
 
-    private function trans(string $key): string
+    /**
+     * @param array<string, string> $parameters
+     */
+    private function trans(string $key, array $parameters = []): string
     {
-        return self::getContainer()->get(TranslatorInterface::class)->trans($key);
+        return self::getContainer()->get(TranslatorInterface::class)->trans($key, $parameters);
     }
 
     private static function text(mixed $value): string

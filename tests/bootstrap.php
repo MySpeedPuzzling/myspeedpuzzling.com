@@ -482,6 +482,10 @@ function createCustomIndexes(): void
 
     // Sell/swap requests: one open ask per buyer and listing (Version20261027093158)
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_listing_request_item_one_open ON listing_request_item (buyer_id, listing_id) WHERE status IN ('waiting', 'yes')");
+
+    // One pending time proposal per round entry (Version20261117044411, competition toolkit P1)
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_time_proposal_pending_solo ON competition_time_proposal (participant_round_id) WHERE status = 'pending'");
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_time_proposal_pending_team ON competition_time_proposal (team_id) WHERE status = 'pending'");
 }
 
 /**

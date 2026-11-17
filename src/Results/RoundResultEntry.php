@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use Closure;
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 
@@ -51,6 +52,16 @@ readonly final class RoundResultEntry implements \JsonSerializable
         public bool $playerIsPrivate = false,
         // Person: forReferee() left the linked player out
         public bool $playerWithheld = false,
+        // A `pick` round's entry (competition toolkit A3): its per-puzzle record - only serialized with $puzzlesUsed
+        public null|RoundEntryPuzzles $puzzles = null,
+        // The round is a `pick` round: the entry JSON carries `puzzles` (null = nothing recorded); absent otherwise
+        public bool $puzzlesUsed = false,
+        // A `pick` round's entry: the pieces it places when it finishes - its chosen puzzles once all K are recorded, else
+        // the round's K biggest. The advancement seed's share of an unfinished result (AdvancementSeeding); never serialized
+        public null|int $piecesCount = null,
+        // A pair/team's line-up for the whole competition (CompetitionLineupId) - only while the competition has competitor
+        // pages or a QR tag mode (competition toolkit R §1.8), so the judge's scanner resolves a line-up tag; else null
+        public null|string $lineupId = null,
     ) {
     }
 
@@ -91,6 +102,10 @@ readonly final class RoundResultEntry implements \JsonSerializable
             resultEnteredByName: $this->resultEnteredByName,
             playerIsPrivate: $this->playerIsPrivate,
             playerWithheld: $hidePlayer,
+            puzzles: $this->puzzles,
+            puzzlesUsed: $this->puzzlesUsed,
+            piecesCount: $this->piecesCount,
+            lineupId: $this->lineupId,
         );
     }
 
@@ -141,6 +156,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
             'country' => $this->country,
             'countries' => $this->countries,
             'members' => $this->members,
+            // Only on a team entry of a competition that uses competitor pages or QR tags - others keep their shape
+            ...($this->lineupId !== null ? ['lineupId' => $this->lineupId] : []),
             'playerId' => $this->playerId,
             'playerCode' => $this->playerCode,
             'playerName' => $this->playerName,
@@ -148,6 +165,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
             ...($this->playerWithheld ? ['playerWithheld' => true] : []),
             'tableNumber' => $this->tableNumber,
             'result' => $this->result->toWire(),
+            // Only for an entry of a `pick` round - every other entry's JSON stays as it was (R-review-and-plan.md §1.8)
+            ...($this->puzzlesUsed ? ['puzzles' => $this->puzzles?->toWire()] : []),
             'rank' => $this->rank,
             'qualified' => $this->isQualified(),
             'qualifiedAt' => $this->qualifiedAt?->format(DateTimeImmutable::ATOM),

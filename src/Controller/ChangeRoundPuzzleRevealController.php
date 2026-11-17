@@ -13,9 +13,12 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
+use SpeedPuzzling\Web\Exceptions\RoundStopwatchAlreadyStarted;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -30,7 +33,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The organiser's reveal choice for one round puzzle on the round's puzzles page: what stays secret and when it is
- * revealed (automatic / own time typed in the round's zone / manual).
+ * revealed (automatic / own time typed in the round's zone / manual / when the round's stopwatch starts with "Reveal the
+ * puzzles" ticked - the last one offered to COMPETITION_TOOLKIT_MANAGE only; a row already using it keeps it for every
+ * organiser). A saved change tells the round's open pages to fetch it again (the reveal push).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChangeRoundPuzzleRevealController extends AbstractController
@@ -40,6 +45,7 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
         private readonly CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private readonly TranslatorInterface $translator,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
+        private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
     ) {
     }
 
@@ -74,6 +80,16 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
         $revealMode = RoundPuzzleReveal::tryFrom((string) $request->request->get('reveal_mode'));
 
         if ($hideMode === null || $revealMode === null) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid');
+        }
+
+        // The competition toolkit's option (docs/features/competitions-management/toolkit/) - offered to whoever may change
+        // its settings; a row using it already keeps it
+        if (
+            $revealMode === RoundPuzzleReveal::Stopwatch
+            && $roundPuzzle->revealMode !== RoundPuzzleReveal::Stopwatch
+            && $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $round->competition->id->toString()) === false
+        ) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid');
         }
 
@@ -132,7 +148,12 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.name_already_public');
         } catch (PuzzleHiddenByHand) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.puzzle_hidden_by_hand');
+        } catch (RoundStopwatchAlreadyStarted) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition_toolkit.reveal_stopwatch.flash.already_started');
         }
+
+        // After the commit: the round's open pages read its puzzles again
+        $this->officialResultsLiveUpdates->puzzlesRevealed($round->id->toString());
 
         $this->addFlash('success', $this->translator->trans('competition.reveal.flash.saved', [
             '%puzzle%' => $puzzleName,

@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\AdminCompetitionMaintainer;
 use SpeedPuzzling\Web\Results\AdminCompetitionRound;
 use SpeedPuzzling\Web\Results\AdminPuzzle;
 use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
@@ -274,6 +275,8 @@ SQL, ['id' => $id]);
          *     location_country_code: null|string,
          *     series_country_code: null|string,
          *     results_count: int,
+         *     puzzle_format: string,
+         *     puzzles_to_solve: null|int,
          * }> $roundRows
          */
         $roundRows = $this->database->fetchAllAssociative(<<<SQL
@@ -291,6 +294,8 @@ SELECT
     cr.badge_text_color,
     cr.results_link,
     cr.timezone,
+    cr.puzzle_format,
+    cr.puzzles_to_solve,
     c.location_country_code,
     cs.location_country_code AS series_country_code,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) AS results_count
@@ -323,6 +328,8 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     puzzle_approved: bool,
          *     puzzle_hide_until: null|string,
          *     puzzle_hide_image_until: null|string,
+         *     position: null|int,
+         *     label: null|string,
          * }> $puzzleRows
          */
         $puzzleRows = $this->database->fetchAllAssociative(<<<SQL
@@ -333,6 +340,8 @@ SELECT
     crp.hide_mode,
     crp.reveal_mode,
     crp.hides_everywhere,
+    crp.position,
+    crp.label,
     {$revealAt} AS reveals_at,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
@@ -353,6 +362,20 @@ WHERE cr.competition_id = :competitionId
 ORDER BY p.name, p.id
 SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
 
+        // The organiser's order of each round's puzzles (competition toolkit A2) - the list stays by name
+        /** @var array<string, list<array{position: null|int, round_puzzle_id: string}>> $placesByRound */
+        $placesByRound = [];
+        foreach ($puzzleRows as $puzzleRow) {
+            $placesByRound[$puzzleRow['round_id']][] = ['position' => $puzzleRow['position'], 'round_puzzle_id' => $puzzleRow['round_puzzle_id']];
+        }
+        /** @var array<string, int> $positions */
+        $positions = [];
+        foreach ($placesByRound as $places) {
+            foreach (RoundPuzzleLabel::sort($places, static fn (array $place): array => [$place['position'], $place['round_puzzle_id']]) as $index => $place) {
+                $positions[$place['round_puzzle_id']] = $index + 1;
+            }
+        }
+
         /** @var array<string, list<AdminRoundPuzzle>> $puzzlesByRound */
         $puzzlesByRound = [];
 
@@ -365,6 +388,8 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
                 revealsAt: $puzzleRow['hide_until_round_starts'] ? AdminCompetition::isoDateTime($puzzleRow['reveals_at']) : null,
                 hidesEverywhere: $puzzleRow['hides_everywhere'],
                 puzzle: AdminPuzzle::fromDatabaseRow($puzzleRow),
+                position: $positions[$puzzleRow['round_puzzle_id']],
+                label: $puzzleRow['label'],
             );
         }
 

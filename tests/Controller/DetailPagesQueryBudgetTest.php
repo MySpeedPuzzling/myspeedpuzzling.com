@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -146,6 +148,59 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
 
         $browser->getCookieJar()->clear();
         self::assertSame($guest, $this->measure($browser, self::PARTNER_FINDER_OPEN), 'a guest pays nothing for the link');
+    }
+
+    /**
+     * Published standings (competition toolkit A7) ride on the event's own statement (GetCompetitionEvents::byId()): the
+     * event and edition pages link them for no statement of their own.
+     */
+    public function testPublishedStandingsAddNoStatementToTheEventAndEditionPages(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([self::HILLTOP => 'hilltop-puzzle-weekend', self::SEASON_ONE => 'season-one'] as $url => $slug) {
+            $before = $this->measure($browser, $url);
+            /** @var array{competition_id: string, round_id: string, category: string} $round */
+            $round = $database->fetchAssociative(
+                'SELECT c.id AS competition_id, r.id AS round_id, r.category FROM competition c INNER JOIN competition_round r ON r.competition_id = c.id WHERE c.slug = :slug ORDER BY r.starts_at LIMIT 1',
+                ['slug' => $slug],
+            );
+            PublishedStanding::insert($database, $round['competition_id'], 'overall', 'Overall', $round['category'], [$round['round_id']]);
+
+            self::assertSame($before, $this->measure($browser, $url), 'a published standing must not add statements: ' . $url);
+            self::assertSelectorExists('[data-event-standing-link]');
+        }
+    }
+
+    /**
+     * The bracket link (competition toolkit A9) rides on the event's own statement too (the rounds of its declared
+     * advancement steps, GetCompetitionEvents::byId()): the event and edition pages link it for no statement of their own.
+     */
+    public function testDeclaredAdvancementStepsAddNoStatementToTheEventAndEditionPages(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([self::HILLTOP => 'hilltop-puzzle-weekend', self::SEASON_ONE => 'season-one'] as $url => $slug) {
+            $this->measure($browser, $url);
+            self::assertSelectorNotExists('[data-event-bracket-link]');
+            /** @var array{competition_id: string, round_id: string, category: string} $round */
+            $round = $database->fetchAssociative(
+                'SELECT c.id AS competition_id, r.id AS round_id, r.category FROM competition c INNER JOIN competition_round r ON r.competition_id = c.id WHERE c.slug = :slug ORDER BY r.starts_at LIMIT 1',
+                ['slug' => $slug],
+            );
+            $finalId = Uuid::uuid7()->toString();
+            $database->executeStatement(
+                "INSERT INTO competition_round (id, competition_id, name, starts_at, category) SELECT :id, competition_id, 'Bracket final', starts_at + INTERVAL '1 hour', category FROM competition_round WHERE id = :round",
+                ['id' => $finalId, 'round' => $round['round_id']],
+            );
+            $withRound = $this->measure($browser, $url);
+            DeclaredAdvancementStep::insert($database, $round['competition_id'], [$round['round_id']], [$finalId]);
+
+            self::assertSame($withRound, $this->measure($browser, $url), 'declared advancement steps must not add statements: ' . $url);
+            self::assertSelectorExists('[data-event-bracket-link]');
+        }
     }
 
     public function testTenMoreEditionsAddNoStatementToTheSeriesPage(): void

@@ -20,6 +20,9 @@ use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
@@ -315,6 +318,64 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
         self::assertFalse($this->foundByBrandPicker($longAfterTheRound, $puzzleId));
         self::assertFalse($this->onEventPage($longAfterTheRound, $puzzleId));
         self::assertFalse($this->amongCompetitionPuzzles($longAfterTheRound, $puzzleId));
+    }
+
+    /**
+     * "When the stopwatch starts" (RoundPuzzleReveal::Stopwatch): never started with the tick = hidden everywhere for
+     * good, like a manual reveal
+     */
+    public function testAStopwatchRevealNeverStartedKeepsThePuzzleSecretEverywhere(): void
+    {
+        $roundPuzzle = $this->addSecretPuzzle(PuzzleHideMode::Entirely);
+        $this->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch, null));
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+
+        $longAfterTheRound = new MockClock(TestClock::now()->modify('+3 years'));
+        self::assertFalse($this->foundBySearch($longAfterTheRound));
+        self::assertFalse($this->foundByBrandPicker($longAfterTheRound, $puzzleId));
+        self::assertFalse($this->onEventPage($longAfterTheRound, $puzzleId));
+        self::assertFalse($this->amongCompetitionPuzzles($longAfterTheRound, $puzzleId));
+        self::assertTrue($this->hiddenOnTheRoundsPuzzlesPage($longAfterTheRound, $roundPuzzle->id->toString()));
+    }
+
+    /**
+     * A scheduled start with "Reveal the puzzles" ticked (R-review-and-plan.md §2.1.2): one second before the countdown
+     * ends the puzzle is out nowhere, at that moment everywhere - the moment the organiser is shown
+     */
+    public function testAScheduledStopwatchRevealIsTheSameMomentEverywhere(): void
+    {
+        $startsAt = new DateTimeImmutable('@' . (TestClock::timestamp() + 7200));
+        $roundPuzzle = $this->addSecretPuzzle(PuzzleHideMode::Entirely);
+        $this->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch, null));
+
+        $round = self::getContainer()->get(EntityManagerInterface::class)->find(CompetitionRound::class, CompetitionApiFixture::ROUND_FUTURE);
+        self::assertNotNull($round);
+        $hash = SecretRevealPreview::stopwatchStartHash(self::getContainer()->get(SecretRevealPreview::class)->byStopwatchStart($round), $round);
+        $this->dispatch(new ScheduleRoundStart(CompetitionApiFixture::ROUND_FUTURE, $startsAt, PlayerFixture::PLAYER_ADMIN, revealPuzzles: true, revealListHash: $hash));
+
+        $roundPuzzle = $this->roundPuzzle($roundPuzzle->id->toString());
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+        self::assertSame($startsAt->getTimestamp(), $roundPuzzle->revealsAt()?->getTimestamp());
+        self::assertSame($startsAt->getTimestamp(), $roundPuzzle->puzzle->hideUntil?->getTimestamp());
+        self::assertSame($startsAt->getTimestamp(), $roundPuzzle->puzzle->hideImageUntil?->getTimestamp());
+
+        $oneSecondBefore = new MockClock($startsAt->modify('-1 second'));
+        self::assertFalse($this->foundBySearch($oneSecondBefore));
+        self::assertFalse($this->foundByBrandPicker($oneSecondBefore, $puzzleId));
+        self::assertFalse($this->onEventPage($oneSecondBefore, $puzzleId));
+        self::assertFalse($this->amongCompetitionPuzzles($oneSecondBefore, $puzzleId));
+        self::assertFalse($this->usedAtTheCompetition($oneSecondBefore, $puzzleId));
+        self::assertSame([false, null], $this->inApiV1As($oneSecondBefore, $puzzleId));
+        self::assertTrue($this->hiddenOnTheRoundsPuzzlesPage($oneSecondBefore, $roundPuzzle->id->toString()));
+
+        $atTheMoment = new MockClock($startsAt);
+        self::assertTrue($this->foundBySearch($atTheMoment));
+        self::assertTrue($this->foundByBrandPicker($atTheMoment, $puzzleId));
+        self::assertTrue($this->onEventPage($atTheMoment, $puzzleId));
+        self::assertTrue($this->amongCompetitionPuzzles($atTheMoment, $puzzleId));
+        self::assertTrue($this->usedAtTheCompetition($atTheMoment, $puzzleId));
+        self::assertTrue($this->inApiV1As($atTheMoment, $puzzleId)[0]);
+        self::assertFalse($this->hiddenOnTheRoundsPuzzlesPage($atTheMoment, $roundPuzzle->id->toString()));
     }
 
     /**

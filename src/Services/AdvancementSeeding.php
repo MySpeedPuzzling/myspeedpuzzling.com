@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Results\SeededEntry;
  * 1. rank within the own round (OfficialResultsRanking) - every round's winner before every round's second, ...
  * 2. the same rank (a tie, or the same place in different rounds): finished before unfinished, then the result
  *    relative to the round's winner - time ÷ the winner's time (a 1:05 in a round won in 1:00 beats a 1:10 in a round
- *    won in 1:05); unfinished by pieces placed ÷ the round's piece count (or pieces placed without one), most first
+ *    won in 1:05); unfinished by pieces placed ÷ the round's piece count (or pieces placed without one), most first -
+ *    in a `pick` round the pieces of the entry's chosen puzzles, else of the round's K biggest (RoundResultEntry::$piecesCount)
  * 3. then the organiser's order of the rounds, the name, the id - never random
  * Entries without a ranked result (did not start, no result yet) come last, by name.
  */
@@ -29,6 +30,64 @@ final readonly class AdvancementSeeding
      * @return list<SeededEntry> seed 1..N
      */
     public static function seed(array $entriesByRound, array $piecesCountByRound = [], null|callable $include = null): array
+    {
+        $seeded = [];
+        foreach (self::sortedCandidates($entriesByRound, $piecesCountByRound, $include) as $index => $candidate) {
+            $seeded[] = new SeededEntry($index + 1, $candidate['roundId'], $candidate['entry']);
+        }
+
+        return $seeded;
+    }
+
+    /**
+     * "Top N over all the source rounds together" - an advancement step's preset (competition toolkit A8): the best
+     * `count` ranked entries by the seed above, plus everybody who shares the last place that fits - the same rank in
+     * their own round, finished or not alike and the same result relative to their round's winner (the seed's own keys;
+     * the round order and the name only break the seed's ties, never the qualification). When those take the list past
+     * `count`, they are "tied at the cut": proposed, but the organiser decides (like the desk's Top N).
+     *
+     * @param array<string, list<RoundResultEntry>> $entriesByRound as seed()
+     * @param array<string, null|int> $piecesCountByRound as seed()
+     * @return array{selected: list<SeededEntry>, tiedAtCut: list<SeededEntry>}
+     */
+    public static function topOverall(array $entriesByRound, array $piecesCountByRound, int $count): array
+    {
+        $candidates = self::sortedCandidates($entriesByRound, $piecesCountByRound, static fn (RoundResultEntry $entry): bool => $entry->rank !== null);
+
+        if ($count < 1 || $candidates === []) {
+            return ['selected' => [], 'tiedAtCut' => []];
+        }
+
+        $key = static fn (array $candidate): array => [$candidate['entry']->rank, $candidate['entry']->result->isUnfinished(), $candidate['relative']];
+        $cutKey = $key($candidates[min($count, count($candidates)) - 1]);
+        $selected = [];
+        $tied = [];
+
+        foreach ($candidates as $index => $candidate) {
+            $atCut = $key($candidate) === $cutKey;
+
+            if ($index >= $count && !$atCut) {
+                break;
+            }
+
+            $seeded = new SeededEntry($index + 1, $candidate['roundId'], $candidate['entry']);
+            $selected[] = $seeded;
+
+            if ($atCut) {
+                $tied[] = $seeded;
+            }
+        }
+
+        return ['selected' => $selected, 'tiedAtCut' => count($selected) > $count ? $tied : []];
+    }
+
+    /**
+     * @param array<string, list<RoundResultEntry>> $entriesByRound
+     * @param array<string, null|int> $piecesCountByRound
+     * @param null|callable(RoundResultEntry): bool $include
+     * @return list<array{roundId: string, roundPosition: int, entry: RoundResultEntry, relative: float}> best first
+     */
+    private static function sortedCandidates(array $entriesByRound, array $piecesCountByRound, null|callable $include): array
     {
         $candidates = [];
         $roundPosition = 0;
@@ -52,7 +111,8 @@ final readonly class AdvancementSeeding
                     'roundId' => $roundId,
                     'roundPosition' => $roundPosition,
                     'entry' => $entry,
-                    'relative' => self::relative($entry, $winnerSeconds, $piecesCountByRound[$roundId] ?? null),
+                    // A `pick` round's entry brings its own bound (GetRoundResultEntries, competition toolkit A3)
+                    'relative' => self::relative($entry, $winnerSeconds, $entry->piecesCount ?? $piecesCountByRound[$roundId] ?? null),
                 ];
             }
 
@@ -70,12 +130,7 @@ final readonly class AdvancementSeeding
                 ?: strcmp($aEntry->ref->id, $bEntry->ref->id);
         });
 
-        $seeded = [];
-        foreach ($candidates as $index => $candidate) {
-            $seeded[] = new SeededEntry($index + 1, $candidate['roundId'], $candidate['entry']);
-        }
-
-        return $seeded;
+        return $candidates;
     }
 
     /**

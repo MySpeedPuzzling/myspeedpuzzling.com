@@ -3,6 +3,9 @@
     the puzzle card(s), the organiser's ranking on top, the times puzzlers added below it - folded, with their note.
     Rendered instead of the per-puzzle lists of round_results.html.twig; expects its context (page, round, event).
 
+    A pick round's row also lists the puzzles its entry chose (round_results/_entry_puzzles.html.twig, competition toolkit
+    A5) - included at the end of an existing line, so every other round renders byte for byte as before.
+
     Ranks are the official places (computed over every ranked entry, rows hidden from the viewer dropped without
     renumbering); the table number is the organiser's business and never shown here.
 #}
@@ -49,7 +52,7 @@
                                         <span class="badge rounded-pill official-qualified-badge" title="{{ 'official_results.qualified'|trans }}" data-official-qualified><span aria-hidden="true">{{ 'round_results.official.qualified_short'|trans }}</span><span class="visually-hidden">{{ 'official_results.qualified'|trans }}</span></span>
                                     {%- endif -%}
                                 </div>
-                            {% endif %}
+                            {% endif %}{% if entry.puzzleChips is not empty %}{{ include('round_results/_entry_puzzles.html.twig') }}{% endif %}
 
                             {% if entry.profileState is not null %}
                                 <div class="official-profile-action">
@@ -65,7 +68,7 @@
                         </td>
 
                         <td class="lb-time">
-                            <span class="lb-time-value">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: official.piecesCount}) }}</span>
+                            <span class="lb-time-value">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: entry.puzzleChips is empty ? official.piecesCount : entry.ownPiecesCount(round.puzzlesToSolve)}) }}</span>
                         </td>
                     </tr>
                 {% endfor %}

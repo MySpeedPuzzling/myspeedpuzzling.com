@@ -6,6 +6,8 @@
 const CACHE_VERSION = 'v7';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
+// The live result entry page's offline copy per locale + a record of the files it needs (toolkit C6)
+const LIVE_SHELL_CACHE = 'live-shell-' + CACHE_VERSION;
 
 const OFFLINE_URL = '/offline.html';
 const ENTRYPOINTS_URL = '/build/entrypoints.json';
@@ -16,6 +18,38 @@ const IMAGES_CACHE_LIMIT = 200;
 // the offline page is shown - see networkFirstNavigation()
 const NAVIGATION_RETRY_DELAY_MS = 500;
 const NAVIGATION_FAILURE_REPORT_URL = '/-/navigation-fetch-failure';
+
+// ─── Live result entry offline copy (competition toolkit C6) ───────
+// docs/features/competitions-management/toolkit/C-judge-page.md §1.4. A referee's live entry page asks the worker
+// (message `live-shell:prepare`) to store the page's data-free offline copy (`live_results_shell`, one per locale) and
+// every file it needs. A navigation to a live entry URL then goes to the network first; when the network fails, or
+// says nothing for LIVE_ENTRY_TIMEOUT_MS (lie-fi at a venue), the stored copy of the URL's locale answers - the page
+// fills itself from the device's own snapshots (C4/C5). The real page is never stored.
+const LIVE_ENTRY_TIMEOUT_MS = 4000;
+const LIVE_SHELL_LOCALES = ['en', 'cs', 'es', 'ja', 'fr', 'de'];
+const LIVE_SHELL_RECORD_PREFIX = '/__live-shell/';
+const LIVE_SHELL_ASSETS = /<script type="application\/json" id="msp-live-shell-assets">([^<]*)<\/script>/;
+// The QR decoder for phones whose browser reads no QR codes itself (assets/official_results_scan.js) - immutable,
+// the version is in the path
+const SCANNER_URLS = [
+    '/barcode-scanner/zbar-wasm-0.9.15/zbar.wasm',
+    '/barcode-scanner/zbar-wasm-0.9.15/zbar-wasm.js',
+    '/barcode-scanner/zbar-wasm-0.9.15/barcode-detector-polyfill.js',
+];
+// Exactly the paths assets/live_entry_route.js parseLiveEntryRoute() accepts (same rules: ids of any case, a trailing
+// slash) - both are run over tests/fixtures/live-entry-routes.json and every router path (ServiceWorkerLiveRoutesTest).
+// [pattern, locale of the copy: a fixed one, the match's group 1, or null = the path has none]
+const LIVE_UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const LIVE_ENTRY_PATHS = [
+    [new RegExp('^/zadavani-vysledku/' + LIVE_UUID + '/?$', 'i'), 'cs'],
+    [new RegExp('^/(en|es|ja|fr|de)/live-results/' + LIVE_UUID + '/?$', 'i'), 1],
+    [new RegExp('^/zadavani-vysledku-udalosti/' + LIVE_UUID + '/?$', 'i'), 'cs'],
+    [new RegExp('^/(en|es|ja|fr|de)/live-results/event/' + LIVE_UUID + '/?$', 'i'), 1],
+    [new RegExp('^/(en|cs|es|ja|fr|de)/live/' + LIVE_UUID + '/p/' + LIVE_UUID + '/?$', 'i'), 1],
+    [new RegExp('^(?:/(en|cs|es|ja|fr|de))?/live/' + LIVE_UUID + '/g/' + LIVE_UUID + '/?$', 'i'), 1],
+    [new RegExp('^(?:/(en|cs|es|ja|fr|de))?/live/' + LIVE_UUID + '/t/[1-9][0-9]{0,3}/?$', 'i'), 1],
+    [new RegExp('^(?:/(en|cs|es|ja|fr|de))?/live/' + LIVE_UUID + '/e/' + LIVE_UUID + '/?$', 'i'), 1],
+];
 
 // Self-hosted fonts to precache on install (instant on repeat visits)
 const FONT_URLS = [
@@ -34,6 +68,16 @@ const ICON_FONT_KEY_PREFIXES = [
     'build/fonts/cartzilla-icons.woff',
     'build/fonts/bootstrap-icons.woff2',
 ];
+
+// Encore entries NOT precached on install: their files are cached on first use only (cache-first like every /build
+// file). Every other entry is precached for every visitor. Skipped - pages a handful of devices open, never downloaded
+// by every visitor: `display` (the competition timer screens and stream overlays, competition toolkit D4),
+// `live_entry` (the referees' live result entry: their devices store the page's offline copy and its files on purpose,
+// `live-shell:prepare`, toolkit C6) and `live_entry_native` (Turbo for that page inside the native apps, which run no
+// service worker at all), and the online competitions' style entries `compete`, `online_rounds`, `online_watch`
+// (participants and organisers of an online round only - the install precache was a silent no-op before toolkit C2
+// fixed it, so this keeps everyday visitors downloading only `app`).
+const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch'];
 
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [
@@ -55,13 +99,7 @@ self.addEventListener('install', (event) => {
             try {
                 const response = await fetch(ENTRYPOINTS_URL, { cache: 'no-cache' });
                 if (response.ok) {
-                    const data = await response.json();
-                    const urls = [];
-                    for (const entry of Object.values(data.entrypoints || {})) {
-                        if (entry.js) urls.push(...entry.js);
-                        if (entry.css) urls.push(...entry.css);
-                    }
-                    await cache.addAll(urls);
+                    await cache.addAll(precacheUrls(await response.json()));
                 }
             } catch (e) {
                 // First visit may be offline — skip precaching
@@ -98,6 +136,23 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// ─── Messages ───────────────────────────────────────────────────────
+self.addEventListener('message', (event) => {
+    const data = event.data;
+
+    if (data === null || typeof data !== 'object' || data.type !== 'live-shell:prepare' || !LIVE_SHELL_LOCALES.includes(data.locale)) {
+        return;
+    }
+
+    event.waitUntil(prepareLiveShell(data.locale, data.scanner === true).then((record) => {
+        if (event.source && typeof event.source.postMessage === 'function') {
+            event.source.postMessage(record === null
+                ? { type: 'live-shell:failed', locale: data.locale }
+                : { type: 'live-shell:ready', locale: data.locale, storedAt: record.storedAt });
+        }
+    }));
+});
+
 // ─── Fetch ──────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
     const request = event.request;
@@ -121,8 +176,9 @@ self.addEventListener('fetch', (event) => {
     const accept = request.headers.get('Accept') || '';
     if (accept.includes('text/vnd.turbo-stream.html')) return;
 
-    // Strategy: Cache-first for /build/* (content-hashed) and /fonts/* (self-hosted fonts)
-    if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/fonts/')) {
+    // Strategy: Cache-first for /build/* (content-hashed), /fonts/* (self-hosted fonts) and /barcode-scanner/* (the
+    // zbar decoder, versioned path - an iPhone scanning a name tag after an offline reload needs it from here)
+    if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/barcode-scanner/')) {
         event.respondWith(cacheFirst(event, request, STATIC_CACHE));
         return;
     }
@@ -148,6 +204,13 @@ self.addEventListener('fetch', (event) => {
     // they see the error themselves; when the device really is offline, Turbo's
     // full page load comes back here as a navigation and gets the offline page.
     if (request.mode === 'navigate') {
+        // The live result entry: its stored offline copy when the network fails or is too slow (toolkit C6)
+        const liveEntry = liveEntryRoute(url.pathname);
+        if (liveEntry !== null) {
+            event.respondWith(liveEntryNavigation(event, request, liveEntry.locale));
+            return;
+        }
+
         event.respondWith(networkFirstNavigation(event, request));
         return;
     }
@@ -325,6 +388,208 @@ async function staleWhileRevalidate(request, cacheName) {
     return cached || fetchPromise;
 }
 
+// ─── Live result entry offline copy (toolkit C6) ────────────────────
+
+// {locale: 'cs'|…|null} for a live entry path (null = a printed tag path without a locale), else null
+function liveEntryRoute(pathname) {
+    for (const [pattern, locale] of LIVE_ENTRY_PATHS) {
+        const match = pathname.match(pattern);
+        if (match !== null) {
+            if (locale === 1) {
+                return { locale: match[1] === undefined ? null : match[1].toLowerCase() };
+            }
+            return { locale };
+        }
+    }
+    return null;
+}
+
+function liveShellPath(locale) {
+    return locale === 'cs' ? '/zadavani-vysledku-shell' : '/' + locale + '/live-results-shell';
+}
+
+// The network first - never a cache read while it answers - and the stored copy of the URL's locale when it fails
+// (after the one retry of networkFirstNavigation(); none when the device knows it is offline) or says nothing for
+// LIVE_ENTRY_TIMEOUT_MS. Whatever the network answers is passed through untouched (a sign-in redirect stays one).
+// Without a stored copy: as any other page - waiting for a slow network, the offline page when it fails.
+async function liveEntryNavigation(event, request, locale) {
+    const FAILED = {};
+    const TIMED_OUT = {};
+    let retried = false;
+    let firstError = null;
+
+    const network = (async () => {
+        try {
+            return await fetch(request);
+        } catch (e) {
+            firstError = e;
+        }
+
+        if ((self.navigator && self.navigator.onLine === false) || isAborted(request, firstError)) {
+            return FAILED;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, NAVIGATION_RETRY_DELAY_MS));
+
+        if (isAborted(request, null)) {
+            return FAILED;
+        }
+
+        retried = true;
+        try {
+            const response = await fetch(request);
+            reportNavigationFailure(event, request, 'recovered', firstError, null);
+            return response;
+        } catch (e) {
+            return FAILED;
+        }
+    })();
+
+    let timer = null;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(TIMED_OUT), LIVE_ENTRY_TIMEOUT_MS);
+    });
+
+    let outcome = await Promise.race([network, timeout]);
+    clearTimeout(timer);
+
+    if (outcome !== FAILED && outcome !== TIMED_OUT) {
+        return outcome;
+    }
+
+    const shell = await storedLiveShell(locale);
+    if (shell !== null) {
+        return shell;
+    }
+
+    if (outcome === TIMED_OUT) {
+        outcome = await network;
+        if (outcome !== FAILED) {
+            return outcome;
+        }
+    }
+
+    if (retried) {
+        reportNavigationFailure(event, request, 'offline-page', firstError, null);
+    }
+
+    return offlinePage();
+}
+
+// The copy of the locale asked for; else (a tag path without a locale, or a locale never prepared here) the copy this
+// device stored last - a working page in another language beats the offline page
+async function storedLiveShell(locale) {
+    try {
+        const cache = await caches.open(LIVE_SHELL_CACHE);
+        let stored = locale === null ? undefined : await cache.match(liveShellPath(locale));
+
+        if (stored === undefined) {
+            const records = await liveShellRecords(cache);
+            records.sort((a, b) => b.storedAt - a.storedAt);
+            if (records.length > 0) {
+                stored = await cache.match(liveShellPath(records[0].locale));
+            }
+        }
+
+        if (stored === undefined) {
+            return null;
+        }
+
+        return new Response(await stored.arrayBuffer(), {
+            status: 200,
+            headers: {
+                'Content-Type': stored.headers.get('Content-Type') || 'text/html; charset=UTF-8',
+                'Cache-Control': 'no-cache',
+                'X-MSP-Live-Shell': '1',
+            },
+        });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function liveShellRecords(cache) {
+    const records = [];
+    for (const key of await cache.keys()) {
+        if (!new URL(key.url).pathname.startsWith(LIVE_SHELL_RECORD_PREFIX)) continue;
+        try {
+            const record = await (await cache.match(key)).json();
+            if (record && LIVE_SHELL_LOCALES.includes(record.locale) && Array.isArray(record.assets)) {
+                records.push(record);
+            }
+        } catch (e) {
+            // A broken record is skipped
+        }
+    }
+    return records;
+}
+
+// Fetches the locale's copy and stores every file it lists (static cache, like cacheFirst), then - only when all of
+// them are there - the copy itself + its record: a stored copy never points at a file the device lacks. The copy is
+// the same for everybody (no cookies sent, a stateless route); anything else than a plain 200 HTML answer is refused.
+// The scanner's decoder files are stored too when the page asks (best effort, never blocks the copy).
+async function prepareLiveShell(locale, scanner) {
+    try {
+        const path = liveShellPath(locale);
+        const response = await fetch(path, { cache: 'no-cache', credentials: 'omit', redirect: 'error' });
+
+        // (Set-Cookie is never readable in a browser - credentials: 'omit' keeps cookies out; the check is for the record)
+        if (response.status !== 200 || response.redirected || !isHtmlResponse(response) || response.headers.get('Set-Cookie') !== null) {
+            return null;
+        }
+
+        const body = await response.text();
+        const listed = body.match(LIVE_SHELL_ASSETS);
+        if (listed === null) return null;
+
+        const assets = [];
+        for (const asset of JSON.parse(listed[1])) {
+            const url = new URL(String(asset), self.location.origin);
+            if (url.origin !== self.location.origin || !(url.pathname.startsWith('/build/') || url.pathname.startsWith('/fonts/'))) {
+                return null;
+            }
+            assets.push(url.pathname + url.search);
+        }
+        if (!assets.some((asset) => asset.endsWith('.js'))) return null;
+
+        const staticCache = await caches.open(STATIC_CACHE);
+        for (const asset of assets) {
+            if (!(await storeStaticFile(staticCache, asset))) return null;
+        }
+
+        const record = { locale, assets, storedAt: Date.now() };
+        const cache = await caches.open(LIVE_SHELL_CACHE);
+        await cache.put(path, new Response(body, { headers: { 'Content-Type': response.headers.get('Content-Type') || 'text/html; charset=UTF-8' } }));
+        await cache.put(LIVE_SHELL_RECORD_PREFIX + locale + '.json', new Response(JSON.stringify(record), { headers: { 'Content-Type': 'application/json' } }));
+
+        if (scanner) {
+            for (const file of SCANNER_URLS) {
+                await storeStaticFile(staticCache, file);
+            }
+        }
+
+        return record;
+    } catch (e) {
+        return null;
+    }
+}
+
+// A file already stored stays; a missing one is downloaded whole (cache: 'reload', buffered - see cacheFirst())
+async function storeStaticFile(cache, path) {
+    try {
+        if ((await cache.match(path)) !== undefined) return true;
+
+        const response = await fetch(path, { cache: 'reload' });
+        if (response.status !== 200) return false;
+
+        const body = await response.arrayBuffer();
+        await cache.put(path, new Response(body, { status: 200, statusText: response.statusText, headers: response.headers }));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // ─── Static cache pruning ───────────────────────────────────────────
 
 // One prune per service-worker lifetime is enough: misses cluster right after
@@ -369,6 +634,13 @@ async function pruneStaticCache() {
         // A failed/empty asset list must never wipe the whole cache
         if (valid.size === 0) return false;
 
+        // The files of every stored live entry copy stay while the copy does (it may be older than this build)
+        for (const record of await liveShellRecords(await caches.open(LIVE_SHELL_CACHE))) {
+            for (const asset of record.assets) {
+                valid.add(new URL(asset, self.location.origin).pathname);
+            }
+        }
+
         const cache = await caches.open(STATIC_CACHE);
         const cachedRequests = await cache.keys();
         await Promise.all(cachedRequests.map((cachedRequest) => {
@@ -386,6 +658,19 @@ async function pruneStaticCache() {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
+
+// The files install() precaches: every entry's JS and CSS of entrypoints.json, except the entries in
+// PRECACHE_SKIP_ENTRIES (a file a precached entry shares with a skipped one - runtime.js - is still precached).
+function precacheUrls(entrypoints) {
+    const urls = new Set();
+    for (const [name, entry] of Object.entries((entrypoints && entrypoints.entrypoints) || {})) {
+        if (PRECACHE_SKIP_ENTRIES.includes(name)) continue;
+        for (const fileUrl of [...(entry.js || []), ...(entry.css || [])]) {
+            urls.add(fileUrl);
+        }
+    }
+    return [...urls];
+}
 
 // Opaque (cross-origin) responses expose no headers - type 'opaque' reports an
 // empty Content-Type - so they read as "not HTML" and stay cacheable as today.

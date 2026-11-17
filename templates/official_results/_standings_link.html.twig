@@ -1,0 +1,5 @@
+{# The event's standings (competition toolkit A7) from the results overview - only once one is published, so an event
+   without them renders as before. Expects: competition. #}
+<a href="{{ path('competition_standings_manage', {competitionId: competition.id}) }}" class="btn btn-outline-secondary" data-results-tool="standings">
+    <i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ 'competition_standing.card.manage'|trans }}
+</a>

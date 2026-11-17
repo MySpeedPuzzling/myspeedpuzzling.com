@@ -1,0 +1,296 @@
+// The public competitor page (templates/competitor_page/, docs/features/competitions-management/competitor-pages.md):
+// mobile first - one column of round cards people read on a phone at the table.
+.competitor-page {
+    max-width: 40rem;
+    margin: 0 auto;
+}
+
+.competitor-page-title {
+    font-size: 1.375rem;
+    margin-bottom: .25rem;
+    overflow-wrap: anywhere;
+}
+
+.competitor-page-people,
+.competitor-round-puzzle-list {
+    padding-left: 0;
+    list-style: none;
+}
+
+.competitor-page-people {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    margin-bottom: 0;
+
+    .lb-player {
+        font-size: 1.125rem;
+        font-weight: 500;
+    }
+
+    &.is-team .lb-player {
+        font-size: 1rem;
+    }
+}
+
+.competitor-page-person {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .375rem;
+    min-width: 0;
+}
+
+.competitor-page-code {
+    font-size: .875rem;
+}
+
+.competitor-page-you {
+    background-color: $primary;
+    color: #fff;
+}
+
+.competitor-page-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+.competitor-round {
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    padding: .75rem;
+    background: #fff;
+
+    &.is-current {
+        border-color: $primary;
+        box-shadow: 0 0 0 1px $primary;
+    }
+}
+
+.competitor-round-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin-bottom: .25rem;
+}
+
+.competitor-round-name {
+    font-size: 1.0625rem;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.competitor-round-now {
+    background-color: rgba($primary, .12);
+    color: $primary;
+}
+
+.competitor-round-meta {
+    margin-bottom: .375rem;
+}
+
+.competitor-round-table {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: .375rem;
+}
+
+.competitor-round-entrant {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin-bottom: .5rem;
+}
+
+.competitor-round-puzzle-list {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    margin-bottom: .5rem;
+}
+
+.competitor-round-puzzle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+
+.competitor-puzzle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+
+.competitor-puzzle-thumb,
+.competitor-puzzle-tile {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: .375rem;
+    object-fit: cover;
+}
+
+.competitor-puzzle-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-100;
+    color: $gray-600;
+}
+
+.competitor-puzzle-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.competitor-puzzle-name {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.competitor-puzzle-meta {
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+.competitor-round-result {
+    border-top: 1px solid $border-color;
+    padding-top: .5rem;
+}
+
+.competitor-round-result-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1.375rem;
+    font-weight: 600;
+}
+
+// The live clock (competitor_page_controller.js): big digits on the phone at the table
+.competitor-round-clock {
+    margin: .25rem 0 .5rem;
+    text-align: center;
+}
+
+.competitor-round-clock-time {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+}
+
+.competitor-round-clock-note {
+    color: $gray-600;
+    min-height: 1.25rem;
+}
+
+.competitor-round.is-phase-running .competitor-round-clock-time {
+    color: $success;
+}
+
+.competitor-round.is-phase-times_up .competitor-round-clock-time {
+    color: $danger;
+}
+
+.competitor-round.is-phase-stopped .competitor-round-clock-time {
+    color: $gray-600;
+}
+
+.competitor-round-actions:empty {
+    display: none;
+}
+
+// On a phone the round that runs now (or comes next) leads - person and line-up pages; a table page already lists it
+// first in the HTML (B8, orchestrator's decision after B5)
+@include media-breakpoint-down(md) {
+    .competitor-round.is-current {
+        order: -1;
+    }
+}
+
+// "Done - propose my time" (B8, competitor_page_controller.js): one big button under the clock, the "Propose?" sheet,
+// the proposal's state for the competitor
+.competitor-round-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+.competitor-propose-stop {
+    min-height: 4rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    width: 100%;
+}
+
+.competitor-propose-sheet {
+    border: 2px solid $success;
+    border-radius: .5rem;
+    padding: .75rem;
+    background: rgba($success, .06);
+    text-align: center;
+}
+
+.competitor-propose-question {
+    font-size: 1.375rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: .25rem;
+}
+
+.competitor-propose-sheet-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+
+    .btn {
+        min-height: 3.5rem;
+    }
+}
+
+.competitor-propose-status {
+    margin: 0;
+    padding: .5rem .75rem;
+    border-radius: .375rem;
+    background: $gray-100;
+    font-weight: 500;
+    text-align: center;
+
+    // waiting for the judge is neutral information, not an error: info blue, never the pinkish $primary
+    &.is-pending,
+    &.is-sending {
+        background: rgba($info, .14);
+    }
+
+    &.is-offline,
+    &.is-sign_in_again,
+    &.is-reload,
+    &.is-rejected,
+    &.is-refused {
+        background: rgba($warning, .18);
+    }
+
+    &.is-confirmed,
+    &.is-changed {
+        background: rgba($success, .12);
+        color: darken($success, 10%);
+    }
+}
+
+.competitor-propose-undo {
+    align-self: center;
+}
+
+.competitor-round-signin {
+    margin-bottom: .5rem;
+}

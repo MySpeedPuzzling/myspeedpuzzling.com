@@ -43,7 +43,19 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         public bool $showsTablesReadiness = false,
         // People put into the round who wait on the event's waitlist - not entries until the organiser gives them a spot
         public int $peopleOnWaitlist = 0,
+        // How the round's puzzles are solved (RoundPuzzleFormat value: total | pick) and K for `pick` - competition
+        // toolkit A2
+        public string $puzzleFormat = 'total',
+        public null|int $puzzlesToSolve = null,
+        // The `pick` round's format with its puzzles (RoundPuzzleFormats, the round state only) - the JSON's
+        // `puzzleFormat`, absent while null
+        public null|RoundPuzzleFormatView $puzzleFormatView = null,
     ) {
+    }
+
+    public function withPuzzleFormat(RoundPuzzleFormatView $view): self
+    {
+        return clone($this, ['puzzleFormatView' => $view]);
     }
 
     /**
@@ -59,7 +71,7 @@ readonly final class RoundResultsOverview implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $json = [
             'id' => $this->roundId,
             'name' => $this->name,
             'category' => $this->category,
@@ -86,5 +98,12 @@ readonly final class RoundResultsOverview implements \JsonSerializable
             'seated' => $this->isSeated(),
             'tablesReadiness' => $this->showsTablesReadiness,
         ];
+
+        // Only on a `pick` round of the round state (R-review-and-plan.md §1.8) - every other answer is unchanged
+        if ($this->puzzleFormatView !== null) {
+            $json['puzzleFormat'] = $this->puzzleFormatView;
+        }
+
+        return $json;
     }
 }

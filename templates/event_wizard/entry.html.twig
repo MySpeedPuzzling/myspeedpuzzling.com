@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: 'competition.add_event'|trans},
+    ]}) }}
+
+    <div class="pb-5">
+        <div class="row">
+            <div class="col-lg-8 col-xl-7">
+                <h1 class="h3 mb-3">{{ 'event_wizard.entry.question'|trans }}</h1>
+
+                {#- A GET form: the answer comes back as ?kind= and is sent on (EventWizardEntryController) -#}
+                <form method="get" action="{{ path('event_wizard') }}" data-event-wizard-entry>
+                    <div class="d-grid gap-2 mb-3">
+                        {% for choice in choices %}
+                            <label class="card card-body flex-row align-items-start gap-3 py-3" for="event-wizard-kind-{{ choice.value }}" style="cursor: pointer;">
+                                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="kind" value="{{ choice.value }}" id="event-wizard-kind-{{ choice.value }}"{% if loop.first %} checked{% endif %} required>
+                                <span>
+                                    <span class="d-block fw-semibold">{{ ('event_wizard.entry.' ~ choice.value)|trans }}</span>
+                                    <span class="d-block small text-muted">{{ ('event_wizard.entry.' ~ choice.value ~ '_help')|trans }}</span>
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    {% if organization_choices is not empty %}
+                        <div class="mb-3">
+                            <label class="form-label" for="event-wizard-organization">{{ 'organizer_tools.form.organization'|trans }}</label>
+                            <select class="form-select" name="organization" id="event-wizard-organization">
+                                <option value="">{{ 'organizer_tools.form.organization_none'|trans }}</option>
+                                {% for choice in organization_choices %}
+                                    <option value="{{ choice.id }}"{% if choice.id == organization_id %} selected{% endif %}>{{ choice.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">{{ 'organizer_tools.form.organization_help'|trans }}</div>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <button type="submit" class="btn btn-primary">{{ 'event_wizard.continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                        <a href="{{ classic_url }}" class="small" data-event-wizard-classic>{{ 'event_wizard.entry.classic'|trans }}</a>
+                    </div>
+                </form>
+
+                {% if events_to_copy is not empty %}
+                    <div class="mt-5" data-event-wizard-copy>
+                        <h2 class="h5 mb-1">{{ 'event_wizard.entry.copy_title'|trans }}</h2>
+                        <p class="small text-muted">{{ 'event_wizard.entry.copy_help'|trans }}</p>
+                        <ul class="list-group">
+                            {% for event in events_to_copy %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                                    <span class="text-truncate">
+                                        {{ event.seriesName is not null ? event.seriesName ~ ' · ' : '' }}{{ event.name }}
+                                        {% if event.dateFrom is not null %}<span class="small text-muted ms-1">{{ event.dateFrom|events_date('yMMMd') }}</span>{% endif %}
+                                        {% if event.isDraft %}<span class="badge bg-secondary ms-1">{{ 'event_wizard.entry.draft'|trans }}</span>{% endif %}
+                                    </span>
+                                    <a href="{{ path('duplicate_competition', {competitionId: event.competitionId}) }}" class="btn btn-sm btn-outline-primary flex-shrink-0">{{ 'event_wizard.entry.copy'|trans }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

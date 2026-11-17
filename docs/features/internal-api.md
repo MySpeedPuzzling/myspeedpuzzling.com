@@ -865,9 +865,16 @@ changing the category of a round with official results is refused (`409`).
 
 **Secret puzzles are never revealed by accident.** A round puzzle may keep its puzzle secret until its reveal:
 - `hideUntilRoundStarts` marks it secret.
-- `revealMode` is `automatic` (the round's `revealDelayMinutes` after it starts, 10 unless set otherwise; it follows the round's start and delay), `scheduled` or `manual`.
+- `revealMode` is `automatic` (the round's `revealDelayMinutes` after it starts, 10 unless set otherwise; it follows the round's start and delay), `scheduled`, `manual` or `stopwatch` (revealed when the round's stopwatch starts with "Reveal" ticked - `revealsAt` is `null` until such a start, then that start's moment; it never follows the round's start, so a round `PATCH` never lists it). The API never sets the mode nor starts a stopwatch - read-only output.
 - `revealsAt` is the reveal moment, in UTC.
 - `hidesEverywhere` means it is hidden on the whole site, not only on the event pages.
+
+**Round format (competition toolkit A2, read-only).** A round answers `puzzleFormat` (`total` = one result for the round,
+the default; `pick` = each entrant solves `puzzlesToSolve` of the round's puzzles, `puzzlesToSolve` = their count means
+"solve all") and every round puzzle its `position` (1..N in the organiser's order: the arranged ones, then the others in
+the order they were added), `label` (the organiser's own, `null` = none) and `effectiveLabel` (the label, else the letter
+of the position - what judges see before the reveal). The API never sets them (the round form and the round's puzzles
+page do), but `PUT …/puzzles` that would leave a `pick` round fewer puzzles than `puzzlesToSolve` is refused (`409`).
 
 See the [competitions docs](./competitions-management/README.md), "Hide Until Round Starts".
 
@@ -993,6 +1000,8 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
     "badgeTextColor": "#000000",
     "resultsLink": null,
     "resultsCount": 3,
+    "puzzleFormat": "total",
+    "puzzlesToSolve": null,
     "puzzles": [{
       "puzzleId": "018d0003-0000-0000-0000-000000000001",
       "name": "Puzzle 1",
@@ -1009,7 +1018,10 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
       "hideMode": null,
       "revealMode": "automatic",
       "revealsAt": null,
-      "hidesEverywhere": false
+      "hidesEverywhere": false,
+      "position": 1,
+      "label": null,
+      "effectiveLabel": "A"
     }]
   }],
   "puzzles": []

@@ -2,7 +2,8 @@
     JS texts of the participants sheet, stream round (assets/participants_sheet/views/team_round_view.js,
     solo_round_view.js, round_cards_view.js and round_common.js): one JSON object, keys = what the JS asks for. Plain
     texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation() (chosen by
-    translation_choice.js). Results wording reuses the official results' own texts.
+    translation_choice.js). Results wording reuses the official results' own texts. The `pick` round texts (competition
+    toolkit A4) only for an event with such a round - every other sheet gets the JSON it always got.
 #}
 {{- {
     grid_label: 'participants_sheet_round.grid_label'|trans,
@@ -305,4 +306,7 @@
     pasted_into_round: browser_translation('participants_sheet_round.pasted_into_round'),
     count_into_round: browser_translation('participants_sheet_round.count_into_round'),
     count_already_in: browser_translation('participants_sheet_round.count_already_in'),
-}|json_encode|raw -}}
+}|merge(state is defined and state.rounds|filter(round => round.puzzleFormat is not null)|length > 0 ? {
+    col_puzzles: 'competition_toolkit.desk_puzzles.sheet_column'|trans,
+    puzzles_cleared: 'competition_toolkit.desk_puzzles.sheet_cleared'|trans,
+} : {})|json_encode|raw -}}

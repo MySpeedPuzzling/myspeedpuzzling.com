@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Services\EventWizard\EventCreationWizardFeature;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,6 +18,8 @@ final class ManageCompetitionSeriesController extends AbstractController
 {
     public function __construct(
         private readonly GetCompetitionSeries $getCompetitionSeries,
+        private readonly EventCreationWizardFeature $eventCreationWizardFeature,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -42,6 +46,8 @@ final class ManageCompetitionSeriesController extends AbstractController
             'series' => $series,
             'upcoming_editions' => $upcomingEditions,
             'past_editions' => $pastEditions,
+            // "Add the next dates" and the per-date quick "Add puzzle" (event creation wizard, W3)
+            'wizard' => $this->eventCreationWizardFeature->isAvailableTo($this->retrieveLoggedUserProfile->getProfile()?->playerId),
         ]);
     }
 }

@@ -29,7 +29,9 @@
                     {% endif %}
                 {% endif %}
 
-                <div class="mb-3 d-flex flex-wrap gap-2">
+                {# The event creation wizard (W2): "Continue setting up" of a draft, the "Get ready" checklist - on the line of the
+                    button row so that without the wizard not a byte of the page changes (EditPageWithoutWizardGoldenTest) -#}
+                {% if wizard_continue %}{{ include('event_wizard/_continue_setting_up.html.twig', {competition_id: competition.id, layout: 'edit'}) }}{% endif %}{% if get_ready is not null %}{{ include('event_wizard/_get_ready.html.twig', {checklist: get_ready, published: get_ready_published}) }}{% endif %}<div class="mb-3 d-flex flex-wrap gap-2">
                     <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                     </a>
@@ -43,15 +45,17 @@
                         <i class="bi bi-clipboard-data me-1"></i>{{ 'results_desk.overview.button'|trans }}
                     </a>
                     <a href="{{ path('competition_referees', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary" data-referees-link><i class="bi bi-person-lines-fill me-1"></i>{{ 'competition_referees.button'|trans }}</a>
+                    {#- The competition toolkit's settings hub - for whom it is on (COMPETITION_TOOLKIT_MANAGE, docs/features/feature_flags.md) -#}
+                    {% if is_granted('COMPETITION_TOOLKIT_MANAGE', competition.id) %}
+                        <a href="{{ path('competition_toolkit', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary" data-competition-toolkit-link><i class="bi bi-tools me-1"></i>{{ 'competition_toolkit.button'|trans }}</a>
+                    {% endif %}
                     <a href="{{ path('manage_competition_page', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-layout-text-window-reverse me-1"></i>{{ 'page_sections.manage_button'|trans }}
                     </a>
-                    <form method="post" action="{{ path('duplicate_competition', {competitionId: competition.id}) }}" class="d-inline" data-duplicate-form>
-                        <input type="hidden" name="_token" value="{{ csrf_token('competition_duplicate') }}">
-                        <button type="submit" class="btn btn-outline-primary" title="{{ 'event_duplicate.help'|trans }}">
-                            <i class="bi bi-copy me-1"></i>{{ 'event_duplicate.button'|trans }}
-                        </button>
-                    </form>
+                    {#- Asks for the copy's new date first (DuplicateCompetitionController GET) -#}
+                    <a href="{{ path('duplicate_competition', {competitionId: competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary" title="{{ 'event_duplicate.help'|trans }}" data-duplicate-link>
+                        <i class="bi bi-copy me-1"></i>{{ 'event_duplicate.button'|trans }}
+                    </a>
                     {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), competition.id) %}
                         <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionModal-{{ competition.id }}" title="{{ 'competition.delete.button'|trans }}">
                             <i class="bi bi-trash"></i>
@@ -120,11 +124,13 @@
                                 {{ form_row(form.locationCountryCode) }}
                             </div>
 
-                            <div class="row" data-competition-form-target="dateFields">
+                            {#- "Move the rounds too" (form.moveRoundsWithDate, only while no round has begun): asked once the start date
+                                changed - date_move_rounds_controller.js; without JavaScript simply visible -#}
+                            <div class="row" data-competition-form-target="dateFields"{% if form.moveRoundsWithDate is defined %} data-controller="date-move-rounds" data-date-move-rounds-original-value="{{ original_date_from ? original_date_from|date('d.m.Y', false) : '' }}" data-date-move-rounds-original-end-value="{{ original_date_to ? original_date_to|date('d.m.Y', false) : '' }}" data-action="change->date-move-rounds#update input->date-move-rounds#update"{% endif %}>
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
-                                        {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                                        {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}', 'data-date-move-rounds-target': 'date'}}) }}
                                         <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                                     </div>
                                     {{ form_help(form.dateFrom) }}
@@ -133,7 +139,7 @@
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
-                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}', 'data-date-move-rounds-target': 'end'}}) }}
                                         <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                                     </div>
                                     {{ form_errors(form.dateTo) }}
@@ -141,6 +147,11 @@
                                 <div class="col-12 form-text mt-n2 mb-3" data-competition-form-target="onlineDatesHelp"{% if form.isOnline.vars.data is not same as(true) %} style="display: none;"{% endif %}>
                                     {{ 'competition.form.dates_optional_online'|trans }}
                                 </div>
+                                {% if form.moveRoundsWithDate is defined %}
+                                    <div class="col-12" data-date-move-rounds-target="option" data-move-rounds-option>
+                                        {{ form_row(form.moveRoundsWithDate) }}
+                                    </div>
+                                {% endif %}
                             </div>
 
                             {# An edition without its own shows its series' #}

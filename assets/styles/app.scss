@@ -114,6 +114,7 @@
 @import "events-page";
 @import "events-calendar";
 @import "events-organizer";
+@import "get-ready";
 @import "events-archive";
 
 // Series, edition and event pages (docs/features/events-page/detail-pages.md)
@@ -170,6 +171,12 @@
 
 // One conversation: full-height chat, composer pinned to the bottom (templates/messaging/conversation_detail.html.twig)
 @import "conversation-page";
+
+// Competition toolkit - public competitor page
+@import "competitor-page";
+
+// Competition toolkit - bracket of the declared advancement steps
+@import "bracket";
 
 @import "flag-icons/sass/flag-icons";
 

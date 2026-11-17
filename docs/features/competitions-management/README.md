@@ -11,6 +11,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
 | Participants spreadsheet: people, pairs/teams per round, results / table / qualified columns, registration columns, paste, undo, phone lists | Always available - "Participants" on the event's edit page (replaced the participants page and the round teams page) | [participants-spreadsheet.md](participants-spreadsheet.md) |
 | Participant model, self-join ("I'm going"), import/export, pairing | Always available | [participants.md](participants.md) |
+| Competition toolkit: pick-K-of-N rounds, reveal at the stopwatch start, standings and bracket, QR tags + competitor pages + time proposals, offline judge page, timer screens and stream overlays | Per event / per round on the toolkit hub (`competition_toolkit`) - admins, organisers once `COMPETITION_TOOLKIT_FOR_ORGANISERS` is on | "Competition toolkit" below |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
@@ -48,10 +49,17 @@ The edit forms show the current logo above the file input ("Leave empty to keep 
 
 Organisers run the same event again and again - a 6-week pairs league at three venues at once (three near-identical
 events with 6 weekly rounds each), a yearly championship. **"Duplicate"** (the ⋯ menu, "You organize" and the edit page
-of a one-time event or an edition; `DuplicateCompetitionController`, POST with the stateless CSRF token
-`competition_duplicate`) makes a copy and opens its edit page with "A copy was created as a draft - change its dates and
-venue, then publish it." One message, `DuplicateCompetition` (new id from the controller, source, acting player); the
-internal API has the same with optional overrides (`POST /internal-api/competitions/{id}/duplicate`,
+of a one-time event or an edition; `DuplicateCompetitionController`, route `duplicate_competition`) first asks for the
+copy's **new date** (required, a native date input; "Copy of <the source's first day>" under it) and its **name**, with
+one line of what moves ("Rounds and registration move by the same number of days; the times of day stay"). GET renders
+that small page (a link from every entry point, out of the events list's frames - `_top` - and without JavaScript too),
+POST (the stateless CSRF token `competition_duplicate`, field `_token`; a wrong token = 403, no date = 422) makes the copy
+and opens its edit page with a flash naming the date. Proposals (smart forms): an edition of a series gets the number at
+the end of its name +1 (`NextEditionName`: "Cup #4" → "Cup #5", "Week 09" → "Week 10", any other name unchanged) and the
+date one gap after it - the gap between it and the series' edition before it (`GetPreviousEditionDay`); a one-time event
+keeps its name and the date is left empty. A multi-day event is asked for its first day only - the last one follows. One
+message, `DuplicateCompetition` (new id from the controller, source, acting player, the name and the date); the internal
+API has the same with optional overrides (`POST /internal-api/competitions/{id}/duplicate`,
 [internal-api.md](../internal-api.md#competitions-and-events)).
 
 **Copied** - what the organiser wrote and set up:
@@ -60,14 +68,25 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   description, website and registration links, location + country, online flag, "Who can enter", dates, the logo, the
   organization (one-time events; an edition's copy is a new edition of the **same series** and has its series'),
   maintainers (plus the source's creator when somebody else makes the copy - the people who ran it keep running it),
-  the managed-registration **settings** (on/off, capacity, window and its zone, entry fee text, payment instructions);
+  the managed-registration **settings** (on/off, capacity, window and its zone, entry fee text, payment instructions),
+  the competitor-page settings (competition toolkit B1: competitor pages, live results before publishing, time
+  proposals, QR tag mode - event settings like the registration ones);
 - every round: name, start + zone, time limit, category, team size, reveal delay, badge colours, "no table numbers",
   slug (unique per competition, so the same one);
 - the event's own page content sections (public-page.md) with their order and visibility. Every section type is
   organiser text (nothing in them is people or results based); gallery photos and sponsor logos are copied to the copy's
   own `competition-pages/<id>/` prefix, because a section only ever points at its own page's files
   (`PageSectionContentSanitizer::uploadPath()`) - a picture missing from the storage is left out (warning in the log). An
-  edition's inherited series sections stay on the series.
+  edition's inherited series sections stay on the series;
+- the standings (competition toolkit A6): unpublished, same name, slug, category and rules, their rounds remapped onto
+  the copied rounds (`copyStandings()`);
+- the displays (competition toolkit D8, toolkit/D-displays-overlays.md §3.3): name, kind, language, design, results
+  flags, follow mode - each with a **new link** (token; the source's TV links keep showing the source), a pinned round
+  and the followed rounds remapped onto the copied rounds, pictures copied to the copy's own
+  `competition-displays/<id>/` prefix (the design sanitizer accepts only the event's own uploads) - a picture missing
+  from the storage is left out (warning in the log) (`copyDisplays()`);
+- the advancement steps (competition toolkit A8): same settings, their rounds and by-source map remapped onto the copied
+  rounds (`copyAdvancementSteps()`) - see results-desk.md "Declared advancement steps".
 
 **Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
 check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the
@@ -84,9 +103,26 @@ controller, `GetCompetitionPermissions` again in the handler - `CompetitionNotEd
 **The logo is shared, not copied**: no code deletes a competition logo (a new upload gets a new path), and every file
 deletion asks `GetStoredFileReferences`, which sees both rows.
 
-**A new first day moves everything dated** (internal API `dateFrom`, `DuplicateDateShift`): `dateTo` (unless sent),
-every round's start and the registration window move by the same number of calendar days, keeping their wall-clock
-time in their own zone. The web copy keeps the dates - the organiser changes them on the edit page.
+**A new first day moves everything dated** (the web form's date, internal API `dateFrom`; `EventDateShift` +
+`DuplicateDateShift`): `dateTo` (unless sent), every round's start and the registration window move by the same number of
+calendar days, keeping their wall-clock time in their own zone. The days are counted from the source's first day - its
+`date_from`, else its first round's day in the round's zone (an online edition is often dated by its rounds only).
+
+#### Moving an event's date
+
+Editions are dated by their first round (`OccurrenceDates`), so a new start date alone left the event on its old day.
+The edit form of an event or an edition (`EditCompetitionController`, both through the same form) has **"Move the rounds
+too"** - ticked by default - while the event has rounds and none of them has begun (`EventDateShift::roundsCanMove()`):
+no stopwatch state on any round (**a scheduled start counts too** - its countdown is a moment the organiser set, so
+nothing moves it automatically; they move that round on the Rounds page), no official result, and no secret puzzle in any
+round (a moved start moves its reveal, which only the round form confirms puzzle by puzzle, `SecretRevealPreview`). The
+field is absent otherwise. It is shown once the start date differs from the saved one (`date_move_rounds_controller.js`;
+without JavaScript simply visible). Ticked + a changed start date: `EditCompetition::$moveRoundsWithDate` moves every
+round's start and the registration window by the days the first day moved - the rule of a copy (`EventDateShift`, same
+transaction, before the event's own fields change: a round without a saved zone is read in the zone of the country it
+had). `moveRoundsWithDate` defaults to false (internal API and every other caller unchanged). `EditCompetition` takes the
+event's `CompetitionParticipantsLock` (it checks official results). The event's displays are told after the commit
+(`CompetitionDisplayLiveUpdates::roundChanged()` per moved round); the end date stays what the organiser typed.
 
 ### 4. Public Listing
 
@@ -339,6 +375,7 @@ Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (
   - `automatic` (the default): the round's start + its reveal delay (`competition_round.reveal_delay_minutes`, 10 unless the organiser set another - see "Automatic reveal delay"). It follows the round when its start or its delay changes.
   - `scheduled`: the organiser's own moment in `reveal_at`, never moved by the round. "Reveal now" leaves `scheduled` + now.
   - `manual`: no moment - hidden until the organiser clicks "Reveal now".
+  - `stopwatch` (competition toolkit, 2026-11 - see [round-formats.md](round-formats.md) "Reveal at the stopwatch start"): no moment until the round's stopwatch starts with "Reveal" ticked; that start writes its moment into `reveal_at`.
 - PHP `RoundPuzzleReveal::revealAt()` / `automaticRevealAt()` / `CompetitionRoundPuzzle::revealsAt()` and SQL `RoundPuzzleReveal::sqlRevealAt()` / `sqlHidden()` compute the same moment. The event pages (`GetEditionRounds`, so the API and round results too), `GetCompetitionPuzzles`, `GetPuzzleSummary` ("used at") and the organiser's status line all use them.
   - **Both read the delay from the round row:** PHP takes `CompetitionRound::$revealDelayMinutes`, and SQL computes `starts_at + make_interval(mins => reveal_delay_minutes)`. So the round alias handed to `sqlRevealAt()` / `sqlHidden()` must be a real `competition_round` row, never a subquery or a CTE without that column.
   - Nothing else adds minutes to a round start, in PHP or SQL. `RoundRevealMomentComputedOnlyHereTest` fails on any other `starts_at +`, `INTERVAL … minutes` or `startsAt->add(` / `->modify('+`; the parity is pinned for the delays 0, 10, 25 and 240 (`SecretPuzzleRevealInvariantTest`, `RoundPuzzleRevealMomentTest`).
@@ -542,6 +579,30 @@ A Symfony Live Component provides real-time inline editing:
 ### Print View
 
 A standalone, minimal HTML page (no base layout, print-optimized CSS) showing the full table grid. Empty spots show a blank line for handwriting. Opens in a new browser tab.
+
+## Competition toolkit (opt-in, 2026-11)
+
+Organiser tools for formats beyond "one puzzle, one result per round", built from Jan's request of 2026-11-17
+([toolkit/00-context.md](toolkit/00-context.md), delivery record [toolkit/STATUS.md](toolkit/STATUS.md), plan of record
+[toolkit/R-review-and-plan.md](toolkit/R-review-and-plan.md)). **Nothing is a new default:** every part is chosen per
+event or per round, and an untouched competition behaves and renders as before (golden and statement pins). The
+settings live on one hub page, `competition_toolkit` (`/en/manage-event-toolkit/{competitionId}`, cs `/nastroje-udalosti/…`, the "Competition
+toolkit" button on the event's edit page), behind `COMPETITION_TOOLKIT_MANAGE` (`CompetitionToolkitVoter`: an organiser
+of the event for whom `CompetitionToolkitFeature` is on - admins always, organisers while
+`COMPETITION_TOOLKIT_FOR_ORGANISERS` is on, [feature_flags.md](../feature_flags.md)). What was switched on works for
+everybody (public pages, displays by link, the judge page).
+
+| Part | What the organiser gets | As built |
+|---|---|---|
+| Round formats & reveals | "Pick K of N" rounds (solo / pair / team, any order), neutral puzzle labels, per-puzzle records on the judge page, desk, sheet, export and public round page; secret puzzles revealed **when the stopwatch starts** (a checkbox at the start, unticked by default) | [round-formats.md](round-formats.md) |
+| Standings & bracket | sum standings per category with penalty and order rule, published to a public page; declared advancement steps as desk presets and a public bracket ("spider") | [standings.md](standings.md), steps in [results-desk.md](results-desk.md) |
+| QR tags & competitor pages | person / line-up / table / entry tags (printed as tags or table tents), a public competitor page per tag with the live round clock, and "propose my time" confirmed by a judge | [competitor-pages.md](competitor-pages.md) |
+| Judges | the live entry page that survives a refresh and works offline (shell + snapshots + service worker), faster taps, every QR kind, puzzle chips, proposals to confirm | [live-results.md](live-results.md), [judge-offline.md](judge-offline.md) |
+| Displays | timer screens and OBS stream overlays per event, designed in an editor (backgrounds, logos, elements), each on its own secret link | [displays.md](displays.md) |
+
+The reveal mode `stopwatch` is part of the secret-puzzle model above ("Hide Until Round Starts"); the duplicate copies
+the toolkit's settings, standings, displays and steps ("Duplicating an event"). Deferred items and the ops steps of the
+rollout: docs/TODO.md "Competition toolkit v2".
 
 ## Round Stopwatch
 

@@ -59,11 +59,16 @@ readonly final class ConnectCompetitionParticipantHandler
         );
 
         foreach ($connections as $participantId) {
+            // Re-picking your own participant keeps the link and its moment (TimeProposalOwnership)
+            if ($participant !== null && $participant->id->toString() === $participantId && $participant->isConnectedTo($player)) {
+                continue;
+            }
+
             $connectedParticipant = $this->participantRepository->get($participantId);
             $connectedParticipant->disconnect();
         }
 
-        if ($participant === null) {
+        if ($participant === null || $participant->isConnectedTo($player)) {
             return;
         }
 

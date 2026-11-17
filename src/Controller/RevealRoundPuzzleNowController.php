@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +32,7 @@ final class RevealRoundPuzzleNowController extends AbstractController
         private readonly PuzzleRepository $puzzleRepository,
         private readonly ClockInterface $clock,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
+        private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
     ) {
     }
 
@@ -61,6 +63,8 @@ final class RevealRoundPuzzleNowController extends AbstractController
         } else {
             try {
                 $this->messageBus->dispatch(new RevealRoundPuzzleNow(roundPuzzleId: $roundPuzzleId));
+                // After the commit - the reveal push: the round's open pages read its puzzles again
+                $this->officialResultsLiveUpdates->puzzlesRevealed($roundId);
                 $this->flashRevealed($puzzleId, $puzzleName, $timezone, $round->isTimezoneAssumed());
             } catch (RoundPuzzleAlreadyRevealed) {
                 $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.already_revealed'));

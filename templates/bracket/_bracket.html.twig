@@ -1,0 +1,34 @@
+{#
+    One bracket (competition toolkit A9): columns = stages, a connector column with an inline SVG between neighbouring
+    stages. Every box sits in the middle of an equal slot of its column (grid rows 1fr, the columns stretched to the
+    tallest), so a line from (index + ½) / rounds of one column to the next meets the boxes' middles at any height -
+    preserveAspectRatio="none" + non-scaling strokes. Below md the stages stack, the SVGs give way to arrows.
+
+    Variables: bracket (Bracket), organiser (bool - the organiser's steps page: progress counts and tool links instead
+    of entrants).
+#}
+{%- set stage_count = bracket.stages|length -%}
+{%- set columns = ['minmax(12rem, 1fr)'] -%}
+{%- for i in 2..stage_count -%}{%- set columns = columns|merge(['2.5rem', 'minmax(12rem, 1fr)']) -%}{%- endfor -%}
+<div class="bracket" style="--bracket-columns: {{ columns|join(' ') }};" data-bracket data-bracket-stages-count="{{ stage_count }}">
+    {% for stage in bracket.stages %}
+        {% set stage_index = loop.index0 %}
+        {% if not loop.first %}
+            {% set gap = bracket.gaps[stage_index - 1] %}
+            <div class="bracket-gap" aria-hidden="true">
+                <svg class="bracket-lines d-none d-md-block" viewBox="0 0 100 1000" preserveAspectRatio="none" focusable="false">
+                    {% for connector in gap %}<path d="{{ connector.path }}" data-bracket-line="{{ connector.fromRoundId }}:{{ connector.toRoundId }}"/>{% endfor %}
+                </svg>
+                <i class="bi bi-arrow-down bracket-arrow d-md-none"></i>
+            </div>
+        {% endif %}
+        <section class="bracket-stage" style="--bracket-rounds: {{ stage|length }};" data-bracket-stage="{{ loop.index }}" aria-label="{{ 'bracket.stage'|trans({'%stage%': loop.index}) }}">
+            <h3 class="bracket-stage-title">{{ 'bracket.stage'|trans({'%stage%': loop.index}) }}</h3>
+            <div class="bracket-stage-rounds">
+                {% for round in stage %}
+                    <div class="bracket-slot">{{ include('bracket/_round.html.twig', {round: round, feed: bracket.feedOf(round.id), organiser: organiser}) }}</div>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+</div>

@@ -27,6 +27,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * POST /{_locale}/participants-sheet-api/{competitionId}/changes - who may send change sets, what is refused as a whole,
@@ -295,6 +296,7 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
             $container->get(OfficialResultsApi::class),
             $container->get(ParticipantsSheetLiveUpdates::class),
             $container->get(TranslatorInterface::class),
+            $container->get(CompetitionDisplayLiveUpdates::class),
         );
         $controller->setContainer($container);
         $container->set(ApplyParticipantSheetChangesController::class, $controller);

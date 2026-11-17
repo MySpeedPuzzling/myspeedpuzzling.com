@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * Deletes a round with its puzzle assignments, teams and seating - only while nobody has a result in it, a player's
@@ -24,6 +25,7 @@ final class DeleteCompetitionRoundController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRoundRepository $competitionRoundRepository,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -42,12 +44,17 @@ final class DeleteCompetitionRoundController extends AbstractController
         $confirmReveal = $input->bool('confirmReveal') ?? false;
         $input->throwIfInvalid();
 
+        $competitionId = $round->competition->id->toString();
+
         $this->messageBus->dispatch(new DeleteCompetitionRound(
             roundId: $round->id->toString(),
-            competitionId: $round->competition->id->toString(),
+            competitionId: $competitionId,
             refuseWhenItHasResults: true,
             refuseToReveal: $confirmReveal === false,
         ));
+
+        // After the commit: the event's displays pick their round again (competition toolkit D5)
+        $this->displayLiveUpdates->roundsChanged($competitionId);
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }

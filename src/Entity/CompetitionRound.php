@@ -20,8 +20,11 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
+use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -35,6 +38,26 @@ class CompetitionRound implements EntityWithEvents
 
     public const int TEAM_SIZE_MIN = 2;
     public const int TEAM_SIZE_MAX = 20;
+
+    // How the round's puzzles are solved (RoundPuzzleFormat, competition toolkit A2) - a new round is always `total`
+    // (it has no puzzles to pick from yet); changed only through changePuzzleFormat(). The column default keeps a round
+    // inserted by an older release (blue-green deploy) at today's behaviour.
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 16, enumType: RoundPuzzleFormat::class, options: ['default' => 'total'])]
+    public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total;
+
+    // `pick` only: how many of the round's puzzles every entry solves (K, 1..N); null for `total`
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $puzzlesToSolve = null;
+
+    // The moment the round's clock first started (competition toolkit P1F) - the stopwatch start, or the scheduled
+    // moment. Unlike $stopwatchStartedAt (which a resume after a pause moves forward by the pause) it stays through
+    // pause/resume and the scheduled start firing; cleared only by a reset (resetStopwatch(), a cancelled countdown).
+    // Read through stopwatchOriginalStartAt(): null on rows from before the column = falls back to $stopwatchStartedAt.
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $stopwatchFirstStartedAt = null;
 
     public function __construct(
         #[Id]
@@ -282,6 +305,54 @@ class CompetitionRound implements EntityWithEvents
         return $roundPuzzle === false ? null : $roundPuzzle->puzzle->piecesCount;
     }
 
+    /**
+     * K for a `pick` round (K = N is "solve all of them"), null for one result for the whole round.
+     */
+    public function puzzlesToSolveCount(): null|int
+    {
+        return $this->puzzleFormat === RoundPuzzleFormat::Pick ? $this->puzzlesToSolve : null;
+    }
+
+    /**
+     * The guard every caller runs before anything changes: `pick` needs 1 ≤ K ≤ the round's puzzles.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public static function assertPuzzleFormat(RoundPuzzleFormat $format, null|int $toSolve, int $puzzlesCount): void
+    {
+        if ($format === RoundPuzzleFormat::Pick && RoundPuzzleFormat::isValidPick($toSolve, $puzzlesCount) === false) {
+            throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::TO_SOLVE_RANGE, $toSolve ?? 0, $puzzlesCount);
+        }
+    }
+
+    /**
+     * The organiser's choice (EditCompetitionRoundHandler, after its checks). `total` forgets K.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public function changePuzzleFormat(RoundPuzzleFormat $format, null|int $toSolve): void
+    {
+        self::assertPuzzleFormat($format, $toSolve, $this->roundPuzzles->count());
+
+        $this->puzzleFormat = $format;
+        $this->puzzlesToSolve = $format === RoundPuzzleFormat::Pick ? $toSolve : null;
+    }
+
+    /**
+     * Removing puzzles never leaves a `pick` round fewer puzzles than its entries pick - refused, the organiser lowers K
+     * first (A-round-formats.md §2.5). Called before anything is removed.
+     *
+     * @throws RoundPuzzleFormatRefused
+     */
+    public function assertKeepsEnoughPuzzles(int $puzzlesCountAfter): void
+    {
+        $toSolve = $this->puzzlesToSolveCount();
+
+        if ($toSolve !== null && $puzzlesCountAfter < $toSolve) {
+            throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::TOO_FEW_PUZZLES, $toSolve, $puzzlesCountAfter);
+        }
+    }
+
     public function edit(
         string $name,
         null|int $minutesLimit,
@@ -315,12 +386,42 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
+     * The event's first day moved and its rounds go with it (EditCompetition `moveRoundsWithDate`, EventDateShift): the
+     * same wall-clock time the shift's days later in the round's own zone - like a copy's rounds (DuplicateCompetition)
+     */
+    public function moveStartBy(DuplicateDateShift $shift): void
+    {
+        $startsAt = $shift->apply($this->startsAt, $this->displayTimezone()) ?? $this->startsAt;
+
+        if ($startsAt->getTimestamp() !== $this->startsAt->getTimestamp()) {
+            // Its local day dates the round - series picks of an edition may move (high-frequency-series.md)
+            $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
+        }
+
+        $this->startsAt = $startsAt;
+    }
+
+    /**
      * What the stopwatch is doing at $now - a scheduled start counts as running once its moment has passed
      * (RoundStopwatchStatus, the one rule every reader follows).
      */
     public function stopwatchStatusAt(DateTimeImmutable $now): null|string
     {
         return RoundStopwatchStatus::at($this->stopwatchStatus, $this->stopwatchStartedAt, $now);
+    }
+
+    /**
+     * When the round's clock first started - kept through pause/resume (startedAt moves forward by every pause), the
+     * scheduled moment for a scheduled start; null for a clock that never started. A row stopped/started before the
+     * column existed has no first start: the stored start answers (today's behaviour for those rounds).
+     */
+    public function stopwatchOriginalStartAt(): null|DateTimeImmutable
+    {
+        if ($this->stopwatchStartedAt === null) {
+            return null;
+        }
+
+        return $this->stopwatchFirstStartedAt ?? $this->stopwatchStartedAt;
     }
 
     /**
@@ -365,6 +466,7 @@ class CompetitionRound implements EntityWithEvents
             );
         } else {
             $this->stopwatchStartedAt = $startedAt;
+            $this->stopwatchFirstStartedAt = $startedAt;
         }
         $this->stopwatchStatus = RoundStopwatchStatus::RUNNING;
         $this->stopwatchStoppedAt = null;
@@ -403,6 +505,8 @@ class CompetitionRound implements EntityWithEvents
         }
 
         $this->stopwatchStartedAt = $startsAt;
+        // Nothing is written when the moment comes - the scheduled moment IS the start (moved with the countdown)
+        $this->stopwatchFirstStartedAt = $startsAt;
         $this->stopwatchStatus = RoundStopwatchStatus::SCHEDULED;
         $this->stopwatchStoppedAt = null;
     }
@@ -469,6 +573,7 @@ class CompetitionRound implements EntityWithEvents
     public function resetStopwatch(): void
     {
         $this->stopwatchStartedAt = null;
+        $this->stopwatchFirstStartedAt = null;
         $this->stopwatchStatus = null;
         $this->stopwatchStoppedAt = null;
     }

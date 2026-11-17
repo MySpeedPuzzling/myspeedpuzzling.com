@@ -6,6 +6,6 @@
         <i class="bi bi-shield-lock me-1 text-body-secondary" aria-hidden="true"></i>
         <a href="{{ path('results_desk', {roundId: round_id}) }}" data-round-tool="desk">{{ 'results_desk.tools.results'|trans }}</a>
         <span class="text-body-secondary mx-1">&middot;</span>
-        <a href="{{ path('live_results', {roundId: round_id}) }}" data-round-tool="live">{{ 'results_desk.tools.live_entry'|trans }}</a>
+        <a href="{{ path('live_results', {roundId: round_id}) }}" data-round-tool="live" data-turbo="false">{{ 'results_desk.tools.live_entry'|trans }}</a>
     </p>
 {%- endif -%}

@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The public bracket of an event (competition toolkit A9, A-round-formats.md §3.5; docs/features/competitions-management/
+    standings.md "Bracket"): the organiser's declared advancement steps as stages of rounds - groups → semifinals → final.
+    A round's box names its qualified (or, when it qualified nobody, its top 3) only once its official results are
+    published; the entrants come from OfficialEntrantsView (players hidden from the viewer left out, private players by
+    the organiser's name). No final classification across stages (v2).
+
+    Variables: page (BracketPage), event_url.
+#}
+
+{% set event = page.event %}
+
+{% block title %}{{ 'bracket.meta.title'|trans({'%event%': page.eventTitle.label}) }}{% endblock %}
+
+{% block meta_description %}{{ 'bracket.meta.description'|trans({'%event%': page.eventTitle.label}) }}{% endblock %}
+
+{# Nothing published yet = nothing to index #}
+{% block robots %}{% if not page.hasPublishedRound %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
+
+    <p class="mb-1 small">
+        <a href="{{ event_url }}" class="text-muted">{{ page.eventTitle.label }}</a>
+    </p>
+
+    <h1 class="h4 mb-2" data-bracket-title>
+        <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ 'bracket.title'|trans }}
+    </h1>
+    <p class="small text-muted mb-3">{{ 'bracket.intro'|trans }}</p>
+
+    {% for bracket in page.brackets %}
+        {% if page.brackets|length > 1 %}
+            <h2 class="h5 mt-4 mb-2" data-bracket-category="{{ bracket.category.value }}">{{ ('competition.round.category.' ~ bracket.category.value)|trans }}</h2>
+        {% endif %}
+        {{ include('bracket/_bracket.html.twig', {bracket: bracket, organiser: false}) }}
+    {% else %}
+        <p class="text-muted" data-bracket-empty>{{ 'bracket.empty'|trans }}</p>
+    {% endfor %}
+
+    {% if page.brackets is not empty %}
+        <ul class="small text-muted list-unstyled mt-3 mb-4" data-bracket-legend>
+            <li><i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>{{ 'bracket.legend.qualified'|trans }}</li>
+            <li>{{ 'bracket.legend.published_only'|trans }}</li>
+        </ul>
+    {% endif %}
+{% endblock %}

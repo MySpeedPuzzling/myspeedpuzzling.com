@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
+use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -25,6 +29,10 @@ readonly final class DeleteCompetitionRoundHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private SecretRevealPreview $secretRevealPreview,
         private OfficialResultsGuard $officialResultsGuard,
+        private RoundStopwatchReveal $roundStopwatchReveal,
+        private ClockInterface $clock,
+        private CompetitionStandingRepository $standingRepository,
+        private CompetitionAdvancementStepRepository $advancementStepRepository,
     ) {
     }
 
@@ -81,6 +89,15 @@ readonly final class DeleteCompetitionRoundHandler
             }
         }
 
+        // A countdown with "Reveal the puzzles" still ahead never reveals at its moment once the round is gone: taken back
+        // while its rows exist - without them the puzzles' dates stay as they are (RoundStopwatchReveal)
+        if ($secretPuzzleIds !== []) {
+            $this->roundStopwatchReveal->withdrawBeforeRemoving(
+                $this->competitionRoundRepository->get($message->roundId)->roundPuzzles,
+                $this->clock->now(),
+            );
+        }
+
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :id',
             $params,
@@ -99,6 +116,19 @@ readonly final class DeleteCompetitionRoundHandler
         );
 
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        // The event's standings lose the round (competition toolkit A6) - none for an event without standings
+        foreach ($this->standingRepository->ofCompetition($round->competition) as $standing) {
+            $standing->pruneRound($message->roundId);
+        }
+
+        // ... and its advancement steps (competition toolkit A8): a step left without sources or targets goes too
+        foreach ($this->advancementStepRepository->ofCompetition($round->competition) as $step) {
+            if ($step->pruneRound($message->roundId) && $step->isEmpty()) {
+                $this->advancementStepRepository->delete($step);
+            }
+        }
+
         // Its competition's times - and an edition's series picks - are reconciled once it is gone (CompetitionRoundsChanged)
         $round->recordRemoval();
         $this->competitionRoundRepository->delete($round);

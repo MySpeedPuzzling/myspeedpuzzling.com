@@ -114,6 +114,15 @@ class CompetitionParticipant
         $this->onlineLinkConfirmedAt = null;
     }
 
+    /**
+     * Already linked to this player - re-picking your own participant changes nothing (connect() would move
+     * connectedAt to now, and a link newer than a round's start may not propose times - TimeProposalOwnership, P1F).
+     */
+    public function isConnectedTo(Player $player): bool
+    {
+        return $this->player !== null && $this->player->id->equals($player->id);
+    }
+
     public function disconnect(): void
     {
         $this->player = null;

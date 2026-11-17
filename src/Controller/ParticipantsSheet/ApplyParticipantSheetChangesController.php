@@ -28,6 +28,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * The participants sheet's change sets (ApplyParticipantSheetChanges): `{"changesetId", "dryRun", "groups": [...]}` →
@@ -45,6 +46,7 @@ final class ApplyParticipantSheetChangesController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly ParticipantsSheetLiveUpdates $liveUpdates,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -122,6 +124,9 @@ final class ApplyParticipantSheetChangesController extends AbstractController
         // Committed by now - the other open sheets of the event fetch the state again
         if ($applied->changedTheSheet()) {
             $this->liveUpdates->changed($competitionId, $applied->versionAfter);
+            // Results may be among the changes: the event's displays showing results read them again (competition
+            // toolkit D5 - nothing for an event without such a display)
+            $this->displayLiveUpdates->resultsChangedInCompetition($competitionId);
         }
 
         return OfficialResultsApi::json([

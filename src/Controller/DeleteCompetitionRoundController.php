@@ -20,6 +20,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
@@ -33,6 +34,7 @@ final class DeleteCompetitionRoundController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly SecretRevealPreview $secretRevealPreview,
         private readonly OfficialResultsGuard $officialResultsGuard,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -92,6 +94,9 @@ final class DeleteCompetitionRoundController extends AbstractController
 
             return $this->askAboutOfficialResults($request, $round, $officialResults, OfficialResultsGuard::hashEntries($officialResults));
         }
+
+        // After the commit: the event's displays pick their round again (competition toolkit D5)
+        $this->displayLiveUpdates->roundsChanged($competitionId);
 
         if ($revealed !== []) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.round_deleted_revealed', [

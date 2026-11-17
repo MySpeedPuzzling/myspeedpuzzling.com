@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
@@ -22,6 +23,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
@@ -37,6 +39,7 @@ final class RemovePuzzleFromRoundController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
         private readonly SecretRevealPreview $secretRevealPreview,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -90,7 +93,15 @@ final class RemovePuzzleFromRoundController extends AbstractController
             ));
         } catch (SecretPuzzlesWouldBeRevealed $changed) {
             return $this->askFirst($request, $this->competitionRoundPuzzleRepository->get($roundPuzzleId)->round, $roundPuzzleId, $changed->puzzles);
+        } catch (RoundPuzzleFormatRefused $refused) {
+            // A `pick` round keeps at least as many puzzles as its entries pick (competition toolkit A2)
+            $this->addFlash('danger', $this->translator->trans($refused->translationKey(), $refused->translationParameters()));
+
+            return $backToPuzzles;
         }
+
+        // After the commit: the event's displays read the round's visible puzzles again (competition toolkit D5)
+        $this->displayLiveUpdates->puzzlesChanged($roundId);
 
         if ($revealed !== []) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.removed_revealed', [

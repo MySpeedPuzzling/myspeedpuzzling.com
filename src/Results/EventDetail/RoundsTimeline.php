@@ -16,6 +16,7 @@ readonly final class RoundsTimeline
     /**
      * @param list<TimelineRound> $rounds in schedule order
      * @param non-empty-list<OccurrenceDates> $sessions OccurrenceDates::sessions() over every round
+     * @param list<TimelineStanding> $standings the published standings (competition toolkit A7) - a public page only
      */
     public function __construct(
         public array $rounds,
@@ -37,6 +38,9 @@ readonly final class RoundsTimeline
         public bool $runsUntilEnd = false,
         // the rounds name more than one zone - the side column's single zone note would be wrong
         public bool $mixedZones = false,
+        public array $standings = [],
+        // The public bracket of the declared advancement steps (competition toolkit A9) - a public page only
+        public null|string $bracketUrl = null,
     ) {
     }
 

@@ -33,6 +33,10 @@ readonly final class AdminCompetitionRound
         // Solving times linked to the round (puzzle_solving_time.competition_round_id)
         public int $resultsCount,
         public array $puzzles,
+        // How its puzzles are solved (RoundPuzzleFormat value: total | pick) and K for `pick` - competition toolkit A2,
+        // read-only here (the round form sets it)
+        public string $puzzleFormat = 'total',
+        public null|int $puzzlesToSolve = null,
     ) {
     }
 
@@ -54,6 +58,8 @@ readonly final class AdminCompetitionRound
      *     location_country_code: null|string,
      *     series_country_code: null|string,
      *     results_count: int,
+     *     puzzle_format?: string,
+     *     puzzles_to_solve?: null|int,
      *     ...
      * } $row
      * @param list<AdminRoundPuzzle> $puzzles
@@ -76,6 +82,8 @@ readonly final class AdminCompetitionRound
             resultsLink: $row['results_link'],
             resultsCount: $row['results_count'],
             puzzles: $puzzles,
+            puzzleFormat: $row['puzzle_format'] ?? 'total',
+            puzzlesToSolve: $row['puzzles_to_solve'] ?? null,
         );
     }
 
@@ -99,6 +107,8 @@ readonly final class AdminCompetitionRound
             'badgeTextColor' => $this->badgeTextColor,
             'resultsLink' => $this->resultsLink,
             'resultsCount' => $this->resultsCount,
+            'puzzleFormat' => $this->puzzleFormat,
+            'puzzlesToSolve' => $this->puzzlesToSolve,
             'puzzles' => array_map(static fn (AdminRoundPuzzle $puzzle): array => $puzzle->toArray(), $this->puzzles),
         ];
     }

@@ -11,11 +11,12 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * The referee's live entry page (docs/features/competitions-management/live-results.md): organisers only, never cached
- * or indexed, rendered with the round's state, and `?entrant=` resolved to an active participant of the event.
+ * The referee's live entry page (docs/features/competitions-management/live-results.md): organisers and referees only,
+ * never cached or indexed, rendered without any data of the round or its reader (competition toolkit C1 - the page
+ * fills itself from official_results_round_state?viewer=1 and asks for the event's people when quick add needs them),
+ * `?entrant=` resolved to an active participant of the event, `?table=` / `?entry=` handed over when well-formed.
  */
 final class LiveResultsPageTest extends WebTestCase
 {
@@ -54,7 +55,7 @@ final class LiveResultsPageTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testTheOrganiserGetsThePageWithTheRoundsState(): void
+    public function testTheOrganiserGetsADataFreePageThatFillsItselfFromTheState(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
@@ -70,16 +71,32 @@ final class LiveResultsPageTest extends WebTestCase
         $root = $crawler->filter('[data-controller="live-results"]');
         self::assertCount(1, $root);
         self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $root->attr('data-live-results-round-id-value'));
-        self::assertSame(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $root->attr('data-live-results-competition-id-value'));
-        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $root->attr('data-live-results-user-id-value'));
-        self::assertSame('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A, $root->attr('data-live-results-state-url-value'));
+        // The state (and the event's people) are asked for by the page - placeholders, filled in by the controller
+        self::assertSame('/en/official-results/rounds/00000000-0000-0000-0000-000000000000', $root->attr('data-live-results-state-url-value'));
+        self::assertSame('/en/official-results/rounds/00000000-0000-0000-0000-000000000000/event-people', $root->attr('data-live-results-event-people-url-value'));
         self::assertSame('/en/official-results/rounds/00000000-0000-0000-0000-000000000000/changes', $root->attr('data-live-results-record-url-value'));
         self::assertSame('', $root->attr('data-live-results-entrant-value'));
+        self::assertSame('', $root->attr('data-live-results-table-value'));
+        self::assertSame('', $root->attr('data-live-results-entry-value'));
+
+        // Competition toolkit C1: nothing of the round, its event or the reader is in the page itself
+        $html = $crawler->filter('[data-controller="live-results"]')->outerHtml();
+        foreach ([PlayerFixture::PLAYER_WITH_STRIPE, OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'Results Cup', 'Group A', 'Group B', 'Anna Fast', 'Gina Quick', '/round-results/', 'initialState', 'eventPeople'] as $data) {
+            self::assertStringNotContainsString($data, $html, $data . ' is data of the round or its reader');
+        }
+        self::assertCount(0, $root->filter('[data-live-results-target="roundSelect"] option[value]:not([value=""])'));
+        // The organiser tools are there for everybody, hidden until the state says the reader is an organiser
+        self::assertCount(2, $root->filter('[data-live-results-target="organiserLink"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="readiness"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="addTableField"][hidden]'));
 
         // Every text the controller writes comes translated from the page
         $messages = json_decode((string) $root->attr('data-live-results-messages-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($messages);
         self::assertSame('All saved', $messages['syncSaved']);
+        self::assertSame('The person on this name tag is not in %round%.', $messages['scanNotInRound']);
+        self::assertSame('Nobody sits at table %number% in %round%.', $messages['tableEmpty']);
+        self::assertSame('Member __N__', $messages['addMember']);
         self::assertNotContains(null, $messages);
         foreach ($messages as $key => $text) {
             self::assertIsString($text);
@@ -89,12 +106,19 @@ final class LiveResultsPageTest extends WebTestCase
         $plurals = json_decode((string) $root->attr('data-live-results-plurals-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($plurals);
         self::assertSame(['message' => '{1}1 waiting|[0,Inf[%count% waiting', 'locale' => 'en'], $plurals['waiting']);
+    }
 
-        // The round picker lists every round of the event, this one selected
-        self::assertSame(['Group A', 'Group B', 'Pairs', 'Final', 'Pairs Final'], $crawler->filter('select[data-live-results-target="roundSelect"] option')->each(static fn (Crawler $option): string => trim($option->text())));
-        self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $crawler->filter('select[data-live-results-target="roundSelect"] option[selected]')->attr('value'));
+    public function testTheStateFillsThePageWithTheRoundsAndTheReader(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $state = $this->state($crawler);
+        $state = $this->state(OfficialResultsFixture::ROUND_GROUP_A);
+
+        // Who reads it: the outbox's owner, and the organiser tools shown
+        self::assertSame(['playerId' => PlayerFixture::PLAYER_WITH_STRIPE, 'organiser' => true], $state['viewer']);
+        // The round picker lists every round of the event
+        self::assertIsArray($state['rounds']);
+        self::assertSame(['Group A', 'Group B', 'Pairs', 'Final', 'Pairs Final'], array_column($state['rounds'], 'name'));
         self::assertIsArray($state['entries']);
         self::assertSame(
             ['Anna Fast', 'Ben Steady', 'Cara Tied', 'Dan Unfinished', 'Eva Noshow', 'Filip Pending'],
@@ -103,24 +127,51 @@ final class LiveResultsPageTest extends WebTestCase
         self::assertSame('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $state['topic']);
         self::assertIsArray($state['round']);
         self::assertSame(1000, $state['round']['piecesCount']);
+        // Solo round with tables: a person is added, the table field shown (live_entry_page.js pageSettings())
+        self::assertSame('solo', $state['round']['category']);
+        self::assertFalse($state['round']['tableNumbersOff']);
+        self::assertIsArray($state['competition']);
+        self::assertFalse($state['competition']['isOnline']);
         self::assertIsString($state['serverNow']);
+    }
 
-        // Solo round: a person is added, the table field is there (in person, tables used)
-        self::assertCount(1, $crawler->filter('[data-live-results-target="addName"]'));
-        self::assertCount(0, $crawler->filter('input[data-member]'));
-        self::assertCount(1, $crawler->filter('[data-live-results-target="addTable"]'));
+    public function testTheViewerAndTheEntriesAreOptIn(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // The other consumers (desk, sheet, seating) read the state as before - no viewer
+        $plain = $this->state(OfficialResultsFixture::ROUND_GROUP_A, '');
+        self::assertArrayNotHasKey('viewer', $plain);
+        self::assertArrayHasKey('entries', $plain);
+
+        foreach (['?viewer=0', '?viewer=true', '?entries=1'] as $query) {
+            $state = $this->state(OfficialResultsFixture::ROUND_GROUP_A, $query);
+            self::assertArrayNotHasKey('viewer', $state, $query);
+            self::assertArrayHasKey('entries', $state, $query);
+        }
+
+        // ?entries=0: the clock and the token, nothing of the entries
+        $light = $this->state(OfficialResultsFixture::ROUND_GROUP_A, '?entries=0');
+        self::assertArrayNotHasKey('entries', $light);
+        self::assertArrayNotHasKey('viewer', $light);
+        self::assertSame(['serverNow', 'serverNowMs', 'topic', 'competition', 'round', 'rounds', 'mercure'], array_keys($light));
+
+        $both = $this->state(OfficialResultsFixture::ROUND_GROUP_A, '?viewer=1&entries=0');
+        self::assertSame(['serverNow', 'serverNowMs', 'topic', 'competition', 'round', 'rounds', 'mercure', 'viewer'], array_keys($both));
     }
 
     public function testARoundWithoutAnyOfficialResultsOpensAsWell(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
-        $crawler = $this->browser->request('GET', '/en/live-results/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
-
+        $this->browser->request('GET', '/en/live-results/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
         self::assertResponseIsSuccessful();
-        $state = $this->state($crawler);
+
+        $state = $this->state(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
         self::assertIsArray($state['entries']);
         self::assertNotContains(true, array_map(static fn (mixed $entry): bool => is_array($entry) && $entry['result'] !== null, $state['entries']));
+        self::assertIsArray($state['viewer']);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $state['viewer']['playerId']);
     }
 
     public function testAPairRoundAsksForMembers(): void
@@ -130,8 +181,11 @@ final class LiveResultsPageTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_PAIRS);
 
         self::assertResponseIsSuccessful();
-        self::assertCount(2, $crawler->filter('input[data-member]'));
-        $state = $this->state($crawler);
+        // The member fields are put in by the controller (2 for a pair) - the field set is there, hidden
+        self::assertCount(1, $crawler->filter('[data-live-results-target="addMembersField"][hidden]'));
+        $state = $this->state(OfficialResultsFixture::ROUND_PAIRS);
+        self::assertIsArray($state['round']);
+        self::assertSame('duo', $state['round']['category']);
         self::assertIsArray($state['entries']);
         self::assertContains('Puzzle Sharks', array_column($state['entries'], 'name'));
     }
@@ -140,24 +194,39 @@ final class LiveResultsPageTest extends WebTestCase
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $solo = $this->browser->request('GET', self::PAGE);
-        self::assertResponseIsSuccessful();
         // Group A: the people of Group B are in the event, not in this round
-        self::assertSame(['Gina Quick', 'Hugo Slow', 'Ivan Last'], array_column($this->eventPeople($solo), 'name'));
-        self::assertSame(OfficialResultsFixture::PARTICIPANT_GINA, $this->eventPeople($solo)[0]['participantId']);
+        $solo = $this->eventPeople(OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertSame(['Gina Quick', 'Hugo Slow', 'Ivan Last'], array_column($solo, 'name'));
+        self::assertSame(OfficialResultsFixture::PARTICIPANT_GINA, $solo[0]['participantId']);
+        self::assertStringContainsString('no-store', (string) $this->browser->getResponse()->headers->get('Cache-Control'));
 
         // Pairs: everybody in a pair already except Ivan
-        $pairs = $this->browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_PAIRS);
-        self::assertSame(['Ivan Last'], array_column($this->eventPeople($pairs), 'name'));
+        self::assertSame(['Ivan Last'], array_column($this->eventPeople(OfficialResultsFixture::ROUND_PAIRS), 'name'));
+    }
+
+    public function testTheEventsPeopleAreForWhoeverMayEnterResultsOnly(): void
+    {
+        $this->browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/event-people');
+        self::assertResponseStatusCodeSame(401);
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/event-people');
+        self::assertResponseStatusCodeSame(403);
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    private function eventPeople(Crawler $crawler): array
+    private function eventPeople(string $roundId): array
     {
+        $this->browser->request('GET', '/en/official-results/rounds/' . $roundId . '/event-people');
+        self::assertResponseIsSuccessful();
+        $answer = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($answer);
+        self::assertIsArray($answer['people']);
+
         /** @var list<array<string, mixed>> $people */
-        $people = json_decode($crawler->filter('script[data-live-results-target="eventPeople"]')->text(), true, flags: JSON_THROW_ON_ERROR);
+        $people = $answer['people'];
 
         return $people;
     }
@@ -170,7 +239,9 @@ final class LiveResultsPageTest extends WebTestCase
 
         $root = $crawler->filter('[data-controller="live-results"]');
         self::assertSame(OfficialResultsFixture::PARTICIPANT_BEN, $root->attr('data-live-results-entrant-value'));
-        self::assertSame('Ben Steady', $root->attr('data-live-results-entrant-name-value'));
+        // The name is the round state's (or the event's people's) - never the page's
+        self::assertNull($root->attr('data-live-results-entrant-name-value'));
+        self::assertStringNotContainsString('Ben Steady', (string) $this->browser->getResponse()->getContent());
     }
 
     public function testAnEntrantOfAnotherEventOrNoEntrantAtAllIsIgnored(): void
@@ -185,27 +256,61 @@ final class LiveResultsPageTest extends WebTestCase
         }
     }
 
+    public function testATableOrAnEntryToOpenIsHandedToThePage(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->browser->request('GET', self::PAGE . '?table=12');
+        self::assertResponseIsSuccessful();
+        self::assertSame('12', $crawler->filter('[data-controller="live-results"]')->attr('data-live-results-table-value'));
+
+        $ref = 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP;
+        $crawler = $this->browser->request('GET', self::PAGE . '?entry=' . strtoupper($ref));
+        self::assertSame(strtolower($ref), $crawler->filter('[data-controller="live-results"]')->attr('data-live-results-entry-value'));
+
+        $crawler = $this->browser->request('GET', self::PAGE . '?entry=team:' . OfficialResultsFixture::ENTRY_A_FILIP);
+        self::assertSame('team:' . OfficialResultsFixture::ENTRY_A_FILIP, $crawler->filter('[data-controller="live-results"]')->attr('data-live-results-entry-value'));
+    }
+
+    public function testAMalformedTableOrEntryIsIgnored(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        foreach (['?table=0', '?table=12a', '?table=10000', '?table=-1', '?entry=person:' . OfficialResultsFixture::ENTRY_A_FILIP, '?entry=team:x', '?entry=%3Cscript%3E'] as $query) {
+            $crawler = $this->browser->request('GET', self::PAGE . $query);
+
+            self::assertResponseIsSuccessful();
+            $root = $crawler->filter('[data-controller="live-results"]');
+            self::assertSame('', $root->attr('data-live-results-table-value'), $query);
+            self::assertSame('', $root->attr('data-live-results-entry-value'), $query);
+        }
+    }
+
     public function testThePageFollowsTheRoundWithItsOwnTokenNotTheCookie(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $this->browser->request('GET', self::PAGE);
-
         self::assertResponseIsSuccessful();
-        $mercure = $this->state($crawler)['mercure'] ?? null;
+        // Never in a URL (proxies log them) - the page sends it as a header
+        self::assertCount(0, $crawler->filter('[data-live-results-mercure-url-value]'));
+
+        $mercure = $this->state(OfficialResultsFixture::ROUND_GROUP_A)['mercure'] ?? null;
         self::assertIsArray($mercure);
         self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, '/round-stopwatch/' . OfficialResultsFixture::ROUND_GROUP_A], $mercure['topics']);
         self::assertIsString($mercure['token']);
-        // Never in a URL (proxies log them) - the page sends it as a header
-        self::assertCount(0, $crawler->filter('[data-live-results-mercure-url-value]'));
     }
 
     /**
+     * The round state as the live entry page asks for it (`?viewer=1`).
+     *
      * @return array<string, mixed>
      */
-    private function state(Crawler $crawler): array
+    private function state(string $roundId, string $query = '?viewer=1'): array
     {
-        $state = json_decode($crawler->filter('script[data-live-results-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
+        $this->browser->request('GET', '/en/official-results/rounds/' . $roundId . $query);
+        self::assertResponseIsSuccessful();
+        $state = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($state);
 
         /** @var array<string, mixed> $state */

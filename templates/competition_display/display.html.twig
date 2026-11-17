@@ -1,0 +1,41 @@
+{#
+    A competition display (CompetitionDisplayController, D-displays-overlays.md §7.1, competition toolkit D4) - standalone
+    on purpose: no base.html.twig, so no site chrome, no service worker registration, no self-heal scripts, no Turbo,
+    no Bootstrap. assets/display.js (Encore entry `display`, never precached for everybody - PRECACHE_SKIP_ENTRIES)
+    draws the inline design + first state into #msp-display and keeps it live.
+    Variables: page (CompetitionDisplayPayload::pageForToken()), token.
+#}
+<!doctype html>
+<html lang="{{ page.locale }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    {# The token is in the path - never sent to the picture hosts #}
+    <meta name="referrer" content="no-referrer">
+    <title>{{ page.state.competition.name }} · {{ 'competition_display.page.title'|trans({}, 'messages', page.locale) }}</title>
+    {# Set here, not in the stylesheet (watch.html.twig does the same): an OBS browser source may run an old Chromium #}
+    {% if page.kind == 'overlay' %}
+        <style>html,body{background:transparent!important;margin:0;padding:0;overflow:hidden}</style>
+    {% else %}
+        <style>html,body{background:#000;margin:0;padding:0;overflow:hidden}</style>
+    {% endif %}
+    {# The 4 fonts of the design schema, self-hosted (OFL); a browser downloads only the families an element uses.
+       font-display: block - a fallback flashing on a projector is worse than 100 ms of nothing. Inline, because the
+       build's PostCSS turns `block` into `swap`. #}
+    {{ include('competition_display/_fonts.html.twig') }}
+    {{ encore_entry_link_tags('display') }}
+    {{ encore_entry_script_tags('display') }}
+</head>
+<body class="msp-display-body msp-display-body--{{ page.kind }}">
+    <div id="msp-display"
+         class="msp-display msp-display--{{ page.kind }}"
+         data-kind="{{ page.kind }}"
+         data-competition-id="{{ page.competitionId }}"
+         data-state-url="{{ path('competition_display_state', {token: token}) }}"
+         data-design-url="{{ path('competition_display_design', {token: token}) }}"
+         data-fullscreen-label="{{ 'competition_display.page.fullscreen'|trans({}, 'messages', page.locale) }}"
+         data-design="{{ page.design|json_encode|e('html_attr') }}"
+         data-state="{{ page.state|json_encode|e('html_attr') }}"></div>
+</body>
+</html>

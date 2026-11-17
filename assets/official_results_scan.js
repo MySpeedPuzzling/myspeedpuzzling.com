@@ -1,23 +1,48 @@
 /**
- * Reading a name tag's QR in the live result entry (docs/features/competitions-management/live-results.md).
+ * Reading a competition tag's QR in the live result entry (docs/features/competitions-management/live-results.md): the
+ * name tag, and the line-up, table and entry tags (competition toolkit C8).
  * Separate from the EAN scanner (controllers/barcode_scanner_controller.js), which stays as it is: the browser's own
- * BarcodeDetector where it reads QR codes, else the same zbar-wasm build and polyfill the EAN scanner loads (the
- * same script URLs, so a page never loads them twice).
+ * BarcodeDetector where it reads QR codes, else zbar-wasm + its polyfill - from our own server first (the EAN scanner's
+ * order and files, README §5.9 of the barcode scanner; the service worker keeps them on a referee's device, toolkit C6,
+ * so an iPhone scans after an offline reload), jsdelivr only when ours does not work.
  */
 
-const ZBAR_SCRIPTS = [
-    { src: 'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js', global: 'zbarWasm' },
-    { src: 'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js', global: 'barcodeDetectorPolyfill' },
+import { parseLiveEntryRoute } from './live_entry_route.js';
+
+// Each source: the decoder's .wasm (fetched first - a source whose .wasm does not arrive is skipped before any of its
+// scripts runs), then zbar-wasm and the polyfill that depends on it
+export const ZBAR_SOURCES = [
+    {
+        name: 'self',
+        wasm: '/barcode-scanner/zbar-wasm-0.9.15/zbar.wasm',
+        scripts: [
+            { src: '/barcode-scanner/zbar-wasm-0.9.15/zbar-wasm.js', global: 'zbarWasm' },
+            { src: '/barcode-scanner/zbar-wasm-0.9.15/barcode-detector-polyfill.js', global: 'barcodeDetectorPolyfill' },
+        ],
+    },
+    {
+        name: 'cdn',
+        wasm: null,
+        scripts: [
+            { src: 'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js', global: 'zbarWasm' },
+            { src: 'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js', global: 'barcodeDetectorPolyfill' },
+        ],
+    },
 ];
+// A source that has not answered by then is given up for the next one
+const ZBAR_SOURCE_TIMEOUT_MS = 8000;
 
 const NAME_TAG_PATH = /^\/(?:[a-z]{2}\/)?live\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/p\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i;
 
 /**
- * The ids in a name tag's URL (route live_results_scan), or null for anything else.
+ * A competition tag's URL (R-review-and-plan.md §1.3) - the printed name tag (route live_results_scan, read exactly as
+ * it always was) or one of the frozen tag paths `/live/{competitionId}/g|t|e/{id}` (live_entry_route.js, with or
+ * without a locale): `{competitionId, kind: 'participant'|'lineup'|'table'|'entry', id}` (a table's id is its number),
+ * null for anything else. Any host - a tag printed on production still reads on another installation's page.
  *
- * @returns {{competitionId: string, participantId: string}|null}
+ * @returns {{competitionId: string, kind: string, id: string|number}|null}
  */
-export function parseNameTagUrl(text) {
+export function parseCompetitionTagUrl(text) {
     let url;
 
     try {
@@ -32,11 +57,26 @@ export function parseNameTagUrl(text) {
 
     const match = url.pathname.match(NAME_TAG_PATH);
 
-    if (match === null) {
-        return null;
+    if (match !== null) {
+        return { competitionId: match[1].toLowerCase(), kind: 'participant', id: match[2].toLowerCase() };
     }
 
-    return { competitionId: match[1].toLowerCase(), participantId: match[2].toLowerCase() };
+    const route = parseLiveEntryRoute(url.pathname);
+
+    return route !== null && ['lineup', 'table', 'entry'].includes(route.kind)
+        ? { competitionId: route.competitionId, kind: route.kind, id: route.id }
+        : null;
+}
+
+/**
+ * The ids in a name tag's URL (route live_results_scan), or null for anything else.
+ *
+ * @returns {{competitionId: string, participantId: string}|null}
+ */
+export function parseNameTagUrl(text) {
+    const tag = parseCompetitionTagUrl(text);
+
+    return tag !== null && tag.kind === 'participant' ? { competitionId: tag.competitionId, participantId: tag.id } : null;
 }
 
 function loadScript({ src, global }) {
@@ -60,12 +100,19 @@ function loadScript({ src, global }) {
         const script = document.createElement('script');
         script.src = src;
         script.onload = () => resolve();
-        script.onerror = reject;
+        script.onerror = (error) => {
+            // A failed tag would make the next try "still loading"
+            script.remove();
+            reject(error);
+        };
         document.head.appendChild(script);
     });
 }
 
-async function nativeReadsQr() {
+/**
+ * Whether this browser reads QR codes itself (BarcodeDetector with `qr_code`) - else the page needs zbar.
+ */
+export async function nativeReadsQr() {
     if (!window.BarcodeDetector || typeof window.BarcodeDetector.getSupportedFormats !== 'function') {
         return false;
     }
@@ -79,18 +126,52 @@ async function nativeReadsQr() {
 
 let detectorClass;
 
+/**
+ * Our server's copy first, jsdelivr second. Two copies of zbar in one page share its globals (the EAN scanner found the
+ * second one's detect() never answering), so once a source's scripts ran no other source is tried.
+ */
+async function loadZbar() {
+    for (const source of ZBAR_SOURCES) {
+        let timer = null;
+        const timeout = new Promise((resolve, reject) => {
+            timer = setTimeout(() => reject(new Error('timed out')), ZBAR_SOURCE_TIMEOUT_MS);
+        });
+
+        try {
+            await Promise.race([timeout, (async () => {
+                if (source.wasm) {
+                    // The whole file, so zbar's own fetch of it is answered from the cache
+                    const response = await fetch(source.wasm);
+
+                    if (!response.ok) {
+                        throw new Error(`${source.wasm}: HTTP ${response.status}`);
+                    }
+
+                    await response.arrayBuffer();
+                }
+
+                for (const script of source.scripts) {
+                    await loadScript(script);
+                }
+            })()]);
+
+            return;
+        } catch (e) {
+            if (typeof zbarWasm !== 'undefined') {
+                return;
+            }
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+}
+
 async function qrDetector() {
     if (detectorClass === undefined) {
         if (await nativeReadsQr()) {
             detectorClass = window.BarcodeDetector;
         } else {
-            try {
-                for (const script of ZBAR_SCRIPTS) {
-                    await loadScript(script);
-                }
-            } catch (e) {
-                // Reported below as "no decoder"
-            }
+            await loadZbar();
 
             detectorClass = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill
                 ? barcodeDetectorPolyfill.BarcodeDetectorPolyfill
@@ -98,7 +179,16 @@ async function qrDetector() {
         }
     }
 
-    return detectorClass === null ? null : new detectorClass({ formats: ['qr_code'] });
+    if (detectorClass === null) {
+        // Asked again on the next scan (the connection may be back) - unless a decoder's scripts already ran
+        if (typeof zbarWasm === 'undefined') {
+            detectorClass = undefined;
+        }
+
+        return null;
+    }
+
+    return new detectorClass({ formats: ['qr_code'] });
 }
 
 /**

@@ -20,7 +20,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  *
  * - puzzle.hide_until drops the puzzle, puzzle.hide_image_until drops its image;
  * - a round puzzle flagged hide-until-round-starts stays hidden (mode "entirely") or imageless
- *   (mode "image only") until its reveal moment (RoundPuzzleReveal) - even when the tag lists it too.
+ *   (mode "image only") until its reveal moment (RoundPuzzleReveal) - even when the tag lists it too;
+ * - an unboxed round keeps the picture of its puzzles back until its results are first published
+ *   (RoundPuzzleReveal::sqlImageHidden()).
  */
 readonly final class GetCompetitionPuzzles
 {
@@ -33,6 +35,7 @@ readonly final class GetCompetitionPuzzles
     private static function roundPuzzleRules(): string
     {
         $hidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
+        $imageHidden = RoundPuzzleReveal::sqlImageHidden('crp', 'cr');
 
         return <<<SQL
     SELECT
@@ -41,7 +44,7 @@ readonly final class GetCompetitionPuzzles
             {$hidden}
             AND COALESCE(crp.hide_mode, 'entirely') = 'entirely'
         ) AS hidden_entirely,
-        BOOL_OR({$hidden}) AS image_hidden
+        BOOL_OR({$imageHidden}) AS image_hidden
     FROM competition_round cr
     INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id
     WHERE cr.competition_id = :competitionId
@@ -76,6 +79,7 @@ SQL;
 
         $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
         $roundPuzzleHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
+        $roundPuzzleImageHidden = RoundPuzzleReveal::sqlImageHidden('crp', 'cr');
 
         $query = <<<SQL
 WITH competition_puzzle AS (
@@ -99,7 +103,7 @@ WITH competition_puzzle AS (
         cr.starts_at AS round_starts_at,
         {$roundPuzzleHidden}
             AND COALESCE(crp.hide_mode, 'entirely') = 'entirely' AS hidden_entirely,
-        {$roundPuzzleHidden} AS image_hidden
+        {$roundPuzzleImageHidden} AS image_hidden
     FROM competition c
     LEFT JOIN competition_series cs ON cs.id = c.series_id
     INNER JOIN competition_round cr ON cr.competition_id = c.id

@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventOfferChoice;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The "What will you bring?" picker (docs/features/marketplace/11-events.md): the seller's published listings with
@@ -36,6 +37,13 @@ readonly final class GetEventOfferChoices
 
         $qualifies = GetMarketplaceEvents::SQL_QUALIFIES;
         $going = GetMarketplaceEvents::sqlPlayerGoing('c.id', 'ssli.player_id');
+        // A puzzle of this event's rounds shows no picture while a round keeps it back - a secret not revealed yet, or an
+        // unboxed round before its results are published (RoundPuzzleReveal::sqlImageHidden(), world-series-rules.md W2-a)
+        $roundImageHidden = RoundPuzzleReveal::sqlImageHidden('picture_crp', 'picture_cr');
+        $imageHidden = "(p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp) OR EXISTS ("
+            . 'SELECT 1 FROM competition_round_puzzle picture_crp'
+            . ' INNER JOIN competition_round picture_cr ON picture_cr.id = picture_crp.round_id'
+            . " WHERE picture_crp.puzzle_id = p.id AND picture_cr.competition_id = :competitionId AND {$roundImageHidden})";
 
         $query = <<<SQL
 SELECT
@@ -48,8 +56,8 @@ SELECT
     p.name AS puzzle_name,
     p.search_names,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
+    CASE WHEN {$imageHidden} THEN NULL ELSE p.image END AS image,
+    CASE WHEN {$imageHidden} THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name AS manufacturer_name,
     EXISTS (
         SELECT 1

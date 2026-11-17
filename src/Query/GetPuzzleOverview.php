@@ -204,9 +204,11 @@ SQL;
         }
 
         // The event's tag lists the puzzle - its rounds' reveal rules still apply (RoundPuzzleReveal), like on the
-        // event's round list: hidden entirely until the reveal, or without its picture
+        // event's round list: hidden entirely until the reveal, or without its picture - also while an unboxed round
+        // keeps it back until its results are first published (RoundPuzzleReveal::sqlImageHidden())
         $roundHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
-        $roundHidesPicture = "EXISTS (SELECT 1 FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.puzzle_id = puzzle.id AND {$roundHidden})";
+        $roundImageHidden = RoundPuzzleReveal::sqlImageHidden('crp', 'cr');
+        $roundHidesPicture = "EXISTS (SELECT 1 FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.puzzle_id = puzzle.id AND {$roundImageHidden})";
         $roundHidesPuzzle = "EXISTS (SELECT 1 FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.puzzle_id = puzzle.id AND {$roundHidden} AND COALESCE(crp.hide_mode, 'entirely') = 'entirely')";
 
         $query = <<<SQL

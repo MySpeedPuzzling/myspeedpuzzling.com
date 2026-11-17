@@ -24,7 +24,7 @@ use DateTimeImmutable;
  *   (docs/features/competitions-management/toolkit/A-round-formats.md §4).
  *
  * PHP (revealAt(), automaticRevealAt()) and SQL (sqlRevealAt(), sqlHidden()) compute the same moment; nothing else may
- * (RoundRevealMomentComputedOnlyHereTest).
+ * (RoundRevealMomentComputedOnlyHereTest). An unboxed round keeps the pictures back longer - sqlImageHidden().
  */
 enum RoundPuzzleReveal: string
 {
@@ -126,5 +126,21 @@ enum RoundPuzzleReveal: string
 
         return "({$roundPuzzleAlias}.hide_until_round_starts"
             . " AND COALESCE({$revealAt}, 'infinity'::timestamp) > {$nowParameter}::timestamp)";
+    }
+
+    /**
+     * True while the round keeps the puzzle's PICTURE back at :now: sqlHidden() (a secret not revealed yet, entirely or
+     * its picture), or an unboxed round (competition_round.unboxed) whose results were never published - the picture
+     * of every puzzle of such a round, secret or not, stays back until the first publish
+     * (docs/features/competitions-management/world-series-rules.md §7; RoundPuzzlesVisibleNow is the PHP twin).
+     * Whether the NAME is hidden stays sqlHidden() + the hide mode - unboxed never hides a name.
+     *
+     * $roundAlias must be a real competition_round row - see sqlRevealAt().
+     */
+    public static function sqlImageHidden(string $roundPuzzleAlias, string $roundAlias, string $nowParameter = ':now'): string
+    {
+        $hidden = self::sqlHidden($roundPuzzleAlias, $roundAlias, $nowParameter);
+
+        return "({$hidden} OR ({$roundAlias}.unboxed AND {$roundAlias}.results_first_published_at IS NULL))";
     }
 }

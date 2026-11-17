@@ -18,6 +18,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * "Order and labels" on the round's puzzles page (competition toolkit A2): `position[<roundPuzzleId>]` (any numbers -
@@ -32,6 +33,7 @@ final class ArrangeRoundPuzzlesController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -100,6 +102,12 @@ final class ArrangeRoundPuzzlesController extends AbstractController
         // Open judge pages of a `pick` round read its labels again (after the commit)
         if ($round->puzzleFormat === RoundPuzzleFormat::Pick) {
             $this->officialResultsLiveUpdates->puzzlesRevealed($roundId);
+        }
+
+        // The event's displays show the puzzles' labels and order (competition toolkit D5) - a `pick` round's signal went
+        // with the reveal push above
+        if ($round->puzzleFormat !== RoundPuzzleFormat::Pick) {
+            $this->displayLiveUpdates->puzzlesChanged($roundId);
         }
 
         $this->addFlash('success', $this->translator->trans('competition_toolkit.round_format.arrange.saved'));

@@ -17,6 +17,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * A new link for a display - the old one stops working at once (D-displays-overlays.md §8.1) - a button on the
@@ -30,6 +31,7 @@ final class RegenerateCompetitionDisplayTokenController extends AbstractControll
         private readonly GetCompetitionDisplays $getCompetitionDisplays,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -56,6 +58,10 @@ final class RegenerateCompetitionDisplayTokenController extends AbstractControll
         }
 
         $this->messageBus->dispatch(new RegenerateCompetitionDisplayToken($displayId));
+
+        // After the commit: the page still open on the old link learns at once that it is no longer valid (its next state
+        // fetch answers 404 - competition toolkit D5)
+        $this->displayLiveUpdates->displayChanged($display->competitionId, $displayId);
 
         $this->addFlash('success', $this->translator->trans('competition_display.flash.link_regenerated', ['%name%' => $display->name]));
 

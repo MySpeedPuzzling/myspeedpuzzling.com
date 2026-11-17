@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * The round's puzzles become exactly `puzzleIds` (SetCompetitionRoundPuzzles): one round per category per puzzle per
@@ -30,6 +31,7 @@ final class SetRoundPuzzlesController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly GetAdminCompetitions $getAdminCompetitions,
         private readonly GetAdminPuzzles $getAdminPuzzles,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -70,6 +72,9 @@ final class SetRoundPuzzlesController extends AbstractController
 
             throw $exception;
         }
+
+        // After the commit (competition toolkit D5)
+        $this->displayLiveUpdates->puzzlesChanged($round->roundId);
 
         return new JsonResponse($this->getAdminCompetitions->round($round->roundId)->toArray());
     }

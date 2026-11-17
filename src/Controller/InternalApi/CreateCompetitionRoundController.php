@@ -33,6 +33,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * Adds a round to a competition (its slug is generated from the name and never changes afterwards), optionally with
@@ -52,6 +53,7 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionRepository $competitionRepository,
         private readonly ClockInterface $clock,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -157,6 +159,9 @@ final class CreateCompetitionRoundController extends AbstractController
 
             throw $exception;
         }
+
+        // After the commit: the event's displays pick their round again (competition toolkit D5)
+        $this->displayLiveUpdates->roundsChanged($competition->competitionId);
 
         $request->attributes->set(InternalApiAuditSubscriber::CREATED_ID_ATTRIBUTE, $roundId->toString());
 

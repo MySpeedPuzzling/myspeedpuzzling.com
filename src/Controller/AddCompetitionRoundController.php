@@ -23,6 +23,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddCompetitionRoundController extends AbstractController
@@ -33,6 +34,7 @@ final class AddCompetitionRoundController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionRepository $competitionRepository,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -111,6 +113,9 @@ final class AddCompetitionRoundController extends AbstractController
                 // Ignored for solo and pair rounds (AddCompetitionRoundHandler)
                 teamSize: $data->teamSize,
             ));
+
+            // After the commit: a display following "the current round" may pick the new one (competition toolkit D5)
+            $this->displayLiveUpdates->roundsChanged($competitionId);
 
             $this->addFlash('success', $this->translator->trans('competition.flash.round_added'));
 

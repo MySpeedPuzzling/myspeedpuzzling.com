@@ -23,6 +23,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * A display's name, language and the round it follows (D-displays-overlays.md §8.1 `competition_display_settings`):
@@ -38,6 +39,7 @@ final class CompetitionDisplaySettingsController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -88,6 +90,9 @@ final class CompetitionDisplaySettingsController extends AbstractController
                 pinnedRoundId: $data->followMode === DisplayFollowMode::Pinned ? $data->pinnedRoundId : null,
                 roundIds: $data->followMode === DisplayFollowMode::Current ? $data->roundIds : [],
             ));
+
+            // After the commit: the open display follows its new round(s) and language at once (competition toolkit D5)
+            $this->displayLiveUpdates->displayChanged($display->competitionId, $displayId);
 
             $this->addFlash('success', $this->translator->trans('competition_display.flash.saved'));
 

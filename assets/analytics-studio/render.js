@@ -414,7 +414,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
                 item.setAttribute('aria-current', 'true');
             }
 
-            const name = el('div', 'as-row__name', item);
+            const name = el('div', row.isTeam ? 'as-row__name as-row__name--team' : 'as-row__name', item);
 
             if (row.isTeam) {
                 el('span', 'as-row__team', name, row.name);

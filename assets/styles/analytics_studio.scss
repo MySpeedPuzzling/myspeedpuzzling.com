@@ -626,7 +626,6 @@ body.as-body {
 
 .as-row__name {
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
     column-gap: 5px;
     min-width: 0;
@@ -634,8 +633,16 @@ body.as-body {
     white-space: nowrap;
 }
 
+// A pair/team row: the line-up's name, the members on a second line
+.as-row__name--team {
+    flex-wrap: wrap;
+}
+
+// One line: a long name ends in an ellipsis, the flag stays next to it
 .as-row__player,
 .as-row__team {
+    flex: 0 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -1772,8 +1779,7 @@ a.as-person__name:hover {
         height: 28px;
     }
 
-    .as-row__name {
-        flex-wrap: wrap;
+    .as-row__name--team {
         row-gap: 0;
     }
 

@@ -1029,6 +1029,19 @@ function renderModel(overrides = {}, labels = ENGLISH) {
 
 const text = (node) => (node === null ? '' : node.textContent);
 
+scenario('render: a solo row stays one line (name + flag), a pair/team row keeps its members line', () => {
+    const { root } = renderModel();
+    const solo = root.querySelector(`.as-row[data-as-entry="${E(1)}"] .as-row__name`);
+    assert.ok(!solo.classList.contains('as-row__name--team'));
+    assert.ok(solo.querySelector('.as-row__player') !== null);
+
+    const { state, analytics } = pairState();
+    const { root: pairs } = renderModel({ state, analytics });
+    const team = pairs.querySelector('.as-row__name--team');
+    assert.ok(team !== null);
+    assert.ok(team.querySelector('.as-row__members') !== null);
+});
+
 scenario('render: the laptop layout - top bar, list, detail, puzzle, live; phone tabs', () => {
     const { root } = renderModel({ view: { selected: E(1), open: true } });
     assert.ok(root.classList.contains('as'));

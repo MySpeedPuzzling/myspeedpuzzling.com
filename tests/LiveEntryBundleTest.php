@@ -23,13 +23,16 @@ use Symfony\Component\Process\Process;
  *   2026-11-17 (toolkit C10): 174 KB / 47.6 KB gzip after C8 (44.7 KB gzip) - the puzzle choice of pick rounds pulls in
  *   official_results_puzzles.js (the record's rules, shared with the server's twin - imported, never re-implemented)
  *   and live_entry_puzzles.js (chips, K-of-N taps, the grouped save, "Puzzle missing"); budget 180 KB / 50 KB gzip,
- *   which leaves C9 (proposals) its room;
+ *   which leaves C9 (proposals) its room. 2026-11-17 (toolkit C9): 185 KB / 50.8 KB gzip - time proposals on the card
+ *   (panel with Confirm / Change / Not right, late and link hints, the "Proposals waiting" list, outcome annotations)
+ *   need live_entry_proposals.js (3.2 KB) + 7.7 KB in the controller after compacting its markup; budget 190 KB /
+ *   52 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 180_000;
-    private const int GZIP_BUDGET_BYTES = 50_000;
+    private const int MINIFIED_BUDGET_BYTES = 190_000;
+    private const int GZIP_BUDGET_BYTES = 52_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

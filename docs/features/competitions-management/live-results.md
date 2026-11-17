@@ -191,6 +191,26 @@ player; an edition is a competition - series owners and maintainers stay full or
   organiser cards with edit/delete; see docs/TODO.md).
 - A referee's account deletion removes the row (FK cascade); the organiser who added them going leaves `added_by` empty.
 
+## Time proposals (competition toolkit C9, `assets/live_entry_proposals.js`)
+
+Only while the competition has time proposals on (the round state's `proposals`, the Mercure message
+`official_results.proposals` - kept by id; a decided proposal never turns pending again; a state answer drops what it no
+longer lists unless it came after the state was read). Server side: `official-results.md` "Time proposals".
+
+- **Entry card**: a panel above Finished now - "Proposed 0:49:00", from their phone at the tap's time of day, by the
+  participant as the organiser recorded them, "tapped 3 min ago"; late (> 5 s to the receipt) shows both times and
+  defaults to the receipt seconds; "stopwatch changed" and "linked recently" hints. One big **Confirm** (focused, the
+  card is its confirm view - the 350 ms guard of C7 applies; "Replace with" in warning colour when another result is
+  saved; "Matches the saved time" and no button when equal), **Change** (the time field prefilled; its Save confirms the
+  proposal with the judge's value - also after a reload, the draft keeps it), **Not right** (reason: not finished / wrong
+  person or table / other). A proposal decided elsewhere, withdrawn or superseded while the card is open changes in place.
+- **Find**: "Proposals waiting (N)" (pending, not decided on this device, oldest receipt first); a row **opens the card**
+  - nothing is confirmed from the list.
+- **Outbox**: a confirmation is the `result` change with `proposalId` (pick rounds: with `puzzles` in one group, and the
+  puzzle choice is required first); a rejection is `field: "proposal"` (`from: {id}`, never chained, no Undo once sent).
+  Offline both wait like any change; the outcome's `proposal: {id, status}` updates the page at once (`not_pending` /
+  `unknown` fetch the state).
+
 ## Reliability (`assets/official_results_outbox.js`)
 
 - **Outbox in IndexedDB** (`msp-official-results` / `outbox`), one record per change: `userId`, `roundId`, `seq`,

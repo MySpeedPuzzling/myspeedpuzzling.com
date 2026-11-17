@@ -5097,6 +5097,16 @@ live_results:
     hidden: "Pas encore révélé"
     missing_filter: "Puzzle manquant (%count%)"
     field: "Puzzles"
+  puzzle_split:
+    title: "Temps de fin par puzzle"
+    finished_now: "Terminé maintenant"
+    own: "(%time% pour ce puzzle)"
+    type: "Saisir le temps"
+    save: "Enregistrer le temps"
+    toast: "%label% terminé à %time%"
+    out_of_order: "Ce temps ne respecte pas l'ordre - chaque puzzle se termine après le précédent."
+    pick_remaining: "Quel puzzle a été terminé en dernier ? Touchez d'abord son étiquette, puis enregistrez le temps."
+    whole_round: "Ceci termine toute la manche - pour un seul puzzle, utilisez son propre « Terminé maintenant »."
   proposals:
     title: "Proposé : %time%"
     from: "depuis son téléphone à %time%"

@@ -1061,6 +1061,118 @@ def s13_tap_moment_kept(context):
           % (result, typed(result or 0), tap_elapsed, typed(int(tap_elapsed)), rows[0][4] / 1000, typed(rows[0][3])))
 
 
+# ---------------------------------------------------------------- 14
+
+ROUND_SPLITS = '018d0099-0000-0000-0000-000000000011'
+SPLIT_TABLE = 241
+
+
+def split_entry(db, table):
+    row = db.one("""SELECT result_seconds, result_puzzles, result_entered_by_id::text, id::text
+                    FROM competition_participant_round WHERE round_id = %s AND table_number = %s""", (ROUND_SPLITS, table))
+    return {'seconds': row[0], 'puzzles': row[1], 'by': row[2], 'id': row[3]}
+
+
+def split_started(db):
+    started = db.one('SELECT stopwatch_started_at FROM competition_round WHERE id = %s', (ROUND_SPLITS,))[0]
+    return started.replace(tzinfo=__import__('datetime').timezone.utc).timestamp()
+
+
+def tap_split(browser):
+    """The first "Finished now" of the card's per-puzzle rows (real events W5) - the time of the tap."""
+    browser.click('[data-live-results-target="splits"] [data-action="live-results#finishPuzzle"]')
+    return time.time()
+
+
+def splits_text(browser):
+    return browser.js('const el = document.querySelector(\'[data-live-results-target="splits"]\'); '
+                      'return el && !el.hidden ? el.textContent.replace(/\\s+/g, " ").trim() : null')
+
+
+def s14_puzzle_splits(context):
+    """14. Real events W5 - "Finished now" per puzzle on a "Solve all 2" round: puzzle 1 tapped OFFLINE, a reload while
+    offline (the card comes back with the waiting split), back online (sent), puzzle 2 tapped online → confirm → Save =
+    the record with both splits + the result in one group. Every stored split = its tap's elapsed time, each change
+    applied exactly once."""
+    db, proxy = context['db'], context['proxy']
+    wait_s = 8 if QUICK else 30
+    db.all("""UPDATE competition_participant_round SET result_seconds = NULL, result_pieces_placed = NULL,
+              result_did_not_start = false, result_entered_at = NULL, result_entered_by_id = NULL, result_puzzles = NULL
+              WHERE round_id = %s AND table_number = %s""", (ROUND_SPLITS, SPLIT_TABLE))
+    # The seed's start goes stale (a 600 min limit, the stack may be up for a day): running since 10 minutes ago
+    db.all("""UPDATE competition_round SET stopwatch_status = 'running', stopwatch_stopped_at = NULL,
+              stopwatch_started_at = (now() AT TIME ZONE 'UTC') - interval '10 minutes',
+              stopwatch_first_started_at = (now() AT TIME ZONE 'UTC') - interval '10 minutes' WHERE id = %s""", (ROUND_SPLITS,))
+    since = db.now()
+    browser = judge(context)
+    browser.open_live(ROUND_SPLITS)
+    browser.wait_offline_ready()
+    browser.wait_snapshot(round_id=ROUND_SPLITS)
+    browser.open_table(SPLIT_TABLE)
+    browser.wait(lambda: splits_text(browser), timeout=10, message='the per-puzzle rows on the card (stopwatch running)')
+    shots = context['evidence'].setdefault('shots', [])
+    shots.append(browser.shot('s14-1-card'))
+
+    network_down(proxy, browser)
+    tapped_1 = tap_split(browser)
+    browser.wait(lambda: (browser.info()['toast'] or '').find('Challenge 1') != -1, timeout=10, message='toast of puzzle 1')
+    shots.append(browser.shot('s14-2-puzzle1-offline'))
+    waiting = browser.outbox()
+    context['evidence']['outbox_offline'] = waiting
+    check(len(waiting) == 1 and waiting[0]['field'] == 'puzzles', 'offline after the tap: outbox %s' % waiting)
+    time.sleep(wait_s)
+    browser.driver.refresh()
+    restored = browser.wait(lambda: (lambda i: i if i['entry'] else None)(browser.info()), timeout=20,
+                            message='the card of %d after the offline reload' % SPLIT_TABLE)
+    rows_after_reload = splits_text(browser)
+    shots.append(browser.shot('s14-3-after-offline-reload'))
+    context['evidence']['after_reload'] = {'entryName': restored['entryName'], 'splits': rows_after_reload}
+    check(rows_after_reload is not None and '✓' in rows_after_reload, 'after the reload the card shows no recorded split: %r' % rows_after_reload)
+
+    network_up(proxy, browser)
+    browser.wait_saved(60)
+    first = split_entry(db, SPLIT_TABLE)
+    want_1 = tapped_1 - split_started(db)
+    context['evidence']['after_puzzle_1'] = {'puzzles': first['puzzles'], 'tap_elapsed': round(want_1, 1)}
+    check(first['seconds'] is None, 'puzzle 1 alone stored a result: %s' % first['seconds'])
+    check(isinstance(first['puzzles'], list) and first['puzzles'][0].get('done') is True
+          and abs(first['puzzles'][0].get('atSeconds', -99) - want_1) <= 2,
+          'puzzle 1 split stored %s, the tap was at %.0f (sent %d s later)' % (first['puzzles'], want_1, wait_s))
+
+    time.sleep(3)
+    if not browser.info()['entry']:
+        browser.open_table(SPLIT_TABLE)
+    tapped_2 = tap_split(browser)
+    browser.wait(lambda: browser.info()['confirm'], timeout=15, message='confirm after puzzle 2\'s Finished now')
+    shots.append(browser.shot('s14-4-puzzle2-confirm'))
+    browser.save()
+    browser.wait_saved(30)
+    final = split_entry(db, SPLIT_TABLE)
+    want_2 = tapped_2 - split_started(db)
+    receipts = db.all('SELECT status, count(*) FROM round_result_change_receipt WHERE round_id = %s AND received_at >= %s '
+                      'GROUP BY status', (ROUND_SPLITS, since.replace(microsecond=0)))
+    context['evidence']['final'] = {'seconds': final['seconds'], 'puzzles': final['puzzles'], 'by': final['by'],
+                                    'tap_elapsed_2': round(want_2, 1), 'receipts': receipts}
+    check(final['seconds'] is not None and abs(final['seconds'] - want_2) <= 2,
+          'result %s, puzzle 2 was tapped at %.0f' % (final['seconds'], want_2))
+    puzzles = final['puzzles'] or []
+    check(len(puzzles) == 2 and all(item.get('done') for item in puzzles), 'record %s' % puzzles)
+    check(puzzles[0].get('atSeconds') == first['puzzles'][0]['atSeconds'], 'split 1 changed: %s' % puzzles)
+    check(puzzles[1].get('atSeconds') == final['seconds'], 'the last split is not the result: %s' % puzzles)
+    check(final['by'] == REFEREE, 'entered by %s' % final['by'])
+    # One receipt per change id: puzzle 1's record, then puzzle 2's record + the result (one group)
+    check(sorted((status, count) for status, count in receipts) == [('applied', 3)], 'receipts (exactly once): %s' % receipts)
+    # The results desk shows both splits (organiser)
+    desk = judge(context, 'organiser', name='desk')
+    desk.go('/en/manage-round-results/%s' % ROUND_SPLITS)
+    desk.wait(lambda: 'Chaos Tester 241' in (desk.js('return document.body.innerText') or ''), timeout=30, message='the desk')
+    desk.js('const row = [...document.querySelectorAll("tr, [data-entry-ref]")].find((el) => el.textContent.includes("Chaos Tester 241")); if (row) row.scrollIntoView({block: "center"});')
+    time.sleep(1)
+    shots.append(desk.shot('s14-5-desk'))
+    context['notes'].append('split 1 %s (tap %.0f, sent %d s later after an offline reload), split 2 = result %s (tap %.0f)'
+                            % (puzzles[0].get('atSeconds'), want_1, wait_s, final['seconds'], want_2))
+
+
 SCENARIOS = {
     's01_flapping': (s01_flapping, range(1, 31)),
     's02_refresh_mid_save': (s02_refresh_mid_save, range(31, 36)),
@@ -1078,4 +1190,5 @@ SCENARIOS = {
     's12b_clock': (s12b_clock, [170, 171]),
     's12c_background_tab': (s12c_background_tab, [175, 176]),
     's13_tap_moment_kept': (s13_tap_moment_kept, [180, 181, 300]),
+    's14_puzzle_splits': (s14_puzzle_splits, []),
 }

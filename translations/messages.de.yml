@@ -5030,6 +5030,16 @@ live_results:
     hidden: "Noch nicht enthüllt"
     missing_filter: "Puzzle fehlt (%count%)"
     field: "Puzzles"
+  puzzle_split:
+    title: "Zielzeit pro Puzzle"
+    finished_now: "Jetzt fertig"
+    own: "(%time% für dieses Puzzle)"
+    type: "Zeit eingeben"
+    save: "Zeit speichern"
+    toast: "%label% fertig bei %time%"
+    out_of_order: "Diese Zeit passt nicht zur Reihenfolge – jedes Puzzle ist nach dem vorherigen fertig."
+    pick_remaining: "Welches Puzzle wurde zuletzt fertig? Tippen Sie zuerst auf seinen Chip und speichern Sie dann die Zeit."
+    whole_round: "Damit ist die ganze Runde beendet – für ein einzelnes Puzzle dessen eigenes „Gerade fertig“ verwenden."
   proposals:
     title: "Vorgeschlagen: %time%"
     from: "vom eigenen Handy um %time%"

@@ -40,7 +40,7 @@ From A1 (reveal at the stopwatch start):
 - [x] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox after the publish (A §4.4, R §2.1.5) - **done in G3 (`RevealPuzzlesTheStopwatchMissed`, all rows or none under the round's locks, confirmed hash)**
 
 Deferred by design (R §3):
-- [ ] Round formats: `every` as its own mode (= pick K = N today); judge-side split times (the desk can enter `atSeconds`); the participants sheet's per-puzzle popover (read-only chips; `puzzles_mismatch` points to the desk); internal API **writes** of format/labels (read-only output ships)
+- [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); the participants sheet's per-puzzle popover (read-only chips; `puzzles_mismatch` points to the desk); internal API **writes** of format/labels (read-only output ships)
 - [ ] Standings: the `stages` classification and `numbered_across_stages` (final classification across the bracket); `missing_rule = as_zero_pieces`; a standings Mercure topic; public `public_standing_state` JSON; "drop worst round" / season standings
 - [ ] QR / competitor pages: the `cards` layout (tags + tents ship); a `competitor_list` page (fallback = the event page); proposal puzzle choice (`ChangeTimeProposalPuzzles`); a per-entry private Mercure topic (polling today); a 90-day prune of decided proposals (`competition_time_proposal`)
 - [ ] Judge page: ETag/304 on the round state; continuous scanning with a warm camera; a "My tables" filter; a referees-page activity column; organiser-assigned table ranges; the one-tap proposal sweep

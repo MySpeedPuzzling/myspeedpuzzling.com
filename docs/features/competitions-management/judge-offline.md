@@ -235,6 +235,14 @@ grouped `puzzles` + `result` saves, "Puzzle missing"), and "Time proposals" (pan
 "Proposals waiting", outbox `proposalId` + `proposal` reject). Both ride the drafts (`choice`, `proposalId`) and the
 snapshots (`proposals`).
 
+**Finished now per puzzle** (real events W5, round-formats.md "Judge split times"): offline like the round's Finished
+now - the split is the tap's elapsed on the server-synced (monotonic) clock, frozen at the tap; a split that is not the
+K-th is a `puzzles` change in the outbox at once (sent when back, chained `from` while an earlier one waits); the K-th
+opens the confirm step, whose draft (`finishedNow`, `choice`) survives a reload, and Save is one group (`puzzles` +
+`result`, never split). After an offline reload the card shows the waiting split (rows built from the outbox via
+`shownValue()`). No draft field was added. Chaos `s14_puzzle_splits` proves it (offline tap, reload, online tap,
+exactly once).
+
 ## Design vs build
 
 - R §3 deferred the JS port of `LiveResultsCurrentRound::pick()`; C5 built it anyway (shared cases).

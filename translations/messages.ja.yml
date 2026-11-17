@@ -5020,6 +5020,16 @@ live_results:
     hidden: "まだ非公開"
     missing_filter: "パズル未入力（%count%）"
     field: "パズル"
+  puzzle_split:
+    title: "パズルごとの完成タイム"
+    finished_now: "今完成"
+    own: "（このパズル %time%）"
+    type: "タイムを入力"
+    save: "タイムを保存"
+    toast: "%label%を%time%で完成"
+    out_of_order: "順番に合わないタイムです。各パズルは前のパズルより後に完成します。"
+    pick_remaining: "最後に完成したパズルはどれですか？先にそのチップをタップしてから、タイムを保存してください。"
+    whole_round: "これはラウンド全体を完了します。1つのパズルにはそのパズル自身の「今完成」を使ってください。"
   proposals:
     title: "申告タイム %time%"
     from: "%time%に本人のスマートフォンから"

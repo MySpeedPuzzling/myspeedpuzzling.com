@@ -696,3 +696,13 @@ Deviations / details:
 - Should-fix: typed times ask which clock was read; a tap without a known S waits in the draft; round-1 DNF before the
   limit; current-round tie-break prefers round 1; server-side refusal of stopwatch reveal on a chained round; stopwatch
   messages under a row lock.
+
+## As built: W5 - judge "Finished now" per puzzle (2026-11-17, branch `re/w5`)
+
+Built as the Review amendments say (a back-to-back block = one "Solve all 2 (order recorded)" round): on a `pick`
+round with K ≥ 2 the judge's entry card lists "Finish time per puzzle" - a tap on a puzzle's "Finished now" stores its
+cumulative split (`atSeconds`, the tap's moment on the server-synced clock, offline through the outbox); the K-th tap
+opens the confirm step with the round result and Save sends `puzzles` + `result` as one group with the last split = the
+result. Typed time per puzzle for corrections. Untouched rounds and pick rounds whose judges never tap per puzzle save
+exactly as before. Details: [round-formats.md](round-formats.md) "Judge split times"; chaos `s14_puzzle_splits`.
+Not built: the competitor page / proposals per puzzle (a proposal proposes the round's end).

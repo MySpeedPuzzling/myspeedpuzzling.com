@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Results\StandingRoundScore;
 use SpeedPuzzling\Web\Results\StandingRow;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
 use SpeedPuzzling\Web\Value\StandingEntryInput;
+use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRoundInput;
 use SpeedPuzzling\Web\Value\StandingRules;
@@ -32,8 +33,17 @@ use SpeedPuzzling\Web\Value\StandingScoreStatus;
  * Equal keys share a rank, the next rank skips ("1, 2, 2, 4"), no hidden tie-break. Then the incomplete entrants
  * without a rank, by rounds scored descending, then the same rule. Ties are listed by name, then key.
  *
- * Entrants are matched across rounds by `key` (participant id / line-up id). An entrant with no score in any counted
- * round is left out. Its name and people are the ones of the last round (in the standing's order) it is in.
+ * `missing_rule = as_zero_pieces` (the World Series no-show, world-series-rules.md §4.2): a counted round without a
+ * score becomes NoShow = time limit × 60 + penalty × the round's no-show pieces (unknown = no penalty part) - for an
+ * explicit "did not start" always, for no result / not in the round once the round is final (organiser preview: its
+ * results are published - entrants still solving are "not yet", never no-shows). A round without a limit, an unfinished
+ * result without a limit and a pair/team without people (`t:` key, W1-a) stay missing. A NoShow scores like any
+ * round, so the entrant is complete and ranked by `order_rule`.
+ *
+ * Entrants are matched across rounds by `key` (participant id / line-up id). An entrant without a real score (finished
+ * or unfinished) in any counted round is left out - also one whose every score is a NoShow, so the organiser preview
+ * and the public page (which never sees an absentee) list the same people. Its name and people are the ones of the
+ * last round (in the standing's order) it is in.
  */
 final readonly class StandingCalculator
 {
@@ -73,13 +83,23 @@ final readonly class StandingCalculator
             $totalPenalty = 0;
             $scored = 0;
             $finished = 0;
+            $appeared = 0;
 
             foreach ($rounds as $round) {
                 $score = $byRound[$round->roundId] ?? new StandingRoundScore(
                     $round->roundId,
                     $round->counted ? StandingScoreStatus::NotInRound : StandingScoreStatus::NotCounted,
                 );
+
+                if ($rules->missing === StandingMissing::AsZeroPieces) {
+                    $score = self::noShow($rules, $round, $key, $score);
+                }
+
                 $perRound[$round->roundId] = $score;
+
+                if ($score->status === StandingScoreStatus::Finished || $score->status === StandingScoreStatus::Unfinished) {
+                    $appeared++;
+                }
 
                 if ($score->scoreSeconds !== null) {
                     $total += $score->scoreSeconds;
@@ -94,7 +114,7 @@ final readonly class StandingCalculator
                 }
             }
 
-            if ($scored === 0) {
+            if ($appeared === 0) {
                 continue;
             }
 
@@ -231,6 +251,37 @@ final readonly class StandingCalculator
             $result,
             null,
             $entry->rank,
+        );
+    }
+
+    /**
+     * as_zero_pieces: a counted round's missing score as a no-show, when the rule can score it (see the class comment).
+     */
+    private static function noShow(StandingRules $rules, StandingRoundInput $round, string $key, StandingRoundScore $score): StandingRoundScore
+    {
+        $absent = match ($score->status) {
+            StandingScoreStatus::DidNotStart => true,
+            StandingScoreStatus::NoResult, StandingScoreStatus::NotInRound => $round->final,
+            default => false,
+        };
+
+        // A pair/team without people is no line-up of anybody's (W1-a) - never scored as a no-show
+        if ($absent === false || $round->minutesLimit === null || str_starts_with($key, 't:')) {
+            return $score;
+        }
+
+        $missingPieces = max(0, $round->noShowPiecesCount ?? 0);
+        $penalty = $rules->penaltySecondsPerPiece * $missingPieces;
+
+        return new StandingRoundScore(
+            $round->roundId,
+            StandingScoreStatus::NoShow,
+            $score->result,
+            $round->minutesLimit * 60 + $penalty,
+            null,
+            timeSeconds: $round->minutesLimit * 60,
+            missingPieces: $missingPieces,
+            penaltySeconds: $penalty,
         );
     }
 

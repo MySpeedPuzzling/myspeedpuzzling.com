@@ -4832,6 +4832,7 @@ page_sections:
     remove_link: "Quitar"
     save_link: "Guardar"
 live_results:
+  finished_missing_help: "Solo las piezas que cuestan penalización según tus reglas."
   title: "Entrada en vivo"
   round: "Ronda"
   back: "Atrás"
@@ -14022,6 +14023,19 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% terminado en"
         export_time: "Puzzle %position% tiempo propio"
         export_pieces: "Puzzle %position% piezas colocadas"
+    standings:
+        missing_rule:
+            label: "Rondas sin resultado"
+            incomplete: "Listar después de los participantes completos, sin posición"
+            incomplete_help: "Quien no tenga resultado en alguna de las rondas (no empezó, no fue inscrito) aparece después de todos los demás, sin posición."
+            as_zero_pieces: "Contar como ninguna pieza colocada: límite de tiempo + penalización × todas las piezas"
+            as_zero_pieces_help: "Un no presentado sigue clasificado: una ronda sin resultado cuenta como su límite de tiempo más la penalización por cada pieza (regla de la World Series). Cuando se publican los resultados de una ronda, todos los que no tengan resultado en ella son no presentados. Requiere un límite de tiempo en cada ronda."
+        rule_no_show: "una ronda sin resultado cuenta como el límite de tiempo + %seconds% s × todas las piezas"
+        rule_no_show_no_penalty: "una ronda sin resultado cuenta como el límite de tiempo"
+        no_show: "No presentado"
+        no_shows_wait: "Los no presentados cuentan cuando se publican los resultados de una ronda; hasta entonces, los participantes sin resultado en ella aún no se cuentan."
+        substitutes_warning: "{0}Ninguna pareja ni equipo aparece solo en algunas rondas.|{1}1 pareja o equipo aparece solo en algunas rondas: revisa los suplentes. Una composición distinta es un participante aparte y recibe un no presentado en las rondas que no jugó.|]1,Inf[%count% parejas o equipos aparecen solo en algunas rondas: revisa los suplentes. Una composición distinta es un participante aparte y recibe un no presentado en las rondas que no jugó."
+        publish_no_shows: "{0}Ninguna inscripción sin resultado contará como no presentado en %standing%.|{1}1 inscripción sin resultado contará como no presentado en %standing%.|]1,Inf[%count% inscripciones sin resultado contarán como no presentados en %standing%."
 competitor_page:
     settings:
         in_person_only: "Las páginas de participante y los códigos QR son para eventos presenciales."

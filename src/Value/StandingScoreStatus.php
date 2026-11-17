@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Value;
 /**
  * What one round gives one entrant of a `sum` standing (A-round-formats.md §3.3). Finished and Unfinished score;
  * every other status is a round without a score ("missing"), except NotCounted - a round that does not count yet.
+ * NoShow (only with `missing_rule = as_zero_pieces`, world-series-rules.md §4) scores too: the time limit + the penalty
+ * × all pieces of a round the entrant did not appear in.
  */
 enum StandingScoreStatus: string
 {
@@ -22,10 +24,12 @@ enum StandingScoreStatus: string
     case NotInRound = 'not_in_round';
     // The round does not count yet (public: unpublished; organiser: nothing recorded in it at all)
     case NotCounted = 'not_counted';
+    // Did not appear in a final round, scored as nothing placed (as_zero_pieces): limit × 60 + penalty × all pieces
+    case NoShow = 'no_show';
 
     public function scores(): bool
     {
-        return $this === self::Finished || $this === self::Unfinished;
+        return $this === self::Finished || $this === self::Unfinished || $this === self::NoShow;
     }
 
     public function isMissing(): bool

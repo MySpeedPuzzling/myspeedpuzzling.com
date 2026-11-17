@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\StandingMissing;
+use SpeedPuzzling\Web\Value\StandingScoreStatus;
+
 /**
  * A computed standing (GetStandingResults): its rounds as columns and its entrants in order.
  */
@@ -68,6 +71,35 @@ readonly final class StandingTable
         }
 
         return array_values(array_filter($this->rounds, static fn (StandingRoundColumn $round): bool => $round->hasUnfinished && $round->piecesUnknown));
+    }
+
+    /**
+     * as_zero_pieces (world-series-rules.md W1-a): the pair/team line-ups missing from some counted round - a substitute
+     * makes another line-up, and each of the two would be scored a no-show where the other one played. 0 with any other
+     * rule.
+     */
+    public function lineupsInSomeRounds(): int
+    {
+        if ($this->standing->rules->missing !== StandingMissing::AsZeroPieces) {
+            return 0;
+        }
+
+        return count(array_filter($this->rows, static fn (StandingRow $row): bool => str_starts_with($row->key, 'l:') && array_any(
+            $row->perRound,
+            static fn (StandingRoundScore $score): bool => $score->result === null
+                && ($score->status === StandingScoreStatus::NotInRound || $score->status === StandingScoreStatus::NoShow),
+        )));
+    }
+
+    /**
+     * as_zero_pieces in the organiser's preview: a round counts already but is not published - entrants without a result
+     * there are no no-shows yet (they may still be solving), they become ones once it is published.
+     */
+    public function noShowsWaitForPublishing(): bool
+    {
+        return $this->standing->rules->missing === StandingMissing::AsZeroPieces
+            && $this->includesUnpublished
+            && array_any($this->rounds, static fn (StandingRoundColumn $round): bool => $round->counted && $round->published === false);
     }
 
     /**

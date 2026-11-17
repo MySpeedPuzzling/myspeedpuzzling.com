@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\FormData\CompetitionStandingFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Component\Form\AbstractType;
@@ -72,6 +73,13 @@ final class CompetitionStandingFormType extends AbstractType
             'expanded' => true,
             'label' => 'competition_standing.form.order',
             'choice_label' => static fn (StandingOrder $order): string => 'competition_standing.order.' . $order->value,
+        ]);
+
+        $builder->add('missingRule', EnumType::class, [
+            'class' => StandingMissing::class,
+            'expanded' => true,
+            'label' => 'competition_toolkit.standings.missing_rule.label',
+            'choice_label' => static fn (StandingMissing $missing): string => 'competition_toolkit.standings.missing_rule.' . $missing->value,
         ]);
     }
 

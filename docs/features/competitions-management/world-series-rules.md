@@ -653,6 +653,24 @@ challenge, the display's shared clock, a competitor phone's per-entrant clock.
 | Q-J10 | Creation wizard: offer "back to back" / "unboxed" there too, or toolkit hub only? | Hub only (wizard later) |
 
 
+## As built: W1 no-show (`as_zero_pieces`) - Real events W1, 2026-11-17
+
+As designed in §4 with the amendments W1-a/b/c; the as-built summary is in [standings.md](standings.md) "No-show".
+Deviations / details:
+- The judge card's help line (W1-c) is **not** built - it needs logic in `live_results_controller.js` (the page fills
+  from the state; another lane's file at the time). The desk's result editor shows it. `round.penalisedMissing` is NOT added to
+  `official_results_round_state` (the judge page's hot path - no statement more per poll); the judge-card help line
+  would ride on an existing statement later (v3).
+- `penalisedMissing` needs `penalise_finished_missing` on **and** a penalty > 0 (with 0 nothing costs a penalty).
+- The no-show penalty always uses the round's no-show pieces (`StandingRoundInput::$noShowPiecesCount`), also for an
+  explicit "Did not start" with chosen puzzles - the public view never sees that entry, so ranks stay = preview.
+- An entrant with only missing rounds and no-shows (no finished/unfinished score) is left out, extending "every score a
+  no-show".
+- `round.noShowStandings` (names) is on the desk's server-rendered state only; the JSON state endpoint carries
+  `penalisedMissing` only. One statement (`GetRoundStandingRules`) on each.
+- The old static note `competition_standing.form.missing_rule` is no longer rendered (replaced by the choice; its text is
+  `competition_toolkit.standings.missing_rule.incomplete_help`).
+
 ## Chained round - v2 notes (from the design review, to fix before the chained round is ever built)
 - B1: no set-level `chainAware` flag - every finished `result` change on a chained round travels in a group with a
   `chain_start` change built at queue time (old bundle / old snapshot can never produce it); refused otherwise.

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
+use SpeedPuzzling\Web\Query\GetRoundStandingRules;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -41,6 +42,7 @@ final class ResultsDeskController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
+        private readonly GetRoundStandingRules $getRoundStandingRules,
     ) {
     }
 
@@ -90,6 +92,10 @@ final class ResultsDeskController extends AbstractController
         $steps = $this->getCompetitionAdvancementSteps->ofCompetition($competitionId);
         $advancementSteps = $steps === [] ? [] : AdvancementStepsView::of($steps, $rounds)->forSourceRound($roundId);
 
+        // The standings counting this round (world-series-rules.md W1-b/W1-c): `round.noShowStandings` - the publish
+        // readiness line names them; `round.penalisedMissing` - the help line under "Pieces missing". Absent otherwise.
+        $standingKeys = $this->getRoundStandingRules->forRound($roundId)->roundKeys(withNoShows: true);
+
         $response = $this->render('official_results/results_desk.html.twig', [
             'advancement_steps' => $advancementSteps,
             'competition' => $competition,
@@ -108,7 +114,7 @@ final class ResultsDeskController extends AbstractController
                     // Publishing on an event nobody can see yet tells nobody until it is approved
                     'isPubliclyVisible' => $isPubliclyVisible,
                 ],
-                'round' => $thisRound,
+                'round' => $standingKeys !== [] ? [...$thisRound->jsonSerialize(), ...$standingKeys] : $thisRound,
                 'rounds' => $rounds,
                 'entries' => $this->getRoundResultEntries->forRound($roundId),
                 'mercure' => $this->subscription->forRound($roundId),

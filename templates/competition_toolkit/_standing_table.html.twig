@@ -19,6 +19,13 @@
     {% for round in table.roundsWithoutLimit %}
         <p class="small text-warning-emphasis mb-1" data-standing-no-limit>{{ 'competition_standing.preview.no_limit'|trans({'%round%': round.name}) }}</p>
     {% endfor %}
+    {# The World Series no-show (as_zero_pieces, world-series-rules.md W1-a): substitutes make separate line-ups #}
+    {% if table.lineupsInSomeRounds > 0 %}
+        <p class="small text-warning-emphasis mb-1" data-standing-substitutes="{{ table.lineupsInSomeRounds }}"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{{ 'competition_toolkit.standings.substitutes_warning'|trans({'%count%': table.lineupsInSomeRounds}) }}</p>
+    {% endif %}
+    {% if table.noShowsWaitForPublishing %}
+        <p class="small text-muted mb-1" data-standing-no-shows-wait>{{ 'competition_toolkit.standings.no_shows_wait'|trans }}</p>
+    {% endif %}
     {% for round in table.roundsWithoutPieces %}
         <p class="small text-warning-emphasis mb-1" data-standing-no-pieces>{{ 'competition_standing.preview.no_pieces'|trans({'%round%': round.name}) }}</p>
     {% endfor %}
@@ -65,6 +72,8 @@
                                         {{ score.timeSeconds|puzzlingTime }}
                                     {% elseif score.status.value == 'unfinished' %}
                                         <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.timeSeconds|puzzlingTime }}*</span>
+                                    {% elseif score.status.value == 'no_show' %}
+                                        <span class="text-danger" data-standing-no-show>{{ 'competition_toolkit.standings.no_show'|trans }}</span> {{ score.timeSeconds|puzzlingTime }}
                                     {% elseif score.status.value == 'not_counted' %}
                                         –
                                     {% else %}

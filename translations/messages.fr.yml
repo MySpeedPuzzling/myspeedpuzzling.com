@@ -4898,6 +4898,7 @@ page_sections:
     remove_link: "Retirer"
     save_link: "Enregistrer"
 live_results:
+  finished_missing_help: "Seulement les pièces qui coûtent une pénalité selon votre règlement."
   title: "Saisie des résultats en direct"
   round: "Manche"
   back: "Retour"
@@ -14017,6 +14018,19 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% terminé à"
         export_time: "Puzzle %position% temps propre"
         export_pieces: "Puzzle %position% pièces posées"
+    standings:
+        missing_rule:
+            label: "Manches sans résultat"
+            incomplete: "Lister après les concurrents complets, sans rang"
+            incomplete_help: "Un concurrent sans résultat dans l'une des manches (n'a pas pris le départ, non inscrit) est listé après tous les autres, sans rang."
+            as_zero_pieces: "Compter comme aucune pièce posée : limite de temps + pénalité × toutes les pièces"
+            as_zero_pieces_help: "Un concurrent absent reste classé : une manche sans résultat compte comme sa limite de temps plus la pénalité pour chaque pièce (règle de la World Series). Dès que les résultats d'une manche sont publiés, tous ceux qui n'y ont pas de résultat sont absents. Nécessite une limite de temps dans chaque manche."
+        rule_no_show: "une manche sans résultat compte comme la limite de temps + %seconds% s × toutes les pièces"
+        rule_no_show_no_penalty: "une manche sans résultat compte comme la limite de temps"
+        no_show: "Absent"
+        no_shows_wait: "Les absences sont comptées une fois les résultats d'une manche publiés - d'ici là, les concurrents sans résultat n'y sont pas encore comptés."
+        substitutes_warning: "[0,1]1 duo ou équipe n'apparaît que dans certaines manches - vérifiez les remplaçants : une composition modifiée est un concurrent distinct et reçoit une absence dans les manches qu'elle n'a pas jouées.|]1,Inf[%count% duos ou équipes n'apparaissent que dans certaines manches - vérifiez les remplaçants : une composition modifiée est un concurrent distinct et reçoit une absence dans les manches qu'elle n'a pas jouées."
+        publish_no_shows: "[0,1]1 concurrent sans résultat comptera comme absent dans %standing%.|]1,Inf[%count% concurrents sans résultat compteront comme absents dans %standing%."
 competitor_page:
     settings:
         in_person_only: "Les pages des concurrents et les codes QR sont destinés aux événements en présentiel."

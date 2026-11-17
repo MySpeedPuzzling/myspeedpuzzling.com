@@ -882,6 +882,7 @@ export default class extends Controller {
             <label class="d-flex align-items-center gap-1 small mt-1" data-editor-missing-row ${mode === 'time' ? '' : 'hidden'}>
                 <span class="text-body-secondary">${escapeHtml(this.t('missing_label'))}</span>
                 <input type="text" class="form-control form-control-sm" style="max-width: 5rem;" data-editor-missing inputmode="numeric" autocomplete="off" value="${missing !== null ? missing : ''}" data-action="input->results-desk#editorPreview">
+                ${this.round.penalisedMissing === true ? `<span class="text-body-secondary" data-editor-missing-help>${escapeHtml(this.t('missing_penalty_help'))}</span>` : ''}
             </label>
             <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
             <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
@@ -2095,6 +2096,11 @@ export default class extends Controller {
 
             if (withoutResult > 0) {
                 lines.push(`<div class="alert alert-warning py-2 mb-2"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.tc('publish_without_result', withoutResult))}</div>`);
+
+                // A standing scores them as no-shows once this is published (world-series-rules.md W1-b)
+                if (Array.isArray(this.round.noShowStandings) && this.round.noShowStandings.length > 0) {
+                    lines.push(`<div class="alert alert-warning py-2 mb-2" data-publish-no-shows><i class="bi bi-person-x me-1" aria-hidden="true"></i>${escapeHtml(this.tc('publish_no_shows', withoutResult, { standing: this.round.noShowStandings.join(', ') }))}</div>`);
+                }
             }
 
             if (this.revealMissedCount() > 0 && typeof this.urlsValue.missedReveal === 'string') {

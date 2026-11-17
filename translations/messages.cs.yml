@@ -4906,6 +4906,7 @@ page_sections:
     remove_link: "Odebrat"
     save_link: "Uložit"
 live_results:
+  finished_missing_help: "Jen dílky, které podle vašich pravidel stojí penalizaci."
   title: "Živé zadávání výsledků"
   round: "Kolo"
   back: "Zpět"
@@ -14024,6 +14025,19 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% dokončeno v"
         export_time: "Puzzle %position% vlastní čas"
         export_pieces: "Puzzle %position% položené dílky"
+    standings:
+        missing_rule:
+            label: "Kola bez výsledku"
+            incomplete: "Uvést za soutěžícími s kompletními výsledky, bez pořadí"
+            incomplete_help: "Soutěžící bez výsledku v některém z kol (nezačal, není zapsán) se uvede za všemi ostatními, bez pořadí."
+            as_zero_pieces: "Počítat jako nic nepoloženo: časový limit + penalizace × všechny dílky"
+            as_zero_pieces_help: "Neúčast zůstává v pořadí: kolo bez výsledku se počítá jako jeho časový limit plus penalizace za každý dílek (pravidlo World Series). Jakmile jsou výsledky kola zveřejněny, každý, kdo v něm nemá výsledek, má neúčast. Vyžaduje časový limit v každém kole."
+        rule_no_show: "kolo bez výsledku se počítá jako časový limit + %seconds% s × všechny dílky"
+        rule_no_show_no_penalty: "kolo bez výsledku se počítá jako časový limit"
+        no_show: "Neúčast"
+        no_shows_wait: "Neúčasti se počítají, jakmile jsou zveřejněny výsledky kola - do té doby se soutěžící bez výsledku v něm ještě nepočítají."
+        substitutes_warning: "{0}%count% dvojic nebo týmů se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|{1}1 dvojice nebo tým se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|[2,4]%count% dvojice nebo týmy se objevují jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|[5,Inf[%count% dvojic nebo týmů se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast."
+        publish_no_shows: "{0}%count% záznamů bez výsledku se v %standing% započítá jako neúčast.|{1}1 záznam bez výsledku se v %standing% započítá jako neúčast.|[2,4]%count% záznamy bez výsledku se v %standing% započítají jako neúčast.|[5,Inf[%count% záznamů bez výsledku se v %standing% započítá jako neúčast."
 competitor_page:
     settings:
         in_person_only: "Stránky soutěžících a QR kódy jsou pro prezenční události."

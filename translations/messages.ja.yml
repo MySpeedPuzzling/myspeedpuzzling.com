@@ -4821,6 +4821,7 @@ page_sections:
     remove_link: "削除"
     save_link: "保存"
 live_results:
+  finished_missing_help: "ルールでペナルティとなるピースのみ。"
   title: "ライブ入力"
   round: "ラウンド"
   back: "戻る"
@@ -14011,6 +14012,19 @@ competition_toolkit:
         export_finished_at: "パズル%position% 完成時刻"
         export_time: "パズル%position% 個別タイム"
         export_pieces: "パズル%position% はめたピース"
+    standings:
+        missing_rule:
+            label: "結果のないラウンド"
+            incomplete: "全ラウンドそろった出場者の後に順位なしで掲載"
+            incomplete_help: "いずれかのラウンドで結果のない人（未開始・未エントリー）は、他の全員の後に順位なしで掲載されます。"
+            as_zero_pieces: "1ピースも組めなかったものとして計算：制限時間＋ペナルティ × 全ピース数"
+            as_zero_pieces_help: "欠場でも順位は付きます。結果のないラウンドは、制限時間に全ピース分のペナルティを加えたタイムとして扱われます（ワールドシリーズのルール）。ラウンドの結果が公開されると、そこで結果のない人は全員欠場となります。すべてのラウンドに制限時間が必要です。"
+        rule_no_show: "結果のないラウンドは、制限時間＋%seconds%秒 × 全ピース数として計算"
+        rule_no_show_no_penalty: "結果のないラウンドは、制限時間として計算"
+        no_show: "欠場"
+        no_shows_wait: "欠場はラウンドの結果が公開された時点で計算されます。それまでは、結果のない出場者はまだ数えられません。"
+        substitutes_warning: "{0}一部のラウンドにしか出ていないペア/チームはありません。|{1}一部のラウンドにしか出ていないペア/チームが1組あります。交代要員を確認してください。メンバーが変わると別の出場者となり、出なかったラウンドは欠場になります。|]1,Inf[一部のラウンドにしか出ていないペア/チームが%count%組あります。交代要員を確認してください。メンバーが変わると別の出場者となり、出なかったラウンドは欠場になります。"
+        publish_no_shows: "{0}結果のないエントリーはありません。|{1}結果のないエントリー1件は、%standing%で欠場として計算されます。|]1,Inf[結果のないエントリー%count%件は、%standing%で欠場として計算されます。"
 competitor_page:
     settings:
         in_person_only: "出場者ページとQRコードは会場開催のイベント用です。"

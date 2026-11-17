@@ -127,7 +127,10 @@ one sheet named in the organiser's language (`results_desk.export.sheet`, cleane
 not have), numbers typed. **Every cell through `SpreadsheetSafeValue`** (names are typed by people).
 Deliberately not the data export's sectioned writer: one table is one file, not a ZIP. A `pick` round adds four columns per puzzle position (puzzle, finished
 at, own time, pieces placed - a hidden puzzle by its label only); every other round's columns are pinned unchanged
-(`PickRoundDeskAndExportTest`).
+(`PickRoundDeskAndExportTest`). Competition toolkit T6: a last column "Pieces missing (finished)" only when an entry of the round has
+such a count (official-results.md "Finished with pieces missing"); the time editor of a one-result round has an optional
+"pieces missing" input next to the time (sent as `missing_pieces`, grouped with a changed time), the row shows
+"1:23:45 · 1 piece missing".
 
 ## Advance the qualified (`advance_qualified_controller.js`)
 

@@ -29,6 +29,8 @@
     piecesInvalid: 'official_results.reason.invalid_pieces_placed'|trans,
     piecesPlaced: 'official_results.result.pieces_placed'|trans,
     piecesPlacedOf: 'official_results.result.pieces_placed_of'|trans,
+    missingInvalid: 'official_results.reason.invalid_missing_pieces'|trans,
+    missingHint: 'finished_missing.judge.hint'|trans,
     didNotStart: 'official_results.result.did_not_start'|trans,
     finishedNowNote: 'live_results.confirm.finished_now'|trans,
     finishedNowTappedAt: 'live_results.restore.finished_now_tapped_at'|trans,
@@ -145,6 +147,8 @@
     puzzleHidden: 'live_results.puzzles.hidden'|trans,
     puzzleMissing: 'live_results.puzzles.missing_filter'|trans({'%count%': '%count%'}),
     fieldPuzzles: 'live_results.puzzles.field'|trans,
+    fieldMissing: 'finished_missing.judge.field'|trans,
+    missingNone: 'finished_missing.judge.none'|trans,
     proposalTitle: 'live_results.proposals.title'|trans,
     proposalFrom: 'live_results.proposals.from'|trans,
     proposalBy: 'live_results.proposals.by'|trans,
@@ -302,6 +306,7 @@
              foreign: browser_translation('live_results.banner.foreign'),
              forbiddenRounds: browser_translation('live_results.banner.forbidden_rounds'),
              discardAllConfirm: browser_translation('live_results.problem.discard_all_confirm'),
+             missingPieces: browser_translation('finished_missing.missing_short'),
          }|json_encode|e('html_attr') }}"
     >
         <div class="lr-bar">
@@ -406,6 +411,18 @@
             <div class="lr-confirm" data-live-results-target="confirmView" hidden role="group" aria-labelledby="lr-entry-name">
                 <div class="lr-confirm-result" data-live-results-target="confirmResult"></div>
                 <div class="small mb-3" data-live-results-target="confirmNote"></div>
+                {# Finished with pieces missing (competition toolkit T6): only with a finished time, one tap opens the count -
+                   Save stays where it was #}
+                <button type="button" class="btn btn-link btn-sm px-0 mb-2" data-live-results-target="missingToggle" data-action="live-results#openMissing" hidden>
+                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'finished_missing.judge.add'|trans }}
+                </button>
+                <div class="mb-3" data-live-results-target="missingField" hidden>
+                    <label for="lr-missing" class="form-label small mb-1">{{ 'finished_missing.judge.label'|trans }}</label>
+                    <input type="text" id="lr-missing" class="form-control" style="max-width: 8rem;" data-live-results-target="missingInput"
+                           data-action="input->live-results#missingTyped keydown.enter->live-results#missingEnter"
+                           inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off">
+                    <div class="form-text" data-live-results-target="missingHint">{{ 'finished_missing.judge.hint'|trans }}</div>
+                </div>
                 <button type="button" class="btn btn-success w-100 lr-big-btn" data-live-results-target="saveButton" data-action="pointerdown->live-results#savePointerDown live-results#save">
                     <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'live_results.confirm.save'|trans }}
                 </button>

@@ -709,7 +709,7 @@ export class TeamRoundView {
         }
 
         if (col === 'result') {
-            return this.results.resultCell(ref, team.result, team.enteredBy, team.enteredAt);
+            return this.results.resultCell(ref, team.result, team.enteredBy, team.enteredAt, { missingPieces: team.missingPieces ?? null });
         }
 
         if (col === 'puzzles') {

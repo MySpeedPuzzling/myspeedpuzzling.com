@@ -74,6 +74,11 @@ export function entryValue(entry, field) {
         return entry.puzzles ?? null;
     }
 
+    // Finished with pieces missing (competition toolkit T6) - the key only on an entry that has a count
+    if (field === 'missing_pieces') {
+        return entry.missingPieces ?? null;
+    }
+
     return entry.qualified === true;
 }
 

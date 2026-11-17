@@ -10,6 +10,7 @@
  * (`context.texts.round`) - `t(key, params)` / `tc(key, count, params)`.
  */
 
+import { withMissing } from '../../official_results_finished_missing.js';
 import { escapeHtml } from '../sheet_grid.js';
 import { IN, OUT, cleanTeamName, hasOfficialData, nameKey, parsePlace } from '../sheet_model.js';
 import { keepMineInEditor, openEditor, savedMeanwhile } from '../../official_results_pending_changes.js';
@@ -967,9 +968,11 @@ export class RoundResultsCells {
     }
 
     /** The cell of a result: its text, "entered by Eva · 10:42" as title and for screen readers. */
-    resultCell(ref, server, enteredBy, enteredAt, { readonly = false, reason = '' } = {}) {
+    resultCell(ref, server, enteredBy, enteredAt, { readonly = false, reason = '', missingPieces = null } = {}) {
         const value = this.shown(ref, 'result', server);
-        const text = resultText(value, this.round()?.piecesCount ?? null, this.resultTexts());
+        // Finished with pieces missing (competition toolkit T6): shown, read only here - recorded on the judge page or the
+        // results desk; a time corrected here keeps the count (its own field on the server)
+        const text = withMissing(resultText(value, this.round()?.piecesCount ?? null, this.resultTexts()), value, missingPieces, (count) => this.texts.tc('result_missing_pieces', count));
         const unsaved = ref !== null && !sameValue(value, server);
         const entered = !unsaved && value !== null ? enteredLabel(enteredBy, enteredAt, {
             locale: this.context.locale,

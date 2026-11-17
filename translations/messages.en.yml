@@ -7972,6 +7972,8 @@ official_results:
         too_many_members: "A pair/team added here can have at most 20 people."
         invalid_seconds: "A time is between 0:00:01 and 23:59:59."
         invalid_pieces_placed: "Pieces placed must be at least 1 and fewer than the puzzle has - a finished puzzle gets a time."
+        invalid_missing_pieces: "Pieces missing must be at least 1 and fewer than the puzzle has."
+        missing_pieces_not_finished: "Pieces missing can be recorded only with a finished time."
         invalid_table_number: "A table number is between 1 and 9999."
         table_number_taken: "Another entrant of this round has this table number."
         duplicate_entry: "This entrant is listed twice."
@@ -15389,3 +15391,24 @@ analytics_studio:
     "organiser.link": "Analytics studio"
     "organiser.title": "Analytics studio"
     "organiser.help": "A live view of each round for commentators: every entrant against the round's puzzles, their history, predictions and the results as they come in. Open it on a second screen."
+finished_missing:
+    export_column: "Pieces missing (finished)"
+    missing_short: "{1}1 piece missing|]1,Inf[%count% pieces missing"
+    standing:
+        breakdown: "%time% · %missing%"
+        breakdown_penalised: "%time% + %penalty% penalty · %missing%"
+        finished_penalised: "pieces missing from a finished puzzle are penalised too"
+        finished_not_penalised: "pieces missing from a finished puzzle are not penalised"
+        legend_unfinished: "* not finished: the round's time limit, the pieces not placed next to it - their penalty is in the total."
+        preview_legend: "* not finished: the time limit, the pieces not placed next to it. The total = the times + the penalty per missing piece. (n.) = the place in that round."
+    standing_form:
+        penalise: "Penalise pieces missing from a finished puzzle too"
+        penalise_help: "A judge may record a finished puzzle with pieces missing (e.g. a piece missing from the factory). Off: they are shown, but cost no time. On: each costs the penalty above, like a piece not placed in time."
+    judge:
+        add: "Pieces missing"
+        label: "Pieces missing from the finished puzzle"
+        hint: "E.g. a piece missing from the factory. Empty = the puzzle is complete."
+        field: "Pieces missing"
+        none: "no pieces missing"
+    desk:
+        label: "pieces missing:"

@@ -43,10 +43,18 @@ readonly final class RoundResultsExporter
      */
     public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null): ExportFile
     {
-        $rows = [[...$this->header(), ...$this->puzzlesHeader($pickFormat)]];
+        // Finished with pieces missing (competition toolkit T6): a last column only when some entry has them - every other
+        // round exports exactly the columns it did
+        $withMissing = array_any($entries, static fn (RoundResultEntry $entry): bool => $entry->missingPieces !== null);
+        $missingHeader = $withMissing ? [$this->translator->trans('finished_missing.export_column')] : [];
+        $rows = [[...$this->header(), ...$this->puzzlesHeader($pickFormat), ...$missingHeader]];
 
         foreach ($entries as $entry) {
-            $rows[] = [...$this->row($entry, $piecesCount, new DateTimeZone($timezone)), ...$this->puzzlesRow($entry, $pickFormat)];
+            $rows[] = [
+                ...$this->row($entry, $piecesCount, new DateTimeZone($timezone)),
+                ...$this->puzzlesRow($entry, $pickFormat),
+                ...($withMissing ? [$entry->missingPieces] : []),
+            ];
         }
 
         return match ($format) {

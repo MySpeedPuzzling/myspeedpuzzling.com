@@ -43,6 +43,7 @@ import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzl
 import { normaliseDraft } from '../assets/live_entry_draft.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
+import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../assets/official_results_finished_missing.js';
 import { convertTyped, count, MISSING, openAfterPick, openFor, opensUnfinished, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
@@ -2064,6 +2065,59 @@ const scenarios = {
         assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', proposalId: PROP_1, savedAt: 1 }).proposalId, PROP_1);
         assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', savedAt: 1 }).proposalId, null);
     },
+
+    // Competition toolkit T6 - finished with pieces missing (a piece missing from the factory)
+    finishedMissingParse() {
+        assert.deepEqual(parseMissingPieces(''), { empty: true });
+        assert.deepEqual(parseMissingPieces(' 1 '), { value: 1 });
+        assert.deepEqual(parseMissingPieces('0'), { error: true });
+        assert.deepEqual(parseMissingPieces('abc'), { error: true });
+        assert.deepEqual(parseMissingPieces('499', 500), { value: 499 });
+        assert.deepEqual(parseMissingPieces('500', 500), { error: true });
+        assert.deepEqual(parseMissingPieces('9999'), { value: 9999 });
+        assert.deepEqual(parseMissingPieces('10000'), { error: true });
+        assert.equal(missingOf(3), 3);
+        assert.equal(missingOf(0), null);
+        assert.equal(missingOf(undefined), null);
+    },
+
+    finishedMissingChange() {
+        const finished = { seconds: 5025 };
+        // The field never opened: the stored count stays - no change
+        assert.equal(missingPiecesChange(finished, undefined, 2), null);
+        // Typed: a change unless it is what is shown
+        assert.deepEqual(missingPiecesChange(finished, 1, null), { field: MISSING_PIECES, to: 1 });
+        assert.equal(missingPiecesChange(finished, 2, 2), null);
+        // Emptied: complete again
+        assert.deepEqual(missingPiecesChange(finished, null, 2), { field: MISSING_PIECES, to: null });
+        assert.equal(missingPiecesChange(finished, null, null), null);
+        // Any other result: nothing to send (the server drops the count itself)
+        assert.equal(missingPiecesChange({ piecesPlaced: 400 }, 1, null), null);
+        assert.equal(missingPiecesChange({ didNotStart: true }, 1, 2), null);
+        assert.equal(missingPiecesChange(null, null, 2), null);
+        assert.equal(MISSING_PIECES, 'missing_pieces');
+    },
+
+    finishedMissingText() {
+        const label = (count) => (count === 1 ? '1 piece missing' : `${count} pieces missing`);
+        assert.equal(withMissing('1:23:45', { seconds: 5025 }, 1, label), '1:23:45 · 1 piece missing');
+        assert.equal(withMissing('1:23:45', { seconds: 5025 }, 3, label), '1:23:45 · 3 pieces missing');
+        assert.equal(withMissing('1:23:45', { seconds: 5025 }, null, label), '1:23:45');
+        assert.equal(withMissing('479 / 500 pcs', { piecesPlaced: 479 }, 2, label), '479 / 500 pcs');
+    },
+
+    finishedMissingShownValue() {
+        // The entry JSON has the key only when set; a pending change of this device wins
+        const plain = entry('participant_round:a', 'Ann', 1, { result: { seconds: 100 } });
+        const withCount = entry('participant_round:b', 'Ben', 2, { result: { seconds: 100 }, missingPieces: 2 });
+        assert.equal(shownValue(plain, 'missing_pieces', []).value ?? null, null);
+        assert.equal(shownValue(withCount, 'missing_pieces', []).value, 2);
+        const pending = [{ entryRef: 'participant_round:b', field: 'missing_pieces', to: null, seq: 1, state: 'pending' }];
+        assert.equal(shownValue(withCount, 'missing_pieces', pending).value, null);
+        assert.equal(sameValue(1, 1), true);
+        assert.equal(sameValue(1, null), false);
+    },
+
 };
 
 const P_A = '018d0020-0000-0000-0000-00000000a001';

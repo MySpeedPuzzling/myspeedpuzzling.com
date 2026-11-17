@@ -36,6 +36,7 @@ import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '.
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
+import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -118,7 +119,7 @@ export default class extends Controller {
         'bannerBelow', 'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'proposal',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
-        'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
+        'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle', 'missingToggle', 'missingField', 'missingInput', 'missingHint',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
         'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
     ];
@@ -922,13 +923,21 @@ export default class extends Controller {
         return message ? (chooseTranslation(message.message, count, message.locale) ?? String(count)) : String(count);
     }
 
-    describe(result) {
-        return describeResult(result, this.round?.piecesCount ?? null, {
+    describe(result, missing = null) {
+        const text = describeResult(result, this.round?.piecesCount ?? null, {
             noResult: '–',
             piecesPlaced: this.t('piecesPlaced'),
             piecesPlacedOf: this.t('piecesPlacedOf'),
             didNotStart: this.t('didNotStart'),
         });
+
+        // Finished with pieces missing (competition toolkit T6): "1:23:45 · 1 piece missing"
+        return withMissing(text, result, missing, (count) => this.plural('missingPieces', count).split('%count%').join(String(count)));
+    }
+
+    /** The count of pieces missing from a finished puzzle the device shows for an entry (server or its own pending). */
+    shownMissing(entry, items = this.outbox?.all() ?? []) {
+        return missingOf(shownValue(entry, MISSING_PIECES, items).value);
     }
 
     timeOfDay(iso) {
@@ -1789,7 +1798,7 @@ export default class extends Controller {
                 <span class="lr-row-name">${flag}${escapeHtml(entry.displayName ?? entry.name ?? '')}</span>
                 ${sub.length > 0 ? `<span class="lr-row-sub">${escapeHtml(sub.join(' · '))}</span>` : ''}
             </span>
-            <span class="lr-row-result">${escapeHtml(result.value === null || result.value === undefined ? '' : this.describe(result.value))}</span>
+            <span class="lr-row-result">${escapeHtml(result.value === null || result.value === undefined ? '' : this.describe(result.value, this.shownMissing(entry)))}</span>
             <span class="lr-row-sync">${sync}</span>
         </button>`;
     }
@@ -1823,11 +1832,11 @@ export default class extends Controller {
         let now;
 
         if (shown.item !== null && shown.item.state === 'pending') {
-            now = `<i class="bi bi-clock-history text-warning me-1" aria-hidden="true"></i>${escapeHtml(this.t('waiting', { '%result%': this.describe(shown.value) }))}`;
+            now = `<i class="bi bi-clock-history text-warning me-1" aria-hidden="true"></i>${escapeHtml(this.t('waiting', { '%result%': this.describe(shown.value, this.shownMissing(entry, items)) }))}`;
         } else if (entry.result !== null && entry.result !== undefined) {
             now = entry.enteredBy
-                ? escapeHtml(this.t('savedBy', { '%result%': this.describe(entry.result), '%name%': this.whoName(entry.enteredBy), '%time%': this.timeOfDay(entry.enteredAt) }))
-                : escapeHtml(this.t('saved', { '%result%': this.describe(entry.result) }));
+                ? escapeHtml(this.t('savedBy', { '%result%': this.describe(entry.result, this.shownMissing(entry, items)), '%name%': this.whoName(entry.enteredBy), '%time%': this.timeOfDay(entry.enteredAt) }))
+                : escapeHtml(this.t('saved', { '%result%': this.describe(entry.result, this.shownMissing(entry, items)) }));
             now = `<i class="bi bi-check2-circle text-success me-1" aria-hidden="true"></i>${now}`;
         } else {
             now = `<span class="text-muted">${escapeHtml(entry.local ? this.t('local') : this.t('noResult'))}</span>`;
@@ -2108,11 +2117,15 @@ export default class extends Controller {
             return this.t('proposalReject');
         }
 
+        if (field === MISSING_PIECES) {
+            return missingOf(value) === null ? this.t('missingNone') : this.plural('missingPieces', value).split('%count%').join(String(value));
+        }
+
         return value === true ? this.t('qualified') : this.t('notQualified');
     }
 
     problemHtml(item, entry, withName) {
-        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified'), puzzles: this.t('fieldPuzzles'), proposal: this.t('fieldProposal') }[item.field] ?? '';
+        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified'), puzzles: this.t('fieldPuzzles'), proposal: this.t('fieldProposal'), [MISSING_PIECES]: this.t('fieldMissing') }[item.field] ?? '';
         const title = withName ? `<strong>${escapeHtml(entry?.displayName ?? '')}</strong> · ${escapeHtml(fieldLabel)}` : `<strong>${escapeHtml(fieldLabel)}</strong>`;
         const id = escapeHtml(item.id);
 
@@ -3010,12 +3023,12 @@ export default class extends Controller {
         }
 
         this.pendingValue = value;
+        this.prepareMissing(entry, value);
         this.pendingFinishedNow = finishedNow;
         this.pendingTappedAt = finishedNow ? tappedAt : null;
         const shown = shownValue(entry, 'result', this.outbox.all());
 
-        this.confirmResultTarget.textContent = value === null ? this.t('clearResult') : this.describe(value);
-        this.confirmResultTarget.classList.toggle('text-danger', value === null);
+        this.renderConfirmResult();
 
         let note = finishedNow ? this.t('finishedNowNote') : '';
 
@@ -3024,7 +3037,7 @@ export default class extends Controller {
             note = `${note} · ${this.t('finishedNowTappedAt', { '%time%': this.clockTime(tappedAt) })}`;
         }
 
-        if (sameValue(shown.value, value)) {
+        if (sameValue(shown.value, value) && this.missingChange(entry) === null) {
             note = this.t('same');
         } else if (shown.value !== null && shown.value !== undefined) {
             const replaces = shown.item === null && entry.enteredBy
@@ -3043,6 +3056,56 @@ export default class extends Controller {
         this.savePointerAt = null;
         this.saveButtonTarget.focus({ preventScroll: true });
         this.rememberDraft();
+    }
+
+    // ---- Finished with pieces missing (competition toolkit T6) ----
+
+    /**
+     * The confirm step's "+ pieces missing": offered only with a finished time; open (prefilled) when the entry has a
+     * count already, else closed - `pendingMissing` undefined = untouched (the count stays), null = complete, a number,
+     * or false while the typed text does not read.
+     */
+    prepareMissing(entry, value) {
+        const finished = value !== null && value !== undefined && Number.isInteger(value.seconds);
+        const shown = this.shownMissing(entry);
+        this.pendingMissing = undefined;
+        this.missingInputTarget.value = shown !== null ? String(shown) : '';
+        this.missingInputTarget.classList.remove('is-invalid');
+        this.setText(this.missingHintTarget, this.t('missingHint'));
+        this.missingFieldTarget.hidden = !finished || shown === null;
+        this.missingToggleTarget.hidden = !finished || shown !== null;
+    }
+
+    openMissing() {
+        this.missingToggleTarget.hidden = true;
+        this.missingFieldTarget.hidden = false;
+        this.missingInputTarget.focus();
+    }
+
+    missingTyped() {
+        const parsed = parseMissingPieces(this.missingInputTarget.value, this.round?.piecesCount ?? null);
+        this.pendingMissing = parsed.error ? false : (parsed.empty ? null : parsed.value);
+        this.missingInputTarget.classList.toggle('is-invalid', parsed.error === true);
+        this.setText(this.missingHintTarget, parsed.error ? this.t('missingInvalid') : this.t('missingHint'));
+        this.renderConfirmResult();
+    }
+
+    missingEnter(event) {
+        event.preventDefault();
+        this.save(event);
+    }
+
+    missingChange(entry) {
+        return this.pendingMissing === false ? null : missingPiecesChange(this.pendingValue, this.pendingMissing, this.shownMissing(entry));
+    }
+
+    renderConfirmResult() {
+        const value = this.pendingValue;
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const missing = this.pendingMissing === undefined || this.pendingMissing === false ? (entry !== null ? this.shownMissing(entry) : null) : this.pendingMissing;
+
+        this.confirmResultTarget.textContent = value === null ? this.t('clearResult') : this.describe(value, missing);
+        this.confirmResultTarget.classList.toggle('text-danger', value === null);
     }
 
     clockTime(ms) {
@@ -3100,6 +3163,20 @@ export default class extends Controller {
             fields = [...fields.filter((field) => field.field !== 'result'), { field: 'result', to: value, proposalId: editing.id }];
         }
 
+        // Finished with pieces missing (toolkit T6): a count typed that does not read stops the Save
+        if (this.pendingMissing === false) {
+            this.missingInputTarget.focus();
+
+            return;
+        }
+
+        const missing = this.missingChange(entry);
+
+        if (missing !== null) {
+            // After the result - the server checks the entry is finished at that point of the group
+            fields = [...fields, missing];
+        }
+
         if (fields.length === 0) {
             this.showToast(this.t('toastNothing'), null);
             this.backToFind();
@@ -3117,7 +3194,7 @@ export default class extends Controller {
 
         this.showToast(this.t('toastSaved', {
             '%name%': entry.displayName ?? entry.name ?? '',
-            '%result%': (value === null ? this.t('clearResult') : this.describe(value)) + choice,
+            '%result%': (value === null ? this.t('clearResult') : this.describe(value, missingOf(this.pendingMissing ?? this.shownMissing(entry)))) + choice,
         }), item);
         this.backToFind();
     }

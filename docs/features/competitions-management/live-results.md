@@ -67,7 +67,10 @@ QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
    replaces ("Replaces 1:24:00 (Eva, 10:42)") and Save (focused - Enter saves; the time and pieces fields'
    `enterkeyhint="done"` goes here) with Change under it. Save ignores a tap that started within 350 ms of the step
    showing up (`confirmTapAllowed()`, the tap's `pointerdown`): a double tap on Finished now never saves a value nobody
-   saw. Same value as saved = "Nothing changed", no write. Taps with the stopwatch running: table (unique) → Finished
+   saw. Same value as saved = "Nothing changed", no write. With a finished time the step offers "+ Pieces missing" (competition
+   toolkit T6, official-results.md "Finished with pieces missing"): one tap opens a small count field (open and prefilled
+   when the entry has a count), the value reads "1:23:45 · 1 piece missing", Enter in the field saves; Save sends
+   `result` then `missing_pieces` as one outbox group. Closed = the stored count stays. Taps with the stopwatch running: table (unique) → Finished
    now → Save = 4 (`1`,`2` + 2 taps); table → typed time → Save = 10.
 4. **Saved** - the change goes into the outbox, a toast "Saved: Puzzle Sharks · 1:23:45" with **Undo** (a waiting
    change is just dropped; a sent one gets the opposite change; then the entry opens again), back to Find with the

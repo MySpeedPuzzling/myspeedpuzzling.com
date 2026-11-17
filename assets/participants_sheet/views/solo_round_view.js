@@ -544,7 +544,7 @@ export class SoloRoundView {
                 return { text: label, html: person.country ? `${flagHtml(person.country)}${escapeHtml(label)}` : '', readonly: true };
             }
             case 'result':
-                return this.results.resultCell(entry.ref, entry.place.result, entry.place.enteredBy, entry.place.enteredAt, { readonly: reason !== '', reason });
+                return this.results.resultCell(entry.ref, entry.place.result, entry.place.enteredBy, entry.place.enteredAt, { readonly: reason !== '', reason, missingPieces: entry.place.missingPieces ?? null });
             case 'puzzles':
                 return this.results.puzzlesCell(entry.ref);
             case 'rank':

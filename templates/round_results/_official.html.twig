@@ -69,6 +69,10 @@
 
                         <td class="lb-time">
                             <span class="lb-time-value">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: entry.puzzleChips is empty ? official.piecesCount : entry.ownPiecesCount(round.puzzlesToSolve)}) }}</span>
+                            {%- if entry.missingPieces is not null %}
+                                {# Finished with pieces missing (competition toolkit T6) - a note; the round's order stays by time #}
+                                <span class="d-block small text-muted fw-normal text-nowrap" data-official-missing="{{ entry.missingPieces }}">{{ 'finished_missing.missing_short'|trans({'%count%': entry.missingPieces}) }}</span>
+                            {%- endif %}
                         </td>
                     </tr>
                 {% endfor %}

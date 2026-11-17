@@ -17,6 +17,7 @@ import {
 import { chooseTranslation } from '../translation_choice.js';
 import { editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
 import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
+import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 
 const RESULT = 'result';
 const TABLE = 'table_number';
@@ -230,6 +231,10 @@ export default class extends Controller {
             return entry.puzzles ?? null;
         }
 
+        if (field === MISSING_PIECES) {
+            return entry.missingPieces ?? null;
+        }
+
         return entry.qualified === true;
     }
 
@@ -407,10 +412,11 @@ export default class extends Controller {
         cells.push(`<td>${this.entrantHtml(entry)}${this.takeOutHtml(entry)}</td>`);
         cells.push(`<td class="text-nowrap">${this.flagsHtml(entry.countries ?? [])}</td>`);
         cells.push(`<td>
-            <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none text-nowrap results-desk-cell results-desk-result" data-action="results-desk#editResult" data-ref="${ref}" data-focus-key="result:${ref}" aria-label="${escapeHtml(this.t('edit_result_label', { name }))}">${entry.result === null ? `<span class="text-body-secondary">${escapeHtml(this.t('add_result'))}</span>` : escapeHtml(this.formatResult(entry.result))}</button>
+            <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none text-nowrap results-desk-cell results-desk-result" data-action="results-desk#editResult" data-ref="${ref}" data-focus-key="result:${ref}" aria-label="${escapeHtml(this.t('edit_result_label', { name }))}">${entry.result === null ? `<span class="text-body-secondary">${escapeHtml(this.t('add_result'))}</span>` : escapeHtml(this.formatResult(entry.result, this.shown(entry, MISSING_PIECES)))}</button>
             ${this.recordHtml(entry)}
             ${this.cellState(entry, RESULT)}
             ${this.pickFormat() !== null ? this.cellState(entry, PUZZLES) : ''}
+            ${this.pending.get(entry.ref, MISSING_PIECES) !== null ? this.cellState(entry, MISSING_PIECES) : ''}
         </td>`);
         cells.push(`<td class="small text-body-secondary">${this.enteredHtml(this.entries.get(entry.ref))}</td>`);
         cells.push(`<td class="text-center">
@@ -575,16 +581,21 @@ export default class extends Controller {
             return text === '' ? this.t('puzzles_no_record') : text;
         }
 
+        if (field === MISSING_PIECES) {
+            return missingOf(value) === null ? this.t('missing_none') : this.tc('missing_pieces', value);
+        }
+
         return value ? this.t('qualified_yes') : this.t('qualified_no');
     }
 
-    formatResult(result) {
+    formatResult(result, missing = null) {
         if (result === null || result === undefined) {
             return '';
         }
 
         if (Number.isInteger(result.seconds)) {
-            return formatResultTime(result.seconds);
+            // Finished with pieces missing (competition toolkit T6): "1:23:45 · 1 piece missing"
+            return withMissing(formatResultTime(result.seconds), result, missing, (count) => this.tc('missing_pieces', count));
         }
 
         if (Number.isInteger(result.piecesPlaced)) {
@@ -814,6 +825,7 @@ export default class extends Controller {
         const shown = this.shown(entry, RESULT);
         const mode = shown === null ? 'time' : (Number.isInteger(shown.seconds) ? 'time' : (Number.isInteger(shown.piecesPlaced) ? 'pieces' : (shown.didNotStart ? 'dns' : 'time')));
         const value = shown === null ? '' : (Number.isInteger(shown.seconds) ? formatResultTime(shown.seconds) : (Number.isInteger(shown.piecesPlaced) ? String(shown.piecesPlaced) : ''));
+        const missing = missingOf(this.shown(entry, MISSING_PIECES));
         const option = (key, label) => `<option value="${key}" ${key === mode ? 'selected' : ''}>${escapeHtml(label)}</option>`;
 
         return `<form class="results-desk-editor" data-editor="result" novalidate data-action="submit->results-desk#saveEditor keydown->results-desk#editorKeydown">
@@ -829,6 +841,10 @@ export default class extends Controller {
                 <button type="submit" class="btn btn-sm btn-primary" data-editor-save>${escapeHtml(this.t('save'))}</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
             </div>
+            <label class="d-flex align-items-center gap-1 small mt-1" data-editor-missing-row ${mode === 'time' ? '' : 'hidden'}>
+                <span class="text-body-secondary">${escapeHtml(this.t('missing_label'))}</span>
+                <input type="text" class="form-control form-control-sm" style="max-width: 5rem;" data-editor-missing inputmode="numeric" autocomplete="off" value="${missing !== null ? missing : ''}" data-action="input->results-desk#editorPreview">
+            </label>
             <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
             <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
         </form>`;
@@ -1076,6 +1092,11 @@ export default class extends Controller {
 
         const mode = form.querySelector('[data-editor-mode]').value;
         input.hidden = mode === 'dns' || mode === 'none';
+        const missingRow = form.querySelector('[data-editor-missing-row]');
+
+        if (missingRow !== null) {
+            missingRow.hidden = mode !== 'time';
+        }
         input.placeholder = this.t(mode === 'missing' ? 'placeholder_missing' : (mode === 'pieces' ? 'placeholder_pieces' : 'placeholder_time'));
 
         if (mode === 'dns') {
@@ -1119,7 +1140,21 @@ export default class extends Controller {
             return { error: parsed.error === 'out_of_range' ? this.t('error_time_range') : this.t('error_time') };
         }
 
-        return { value: { seconds: parsed.seconds }, preview: this.t('preview_time', { time: formatResultTime(parsed.seconds) }) };
+        // Finished with pieces missing (competition toolkit T6): the optional count next to the time
+        const missingInput = form.querySelector('[data-editor-missing]');
+        const missing = missingInput === null ? { empty: true } : parseMissingPieces(missingInput.value, this.round.piecesCount ?? null);
+
+        if (missing.error) {
+            return { error: this.t('missing_error') };
+        }
+
+        const value = { seconds: parsed.seconds };
+
+        return {
+            value,
+            missing: missing.empty ? null : missing.value,
+            preview: withMissing(this.t('preview_time', { time: formatResultTime(parsed.seconds) }), value, missing.value ?? null, (count) => this.tc('missing_pieces', count)),
+        };
     }
 
     /**
@@ -1203,10 +1238,29 @@ export default class extends Controller {
             return;
         }
 
-        this.commitEditor(outcome.value);
+        this.commitEditor(outcome.value, outcome.missing);
     }
 
-    commitEditor(value) {
+    commitEditor(value, missing = undefined) {
+        const entry = this.entries.get(this.editor.ref);
+        const missingChange = entry !== undefined && !this.editor.pick && this.editor.field === RESULT
+            ? missingPiecesChange(value, missing, this.shown(entry, MISSING_PIECES))
+            : null;
+
+        if (missingChange !== null) {
+            // Finished with pieces missing (toolkit T6): with a changed time one group, the result first - the server checks
+            // the entry is finished at that point; alone (the time stays) just the count
+            const group = `missing:${this.editor.ref}`;
+            const resultChanges = !sameValue(value, this.shown(entry, RESULT));
+            this.pending.discard(this.editor.ref, MISSING_PIECES);
+            this.pending.set(this.editor.ref, RESULT, value, this.editor.seen, resultChanges ? group : null);
+            this.pending.set(this.editor.ref, MISSING_PIECES, missingChange.to, this.serverValue(entry, MISSING_PIECES), resultChanges ? group : null);
+            this.closeEditor(true);
+            this.flush();
+
+            return;
+        }
+
         if (this.entries.has(this.editor.ref)) {
             if (this.editor.pick) {
                 // One group: the server applies the result and the record together or not at all (A rule 7), and

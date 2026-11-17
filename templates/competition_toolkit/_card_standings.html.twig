@@ -1,6 +1,6 @@
 {#
     Standings & bracket (lane A: A6 standings) - R §1.4 card 3: the event's standings and the standings page.
-    Variables: competition, standings (list<CompetitionStandingOverview>).
+    Variables: competition, standings (list<CompetitionStandingOverview>), advancement_steps (list<AdvancementStepOverview>, A8).
 #}
 <div class="col-lg-6">
     <div class="card shadow-sm h-100" data-toolkit-card="standings">
@@ -23,6 +23,14 @@
 
             <a href="{{ path('competition_standings_manage', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-toolkit-standings-link>
                 <i class="bi bi-trophy me-1"></i>{{ 'competition_standing.card.manage'|trans }}
+            </a>
+
+            {# Advancement steps (A8): the qualification path groups → semifinals → final #}
+            <p class="small mt-3 mb-2" data-toolkit-advancement-steps>
+                {{ advancement_steps|default([]) is empty ? 'advancement_step.card.none'|trans : 'advancement_step.card.count'|trans({'%count%': advancement_steps|length}) }}
+            </p>
+            <a href="{{ path('competition_advancement_steps_manage', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-toolkit-advancement-steps-link>
+                <i class="bi bi-diagram-3 me-1"></i>{{ 'advancement_step.card.manage'|trans }}
             </a>
         </div>
     </div>

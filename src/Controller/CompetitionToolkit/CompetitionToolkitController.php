@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\FormData\CompetitorPageSettingsFormData;
 use SpeedPuzzling\Web\FormType\CompetitorPageSettingsFormType;
 use SpeedPuzzling\Web\Message\ChangeCompetitorPageSettings;
+use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
@@ -48,6 +49,7 @@ final class CompetitionToolkitController extends AbstractController
         private readonly GetCompetitionDisplays $getCompetitionDisplays,
         private readonly CompetitionDisplaysPage $competitionDisplaysPage,
         private readonly GetCompetitionStandings $getCompetitionStandings,
+        private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
     ) {
     }
 
@@ -109,6 +111,8 @@ final class CompetitionToolkitController extends AbstractController
             'displays_return' => $request->getRequestUri(),
             // Standings & bracket: the list, managed on competition_standings_manage
             'standings' => $this->getCompetitionStandings->ofCompetition($competitionId),
+            // ... and the advancement steps, managed on competition_advancement_steps_manage (A8)
+            'advancement_steps' => $this->getCompetitionAdvancementSteps->ofCompetition($competitionId),
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

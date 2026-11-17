@@ -156,6 +156,10 @@
              reason_splits_out_of_order: 'official_results.reason.splits_out_of_order'|trans,
              reason_invalid_pieces_placed: 'official_results.reason.invalid_pieces_placed'|trans,
              reason_puzzles_mismatch: 'official_results.reason.puzzles_mismatch'|trans,
+         } : {})|merge(advancement_steps|default([]) is not empty ? {
+             step_overall_loading: 'advancement_step.banner.overall_loading'|trans,
+             step_overall_failed: 'advancement_step.banner.overall_failed'|trans,
+             step_overall_note: 'advancement_step.banner.overall_note'|trans,
          } : {})|json_encode|e('html_attr') }}">
 
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
@@ -198,7 +202,7 @@
                 return_url: desk_url,
                 return_title: 'results_desk.title'|trans,
             }) }}
-            {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds, source_round_id: round.id}) }}
+            {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds, source_round_id: round.id, with_steps: advancement_steps|default([]) is not empty}) }}
             <div class="dropdown">
                 <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'results_desk.export.button'|trans }}
@@ -234,7 +238,30 @@
                     </button>
                 </span>
             </div>
+        </div>{% for item in advancement_steps|default([]) %}
+        {#- The advancement steps this round feeds (competition toolkit A8): presets only - "Mark top N" opens the Top N
+            review dialog, "Advance" opens the Advance dialog prefilled; nothing is marked or moved before the organiser
+            confirms there. Glued to the card above, so a desk without steps renders exactly as before -#}
+        {%- set settings = item.step.settings %}
+
+        <div class="alert alert-info py-2 d-flex flex-wrap align-items-center gap-2" data-advancement-step-banner="{{ item.step.id }}">
+            <span class="me-auto">
+                <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i><span class="fw-semibold">{{ 'advancement_step.banner.step'|trans({'%name%': item.label}) }}</span>
+                · {{ include('competition_toolkit/_advancement_step_summary.html.twig') }}
+            </span>
+            {% if settings.qualifyCount is not null %}
+                <button type="button" class="btn btn-sm btn-outline-primary" data-helper="top" data-helper-count="{{ settings.qualifyCount }}"
+                        {% if item.step.overall %}data-helper-preset-url="{{ path('official_results_advancement_step_preset', {stepId: item.step.id}) }}"{% endif %}
+                        data-action="results-desk#openHelper" data-advancement-step-mark>
+                    {{ (item.step.overall ? 'advancement_step.banner.mark_overall' : 'advancement_step.banner.mark_top')|trans({'%count%': settings.qualifyCount}) }}
+                </button>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-primary" data-step="{{ item.step|json_encode|e('html_attr') }}" data-action="results-desk#advanceStep" data-advancement-step-advance>
+                <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'advancement_step.banner.advance'|trans }}
+            </button>
         </div>
+        {%- endfor %}
+
 
         {# `hidden` sits on wrappers only - a display utility (d-flex) would win over it #}
         <div hidden data-results-desk-target="banner">

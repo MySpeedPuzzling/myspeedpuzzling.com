@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Controller\OfficialResults;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Results\AdvancementStepsView;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsRounds;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
@@ -38,6 +40,7 @@ final class ResultsDeskController extends AbstractController
         private readonly OfficialResultsSubscription $subscription,
         private readonly ClockInterface $clock,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
     ) {
     }
 
@@ -82,7 +85,13 @@ final class ResultsDeskController extends AbstractController
             $countries[$country->name] = $country->value;
         }
 
+        // The declared advancement steps this round feeds (competition toolkit A8) - a banner with presets; none = the desk
+        // as it always was
+        $steps = $this->getCompetitionAdvancementSteps->ofCompetition($competitionId);
+        $advancementSteps = $steps === [] ? [] : AdvancementStepsView::of($steps, $rounds)->forSourceRound($roundId);
+
         $response = $this->render('official_results/results_desk.html.twig', [
+            'advancement_steps' => $advancementSteps,
             'competition' => $competition,
             'round' => $thisRound,
             'rounds' => $rounds,

@@ -172,3 +172,45 @@ export function urlWithoutLanding(href) {
 
     return url.toString();
 }
+
+/**
+ * What following a link does to the live entry page - no Turbo on it (competition toolkit C2), so every link that goes
+ * anywhere is a full page load:
+ * - 'stay' - this page stays: a new tab or window, a download, a modifier key or another mouse button, a link to a
+ *   place on this same page (`#`), a link the browser cannot follow;
+ * - 'within' - another live entry page (any round): it sends this device's unsent changes too, never asked about;
+ * - 'leave' - out of the tool: asked about first while something is unsent.
+ *
+ * @param {{href: string, target?: string, download?: boolean, button?: number, modifier?: boolean}} link
+ * @param {string} currentHref        the page's own URL
+ * @param {string} liveUrlTemplate    the live entry route with the round id placeholder (the page's `liveUrl` value)
+ * @returns {'stay'|'within'|'leave'}
+ */
+export function linkNavigation({ href, target = '', download = false, button = 0, modifier = false }, currentHref, liveUrlTemplate) {
+    if (download || modifier || button !== 0 || (target !== '' && target !== '_self')) {
+        return 'stay';
+    }
+
+    let url;
+    let current;
+
+    try {
+        current = new URL(currentHref);
+        url = new URL(href, current);
+    } catch (e) {
+        return 'stay';
+    }
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return 'stay';
+    }
+
+    // `#…` on this same page (also a bare `#` - its URL has no hash left): no page load
+    if (String(href).includes('#') && url.origin === current.origin && url.pathname === current.pathname && url.search === current.search) {
+        return 'stay';
+    }
+
+    const livePrefix = new URL(String(liveUrlTemplate).replace(UUID_PLACEHOLDER, ''), current).pathname;
+
+    return url.origin === current.origin && livePrefix !== '/' && url.pathname.startsWith(livePrefix) ? 'within' : 'leave';
+}

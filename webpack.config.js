@@ -21,6 +21,9 @@ Encore
      * and one CSS file (e.g. app.css) if your JavaScript imports CSS.
      */
     .addEntry('app', './assets/app.js')
+    // The live result entry page's own bundle, without Turbo and the site's controllers (competition toolkit C2,
+    // assets/live_entry.js) - precached by the service worker like every entry (PRECACHE_SKIP_ENTRIES lists the ones not)
+    .addEntry('live_entry', './assets/live_entry.js')
     // Page stylesheets of the online competitions (docs/features/online-competitions/), linked only on their pages
     .addStyleEntry('compete', './assets/styles/compete.scss')
     .addStyleEntry('online_rounds', './assets/styles/online_rounds.scss')
@@ -31,6 +34,11 @@ Encore
 
     // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
     .splitEntryChunks()
+    // ...except the live entry: one file of its own (+ runtime.js), sharing no split chunk with `app` - the site's
+    // pages keep exactly the script tags they had, and the precached live entry is complete in itself
+    .configureSplitChunks((splitChunks) => {
+        splitChunks.chunks = (chunk) => chunk.name !== 'live_entry';
+    })
 
     // will require an extra script tag for runtime.js
     // but, you probably want this, unless you're building a single-page app

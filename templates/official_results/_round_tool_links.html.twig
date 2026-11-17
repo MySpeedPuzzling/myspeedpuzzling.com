@@ -12,7 +12,7 @@
 {%- set tool_query = return_url|default(null) is not null ? {return: return_url, return_title: return_title|default('')} : {} -%}
 {%- set tool_button = button_class|default('btn-sm btn-outline-primary') -%}
 {%- if current|default(null) != 'live' -%}
-    <a href="{{ path('live_results', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="live">
+    <a href="{{ path('live_results', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="live" data-turbo="false">
         <i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'results_desk.tools.live_entry'|trans }}
     </a>
 {%- endif -%}

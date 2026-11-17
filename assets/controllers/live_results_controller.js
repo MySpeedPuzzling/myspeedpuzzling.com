@@ -1,4 +1,6 @@
 /* stimulusFetch: 'lazy' */
+// (The page loads this controller eagerly from its own Encore entry, assets/live_entry.js - competition toolkit C2. The
+// comment above only keeps it out of the site's `app` bundle, which never needs it.)
 import { Controller } from '@hotwired/stimulus';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { isGone, newClientId, officialResultsRequest } from '../official_results_api.js';
@@ -18,7 +20,7 @@ import {
     shownValue,
 } from '../official_results_live.js';
 import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
-import { fillLink, landingOf, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
+import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 
@@ -44,6 +46,9 @@ const FLUSH_TICK_MS = 5000;
 const TOAST_MS = 8000;
 // "Finished now" trusts the stopwatch it knows only while live updates flow, or this soon after a state fetch
 const STOPWATCH_TRUSTED_MS = 10000;
+// A page load this page started itself (a link it let go, a round switch) is not asked about again by `beforeunload`
+// for this long - the browser starts unloading right after the click
+const LEAVE_CONFIRMED_MS = 3000;
 const CHANNEL = 'msp-official-results';
 const KEYBOARD_KEY = 'msp.liveResults.keyboard';
 const ROUND_KEY = 'msp.liveResults.round.';
@@ -175,27 +180,40 @@ export default class extends Controller {
             }
         };
         this.onBeforeUnload = (event) => {
-            if (this.outbox?.hasUnsent()) {
+            if (this.outbox?.hasUnsent() && !this.leaveConfirmed()) {
                 event.preventDefault();
                 event.returnValue = '';
             }
         };
-        this.onBeforeVisit = (event) => {
-            const target = new URL(event.detail?.url ?? '', window.location.href).pathname;
-            const liveResults = new URL(this.liveUrl(UUID_PLACEHOLDER).replace(UUID_PLACEHOLDER, ''), window.location.href).pathname;
+        // No Turbo on this page (competition toolkit C2): every link is a full page load. Another live entry page sends
+        // this device's changes too - only leaving the tool asks (in the page's own words), and what was answered here
+        // is not asked again by `beforeunload` (the browser's own question stays for back, reload and closing the tab)
+        this.onLinkClick = (event) => {
+            const link = event.defaultPrevented ? null : event.target?.closest?.('a[href]');
 
-            // Another live entry page sends this device's changes too - only leaving the tool asks
-            if (this.outbox?.hasUnsent() && !target.startsWith(liveResults) && !window.confirm(this.t('leaveUnsent'))) {
+            if (!link) {
+                return;
+            }
+
+            const navigation = linkNavigation({
+                href: link.href,
+                target: link.target,
+                download: link.hasAttribute('download'),
+                button: event.button,
+                modifier: event.metaKey || event.ctrlKey || event.shiftKey || event.altKey,
+            }, window.location.href, this.liveUrlValue);
+
+            if (navigation === 'stay') {
+                return;
+            }
+
+            if (navigation === 'leave' && this.outbox?.hasUnsent() && !window.confirm(this.t('leaveUnsent'))) {
                 event.preventDefault();
 
                 return;
             }
 
-            // Leaving from a view over the find view: Turbo's history takes over again for the next page
-            if (this.historyEntry) {
-                this.historyEntry = false;
-                this.resumeTurboHistory();
-            }
+            this.confirmLeaving();
         };
         this.onPopState = () => this.handlePopState();
         this.onKeydown = (event) => {
@@ -210,7 +228,7 @@ export default class extends Controller {
         window.addEventListener('beforeunload', this.onBeforeUnload);
         window.addEventListener('popstate', this.onPopState);
         document.addEventListener('visibilitychange', this.onVisibility);
-        document.addEventListener('turbo:before-visit', this.onBeforeVisit);
+        document.addEventListener('click', this.onLinkClick);
         document.addEventListener('keydown', this.onKeydown);
 
         this.clockTimer = setInterval(() => this.tickClock(), 250);
@@ -262,7 +280,8 @@ export default class extends Controller {
             const target = preferredRound(this.roundIdValue, remembered, this.rounds, Date.now());
 
             if (target !== this.roundIdValue) {
-                window.Turbo ? window.Turbo.visit(this.liveUrl(target), { action: 'replace' }) : window.location.replace(this.liveUrl(target));
+                this.confirmLeaving();
+                window.location.replace(this.liveUrl(target));
 
                 return;
             }
@@ -372,13 +391,9 @@ export default class extends Controller {
         window.removeEventListener('beforeunload', this.onBeforeUnload);
         window.removeEventListener('popstate', this.onPopState);
         document.removeEventListener('visibilitychange', this.onVisibility);
-        document.removeEventListener('turbo:before-visit', this.onBeforeVisit);
+        document.removeEventListener('click', this.onLinkClick);
         document.removeEventListener('keydown', this.onKeydown);
-
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-        }
+        this.historyEntry = false;
     }
 
     // ---- Texts ----
@@ -1388,7 +1403,17 @@ export default class extends Controller {
         }
 
         storageSet(ROUND_KEY + (this.settings.competitionId ?? ''), JSON.stringify({ roundId, at: Date.now() }));
-        window.Turbo ? window.Turbo.visit(this.liveUrl(roundId)) : window.location.assign(this.liveUrl(roundId));
+        // Another live entry page: it sends this device's unsent changes too
+        this.confirmLeaving();
+        window.location.assign(this.liveUrl(roundId));
+    }
+
+    confirmLeaving() {
+        this.leaveConfirmedAt = Date.now();
+    }
+
+    leaveConfirmed() {
+        return this.leaveConfirmedAt !== undefined && Date.now() - this.leaveConfirmedAt < LEAVE_CONFIRMED_MS;
     }
 
     readRememberedRound() {
@@ -1511,19 +1536,13 @@ export default class extends Controller {
     }
 
     // History: a view or overlay over the find view gets an entry of its own, so the phone's back button/gesture
-    // returns to finding instead of leaving the page (Turbo's history waits meanwhile - dynamic_modal_controller.js)
+    // returns to finding instead of leaving the page (no Turbo on this page since competition toolkit C2 - the
+    // browser's own history)
     claimHistory() {
         if (this.historyEntry) {
             return;
         }
 
-        const turboHistory = window.Turbo?.session?.history;
-
-        if (!turboHistory || typeof turboHistory.stop !== 'function') {
-            return;
-        }
-
-        turboHistory.stop();
         window.history.pushState({ liveResults: true }, '', window.location.href);
         this.historyEntry = true;
     }
@@ -1536,25 +1555,15 @@ export default class extends Controller {
         }
     }
 
-    resumeTurboHistory() {
-        const turboHistory = window.Turbo?.session?.history;
-
-        if (turboHistory && typeof turboHistory.start === 'function') {
-            turboHistory.start();
-        }
-    }
-
     handlePopState() {
         if (this.leavingHistoryEntry) {
             this.leavingHistoryEntry = false;
-            this.resumeTurboHistory();
 
             return;
         }
 
         if (this.historyEntry) {
             this.historyEntry = false;
-            this.resumeTurboHistory();
             this.showFind({ focus: false });
         }
     }

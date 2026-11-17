@@ -77,7 +77,7 @@ final class SystemClockCoverageTest extends TestCase
 
     /** Templates allowed to read the system clock, with the reason */
     private const array ALLOWED_TEMPLATES = [
-        'base.html.twig' => 'msp-rendered-at - the browser compares it with the server\'s Date header, real time on both sides.',
+        '_stale_document_check.html.twig' => 'msp-rendered-at (base.html.twig and the live entry layout include it) - the browser compares it with the server\'s Date header, real time on both sides.',
     ];
 
     /**

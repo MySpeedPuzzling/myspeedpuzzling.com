@@ -186,7 +186,9 @@ is the DOM adapter of the pure module `assets/competitor_page_live.js` (`Competi
   Each card gets `data-competitor-round-phase` + `is-phase-*`, its badge (`[data-competitor-round-badge]`) and the
   clock (`[data-competitor-clock]`) updated in place.
 - **Server time:** `createServerClock()` - hint from `serverNowMs`, two samples at start (0 s, 1.5 s), then every state
-  fetch; the shortest round trip wins.
+  fetch; the shortest round trip wins. On the monotonic clock (`monotonicNow()`, F1 D2): a change of the phone's clock
+  while the page is open moves neither the card's clock nor `tapNowMs()`; a sleep / clock change seen (wall and
+  monotonic clock disagree by > 2 s) drops the samples and asks for the state (a sleep while hidden is counted at once).
 - **Mercure:** the public `/round-stopwatch/{roundId}` topics of the shown rounds that are started/counting down or
   start within ±12 h (nearest first, at most 12), one anonymous stream through `official_results_events.js` with a
   *public subscription* (`{url, topics, public: true}`: no token, no renewal, other topics → new stream first; refused
@@ -229,7 +231,9 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
   "Propose 0:49:12?" (the time of the tap, not of the confirm) → Propose stores it in the phone's outbox
   (`assets/competitor_proposals_outbox.js`, IndexedDB `msp_competitor_proposals`, the id = a UUIDv7 made from the tap
   moment, `tappedAtMs` + clock offset/RTT + the stopwatch `stateHash`; resent unchanged until answered; offline
-  backoff 1 s … 30 s and at once on `online`; 429/5xx back off; 401/stale CSRF stop sending and keep the item;
+  backoff 1 s … 30 s and at once on `online`; 429/5xx back off; 401/stale CSRF stop sending and keep the item; every
+  request names the tap's player (`expectedPlayerId`) - another player signed in on the same browser meanwhile answers
+  409 `another_account`, kept like signed out, never stored for them (F1, D1);
   refusals drop it and show why; one tab sends - Web Locks; `beforeunload` warns while something is unsent).
 - **States in the card's slot:** Stop / "Propose?" sheet / sending / saved on this phone (offline) / sign in again /
   reload / waiting for the judge (+ Undo) / taking back / confirmed / "Confirmed as X - you proposed Y" / not accepted

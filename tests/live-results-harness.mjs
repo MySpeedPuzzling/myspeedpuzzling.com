@@ -61,9 +61,9 @@ function fakeServer() {
         log: null,
         answers: [],
         decide: () => ({ status: 'applied' }),
-        async send(roundId, changes) {
+        async send(roundId, changes, expectedPlayerId) {
             server.log?.push('send');
-            server.requests.push({ roundId, changes: JSON.parse(JSON.stringify(changes)) });
+            server.requests.push({ roundId, changes: JSON.parse(JSON.stringify(changes)), expectedPlayerId });
 
             if (server.answers.length > 0) {
                 const answer = server.answers.shift();
@@ -95,7 +95,7 @@ function setup({ storage = createMemoryStorage(), userId = 'referee-1', lock = n
     const outbox = new Outbox({
         storage,
         userId,
-        send: (roundId, changes) => server.send(roundId, changes),
+        send: (roundId, changes, expectedPlayerId) => server.send(roundId, changes, expectedPlayerId),
         now: () => clock.now,
         newId: () => `00000000-0000-4000-8000-${String(++ids).padStart(12, '0')}`,
         lock,
@@ -255,10 +255,64 @@ const scenarios = {
         await outbox.flush();
         assert.equal(server.requests.length, 1, 'no request while signed out');
 
+        // A retry sends only once a fresh state named this player again (D1)
+        await outbox.retryNow();
+        assert.equal(server.requests.length, 1, 'no request before the state said who is signed in');
+        assert.equal(outbox.status().blocked, 'auth');
+
+        assert.equal(outbox.viewerIs('REFEREE-1'), true);
         await outbox.retryNow();
         assert.equal(server.requests.length, 2);
         assert.equal(outbox.hasUnsent(), false);
         assert.equal(outbox.status().blocked, null);
+    },
+
+    async 'signed out, then another player signs in on the browser: nothing goes out under their session (D1)'() {
+        const { outbox, server } = setup();
+        server.answers.push({ kind: 'auth', status: 401 });
+        await save(outbox, ANNA, { seconds: 100 });
+        await save(outbox, BEN, { seconds: 200 });
+        await save(outbox, CARA, { seconds: 300 });
+        await outbox.flush();
+        assert.equal(server.requests.length, 1);
+
+        // The window's focus after the sign-in tab: the state names another player - the outbox stops
+        assert.equal(outbox.viewerIs('organiser-2'), false);
+        assert.equal(outbox.status().blocked, 'another_account');
+        await outbox.retryNow();
+        await outbox.flush();
+        await outbox.connectionBack();
+        assert.equal(server.requests.length, 1, 'nothing sent under the other session');
+        assert.equal(outbox.all().length, 3);
+        assert.ok(outbox.all().every((item) => item.state === 'pending' && item.userId === 'referee-1'));
+
+        // Their own player signs in again: everything goes, as theirs
+        assert.equal(outbox.viewerIs('referee-1'), true);
+        await outbox.retryNow();
+        assert.equal(server.requests.length, 2);
+        assert.equal(server.requests[1].expectedPlayerId, 'referee-1');
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'every set names its player; the server refusing it for another session keeps everything (D1)'() {
+        const { outbox, server } = setup();
+        server.answers.push({ kind: 'client', status: 409, data: { error: 'another_account' } });
+        await save(outbox, ANNA, { seconds: 100 });
+        await save(outbox, BEN, { seconds: 200 }, { roundId: ROUND_B });
+        await outbox.flush();
+
+        assert.equal(server.requests.length, 1);
+        assert.equal(server.requests[0].expectedPlayerId, 'referee-1');
+        assert.equal(outbox.status().blocked, 'another_account');
+        assert.ok(outbox.all().every((item) => item.state === 'pending' && item.attempts === 0));
+
+        // Not even a Retry sends before a state named this player
+        await outbox.retryNow();
+        assert.equal(server.requests.length, 1);
+
+        outbox.viewerIs('referee-1');
+        await outbox.retryNow();
+        assert.equal(outbox.hasUnsent(), false);
     },
 
     async 'no rights for one event sets its changes apart - the other rounds still go'() {

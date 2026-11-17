@@ -51,6 +51,7 @@
     syncSaved: 'live_results.sync.saved'|trans,
     syncSending: 'live_results.sync.sending'|trans,
     syncSignIn: 'live_results.sync.sign_in'|trans,
+    syncAnotherAccount: 'live_results.another_account.sync'|trans,
     syncForbidden: 'live_results.sync.forbidden'|trans,
     syncReload: 'live_results.sync.reload'|trans,
     syncGone: 'live_results.sync.gone'|trans,
@@ -513,6 +514,9 @@
                 <p class="small text-muted mt-2 mb-0" data-live-results-add-note data-live-results-target="addNote">{{ 'live_results.add.note_result_only'|trans }}</p>
             </form>
         </section>
+
+        {# The same banner while a card or the quick add is open: below it, so it never moves Save under a finger (D6) #}
+        <div class="lr-section pt-0" data-live-results-target="bannerBelow" hidden></div>
 
         {# Saved - with Undo #}
         <div class="lr-toast" data-live-results-target="toast" role="status" aria-live="polite" hidden>

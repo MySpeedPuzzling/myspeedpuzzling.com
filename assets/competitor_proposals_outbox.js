@@ -15,7 +15,8 @@
  * - Offline: again after 1 s, 2 s, 4 s … at most 30 s, at once when the browser says it is back (connectionBack()).
  *   A server error or a busy server (429 rate limit, a proxy page): 5 s, 15 s … 2 min, or its Retry-After.
  *   Signed out (401, a redirect) or a stale page (403 `invalid_csrf_token`): nothing is sent until the page is loaded
- *   again - the items stay.
+ *   again - the items stay. Every request names the item's player (`expectedPlayerId`): another player signed in on
+ *   the same browser meanwhile answers 409 `another_account` - kept like signed out, never stored for them (D1).
  * - Undo (withdraw()): a tap still on the phone is simply dropped (the server never hears of it); one being sent is
  *   withdrawn right after its answer; a sent one gets a withdraw item, sent like a tap.
  * - One tab sends at a time (createTabLock); another signed-in player's items on the phone are never sent.
@@ -112,6 +113,12 @@ export function classifyAnswer(status, type, data, retryAfter = null) {
         return { kind: 'csrf' };
     }
 
+    // The session is another player's by now (D1, the request named the tap's player): never a refusal - the tap
+    // stays on the phone like a signed-out one
+    if (data.error === 'another_account') {
+        return { kind: 'auth', anotherAccount: true };
+    }
+
     if (status >= 200 && status < 300 && ANSWERED.includes(data.status)) {
         return { kind: 'ok', data };
     }
@@ -143,6 +150,8 @@ export function proposalBody(item, sentAtMs) {
     const attempts = Number.isInteger(item.attempts) ? item.attempts : 0;
 
     return {
+        // The tap's player - another one signed in meanwhile answers 409 another_account (F1, D1)
+        expectedPlayerId: typeof item.userId === 'string' && item.userId !== '' ? item.userId : null,
         proposalId: item.id,
         entry: item.entry,
         tappedAtMs: Math.round(item.tappedAtMs),

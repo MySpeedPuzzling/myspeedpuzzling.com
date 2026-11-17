@@ -31,7 +31,10 @@ use Symfony\Component\Process\Process;
  *   rows (several puzzles not finished, a count each), the Missing | Placed switch kept per phone, the time's-up open;
  *   budget 197 KB / 54 KB gzip. 2026-11-17 (reliability hardening T2): 197.1 KB / 54.1 KB gzip - the evidence-based
  *   timing notes of a proposal ("Check this time", "Use received", clock note) and uuid_v7.js; budget 205 KB / 56 KB
- *   gzip, which leaves F1 (account check before sending, monotonic clock, snapshot max wait) its room;
+ *   gzip, which leaves F1 (account check before sending, monotonic clock, snapshot max wait) its room. 2026-11-17
+ *   (reliability hardening F1): +2.7 KB / +0.8 KB gzip (measured before T2) - the outbox never sends under another
+ *   player's session (viewer check, `expectedPlayerId`, 409 `another_account`), the server clock on the monotonic clock
+ *   with sleep / clock-change detection, the snapshot's max wait + first state at once, the banner below an open card;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase

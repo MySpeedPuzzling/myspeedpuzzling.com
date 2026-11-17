@@ -10,6 +10,10 @@
  *   other; rejected → kept with the reason until fixed or discarded.
  * - Signed out (`auth`) or a stale page (`csrf`) stop sending and keep everything. No rights for a round's event (any
  *   more) sets that round's changes apart (`forbidden` - kept until retried or discarded); every other round goes on.
+ * - Another account (reliability hardening F1, D1): every set names its player (`expectedPlayerId` = `userId`) - a
+ *   session that is somebody else's by now answers 409 `another_account` and nothing is applied (`another_account`
+ *   stops sending like `auth`). After `auth` or `another_account` nothing is sent again - not by a Retry either - until
+ *   the page saw a fresh state of the same player (`viewerIs()`); a state of another player blocks it the same way.
  * - Offline retries with a growing pause; a busy server (429, a ban or proxy page - `busy`) pauses everything, as
  *   long as its Retry-After asks; a server error retries the change alone (isolating a batch first), each change
  *   with its own pause. A round that is gone refuses its changes (`round_not_found`).
@@ -234,7 +238,8 @@ export class Outbox {
     /**
      * @param {object} options
      * @param {object} options.storage    createIndexedDbStorage() / createMemoryStorage()
-     * @param {function(string, object[]): Promise<object>} options.send  (roundId, changes) → officialResultsRequest() answer
+     * @param {function(string, object[], string): Promise<object>} options.send  (roundId, changes, expectedPlayerId) →
+     *        officialResultsRequest() answer
      * @param {string} options.userId     the signed-in player - another player's changes on the device are never sent
      * @param {function(): number} [options.now]
      * @param {function(): string} [options.newId]
@@ -260,8 +265,12 @@ export class Outbox {
         this.inFlight = new Set();
         this.flushing = false;
         this.flushRequested = false;
-        // null | 'auth' (signed out) | 'csrf' (the page's token is no longer accepted) - nothing is sent until a retry
+        // null | 'auth' (signed out) | 'csrf' (the page's token is no longer accepted) | 'another_account' (the session
+        // is another player's) - nothing is sent until a retry
         this.blocked = null;
+        // Signed out or another account seen: the session may be somebody else's - a retry sends only once a fresh state
+        // named this outbox's player (viewerIs())
+        this.viewerCheck = false;
         this.offline = false;
         this.offlineAttempts = 0;
         // The server answered "not now" (429, a ban or proxy page) - everything pauses until retryAt
@@ -642,7 +651,11 @@ export class Outbox {
      * Sends again now - a waiting change's pause, a signed-out stop, the offline pause are all skipped.
      */
     async retryNow(id = null) {
-        this.blocked = null;
+        // Never before the page knows the session is still this player's (D1) - the pauses are cleared all the same
+        if (!this.viewerCheck) {
+            this.blocked = null;
+        }
+
         this.retryAt = 0;
 
         await this.serial(async () => {
@@ -671,6 +684,25 @@ export class Outbox {
 
     hasUnsent() {
         return this.items.length > 0;
+    }
+
+    /**
+     * Who a fresh state says is signed in now: this outbox's player lets a retry send again; another player stops every
+     * send (`another_account`) - their session must never carry these changes.
+     *
+     * @returns {boolean} whether it is this outbox's player
+     */
+    viewerIs(playerId) {
+        const same = typeof playerId === 'string' && playerId !== '' && playerId.toLowerCase() === String(this.userId ?? '').toLowerCase();
+
+        this.viewerCheck = !same;
+
+        if (!same) {
+            this.blocked = 'another_account';
+            this.onChange();
+        }
+
+        return same;
     }
 
     /**
@@ -876,7 +908,7 @@ export class Outbox {
             let answer;
 
             try {
-                answer = await this.send(roundId, batch.map((item) => this.wire(item)));
+                answer = await this.send(roundId, batch.map((item) => this.wire(item)), this.userId);
             } catch (e) {
                 answer = { kind: 'offline' };
             } finally {
@@ -923,6 +955,15 @@ export class Outbox {
 
         if (answer.kind === 'auth') {
             this.blocked = 'auth';
+            this.viewerCheck = true;
+
+            return;
+        }
+
+        if (answer.kind === 'client' && answer.data?.error === 'another_account') {
+            // The session is another player's: nothing was applied - everything stays until this player is back
+            this.blocked = 'another_account';
+            this.viewerCheck = true;
 
             return;
         }

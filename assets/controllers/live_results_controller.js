@@ -26,7 +26,7 @@ import {
 import { nativeReadsQr, parseCompetitionTagUrl, startQrScan } from '../official_results_scan.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
 import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
-import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
+import { createServerClock, formatCountdown, monotonicNow, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { devicePlayerOf, forgetDraftsExcept, samePlayer } from '../live_entry_device.js';
 import { createIndexedDbSnapshotStorage, createMemorySnapshotStorage, PREFETCH_GAP_MS, prefetchRounds, prefetchTargets, SnapshotStore } from '../live_entry_snapshot.js';
@@ -115,7 +115,7 @@ function isNativeApp() {
 export default class extends Controller {
     static targets = [
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
-        'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
+        'bannerBelow', 'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'proposal',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
@@ -145,8 +145,15 @@ export default class extends Controller {
 
     connect() {
         // The server's clock: the state fetch with the shortest round trip (round_stopwatch_clock.js) - "Finished now"
-        // and the countdown agree with the projector
-        this.serverClock = createServerClock();
+        // and the countdown agree with the projector. On the monotonic clock: a change of the phone's clock while the page
+        // is open moves neither (D2); a sleep or a clock change seen asks for a fresh sample
+        this.serverClock = createServerClock({
+            onJump: () => {
+                if (this.ready && this.isConnected()) {
+                    this.refreshState();
+                }
+            },
+        });
         this.stopwatchKnownAt = 0;
         // Nothing of the round until its state answers (the page renders none of it)
         this.ready = false;
@@ -206,6 +213,8 @@ export default class extends Controller {
         this.loadFailed = false;
         this.storageMissing = false;
         this.foreign = 0;
+        // The state was asked for once after the server refused a set for another player's session (D1)
+        this.accountAsked = false;
         this.lastClockSecond = null;
         // The page runs on the round's last known state (a snapshot, live_entry_snapshot.js) since this moment - its
         // first state fetch failed; null once a state answered
@@ -244,13 +253,20 @@ export default class extends Controller {
         };
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
+                // A sleep in the background is counted before anything reads the clock (D2)
+                this.serverClock.shown();
                 this.refreshState();
                 this.flushSoon();
             } else {
+                this.serverClock.hidden();
                 this.snapshots?.flush();
             }
         };
-        this.onPageHide = () => this.snapshots?.flush();
+        // (Back from the back/forward cache, `visibilitychange` says visible again - the clock and the state with it)
+        this.onPageHide = () => {
+            this.serverClock.hidden();
+            this.snapshots?.flush();
+        };
         this.onFocus = () => {
             // Back from the sign-in tab
             if (this.outbox?.blocked != null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
@@ -424,8 +440,8 @@ export default class extends Controller {
         }
 
         return this.refreshState().then(async (kind) => {
-            if ((this.ready && this.offlineCopyAt === null) || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || this.stateBlocked === 'gone') {
-                // Signed out / no rights: the banner's Retry (and the window's focus) asks again
+            if ((this.ready && this.offlineCopyAt === null) || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || kind === 'another_account' || this.stateBlocked === 'gone') {
+                // Signed out / no rights / another player's session: the banner's Retry (and the window's focus) asks again
                 return;
             }
 
@@ -570,6 +586,8 @@ export default class extends Controller {
             playerId: player,
             devicePlayer: () => devicePlayerOf(document.cookie),
             marker: webStorage('localStorage'),
+            // The page load's first state is stored at once - an offline reload a second later finds the round (D3)
+            firstAtOnce: true,
         });
         this.snapshots.start();
     }
@@ -670,7 +688,8 @@ export default class extends Controller {
                 viewer: this.viewer,
                 ...(this.proposalsOn ? { proposals: [...this.proposals.values()] } : {}),
             },
-            clockOffsetMs: this.serverClock.offsetMs(),
+            // Against the wall clock: the next page load's monotonic clock starts from it (D2)
+            clockOffsetMs: this.wallClockOffsetMs(),
             clockMeasuredAt: Date.now(),
             eventPeople: this.eventPeople,
         });
@@ -694,7 +713,7 @@ export default class extends Controller {
                     this.prefetchTimer = setTimeout(resolve, ms);
                 }),
                 shouldStop: () => !this.isConnected() || navigator.onLine === false || this.offlineCopyAt !== null,
-                extra: () => ({ clockOffsetMs: this.serverClock.offsetMs(), clockMeasuredAt: Date.now() }),
+                extra: () => ({ clockOffsetMs: this.wallClockOffsetMs(), clockMeasuredAt: Date.now() }),
                 fetchState: async (roundId) => {
                     const abort = new AbortController();
                     const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
@@ -1183,17 +1202,38 @@ export default class extends Controller {
     async fetchState() {
         const abort = new AbortController();
         const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
-        const sentAt = Date.now();
+        // The clock's samples are stamped on its own (monotonic) clock
+        const sentAt = monotonicNow();
 
         try {
             const answer = await officialResultsRequest(stateUrl(this.stateUrlValue, this.roundIdValue), { signal: abort.signal });
-            const answeredAt = Date.now();
+            const answeredAt = monotonicNow();
+            const answeredAtWall = Date.now();
 
             if (answer.kind === 'ok') {
+                const viewerId = answer.data.viewer?.playerId;
+
+                // Another player signed in on this browser meanwhile (D1): the outbox stops (its changes stay on the
+                // device for their player's next sign-in), nothing of the other player goes into this page - it loads
+                // anew as theirs, as goLive() does. Not where the outbox is in memory only: the page waits for a sign-in.
+                // A same-player state lets a retry send again (the outbox learns it either way).
+                if (this.ready && typeof viewerId === 'string' && viewerId !== '' && this.outbox?.viewerIs(viewerId) === false) {
+                    this.stateBlocked = 'another_account';
+                    this.events.suspend();
+                    this.scheduleRender();
+
+                    if (!this.storageMissing || !this.outbox.hasUnsent()) {
+                        this.confirmLeaving();
+                        window.location.reload();
+                    }
+
+                    return 'another_account';
+                }
+
                 this.stateBlocked = null;
                 this.connectionBack();
                 this.serverClock.observe({ sentAtMs: sentAt, receivedAtMs: answeredAt, serverNowMs: serverTimeOf(answer.data) });
-                this.stopwatchKnownAt = answeredAt;
+                this.stopwatchKnownAt = answeredAtWall;
                 this.applyState(answer.data);
                 this.scheduleRender();
 
@@ -1312,7 +1352,7 @@ export default class extends Controller {
             storage,
             userId: this.userId,
             newId: newClientId,
-            send: (roundId, changes) => this.sendChanges(roundId, changes),
+            send: (roundId, changes, expectedPlayerId) => this.sendChanges(roundId, changes, expectedPlayerId),
             lock: createTabLock(`msp-official-results-outbox:${this.userId}`),
             onEntries: (entries, roundId) => {
                 if (roundId === this.roundIdValue) {
@@ -1322,6 +1362,12 @@ export default class extends Controller {
             onChange: () => {
                 this.entriesChanged();
                 this.scheduleRender();
+
+                // The server refused a set for another player's session (D1): the state says whose page this is now
+                if (this.outbox?.blocked === 'another_account' && !this.accountAsked) {
+                    this.accountAsked = true;
+                    this.refreshState();
+                }
             },
             // The server's word on the proposals the set decided (toolkit C9) - an old copy asks for the state
             onProposals: (annotations, roundId) => {
@@ -1352,14 +1398,15 @@ export default class extends Controller {
         });
     }
 
-    async sendChanges(roundId, changes) {
+    async sendChanges(roundId, changes, expectedPlayerId = '') {
         const abort = new AbortController();
         const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
 
         try {
             return await officialResultsRequest(this.recordUrlValue.replace(UUID_PLACEHOLDER, roundId), {
                 method: 'POST',
-                body: { changes },
+                // Whose changes they are - another player's session refuses them all (409 another_account, D1)
+                body: expectedPlayerId ? { changes, expectedPlayerId } : { changes },
                 csrfToken: this.csrfTokenValue,
                 signal: abort.signal,
             });
@@ -1430,6 +1477,7 @@ export default class extends Controller {
 
     async retryAll() {
         this.stateBlocked = null;
+        this.accountAsked = false;
 
         if (!this.ready) {
             this.loadAttempts = 0;
@@ -1438,7 +1486,11 @@ export default class extends Controller {
             return;
         }
 
-        await this.refreshState();
+        // The outbox sends again only after this state named its player (D1 - the sign-in tab may have been another's)
+        if (await this.refreshState() === 'another_account') {
+            return;
+        }
+
         await this.outbox.retryNow();
         this.broadcast();
     }
@@ -1479,7 +1531,7 @@ export default class extends Controller {
 
     renderHeader() {
         const status = this.outbox ? this.outbox.status() : { pending: 0, conflicts: 0, rejected: 0, forbidden: 0, blocked: null, offline: false, sending: false };
-        const blocked = status.blocked ?? this.stateBlocked;
+        const blocked = this.stateBlocked === 'another_account' ? 'another_account' : (status.blocked ?? this.stateBlocked);
         let state = 'saved';
         let text = this.t('syncSaved');
 
@@ -1490,9 +1542,9 @@ export default class extends Controller {
             // Nothing of the round yet - no claim that anything is saved
             state = 'waiting';
             text = this.t('loading');
-        } else if (blocked === 'auth') {
+        } else if (blocked === 'auth' || blocked === 'another_account') {
             state = 'blocked';
-            text = this.t('syncSignIn');
+            text = this.t(blocked === 'auth' ? 'syncSignIn' : 'syncAnotherAccount');
         } else if (blocked === 'forbidden') {
             state = 'blocked';
             text = this.t('syncForbidden');
@@ -1531,15 +1583,18 @@ export default class extends Controller {
 
     renderBanner() {
         const blocked = this.outbox?.blocked ?? null;
-        const reason = blocked === 'auth' || this.stateBlocked === 'auth' ? 'auth' : (this.stateBlocked ?? blocked);
+        const reason = blocked === 'another_account' || this.stateBlocked === 'another_account'
+            ? 'another_account'
+            : (blocked === 'auth' || this.stateBlocked === 'auth' ? 'auth' : (this.stateBlocked ?? blocked));
         const parts = [];
 
         if (!this.ready && this.shellScreen !== null) {
             parts.push(this.shellScreenHtml());
-        } else if (reason === 'auth' || reason === 'forbidden') {
-            // Signed out, or no rights for THIS round's event: nothing of it can be sent
+        } else if (reason === 'auth' || reason === 'forbidden' || reason === 'another_account') {
+            // Signed out, no rights for THIS round's event, or another player signed in here (D1 - this page's results
+            // wait for their own player): nothing of it can be sent
             parts.push(`<div class="alert alert-danger mb-2" role="alert">
-                <p class="mb-2">${escapeHtml(this.t(reason === 'auth' ? 'bannerAuth' : 'bannerForbidden'))}</p>
+                <p class="mb-2">${escapeHtml(reason === 'another_account' ? this.plural('foreign', Math.max(1, this.outbox?.status().total ?? 0)) : this.t(reason === 'auth' ? 'bannerAuth' : 'bannerForbidden'))}</p>
                 <div class="d-flex flex-wrap gap-2">
                     <a class="btn btn-danger" href="${escapeHtml(this.loginUrlValue)}" target="_blank" rel="noopener">${escapeHtml(this.t('signIn'))}</a>
                     <button type="button" class="btn btn-outline-danger" data-action="live-results#retry">${escapeHtml(this.t('retry'))}</button>
@@ -1586,11 +1641,20 @@ export default class extends Controller {
         }
 
         const html = parts.join('');
+        // A card or the quick add open: the banner goes below it - one inserted above would move Save (or Add) under
+        // the finger between its pointer events (D6). The find view keeps it on top.
+        // (An offline copy stored before the slot existed has only the top one)
+        const below = this.view !== 'find' && this.hasBannerBelowTarget;
+        const target = below ? this.bannerBelowTarget : this.bannerTarget;
 
-        if (this.bannerHtml !== html) {
+        if (this.bannerHtml !== html || this.bannerPlace !== target) {
             this.bannerHtml = html;
-            this.bannerTarget.innerHTML = html;
-            this.bannerTarget.hidden = html === '';
+            this.bannerPlace = target;
+
+            for (const slot of this.hasBannerBelowTarget ? [this.bannerTarget, this.bannerBelowTarget] : [target]) {
+                slot.innerHTML = slot === target ? html : '';
+                slot.hidden = slot !== target || html === '';
+            }
         }
     }
 
@@ -2189,6 +2253,13 @@ export default class extends Controller {
 
     // ---- Stopwatch ----
 
+    /**
+     * The server's time minus this phone's wall clock now - what a snapshot keeps for the next page load's first guess.
+     */
+    wallClockOffsetMs() {
+        return Math.round(this.serverClock.serverNow() - Date.now());
+    }
+
     serverNow() {
         return this.serverClock.serverNow();
     }
@@ -2393,6 +2464,9 @@ export default class extends Controller {
         if (view !== 'find') {
             this.claimHistory();
         }
+
+        // The banner follows the view: on top of the find view, below a card (D6)
+        this.renderBanner();
 
         if (!inPlace) {
             window.scrollTo(0, 0);
@@ -3133,7 +3207,10 @@ export default class extends Controller {
     }
 
     retryItem(event) {
-        this.outbox.retryNow(event.currentTarget.dataset.id).then(() => this.broadcast());
+        const id = event.currentTarget.dataset.id;
+
+        // After a sign-in the state first says whose session it is (D1)
+        (this.outbox.viewerCheck ? this.refreshState() : Promise.resolve()).then((kind) => kind !== 'another_account' && this.outbox.retryNow(id).then(() => this.broadcast()));
     }
 
     // ---- Overlays ----

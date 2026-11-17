@@ -88,8 +88,10 @@ names, codes and token would sit in CacheStorage - `ServiceWorkerBehaviourTest`)
   store `snapshots`, key `<playerId>:<roundId>`; record `{key, playerId, roundId, competitionId, savedAt,
   clockOffsetMs, clockMeasuredAt, state, eventPeople}` - `state` = competition, round (with the stopwatch), rounds,
   entries, viewer, proposals (when on); the Mercure token is never stored.
-  - Written on every state the page gets (fetches, merged live updates), debounced 2 s per round; flushed on
-    `visibilitychange` hidden and `pagehide`. Never while the page runs on a snapshot (its time would claim knowledge
+  - Written on every state the page gets (fetches, merged live updates): the page load's first state of a round at
+    once (F1, D3 - an offline reload a second after opening finds it), later ones at most 2 s after the first change
+    not yet written, the newest state then (F1, D4 - a steady stream of other judges' saves never postpones it);
+    flushed best effort on `visibilitychange` hidden and `pagehide`. Never while the page runs on a snapshot (its time would claim knowledge
     the page does not have).
   - Only for the player the cookie names (`allowed()`): no cookie or another player → nothing read or written, also a
     write already queued when the device changed hands.

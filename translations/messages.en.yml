@@ -5482,6 +5482,8 @@ live_results:
         forbidden: "No permission"
         reload: "Reload the page"
         gone: "Round deleted"
+    another_account:
+        sync: "Another account"
     take_out:
         button: "Take out of this round"
         confirm: "Take %name% out of this round? They stay in the event and its other rounds - only an entry without a result or a qualified mark can be taken out."

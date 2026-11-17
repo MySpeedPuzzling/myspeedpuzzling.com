@@ -219,6 +219,23 @@ const scenarios = {
         }
     },
 
+    async 'another player signed in on the browser: the tap stays on the phone, never refused (D1)'() {
+        assert.deepEqual(classifyAnswer(409, 'basic', { error: 'another_account' }), { kind: 'auth', anotherAccount: true });
+
+        const { outbox, network, advance, answers } = setup();
+        await outbox.load();
+        network.answers.push(classifyAnswer(409, 'basic', { error: 'another_account' }));
+        await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW });
+        await advance(600_000);
+
+        assert.equal(network.requests.length, 1);
+        // The item names its player - the page sends it as `expectedPlayerId`
+        assert.equal(network.requests[0].userId, USER);
+        assert.equal(outbox.blocked, 'auth');
+        assert.equal(outbox.hasUnsent(), true);
+        assert.deepEqual(answers, []);
+    },
+
     async 'a busy server (rate limit) waits for its Retry-After, a server error backs off'() {
         const { outbox, network, advance } = setup();
         await outbox.load();
@@ -587,6 +604,7 @@ Object.assign(scenarios, {
 
         const first = proposalBody(item, NOW + 0.4);
         assert.deepEqual(first, {
+            expectedPlayerId: USER,
             proposalId: item.id,
             entry: ENTRY,
             tappedAtMs: NOW - 250,

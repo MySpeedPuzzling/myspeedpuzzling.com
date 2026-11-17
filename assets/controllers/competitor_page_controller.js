@@ -1,7 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { CompetitorPageLive, roundsOf, roundView } from '../competitor_page_live.js';
-import { clockParts, formatCountdown } from '../round_stopwatch_clock.js';
+import { clockParts, formatCountdown, monotonicNow } from '../round_stopwatch_clock.js';
 import {
     createMemoryStorage,
     createProposalsStorage,
@@ -99,6 +99,8 @@ export default class extends Controller {
             if (document.visibilityState === 'visible') {
                 this.live.onVisible();
                 this.heartbeat?.nudge();
+            } else {
+                this.live.onHidden();
             }
         };
         document.addEventListener('visibilitychange', this.onVisibility);
@@ -145,8 +147,9 @@ export default class extends Controller {
         window.addEventListener('online', this.onOnline);
         window.addEventListener('beforeunload', this.onBeforeUnload);
 
+        // Every request names the tap's player - another one signed in meanwhile is refused nothing of it (D1)
         const send = (item) => item.action === 'withdraw'
-            ? proposalRequest(this.withdrawUrlValue.replace(NIL_ID, item.id), {}, this.csrfTokenValue)
+            ? proposalRequest(this.withdrawUrlValue.replace(NIL_ID, item.id), { expectedPlayerId: item.userId }, this.csrfTokenValue)
             : proposalRequest(this.proposeUrlValue.replace(NIL_ID, item.roundId), proposalBody(item, this.tapNowMs()), this.csrfTokenValue);
 
         createProposalsStorage().catch(() => null).then((storage) => {
@@ -179,7 +182,8 @@ export default class extends Controller {
 
         const outbox = this.outbox;
         this.heartbeat = new CompetitorHeartbeat({
-            send: (body) => sendHeartbeat(this.heartbeatUrlValue, body),
+            // Its answer is a clock sample: stamped on the clock's own monotonic clock (F1, D2)
+            send: (body) => sendHeartbeat(this.heartbeatUrlValue, body, globalThis.fetch, monotonicNow),
             active: () => this.heartbeatRounds(),
             summary: async (roundId) => {
                 let items;
@@ -459,7 +463,8 @@ export default class extends Controller {
 
         const controller = typeof AbortController === 'function' ? new AbortController() : null;
         const timer = controller ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
-        const sentAtMs = Date.now();
+        // The clock's samples: on its monotonic clock (D2)
+        const sentAtMs = monotonicNow();
 
         try {
             const response = await fetch(url, {
@@ -468,7 +473,7 @@ export default class extends Controller {
                 headers: { Accept: accept },
                 signal: controller?.signal,
             });
-            const receivedAtMs = Date.now();
+            const receivedAtMs = monotonicNow();
 
             if (response.status === 404) {
                 return { status: 'gone' };

@@ -200,7 +200,17 @@ longer lists unless it came after the state was read). Server side: `official-re
   somebody corrected the value meanwhile.
 - **Failures** - only our endpoint's JSON is a verdict (`officialResultsRequest()` kinds):
   - signed out (401, any redirect, a 200 that is not JSON) → stop, keep everything, "Sign in again" banner with a
-    sign-in link in a new tab and Retry (also retried when the window gets the focus back);
+    sign-in link in a new tab and Retry (also retried when the window gets the focus back). Banners sit above the find
+    view; while a card (entry / confirm) or quick add is open they render below it, so one showing up never moves Save
+    under a finger (F1, D6);
+  - **another account** (reliability hardening F1, D1): every set names its player (`expectedPlayerId` = the items'
+    `userId`); a session that is somebody else's by now (another player signed in on the same browser) answers 409
+    `another_account` and applies nothing - the outbox stops as for signed out. After signed out / another account
+    nothing is sent again - not by Retry, not per item - until a fresh state named the outbox's player
+    (`Outbox.viewerIs()`); a state of another player on a live page stops the outbox and reloads the page as theirs
+    (as goLive() does - the changes stay on the device, "N results entered under another account …", and go when their
+    player signs in again; where the outbox is in memory only the page stays and says so). A request without the field
+    (an older page) is not checked;
   - 403 `invalid_csrf_token` → stop, "This page is out of date - reload it" with Reload;
   - 403 `forbidden` (no rights for that round's event, e.g. yesterday's event the referee is no maintainer of any more)
     → **only that round's changes** are set apart (`state: forbidden`), every other round goes on; a banner counts them
@@ -243,7 +253,13 @@ cookie is no longer involved - other responses can not take the round away from 
 Entries updates are merged by ref (own saves arrive twice, harmlessly); `refresh` refetches; the stopwatch payload
 updates the clock; the state is also fetched every 60 s while visible and when the tab comes back. "Finished now"
 trusts the stopwatch only while the stream is live (open and not silent) or the state was fetched in the last 10 s.
-The clock offset is NTP-style (midpoint of the state request).
+The clock offset is NTP-style (midpoint of the state request), measured on the monotonic clock
+(`performance.timeOrigin + performance.now()`, `monotonicNow()`): a change of the phone's wall clock while the page is
+open moves neither "Finished now" nor the countdown (F1, D2). A sleep (`performance.now()` stands still on most phones)
+or a clock change is seen when the wall and the monotonic clock disagree by > 2 s about the time that passed: after the
+page was hidden the estimate moves on by the difference (a sleep), while visible it stays (a clock change); the samples
+are dropped, a sample taken across it is left out and the state is fetched for a fresh one. Snapshots keep the offset
+against the wall clock (the next page load's monotonic clock starts from it).
 
 ## Scanning (`assets/official_results_scan.js`)
 

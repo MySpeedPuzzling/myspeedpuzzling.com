@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Message\EditCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\SaveEventWizardBasics;
 use SpeedPuzzling\Web\Message\StartEventWizardDraft;
+use SpeedPuzzling\Web\Query\GetEventWizardState;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
@@ -84,6 +85,7 @@ final class EventWizardBasicsController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly EventWizardDefaults $defaults,
+        private readonly GetEventWizardState $getEventWizardState,
     ) {
     }
 
@@ -352,17 +354,18 @@ final class EventWizardBasicsController extends AbstractController
 
     /**
      * Whether a new event's id is taken: null = free, true = the player's own draft (a second submit of the same page),
-     * false = anything else.
+     * false = anything else. Read through DBAL: after a failed insert of the same id (two submits at once) the entity
+     * manager is closed.
      */
     private function existingDraft(string $competitionId, string $playerId): null|bool
     {
         try {
-            $competition = $this->competitionRepository->get($competitionId);
+            $state = $this->getEventWizardState->of($competitionId);
         } catch (CompetitionNotFound) {
             return null;
         }
 
-        return $competition->isDraft && $competition->addedByPlayer?->id->toString() === $playerId;
+        return $state->isDraft && $state->addedByPlayerId === strtolower($playerId);
     }
 
     /**

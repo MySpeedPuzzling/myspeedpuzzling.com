@@ -19,6 +19,8 @@ readonly final class EventWizardState
         public null|string $singleRoundId,
         // The puzzles of all its rounds
         public int $roundPuzzlesCount,
+        // Who created it - a new event's page sent twice finds its own draft by it (EventWizardBasicsController)
+        public null|string $addedByPlayerId = null,
     ) {
     }
 }

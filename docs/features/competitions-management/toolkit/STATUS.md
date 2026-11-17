@@ -56,7 +56,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | P1F | A (extra slot) | merged | 48360480f, 19db0c38c | stopwatch_first_started_at (stopwatchOriginalStartAt()), taps before Stop accepted (too_late from the round's end), re-pick keeps connectedAt |
 | B5 | C | started | | |
 | A4 | B (swap) | merged | 973884dc5, 41725625e, 89d05d343 | desk per-puzzle editor (grouped saves), sheet recompute/clear+undo + Puzzles column, export Puzzle N columns (total pinned) |
-| C9 | B | started | | |
+| C9 | B | merged | 870b6023b | proposal panel (Confirm focused / Replace / Change / Not right + reason), Proposals waiting list opens the card, outbox proposalId + `proposal` reject (offline ok), late → receipt default; bundle 190 KB/52 KB gzip (50.8) |
+| A8 | B | started | | |
 
 ## Hardening list (H) - collected
 - Duplicate competition: copy competitor-page settings (B1)? displays (D8). Rounds copied without puzzles stay `total`.
@@ -70,3 +71,4 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - **A4 scope add:** the participants SHEET (not only the desk) must handle pick rounds - send/clear `puzzles` with results, else result edits on entries with a record are refused `puzzles_mismatch`.
 - P1 load: 40 simultaneous proposals p95 ≈ 0.8 s on Docker-on-Mac (≈19 ms each under the event lock) → 100 ≈ 1.9 s vs 500 ms goal. Accepted for v1 (finishes spread, outbox); measure on prod-like HW; per-round lock key needs Jan's OK.
 - B4 open: show 'Did not start' on public competitor pages? (round page omits it) - decide in H.
+- C9 polish: proposer name only on pair/team cards; document 'undo of a confirmation clears the result, proposal stays confirmed'.

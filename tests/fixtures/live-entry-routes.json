@@ -1,0 +1,144 @@
+{
+    "_comment": "Live entry URLs the service worker answers with the stored offline copy (locale = the copy's, null = the path has none): run by tests/live-entry-shell-harness.mjs against parseLiveEntryRoute() and by tests/ServiceWorkerLiveShellTest.php against the worker - the two cannot drift.",
+    "live": [
+        {
+            "path": "/en/live-results/018d0020-0000-0000-0000-000000000101",
+            "locale": "en"
+        },
+        {
+            "path": "/en/live-results/event/018d0020-0000-0000-0000-000000000c01",
+            "locale": "en"
+        },
+        {
+            "path": "/es/live-results/018d0020-0000-0000-0000-000000000101",
+            "locale": "es"
+        },
+        {
+            "path": "/es/live-results/event/018d0020-0000-0000-0000-000000000c01",
+            "locale": "es"
+        },
+        {
+            "path": "/ja/live-results/018d0020-0000-0000-0000-000000000101",
+            "locale": "ja"
+        },
+        {
+            "path": "/ja/live-results/event/018d0020-0000-0000-0000-000000000c01",
+            "locale": "ja"
+        },
+        {
+            "path": "/fr/live-results/018d0020-0000-0000-0000-000000000101",
+            "locale": "fr"
+        },
+        {
+            "path": "/fr/live-results/event/018d0020-0000-0000-0000-000000000c01",
+            "locale": "fr"
+        },
+        {
+            "path": "/de/live-results/018d0020-0000-0000-0000-000000000101",
+            "locale": "de"
+        },
+        {
+            "path": "/de/live-results/event/018d0020-0000-0000-0000-000000000c01",
+            "locale": "de"
+        },
+        {
+            "path": "/zadavani-vysledku/018d0020-0000-0000-0000-000000000101",
+            "locale": "cs"
+        },
+        {
+            "path": "/zadavani-vysledku-udalosti/018d0020-0000-0000-0000-000000000c01",
+            "locale": "cs"
+        },
+        {
+            "path": "/en/live-results/018D0020-0000-0000-0000-000000000101/",
+            "locale": "en"
+        },
+        {
+            "path": "/zadavani-vysledku/018d0020-0000-0000-0000-000000000101/",
+            "locale": "cs"
+        },
+        {
+            "path": "/en/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "en"
+        },
+        {
+            "path": "/cs/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "cs"
+        },
+        {
+            "path": "/es/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "es"
+        },
+        {
+            "path": "/ja/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "ja"
+        },
+        {
+            "path": "/fr/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "fr"
+        },
+        {
+            "path": "/de/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+            "locale": "de"
+        },
+        {
+            "path": "/live/018d0020-0000-0000-0000-000000000c01/g/018d0020-0000-5000-8000-0000000000aa",
+            "locale": null
+        },
+        {
+            "path": "/fr/live/018d0020-0000-0000-0000-000000000c01/g/018d0020-0000-5000-8000-0000000000aa",
+            "locale": "fr"
+        },
+        {
+            "path": "/live/018d0020-0000-0000-0000-000000000c01/t/12",
+            "locale": null
+        },
+        {
+            "path": "/live/018d0020-0000-0000-0000-000000000c01/t/1",
+            "locale": null
+        },
+        {
+            "path": "/cs/live/018d0020-0000-0000-0000-000000000c01/t/9999",
+            "locale": "cs"
+        },
+        {
+            "path": "/live/018d0020-0000-0000-0000-000000000c01/e/018d0020-0000-0000-0000-000000000101",
+            "locale": null
+        },
+        {
+            "path": "/ja/live/018d0020-0000-0000-0000-000000000c01/e/018d0020-0000-0000-0000-000000000101/",
+            "locale": "ja"
+        },
+        {
+            "path": "/DE/live/018d0020-0000-0000-0000-000000000c01/t/3",
+            "locale": "de"
+        }
+    ],
+    "notLive": [
+        "/en/live-results-shell",
+        "/zadavani-vysledku-shell",
+        "/cs/live-results-shell",
+        "/en/hub",
+        "/",
+        "/offline.html",
+        "/cs/live-results/018d0020-0000-0000-0000-000000000101",
+        "/live/018d0020-0000-0000-0000-000000000c01/p/018d0020-0000-0000-0000-0000000000f1",
+        "/en/live-results/018d0020-0000-0000-0000-000000000101/extra",
+        "/en/live-results/not-a-uuid",
+        "/en/live-results/event/018d0020-0000-0000-0000-000000000c01/x",
+        "/en/official-results/rounds/018d0020-0000-0000-0000-000000000101",
+        "/live/018d0020-0000-0000-0000-000000000c01",
+        "/live/not-a-uuid/t/1",
+        "/live/018d0020-0000-0000-0000-000000000c01/t/0",
+        "/live/018d0020-0000-0000-0000-000000000c01/t/10000",
+        "/live/018d0020-0000-0000-0000-000000000c01/t/012",
+        "/live/018d0020-0000-0000-0000-000000000c01/t/a",
+        "/live/018d0020-0000-0000-0000-000000000c01/r/018d0020-0000-0000-0000-000000000101/e/018d0020-0000-0000-0000-000000000101",
+        "/live/018d0020-0000-0000-0000-000000000c01/x/018d0020-0000-0000-0000-000000000101",
+        "/it/live/018d0020-0000-0000-0000-000000000c01/g/018d0020-0000-5000-8000-0000000000aa",
+        "/en/live-results/018d0020-0000-0000-0000-000000000101x",
+        "/xen/live-results/018d0020-0000-0000-0000-000000000101",
+        "/en/live-results//018d0020-0000-0000-0000-000000000101",
+        "/en/events/x/live/018d0020-0000-0000-0000-000000000c01/t/1"
+    ]
+}

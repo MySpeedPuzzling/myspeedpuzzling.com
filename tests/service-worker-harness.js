@@ -65,6 +65,7 @@ async function run(scenario) {
             log.delays.push(delay);
             return setTimeout(callback, 0);
         },
+        clearTimeout: (id) => clearTimeout(id),
         fetch: (request, init) => {
             if (init && init.method === 'POST') {
                 log.reports.push({ url: urlOf(request), credentials: init.credentials, body: JSON.parse(init.body) });

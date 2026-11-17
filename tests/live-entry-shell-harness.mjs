@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 import { parseLiveEntryRoute } from '../assets/live_entry_route.js';
 import { currentRound, liveUrlOnceLive, loginUrlWithReturn, shellPlan } from '../assets/live_entry_shell.js';
 import { createMemorySnapshotStorage, SnapshotStore } from '../assets/live_entry_snapshot.js';
-import { parseNameTagUrl } from '../assets/official_results_scan.js';
+import { parseNameTagUrl, ZBAR_SOURCES } from '../assets/official_results_scan.js';
+import { prepareOfflineCopy } from '../assets/live_entry_offline_ready.js';
 
 const ANNA = '018d0020-0000-0000-0000-00000000a001';
 const COMPETITION = '018d0020-0000-0000-0000-000000000c01';
@@ -115,6 +116,88 @@ const scenarios = {
             `/en/official-results/rounds/${ROUND_A}`, `/live/${COMPETITION}`, `/live/not-a-uuid/t/1`,
         ]) {
             assert.equal(parseLiveEntryRoute(text), null, String(text));
+        }
+    },
+
+    async 'the service worker\'s live paths are exactly these (shared cases, toolkit C6)'() {
+        // tests/fixtures/live-entry-routes.json is run against public/service-worker.js too (ServiceWorkerLiveShellTest):
+        // the worker answers its offline copy for exactly the URLs this module reads, in the same locale
+        const routes = JSON.parse(readFileSync(new URL('./fixtures/live-entry-routes.json', import.meta.url), 'utf8'));
+
+        assert.ok(routes.live.length >= 20 && routes.notLive.length >= 20);
+
+        for (const { path, locale } of routes.live) {
+            const route = parseLiveEntryRoute(path);
+
+            assert.notEqual(route, null, path);
+            assert.equal(route.locale, locale, path);
+        }
+
+        for (const path of routes.notLive) {
+            assert.equal(parseLiveEntryRoute(path), null, path);
+        }
+    },
+
+    async 'ready offline: the worker is asked to store the copy of the page locale and answers (toolkit C6)'() {
+        function container({ answer, controller = true }) {
+            const listeners = new Set();
+            const posted = [];
+            const worker = {
+                postMessage: (message) => {
+                    posted.push(message);
+
+                    if (answer !== null) {
+                        // Another locale's answer first: not this page's
+                        queueMicrotask(() => listeners.forEach((listener) => listener({ data: { type: 'live-shell:ready', locale: 'xx', storedAt: 1 } })));
+                        queueMicrotask(() => listeners.forEach((listener) => listener({ data: { ...answer, locale: message.locale } })));
+                    }
+                },
+            };
+
+            return {
+                posted,
+                listeners,
+                serviceWorker: {
+                    ready: Promise.resolve({ active: worker }),
+                    controller: controller ? worker : null,
+                    addEventListener: (type, listener) => listeners.add(listener),
+                    removeEventListener: (type, listener) => listeners.delete(listener),
+                },
+            };
+        }
+
+        const ready = container({ answer: { type: 'live-shell:ready', storedAt: 1763380000000 } });
+        assert.deepEqual(await prepareOfflineCopy({ serviceWorker: ready.serviceWorker, locale: 'cs', scanner: true }), { storedAt: 1763380000000 });
+        assert.deepEqual(ready.posted, [{ type: 'live-shell:prepare', locale: 'cs', scanner: true }]);
+        assert.equal(ready.listeners.size, 0, 'the listener goes');
+
+        const failed = container({ answer: { type: 'live-shell:failed' } });
+        assert.equal(await prepareOfflineCopy({ serviceWorker: failed.serviceWorker, locale: 'en' }), null);
+        assert.deepEqual(failed.posted, [{ type: 'live-shell:prepare', locale: 'en', scanner: false }]);
+
+        // First visit: the page is not controlled yet, the active worker is asked
+        const fresh = container({ answer: { type: 'live-shell:ready', storedAt: 5 }, controller: false });
+        assert.deepEqual(await prepareOfflineCopy({ serviceWorker: fresh.serviceWorker, locale: 'en' }), { storedAt: 5 });
+
+        // No answer: given up after the timeout
+        const silent = container({ answer: null });
+        assert.equal(await prepareOfflineCopy({ serviceWorker: silent.serviceWorker, locale: 'en', setTimer: (callback) => { queueMicrotask(callback); return 1; }, clearTimer: () => {} }), null);
+
+        // No worker at all (native apps, old browsers)
+        assert.equal(await prepareOfflineCopy({ serviceWorker: undefined, locale: 'en' }), null);
+    },
+
+    async 'the QR decoder comes from our server first, the CDN second (toolkit C6)'() {
+        assert.deepEqual(ZBAR_SOURCES.map((source) => source.name), ['self', 'cdn']);
+
+        // The very files the service worker stores for the page and the EAN scanner loads
+        const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
+        const ean = readFileSync(new URL('../assets/controllers/barcode_scanner_controller.js', import.meta.url), 'utf8');
+
+        for (const file of [ZBAR_SOURCES[0].wasm, ...ZBAR_SOURCES[0].scripts.map((script) => script.src)]) {
+            assert.ok(file.startsWith('/barcode-scanner/zbar-wasm-0.9.15/'), file);
+            assert.ok(worker.includes(`'${file}'`), `the worker stores ${file}`);
+            assert.ok(ean.includes(`'${file}'`), `the EAN scanner loads ${file}`);
         }
     },
 

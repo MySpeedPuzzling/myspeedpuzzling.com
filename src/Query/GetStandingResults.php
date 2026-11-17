@@ -94,6 +94,7 @@ SQL, ['competitionId' => $standing->competitionId]) as $row
                     published: $round['published'],
                     counted: $counted,
                     piecesUnknown: $round['pieces_total'] === null,
+                    hasUnfinished: array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()),
                 );
                 $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries);
             }

@@ -49,6 +49,10 @@
                             <td class="text-end fw-semibold" data-standing-rank>{{ row.rank ?? '–' }}</td>
                             <td>
                                 <span data-standing-name>{{ row.name }}</span>
+                                {% if row.entrants|length > 1 %}
+                                    {# The same pair/team name may stand for two line-ups (a substitute) - the people tell them apart #}
+                                    <span class="d-block text-muted" data-standing-people>{{ row.entrants|map(e => e.name)|join(', ') }}</span>
+                                {% endif %}
                                 {% if not row.complete %}
                                     <span class="badge text-bg-light border ms-1" data-standing-incomplete>{{ 'competition_standing.preview.rounds_of'|trans({'%scored%': row.roundsScored, '%count%': table.roundsCounted}) }}</span>
                                 {% endif %}

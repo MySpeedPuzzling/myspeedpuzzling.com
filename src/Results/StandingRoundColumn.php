@@ -20,6 +20,8 @@ readonly final class StandingRoundColumn
         public bool $counted,
         // The pieces of a finished round are unknown (a round without puzzles) - no penalty per missing piece there
         public bool $piecesUnknown,
+        // Somebody did not finish the round - what the time limit and the pieces are needed for
+        public bool $hasUnfinished = false,
     ) {
     }
 

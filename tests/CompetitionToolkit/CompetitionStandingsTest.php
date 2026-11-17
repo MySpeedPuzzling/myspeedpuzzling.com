@@ -84,6 +84,18 @@ final class CompetitionStandingsTest extends KernelTestCase
         // Bob: 4500 + 3600 + 50 missing pieces × 2 s
         self::assertSame(['Alice' => [1, 6000], 'Cyril' => [2, 6600], 'Bob' => [3, 8200], 'Dora' => [null, 4000]], self::rows($this->table($standingId)->rows));
 
+        // Only rounds where somebody did not finish need a limit and pieces - round 6 has both
+        self::assertSame([], $this->table($standingId)->roundsWithoutPieces());
+        self::assertSame([], $this->table($standingId)->roundsWithoutLimit());
+        $this->database->executeStatement('UPDATE competition_round SET minutes_limit = NULL WHERE id = :round', ['round' => $this->soloRounds[5]]);
+        $this->database->executeStatement('DELETE FROM competition_round_puzzle WHERE round_id = :round', ['round' => $this->soloRounds[5]]);
+        $table = $this->table($standingId);
+        self::assertSame([$this->soloRounds[5]], array_map(static fn ($round): string => $round->id, $table->roundsWithoutLimit()));
+        self::assertSame([$this->soloRounds[5]], array_map(static fn ($round): string => $round->id, $table->roundsWithoutPieces()));
+        // Without a limit Bob's unfinished round cannot score - he is incomplete now
+        self::assertSame(['Alice' => [1, 6000], 'Cyril' => [2, 6600], 'Dora' => [null, 4000], 'Bob' => [null, 4500]], self::rows($table->rows));
+        $this->database->executeStatement('UPDATE competition_round SET minutes_limit = 60 WHERE id = :round', ['round' => $this->soloRounds[5]]);
+
         // Only the three published-in-the-middle rounds: Bob is fastest in rounds 1-3
         $this->messageBus->dispatch(new EditCompetitionStanding($standingId, self::WS_COMPETITION, 'Solo 1-3', RoundCategory::Solo, array_slice($this->soloRounds, 0, 3), new StandingRules()));
         $table = $this->table($standingId);

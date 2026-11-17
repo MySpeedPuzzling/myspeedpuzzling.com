@@ -49,15 +49,17 @@ readonly final class StandingTable
     }
 
     /**
-     * @return list<StandingRoundColumn> rounds without a time limit - their unfinished results cannot score
+     * @return list<StandingRoundColumn> rounds without a time limit where somebody did not finish - those results cannot
+     *     score
      */
     public function roundsWithoutLimit(): array
     {
-        return array_values(array_filter($this->rounds, static fn (StandingRoundColumn $round): bool => $round->minutesLimit === null));
+        return array_values(array_filter($this->rounds, static fn (StandingRoundColumn $round): bool => $round->hasUnfinished && $round->minutesLimit === null));
     }
 
     /**
-     * @return list<StandingRoundColumn> rounds whose pieces are unknown while a penalty per missing piece is set
+     * @return list<StandingRoundColumn> rounds where somebody did not finish, whose pieces are unknown, while a penalty per
+     *     missing piece is set
      */
     public function roundsWithoutPieces(): array
     {
@@ -65,7 +67,7 @@ readonly final class StandingTable
             return [];
         }
 
-        return array_values(array_filter($this->rounds, static fn (StandingRoundColumn $round): bool => $round->piecesUnknown));
+        return array_values(array_filter($this->rounds, static fn (StandingRoundColumn $round): bool => $round->hasUnfinished && $round->piecesUnknown));
     }
 
     /**

@@ -57,7 +57,30 @@ readonly final class PuzzleResultAttempt
         // The event a "Link my results" link waits for (not public yet - creation-wizard.md "Backfill") - set only for a
         // viewer who may change the time (GetPuzzleResultDetail), null for everybody else
         public null|string $waitingEventName = null,
+        /**
+         * "Choose the round" (shared-puzzles-and-divisions.md §2.4 row 16): the rounds of its event that hold its puzzle
+         * in its solo/pair/team category, when there are several and the player has not chosen one (`current` = the
+         * round the rule linked it to, if any) - set only for a viewer who may change the time (GetPuzzleResultDetail),
+         * empty for everybody else
+         *
+         * @var list<array{id: string, name: string, current: bool}>
+         */
+        public array $roundChoices = [],
     ) {
+    }
+
+    /**
+     * The round the rule linked the time to, when the player may still choose another
+     */
+    public function currentRoundChoice(): null|string
+    {
+        foreach ($this->roundChoices as $choice) {
+            if ($choice['current']) {
+                return $choice['name'];
+            }
+        }
+
+        return null;
     }
 
     public function isUnfinished(): bool
@@ -103,6 +126,7 @@ readonly final class PuzzleResultAttempt
             piecesPlaced: $this->piecesPlaced,
             finishedLaterSeconds: $this->finishedLaterSeconds,
             waitingEventName: $this->waitingEventName,
+            roundChoices: $this->roundChoices,
         );
     }
 }

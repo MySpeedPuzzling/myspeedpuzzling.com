@@ -296,3 +296,10 @@ Entered on production 2026-09-17 from the official schedule (worldjigsawpuzzle.o
 | Individual Final | solo | 20/09 12:00 | 75 | — | https://worldjigsawpuzzle.org/wjpc/2026/individual/final |
 
 Individual C → Zion National Park was attached after this table was first written. Round puzzles are attached and tagged by SQL as Jan reports them.
+
+## Shared puzzles: the explicit round (S3, 2026-11-18)
+
+A time's round is derived (`SolvingTimeRoundMatch`) unless the player named it: "Add to my profile" names the entry's
+round, the result detail's "Choose the round" and the round page's "This is my time - link it to <round>"
+(`ChooseSolvingTimeRound`) place a time the rule could not. A named round is kept as `round_chosen` while the round
+still holds the puzzle. Details: `shared-puzzles-and-divisions.md` "As built: S3".

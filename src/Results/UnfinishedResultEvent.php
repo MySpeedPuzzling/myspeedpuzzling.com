@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Value\SeriesEditionMatchKind;
 
 /**
  * What UnfinishedResultRound settled: the one-time event or edition, its round with a time limit, and - for a series
- * pick - the series and how its edition was found (always by its puzzle).
+ * pick - the series and how its edition was found (always by its puzzle) - and whether the round was named (chosen).
  */
 readonly final class UnfinishedResultEvent
 {
@@ -20,6 +20,8 @@ readonly final class UnfinishedResultEvent
         public CompetitionRound $round,
         public null|CompetitionSeries $series,
         public null|SeriesEditionMatchKind $seriesEditionMatch,
+        // The round is one the player (Add to my profile) or the API named, kept as their choice (round_chosen)
+        public bool $roundChosen = false,
     ) {
     }
 

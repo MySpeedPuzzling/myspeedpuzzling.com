@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\RoundResolution;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\SolvingTimeRoundEvidence;
 
 /**
  * The round a solving time belongs to, by the one rule SolvingTimeRoundMatch (docs/features/competitions-management/
@@ -22,8 +23,8 @@ use SpeedPuzzling\Web\Value\PuzzlingType;
  * several, a round the player named wins while it is a candidate, else the evidence (when it was saved, its day, the
  * people's entries and recorded results) must single out one round - or the time has none.
  *
- * Used by the time's own add/edit handlers, before the entity is flushed - and, through resolveFor(), by the unfinished
- * result's handlers before the entity even exists (an unfinished result needs its round's limit first). One statement
+ * Used by the time's own add/edit handlers, before the entity is flushed - and, through resolveNew() / resolveFor(), by
+ * the unfinished result's handlers and the add form's hint before the entity even exists (an unfinished result needs its round's limit first). One statement
  * for both (+ the round's get()), so they can never disagree. Changes on the round side are reconciled in bulk by
  * RoundResultsReconciler over the same rule.
  */
@@ -89,27 +90,58 @@ SQL;
     }
 
     /**
-     * What resolve() answers for a time that does not exist yet and carries no evidence (the unfinished result's
-     * handlers, before they build the entity): the only candidate, or none when the puzzle is in several rounds of
-     * the category.
+     * What resolve() answers for a time that does not exist yet and carries no evidence (the add form's hint): the only
+     * candidate, or none when the puzzle is in several rounds of the category.
      */
     public function resolveFor(string $competitionId, string $puzzleId, PuzzlingType $puzzlingType): null|CompetitionRound
     {
-        return $this->answer([
+        return $this->resolveNew($competitionId, $puzzleId, $puzzlingType)->round;
+    }
+
+    /**
+     * resolve() for a time that does not exist yet (the unfinished result's handlers, before they build the entity):
+     * $evidence = what the time will be saved with (null = none - the only candidate or no round), $named = a round the
+     * player (Add to my profile) or the API named - kept while it is a candidate (chosen), otherwise the rule decides;
+     * $current = the round an edited time holds now, not chosen (kept by the rule's sticky link, A3b).
+     */
+    public function resolveNew(
+        string $competitionId,
+        string $puzzleId,
+        PuzzlingType $puzzlingType,
+        null|CompetitionRound $named = null,
+        null|SolvingTimeRoundEvidence $evidence = null,
+        null|CompetitionRound $current = null,
+    ): RoundResolution {
+        $time = [
             'timeId' => '00000000-0000-0000-0000-000000000000',
             'competitionId' => $competitionId,
             'puzzleId' => $puzzleId,
             'category' => $puzzlingType->value,
             'currentRoundId' => null,
             'chosen' => false,
-            'ownerId' => null,
-            'team' => null,
-            'seconds' => null,
-            'piecesPlaced' => null,
-            'solveDay' => null,
-            'trackedAt' => null,
-            'createdVia' => null,
-        ])->round;
+            'ownerId' => $evidence?->ownerId,
+            'team' => $evidence?->team,
+            'seconds' => $evidence?->seconds,
+            'piecesPlaced' => $evidence?->piecesPlaced,
+            'solveDay' => $evidence?->solveDay?->format('Y-m-d'),
+            'trackedAt' => $evidence?->trackedAt->format(self::TIMESTAMP_FORMAT),
+            'createdVia' => $evidence?->createdVia?->value,
+        ];
+
+        // Only a round of this competition and category can be the time's choice (SolvingTimeRoundMatch::sqlChosen())
+        if (
+            $named !== null
+            && $named->competition->id->toString() === strtolower($competitionId)
+            && $named->category->value === $puzzlingType->value
+        ) {
+            $resolution = $this->answer([...$time, 'currentRoundId' => $named->id->toString(), 'chosen' => true]);
+
+            if ($resolution->chosen) {
+                return $resolution;
+            }
+        }
+
+        return $this->answer([...$time, 'currentRoundId' => $current?->id->toString()]);
     }
 
     /**

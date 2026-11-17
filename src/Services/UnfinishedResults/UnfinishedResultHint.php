@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultRoundNotIdentified;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\UnfinishedRoundHint;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
@@ -35,6 +36,12 @@ use Throwable;
  * for a puzzle a competition keeps secret from the viewer or that takes no personal records yet (the save refuses
  * those anyway), and while the round still hides its puzzle entirely on its own pages (a public catalogue puzzle can be
  * the secret of a coming round - the answer must not confirm which round holds it).
+ *
+ * A puzzle in several rounds of the category (shared-puzzles-and-divisions.md §2.4 row 7, A8): a round the form names
+ * (Add to my profile's entry - `$namedRoundId`) is that round while it is a candidate; otherwise the switch is offered
+ * only when every candidate round has the same limit and none of them still hides the puzzle entirely (the hint names
+ * them all, "Challenge / Open #1") - the save then needs evidence or a named round, else it says why
+ * (UnfinishedResultRoundNotIdentified).
  *
  * The kill switch UNFINISHED_RESULTS_FORM (docs/features/feature_flags.md) off: always null - the form asks nothing
  * new (an unfinished result being edited still shows its switch, the controllers decide that).
@@ -62,13 +69,14 @@ readonly final class UnfinishedResultHint
      * @param null|string $competitionPick the picker's value: `<uuid>`, `edition:<uuid>` or `series:<uuid>`
      * @param int $puzzlersCount the player and every co-puzzler (1 = solo, 2 = pair, more = team)
      * @param null|DateTimeImmutable $solveDay the form's day - a series pick's edition is found by its puzzle (and day)
+     * @param null|string $namedRoundId the round of the official entry the form was filled in from (Add to my profile)
      */
-    public function forPick(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay): null|UnfinishedRoundHint
+    public function forPick(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay, null|string $namedRoundId = null): null|UnfinishedRoundHint
     {
         // Runs on every speed submit of the add/edit form with a competition: whatever goes wrong here, the form works
         // exactly as before (no question) - the add form must never break
         try {
-            return $this->resolve($competitionPick, $puzzleId, $puzzlersCount, $solveDay);
+            return $this->resolve($competitionPick, $puzzleId, $puzzlersCount, $solveDay, $namedRoundId);
         } catch (Throwable $e) {
             $this->logger->warning('Unfinished result round hint failed - the form asks nothing', [
                 'exception' => $e,
@@ -78,7 +86,7 @@ readonly final class UnfinishedResultHint
         }
     }
 
-    private function resolve(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay): null|UnfinishedRoundHint
+    private function resolve(null|string $competitionPick, null|string $puzzleId, int $puzzlersCount, null|DateTimeImmutable $solveDay, null|string $namedRoundId): null|UnfinishedRoundHint
     {
         if ($this->enabled === false) {
             return null;
@@ -99,15 +107,34 @@ readonly final class UnfinishedResultHint
             }
 
             $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+            $puzzlingType = PuzzlingType::fromPuzzlersCount(max(1, $puzzlersCount));
+            $event = null;
 
-            $event = $this->unfinishedResultRound->forNewResult(
+            // The official entry's round - only a round of the form's own event (one-time event or edition)
+            if ($namedRoundId !== null && $competitionId !== null && Uuid::isValid($namedRoundId)) {
+                $named = $this->unfinishedResultRound->forNewResult(
+                    roundId: $namedRoundId,
+                    competitionId: null,
+                    seriesId: null,
+                    puzzleId: $puzzleId,
+                    puzzlingType: $puzzlingType,
+                    solveDay: $solveDay ?? $this->clock->now(),
+                );
+                $event = $named->roundChosen && $named->competition->id->toString() === strtolower($competitionId) ? $named : null;
+            }
+
+            $event ??= $this->unfinishedResultRound->forNewResult(
                 roundId: null,
                 competitionId: $competitionId,
                 seriesId: $pick->seriesId(),
                 puzzleId: $puzzleId,
-                puzzlingType: PuzzlingType::fromPuzzlersCount(max(1, $puzzlersCount)),
+                puzzlingType: $puzzlingType,
                 solveDay: $solveDay ?? $this->clock->now(),
             );
+        } catch (UnfinishedResultRoundNotIdentified) {
+            return $competitionId !== null
+                ? $this->sharedByRoundsWithOneLimit($competitionId, $puzzleId, PuzzlingType::fromPuzzlersCount(max(1, $puzzlersCount)))
+                : null;
         } catch (UnfinishedResultNeedsTimeLimit | CompetitionRoundNotFound | PuzzleNotFound | PuzzleNotRevealedYet) {
             return null;
         }
@@ -120,6 +147,47 @@ readonly final class UnfinishedResultHint
             name: $event->round->name,
             minutesLimit: $event->minutesLimit(),
             category: $event->round->category->value,
+        );
+    }
+
+    /**
+     * The puzzle is in several rounds of the category and nothing names one (A8): offered only when every one of them
+     * has the same limit and none still hides the puzzle entirely - the hint names them all.
+     */
+    private function sharedByRoundsWithOneLimit(string $competitionId, string $puzzleId, PuzzlingType $puzzlingType): null|UnfinishedRoundHint
+    {
+        $hidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
+        $entirely = PuzzleHideMode::Entirely->value;
+
+        /** @var list<array{name: string, minutes_limit: null|int|string, hides: bool}> $rounds */
+        $rounds = $this->database->fetchAllAssociative(
+            <<<SQL
+SELECT cr.name, cr.minutes_limit, (COALESCE(crp.hide_mode, '{$entirely}') = '{$entirely}' AND {$hidden}) AS hides
+FROM competition_round cr
+INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id AND crp.puzzle_id = :puzzleId
+WHERE cr.competition_id = :competitionId
+    AND cr.category = :category
+ORDER BY cr.starts_at, cr.name
+SQL,
+            [
+                'competitionId' => $competitionId,
+                'puzzleId' => $puzzleId,
+                'category' => $puzzlingType->value,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ],
+        );
+
+        $limits = array_values(array_unique(array_map(static fn (array $round): null|int => $round['minutes_limit'] !== null ? (int) $round['minutes_limit'] : null, $rounds)));
+        $limit = count($limits) === 1 ? $limits[0] ?? null : null;
+
+        if (count($rounds) < 2 || $limit === null || array_any($rounds, static fn (array $round): bool => $round['hides'])) {
+            return null;
+        }
+
+        return new UnfinishedRoundHint(
+            name: implode(' / ', array_map(static fn (array $round): string => $round['name'], $rounds)),
+            minutesLimit: $limit,
+            category: $puzzlingType->value,
         );
     }
 

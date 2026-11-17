@@ -16002,3 +16002,13 @@ event_wizard_more:
         last: "Last %weekday% of the month"
         at_time: "%when% at %time%"
         picked_at_time: "At %time% on each date"
+shared_round:
+    link_to_round: "This is my time - link it to %round%"
+    not_identified: "Round: not identified - choose the round you solved it in"
+    change: "Round: %round% - not the round you solved it in? Choose yours"
+    choose: "Choose"
+    unfinished_not_identified: "This puzzle is in several rounds of this event - add your result from the official results of the round you played in (Add to my profile)."
+    flash:
+        linked: "Your time is in the round now."
+        not_a_candidate: "This time can't be placed in that round - the round doesn't have this puzzle for solo, pairs or teams like your time."
+        try_again: "That did not work - please try again."

@@ -655,3 +655,46 @@ in, otherwise divisions are set in the sheet or through the internal API.
 - **For D3-D7**: the sheet column writes `CompetitionParticipantRound::changeDivision()` / `CompetitionTeam::
   changeDivision()` (check the round's subset like `SetRoundEntryDivisionsHandler::division()`); public pages read
   `RoundDivisionsJson` the same way and rank with `rankWithin()` before dropping hidden rows.
+
+
+## As built: S3 (explicit round, 2026-11-18)
+
+- **Row 3/4 - Add to my profile**: `OfficialEntryTimePrefill` puts the entry's round on `OfficialEntryTime::$roundId`;
+  `PuzzleAddController` passes it as `roundId` of `AddPuzzleSolvingTime` / `AddUnfinishedPuzzleSolvingTime` only when the
+  official entry is checked again on the submit (the competition is then the round's - the same one). The add handler's
+  only change: `resolve($solvingTime, $competitionRound)` - the named round wins while a candidate (`round_chosen`), a
+  round of another category is ignored (one more statement, only then). A form save without an entry is unchanged.
+- **Rows 5-6**: edit / Keep this one / Undo keep a chosen round through S1 (`resolve()` reads the time's own
+  `round_chosen`); the unfinished edit now does too (`UnfinishedResultRound::forEditedResult()` names the chosen round,
+  or hands a rule-made link over as `$current` so the A3b sticky link holds as in the reconciler;
+  `EditUnfinishedPuzzleSolvingTimeHandler` applies `roundResolved()` instead of `changeCompetitionRound()`).
+- **Row 7**: `SolvingTimeRoundResolver::resolveNew(competition, puzzle, type, named, SolvingTimeRoundEvidence)` - the
+  rule for a time that does not exist yet (`resolveFor()` = no evidence, kept). `UnfinishedResultRound` passes the named
+  round (`forNewResult(roundId)` - no longer re-derived) and the evidence the handlers save the result with (owner, group,
+  pieces, exact day, tracked_at, created_via - the reconciler then answers the same); `UnfinishedResultEvent::$roundChosen`
+  → `chooseCompetitionRound()`. Several candidates, no answer → `UnfinishedResultRoundNotIdentified` (subclass of
+  `UnfinishedResultNeedsTimeLimit`; form `shared_round.unfinished_not_identified`, API its own violation text).
+  `UnfinishedResultHint::forPick(…, $namedRoundId)` (the controller passes the official entry's round to
+  `UnfinishedResultForm::state()`); without one, a shared puzzle offers the switch only when every candidate round has
+  the same limit and none still hides the puzzle entirely (A8) - the hint names them all ("Morning / Evening"); a series
+  pick gets no shared branch.
+- **Row 15**: `GetPublishedRoundResults::viewerTimesInRound()` - the same one statement now also returns the viewer's
+  times on a puzzle of the round in its event + category with no round (`linked = false`). One-puzzle rounds: no linked
+  time but an unlinked one → the rows that would offer "Add to my profile" get `LinkToRound` and the page
+  `linkableTimeId` (the time equal to the row's result, else the latest); `OfficialEntryTimePrefill` offers nothing then
+  (no second add). Pick rounds keep reading linked times only (no LinkToRound there - not needed for St. Paul/SPWS).
+  Guests: no change (no viewer branch).
+- **Row 16 + A9**: `ChooseSolvingTimeRound(timeId, roundId, playerId)` → handler: `canBeModifiedBy()` (tracker or a
+  registered member in `team`; never an imported event result), the round must be the resolver's chosen answer for it
+  (`RoundIsNoCandidateOfSolvingTime` otherwise), `chooseCompetitionRound()`. Not under `CompetitionParticipantsLock`
+  (players' own times - `SerializedByLockMessagesTest` NOT_LOCKED). Controller `choose_solving_time_round`
+  (`/{locale}/result/{timeId}/round`, POST, CSRF `choose_solving_time_round_<timeId>`, always 303: `back` checked by
+  `ReturnUrl`, else the result detail; flashes only on a full page). Result detail: `round_choices` column on the
+  attempts statement (no statement of its own) - for a viewer who may change the time, competition set,
+  `round_chosen = false` (unlinked, or a link the rule made - the orchestrator's A3b sticky links can be corrected),
+  candidate rounds ordered by start; shown when ≥ 2 ("Round: not identified - choose" / "Round: X - not the round you
+  solved it in? Choose yours", the current one preselected); the form sets its `action` (modal frame).
+- Keys `shared_round.*` (English only). Tests: `tests/MessageHandler/SharedPuzzleExplicitRoundTest.php` (named round on
+  add / unfinished add / edit, evidence, NotIdentified, the hint, ChooseSolvingTimeRound owner/member/stranger/
+  non-candidate), `tests/Controller/SharedPuzzleRoundPagesTest.php` (Add to my profile into the second sharing round,
+  LinkToRound + its POST, guests, the result detail picker in the modal, forged token).

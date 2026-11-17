@@ -303,7 +303,8 @@ readonly final class AddPuzzleSolvingTimeHandler
             );
         }
 
-        $roundResolution = $this->roundResolver->resolve($solvingTime);
+        // A round named (Add to my profile, the API) is kept while it is a candidate - round_chosen
+        $roundResolution = $this->roundResolver->resolve($solvingTime, $competitionRound);
         $solvingTime->roundResolved($roundResolution->round, $roundResolution->chosen);
 
         // Before persist: the insights tables do not know this solve yet

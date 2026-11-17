@@ -54,6 +54,7 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\CheckOnlineRoundFinishPhotos;
+use SpeedPuzzling\Web\Message\ChooseSolvingTimeRound;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
@@ -457,6 +458,7 @@ final class SerializedByLockMessagesTest extends TestCase
         ReconcileRoundResults::class => 'console reconcile of players\' own times and their rounds (puzzle_solving_time) - never entries or official results',
         SeriesEditionsChanged::class => 're-matches players\' series picks to editions and their rounds (puzzle_solving_time) - never entries or official results',
         EditPuzzleSolvingTime::class => 'a player\'s own time - reads the rounds to link it, never writes entries or official results',
+        ChooseSolvingTimeRound::class => 'a player\'s own time placed in a round they pick - reads the rounds to check it is a candidate, never writes entries or official results',
         LinkSolvingTimesToEvent::class => 'players\' own times linked to an event ("Link my results") - reads the rounds to link them, never writes entries or official results',
         ApplyWaitingEventLinks::class => 'cron: players\' own times whose event was approved get their waiting link - reads the rounds to link them, never writes entries or official results',
         AddCompetition::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',

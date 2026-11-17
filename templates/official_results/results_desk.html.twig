@@ -249,16 +249,18 @@
                 <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i><span class="fw-semibold">{{ 'advancement_step.banner.step'|trans({'%name%': item.label}) }}</span>
                 · {{ include('competition_toolkit/_advancement_step_summary.html.twig') }}
             </span>
-            {% if settings.qualifyCount is not null %}
-                <button type="button" class="btn btn-sm btn-outline-primary" data-helper="top" data-helper-count="{{ settings.qualifyCount }}"
-                        {% if item.step.overall %}data-helper-preset-url="{{ path('official_results_advancement_step_preset', {stepId: item.step.id}) }}"{% endif %}
-                        data-action="results-desk#openHelper" data-advancement-step-mark>
-                    {{ (item.step.overall ? 'advancement_step.banner.mark_overall' : 'advancement_step.banner.mark_top')|trans({'%count%': settings.qualifyCount}) }}
+            <span class="d-flex flex-wrap gap-2">
+                {% if settings.qualifyCount is not null %}
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-helper="top" data-helper-count="{{ settings.qualifyCount }}"
+                            {% if item.step.overall %}data-helper-preset-url="{{ path('official_results_advancement_step_preset', {stepId: item.step.id}) }}"{% endif %}
+                            data-action="results-desk#openHelper" data-advancement-step-mark>
+                        {{ (item.step.overall ? 'advancement_step.banner.mark_overall' : 'advancement_step.banner.mark_top')|trans({'%count%': settings.qualifyCount}) }}
+                    </button>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-primary" data-step="{{ item.step|json_encode|e('html_attr') }}" data-action="results-desk#advanceStep" data-advancement-step-advance>
+                    <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'advancement_step.banner.advance'|trans }}
                 </button>
-            {% endif %}
-            <button type="button" class="btn btn-sm btn-primary" data-step="{{ item.step|json_encode|e('html_attr') }}" data-action="results-desk#advanceStep" data-advancement-step-advance>
-                <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'advancement_step.banner.advance'|trans }}
-            </button>
+            </span>
         </div>
         {%- endfor %}
 

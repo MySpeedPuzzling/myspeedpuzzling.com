@@ -1,0 +1,4 @@
+# Results, screenshots, generated secrets and camera videos of a run - never committed
+/out/
+/media/
+__pycache__/

@@ -1,10 +1,29 @@
-{# Standings & bracket (lane A: A6 list + link to competition_standings_manage) - R §1.4 card 3 #}
+{#
+    Standings & bracket (lane A: A6 standings) - R §1.4 card 3: the event's standings and the standings page.
+    Variables: competition, standings (list<CompetitionStandingOverview>).
+#}
 <div class="col-lg-6">
     <div class="card shadow-sm h-100" data-toolkit-card="standings">
         <div class="card-body">
             <h3 class="h5"><i class="bi bi-trophy me-2"></i>{{ 'competition_toolkit.cards.standings.title'|trans }}</h3>
             <p class="small text-muted">{{ 'competition_toolkit.cards.standings.help'|trans }}</p>
-            <p class="small mb-0" data-toolkit-placeholder><i class="bi bi-hourglass-split me-1"></i>{{ 'competition_toolkit.coming_soon'|trans }}</p>
+
+            {% if standings is empty %}
+                <p class="small mb-2" data-toolkit-standings-empty>{{ 'competition_standing.card.none'|trans }}</p>
+            {% else %}
+                <ul class="list-unstyled small mb-2" data-toolkit-standings>
+                    {% for standing in standings %}
+                        <li class="mb-1" data-toolkit-standing="{{ standing.id }}">
+                            <a href="{{ path('edit_competition_standing', {competitionId: competition.id, standingId: standing.id}) }}" class="fw-semibold">{{ standing.name }}</a>
+                            <span class="text-muted">· {{ ('competition.round.category.' ~ standing.category.value)|trans }} · {{ 'competition_standing.rounds_count'|trans({'%count%': standing.roundIds|length}) }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <a href="{{ path('competition_standings_manage', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-toolkit-standings-link>
+                <i class="bi bi-trophy me-1"></i>{{ 'competition_standing.card.manage'|trans }}
+            </a>
         </div>
     </div>
 </div>

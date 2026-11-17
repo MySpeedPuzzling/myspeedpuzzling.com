@@ -1,0 +1,92 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
+
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
+use SpeedPuzzling\Web\FormData\CompetitionStandingFormData;
+use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
+use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingForms;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * A new standing (competition toolkit A6): saved = back to the standings page, refused = the form again with 422.
+ */
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
+final class AddCompetitionStandingController extends AbstractController
+{
+    public function __construct(
+        private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly CompetitionStandingForms $forms,
+        private readonly MessageBusInterface $messageBus,
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
+    #[Route(
+        path: [
+            'cs' => '/poradi-udalosti/{competitionId}/nove',
+            'en' => '/en/manage-event-standings/{competitionId}/new',
+            'es' => '/es/manage-event-standings/{competitionId}/new',
+            'ja' => '/ja/manage-event-standings/{competitionId}/new',
+            'fr' => '/fr/manage-event-standings/{competitionId}/new',
+            'de' => '/de/manage-event-standings/{competitionId}/new',
+        ],
+        name: 'add_competition_standing',
+        requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
+        methods: ['GET', 'POST'],
+    )]
+    public function __invoke(Request $request, string $competitionId): Response
+    {
+        $this->denyAccessUnlessGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId);
+
+        $competition = $this->getCompetitionEvents->byId($competitionId);
+        $form = $this->forms->create($competitionId, new CompetitionStandingFormData(), $request->getRequestUri());
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            assert($data->name !== null && $data->category !== null);
+
+            try {
+                $this->messageBus->dispatch(new CreateCompetitionStanding(
+                    standingId: Uuid::uuid7(),
+                    competitionId: $competitionId,
+                    name: $data->name,
+                    category: $data->category,
+                    roundIds: $data->roundIds,
+                    rules: $data->rules(),
+                ));
+
+                $this->addFlash('success', $this->translator->trans('competition_standing.flash.added'));
+
+                return $this->redirectToRoute('competition_standings_manage', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+            } catch (InvalidCompetitionStanding $refused) {
+                $form->addError(new FormError($this->translator->trans($refused->translationKey())));
+            }
+        }
+
+        // A refused form answers 422 (render() sets it when handed the form itself)
+        $response = $this->render('competition_toolkit/standing_form.html.twig', [
+            'competition' => $competition,
+            'form' => $form,
+            'table' => null,
+        ]);
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-store');
+
+        return $response;
+    }
+}

@@ -54,7 +54,7 @@ In your scene: *Sources* → **+** → **Browser**:
 
 What `?obs=1` shows: **the video alone** - the host and the guests on air, as large as the canvas allows, side by side or stacked, nothing else: no names, no clock, no buttons, no site header. Around the video, and whenever nobody is on air, the page is **transparent**: put your own layers *below* the browser source - a "Starting soon" picture, the event's logo, a background - and they show through. Its sound plays without a click (OBS allows it).
 
-Optional layers *above* it: the event's name as a text source, or the round's official clock - the round's projector page (`/en/round-stopwatch/<round id>`) as a second browser source, cropped to the clock.
+Optional layers *above* it: the event's name as a text source, or the round's official clock. For the clock (and results, puzzles, logos) use a **stream overlay** of the competition toolkit - the event's Displays page makes one with its own link, transparent around its elements, 1920 × 1080 ([competitions-management/displays.md](../competitions-management/displays.md)); add that link as a second browser source, no cropping. Without the toolkit, the round's projector page (`/en/round-stopwatch/<round id>`) cropped to the clock still works.
 
 In the *Audio Mixer* the browser source has its own meter: talk in the studio and set it to peak around -10 dB. *Edit* → *Advanced Audio Properties* → *Audio Monitoring* → *Monitor and Output* lets you hear it in your headphones (never on speakers next to a microphone).
 

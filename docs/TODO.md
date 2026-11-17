@@ -4,13 +4,47 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Competition toolkit - reveal at the stopwatch start (`docs/features/competitions-management/README.md` "Reveal at the stopwatch start", A1, 2026-11-17)
+## Competition toolkit v2 (`docs/features/competitions-management/README.md` "Competition toolkit", `toolkit/STATUS.md`, deferred list = `toolkit/R-review-and-plan.md` §3, 2026-11-17)
 
+Ops steps of the rollout:
+- [ ] Lily: imgproxy preset `display=rs:fit:1920:1920` (alpha kept), then `DISPLAY_IMAGE_PRESET=display` in the web env and redeploy - in this order (`feature_flags.md` "Display image preset", `displays.md`)
+- [ ] After merging to main: `docker compose restart js-watch` on every dev checkout - new Encore entries `live_entry`, `live_entry_native`, `display` (the watcher does not pick up new entries)
+- [ ] Deploy: the reveal mode `stopwatch` is read by the new release only - nobody may choose it before the release is fully out (blue-green; the option is admin-only behind `COMPETITION_TOOLKIT_FOR_ORGANISERS`)
+- [ ] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals")
+- [ ] Real-device walks: the native apps on the live entry page (C3 Turbo bootstrap `live_entry_native`), iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
+- [ ] Browser walk of display live signals (D5) - the dev hub's origin blocked it
+- [ ] Dev `compose.yml` imgproxy has no `display` preset - add it to try `DISPLAY_IMAGE_PRESET=display` locally
+- [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
+- [ ] Set `COMPETITION_TOOLKIT_FOR_ORGANISERS=1` in production once Jan says go; remove the flag later (`feature_flags.md`)
+
+Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
+- [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy
+- [ ] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner)
+- [ ] Panther `tests/Panther/LiveEntryOfflineTest.php` (R §4.4 step 4, C §7.4) does not exist - the offline flows were walked by hand only; write it or drop it from the plan
+- [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3); preferences `scanAfterSave` / `myTables` are stored but unused (deferred features); `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build")
+- [ ] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales for `official_results.reason.*`; the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
+- [ ] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed"
+- [ ] B8 polish: pending/sending boxes in a neutral style (not `$primary` pink)
+- [ ] Standings: drop the category badge when the standing's name already says it
+- [ ] Decision "public pages never show Did not start" (STATUS): the competitor page still shows "Did not start" on published rounds (`GetCompetitorPage::entry()`, pinned by `CompetitorPageControllerTest`) and in the live/own states - drop it there (code + test) or revise the decision
+- [ ] Competitor page after a judge's undo of a confirmed proposal: the result is cleared, the proposal stays `confirmed`, and `proposalPanel()` (`assets/competitor_proposals_view.js`) keeps showing "Confirmed" with no result and no Stop button - the competitor cannot propose again (`competitor-pages.md` "Proposals end to end")
+- [ ] Local paratest workers: `PluralMessagesTest` / `XlsxSafetyTest` run out of memory (CI fine); `SandboxSimulatedResultsTest` failed once in CI - watch
+- [ ] Not browser-tried yet: reveal while a judge's card is open, an offline group save (C10); the reveal checkbox end to end (A1, checkpoint 1)
+
+From A1 (reveal at the stopwatch start):
 - [ ] Results desk: "Still hidden: the stopwatch was never started with Reveal" once the round's time is over (A §4.4) - the control page and the round puzzles page say it today
 - [ ] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox dispatching `RevealRoundPuzzleNow` per row after the publish (A §4.4, R §2.1.5)
-- [ ] Hub card "Round formats & reveals": "reveal at stopwatch start" on the round's line (with A2's format)
-- [ ] Display signal (D5) on the reveal push - `OfficialResultsLiveUpdates::puzzlesRevealed()` is the hook
-- [ ] Deploy: the `stopwatch` value is read by this release only - nobody may choose it before the release is fully out (blue-green; the option is admin-only behind `COMPETITION_TOOLKIT_FOR_ORGANISERS`)
+
+Deferred by design (R §3):
+- [ ] Round formats: `every` as its own mode (= pick K = N today); judge-side split times (the desk can enter `atSeconds`); the participants sheet's per-puzzle popover (read-only chips; `puzzles_mismatch` points to the desk); internal API **writes** of format/labels (read-only output ships)
+- [ ] Standings: the `stages` classification and `numbered_across_stages` (final classification across the bracket); `missing_rule = as_zero_pieces`; a standings Mercure topic; public `public_standing_state` JSON; "drop worst round" / season standings
+- [ ] QR / competitor pages: the `cards` layout (tags + tents ship); a `competitor_list` page (fallback = the event page); proposal puzzle choice (`ChangeTimeProposalPuzzles`); a per-entry private Mercure topic (polling today); a 90-day prune of decided proposals (`competition_time_proposal`)
+- [ ] Judge page: ETag/304 on the round state; continuous scanning with a warm camera; a "My tables" filter; a referees-page activity column; organiser-assigned table ranges; the one-tap proposal sweep
+- [ ] Displays: the standings/bracket overlay element (first v2 item - cheap once a public standing JSON exists); multi-select / align / distribute; snapping to siblings; live control (spotlight + message elements and page); "Copy from another event"; ticker `marquee`; more fonts; scenes, animations, 4:3/portrait, a series library
+
+Event creation wizard (`docs/features/competitions-management/toolkit/W-creation-wizard-research.md`, step 2 of Jan's request - research done, nothing built):
+- [ ] **Quick fix first (W4): the web "Duplicate" never shifts dates** - the copy keeps the old dates and editing them does not move the rounds (`EditCompetitionHandler` never touches rounds; editions are dated by their first round, so the copy still shows on the old day). Ask for the new date on Duplicate and pass the existing `dateFrom` override (`DuplicateDateShift`); offer "move the rounds too" when an event's date is edited (W §1.2 item 6)
+- [ ] Validate the wizard with 2-3 organisers (W0, §7), then W1-W9 (§6)
 
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)
 

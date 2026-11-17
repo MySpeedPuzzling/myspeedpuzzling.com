@@ -115,6 +115,7 @@ surface is added to the matching canary tests** (`BlocklistCanaryTest`, `Private
 | Results | `.claude/rules/features/results.md` | add/edit results, pairs & teams, first tries, duplicates, time verification, photo uploads, result detail, leaderboard chart, placing |
 | My data | `.claude/rules/features/my-data.md` | custom fields ("My fields"), spreadsheet / Google Sheets data import, My data pages |
 | Events | `.claude/rules/features/events.md` | events page, series/editions, organizations + drafts, competition management, participants sheet, round results, online competitions, partner finder, results import, events via internal API |
+| Competition toolkit | `.claude/rules/features/competition-toolkit.md` | pick-K-of-N rounds, reveal at the stopwatch start, standings + bracket, QR tags + competitor pages + time proposals, offline judge page, displays/overlays |
 | Catalogue | `.claude/rules/features/catalogue.md` | puzzle names/EANs/brand codes, approvals, brands, moderators, barcode scanner, piece filter, SEO, Ravensburger Puzzle Month |
 | Insights | `.claude/rules/features/insights.md` | difficulty/skill batch, predictions, MSP rating, Puzzle Picker, difficulty on lists |
 | Players | `.claude/rules/features/players.md` | player header, Players page, compare, blocklist, private allow list, time zone, onboarding, notifications, activity feed, hints, modals, karma, XP, footer |

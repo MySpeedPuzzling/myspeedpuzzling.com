@@ -11,6 +11,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
 | Participants spreadsheet: people, pairs/teams per round, results / table / qualified columns, registration columns, paste, undo, phone lists | Always available - "Participants" on the event's edit page (replaced the participants page and the round teams page) | [participants-spreadsheet.md](participants-spreadsheet.md) |
 | Participant model, self-join ("I'm going"), import/export, pairing | Always available | [participants.md](participants.md) |
+| Competition toolkit: pick-K-of-N rounds, reveal at the stopwatch start, standings and bracket, QR tags + competitor pages + time proposals, offline judge page, timer screens and stream overlays | Per event / per round on the toolkit hub (`competition_toolkit`) - admins, organisers once `COMPETITION_TOOLKIT_FOR_ORGANISERS` is on | "Competition toolkit" below |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
@@ -350,7 +351,7 @@ Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (
   - `automatic` (the default): the round's start + its reveal delay (`competition_round.reveal_delay_minutes`, 10 unless the organiser set another - see "Automatic reveal delay"). It follows the round when its start or its delay changes.
   - `scheduled`: the organiser's own moment in `reveal_at`, never moved by the round. "Reveal now" leaves `scheduled` + now.
   - `manual`: no moment - hidden until the organiser clicks "Reveal now".
-  - `stopwatch` (competition toolkit, 2026-11 - see "Reveal at the stopwatch start" below): no moment until the round's stopwatch starts with "Reveal" ticked; that start writes its moment into `reveal_at`.
+  - `stopwatch` (competition toolkit, 2026-11 - see [round-formats.md](round-formats.md) "Reveal at the stopwatch start"): no moment until the round's stopwatch starts with "Reveal" ticked; that start writes its moment into `reveal_at`.
 - PHP `RoundPuzzleReveal::revealAt()` / `automaticRevealAt()` / `CompetitionRoundPuzzle::revealsAt()` and SQL `RoundPuzzleReveal::sqlRevealAt()` / `sqlHidden()` compute the same moment. The event pages (`GetEditionRounds`, so the API and round results too), `GetCompetitionPuzzles`, `GetPuzzleSummary` ("used at") and the organiser's status line all use them.
   - **Both read the delay from the round row:** PHP takes `CompetitionRound::$revealDelayMinutes`, and SQL computes `starts_at + make_interval(mins => reveal_delay_minutes)`. So the round alias handed to `sqlRevealAt()` / `sqlHidden()` must be a real `competition_round` row, never a subquery or a CTE without that column.
   - Nothing else adds minutes to a round start, in PHP or SQL. `RoundRevealMomentComputedOnlyHereTest` fails on any other `starts_at +`, `INTERVAL … minutes` or `startsAt->add(` / `->modify('+`; the parity is pinned for the delays 0, 10, 25 and 240 (`SecretPuzzleRevealInvariantTest`, `RoundPuzzleRevealMomentTest`).
@@ -555,185 +556,29 @@ A Symfony Live Component provides real-time inline editing:
 
 A standalone, minimal HTML page (no base layout, print-optimized CSS) showing the full table grid. Empty spots show a blank line for handwriting. Opens in a new browser tab.
 
-### Reveal at the stopwatch start (`stopwatch` reveal mode, competition toolkit A1)
+## Competition toolkit (opt-in, 2026-11)
 
-Design: `toolkit/A-round-formats.md` §4, binding fixes `toolkit/R-review-and-plan.md` §2.1 and §1.5.
+Organiser tools for formats beyond "one puzzle, one result per round", built from Jan's request of 2026-11-17
+([toolkit/00-context.md](toolkit/00-context.md), delivery record [toolkit/STATUS.md](toolkit/STATUS.md), plan of record
+[toolkit/R-review-and-plan.md](toolkit/R-review-and-plan.md)). **Nothing is a new default:** every part is chosen per
+event or per round, and an untouched competition behaves and renders as before (golden and statement pins). The
+settings live on one hub page, `competition_toolkit` (`/en/manage-event-toolkit/{competitionId}`, cs `/nastroje-udalosti/…`, the "Competition
+toolkit" button on the event's edit page), behind `COMPETITION_TOOLKIT_MANAGE` (`CompetitionToolkitVoter`: an organiser
+of the event for whom `CompetitionToolkitFeature` is on - admins always, organisers while
+`COMPETITION_TOOLKIT_FOR_ORGANISERS` is on, [feature_flags.md](../feature_flags.md)). What was switched on works for
+everybody (public pages, displays by link, the judge page).
 
-- **Choosing it:** "When the round's stopwatch starts" on "Change reveal" (`manage_round_puzzles`). Offered to `COMPETITION_TOOLKIT_MANAGE` only (admins; organisers while `COMPETITION_TOOLKIT_FOR_ORGANISERS` is on); a row already using it keeps it, and its checkbox at the start, for every organiser. Refused while the round's stopwatch runs or is stopped (`RoundStopwatchAlreadyStarted` - "use Reveal now"); a countdown still ahead is fine (it was started without the tick).
-- **Model:** `RoundPuzzleReveal::Stopwatch` - `revealAt()` / `sqlRevealAt()` read `reveal_at` like `scheduled`, so every reader (`sqlHidden`, `RoundPuzzlesVisibleNow`, `SecretPuzzleAccess`, `SecretPuzzleHides`, the series match, the internal API) follows. `null` = hidden like a manual reveal, site-wide `HIDDEN_UNTIL_REVEALED`. The mode stays `stopwatch` after the reveal ("Revealed at the stopwatch start, T"). `CompetitionRoundPuzzle::revealAtStopwatchStart()` / `withdrawStopwatchReveal()` (only a moment still ahead).
-- **The start checkbox** "Reveal the puzzle(s) when the stopwatch starts" - on the stopwatch control page (Start, Start in 10 s, Start at) and in the online control room (Start in 10 s, Start at), only while the round has rows waiting (`SecretRevealPreview::byStopwatchStart()`, names + scope). **Unticked by default, always** (also after a browser restores the form): a test run reveals nothing; a forgotten tick leaves the puzzles hidden (warning on the control page + the round puzzles page, "Reveal now" fixes it). Ticked: one `confirm()`, then `reveal=1` + `reveal_hash` (`SecretRevealPreview::stopwatchStartHash()` = the list's hash **and** the stored stopwatch status/start/stop - a page from before a countdown was scheduled, moved or cancelled confirms nothing). No JavaScript = nothing revealed.
-- **Handlers** (`RoundStopwatchReveal`): a cheap `RoundUsesStopwatchReveal` EXISTS first, asked for **any secret row** of the round (it runs before the lock, and a secret row may turn to `stopwatch` meanwhile) - a round without a secret puzzle keeps its statements and locks; otherwise `SecretPuzzleHides::lockRoundsForChange()` (round `FOR NO KEY UPDATE`, its secret puzzles, EM cleared). Start / Schedule with the tick: refused before anything changes when the list is empty (`reveal_not_allowed`) or not the confirmed one (`reveal_changed_meanwhile`, 409 as JSON); a start that changes nothing (already running) reveals nothing. **Every schedule, start, cancel, stop and reset first withdraws a reveal still ahead** (a countdown started with the tick), then applies the tick at the new moment (now / the resume moment / the scheduled moment), then re-syncs the puzzles' site-wide hide. So schedule 10:00 ticked → move to 10:30 unticked = still hidden at 10:00 and after; a reset after a real start never hides anything again.
-- **Removing rows during a countdown with the tick** (review of A1): removing the puzzle (`RemovePuzzleFromCompetitionRound`), replacing the list (`SetCompetitionRoundPuzzles`, the internal API PUT), deleting the round, the event or the series first calls `RoundStopwatchReveal::withdrawBeforeRemoving()` on the rows going, under the change's locks (rounds, then puzzles) and after its checks: the reveal still ahead is taken back and the puzzle re-synced to `HIDDEN_UNTIL_REVEALED` **while the rows exist** - with no row left the dates stay as they are (`SecretPuzzleHides`), so the puzzle stays hidden instead of coming out at the old moment. The round's other rows keep their reveal; a moment already passed is never taken back. Only for rounds with a secret puzzle - every other round runs the statements it ran before (`StopwatchRevealRemovalTest` pins them). `MoveRoundToCompetition` keeps the rows (and refuses a scheduled or running stopwatch).
-- **Never started with the tick:** stays hidden like a manual reveal - no automatic fallback (a late reveal is harmless, an early one is not).
-- **Reveal push** (R §1.5): after a start/schedule with the tick, "Reveal now" and a saved reveal setting, the controller publishes `official_results.refresh` on both private round topics (`OfficialResultsLiveUpdates::puzzlesRevealed()`, after the commit). The public `/round-stopwatch/{roundId}` topic and state never carry anything of the puzzles (`StopwatchRevealPagesTest` pins the keys).
-- **Blue-green:** an old release reading a `stopwatch` row would fail `RoundPuzzleReveal::from()`. The option is admin-only behind the flag, so nobody chooses it during the deploy that introduces it.
-- Tests: `StopwatchRevealTest` (handlers, the reschedule matrix), `StopwatchRevealRemovalTest` (every removing writer, statement pins), `StopwatchRevealPagesTest`, `SecretPuzzleRevealInvariantTest` + `SecretPuzzleRoutesTest` (scheduled − 1 s), `RoundsInternalApiTest`.
+| Part | What the organiser gets | As built |
+|---|---|---|
+| Round formats & reveals | "Pick K of N" rounds (solo / pair / team, any order), neutral puzzle labels, per-puzzle records on the judge page, desk, sheet, export and public round page; secret puzzles revealed **when the stopwatch starts** (a checkbox at the start, unticked by default) | [round-formats.md](round-formats.md) |
+| Standings & bracket | sum standings per category with penalty and order rule, published to a public page; declared advancement steps as desk presets and a public bracket ("spider") | [standings.md](standings.md), steps in [results-desk.md](results-desk.md) |
+| QR tags & competitor pages | person / line-up / table / entry tags (printed as tags or table tents), a public competitor page per tag with the live round clock, and "propose my time" confirmed by a judge | [competitor-pages.md](competitor-pages.md) |
+| Judges | the live entry page that survives a refresh and works offline (shell + snapshots + service worker), faster taps, every QR kind, puzzle chips, proposals to confirm | [live-results.md](live-results.md), [judge-offline.md](judge-offline.md) |
+| Displays | timer screens and OBS stream overlays per event, designed in an editor (backgrounds, logos, elements), each on its own secret link | [displays.md](displays.md) |
 
-### Round format and puzzle labels (competition toolkit A2)
-
-Design: `toolkit/A-round-formats.md` §2.1, §2.5, §2.6, §6.1; binding contract `toolkit/R-review-and-plan.md` §1.1, §1.5, §1.8.
-
-- **Model:** `competition_round.puzzle_format` (`RoundPuzzleFormat`: `total` = one result for the round, the default and every round before the toolkit; `pick` = each entry solves `puzzles_to_solve` K of the round's N puzzles, any order, 1 ≤ K ≤ N - "Solve all 3" is K = N, "Pick 2 of 3" K < N). `CompetitionRound::changePuzzleFormat()` / `assertPuzzleFormat()` / `assertKeepsEnoughPuzzles()`. A new or duplicated round is `total` (`DuplicateCompetitionHandler` copies no puzzles).
-- **Positions and labels:** `competition_round_puzzle.position` (1..N) and `label` (≤ 40 characters, the neutral name before the reveal - "Blue box"). **Computed on read, never backfilled:** the order is `position NULLS LAST, id` (`RoundPuzzleLabel::sqlOrder()` / `sort()`), so rows never arranged keep their add order and a puzzle added after an arrangement comes last; the label falls back to the letter of the place (A, B, C … Z, then 27, 28 …). Never ordered by name - that would hint at a secret puzzle. `ArrangeRoundPuzzles` (the "Order and labels" box on the round puzzles page) gives every row a position.
-- **Where it is set:** the round form field "How are this round's puzzles solved?" (+ "Puzzles each entrant solves") - only for `COMPETITION_TOOLKIT_MANAGE`, or for every organiser once the round uses `pick` (to switch it back). Sent as `EditCompetitionRound::$puzzleFormat` (null = keep, every other caller). The round puzzles page shows the format line and "Order and labels" behind the same voter; the hub card ("Round formats & reveals") lists each round's format and reveal mode.
-- **Guards** (`RoundPuzzleFormatRefused`, 409, nothing changes): K outside 1..N (`to_solve_range`); removing a puzzle (`RemovePuzzleFromCompetitionRound`, `SetCompetitionRoundPuzzles` incl. the internal API PUT) that would leave N < K (`too_few_puzzles` - lower K first); `pick` on a round with online timing (`online_timing`), and online timing is not offered for a `pick` round (`OnlineTimingAvailability::PickFormat`).
-- **Round JSON** (`official_results_round_state` `round` / `rounds[]`, Mercure `official_results.round` / `.entries`, the desk's actions - everything built by `GetRoundResultsOverview`): `puzzleFormat: {mode: "pick", toSolve, puzzles: [{roundPuzzleId, position, label, hidden, revealsAt, puzzleId, name, brand, imageUrl, piecesCount}]}` **only on `pick` rounds** (`RoundPuzzleFormats`, no statement for an event without one - `RoundResultsStateGoldenTest` unchanged). Built from `RoundPuzzlesVisibleNow`'s slots, so the public rule holds for organisers and referees too: a hidden puzzle comes by label/position only (`puzzleId`, `name`, `brand`, `imageUrl` null). `label` is always the effective label (never null). `piecesCount` goes to organisers and referees always (`GetRoundPuzzlePiecesCounts`, the parity with the round's `piecesCount`). A format change or a new arrangement pushes the round to the open pages.
-- **Internal API:** read-only `puzzleFormat`, `puzzlesToSolve`, per puzzle `position`, `label`, `effectiveLabel`.
-- The judge's puzzle choice: C10. The desk's per-puzzle editor, the sheet and the export: A4 below. The public round page's chips: A5 below.
-- Tests: `tests/CompetitionToolkit/RoundPuzzleFormatTest.php` (model, guards, labels), `RoundPuzzleFormatPagesTest.php` (state JSON for organiser and referee, form, hub card, puzzles page).
-
-### Per-puzzle results of `pick` rounds (competition toolkit A3)
-
-Design: `toolkit/A-round-formats.md` §2.2-2.5, §6.2-6.3; binding `toolkit/R-review-and-plan.md` §1.1, §1.8.
-
-- **Model:** `result_puzzles` jsonb on both entry tables (`HasOfficialResult`, `recordPuzzles()` / `officialPuzzles()`), value `RoundEntryPuzzles` = `[{roundPuzzleId, done, atSeconds?, piecesPlaced?}]` in solving order, ids are `competition_round_puzzle.id`, null = nothing recorded. A recorded choice is official data (`hasOfficialData()`, `OfficialResultsGuard` SQL twins, `ConvertCompetitionToSeriesHandler`, the participant import's site snapshot).
-- **Write:** `RecordRoundResults` change `field: "puzzles"` (three-way `from`/`to`, receipts, conflicts carry the current value). Rules 1-5 per change (`puzzles_not_used`, `unknown_round_puzzle`, `puzzle_listed_twice`, `too_many_puzzles`, `invalid_split`, `splits_out_of_order`, `invalid_pieces_placed`), rule 6 on the entry as the whole set leaves it (`puzzles_mismatch` - DNS = no record; finished = K items all done, last split = the time; unfinished = Σ pieces of done items + `piecesPlaced` of the others, ≥ 1 not done), rule 7: a `result` + `puzzles` change of one entry in one set apply together or not at all (`group_refused` on the partner). Referees (`resultsOnly`) may send `puzzles`. An unfinished result without a record on a `pick` round is bound by K × the biggest puzzle − 1. Only a set with a `puzzles` change, or a `result` change on a `pick` round, reads the round's format FOR SHARE and its puzzles FOR KEY SHARE (`PickRoundRecords::lockForRecording()`); every other set runs today's statements (`RecordRoundResultsStatementPinTest` unchanged).
-- **Read:** entries of a `pick` round carry `puzzles` in their JSON (`GetRoundResultEntries`, +1 statement for a `pick` round only); every other entry's JSON is unchanged (`RoundResultsStateGoldenTest`). Ranking stays `OfficialResultsRanking` on the total. The advancement seed divides an unfinished result by the entry's own puzzles once all K are recorded, else by the round's K biggest (`RoundResultEntry::$piecesCount`).
-- **Round-side guards** (`RoundPuzzleFormatRefused`): removing a round puzzle a record names (`puzzle_in_results`; remove: row locked FOR UPDATE then checked; set puzzles: under the round's FOR NO KEY UPDATE), and a format/K change that would break a record (`conflicts_with_results`; `pick → total` with any record). Both only on `pick` rounds - a `total` round's removals keep their statements.
-- **Browser:** `assets/official_results_puzzles.js` (`itemsRefusal`, `consistencyRefusal`, `validate`, `total`, `duration`, `unfinishedMaximum`) is the twin of `RoundEntryPuzzles`, pinned by `OfficialResultsPuzzlesParityTest` - judge page, desk and competitor page import it, never re-implement it.
-- Tests: `tests/CompetitionToolkit/RoundEntryPuzzlesRecordingTest.php`, `tests/Value/RoundEntryPuzzlesTest.php`, `tests/OfficialResultsPuzzlesParityTest.php`.
-
-### Results desk, participants sheet and export of `pick` rounds (competition toolkit A4)
-
-- **Results desk** (`results_desk_controller.js`, pure half `assets/official_results_desk_puzzles.js`): the result cell of a `pick` round opens the **per-puzzle editor** - the outcome (finished / didn't finish / did not start / no result) and K rows in solving order: the puzzle by its label (the name only once the round state shows it - the public rule, organisers too), finished or not, "finished at" (the last finished puzzle's = the result's time) or pieces placed. The total is `total()` / `validate()` of `official_results_puzzles.js` (never re-implemented); the server's refusal reasons show before anything is sent. Save = `result` + `puzzles` as **one group** with the `from` each showed when the editor opened. "Clear per-puzzle record" sends `puzzles → null` alone (the result stays); "Total only" opens the plain editor, offered only for an entry without a record. Rows show the record as chips under the result ("B ✓ 0:45:10 · A 350 pcs"). A conflict on both of a group = one line "Saved meanwhile by Eva: 1:22:30 (B ✓ … · A ✓ …)".
-- **Groups in `PendingChanges`** (`official_results_pending_changes.js`, shared by the desk and the sheet): cells set with the same `group` are taken only together (all queued, none on its way, room in the request - a group never straddles two requests), and keep mine / try again / discard on one act on the whole group. Cells without a group behave exactly as before.
-- **Participants sheet**: the state carries `puzzleFormat` on `pick` rounds (`RoundPuzzleFormats::viewsFor()`, +2 statements only for an event with such a round) and `puzzles` on their entries; live updates merge `puzzles`. A result typed or pasted for an entry **with a record** takes the consistent record along in the same group and undo step (`sheet_puzzles.js` `withPickRecords()` → `consistentRecord()`: the chosen puzzles kept, recomputed by the judge page's `recordFor()`; when nothing fits - did not start, a time with fewer than K chosen, pieces that cannot be split - the record is cleared and a notice says so; undo brings both back), so it never dead-ends with `puzzles_mismatch`. A read-only **"Puzzles"** column shows the record by label. Per-puzzle times are edited on the desk. Texts only for an event with a `pick` round.
-- **Export** (`RoundResultsExporter`): a `pick` round adds per position 1..K "Puzzle N" (label, `label - name` once out), "finished at", "own time", "pieces placed"; every other round exports exactly the 11 columns it always did.
-- Tests: `tests/CompetitionToolkit/PickRoundDeskAndExportTest.php`, `tests/official-results-desk/puzzles.mjs` (via `OfficialResultsDeskHelpersTest`), `tests/participants-sheet-round/puzzles.mjs` (via `ParticipantsSheetRoundScriptsTest`), `ParticipantsSheetRoundTextsTest::testPickRoundTextsOnlyForAnEventWithAPickRound`.
-
-### Public round page of `pick` rounds + the entrants view (competition toolkit A5)
-
-Design: `toolkit/A-round-formats.md` §2.7-2.8, §3.4 (extraction); binding `toolkit/R-review-and-plan.md` §2.3, §1.5.
-
-- **`OfficialEntrantsView`** (`src/Query/`) is the one place that turns official round entries into what the public may see - the round page (`GetPublishedRoundResults`), the competitor pages (B4) and the standings (A6) read entries only through it: published rounds only (`results_published_at` checked in the statement), entries with a ranked result, people removed from the event left out, ranked with `OfficialResultsRanking` over every ranked entry **then** the rows hidden from the viewer (`HiddenPlayers`, main's group rule) dropped without renumbering, private players masked (`PrivateProfileAccess::sqlIsPrivate()`; organiser's name only). API: `forRound(roundId, category, viewer)` / `forRounds([roundId => category], viewer)` → `OfficialRoundEntrants` (`entries` in rank order, `rankedCount`, `rankOf(RoundEntryRef)`, `isEmpty()`, the viewer's link/name/country). At most two statements for any number of rounds (one for solo rounds, one for pair/team rounds); one for the round page. Drafts are the caller's (404 first). A `pick` entry carries its record (`PublishedRoundEntry::$puzzles`, round puzzle ids only).
-- **Chips:** on a published `pick` round each row lists the chosen puzzles in solving order (`round_results/_entry_puzzles.html.twig`, `PublishedEntryPuzzle::listOf(record, slots)`): label, the name only when `RoundPuzzlesVisibleNow`'s slot shows the puzzle to everybody (the public rule, organisers included), ✓ + the cumulative split, or the pieces of a puzzle not finished. A hidden puzzle comes by its label only - no name, picture, piece count, catalogue or round puzzle id in the page. An unfinished row's "pieces / total" uses the entry's own puzzles once all K are recorded and visible (`ownPiecesCount()`), else just the pieces. The format and the slots ride on `GetEditionRounds`' statement (`EditionRoundDetail::$puzzleFormat`, `$puzzlesToSolve`, `$puzzleSlots`), the record on the entries statement: a pick round costs no statement more than the same round as `total`.
-- **"Add to my profile" per puzzle** (`PublishedRoundEntry::puzzleProfileTime()` - the one rule of the page and the pre-fill), for the viewer's entry or an unlinked one that may be theirs (the same rule as one-puzzle rounds), only for a puzzle shown with its picture: **K = 1** = the chosen puzzle exactly like a one-puzzle round (finished: the result's time; unfinished in a round with a limit: its pieces, the form opens with its switch on); **K ≥ 2** = one button per finished puzzle whose own time is known (its split minus the previous one), "Add Puzzle 14 · 0:30:00"; a puzzle not finished or without splits offers nothing - the entrant (only) reads "Per-puzzle times were not recorded…". "On your profile" per puzzle once the viewer has a time on that puzzle in the round (on an unlinked entry: that puzzle's time). Link: `puzzle_add` `?competition=&official_entry=&round_puzzle=<competition_round_puzzle id>`; `OfficialEntryTimePrefill` requires `round_puzzle` on a pick round and re-runs the page's read model; it travels in the form as hidden `round_puzzle`. `total` rounds: no parameter, nothing changed.
-- **Unchanged for `total` rounds, byte for byte:** `OfficialRoundResultsGoldenTest` (published guest / entrant with an offer / published pairs / unpublished) - the chips are included at the end of an existing template line.
-- Tests: `tests/CompetitionToolkit/PickRoundPublicPageTest.php`, `tests/Controller/OfficialRoundResultsGoldenTest.php`, the pick-round cases in `BlocklistCanaryTest` / `PrivateProfileCanaryTest`.
-
-### Public competitor pages (competition toolkit B4)
-
-Design: `toolkit/B-qr-competitor-page.md` §4, §7; binding `toolkit/R-review-and-plan.md` §2.3, §2.6. As built: `competitor-pages.md`.
-
-- `competitor_page` (`/en/competitor/{competitionId}/{p|g|t|e}/{id}`, `CompetitorPageUrl`'s contract with the scan landing) + `competitor_state` JSON - only while the event has competitor pages on (else 404, organisers too); drafts 404 off the team; a person / line-up / entry hidden from the viewer 404, a table masks them; `private, no-store`, never indexed.
-- `GetCompetitorPage`: tag → entries (B2's rules, with names masked by `OfficialEntrantsView::entrant()`), current round by `LiveResultsCurrentRound`, puzzles by `RoundPuzzlesVisibleNow` (public rule for everybody), official result + place from `OfficialEntrantsView::forRounds()` (published rounds only); before publishing the confirmed result only with `competitor_pages_live_results` or for the competitor themself - never a place. Guest ≤ 4 statements (`CompetitorPageQueryBudgetTest`).
-
-### Standings - sum of rounds (competition toolkit A6)
-
-Design: `toolkit/A-round-formats.md` §3.1-3.4, §3.6; binding `toolkit/R-review-and-plan.md` §3 (no stages
-classification, no standings Mercure topic, no public JSON in v1). Jan's World Series: 6 solo + 6 pair + 6 team rounds,
-no qualification, the winner per category has the lowest sum.
-
-- **Model:** `competition_standing` (`CompetitionStanding`, FK `competition_id` ON DELETE CASCADE): name (≤ 80), slug
-  (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum` only), `round_ids` jsonb (ordered,
-  validated on write by `CompetitionStandingRounds`: ≥ 1, ≤ 50, rounds of the event and the standing's category, a
-  repeated id kept once), `unfinished_penalty_seconds_per_piece` 0..600, `order_rule` (`finished_rounds_first` default /
-  `total_only`), `missing_rule` (`incomplete` only - `as_zero_pieces` is v2), `position`, `published_at` (the public
-  page's switch, A7). At most 20 per event.
-- **Writes:** `CreateCompetitionStanding` / `EditCompetitionStanding` / `DeleteCompetitionStanding`, all under
-  `CompetitionParticipantsLock` (deviation from A §3.6 "no lock": they take turns with `DeleteCompetitionRound` /
-  `MoveRoundToCompetition`, which prune standings, so a round going away is never saved into one). Refusals
-  `InvalidCompetitionStanding::$reason` (`no_rounds`, `too_many_rounds`, `unknown_round`, `wrong_category`,
-  `limit_reached`, `invalid_name`); a standing of another event = `CompetitionStandingNotFound`. Deleting or moving a
-  round prunes it from the event's standings (+1 statement on a round delete); readers also skip ids that are no round
-  of the event and category any more (a round whose category changed - the page says so).
-- **The rule:** `StandingCalculator::sum()` (pure, stateless): finished = seconds; unfinished = limit × 60 + penalty ×
-  missing pieces (unknown pieces = no penalty part; a round without a limit cannot score it - missing); DNS / no result
-  / not entered = missing. Complete entrants first, ranked (`finished_rounds_first`: rounds finished desc, then total;
-  `total_only`: total; equal keys share a rank, "1, 2, 2, 4"); incomplete ones after without a rank ("5 of 6 rounds"),
-  by rounds scored, then the rule. An entrant with no score at all is left out. Entrants across rounds: the participant
-  (solo) or the exact line-up (`CompetitionLineupId` - a substitute is another entrant); name and people of the last
-  round they are in. A round that does not count scores nobody and makes nobody missing.
-- **Organiser view** (`GetStandingResults::organiserView()`): every round of the standing, published or not, through
-  `GetRoundResultEntries` (people going to the event, the official in-round rank shown per cell); a round counts once
-  anything is recorded in it; "provisional" while a round does not count or is unpublished. Piece totals: a `pick`
-  round's entry piece count, else the sum of the round's puzzles.
-- **Pages:** hub card "Standings & bracket" (list + link); `competition_standings_manage`
-  (`/en/manage-event-standings/{competitionId}`): each standing with its live preview, "Create one standing per
-  category" (all rounds of each category without one, default rules - the World Series in one click), New / Edit
-  (`add_competition_standing`, `edit_competition_standing` - form + preview) / Delete (CSRF). All behind
-  `COMPETITION_TOOLKIT_MANAGE`. Organiser JSON `official_results_standing_state`
-  (`GET /{_locale}/official-results/standings/{standingId}`, `COMPETITION_RESULTS_ENTRY`, `no-store`; referees get no
-  `playerCode` of private players) - shape `StandingTable::toArray()` (A §6.4 with `includesUnpublished`, `perRound[].status`).
-- The bracket: see "Bracket (competition toolkit A9)" below.
-- Tests: `tests/Services/CompetitionToolkit/StandingCalculatorTest.php`, `tests/CompetitionToolkit/CompetitionStandingsTest.php`
-  (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`.
-
-### Public standings (competition toolkit A7)
-
-Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (no public JSON, no Mercure topic in v1).
-
-- **Publishing:** `PublishCompetitionStanding` / `UnpublishCompetitionStanding` (under `CompetitionParticipantsLock` like
-  every standing write; publishing again keeps the first moment), `publish_competition_standing` (POST, field
-  `publish` 1/0, CSRF `_publish_token` = `publish-standing-{id}`, `COMPETITION_TOOLKIT_MANAGE`) from buttons on the
-  standings page, which also shows Published / Not published and a "Public page" link.
-- **Pages:** `event_standing` `/{_locale}/events/{slug}/standings/{standingSlug}` (cs `/eventy/{slug}/poradi/…`; an
-  edition's event URL redirects 301) and `edition_standing` `/{_locale}/series/{s}/{e}/standings/{standingSlug}`, both
-  through `StandingPageBuilder`: 404 for an event that is not public (drafts, unapproved - its team too, like the round
-  results pages) and for an unpublished standing. Tabs to the event's other published standings (a 6+6+6 World Series
-  has three). `noindex` while no round counts.
-- **Computation:** `GetStandingResults::publicView()` = `StandingCalculator::sum()` over the standing's rounds whose
-  official results are published and have something ranked, entries ONLY from `OfficialEntrantsView::forRounds(...,
-  keepHidden: true)` (ranked results, private players masked, removed people left out); the rows hidden from the viewer
-  (blocklist group rule) are dropped **after** the standing's ranking, without renumbering. Unpublished rounds show "–"
-  and make nobody missing; "Provisional · after 3 of 6 rounds" until all count, then "Final". With every round
-  published its keys, ranks and totals equal the organiser preview (pinned by `PublicStandingsTest`). For this,
-  `PublishedRoundEntry` carries `participantIds` (lower case, never rendered) and `hiddenFromViewer` - the round page's
-  output is unchanged (goldens). Entrant keys: `p:{participantId}` / `l:{CompetitionLineupId}` / `t:{teamId}`, like the
-  organiser view; never in the HTML. Statements: event lookup, visibility, the event, the standing, its rounds, ≤ 2 for
-  the entries.
-- **Links:** the published standings ride on `GetCompetitionEvents::byId()` as JSON (`CompetitionEvent::$publishedStandings`,
-  `PublishedStandingRef`) - no statement of their own (`DetailPagesQueryBudgetTest::testPublishedStandingsAddNoStatement…`).
-  Event/edition page: a "Standings:" row under the rounds heading (`event_parts/_standings_links.html.twig`, appended to
-  the heading's line, so untouched events render byte-identically; public pages only); round page: "Part of … →" for
-  each published standing that includes the round (`round_results/_standings_links.html.twig`); results overview: a
-  Standings button once one is published (toolkit voter); sitemap: published standings of public events with at least
-  one published round (`GetCompetitionSlugsForSitemap::standingSlugs()`).
-- **Layout:** mobile first - rank, name (the round page's `_leaderboard_player`), total; the round columns from `lg`
-  up, below that a compact "R1 … R2 …" line per row and a legend naming the rounds.
-- Known edges: the public view counts people with `deleted_at IS NULL` (the organiser view: people going to the event),
-  so a waitlisted person with a published result is in the public sum only; the penalty per missing piece of an
-  unfinished pick-round entry uses its chosen puzzles' pieces (a number inside the total, never a puzzle name).
-- Tests: `tests/CompetitionToolkit/PublicStandingsTest.php` (publish/unpublish, organiser buttons, provisional, ranks =
-  preview, drafts/unapproved 404, links, sitemap, edition URL), canaries `BlocklistCanaryTest`,
-  `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…InAPublicStanding`, `…StandingOfADraft…`), `DetailPagesQueryBudgetTest`.
-
-### Bracket (competition toolkit A9)
-
-Design: `toolkit/A-round-formats.md` §3.5 (bracket part); R §2.2, §2.3, §3 (no final classification across stages in v1).
-Built from the declared advancement steps (A8, results-desk.md "Declared advancement steps") - nothing to switch on:
-an event with steps has a bracket.
-
-- **Layout:** `BracketLayout::of(steps, rounds)` (pure, `src/Services/CompetitionToolkit/`) → one `Bracket` per category
-  (by its earliest round): `stages` = columns by `AdvancementStepGraph::stages()` (groups 1 → semifinals 2 → final 3), the
-  rounds of a stage in schedule order, `gaps` = the lines between neighbouring stages (`BracketConnector`, y in a 0-1000
-  viewBox = (index + ½) / rounds; `balanced`/`single` = every source to every target, `by_source` = its own target), `feeds`
-  = the step feeding each round ("Top 8 of each round: Group A, Group B"). A step a later round change broke is left
-  out (the steps page marks it); steps clashing with each other give no bracket. A round feeding past a stage gets no line
-  (its target's "from" line names it).
-- **Rendering** (`templates/bracket/_bracket.html.twig`, `_round.html.twig`, `assets/styles/_bracket.scss`): CSS grid,
-  stage columns with equal slots (rows `1fr`, columns stretched), an inline SVG per gap (`preserveAspectRatio="none"`,
-  non-scaling strokes) - no JS, no library. Below md the stages stack with an arrow between them (375 px: no horizontal
-  scroll). Box: name, start (round's zone), status (`BracketRoundStatus`: upcoming / live now / results coming / results
-  via `RoundStopwatchStatus::at()`), the feed line.
-- **Public page:** `event_bracket` `/{_locale}/events/{slug}/bracket` (cs `/eventy/{slug}/pavouk`; an edition's event URL
-  redirects 301) and `edition_bracket` `/{_locale}/series/{s}/{e}/bracket`, through `BracketPageBuilder`: 404 for an event
-  that is not public (drafts, unapproved - its team too) and for an event without steps; every step broken = an empty
-  page. A box names entrants **only once its round's results are published**: its qualified (✓) - or the top 3 of a round
-  that qualified nobody (a final) - at most 32, from `OfficialEntrantsView::forRounds()` only (hidden players dropped
-  without renumbering, private players by the organiser's name), and links the round page. `noindex` until a round is
-  published. Statements: visibility, the event, the steps, the rounds (`GetBracketRounds`, no puzzles), ≤ 2 for entrants.
-- **Organiser view:** the steps page (`competition_advancement_steps_manage`) shows the bracket instead of A8's stage strip,
-  each box with "Results x / y · qualified n" (`GetRoundResultsOverview`, published or not), Results desk / public
-  results links, and a "Public page" link (not for a draft). Only with steps: an event without them asks nothing more.
-- **Links:** `GetCompetitionEvents::byId()` brings the rounds of the steps along (`CompetitionEvent::$bracketRoundIds`,
-  `hasBracket()`, `bracketIncludesRound()`) - no statement of its own (`DetailPagesQueryBudgetTest::testDeclaredAdvancement…`).
-  Event/edition page: a "Bracket" button in the standings row under the rounds heading (public pages only; untouched events
-  byte-identical); round page: "Bracket of the event →" on rounds that take part in a step; sitemap: public events with steps
-  and at least one of their rounds published (`GetCompetitionSlugsForSitemap::bracketSlugs()`).
-- Tests: `tests/Services/CompetitionToolkit/BracketLayoutTest.php`, `tests/CompetitionToolkit/PublicBracketTest.php`
-  (published-only marks, top 3, 404s, links, organiser view, sitemap, edition URL, statement budget), canaries
-  `BlocklistCanaryTest`, `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…Bracket…`), `DetailPagesQueryBudgetTest`.
+The reveal mode `stopwatch` is part of the secret-puzzle model above ("Hide Until Round Starts"); the duplicate copies
+the toolkit's settings, standings, displays and steps ("Duplicating an event"). Deferred items and the ops steps of the
+rollout: docs/TODO.md "Competition toolkit v2".
 
 ## Round Stopwatch
 

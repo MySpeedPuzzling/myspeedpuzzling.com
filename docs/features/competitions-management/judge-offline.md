@@ -51,7 +51,16 @@ names, codes and token would sit in CacheStorage - `ServiceWorkerBehaviourTest`)
 - State parameters (`RoundResultsStateController`, R §1.8; without them the JSON is the one every other consumer reads,
   `RoundResultsStateGoldenTest`): `?viewer=1` adds `viewer` (only the live entry asks); `?entries=0` leaves `entries`
   and its query out (clock + token only) - supported server side and by `stateUrl(…, {entries: false})`, `applyState()`
-  keeps its entries on such an answer, but **no caller asks for it today**.
+  keeps its entries on such an answer, but **no caller asks for it today** - superseded by `entriesKnown`.
+- Conditional entries (judge-speed J2, `RoundResultsStateConditionalTest`): `?entriesKnown=<none|32 hex>` adds
+  `entriesHash` (`RoundEntriesHash::of()` = xxh128 of the entries exactly as sent, after `RefereeEntriesView`); when it
+  equals the given hash, `entries` is left out and `entriesUnchanged: true` - everything else (`serverNowMs`, `mercure`,
+  `viewer`, `round`, `proposals`) stays: no HTTP 304 (a 3xx reads as `auth`, and the poll is also the clock sample, the
+  token renewal and the D1 check). Any other value = absent; `entries=0` wins; same statements. Only the page's own
+  `fetchState()` sends it (`EntriesValidator` in `live_entry_page.js`); prefetch and snapshots never hold a hash, so
+  every page load's first state is full. The hash is held only while `serverEntries` are one full answer's list: a live
+  update, an own save's answer, a snapshot boot and another account drop it (and move an epoch, so an unchanged answer
+  to a request sent before them is `stale` → asked again at once, full). Harness: "Conditional entries" scenarios.
 - Page landings (`LiveResultsController`, validated there, `landingOf()` in JS, one at a time: entrant, entry, table):
   `?entrant=<participantId>`, `?entry=<participant_round:id|team:id>`, `?table=<1-9999>` (the targets of the tag
   routes' judge branch, B2) - a malformed value is ignored, nobody there = "Nobody sits at table N in Group A" /
@@ -186,6 +195,12 @@ the warm HTML is not throttled, the state fetch is):
 | state fetch (`?viewer=1`, 300 entries: 171 KB JSON, 10.5 KB gzip) | 0.21-0.26 s | 0.62-0.68 s |
 | table typed → card open (p50 / p95) | 40 / 61 ms | 37 / 62 ms |
 | Save → "All saved" (p50 / p95, the round trip included) | 236 / 266 ms | 646 / 674 ms |
+
+Quiet poll with conditional entries (J2, 300 entries, half with results, as a referee, proposals on; measured with a
+PHPUnit probe on the test DB, gzip level 6): full answer 171,087 B / 8,419 B gzip → unchanged answer 4,815 B / 1,290 B
+gzip; JSON.parse + entries Map in node 0.314 → 0.007 ms per answer (desktop CPU; the skipped search-index rebuild comes
+on top). Busy minutes stay full (every merge drops the hash) - the win is quiet periods, phone unlocks and the 60 s polls
+of Mercure-healthy rounds. Not measured on a phone or with k6 yet (chaos/load runs deferred by the orchestrator).
 
 A cold open loads 369 KB of build files (the site's whole stylesheet, 137 KB gzip, render-blocking, is most of it; the
 live entry's JS 64 KB gzip, `LiveEntryBundleTest`) - once per device, the judge-device checklist opens the page before

@@ -145,6 +145,13 @@ player; an edition is a competition - series owners and maintainers stay full or
   referee entered keep "entered by"), and the **link for referees** - the absolute `live_results_event` URL in the
   page's language with a copy button and its QR (`NameTagQrCode`), to send or to scan from the organiser's screen.
   Referees need a MySpeedPuzzling account and sign in with it. `noindex`, `private, no-store`.
+  **Activity** column (judge-speed J1, `GetCompetitionReferees::withActivity()` - the same statement plus one aggregate
+  CTE, the page stays at 13 statements, pinned in `CompetitionRefereesPageTest`; the wizard's Extras step keeps
+  `ofCompetition()`): "23 results · last 10:42 (Group A)" - the results of the event's entries and teams whose last
+  change was theirs (`result_entered_by_id`), the last change in that round's zone (`RoundTimezone::resolve()`), with
+  the day ("16 Nov 10:42") when it was not today there; "No results yet" when they changed none. A result changed later
+  by somebody else counts for them; a cleared one counts nothing but moves "last". Below 768 px the column folds into
+  the player cell. Per-save counts would need a player on `round_result_change_receipt` (v3).
 - Referees do not see the event under "My events" - they open the link they were given (the "My events" cards are
   organiser cards with edit/delete; see docs/TODO.md).
 - A referee's account deletion removes the row (FK cascade); the organiser who added them going leaves `added_by` empty.

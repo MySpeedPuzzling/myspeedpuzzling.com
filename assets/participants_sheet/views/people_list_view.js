@@ -393,7 +393,7 @@ export class PeopleListView {
         const requests = person.removedAt === null && typeof this.model.pendingRequests === 'function' ? this.model.pendingRequests(id) : [];
         const asks = requests.length === 1
             ? ` <span class="sheet-request-chip">${escapeHtml(this.t(requests[0].kind === 'dispute' ? 'link_request_dispute' : 'link_request_asks', { player: requestedBy(requests[0]) }))}</span>`
-            : (requests.length > 1 ? ` <span class="sheet-request-chip">${escapeHtml(this.t('link_requests_count', { count: requests.length }))}</span>` : '');
+            : (requests.length > 1 ? ` <span class="sheet-request-chip">${escapeHtml(this.sayCount('link_requests_count', requests.length))}</span>` : '');
         const marks = this.model.marks.withPrefix(`person:${id}:`).concat(this.model.marks.withPrefix(`place:${id}:`));
         const attention = marks.find((mark) => mark.state === 'conflict' || mark.state === 'refused');
         const saving = marks.some((mark) => mark.state === 'saving' || mark.state === 'waiting');

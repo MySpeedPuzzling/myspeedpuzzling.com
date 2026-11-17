@@ -948,4 +948,10 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   person" in the profile cell's options and the person editor, the chip on phone cards; grey suffix "· approved".
 - Hub card "Participants & profiles" (first): counters to the sheet filters (`GetParticipantLinkSummary`, 1 statement)
   and the policy radios (redirect / 422).
+- Review fixes: the join page's name match skips refused pairs and a player at 3 refusals gets the page with a note
+  (never a redirect loop); "Not this person" is never undone either (the refused pair stays - linking again by hand
+  is the way back); an import / sheet change set reads the event's pending requests once (`ParticipantLinks::
+  inBatch()`, `ResetInterface`) instead of 2 statements per link; the paid-registration consent counts only while the
+  event manages registration; a removal supersedes the person's requests in the plan too (a decline in the same set
+  is a conflict); the sheet shows R1's release of the claimant's other rows at once (`Working::releaseClaimant()`).
 - Not built here: notifications and "Not me" (L2b), the "Is this you?" card and the "This is me" surfaces (L3).

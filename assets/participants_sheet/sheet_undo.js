@@ -131,7 +131,7 @@ export class SheetUndo {
             const step = stack.pop();
 
             if (step.irreversible === true && kind === 'undo') {
-                // A declined link request is never taken back - the claimant was told (participant-linking.md §7.1)
+                // A decline or "Not this person" is never taken back - the refused pair stays on the record (participant-linking.md D11)
                 return { label: step.label, kind, origin: step.origin ?? null, groups: [], inverse: [], errors: [], results: [], inverseResults: [], skipped: [], irreversible: true };
             }
 

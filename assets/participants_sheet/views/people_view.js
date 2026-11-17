@@ -1533,7 +1533,7 @@ export class PeopleView {
         }
 
         if (requests.length > 1) {
-            const text = this.t('link_requests_count', { count: requests.length });
+            const text = this.sayCount('link_requests_count', requests.length);
 
             return {
                 text,

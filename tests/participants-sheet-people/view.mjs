@@ -226,6 +226,8 @@ export default function (test) {
         const unlink = view.notThisPerson('p-kim');
         assert.equal(unlink, undefined);
         assert.deepEqual(changes().at(-1), { op: 'player', participant: 'p-kim', from: 'pl-kim', to: null, notThem: true });
+        // Never undone: the refused pair stays on the record
+        assert.equal(acted[acted.length - 1].irreversible, true);
     });
 
     test('participant linking L2a: an irreversible step says so on undo and is gone', async () => {

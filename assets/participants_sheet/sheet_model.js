@@ -188,6 +188,28 @@ export class Working {
         return this.requests.get(id) ?? null;
     }
 
+    /**
+     * SheetPlanRun::releaseClaimant()'s twin: the claimant's own self-joined row without a result is removed (their "I
+     * left" record), any other row of theirs only unlinked.
+     */
+    releaseClaimant(playerId, keepId, now) {
+        for (const other of [...this.people.values()]) {
+            if (other.id === keepId || other.removedAt !== null || other.player?.id !== playerId) {
+                continue;
+            }
+
+            const holdsData = (other.playerResultRounds ?? []).length > 0
+                || [...this.places.values()].some((place) => place.participantId === other.id
+                    && (hasOfficialData(place) || (place.teamId !== null && hasOfficialData(this.team(place.teamId)))));
+
+            if (other.source === 'self_joined' && !holdsData) {
+                this.write('people', other.id, { ...other, removedAt: new Date(now).toISOString() });
+            } else {
+                this.write('people', other.id, { ...other, player: null, connectedAt: null, linkedVia: null });
+            }
+        }
+    }
+
     /** The player's pending link request for the participant, null when none (participant-linking.md §5.3). */
     pendingRequestFor(participantId, playerId) {
         for (const request of this.requests.values()) {
@@ -309,6 +331,12 @@ export class Working {
                 if (change.to === null) {
                     this.write('people', person.id, { ...person, player: null, connectedAt: null, linkedVia: null });
                 } else {
+                    // Approving a claimant who is on the list already: their other rows are let go of first, as the
+                    // server does (participant-linking.md R1) - shown at once, the next state confirms it
+                    if (person.player?.id !== change.to && this.pendingRequestFor(person.id, change.to) !== null) {
+                        this.releaseClaimant(change.to, person.id, now);
+                    }
+
                     // `_player` = what the organiser picked (name, code, avatar) - shown until the next state says more;
                     // a profile hidden from this organiser (O9: blocked, private) shows as "Linked to a profile" only
                     const shown = change._player && change._player.id === change.to ? change._player : null;

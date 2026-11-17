@@ -89,6 +89,30 @@ export default function (test) {
         assert.equal(m.person('p-jo').linkedVia, 'organiser');
     });
 
+    test('approving a claimant on the list already lets go of their other rows at once (R1, as the server)', () => {
+        const state = smallState();
+        const own = { id: 'pl-x', visible: true, name: 'Xena', code: 'xena', country: null, avatar: null, profileUrl: null };
+        state.people = state.people.map((row) => {
+            if (row.id === 'p-jo') {
+                return { ...row, source: 'self_joined', player: own };
+            }
+
+            return row.id === 'p-lee' ? { ...row, player: own } : row;
+        });
+        state.requests = [
+            { id: 'r1', participantId: 'p-ana', kind: 'claim', playerId: 'pl-x', playerName: 'Xena', playerCode: 'xena', createdAt: '2026-10-08T08:00:00+00:00' },
+        ];
+        const m = new SheetModel(state, { now: () => 0 });
+
+        m.applyLocal('g1', [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-x' }]);
+
+        assert.equal(m.person('p-ana').player.id, 'pl-x');
+        // Jo's own self-joined row (no result) is their "I left" record; Lee's row (the organiser's) is only unlinked
+        assert.notEqual(m.person('p-jo').removedAt, null);
+        assert.equal(m.person('p-lee').player, null);
+        assert.equal(m.person('p-lee').removedAt, null);
+    });
+
     test('filters: not in any round, joined by themselves, removed, duplicate names', () => {
         const state = smallState();
         state.people = state.people.map((row) => (row.id === 'p-jo' ? { ...row, source: 'self_joined' } : row));

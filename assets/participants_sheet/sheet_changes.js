@@ -515,7 +515,7 @@ function invertChange(change, before) {
         case 'field':
             return [{ op: 'field', participant: change.participant, field: change.field, from: cleanFieldValue(change.field, change.to), to: change.from }];
         case 'declineLinkRequest':
-            // Never undone - the claimant was told (participant-linking.md §7.1); the step says so (irreversible)
+            // Never undone - a refused pair stays on the record (participant-linking.md D11); the step says so (irreversible)
             return [];
         case 'player': {
             const previous = before.person(change.participant)?.player ?? null;
@@ -807,8 +807,11 @@ export function linkProfile(model, personId, player, options = {}) {
     }
 
     const key = to === null ? (change.notThem ? 'not_them' : 'unlink') : 'link';
+    const action = buildAction(model, [[change]], { label: { key }, ...actionOptions(options) });
 
-    return buildAction(model, [[change]], { label: { key }, ...actionOptions(options) });
+    // A refused pair stays on the record - linking again would not take it back, so the step is not undone (like a
+    // decline): the organiser links the profile again by hand when it was a mistake
+    return change.notThem ? { ...action, irreversible: action.groups.length > 0 } : action;
 }
 
 /**

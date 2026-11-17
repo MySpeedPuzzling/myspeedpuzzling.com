@@ -126,6 +126,13 @@ return App::config([
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Does an event / a round's event have displays (CompetitionDisplaysPresence, competition toolkit D5): asked
+                // on every results write, so an event without displays pays no statement for it. Tagged per event, forgotten
+                // when its displays change; 5 minutes
+                'competition_displays_presence_cache' => [
+                    'adapters' => ['cache.app'],
+                    'tags' => true,
+                ],
             ],
         ],
     ],

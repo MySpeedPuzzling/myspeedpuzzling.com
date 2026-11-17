@@ -121,7 +121,7 @@ list or show results were left for step 2 (display), the write-side ones for ste
 
 ## Results import page (`docs/features/event-results-import/results-import-page.md`, 2026-11-16)
 
-- [ ] Sandbox for Sarah (delivery step 4): copy her account and organization, register her source there
+- [x] Sandbox for Sarah (delivery step 4): copy her account and organization, register her source there (done 2026-11-16)
 - [ ] "Check sheet" has no rate limit (only the organization's team can press it) - add one if anybody hammers Google
 - [ ] An admin's sync run after a check makes that check's events stale on the page ("check again") - fine while the
   page is the only way; revisit if the weekly sync comes

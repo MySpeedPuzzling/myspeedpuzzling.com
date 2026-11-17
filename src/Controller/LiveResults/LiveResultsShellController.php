@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\LiveResults;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\WebpackEncoreBundle\Asset\EntrypointLookupInterface;
 
 /**
  * The live result entry page's offline copy - the "shell" (competition toolkit C3,
@@ -19,9 +21,18 @@ use Symfony\Component\Routing\Attribute\Route;
  * `stateless` firewall - no user, no remember-me renewal, no cookie at all), no `msp-rendered-at` timestamp (kept for
  * hours on purpose, the stale-document check must not judge it), never the native apps' Turbo (they run no worker).
  * Not indexed.
+ *
+ * It lists the files it needs in `<script type="application/json" id="msp-live-shell-assets">` - the worker stores them
+ * all before it stores the copy itself (C6), so a stored copy never points at a file the device lacks.
  */
 final class LiveResultsShellController extends AbstractController
 {
+    public function __construct(
+        private readonly EntrypointLookupInterface $entrypointLookup,
+        private readonly Packages $packages,
+    ) {
+    }
+
     #[Route(
         path: [
             'cs' => '/zadavani-vysledku-shell',
@@ -44,6 +55,7 @@ final class LiveResultsShellController extends AbstractController
             'entry' => null,
             'auto_picked' => false,
             'unknown_tag' => false,
+            'live_shell_assets' => $this->shellAssets(),
         ]);
 
         $response->setPublic();
@@ -51,5 +63,30 @@ final class LiveResultsShellController extends AbstractController
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 
         return $response;
+    }
+
+    /**
+     * The layout's own files: the `live_entry` entry's scripts, the site stylesheet and the fonts the layout preloads
+     * or declares inline. The lookup hands each file out once per request, so it is reset for the layout's own tags.
+     *
+     * @return list<string>
+     */
+    private function shellAssets(): array
+    {
+        $files = [];
+
+        foreach ([...$this->entrypointLookup->getJavaScriptFiles('live_entry'), ...$this->entrypointLookup->getCssFiles('app')] as $file) {
+            if (is_string($file)) {
+                $files[] = $file;
+            }
+        }
+
+        $this->entrypointLookup->reset();
+
+        foreach (['fonts/rubik/rubik-latin.woff2', 'fonts/rubik/rubik-latin-ext.woff2', 'build/fonts/bootstrap-icons.woff2?'] as $font) {
+            $files[] = $this->packages->getUrl($font);
+        }
+
+        return array_values(array_unique($files));
     }
 }

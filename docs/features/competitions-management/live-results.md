@@ -45,8 +45,8 @@ says so and is tried again by itself (2, 4 … 30 s, at once when back online, R
 `/zadavani-vysledku-shell`, `LiveResultsShellController`) is the same markup with nothing of any round or person -
 `data-live-results-shell-value="true"`, no round id, sign-in link without a return (C5 adds it in JS), no `msp-rendered-at` meta (the
 stale-document check does nothing there), `Cache-Control: public, no-cache`, `noindex`, on the `stateless` firewall (no
-session, no cookie). The service worker will keep it per locale and answer it when the network fails for a live entry
-URL (C6), the page then rendering the device's saved rounds (C4/C5). Whose rounds: the readable cookie
+session, no cookie). The service worker keeps it per locale and answers it when the network fails for a live entry
+URL (C6, below), the page then rendering the device's saved rounds (C4/C5). Whose rounds: the readable cookie
 `msp_live_player=<playerId>` (`LiveEntryDeviceCookie`) - set only by the live page (so only for organisers and the
 event's referees), `Path=/`, `SameSite=Lax`, not HttpOnly, 30 days like the sign-in; cleared on sign-out and when another
 player signs in on the device (`LiveResultsDeviceCookieSubscriber`; the same player signing in again keeps it). It is no
@@ -67,6 +67,24 @@ its first answer makes the page live and rewrites the address to the round's own
 blank page: no cookie → "You are offline - open this page again with a connection" + Retry + Sign in (back to the URL
 asked for) + the device's unsent count; no snapshot → "No offline copy of this round on this phone" + the snapshots it
 has (links). Tests: `tests/live-entry-shell-harness.mjs` (`LiveEntryShellScriptsTest`).
+
+**The service worker's part** (competition toolkit C6, `public/service-worker.js`, `.claude/rules/service-worker.md`):
+once the page is live (its first state, or an offline copy going live) it posts `live-shell:prepare` with its locale
+(`assets/live_entry_offline_ready.js`; once per page load, never in the native apps). The worker fetches
+`live_results_shell` of that locale without cookies, reads the files it lists in `#msp-live-shell-assets` (the
+`live_entry` scripts, the site CSS, the fonts - `LiveResultsShellController::shellAssets()`), stores each into
+`static-v7` and only then the copy + a record `/__live-shell/{locale}.json` in `live-shell-v7` (a copy never points at a
+missing file), plus the zbar QR decoder (`/barcode-scanner/zbar-wasm-0.9.15/*`, cache-first) when the browser reads no QR
+codes itself; it answers `live-shell:ready` → the unsent-results sheet says "Ready offline (saved 10:42)". Navigations to
+exactly the paths `parseLiveEntryRoute()` reads (the worker's own `LIVE_ENTRY_PATHS`; shared cases
+`tests/fixtures/live-entry-routes.json` + every router path, `ServiceWorkerLiveRoutesTest`) go to the network first -
+nothing read from a cache while it answers, a redirect or error page passed through - and get the stored copy of the
+URL's locale (header `X-MSP-Live-Shell: 1`) when the fetch fails (after the one 500 ms retry; none when the device knows
+it is offline) or stays silent for 4 s; a locale-less tag path or a locale never prepared gets the newest stored copy;
+none stored → the offline page as before. The prune after a deploy keeps every file a stored copy lists. The copy holds
+no user data, so sign-out leaves it. The name-tag scanner (`assets/official_results_scan.js`) loads zbar from our server
+first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceWorkerLiveShellTest`
+(`tests/service-worker-live-harness.js`, real in-memory caches), `ServiceWorkerLiveRoutesTest`.
 
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and
@@ -196,7 +214,8 @@ player; an edition is a competition - series owners and maintainers stay full or
 - **Sync pill**, always visible: "All saved" / "Saving…" / "3 waiting" / "3 waiting - offline" / "2 need you"
   (conflicts, refusals, changes without rights) / "Sign in again" / "No permission" / "Reload the page"; tap → the list
   of what is not saved yet with the actions above.
-- No service worker changes: the page itself needs the network to load; once loaded it works offline.
+- A reload without a connection opens the page's offline copy (service worker, toolkit C6 above) on a device that had
+  the page open online once; the native apps cannot (no worker - the sheet says so).
 
 ## Live updates
 

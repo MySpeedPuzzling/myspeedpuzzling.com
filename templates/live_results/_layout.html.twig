@@ -41,6 +41,10 @@
                Never in the offline copy: the apps run no service worker, and that copy is the same for everybody. #}
             {{ encore_entry_script_tags('live_entry_native') }}
         {% endif %}
+        {% if live_entry_shell ?? false %}
+            {# The offline copy's files: the service worker stores them all before the copy itself (live-shell:prepare, toolkit C6) #}
+            <script type="application/json" id="msp-live-shell-assets">{{ live_shell_assets|json_encode|raw }}</script>
+        {% endif %}
     </head>
     <body class="lang-{{ app.request.locale }}">
         {% if sandbox %}

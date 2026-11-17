@@ -118,6 +118,9 @@ class Db:
         return rows[0] if rows else None
 
     def now(self):
+        """A mark for receipts_since(): the next whole second (received_at has second precision, so a mark inside the
+        second of an earlier part's last receipt would count it as this part's)."""
+        time.sleep(1.05 - (time.time() % 1))
         return self.one("SELECT now() AT TIME ZONE 'UTC'")[0]
 
     def entries(self, tables):

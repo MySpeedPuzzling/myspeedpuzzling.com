@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
+use SpeedPuzzling\Web\Results\PublishedChallengeRow;
 use SpeedPuzzling\Web\Results\PublishedEntryPuzzle;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
 use SpeedPuzzling\Web\Results\PublishedRoundResults;
+use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
+use SpeedPuzzling\Web\Services\ChallengeRanking;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\OfficialEntryProfileState;
@@ -32,6 +35,10 @@ use Doctrine\DBAL\Connection;
  *   that is revealed; offered until the viewer has a time in the round, then "On your profile" (derived, nothing
  *   stored). Every other unlinked row is somebody else's as far as anybody knows: the viewer linked to no entry gets one
  *   line instead, "Is your name here? Connect it" (the event's join flow), when the round has an unlinked row.
+ *
+ * - A challenge view (real events W4, `?challenge=` - a shown puzzle of a pick round of K ≥ 2): the entries by that
+ *   puzzle's own time (ChallengeRanking over every entry, the rows hidden from the viewer dropped after, never
+ *   renumbered), the unranked after. It offers no "Add to my profile" (the round's view does) - no statement more.
  *
  * One statement for the entries (OfficialEntrantsView; it also tells whether the viewer is linked to any entry of the
  * round, and their name), one more for the viewer's own times in the round - only when a row could offer "Add to my
@@ -80,14 +87,18 @@ SQL;
      * Null when the round's results are not published or nothing is ranked - the page then stays exactly as without
      * official results.
      */
-    public function forRound(EditionRoundDetail $round, null|string $viewerPlayerId): null|PublishedRoundResults
+    public function forRound(EditionRoundDetail $round, null|string $viewerPlayerId, null|string $challengeParameter = null): null|PublishedRoundResults
     {
         if ($round->resultsPublished === false) {
             return null;
         }
 
         $viewerPlayerId = $viewerPlayerId !== null ? strtolower($viewerPlayerId) : null;
-        $view = $this->officialEntrantsView->forRound($round->id, $round->category, $viewerPlayerId);
+        $challenge = $round->challengeSlot($challengeParameter);
+        // A challenge is ranked over every entry - the rows hidden from the viewer come along, marked, and go after it
+        $view = $challenge !== null
+            ? $this->officialEntrantsView->forRounds([$round->id => $round->category], $viewerPlayerId, keepHidden: true)[$round->id]
+            : $this->officialEntrantsView->forRound($round->id, $round->category, $viewerPlayerId);
 
         if ($view->isEmpty()) {
             return null;
@@ -99,8 +110,18 @@ SQL;
             'country' => $view->viewerCountry,
         ];
         $entries = $view->entries;
+        $challengeRows = [];
 
-        if ($round->isPick()) {
+        if ($challenge !== null) {
+            $entries = array_map(
+                static fn (PublishedRoundEntry $entry): PublishedRoundEntry => $entry->withPuzzleChips(PublishedEntryPuzzle::listOf($entry->puzzles, $round->puzzleSlots)),
+                $entries,
+            );
+            $challengeRows = self::challengeRows($entries, $challenge);
+            $entries = array_values(array_filter($entries, static fn (PublishedRoundEntry $entry): bool => $entry->hiddenFromViewer === false));
+            $onlyPuzzle = null;
+            $profilePuzzleId = null;
+        } elseif ($round->isPick()) {
             // A pick round (competition toolkit A5): each entry's chosen puzzles by the public reveal rule, and
             // "Add to my profile" per puzzle - the round has no one puzzle a time is logged on
             $entries = array_map(
@@ -135,7 +156,62 @@ SQL;
                     $entry->entrants,
                     static fn (PublishedRoundEntrant $entrant): bool => $entrant->linkedPlayerId === null,
                 )),
+            challenge: $challenge,
+            challengeRows: $challengeRows,
         );
+    }
+
+    /**
+     * One challenge's ranking (real events W4): every entry that did that puzzle - or has no per-puzzle record to tell -
+     * placed by the puzzle's own time over all of them, THEN the rows hidden from the viewer dropped without
+     * renumbering. Ranked first, the unranked after, each in the round's order.
+     *
+     * @param list<PublishedRoundEntry> $entries with their chips, the hidden ones included
+     * @return list<PublishedChallengeRow>
+     */
+    private static function challengeRows(array $entries, RoundPuzzleSlot $challenge): array
+    {
+        $roundPuzzleId = strtolower($challenge->roundPuzzleId);
+        $candidates = [];
+
+        foreach ($entries as $entry) {
+            $chip = null;
+
+            foreach ($entry->puzzleChips as $candidate) {
+                if (strtolower($candidate->roundPuzzleId) === $roundPuzzleId) {
+                    $chip = $candidate;
+                    break;
+                }
+            }
+
+            // A record without this puzzle: the entry did another one (pick K of N)
+            if ($chip === null && $entry->puzzles !== null) {
+                continue;
+            }
+
+            $candidates[] = ['entry' => $entry, 'chip' => $chip];
+        }
+
+        $ranks = ChallengeRanking::rank(array_map(
+            static fn (array $candidate): null|int => $candidate['chip'] !== null && $candidate['chip']->done ? $candidate['chip']->duration : null,
+            $candidates,
+        ));
+
+        $rows = [];
+
+        foreach ($candidates as $index => $candidate) {
+            if ($candidate['entry']->hiddenFromViewer) {
+                continue;
+            }
+
+            $rows[] = new PublishedChallengeRow($candidate['entry'], $ranks[$index], $candidate['chip']);
+        }
+
+        usort($rows, static fn (PublishedChallengeRow $a, PublishedChallengeRow $b): int => ($a->rank === null) <=> ($b->rank === null)
+            ?: ($a->rank ?? 0) <=> ($b->rank ?? 0)
+            ?: $a->entry->rank <=> $b->entry->rank);
+
+        return $rows;
     }
 
     /**

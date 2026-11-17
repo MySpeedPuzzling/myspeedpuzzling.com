@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Results\PublicStandingRow;
 use SpeedPuzzling\Web\Results\PublicStandingTable;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
+use SpeedPuzzling\Web\Results\RoundChallengeTime;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Results\StandingRoundColumn;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\StandingEntrant;
 use SpeedPuzzling\Web\Value\StandingEntryInput;
 use SpeedPuzzling\Web\Value\StandingRoundInput;
@@ -40,7 +42,7 @@ use SpeedPuzzling\Web\Value\StandingRoundInput;
  * Statements: the event's rounds (with their piece totals), then GetRoundResultEntries per round of the standing
  * (organiser) or at most two for all its published rounds (public).
  *
- * @phpstan-type RoundRow array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int, pieces_total: null|int, pieces_by_round_puzzle: array<string, int>}
+ * @phpstan-type RoundRow array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int, pieces_total: null|int, pieces_by_round_puzzle: array<string, int>, labels_by_round_puzzle: array<string, string>}
  */
 readonly final class GetStandingResults
 {
@@ -72,7 +74,7 @@ readonly final class GetStandingResults
 
             $isPick = $round['puzzle_format'] === RoundPuzzleFormat::Pick->value;
             $entries = array_map(
-                fn (RoundResultEntry $entry): StandingEntryInput => $this->input($standing->competitionId, $entry, $isPick ? $entry->piecesCount : $round['pieces_total'], $organiser),
+                fn (RoundResultEntry $entry): StandingEntryInput => $this->input($standing->competitionId, $entry, $isPick ? $entry->piecesCount : $round['pieces_total'], $organiser, $isPick ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle']) : []),
                 $this->getRoundResultEntries->forRound($roundId),
             );
             $counted = StandingCalculator::anyRecorded($entries);
@@ -159,6 +161,9 @@ readonly final class GetStandingResults
                         playerCode: $entrant->playerId !== null ? $entrant->linkedPlayerCode : null,
                     ), $entry->entrants),
                     missingPieces: $entry->missingPieces,
+                    challengeTimes: $round['puzzle_format'] === RoundPuzzleFormat::Pick->value
+                        ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle'])
+                        : [],
                 );
                 $latest[$key] = $entry;
                 $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
@@ -215,23 +220,50 @@ SELECT
     r.puzzles_to_solve,
     (SELECT COUNT(*) FROM competition_round_puzzle crp WHERE crp.round_id = r.id) AS puzzles_count,
     (SELECT SUM(p.pieces_count) FROM competition_round_puzzle crp INNER JOIN puzzle p ON p.id = crp.puzzle_id WHERE crp.round_id = r.id) AS pieces_total,
-    (SELECT json_object_agg(crp.id, p.pieces_count) FROM competition_round_puzzle crp INNER JOIN puzzle p ON p.id = crp.puzzle_id WHERE crp.round_id = r.id) AS pieces_by_round_puzzle
+    (SELECT json_object_agg(crp.id, p.pieces_count) FROM competition_round_puzzle crp INNER JOIN puzzle p ON p.id = crp.puzzle_id WHERE crp.round_id = r.id) AS pieces_by_round_puzzle,
+    CASE WHEN r.puzzle_format = 'pick' AND r.puzzles_to_solve >= 2 THEN (
+        SELECT json_object_agg(placed.id, json_build_array(placed.place, placed.label))
+        FROM (
+            SELECT crp.id, crp.label, ROW_NUMBER() OVER (ORDER BY {$this->labelOrder()}) AS place
+            FROM competition_round_puzzle crp
+            WHERE crp.round_id = r.id
+        ) placed
+    ) END AS labels_by_round_puzzle
 FROM competition_round r
 WHERE r.competition_id = :competitionId
 SQL, ['competitionId' => $competitionId]) as $row
         ) {
-            /** @var array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int|string, pieces_total: null|int|string, pieces_by_round_puzzle: null|string} $row */
+            /** @var array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int|string, pieces_total: null|int|string, pieces_by_round_puzzle: null|string, labels_by_round_puzzle: null|string} $row */
             $pieces = $row['pieces_by_round_puzzle'] !== null ? json_decode($row['pieces_by_round_puzzle'], true, flags: JSON_THROW_ON_ERROR) : [];
+            $places = $row['labels_by_round_puzzle'] !== null ? json_decode($row['labels_by_round_puzzle'], true, flags: JSON_THROW_ON_ERROR) : [];
+            $labels = [];
+
+            // A solve-all block's challenge labels (real events W4): the organiser's label, or the letter of its place
+            foreach (is_array($places) ? $places : [] as $roundPuzzleId => $place) {
+                if (is_array($place) && is_numeric($place[0] ?? null)) {
+                    $labels[strtolower((string) $roundPuzzleId)] = RoundPuzzleLabel::effective(is_string($place[1] ?? null) ? $place[1] : null, (int) $place[0]);
+                }
+            }
+
             $roundsById[strtolower($row['id'])] = [
                 ...$row,
                 'puzzles_count' => (int) $row['puzzles_count'],
                 'pieces_total' => $row['pieces_total'] !== null ? (int) $row['pieces_total'] : null,
                 'pieces_by_round_puzzle' => is_array($pieces) ? array_map(static fn (mixed $count): int => is_numeric($count) ? (int) $count : 0, $pieces) : [],
+                'labels_by_round_puzzle' => $labels,
             ];
             }
 
         /** @var array<string, RoundRow> $roundsById */
             return $roundsById;
+    }
+
+    /**
+     * The order of a round's puzzles (RoundPuzzleLabel::sqlOrder()) - their places, the letters of unlabelled ones
+     */
+    private function labelOrder(): string
+    {
+        return RoundPuzzleLabel::sqlOrder('crp');
     }
 
     /**
@@ -317,7 +349,10 @@ SQL, ['competitionId' => $competitionId]) as $row
         return $countries;
     }
 
-    private function input(string $competitionId, RoundResultEntry $entry, null|int $piecesCount, bool $organiser): StandingEntryInput
+    /**
+     * @param list<RoundChallengeTime> $challengeTimes
+     */
+    private function input(string $competitionId, RoundResultEntry $entry, null|int $piecesCount, bool $organiser, array $challengeTimes = []): StandingEntryInput
     {
         if ($entry->participantId !== null) {
             return new StandingEntryInput(
@@ -334,6 +369,7 @@ SQL, ['competitionId' => $competitionId]) as $row
                     playerCode: $organiser || $entry->playerIsPrivate === false ? $entry->playerCode : null,
                 )],
                 missingPieces: $entry->missingPieces,
+                challengeTimes: $challengeTimes,
             );
         }
 
@@ -354,6 +390,7 @@ SQL, ['competitionId' => $competitionId]) as $row
                 playerCode: $organiser || $member->playerIsPrivate === false ? $member->playerCode : null,
             ), $entry->members),
             missingPieces: $entry->missingPieces,
+            challengeTimes: $challengeTimes,
         );
     }
 }

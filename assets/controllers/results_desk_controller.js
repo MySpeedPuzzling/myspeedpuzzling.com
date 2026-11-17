@@ -15,7 +15,7 @@ import {
     saveEditor as saveEditorValue,
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
-import { deskEntryFromQuery, editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
+import { deskEntryFromQuery, editorOutcome, editorRows, ownTimesLine, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
 import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 
@@ -635,7 +635,8 @@ export default class extends Controller {
 
     /**
      * A `pick` round row's record under its result: the chosen puzzles in solving order - label (the name only of a
-     * puzzle that is out), ✓ + the time it was finished at, or the pieces of a puzzle not finished. Unsaved values show.
+     * puzzle that is out), ✓ + the time it was finished at (+ its own time on a K ≥ 2 round, real events W4), or the
+     * pieces of a puzzle not finished. Unsaved values show.
      */
     recordHtml(entry) {
         const format = this.pickFormat();
@@ -650,12 +651,17 @@ export default class extends Controller {
             return '';
         }
 
-        const html = chips.map((chip) => {
+        const html = chips.map((chip, index) => {
             const name = chip.name !== null ? ` <span class="text-body-secondary">${escapeHtml(chip.name)}</span>` : '';
             let state = '';
 
             if (chip.done) {
                 state = ` <i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(this.t('puzzles_status_done'))}</span>${chip.atSeconds !== null ? ` ${escapeHtml(formatResultTime(chip.atSeconds))}` : ''}`;
+
+                // Its own time next to the split (real events W4) - K ≥ 2, not the first (its own time is its split)
+                if (format.toSolve >= 2 && index > 0 && chip.duration !== null) {
+                    state += ` <span class="text-body-secondary" data-record-own="${chip.duration}">(${escapeHtml(this.t('puzzles_own_time', { time: formatResultTime(chip.duration) }))})</span>`;
+                }
             } else if (chip.piecesPlaced !== null) {
                 state = ` ${escapeHtml(this.t('pieces_placed', { placed: chip.piecesPlaced }))}`;
             }
@@ -1061,6 +1067,13 @@ export default class extends Controller {
             preview = this.t('preview_time', { time: formatResultTime(outcome.result.seconds) });
         } else if (Number.isInteger(outcome.result?.piecesPlaced)) {
             preview = [this.t('puzzles_preview_pieces', { placed: outcome.result.piecesPlaced }), ...typed.counted].join(' · ');
+        }
+
+        // A solve-all block's challenge times (real events W4): each puzzle's own time, split minus the previous one
+        const ownTimes = ownTimesLine(format, typed.rows);
+
+        if (ownTimes !== '') {
+            preview = `${preview} · ${this.t('puzzles_preview_own_times', { times: ownTimes })}`;
         }
 
         return { value: { result: outcome.result, puzzles: outcome.record }, preview };

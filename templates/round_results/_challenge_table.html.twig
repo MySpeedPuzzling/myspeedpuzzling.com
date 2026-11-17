@@ -1,0 +1,65 @@
+{#
+    One challenge's ranking of a solve-all block (real events W4, `?challenge=`): the entries by that puzzle's own time
+    (ChallengeRanking - places over every entry, the rows hidden from the viewer dropped without renumbering), the
+    unranked after (not finished, time not recorded). The round's place and result stay on each row. Only a puzzle shown
+    to everybody has this view. Part of round_results/_official.html.twig. Expects: official, round.
+#}
+{% set challenge_name = official.challenge.label ~ (official.challenge.puzzle is not null ? ' - ' ~ official.challenge.puzzle.puzzleName : '') %}
+<div data-official-challenge="{{ official.challenge.position }}">
+    <h3 class="h6 mb-1">{{ 'round_results.challenge.heading'|trans({'%challenge%': challenge_name}) }}</h3>
+    <p class="small text-muted mb-2">{{ 'round_results.challenge.source'|trans }}</p>
+    <div class="custom-table-wrapper lb-wrapper mb-2">
+        <table class="table custom-table lb-table official-results-table mb-0">
+            <caption class="visually-hidden">{{ 'round_results.challenge.caption'|trans({'%challenge%': challenge_name, '%round%': round.name}) }}</caption>
+            <thead>
+            <tr>
+                <th scope="col" class="lb-rank-head"><abbr title="{{ 'round_results.official.rank'|trans }}">#</abbr></th>
+                <th scope="col">{{ ('round_results.official.entrant.' ~ round.category.value)|trans }}</th>
+                <th scope="col" class="text-end">{{ 'round_results.challenge.column_time'|trans }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in official.challengeRows %}
+                {% set entry = row.entry %}
+                <tr class="{{ entry.isViewers ? 'table-active-player' }}" data-official-entry="{{ entry.ref.toString() }}" data-official-challenge-rank="{{ row.rank ?? '' }}">
+                    <td class="rank">
+                        {% if row.rank is not null %}
+                            <span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank }}</span>
+                        {% else %}
+                            <span class="text-muted">–</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="lb-solver">
+                        {% for entrant in entry.entrants %}
+                            {{ include('_leaderboard_player.html.twig', {player: entrant, small: entry.isTeam, show_tier: false}) }}
+                        {% endfor %}
+
+                        {% if entry.isTeam and entry.teamName is not null %}
+                            <div class="lb-badges"><span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> {{ entry.teamName }}</span></div>
+                        {% endif %}
+
+                        <div class="small text-muted" data-official-challenge-round>{{ 'round_results.challenge.round_result'|trans({'%rank%': entry.rank, '%result%': include('official_results/_result.html.twig', {result: entry.result, pieces_count: entry.ownPiecesCount(round.puzzlesToSolve)})|striptags|trim}) }}</div>
+                    </td>
+
+                    <td class="lb-time">
+                        <span class="lb-time-value" data-official-challenge-time="{{ row.seconds ?? '' }}">
+                            {%- if row.seconds is not null -%}
+                                {{ row.seconds|puzzlingTime }}
+                            {%- elseif row.chip is null -%}
+                                <span class="small text-muted fw-normal">{{ 'round_results.challenge.not_recorded'|trans }}</span>
+                            {%- elseif row.chip.done -%}
+                                <span class="small text-muted fw-normal">{{ 'round_results.challenge.no_split'|trans }}</span>
+                            {%- elseif row.chip.piecesPlaced is not null -%}
+                                <span class="small text-muted fw-normal">{{ 'competition_toolkit.round_page.pieces_placed'|trans({'%count%': row.chip.piecesPlaced}) }}</span>
+                            {%- else -%}
+                                <span class="small text-muted fw-normal">{{ 'round_results.challenge.not_finished'|trans }}</span>
+                            {%- endif -%}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -81,6 +81,51 @@ export function recordText(format, value, texts) {
 }
 
 /**
+ * The own time of each of the editor's rows as typed - its "finished at" minus the previous row's (the first row: its
+ * "finished at"), null when one of them is missing or the row is not finished. RoundEntryPuzzles::duration()'s rule
+ * (real events W4: a challenge's time of a solve-all block). Rows without a puzzle are the caller's to leave out.
+ *
+ * @param {{done: boolean, at: number|null}[]} rows
+ * @returns {(number|null)[]}
+ */
+export function rowOwnTimes(rows) {
+    return rows.map((row, index) => {
+        if (row.done !== true || !Number.isInteger(row.at)) {
+            return null;
+        }
+
+        if (index === 0) {
+            return row.at;
+        }
+
+        const previous = rows[index - 1].at;
+
+        return Number.isInteger(previous) ? row.at - previous : null;
+    });
+}
+
+/**
+ * The editor preview's own times of a round of K ≥ 2 - "A 0:25:00, B 0:40:00" by label, only the rows whose own time is
+ * known. Empty for K = 1 (the result's time is the puzzle's) and when none is known.
+ *
+ * @param {{id: string, done: boolean, at: number|null}[]} rows as typed (rows without a puzzle are left out here)
+ */
+export function ownTimesLine(format, rows) {
+    if (!format || !Number.isInteger(format.toSolve) || format.toSolve < 2) {
+        return '';
+    }
+
+    const chosen = rows.filter((row) => key(row.id) !== '');
+    const own = rowOwnTimes(chosen);
+    const labels = new Map(puzzleOptions(format).map((option) => [option.id, option.label]));
+
+    return chosen
+        .map((row, index) => (own[index] !== null ? `${labels.get(key(row.id)) ?? '?'} ${formatResultTime(own[index])}` : null))
+        .filter((part) => part !== null)
+        .join(', ');
+}
+
+/**
  * The editor's rows when it opens: K rows (more when a record holds more), filled from the record shown.
  *
  * @returns {{id: string, done: boolean, at: number|null, pieces: number|null}[]}

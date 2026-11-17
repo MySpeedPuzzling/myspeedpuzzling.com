@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\SolveAllBlockSetup;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -645,6 +646,34 @@ final class PrivateProfileCanaryTest extends WebTestCase
         $content = $this->get($browser, $url);
         self::assertStringContainsString('Gina Quick', $content, 'No canary: the official results do not list her.');
         self::assertStringContainsString('data-official-entry-puzzles', $content, 'No canary: the rows show no chosen puzzles.');
+        self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+    }
+
+    /**
+     * A challenge's ranking of a back-to-back block (real events W4, `?challenge=`): her row names her by the
+     * organiser's name only (OfficialEntrantsView), except for the friend.
+     */
+    public function testAChallengeRankingLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b?challenge=2';
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        SolveAllBlockSetup::seed(self::getContainer()->get(Connection::class));
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the challenge ranking does not list her.');
+        self::assertStringContainsString('data-official-challenge="2"', $content, 'No canary: no challenge ranking.');
         self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
         self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
 

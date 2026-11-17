@@ -4,7 +4,9 @@
     Rendered instead of the per-puzzle lists of round_results.html.twig; expects its context (page, round, event).
 
     A pick round's row also lists the puzzles its entry chose (round_results/_entry_puzzles.html.twig, competition toolkit
-    A5) - included at the end of an existing line, so every other round renders byte for byte as before.
+    A5) - included at the end of an existing line, so every other round renders byte for byte as before. A pick round of
+    K ≥ 2 also gets a ranking per shown puzzle (real events W4, `?challenge=`): the links after the source line
+    (_challenge_nav.html.twig), the challenge's table instead of the round's (_challenge_table.html.twig).
 
     Ranks are the official places (computed over every ranked entry, rows hidden from the viewer dropped without
     renumbering); the table number is the organiser's business and never shown here.
@@ -16,11 +18,11 @@
 
 <section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results>
     <h2 class="h5 mb-1" id="official-results-heading"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'round_results.official.heading'|trans }}</h2>
-    <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>
+    <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>{{ round.challengeSlots is not empty and official.entries is not empty ? include('round_results/_challenge_nav.html.twig') }}
 
     {% if official.entries is empty %}
         <p class="text-muted">{{ 'round_results.official.nothing_to_show'|trans }}</p>
-    {% else %}
+    {% else %}{% if official.challenge is not null %}{{ include('round_results/_challenge_table.html.twig') }}{% else %}
         <div class="custom-table-wrapper lb-wrapper mb-2">
             <table class="table custom-table lb-table official-results-table mb-0">
                 <caption class="visually-hidden">{{ 'round_results.official.caption'|trans({'%round%': round.name}) }}</caption>
@@ -76,7 +78,7 @@
             </table>
         </div>
 
-        {# Linked to no entry of the round, and some names here are nobody's: one may be theirs - the event's join flow connects it #}
+        {% endif %}{# Linked to no entry of the round, and some names here are nobody's: one may be theirs - the event's join flow connects it #}
         {% if official.offersConnecting %}
             <p class="small mb-1" data-official-connect>
                 {{ 'round_results.official.connect'|trans }}

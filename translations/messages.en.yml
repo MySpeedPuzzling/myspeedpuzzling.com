@@ -186,6 +186,19 @@ round_results:
         connect: "Is your name here?"
         connect_link: "Connect it to your profile"
         meta_description: "Official results of %round% at %event%: the organiser's ranking of %count% entrant, with times and pieces placed.|Official results of %round% at %event%: the organiser's ranking of %count% entrants, with times and pieces placed."
+    challenge:
+        nav_label: "Ranking"
+        overall: "Whole round"
+        heading: "%challenge% - ranked by its own time"
+        source: "Each puzzle's own time is its split minus the previous puzzle's. Entrants without it are listed after, unranked."
+        caption: "Ranking of %challenge% in %round%"
+        column_time: "Own time"
+        own_time: "own %time%"
+        own_time_help: "Its own time - the split minus the previous puzzle's"
+        not_finished: "Not finished"
+        no_split: "Finished, time not recorded"
+        not_recorded: "Not recorded"
+        round_result: "Round: %rank%. · %result%"
 
 badge:
     relax: "Relax"
@@ -14346,6 +14359,8 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% finished at"
         export_time: "Puzzle %position% own time"
         export_pieces: "Puzzle %position% pieces placed"
+        own_time: "own %time%"
+        preview_own_times: "Own times: %times%"
     standings:
         missing_rule:
             label: "Rounds without a result"
@@ -14858,6 +14873,7 @@ time_proposal:
         already_proposed: "A time is already waiting for the judge."
         proposal_not_found: "This time proposal does not exist."
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}No rounds|{1}%count% round|]1,Inf[%count% rounds"
     per_category_name: "Overall - %category%"
     penalty_short: "+%seconds% s per missing piece"

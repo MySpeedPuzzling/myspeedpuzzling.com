@@ -12,6 +12,9 @@ use SpeedPuzzling\Web\Value\StandingScoreStatus;
  */
 readonly final class StandingRoundScore
 {
+    /**
+     * @param list<RoundChallengeTime> $challengeTimes
+     */
     public function __construct(
         public string $roundId,
         public StandingScoreStatus $status,
@@ -27,6 +30,8 @@ readonly final class StandingRoundScore
         public null|int $timeSeconds = null,
         public int $missingPieces = 0,
         public int $penaltySeconds = 0,
+        // A solve-all block's challenge times in solving order (real events W4) - pick rounds of K ≥ 2 with splits only
+        public array $challengeTimes = [],
     ) {
     }
 
@@ -39,11 +44,13 @@ readonly final class StandingRoundScore
     }
 
     /**
-     * @return array{roundId: string, status: string, result: null|array<string, int|true>, scoreSeconds: null|int, rank: null|int, timeSeconds: null|int, missingPieces: int, penaltySeconds: int}
+     * `challengeTimes` only when there are some - every other round's JSON stays as it was.
+     *
+     * @return array{roundId: string, status: string, result: null|array<string, int|true>, scoreSeconds: null|int, rank: null|int, timeSeconds: null|int, missingPieces: int, penaltySeconds: int, challengeTimes?: list<array{label: string, seconds: int}>}
      */
     public function toArray(): array
     {
-        return [
+        $array = [
             'roundId' => $this->roundId,
             'status' => $this->status->value,
             'result' => $this->result?->toWire(),
@@ -53,5 +60,11 @@ readonly final class StandingRoundScore
             'missingPieces' => $this->missingPieces,
             'penaltySeconds' => $this->penaltySeconds,
         ];
+
+        if ($this->challengeTimes !== []) {
+            $array['challengeTimes'] = array_map(static fn (RoundChallengeTime $time): array => $time->toArray(), $this->challengeTimes);
+        }
+
+        return $array;
     }
 }

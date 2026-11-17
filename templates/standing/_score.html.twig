@@ -1,6 +1,7 @@
 {#- One round's score of a public standing row (competition toolkit A7). Variables: score (StandingRoundScore), round.
     Competition toolkit T6: the time with the pieces missing next to it (not placed at the time's up, or missing from a
-    finished puzzle) - the penalty they cost is in the row's total. -#}
+    finished puzzle) - the penalty they cost is in the row's total. A solve-all block (real events W4) adds its challenge
+    times (each puzzle's own time, by label) on a line of their own - pick rounds of K ≥ 2 with splits only. -#}
 {%- if score.status.value == 'finished' -%}
     {{ score.timeSeconds|puzzlingTime }}
     {%- if score.missingPieces > 0 %} <span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif -%}
@@ -18,3 +19,4 @@
     <span class="text-danger">–</span>
 {%- endif -%}
 {%- if score.rank is not null %} <span class="text-muted">({{ score.rank }}.)</span>{% endif -%}
+{%- if score.challengeTimes is not empty %}<span class="d-block small text-muted fw-normal" data-standing-challenges>{% for time in score.challengeTimes %}{{ not loop.first ? ' · ' }}{{ 'competition_standing.challenge_time'|trans({'%label%': time.label, '%time%': time.seconds|puzzlingTime}) }}{% endfor %}</span>{% endif -%}

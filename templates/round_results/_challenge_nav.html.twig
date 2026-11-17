@@ -1,0 +1,19 @@
+{#
+    The rankings of a solve-all block (real events W4, world-series-rules.md "Review amendments"): the whole round, and
+    one per puzzle shown to everybody of a pick round of K ≥ 2 (EditionRoundDetail::challengeSlots() - a hidden puzzle
+    gets no ranking). Part of round_results/_official.html.twig, only for such a round. Expects: round, official,
+    round_route, round_route_params.
+#}
+<nav class="mb-2" aria-label="{{ 'round_results.challenge.nav_label'|trans }}" data-official-challenge-nav>
+    <ul class="nav nav-pills small gap-1">
+        <li class="nav-item">
+            <a class="nav-link py-1 px-2{{ official.challenge is null ? ' active' }}" href="{{ path(round_route, round_route_params|merge({roundSlug: round.slug})) }}"{% if official.challenge is null %} aria-current="page"{% endif %} data-official-challenge-link="">{{ 'round_results.challenge.overall'|trans }}</a>
+        </li>
+        {% for slot in round.challengeSlots %}
+            {% set current = official.challenge is not null and official.challenge.roundPuzzleId == slot.roundPuzzleId %}
+            <li class="nav-item">
+                <a class="nav-link py-1 px-2{{ current ? ' active' }}" rel="nofollow" href="{{ path(round_route, round_route_params|merge({roundSlug: round.slug, challenge: slot.position})) }}"{% if current %} aria-current="page"{% endif %} data-official-challenge-link="{{ slot.position }}">{{ slot.label }}{% if slot.puzzle is not null %} <span class="opacity-75">{{ slot.puzzle.puzzleName }}</span>{% endif %}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>

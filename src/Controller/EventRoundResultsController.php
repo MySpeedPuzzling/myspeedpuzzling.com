@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RoundResults\RoundResultsPageBuilder;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -35,6 +36,7 @@ final class EventRoundResultsController extends AbstractController
         // An edition's slug is unique only within its series - a standalone event holding the slug wins
         #[MapEntity(expr: 'repository.findOneBy({"slug": slug}, {"series": "DESC"})')] Competition $competition,
         string $roundSlug,
+        Request $request,
     ): Response {
         // A draft exists only for its team and admins - not even the redirect of an edition's results, which would tell
         // the draft's series URL (docs/features/organizations/README.md "Drafts", P5). The team gets the page builder's
@@ -52,7 +54,7 @@ final class EventRoundResultsController extends AbstractController
             ], Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name);
+        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name, $request->query->getString('challenge'));
 
         return $this->render('round_results.html.twig', [
             'page' => $page,

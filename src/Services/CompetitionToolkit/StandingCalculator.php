@@ -222,6 +222,7 @@ final readonly class StandingCalculator
                 timeSeconds: $result->seconds,
                 missingPieces: $missingPieces,
                 penaltySeconds: $penalty,
+                challengeTimes: $entry->challengeTimes,
             );
         }
 
@@ -242,6 +243,7 @@ final readonly class StandingCalculator
                 timeSeconds: $round->minutesLimit * 60,
                 missingPieces: $missingPieces,
                 penaltySeconds: $penalty,
+                challengeTimes: $entry->challengeTimes,
             );
         }
 

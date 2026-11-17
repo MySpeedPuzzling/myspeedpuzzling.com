@@ -51,7 +51,7 @@ final class RoundResultsStateGoldenTest extends WebTestCase
     /**
      * Pretty-printed, so a diff names the key - the bytes the server sends are compared through the decoded value. The
      * Mercure subscription token is fresh per request (its iat and jti): it is replaced, the rest of the subscription
-     * stays pinned.
+     * stays pinned. Ids the fixtures generate at random are masked too.
      */
     private static function pretty(string $json): string
     {
@@ -60,6 +60,13 @@ final class RoundResultsStateGoldenTest extends WebTestCase
         self::assertIsString($state['mercure']['token']);
         self::assertNotSame('', $state['mercure']['token']);
         $state['mercure']['token'] = '<fresh token>';
+        // OfficialResultsFixture mints the pair/team members' entry rows with Uuid::uuid7(), so their ids change with
+        // every rebuilt test database - masked, the rest of the entry stays pinned
+        array_walk_recursive($state, static function (mixed &$value, int|string $key): void {
+            if ($key === 'participantRoundId' && is_string($value)) {
+                $value = '<fixture uuid7>';
+            }
+        });
 
         return json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR) . "\n";
     }

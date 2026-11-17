@@ -1,0 +1,15 @@
+{#
+    Judges (lane B: the "before the event" checklist, C §5.4) - R §1.4 card 5: the referees page. Variables: competition,
+    toolkit_return.
+#}
+<div class="col-lg-6">
+    <div class="card shadow-sm h-100" data-toolkit-card="judges">
+        <div class="card-body">
+            <h3 class="h5"><i class="bi bi-person-lines-fill me-2"></i>{{ 'competition_toolkit.cards.judges.title'|trans }}</h3>
+            <p class="small text-muted">{{ 'competition_toolkit.cards.judges.help'|trans }}</p>
+            <a href="{{ path('competition_referees', {competitionId: competition.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary" data-toolkit-referees-link>
+                <i class="bi bi-person-lines-fill me-1"></i>{{ 'competition_referees.button'|trans }}
+            </a>
+        </div>
+    </div>
+</div>

@@ -43,6 +43,10 @@
                         <i class="bi bi-clipboard-data me-1"></i>{{ 'results_desk.overview.button'|trans }}
                     </a>
                     <a href="{{ path('competition_referees', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary" data-referees-link><i class="bi bi-person-lines-fill me-1"></i>{{ 'competition_referees.button'|trans }}</a>
+                    {#- The competition toolkit's settings hub - for whom it is on (COMPETITION_TOOLKIT_MANAGE, docs/features/feature_flags.md) -#}
+                    {% if is_granted('COMPETITION_TOOLKIT_MANAGE', competition.id) %}
+                        <a href="{{ path('competition_toolkit', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary" data-competition-toolkit-link><i class="bi bi-tools me-1"></i>{{ 'competition_toolkit.button'|trans }}</a>
+                    {% endif %}
                     <a href="{{ path('manage_competition_page', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-layout-text-window-reverse me-1"></i>{{ 'page_sections.manage_button'|trans }}
                     </a>

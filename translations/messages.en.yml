@@ -13959,3 +13959,25 @@ results_import:
         byline: "%when% by %name%"
         byline_without_name: "%when%"
         events: "%count% event imported|%count% events imported"
+competition_toolkit:
+    title: "Competition toolkit"
+    button: "Competition toolkit"
+    intro: "Extra tools for running your competition. Everything here is optional and off until you switch it on - your event works as before."
+    coming_soon: "Coming soon."
+    cards:
+        competitor_pages:
+            title: "Competitor pages & QR codes"
+            help: "A public page for every competitor or table, reached from a QR code on the name tag or the table."
+        displays:
+            title: "Displays & overlays"
+            help: "Timer screens for the hall and overlays for live streams, each with its own link."
+        standings:
+            title: "Standings & bracket"
+            help: "Overall standings that add up several rounds, and the path of qualified competitors through the rounds."
+        round_formats:
+            title: "Round formats & reveals"
+            help: "How each round is played and when its puzzles are revealed. You change these on each round's puzzles page."
+            no_rounds: "This event has no rounds yet."
+        judges:
+            title: "Judges"
+            help: "Judges enter results on their phones in the live entry. Add them on the referees page."

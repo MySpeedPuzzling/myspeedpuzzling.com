@@ -1,0 +1,30 @@
+{#
+    Round formats & reveals (lane A: A1 reveal at the stopwatch start, A2 the round format) - R §1.4 card 4: one line per
+    round linking to its puzzles page; the per-round settings stay on the round pages. Variables: competition, rounds
+    (list<CompetitionRoundForManagement>), toolkit_return.
+#}
+<div class="col-lg-6">
+    <div class="card shadow-sm h-100" data-toolkit-card="round-formats">
+        <div class="card-body">
+            <h3 class="h5"><i class="bi bi-list-ol me-2"></i>{{ 'competition_toolkit.cards.round_formats.title'|trans }}</h3>
+            <p class="small text-muted">{{ 'competition_toolkit.cards.round_formats.help'|trans }}</p>
+            {% if rounds is empty %}
+                <p class="small mb-2" data-toolkit-no-rounds>{{ 'competition_toolkit.cards.round_formats.no_rounds'|trans }}</p>
+                <a href="{{ path('manage_competition_rounds', {competitionId: competition.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
+                </a>
+            {% else %}
+                <ul class="list-unstyled mb-0">
+                    {% for round in rounds %}
+                        <li class="d-flex flex-wrap align-items-center gap-2 py-1" data-toolkit-round="{{ round.id }}">
+                            <span class="fw-semibold">{{ round.name }}</span>
+                            <a href="{{ path('manage_round_puzzles', {roundId: round.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary ms-auto">
+                                <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</div>

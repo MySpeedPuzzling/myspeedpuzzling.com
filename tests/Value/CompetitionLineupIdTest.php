@@ -46,4 +46,18 @@ final class CompetitionLineupIdTest extends TestCase
         self::assertNotSame($id, CompetitionLineupId::of(self::EVENT, [self::ANNA]));
         self::assertNotSame($id, CompetitionLineupId::of(self::OTHER_EVENT, [self::ANNA, self::BEN]));
     }
+
+    public function testTheJudgePageComputesTheSameIds(): void
+    {
+        // Shared with assets/live_entry_tag.js lineupIdOf() (tests/live-entry-shell-harness.mjs): the judge's phone
+        // finds a scanned line-up tag's pair/team offline by hashing the members itself (toolkit C8)
+        /** @var array{cases: list<array{case: string, competitionId: string, members: list<string>, lineupId: string}>} $fixture */
+        $fixture = json_decode((string) file_get_contents(__DIR__ . '/../fixtures/competition-lineup-id-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertGreaterThanOrEqual(5, count($fixture['cases']));
+
+        foreach ($fixture['cases'] as $case) {
+            self::assertSame($case['lineupId'], CompetitionLineupId::of($case['competitionId'], $case['members']), $case['case']);
+        }
+    }
 }

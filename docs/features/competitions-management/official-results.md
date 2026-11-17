@@ -295,6 +295,42 @@ the round - fetch the state again),
 `/round-results/{roundId}/referees` with every private linked player withheld (live-results.md "Private players") -
 one update for both topics when nothing is withheld, two otherwise.
 
+### Time proposals (competition toolkit P1)
+
+Only for a competition with `time_proposals` on (Competitor pages & QR card; design: `toolkit/B-qr-competitor-page.md`
+§5-6 with `toolkit/R-review-and-plan.md` §1.2, §2.4). A competitor signed in on their own page taps Stop → a **pending**
+`competition_time_proposal`, never official on its own.
+
+- **Competitor endpoints** (`TimeProposalApi`: signed in, JSON, stateless CSRF `csrf_token('time_proposal')` in
+  `X-CSRF-Token`, limiter `time_proposal` 10 per player and round in 10 min): `POST
+  /{_locale}/competitor-proposals/rounds/{roundId}` `{proposalId (the phone's UUIDv7), entry, tappedAtMs, offsetMs?,
+  rttMs?, stateHash?}` → `ProposeRoundTime`; `POST /{_locale}/competitor-proposals/{proposalId}/withdraw` →
+  `WithdrawTimeProposal`. Answer `{status: proposed|withdrawn|known|refused, reason, message, proposal}`. Both take
+  `CompetitionParticipantsLock`.
+- **Who** (`TimeProposalOwnership`): the player linked to the solo entrant or a member of the pair/team, not removed,
+  going, **linked before the round's stopwatch start** (`linked_after_start` otherwise - the self-connect bypass).
+  A known `proposalId` is answered only to the same entry and sender (`invalid_proposal_id` otherwise, nothing leaks);
+  it must be a UUIDv7 made within 24 h of the receipt.
+- **When**: the tap moment (`tappedAtMs`, the phone's synced clock) must be a moment the stored stopwatch was running
+  (`not_running`, `times_up` after the limit, `clock_ahead` > 2 s after the receipt, `too_late` received > 30 min after
+  the end); none once the entry has a result (`result_recorded`), one pending per entry (`already_proposed`; backed by
+  `custom_time_proposal_pending_solo|team`). Seconds from the stored start for the tap and the receipt; > 5 s between
+  them = `late` (the judge's card defaults to the receipt time), another stopwatch state hash = `clockChanged`.
+- **In `RecordRoundResults`**: a `result` change may carry `proposalId` → that proposal is confirmed with the written
+  seconds (a non-finished result rejects it `not_finished`; no longer pending = the result stands, `not_pending`); a
+  judge's "Not right" is `{"field": "proposal", "entry", "from": {"id"}, "to": {"status": "rejected", "reason":
+  "not_finished|wrong_entry|other"}}` (applied = rejected now, unchanged = no longer pending, referees may send it);
+  any other applied result on an entry with a pending proposal confirms it (same seconds) or supersedes it
+  (`result_recorded`). Outcomes then carry `proposal: {id, status}`. A replay touches nothing. With proposals off the
+  resolver runs no statement (`RecordRoundResultsStatementPinTest`), a `proposal` change is `proposals_off`.
+- A stopwatch **reset** supersedes the round's pending proposals (`stopwatch_reset`).
+- **Reads**: the round state carries `proposals` (pending + decided in the last 10 minutes, `TimeProposalView`) only
+  while the competition has them on; team entries carry `lineupId` while competitor pages or a QR tag mode is set.
+- **Live**: `official_results.proposals {roundId, proposals}` on both round topics (identical payload - the participant
+  as the organiser recorded them, never a profile), after the commit, from the propose/withdraw/changes/reset
+  controllers; more than 50 at once = `official_results.refresh`.
+- Load (`tools/time-proposals-load/run.php`, real lock + Postgres, no HTTP): see the script's header for how to run it.
+
 ### Subscribing: a token per page, never the cookie
 
 Every organiser page - live entry, results desk, seating, results overview - follows its rounds on a stream of its own

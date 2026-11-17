@@ -229,7 +229,7 @@ final class EditUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
 
         $stored = self::getContainer()->get(PuzzleSolvingTimeRepository::class)->get($timeId->toString());
         self::assertSame($edition, self::getContainer()->get(SeriesEditionResolver::class)->resolve($stored)->competitionId);
-        self::assertSame($round, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($stored)?->id->toString());
+        self::assertSame($round, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($stored)->round?->id->toString());
         self::assertSame(7200, $stored->secondsSpent);
         self::assertNotNull($stored->puzzlingTeam);
     }

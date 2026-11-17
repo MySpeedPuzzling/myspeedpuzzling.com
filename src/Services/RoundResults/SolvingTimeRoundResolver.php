@@ -52,7 +52,8 @@ SELECT CAST(:timeId AS UUID) AS time_id,
     CAST(:seconds AS INT) AS seconds,
     CAST(:piecesPlaced AS INT) AS pieces_placed,
     CAST(:solveDay AS DATE) AS solve_day,
-    CAST(:trackedAt AS TIMESTAMP) AS tracked_at
+    CAST(:trackedAt AS TIMESTAMP) AS tracked_at,
+    CAST(:createdVia AS VARCHAR) AS created_via
 SQL;
 
     public function __construct(
@@ -107,15 +108,29 @@ SQL;
             'piecesPlaced' => null,
             'solveDay' => null,
             'trackedAt' => null,
+            'createdVia' => null,
         ])->round;
     }
 
     /**
-     * @return array{timeId: string, competitionId: string, puzzleId: string, category: string, currentRoundId: null|string, chosen: bool, ownerId: null|string, team: null|PuzzlersGroup, seconds: null|int, piecesPlaced: null|int, solveDay: null|string, trackedAt: null|string}
+     * @return array{timeId: string, competitionId: string, puzzleId: string, category: string, currentRoundId: null|string, chosen: bool, ownerId: null|string, team: null|PuzzlersGroup, seconds: null|int, piecesPlaced: null|int, solveDay: null|string, trackedAt: null|string, createdVia: null|string}
      */
     private function timeOf(PuzzleSolvingTime $solvingTime, null|CompetitionRound $current, bool $chosen): array
     {
         $finishedAt = $solvingTime->finishedAt;
+
+        // A named round counts only while it is a round of the time's competition and category (an edit that moved the
+        // time to another event or category is no longer placed by the player) - SolvingTimeRoundMatch::sqlChosen()
+        if (
+            $current !== null
+            && (
+                $solvingTime->competition === null
+                || $current->competition->id->equals($solvingTime->competition->id) === false
+                || $current->category->value !== $solvingTime->puzzlingType->value
+            )
+        ) {
+            $chosen = false;
+        }
 
         return [
             'timeId' => $solvingTime->id->toString(),
@@ -132,11 +147,12 @@ SQL;
             // The same day SQL reads from finished_at when finished_at_precision IS NULL
             'solveDay' => $solvingTime->hasExactDay() && $finishedAt !== null ? $finishedAt->format('Y-m-d') : null,
             'trackedAt' => $solvingTime->trackedAt->format(self::TIMESTAMP_FORMAT),
+            'createdVia' => $solvingTime->createdVia?->value,
         ];
     }
 
     /**
-     * @param array{timeId: string, competitionId: string, puzzleId: string, category: string, currentRoundId: null|string, chosen: bool, ownerId: null|string, team: null|PuzzlersGroup, seconds: null|int, piecesPlaced: null|int, solveDay: null|string, trackedAt: null|string} $time
+     * @param array{timeId: string, competitionId: string, puzzleId: string, category: string, currentRoundId: null|string, chosen: bool, ownerId: null|string, team: null|PuzzlersGroup, seconds: null|int, piecesPlaced: null|int, solveDay: null|string, trackedAt: null|string, createdVia: null|string} $time
      */
     private function answer(array $time): RoundResolution
     {

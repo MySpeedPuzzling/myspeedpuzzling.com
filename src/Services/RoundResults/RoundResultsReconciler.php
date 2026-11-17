@@ -72,19 +72,21 @@ readonly final class RoundResultsReconciler
     {
         // An imported event result keeps the round its import gave it - neither re-linked nor unlinked (README D10)
         $derived = SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED;
+        $chosen = SolvingTimeRoundMatch::sqlChosen('pst');
         $candidates = SolvingTimeRoundMatch::sqlCandidates(<<<SQL
     SELECT pst.id AS time_id,
         pst.competition_id,
         pst.puzzle_id,
         pst.puzzling_type AS category,
         pst.competition_round_id AS current_round_id,
-        pst.round_chosen AS chosen,
+        {$chosen} AS chosen,
         pst.player_id AS owner_id,
         pst.team AS team_json,
         pst.seconds_to_solve AS seconds,
         pst.pieces_placed,
         CASE WHEN pst.finished_at_precision IS NULL THEN CAST(pst.finished_at AS DATE) END AS solve_day,
-        pst.tracked_at
+        pst.tracked_at,
+        pst.created_via
     FROM puzzle_solving_time pst
     WHERE pst.competition_id IS NOT NULL
         AND {$derived}

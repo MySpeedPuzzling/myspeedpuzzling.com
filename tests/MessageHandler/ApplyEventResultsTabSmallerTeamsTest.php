@@ -115,7 +115,7 @@ final class ApplyEventResultsTabSmallerTeamsTest extends KernelTestCase
 
         $time = $this->entityManager->find(PuzzleSolvingTime::class, $pairId);
         self::assertNotNull($time);
-        self::assertSame($roundId, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($time)?->id->toString(), 'The add/edit handlers\' resolver');
+        self::assertSame($roundId, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($time)->round?->id->toString(), 'The add/edit handlers\' resolver');
 
         // Running the tab again re-applies an unchanged tab as unchanged, a changed one through the upsert
         $this->apply($this->eventRow('Puzzle Pals', '1:10:13', '4'), 'Just Us Two,1:04:00,2,,,,,,,,,,,,');

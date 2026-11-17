@@ -28,6 +28,10 @@ Where this section and the body differ, this section wins.
   the `RoundTimezone::resolve` rule, not `COALESCE(timezone,'Europe/Prague')`; if that cannot be expressed in SQL
   exactly, skip (b) rather than approximate), (c) the person's entry in that round is "did not start". Stage D as a
   *selector* is removed: equal dates never choose a round (the add form defaults to today).
+  *(S1 as built:)* (a) reads `tracked_at` only for a time saved live (`created_via` form / stopwatch / API) - an
+  import's `tracked_at` is made up (spreadsheet import: noon of the solve day, `ImportedResult::trackedAt()`; event
+  import: the event's day) and rows older than `created_via` (NULL) are not known, so (a) is not applied to them. (b)
+  is skipped for a round whose zone this Postgres does not know (`pg_timezone_names`), never approximated.
 - A2. **Stage L is removed** (`created_via = stopwatch` + `tracked_at` is not the start of a solve).
 - A3. **Stage E is consistent or nothing**: a round qualifies only when EVERY person on the time (owner + members from
   ONE membership source shared by resolver and reconciler - `pst.team` JSON as `GetPublishedRoundResults` reads it;
@@ -551,8 +555,13 @@ in, otherwise divisions are set in the sheet or through the internal API.
   bit mask per round (bit 0 = owner, bit k = the k-th puzzler of the JSON; > 62 puzzlers share the last bit): a round
   qualifies when its mask equals the union over the remaining rounds. The round's local day uses
   `RoundTimezone::sqlResolve()` - `resolve()` written as SQL (PHP's zone list + `CountryCode::defaultTimezone()`), so
-  exclusion (b) is exact rather than skipped.
-- Decisions inside A1-A4: an exclusion and the entries count only for the remaining (not excluded) rounds; with nobody
+  exclusion (b) is exact rather than skipped; a zone PHP knows but Postgres does not is never passed to `AT TIME ZONE`
+  (it would fail the whole reconcile) - (b) is skipped for it.
+- Decisions inside A1-A4 (after the code review): exclusion (a) only for `created_via` form / stopwatch / API (see A1);
+  "people with an entry" are counted over ALL candidate rounds, excluded ones too (a time saved before Open #1 began
+  by a team entered only in Open #1 → no round, not Challenge), a qualifying round must not be excluded; a chosen
+  round counts only while it is a round of the time's competition and category (`SolvingTimeRoundMatch::sqlChosen()`,
+  the resolver the same in PHP - a time moved to another event is placed by the rule again); with nobody
   entered, exactly one remaining round is the answer (a time saved before Open #1 began → Challenge); a chosen round is
   kept even when an exclusion would drop it (A4 "while it is a candidate"); a DNS entry of *any* person of the time drops
   the round; the R stage compares the time with the entry of any person of the time in that round.

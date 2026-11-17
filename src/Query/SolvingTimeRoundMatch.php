@@ -17,21 +17,23 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *   category - no evidence is even computed, A1-A3 apply only to several candidates).
  * - A round the player named (`round_chosen`) is kept while it is a candidate. A named round that is no longer one: the
  *   flag goes and the time stays unlinked (A4 - never moved onto another round of a time the player placed).
- * - Exclusions (A1): a round is dropped when the time was saved (tracked_at) before the round began (its start time
- *   known), when the time's day (finished_at, known to the day) is before the round's local day (RoundTimezone::
- *   sqlResolve() - the zone PHP reads the round in), or when a person of the time has a "did not start" entry in it.
+ * - Exclusions (A1): a round is dropped when the time was saved (tracked_at, only for a time saved live: form,
+ *   stopwatch, API) before the round began (its start time known), when the time's day (finished_at, known to the day) is before the round's local day (RoundTimezone::
+ *   sqlResolve() - the zone PHP reads the round in; skipped for a zone this Postgres does not know), or when a person of the time has a "did not start" entry in it.
  * - Entries (A3): the persons of the time are its owner and the registered people of its group (`team` JSON - the
  *   resolver hands over the same JSON built from the entity). An entry = a competition_participant_round of a
  *   non-deleted participant connected to the person, not "did not start" (a pair/team entry's result is its
- *   competition_team's). A round qualifies when every person with an entry in any remaining round has one in it.
+ *   competition_team's). A round qualifies when it is not excluded and every person with an entry in any candidate
+ *   round (excluded ones too) has one in it.
  *   Nobody with an entry: exactly one remaining round -> it, else no round. One qualifying round -> it. Several -> the
  *   one whose entry recorded the time's result (seconds, or pieces placed of an unfinished one), if exactly one does.
  * - Anything else -> no round: the evidence never guesses (the time stays linked to its event, round unknown).
  *
  * Usage: `WITH ` . sqlCandidates($timesSelect) . ` SELECT … FROM (` . sqlAnswer() . `) answer`. $timesSelect is a
  * SELECT of one row per time with exactly these columns: time_id, competition_id, puzzle_id, category (varchar),
- * current_round_id, chosen (bool), owner_id, team_json (json), seconds, pieces_placed, solve_day (date, NULL when the day
- * is not known exactly), tracked_at (timestamp, UTC). The answer has one row per time with at least one candidate:
+ * current_round_id, chosen (bool - a named round still of the time's competition and category, sqlChosen()), owner_id,
+ * team_json (json), seconds, pieces_placed, solve_day (date, NULL when the day is not known exactly), tracked_at
+ * (timestamp, UTC), created_via (varchar). The answer has one row per time with at least one candidate:
  * time_id, round_id (NULL = none), chosen, candidates.
  */
 readonly final class SolvingTimeRoundMatch
@@ -39,10 +41,16 @@ readonly final class SolvingTimeRoundMatch
     // Bits of the person mask - more registered people on one time than this share the last bit
     private const int MAX_PERSON_BIT = 62;
 
+    // Where tracked_at is the moment of the save (a form, the stopwatch, the API) - an import's tracked_at is made up
+    // (a spreadsheet import: noon of the solve day; an event import: the event's day), and rows older than created_via
+    // are not known: exclusion (a) never reads them
+    private const string SQL_SAVED_LIVE = "'form', 'stopwatch', 'api'";
+
     public static function sqlCandidates(string $timesSelect): string
     {
         $zone = RoundTimezone::sqlResolve('c.round_timezone', 'rc.location_country_code', 'rcs.location_country_code');
         $maxBit = self::MAX_PERSON_BIT;
+        $savedLive = self::SQL_SAVED_LIVE;
 
         return <<<SQL
 round_match_time AS (
@@ -72,15 +80,20 @@ round_match_candidate AS (
     FROM round_match_counted c
     LEFT JOIN LATERAL (
         SELECT entries.has_dns
-                OR (c.round_start_time_known AND c.tracked_at < c.round_starts_at)
-                OR (c.solve_day IS NOT NULL AND c.solve_day < CAST((c.round_starts_at AT TIME ZONE 'UTC') AT TIME ZONE zone.name AS DATE)) AS excluded,
+                OR (c.round_start_time_known AND c.created_via IN ({$savedLive}) AND c.tracked_at < c.round_starts_at)
+                OR COALESCE(c.solve_day < CASE WHEN zone.known THEN CAST((c.round_starts_at AT TIME ZONE 'UTC') AT TIME ZONE zone.name AS DATE) END, false) AS excluded,
             entries.entry_mask,
             entries.result_match
         FROM (
-            SELECT {$zone} AS name
-            FROM competition rc
-            LEFT JOIN competition_series rcs ON rcs.id = rc.series_id
-            WHERE rc.id = c.round_competition_id
+            -- A zone PHP knows but this Postgres does not is never read (AT TIME ZONE would fail the whole statement):
+            -- the day exclusion is skipped for it
+            SELECT resolved.name, resolved.name IN (SELECT known.name FROM pg_timezone_names known) AS known
+            FROM (
+                SELECT {$zone} AS name
+                FROM competition rc
+                LEFT JOIN competition_series rcs ON rcs.id = rc.series_id
+                WHERE rc.id = c.round_competition_id
+            ) resolved
         ) zone
         CROSS JOIN (
             SELECT COALESCE(bit_or(CASE WHEN entry.dns = false THEN CAST(1 AS BIGINT) << person.bit END), 0) AS entry_mask,
@@ -108,9 +121,26 @@ round_match_candidate AS (
 ),
 round_match_evaluated AS (
     SELECT candidate.*,
-        COALESCE(bit_or(candidate.entry_mask) FILTER (WHERE candidate.excluded = false) OVER (PARTITION BY candidate.time_id), 0) AS union_mask
+        COALESCE(bit_or(candidate.entry_mask) OVER (PARTITION BY candidate.time_id), 0) AS union_mask
     FROM round_match_candidate candidate
 )
+SQL;
+    }
+
+    /**
+     * `chosen` of a stored time ($alias = puzzle_solving_time): the flag counts only while its round is a round of the
+     * time's competition and category - a time moved to another event or category is no longer placed by the player
+     * (the rule decides; the reconciler then clears the flag). The resolver applies the same in PHP.
+     */
+    public static function sqlChosen(string $alias): string
+    {
+        return <<<SQL
+CASE WHEN {$alias}.round_chosen THEN EXISTS (
+    SELECT 1 FROM competition_round chosen_round
+    WHERE chosen_round.id = {$alias}.competition_round_id
+        AND chosen_round.competition_id = {$alias}.competition_id
+        AND chosen_round.category = {$alias}.puzzling_type
+) ELSE false END
 SQL;
     }
 

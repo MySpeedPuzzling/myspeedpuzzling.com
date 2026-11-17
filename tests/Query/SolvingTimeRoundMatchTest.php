@@ -184,6 +184,46 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
             false,
         ];
 
+        yield 'a spreadsheet import\'s made-up tracked_at (noon of the solve day) excludes nothing' => [
+            static function (self $test): array {
+                $test->team(self::OPEN_1, [self::OWNER]);
+
+                return [$test->time(finishedAt: self::SATURDAY, trackedAt: '2027-02-06 17:00:00', createdVia: 'spreadsheet_import'), null];
+            },
+            self::OPEN_1,
+            false,
+        ];
+
+        yield 'a row older than created_via: its tracked_at excludes nothing' => [
+            static function (self $test): array {
+                $test->team(self::OPEN_1, [self::OWNER]);
+
+                return [$test->time(finishedAt: self::SATURDAY, trackedAt: '2027-02-06 17:00:00', createdVia: null), null];
+            },
+            self::OPEN_1,
+            false,
+        ];
+
+        yield 'saved before Open #1 began, the owner entered only in Open #1 - entries of excluded rounds count too' => [
+            static function (self $test): array {
+                $test->team(self::OPEN_1, [self::OWNER]);
+
+                return [$test->time(finishedAt: self::SATURDAY, trackedAt: '2027-02-06 18:00:00'), null];
+            },
+            null,
+            false,
+        ];
+
+        yield 'chosen round of another event (the time moved): no longer the player\'s placing - the rule decides' => [
+            static function (self $test): array {
+                $test->team(self::OPEN_1, [self::OWNER]);
+
+                return [$test->time(round: $test->roundOfAnotherEvent(), chosen: true), 'another'];
+            },
+            self::OPEN_1,
+            false,
+        ];
+
         yield 'owner without an entry, a linked teammate in Challenge only' => [
             static function (self $test): array {
                 $test->team(self::CHALLENGE, [self::TEAMMATE]);
@@ -330,7 +370,9 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
         self::assertSame(self::SOLO, $resolution->round?->id->toString());
         self::assertSame(1, $resolution->candidates);
         // The rule's one statement + the round's get()
-        self::assertCount(2, $debugDataHolder->getData()['default'] ?? []);
+        $statements = $debugDataHolder->getData()['default'] ?? [];
+        self::assertIsArray($statements);
+        self::assertCount(2, $statements);
     }
 
     public function testNamedRoundWinsWhileItIsACandidate(): void
@@ -486,6 +528,26 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
         );
 
         return $id;
+    }
+
+    public function roundOfAnotherEvent(): string
+    {
+        $competitionId = Uuid::uuid7()->toString();
+        $roundId = Uuid::uuid7()->toString();
+        $this->database->executeStatement(
+            "INSERT INTO competition (id, name, is_online) VALUES (:id, 'Lantern Spring Jam', false)",
+            ['id' => $competitionId],
+        );
+        $this->database->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, starts_at, category) VALUES (:id, :competition, 'Teams', '2027-01-10 15:00:00', 'team')",
+            ['id' => $roundId, 'competition' => $competitionId],
+        );
+        $this->database->executeStatement(
+            'INSERT INTO competition_round_puzzle (id, round_id, puzzle_id) VALUES (:id, :round, :puzzle)',
+            ['id' => Uuid::uuid7()->toString(), 'round' => $roundId, 'puzzle' => self::P],
+        );
+
+        return $roundId;
     }
 
     public function removePuzzle(string $roundId, string $puzzleId): void

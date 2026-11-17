@@ -70,7 +70,7 @@
                             <span class="text-muted">{{ 'event_wizard.review.puzzle_later'|trans }}</span>
                         {% endfor %}
                         {% if round.puzzleFormat.value == 'pick' %}
-                            <div>{{ 'event_wizard.review.pick'|trans({'%count%': round.puzzlesToSolve, '%total%': round_puzzles|length}) }}</div>
+                            <div>{{ include('competition_toolkit/_round_format_summary.html.twig', {puzzle_format: round.puzzleFormat.value, puzzles_to_solve: round.puzzlesToSolve, puzzles_count: round_puzzles|length}, with_context = false) }}</div>
                         {% endif %}
                     </dd>
                     <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'event_wizard.review.zone'|trans }}</dt>

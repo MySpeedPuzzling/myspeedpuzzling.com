@@ -54,13 +54,29 @@ final class EventWizardPuzzleFormData
         // When a secret puzzle comes out - the round's automatic reveal unless the organiser picks another
         public RoundPuzzleReveal $revealMode = RoundPuzzleReveal::Automatic,
         // Competition toolkit A2 - on the form only with several puzzles and for whom COMPETITION_TOOLKIT_MANAGE grants
-        public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total,
         #[Assert\When(
-            expression: 'this.puzzleFormat.value === "pick"',
+            expression: 'this.puzzleFormatChoice === "pick"',
             constraints: [new Assert\NotNull(), new Assert\Positive()],
         )]
         public null|int $puzzlesToSolve = null,
+        // The three choices of the round edit form (reliability hardening T1) - CompetitionRoundFormData::FORMAT_CHOICE_*:
+        // "Solve all N" is `pick` with K = the round's puzzles, set by the controller (a puzzle added on this submit counts)
+        public string $puzzleFormatChoice = CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
     ) {
+    }
+
+    /**
+     * The model the choice stands for: `total`, or `pick` with K - "Solve all" = K = the round's puzzles after this save
+     *
+     * @return array{0: RoundPuzzleFormat, 1: null|int}
+     */
+    public function chosenFormat(int $puzzlesAfterSave): array
+    {
+        return match ($this->puzzleFormatChoice) {
+            CompetitionRoundFormData::FORMAT_CHOICE_ALL => [RoundPuzzleFormat::Pick, max(1, $puzzlesAfterSave)],
+            CompetitionRoundFormData::FORMAT_CHOICE_PICK => [RoundPuzzleFormat::Pick, $this->puzzlesToSolve],
+            default => [RoundPuzzleFormat::Total, null],
+        };
     }
 
     /**

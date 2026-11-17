@@ -434,6 +434,19 @@ final class EventWizardTest extends WebTestCase
 
         $round = $this->database()->fetchAssociative('SELECT puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
         self::assertSame(['puzzle_format' => 'pick', 'puzzles_to_solve' => 1], $round);
+        // "Solve all": a third puzzle added on the same submit counts - K = 3, nobody types it; read back as "Solve all"
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
+        self::assertSame('pick', $crawler->filter('input[name="event_wizard_puzzle_form[puzzleFormat]"][checked]')->attr('value'));
+        $this->submitPuzzle($crawler, ['puzzle' => PuzzleFixture::PUZZLE_500_03, 'puzzleFormat' => 'all']);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/extras', 303);
+        $round = $this->database()->fetchAssociative('SELECT puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
+        self::assertSame(['puzzle_format' => 'pick', 'puzzles_to_solve' => 3], $round);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
+        self::assertSame('all', $crawler->filter('input[name="event_wizard_puzzle_form[puzzleFormat]"][checked]')->attr('value'));
+
+        $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
+        self::assertSelectorTextContains('body', 'Solve all 3 (order recorded)');
     }
 
     public function testEveryOrganiserIsOfferedThePuzzleFormat(): void

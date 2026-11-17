@@ -409,6 +409,18 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertIsArray($round);
         self::assertSame('pick', $round['puzzle_format']);
         self::assertSame(2, $round['puzzles_to_solve']);
+
+        // Read back as the round edit form does: K < N is "Pick", the Review names it with the toolkit's words
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
+        self::assertSame('pick', $crawler->filter('input[name="event_wizard_puzzles[rows][' . $ids[0] . '][puzzleFormat]"][checked]')->attr('value'));
+
+        // "Solve all 3": K = the round's puzzles, nobody types it
+        $this->submitGrid($crawler, [], [], toSolve: [$ids[0] => 'all']);
+        self::assertResponseRedirects();
+        self::assertSame(3, $this->database()->fetchOne('SELECT puzzles_to_solve FROM competition_round WHERE id = :id', ['id' => $ids[0]]));
+
+        $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
+        self::assertSelectorTextContains('body', 'Solve all 3 (order recorded)');
     }
 
     public function testAnotherPlayerCannotOpenTheSteps(): void
@@ -560,7 +572,9 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
 
         foreach ($toSolve as $roundId => $count) {
             self::assertIsArray($grid['rows'][$roundId]);
-            $grid['rows'][$roundId]['puzzlesToSolve'] = $count;
+            // The round edit form's three choices: 'all' = "Solve all N", a number = "Pick K"
+            $grid['rows'][$roundId]['puzzleFormat'] = $count === 'all' ? 'all' : 'pick';
+            $grid['rows'][$roundId]['puzzlesToSolve'] = $count === 'all' ? '' : $count;
         }
 
         $values['event_wizard_puzzles'] = $grid;

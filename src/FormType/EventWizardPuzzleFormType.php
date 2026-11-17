@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzleFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
-use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -102,15 +103,26 @@ final class EventWizardPuzzleFormType extends AbstractType
         ]);
 
         if ($options['puzzle_format'] === true) {
-            $builder->add('puzzleFormat', EnumType::class, [
-                'class' => RoundPuzzleFormat::class,
-                'label' => 'event_wizard.puzzle.format_label',
-                'choice_label' => static fn (RoundPuzzleFormat $format): string => 'event_wizard.puzzle.format_' . $format->value,
+            /** @var int $puzzlesCount */
+            $puzzlesCount = $options['puzzles_count'];
+
+            // The round edit form's three choices and words (CompetitionRoundFormType, reliability hardening T1)
+            $builder->add('puzzleFormat', ChoiceType::class, [
+                'property_path' => 'puzzleFormatChoice',
+                'label' => 'competition_toolkit.round_format.form.label',
+                'choices' => [
+                    'competition_toolkit.round_format.name.total' => CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
+                    'competition_toolkit.round_format.name.choice_all' => CompetitionRoundFormData::FORMAT_CHOICE_ALL,
+                    'competition_toolkit.round_format.name.choice_pick' => CompetitionRoundFormData::FORMAT_CHOICE_PICK,
+                ],
+                'choice_translation_parameters' => static fn (): array => ['%count%' => $puzzlesCount],
                 'expanded' => true,
             ]);
 
             $builder->add('puzzlesToSolve', IntegerType::class, [
-                'label' => 'competition_toolkit.round_format.form.to_solve',
+                'label' => 'competition_toolkit.round_format.name.to_solve',
+                'help' => 'competition_toolkit.round_format.name.to_solve_help',
+                'help_translation_parameters' => ['%count%' => $puzzlesCount],
                 'required' => false,
                 'attr' => ['min' => 1, 'step' => 1, 'inputmode' => 'numeric', 'class' => 'w-auto'],
             ]);
@@ -123,11 +135,14 @@ final class EventWizardPuzzleFormType extends AbstractType
             'data_class' => EventWizardPuzzleFormData::class,
             'stopwatch_reveal' => false,
             'puzzle_format' => false,
+            // The round's puzzles now - "Solve all N" names N
+            'puzzles_count' => 0,
         ]);
 
         $resolver->setRequired('competition_id');
         $resolver->setAllowedTypes('competition_id', 'string');
         $resolver->setAllowedTypes('stopwatch_reveal', 'bool');
         $resolver->setAllowedTypes('puzzle_format', 'bool');
+        $resolver->setAllowedTypes('puzzles_count', 'int');
     }
 }

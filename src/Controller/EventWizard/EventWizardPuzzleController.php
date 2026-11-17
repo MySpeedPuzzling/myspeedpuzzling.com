@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchAlreadyStarted;
+use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzleFormData;
 use SpeedPuzzling\Web\FormType\EventWizardPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -120,8 +121,13 @@ final class EventWizardPuzzleController extends AbstractController
             category: $round->category,
             teamSize: $round->teamSize,
             minutesLimit: $round->minutesLimit ?? EventWizardDefaults::MINUTES_LIMIT,
-            puzzleFormat: $round->puzzleFormat,
             puzzlesToSolve: $round->puzzlesToSolve,
+            // The round edit form's reading back (CompetitionRoundFormData): K = N is "Solve all"
+            puzzleFormatChoice: match (true) {
+                $round->puzzleFormat === RoundPuzzleFormat::Total => CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
+                $round->puzzlesToSolve !== null && $round->puzzlesToSolve >= $progress->state->roundPuzzlesCount => CompetitionRoundFormData::FORMAT_CHOICE_ALL,
+                default => CompetitionRoundFormData::FORMAT_CHOICE_PICK,
+            },
         );
         $form = $this->createForm(EventWizardPuzzleFormType::class, $formData, [
             'action' => $request->getRequestUri(),
@@ -130,6 +136,7 @@ final class EventWizardPuzzleController extends AbstractController
             // How the puzzles are solved - a toolkit setting; a round using it keeps it (the edit round form's rule).
             // Asked once the round has a puzzle: the format is meant for the second one and every later one
             'puzzle_format' => $hasPuzzles && ($round->puzzleFormat !== RoundPuzzleFormat::Total || $toolkit),
+            'puzzles_count' => $progress->state->roundPuzzlesCount,
         ]);
         // The box photo of a refused submit comes back (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $form, $player->playerId);
@@ -269,9 +276,10 @@ final class EventWizardPuzzleController extends AbstractController
         }
 
         $format = null;
-        $toSolve = $data->puzzleFormat === RoundPuzzleFormat::Pick ? $data->puzzlesToSolve : null;
+        // "Solve all": K = the round's puzzles once this save added its puzzle
+        [$puzzleFormat, $toSolve] = $data->chosenFormat($round->roundPuzzles->count() + count($puzzles));
 
-        if ($formatAsked && ($data->puzzleFormat !== $round->puzzleFormat || $toSolve !== $round->puzzlesToSolve)) {
+        if ($formatAsked && ($puzzleFormat !== $round->puzzleFormat || $toSolve !== $round->puzzlesToSolve)) {
             $format = new EditCompetitionRound(
                 roundId: $roundId,
                 competitionId: $competitionId,
@@ -285,7 +293,7 @@ final class EventWizardPuzzleController extends AbstractController
                 resultsLink: $round->resultsLink,
                 // Only the format - the step's other changes are the first message's
                 keepFields: EditCompetitionRound::FIELDS,
-                puzzleFormat: $data->puzzleFormat,
+                puzzleFormat: $puzzleFormat,
                 puzzlesToSolve: $toSolve,
             );
         }

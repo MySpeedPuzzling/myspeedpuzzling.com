@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesRowFormData;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
@@ -92,9 +93,27 @@ final class EventWizardPuzzlesFormType extends AbstractType
             ]);
 
             if ($formatAsked) {
+                /** @var array<string, int> $puzzlesCounts */
+                $puzzlesCounts = $options['puzzles_counts'];
+                $puzzlesCount = $puzzlesCounts[$roundId] ?? 0;
+
+                // The round edit form's three choices and words (CompetitionRoundFormType, reliability hardening T1)
+                $row->add('puzzleFormat', ChoiceType::class, [
+                    'property_path' => 'puzzleFormatChoice',
+                    'label' => 'competition_toolkit.round_format.form.label',
+                    'choices' => [
+                        'competition_toolkit.round_format.name.total' => CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
+                        'competition_toolkit.round_format.name.choice_all' => CompetitionRoundFormData::FORMAT_CHOICE_ALL,
+                        'competition_toolkit.round_format.name.choice_pick' => CompetitionRoundFormData::FORMAT_CHOICE_PICK,
+                    ],
+                    'choice_translation_parameters' => static fn (): array => ['%count%' => $puzzlesCount],
+                    'expanded' => true,
+                ]);
+
                 $row->add('puzzlesToSolve', IntegerType::class, [
-                    'label' => 'event_wizard.puzzles.to_solve',
-                    'help' => 'event_wizard.puzzles.to_solve_help',
+                    'label' => 'competition_toolkit.round_format.name.to_solve',
+                    'help' => 'competition_toolkit.round_format.name.to_solve_help',
+                    'help_translation_parameters' => ['%count%' => $puzzlesCount],
                     'required' => false,
                     'attr' => ['min' => 1, 'step' => 1, 'inputmode' => 'numeric'],
                 ]);
@@ -118,10 +137,13 @@ final class EventWizardPuzzlesFormType extends AbstractType
             'data_class' => EventWizardPuzzlesFormData::class,
             'stopwatch_reveal' => false,
             'rows' => [],
+            // round id => the round's puzzles now ("Solve all N" names N)
+            'puzzles_counts' => [],
         ]);
         $resolver->setRequired('competition_id');
         $resolver->setAllowedTypes('competition_id', 'string');
         $resolver->setAllowedTypes('stopwatch_reveal', 'bool');
         $resolver->setAllowedTypes('rows', 'array');
+        $resolver->setAllowedTypes('puzzles_counts', 'array');
     }
 }

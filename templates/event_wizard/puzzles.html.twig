@@ -124,10 +124,19 @@
                             </button>
                         </div>
 
-                        {% if row.puzzlesToSolve is defined %}
-                            {#- Several puzzles (competition toolkit A2): shown once the round has or gets a second one -#}
-                            <div class="mt-2" data-event-wizard-puzzles-pick{% if existing is empty and row.puzzlesToSolve.vars.value is empty and row.puzzlesToSolve.vars.valid %} hidden{% endif %}>
-                                <div class="col-8 col-sm-5">{{ form_row(row.puzzlesToSolve) }}</div>
+                        {% if row.puzzleFormat is defined %}
+                            {#- Several puzzles (competition toolkit A2): shown once the round has or gets a second one - the round
+                                edit form's three choices (reliability hardening T1), K only for "Pick" -#}
+                            <div class="mt-2" data-controller="organizer-form" data-action="change->organizer-form#update" data-event-wizard-puzzles-pick{% if existing is empty and row.puzzleFormat.vars.value == 'total' and row.puzzlesToSolve.vars.valid %} hidden{% endif %}>
+                                <div class="form-label">{{ row.puzzleFormat.vars.label|trans }}</div>
+                                {% for child in row.puzzleFormat %}
+                                    <div class="form-check">
+                                        {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                        {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                    </div>
+                                {% endfor %}
+                                {{ form_errors(row.puzzleFormat) }}
+                                <div class="col-8 col-sm-5 mt-2" data-organizer-form-target="part" data-show-field="puzzleFormat" data-show-values="pick">{{ form_row(row.puzzlesToSolve) }}</div>
                             </div>
                         {% endif %}
 

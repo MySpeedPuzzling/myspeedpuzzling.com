@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchAlreadyStarted;
+use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesRowFormData;
 use SpeedPuzzling\Web\FormType\EventWizardPuzzlesFormType;
@@ -177,11 +178,19 @@ final class EventWizardPuzzlesController extends AbstractController
     {
         $rows = [];
         $rowOptions = [];
+        $puzzlesCounts = [];
 
         foreach ($rounds as $round) {
             $roundId = $round->id->toString();
+            $puzzlesCounts[$roundId] = $round->roundPuzzles->count();
             $rows[$roundId] = new EventWizardPuzzlesRowFormData();
             $rows[$roundId]->puzzlesToSolve = $round->puzzleFormat === RoundPuzzleFormat::Pick ? $round->puzzlesToSolve : null;
+            // The round edit form's reading back (CompetitionRoundFormData): K = N is "Solve all"
+            $rows[$roundId]->puzzleFormatChoice = match (true) {
+                $round->puzzleFormat === RoundPuzzleFormat::Total => CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
+                $round->puzzlesToSolve !== null && $round->puzzlesToSolve >= $puzzlesCounts[$roundId] => CompetitionRoundFormData::FORMAT_CHOICE_ALL,
+                default => CompetitionRoundFormData::FORMAT_CHOICE_PICK,
+            };
             // The round's format - a toolkit setting; a round using it keeps it (the edit round form's rule)
             $rowOptions[$roundId] = $toolkit || $round->puzzleFormat !== RoundPuzzleFormat::Total;
         }
@@ -195,6 +204,7 @@ final class EventWizardPuzzlesController extends AbstractController
             'competition_id' => $competitionId,
             'stopwatch_reveal' => $toolkit,
             'rows' => $rowOptions,
+            'puzzles_counts' => $puzzlesCounts,
         ]);
     }
 
@@ -255,7 +265,7 @@ final class EventWizardPuzzlesController extends AbstractController
                 $rowForm->get('override')->addError(new FormError($this->automaticChangedMessage($round)));
             }
 
-            if ($rowForm->has('puzzlesToSolve') && $row->puzzlesToSolve !== null && $row->puzzlesToSolve > count($existing) + $chosen) {
+            if ($rowForm->has('puzzlesToSolve') && $row->puzzleFormatChoice === CompetitionRoundFormData::FORMAT_CHOICE_PICK && $row->puzzlesToSolve !== null && $row->puzzlesToSolve > count($existing) + $chosen) {
                 $rowForm->get('puzzlesToSolve')->addError(new FormError($this->translator->trans('event_wizard.puzzles.to_solve_too_many', [
                     '%count%' => count($existing) + $chosen,
                 ])));
@@ -314,7 +324,7 @@ final class EventWizardPuzzlesController extends AbstractController
                 }
             }
 
-            $format = $this->formatChange($round, $competitionId, $row, $form->get('rows')->get($roundId)->has('puzzlesToSolve'));
+            $format = $this->formatChange($round, $competitionId, $row, $form->get('rows')->get($roundId)->has('puzzleFormat'), $round->roundPuzzles->count() + count($puzzles));
 
             if ($puzzles === [] && $format === null) {
                 continue;
@@ -333,14 +343,18 @@ final class EventWizardPuzzlesController extends AbstractController
         return new SetUpEventWizardPuzzles($competitionId, $setUps);
     }
 
-    private function formatChange(CompetitionRound $round, string $competitionId, EventWizardPuzzlesRowFormData $row, bool $asked): null|EditCompetitionRound
+    private function formatChange(CompetitionRound $round, string $competitionId, EventWizardPuzzlesRowFormData $row, bool $asked, int $puzzlesAfterSave): null|EditCompetitionRound
     {
         if ($asked === false) {
             return null;
         }
 
-        $format = $row->puzzlesToSolve !== null ? RoundPuzzleFormat::Pick : RoundPuzzleFormat::Total;
-        $toSolve = $format === RoundPuzzleFormat::Pick ? $row->puzzlesToSolve : null;
+        // "Solve all": K = the round's puzzles once this save added the row's
+        [$format, $toSolve] = match ($row->puzzleFormatChoice) {
+            CompetitionRoundFormData::FORMAT_CHOICE_ALL => [RoundPuzzleFormat::Pick, max(1, $puzzlesAfterSave)],
+            CompetitionRoundFormData::FORMAT_CHOICE_PICK => [RoundPuzzleFormat::Pick, $row->puzzlesToSolve],
+            default => [RoundPuzzleFormat::Total, null],
+        };
 
         if ($format === $round->puzzleFormat && $toSolve === $round->puzzlesToSolve) {
             return null;

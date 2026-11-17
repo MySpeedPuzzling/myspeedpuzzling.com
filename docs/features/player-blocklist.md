@@ -29,7 +29,7 @@ There is deliberately no UI. On the box:
 
 ```sql
 INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note)
-VALUES (gen_random_uuid(), '<player who must stop seeing>', '<protected player>', NOW(), 'admin',
+VALUES (gen_uuid_v7(), '<player who must stop seeing>', '<protected player>', NOW(), 'admin',
         'Requested by <protected player> on 2026-09-19 via e-mail, stalking. -- JM')
 ON CONFLICT (blocker_id, blocked_id) DO UPDATE SET source = 'admin', note = EXCLUDED.note;
 ```

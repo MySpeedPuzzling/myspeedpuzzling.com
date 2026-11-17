@@ -19,6 +19,8 @@
  * and stops asking, never retries.
  */
 
+import { uuidv7 } from './uuid_v7.js';
+
 // The request may simply go again: Request Timeout, Too Early, Too Many Requests
 const RETRYABLE_STATUSES = [408, 425, 429];
 
@@ -136,19 +138,10 @@ export function isGone(answer) {
 }
 
 /**
- * A UUID for client change ids and entries typed in at the venue (crypto.randomUUID needs a secure context;
- * the fallback is a v4 from getRandomValues).
+ * A UUIDv7 for client change ids, change sets and entries typed in at the venue (uuid_v7.js). The server keeps them
+ * as primary keys - change receipts, participants, participant rounds, teams - and they make a resend idempotent: the
+ * same id again is answered from its receipt, never applied twice. Ids made by older pages (version 4) stay valid.
  */
 export function newClientId() {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
-
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    return uuidv7();
 }

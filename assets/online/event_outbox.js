@@ -23,8 +23,10 @@
  */
 
 import { createIndexedDbStorage, createMemoryStorage, createTabLock } from '../official_results_outbox.js';
+import { uuidv7 } from '../uuid_v7.js';
 
-export { createMemoryStorage, createTabLock };
+// The event's id: a UUIDv7 (RFC 9562), the server's primary key - made by the one browser-side generator
+export { createMemoryStorage, createTabLock, uuidv7 };
 
 export const EVENTS_DATABASE = 'msp-online-events';
 export const EVENTS_LOCK = 'msp-online-events';
@@ -71,30 +73,6 @@ export function createNamedIndexedDbStorage(database, factory = globalThis.index
  */
 export function createEventsStorage(factory = globalThis.indexedDB) {
     return createNamedIndexedDbStorage(EVENTS_DATABASE, factory);
-}
-
-/**
- * A UUIDv7 for an event (RFC 9562: 48 bits of Unix milliseconds, version 7, 74 random bits) - the event's id and the
- * server's primary key.
- *
- * @param {number} [ms]      the moment (the server's time from clock_sync.js keeps ids in event order)
- * @param {function(Uint8Array): void} [fillRandom]
- */
-export function uuidv7(ms = Date.now(), fillRandom = (bytes) => globalThis.crypto.getRandomValues(bytes)) {
-    const bytes = new Uint8Array(16);
-    fillRandom(bytes);
-    let time = Math.max(0, Math.floor(Number.isFinite(ms) ? ms : Date.now()));
-
-    for (let index = 5; index >= 0; index--) {
-        bytes[index] = time % 256;
-        time = Math.floor(time / 256);
-    }
-
-    bytes[6] = (bytes[6] & 0x0f) | 0x70;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 /**

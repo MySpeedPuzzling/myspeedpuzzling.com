@@ -28,7 +28,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | A1 | A | merged, reviewed: no early-reveal path; fixes queued as A1F | d8f21b453..b15c8ad40 | reveal mode `stopwatch`, RoundStopwatchReveal, checkbox unticked; NOT browser-tried yet (checkpoint 1); PluralMessagesTest OOM in paratest workers (H) |
 | A2 | A | started | | |
 | A1F | A | queued after A2 | | delete round/remove puzzle during ticked countdown keeps old hide_until (cm-delivery/review-A1.md) |
-| C2 | B | started | | |
+| C2 | B | merged | f10ef1cef..84443b7b7 | lean layout, `live_entry` entry, fixed SW install precache (was a no-op: duplicate runtime.js). **On merge to main: restart js-watch.** Native-app (Hotwire Native) + precache scope -> C3 |
+| C3 | B | started | | |
 | C1 | B | merged | 1cbf47ff3, 1e1e8c729 | data-free live page, ?viewer=1/?entries=0, event-people endpoint (C3 skips it), browser-walked |
 | D1 | C | merged | ea158c6b0, cb60963d7 | competition_display + 7 messages, hub card + list/settings pages; copy-link 404 until D4; not browser-tried |
 | D2 | C | started | | |

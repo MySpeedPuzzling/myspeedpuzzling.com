@@ -137,7 +137,9 @@ before changing anything and check that every round/entry belongs to the competi
   somebody else's numbers; the page fetches the round again and says so. Returns the refs whose number changed.
 - **`ChangeRoundTableNumbersUsage`** (`off`) - "this round doesn't use table numbers" and back.
 - **`PublishRoundResults` / `UnpublishRoundResults`** - `published_at`; the first publish also sets
-  `first_published_at`. **Every** publish records `OfficialRoundResultsPublished` (async) →
+  `first_published_at`. The publish endpoint may also reveal the round's secret puzzles the stopwatch start never
+  revealed (`revealMissed` + `revealHash`, a second dispatch after the publish - competition toolkit G3,
+  round-formats.md "Reveal at the stopwatch start"). **Every** publish records `OfficialRoundResultsPublished` (async) →
   `NotifyWhenOfficialRoundResultsPublished`: an in-app notification (no e-mail) to every player linked to an entry with a
   **finished** result (solo: the connected participant; pair/team: connected members) who was not told about the round
   yet. The same event is dispatched once per change set that records or corrects a finished result on a published round

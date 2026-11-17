@@ -10671,6 +10671,11 @@ event_duplicate:
         what_moves: "Rounds and registration move by the same number of days; the times of day stay."
         submit: "Make a copy"
         cancel: "Cancel"
+    # Competition toolkit G3: rounds are copied without puzzles, so a "Pick" round's copy is "One result for the round"
+    formats:
+        notice: "Puzzle formats reset: the copy's rounds start without puzzles, so each is “One result for the round”. Add the puzzles, then set the format again:"
+        round: "%round% was “%format%”"
+        flash: "Puzzle formats reset - add the puzzles to the copy's rounds, then set the format again: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Large single-colour areas"
@@ -14156,6 +14161,18 @@ competition_toolkit:
         refused:
             reveal_changed_meanwhile: "The puzzles to reveal changed meanwhile, or the start was changed - nothing started. Check the list and try again."
             reveal_not_allowed: "No puzzle of this round waits for the stopwatch start any more - nothing started. Start again without “Reveal”."
+    # Competition toolkit G3: the round's time is over and its stopwatch never started with “Reveal” - the results desk
+    # says so, and publishing offers to reveal them
+    reveal_missed:
+        desk: "[0,1]Still hidden: the stopwatch was never started with “Reveal”, so this round's secret puzzle is not out.|]1,Inf[Still hidden: the stopwatch was never started with “Reveal”, so this round's %count% secret puzzles are not out."
+        desk_link: "Reveal now on the round's puzzles page"
+        checkbox: "[0,1]Also reveal the hidden puzzle now|]1,Inf[Also reveal the %count% hidden puzzles now"
+        help: "Publishing the results alone reveals no hidden puzzle. Once revealed, a puzzle can never be hidden again."
+        loading: "Looking for the round's hidden puzzles…"
+        failed: "The hidden puzzles could not be loaded. Publish now and reveal them on the round's puzzles page."
+        hidden_elsewhere: "stays hidden elsewhere on MySpeedPuzzling until %time%"
+        revealed: "Results published, and the hidden puzzles are out."
+        changed: "Results published. The hidden puzzles changed meanwhile, so none was revealed - check them on the round's puzzles page."
     round_format:
         form:
             label: "How are this round's puzzles solved?"

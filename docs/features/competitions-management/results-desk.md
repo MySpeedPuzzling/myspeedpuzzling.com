@@ -118,6 +118,12 @@ public yet when it is not (nobody is told until it is approved), and warns about
 this page's unsaved changes. The card shows the state and links the public
 round page (when the round has an address).
 
+A round whose secret puzzles still wait for a stopwatch start with "Reveal" after its time is over (round state
+`stopwatchRevealMissed`, competition toolkit G3) shows "Still hidden: the stopwatch was never started with “Reveal”…"
+under the card (a link to the round puzzles page), and the publish dialog offers "Also reveal the hidden puzzle(s) now"
+(names + how far each comes out, **unticked**; revealed after the publish, only for the list shown) -
+round-formats.md "Reveal at the stopwatch start".
+
 ### Export
 
 `RoundResultsExporter`: one row per entry in ranking order - rank, table, entrant, members, country codes, result as

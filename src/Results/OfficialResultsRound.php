@@ -20,6 +20,9 @@ readonly final class OfficialResultsRound implements \JsonSerializable
         public string $timezone,
         public bool $timezoneAssumed,
         public null|string $publicUrl,
+        // A secret puzzle of the round waits (or waited) for the stopwatch start (RoundPuzzleReveal::Stopwatch) - the
+        // desk then carries the "never started with Reveal" notice and texts (competition toolkit G3). Not in the JSON
+        public bool $usesStopwatchReveal = false,
     ) {
     }
 

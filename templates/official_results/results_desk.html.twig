@@ -29,7 +29,9 @@
              publish: path('official_results_publish', {roundId: round.id}),
              unpublish: path('official_results_unpublish', {roundId: round.id}),
              takeOut: path('official_results_take_out', {roundId: round.id}),
-         }|json_encode|e('html_attr') }}"
+         }|merge(round.usesStopwatchReveal ? {
+             missedReveal: path('official_results_missed_reveal', {roundId: round.id}),
+         } : {})|json_encode|e('html_attr') }}"
          data-results-desk-texts-value="{{ {
              add_result: 'results_desk.table.add_result'|trans,
              no_result: 'results_desk.table.no_result'|trans,
@@ -165,6 +167,18 @@
              reason_splits_out_of_order: 'official_results.reason.splits_out_of_order'|trans,
              reason_invalid_pieces_placed: 'official_results.reason.invalid_pieces_placed'|trans,
              reason_puzzles_mismatch: 'official_results.reason.puzzles_mismatch'|trans,
+         } : {})|merge(round.usesStopwatchReveal ? {
+             reveal_missed_text: browser_translation('competition_toolkit.reveal_missed.desk'),
+             reveal_missed_checkbox: browser_translation('competition_toolkit.reveal_missed.checkbox'),
+             reveal_missed_help: 'competition_toolkit.reveal_missed.help'|trans,
+             reveal_missed_loading: 'competition_toolkit.reveal_missed.loading'|trans,
+             reveal_missed_failed: 'competition_toolkit.reveal_missed.failed'|trans,
+             reveal_missed_elsewhere: 'competition_toolkit.reveal_missed.hidden_elsewhere'|trans,
+             reveal_missed_revealed: 'competition_toolkit.reveal_missed.revealed'|trans,
+             reveal_missed_changed: 'competition_toolkit.reveal_missed.changed'|trans,
+             reveal_scope_everywhere: 'competition_toolkit.reveal_stopwatch.scope.everywhere'|trans,
+             reveal_scope_name_everywhere: 'competition_toolkit.reveal_stopwatch.scope.name_everywhere'|trans,
+             reveal_scope_event: 'competition_toolkit.reveal_stopwatch.scope.event'|trans,
          } : {})|merge(advancement_steps|default([]) is not empty ? {
              step_overall_loading: 'advancement_step.banner.overall_loading'|trans,
              step_overall_failed: 'advancement_step.banner.overall_failed'|trans,
@@ -247,7 +261,21 @@
                     </button>
                 </span>
             </div>
-        </div>{% for item in advancement_steps|default([]) %}
+        </div>{% if round.usesStopwatchReveal %}
+        {#- Competition toolkit G3 (A-round-formats.md §4.4): the round's time is over and its secret puzzles still wait for a
+            stopwatch start with "Reveal" - never revealed by itself; "Reveal now" on the round's puzzles page, or "Also
+            reveal" when publishing. Only for a round using that reveal mode, so every other desk renders as before.
+            `hidden` sits on the wrapper - a display utility would win over it -#}
+
+        <div data-results-desk-target="revealMissed" {{ round.overview.stopwatchRevealMissed == 0 ? 'hidden' }}>
+            <div class="alert alert-warning py-2 d-flex flex-wrap align-items-center gap-2" role="status">
+                <span class="me-auto"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i><span data-reveal-missed-text>{{ 'competition_toolkit.reveal_missed.desk'|trans({'%count%': round.overview.stopwatchRevealMissed}) }}</span></span>
+                <a class="btn btn-sm btn-outline-dark" href="{{ path('manage_round_puzzles', {roundId: round.id, return: desk_url, return_title: 'results_desk.title'|trans}) }}" data-reveal-missed-link>
+                    <i class="bi bi-eye me-1" aria-hidden="true"></i>{{ 'competition_toolkit.reveal_missed.desk_link'|trans }}
+                </a>
+            </div>
+        </div>
+        {%- endif %}{% for item in advancement_steps|default([]) %}
         {#- The advancement steps this round feeds (competition toolkit A8): presets only - "Mark top N" opens the Top N
             review dialog, "Advance" opens the Advance dialog prefilled; nothing is marked or moved before the organiser
             confirms there. Glued to the card above, so a desk without steps renders exactly as before -#}

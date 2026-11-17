@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
 use SpeedPuzzling\Web\Results\OfficialResultsRound;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * Every round of an event for the organiser's results tools (OfficialResultsRound), in the event's schedule order
@@ -69,6 +70,7 @@ readonly final class OfficialResultsRounds
                 timezone: $round->timezone,
                 timezoneAssumed: $round->timezoneAssumed,
                 publicUrl: $reference !== null ? $this->officialRoundPageUrl->of($reference, $overview->slug) : null,
+                usesStopwatchReveal: in_array(RoundPuzzleReveal::Stopwatch->value, $round->secretRevealModes, true),
             );
         }
 

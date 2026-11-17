@@ -41,6 +41,26 @@ Design: `toolkit/A-round-formats.md` §4, binding fixes `toolkit/R-review-and-pl
 - **Handlers** (`RoundStopwatchReveal`): a cheap `RoundUsesStopwatchReveal` EXISTS first, asked for **any secret row** of the round (it runs before the lock, and a secret row may turn to `stopwatch` meanwhile) - a round without a secret puzzle keeps its statements and locks; otherwise `SecretPuzzleHides::lockRoundsForChange()` (round `FOR NO KEY UPDATE`, its secret puzzles, EM cleared). Start / Schedule with the tick: refused before anything changes when the list is empty (`reveal_not_allowed`) or not the confirmed one (`reveal_changed_meanwhile`, 409 as JSON); a start that changes nothing (already running) reveals nothing. **Every schedule, start, cancel, stop and reset first withdraws a reveal still ahead** (a countdown started with the tick), then applies the tick at the new moment (now / the resume moment / the scheduled moment), then re-syncs the puzzles' site-wide hide. So schedule 10:00 ticked → move to 10:30 unticked = still hidden at 10:00 and after; a reset after a real start never hides anything again.
 - **Removing rows during a countdown with the tick** (review of A1): removing the puzzle (`RemovePuzzleFromCompetitionRound`), replacing the list (`SetCompetitionRoundPuzzles`, the internal API PUT), deleting the round, the event or the series first calls `RoundStopwatchReveal::withdrawBeforeRemoving()` on the rows going, under the change's locks (rounds, then puzzles) and after its checks: the reveal still ahead is taken back and the puzzle re-synced to `HIDDEN_UNTIL_REVEALED` **while the rows exist** - with no row left the dates stay as they are (`SecretPuzzleHides`), so the puzzle stays hidden instead of coming out at the old moment. The round's other rows keep their reveal; a moment already passed is never taken back. Only for rounds with a secret puzzle - every other round runs the statements it ran before (`StopwatchRevealRemovalTest` pins them). `MoveRoundToCompetition` keeps the rows (and refuses a scheduled or running stopwatch).
 - **Never started with the tick:** stays hidden like a manual reveal - no automatic fallback (a late reveal is harmless, an early one is not).
+- **Saying so once the round's time is over** (competition toolkit G3, A §4.4): the round state's round carries
+  `stopwatchRevealMissed` = how many of its `stopwatch` rows are still hidden without a moment, **only** when that is > 0
+  and the time is over - the stopwatch runs or ran without the tick (`RoundStopwatchStatus::hasStarted()`, the round
+  puzzles page's "use Reveal now" notion), or it was never started and the round's start + limit (its start, without a
+  limit) has passed; a countdown still ahead is not over. Counted in the statement `GetRoundResultsOverview` runs
+  anyway (no statement more; a count, never a name - the state reaches referees). The **results desk** shows "Still
+  hidden: the stopwatch was never started with “Reveal”…" with a link to the round puzzles page ("Reveal now"), only on a
+  round using the reveal mode (`OfficialResultsRound::$usesStopwatchReveal` from the round list's statement - every other
+  desk renders as before) and kept live with the state.
+- **"Also reveal the hidden puzzles now" when publishing** (G3, R §2.1.5): the desk's publish dialog of such a round asks
+  `official_results_missed_reveal` (GET, `COMPETITION_EDIT` - organisers only, never referees) for
+  `SecretRevealPreview::byRevealingWhatTheStopwatchMissed()` - names, scope, until when elsewhere - and its `hash()`.
+  The box is **unticked by default, always** (publishing alone reveals nothing: the published page names a hidden puzzle
+  nowhere; and an organiser running the same puzzles at another venue later must not lose them by a reflex click).
+  Ticked: the publish body carries `revealMissed: true` + `revealHash`; the controller dispatches `PublishRoundResults`
+  first, then **in a dispatch of its own** `RevealPuzzlesTheStopwatchMissed` (`SecretPuzzleHides::lockRoundsForChange()`,
+  the list computed again under the lock, `hash` compared - a list changed meanwhile reveals **nothing**,
+  `StopwatchMissedRevealChanged`; then each row `revealNow()` like "Reveal now" + `resync`). All of the rows or none;
+  the publish stands either way. Answer `reveal: revealed | changed`, then the reveal push
+  (`OfficialResultsLiveUpdates::puzzlesRevealed()`). Tests `StopwatchMissedRevealTest`.
 - **Reveal push** (R §1.5): after a start/schedule with the tick, "Reveal now" and a saved reveal setting, the controller publishes `official_results.refresh` on both private round topics (`OfficialResultsLiveUpdates::puzzlesRevealed()`, after the commit). The public `/round-stopwatch/{roundId}` topic and state never carry anything of the puzzles (`StopwatchRevealPagesTest` pins the keys).
 - **Blue-green:** an old release reading a `stopwatch` row would fail `RoundPuzzleReveal::from()`. It was admin-only during the deploy that introduced it (#406); every organiser is offered it since 2026-11-17, when every running release reads it.
 - Tests: `StopwatchRevealTest` (handlers, the reschedule matrix), `StopwatchRevealRemovalTest` (every removing writer, statement pins), `StopwatchRevealPagesTest`, `SecretPuzzleRevealInvariantTest` + `SecretPuzzleRoutesTest` (scheduled − 1 s), `RoundsInternalApiTest`.
@@ -134,14 +154,19 @@ time runs out we count missing pieces to show how many pieces were placed".
 
 ## Known edges and open items
 
-- A round duplicated with its event is `total` (`DuplicateCompetition` copies no round puzzles).
+- A round duplicated with its event is `total` (`DuplicateCompetition` copies no round puzzles) - **said** on the
+  duplicate form ("Puzzle formats reset … Round 2 was “Pick 2 of 3”", `data-duplicate-formats-reset`) and in a warning
+  flash after the copy (competition toolkit G3). A relaxed guard (a `pick` round with fewer than K puzzles) was not
+  chosen: every reader would have to handle that state. Copying the puzzles themselves is not trivial: secret puzzles
+  would need their reveal moments shifted by the date shift and re-synced site-wide (`SecretPuzzleHides`), so a copy
+  could hide a public puzzle again or keep one hidden by the old date - left out on purpose.
 - The JS twin `official_results_puzzles.js` checks the item and consistency rules but not every shape rule the PHP value
   object enforces (malformed JSON from a hand-made request) - the server stays the judge (docs/TODO.md "Competition
   toolkit v2").
 - A puzzle's `pieces_count` changed in the catalogue after a record was stored can make an existing unfinished record
   inconsistent (`puzzles_mismatch` on the next edit of that entry) - clear the record on the desk ("Clear per-puzzle
   record") and enter it again.
-- Never started with the tick = hidden like a manual reveal; "Reveal now" on the round puzzles page fixes it. The desk
-  does not warn yet, and publishing does not offer to reveal (docs/TODO.md).
+- Never started with the tick = hidden like a manual reveal; "Reveal now" on the round puzzles page fixes it, the desk
+  says so and its publish dialog offers the reveal (G3, above).
 - Deferred to v2 (R §3): `every` as its own mode (= pick K = N), judge split times, internal API writes of format and
   labels, the sheet's per-puzzle popover.

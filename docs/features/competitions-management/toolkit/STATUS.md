@@ -167,3 +167,13 @@ Production: walked on WJPC 2026 Individual D (209 entrants) - puzzle stats, hist
 marks, an entrant's rating/skill/prediction/similar history/recent form; no console errors, no new Sentry issues.
 Open for Jan: §11 (public predictions of others - opt-out text updated; pair/team prediction none; organiser opt-out
 none; blocklist exemption broader than displays) and R8 (unpublished confirmed results never sorted as a list).
+
+## Participant linking (2026-11-17, orchestrator: sub-session; design `../participant-linking.md`)
+Jan: organisers import participant lists with or without MSP player ids; players connect themselves before or during
+the event. Architect design → independent design review (2 blockers: approving a claimant who already self-joined was
+refused; a renamed-profile self-join could ride a pre-ticked suggestion onto someone's row; 7 should-fix) → §0a
+amendments R1-R13 → packages in worktrees `.claude/worktrees/lk-<pkg>`, branches `lk/<pkg>`, straight to main.
+
+| Pkg | State | Commit(s) on main | Notes |
+|---|---|---|---|
+| design | merged | | §0a binding; order L1a → L1b → L2 → L4a → L3 → L5 → L4b |

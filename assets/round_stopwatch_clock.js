@@ -153,18 +153,18 @@ export function isNewerState(current, incoming) {
  * The server's clock minus this device's (ms), from the answer with the shortest round trip: its error is at most half
  * of it. Every state fetch is a sample (`observe()`), the page's own server time a first guess without a round trip
  * (`hint()`). Samples older than `windowMs` before the newest one are dropped, so a drifting clock is followed - and
- * the newest sample always stays.
+ * the newest sample always stays. `sampleAgeMs()`: the age of the sample in use (sent with a competitor's tap - T2).
  */
 export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 * 1000, maxSamples = 12 } = {}) {
     let hint = 0;
     let samples = [];
 
-    function offsetMs() {
-        if (samples.length === 0) {
-            return hint;
-        }
+    function best() {
+        return samples.length === 0 ? null : samples.reduce((chosen, sample) => (sample.rttMs < chosen.rttMs ? sample : chosen));
+    }
 
-        return samples.reduce((best, sample) => (sample.rttMs < best.rttMs ? sample : best)).offsetMs;
+    function offsetMs() {
+        return best()?.offsetMs ?? hint;
     }
 
     return {
@@ -197,6 +197,13 @@ export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 *
 
         bestRttMs() {
             return samples.length === 0 ? null : Math.min(...samples.map((sample) => sample.rttMs));
+        },
+
+        // How old the sample the offset rests on is (ms on this device) - null with only the hint
+        sampleAgeMs() {
+            const chosen = best();
+
+            return chosen === null ? null : Math.max(0, now() - chosen.atMs);
         },
 
         serverNow() {

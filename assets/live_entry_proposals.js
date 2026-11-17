@@ -9,7 +9,12 @@
  * - A confirmation is the entry's `result` change carrying `proposalId` (a pick round: with its `puzzles` in one
  *   group), a rejection a `field: "proposal"` change - both through the outbox, offline-safe; the server's outcome
  *   annotates `proposal: {id, status}`.
- * - Late (more than 5 s between the tap and its receipt): both times are shown and the value defaults to the receipt.
+ * - Timing (reliability hardening T2, competitor-pages.md "Timing you can trust" - the server's verdict from the
+ *   competitor page's heartbeats, `timing.verdict`): `on_time` → the tapped time; `offline` (arrived late, nothing
+ *   contradicts the tap) → the tapped time + a neutral "arrived 0:42 after the tap"; `suspicious` (the phone was online
+ *   and held no tap) → "Check this time", both times, the received time is the default and one tap takes the tapped
+ *   one; `clockUncertain` → a note. A proposal from before T2 (no `timing`) keeps the old rule: late (> 5 s) → the
+ *   received time, both shown.
  *
  * Pure functions - tests/live-results-harness.mjs runs them under node.
  */
@@ -116,11 +121,101 @@ export function decisionOnDevice(proposalId, outboxItems) {
         || (item.field === 'proposal' && key(item.from?.id) === id)) ?? null;
 }
 
+const VERDICTS = ['on_time', 'offline', 'suspicious'];
+
 /**
- * The value a Confirm saves: the proposed time - the receipt's when the tap came late.
+ * How the tap reached the server (T2): the server's verdict, or for a proposal from before T2 `legacy_late` / `on_time`
+ * by the old 5 s rule.
+ *
+ * @returns {{verdict: 'on_time'|'offline'|'suspicious'|'legacy_late', clockUncertain: boolean, lastHeardAtMs: null|number}}
  */
-export function proposalValue(proposal) {
-    return { seconds: proposal.late === true ? proposal.receiptSeconds : proposal.proposedSeconds };
+export function proposalTiming(proposal) {
+    const timing = proposal?.timing;
+
+    if (timing && VERDICTS.includes(timing.verdict)) {
+        return {
+            verdict: timing.verdict,
+            clockUncertain: timing.clockUncertain === true,
+            lastHeardAtMs: typeof timing.lastHeardAtMs === 'number' ? timing.lastHeardAtMs : null,
+        };
+    }
+
+    return { verdict: proposal?.late === true ? 'legacy_late' : 'on_time', clockUncertain: false, lastHeardAtMs: null };
+}
+
+/**
+ * The value a Confirm saves: the tapped time - the received one when the timing says to check it (`suspicious`, or a
+ * late proposal from before T2). `use` = 'tapped' / 'received': the judge's explicit pick.
+ */
+export function proposalValue(proposal, use = null) {
+    if (use === 'tapped') {
+        return { seconds: proposal.proposedSeconds };
+    }
+
+    if (use === 'received') {
+        return { seconds: proposal.receiptSeconds };
+    }
+
+    const { verdict } = proposalTiming(proposal);
+
+    return { seconds: verdict === 'suspicious' || verdict === 'legacy_late' ? proposal.receiptSeconds : proposal.proposedSeconds };
+}
+
+/**
+ * The other value the card offers with one tap - the tapped time where the default is the received one - or null.
+ *
+ * @returns {null|{use: 'tapped', seconds: number}}
+ */
+export function proposalAlternative(proposal) {
+    const { verdict } = proposalTiming(proposal);
+
+    if ((verdict !== 'suspicious' && verdict !== 'legacy_late') || proposal.proposedSeconds === proposal.receiptSeconds) {
+        return null;
+    }
+
+    return { use: 'tapped', seconds: proposal.proposedSeconds };
+}
+
+/**
+ * The timing lines of the card (T2), as label keys with their values - the page formats them: `seconds` as result
+ * times, `clocks` as times of day, `ages` as [from, to] durations; `warning` = the "Check this time" line.
+ *
+ * @returns {{key: string, prefix?: string, warning?: boolean, seconds?: object, clocks?: object, ages?: object}[]}
+ */
+export function proposalNotes(proposal) {
+    const timing = proposalTiming(proposal);
+    const notes = [];
+
+    if (timing.verdict === 'suspicious') {
+        notes.push({ key: 'proposalCheck', warning: true });
+        notes.push({
+            key: 'proposalCheckTimes',
+            seconds: { tapped: proposal.proposedSeconds, received: proposal.receiptSeconds },
+            clocks: { tappedAt: proposal.tappedAtMs, heardAt: timing.lastHeardAtMs ?? proposal.tappedAtMs, receivedAt: proposal.receivedAtMs },
+        });
+    } else if (timing.verdict === 'offline') {
+        notes.push({ key: 'proposalArrivedLater', ages: { age: [proposal.tappedAtMs, proposal.receivedAtMs] } });
+    } else if (timing.verdict === 'legacy_late') {
+        notes.push({
+            key: 'proposalLateTimes',
+            prefix: 'proposalLate',
+            seconds: { tapped: proposal.proposedSeconds, received: proposal.receiptSeconds },
+            clocks: { tappedAt: proposal.tappedAtMs, receivedAt: proposal.receivedAtMs },
+        });
+    }
+
+    if (timing.clockUncertain) {
+        notes.push({ key: 'proposalClockUncertain' });
+    }
+
+    return notes;
+}
+
+/**
+ * The short note of a "Proposals waiting" row: the label key, or null.
+ */
+export function waitingNote(proposal) {
+    return { suspicious: 'proposalCheck', offline: 'proposalSentLater', legacy_late: 'proposalLate' }[proposalTiming(proposal).verdict] ?? null;
 }
 
 /**

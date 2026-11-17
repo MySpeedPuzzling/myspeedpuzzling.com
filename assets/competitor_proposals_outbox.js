@@ -19,6 +19,11 @@
  * - Undo (withdraw()): a tap still on the phone is simply dropped (the server never hears of it); one being sent is
  *   withdrawn right after its answer; a sent one gets a withdraw item, sent like a tap.
  * - One tab sends at a time (createTabLock); another signed-in player's items on the phone are never sent.
+ * - Timing evidence (reliability hardening T2, competitor-pages.md "Timing you can trust"): every send says how the tap
+ *   travelled - proposalBody(): the clock sample's age at the tap, `queuedOffline` (the phone knew it was offline at the
+ *   tap, or an earlier send failed), `attempts` (this one included) and `sentAtMs` (the server's time at this send).
+ *   outboxSummary() is what the page's heartbeat reports: the round's taps still on the phone (any tab - read from the
+ *   storage) and the oldest one's tap moment, so a heartbeat never counts against a tap the phone is still trying.
  *
  * Storage, the network, the clock, the timers and the lock are injected - tests/competitor-proposals-harness.mjs.
  */
@@ -132,6 +137,48 @@ function retryAfterMs(header) {
 }
 
 /**
+ * The JSON a propose item is sent with (T2): the tap as stored, never changed, plus how it travelled.
+ */
+export function proposalBody(item, sentAtMs) {
+    const attempts = Number.isInteger(item.attempts) ? item.attempts : 0;
+
+    return {
+        proposalId: item.id,
+        entry: item.entry,
+        tappedAtMs: Math.round(item.tappedAtMs),
+        offsetMs: item.offsetMs ?? null,
+        rttMs: item.rttMs ?? null,
+        stateHash: item.stateHash ?? null,
+        offsetSampleAgeMs: typeof item.offsetSampleAgeMs === 'number' && Number.isFinite(item.offsetSampleAgeMs) ? Math.round(item.offsetSampleAgeMs) : null,
+        queuedOffline: item.queuedOffline === true || item.offline === true || attempts > 0,
+        attempts: attempts + 1,
+        sentAtMs: typeof sentAtMs === 'number' && Number.isFinite(sentAtMs) ? Math.round(sentAtMs) : null,
+    };
+}
+
+/**
+ * What the heartbeat tells the server about the round's taps on this phone (T2): how many proposals still wait to be
+ * sent - plus one still in the confirm sheet (`confirmingTapMs`) - and the oldest tap moment of them. Withdraw items are
+ * no taps. Pure.
+ *
+ * @returns {{unsent: number, oldestUnsentTapMs: null|number}}
+ */
+export function outboxSummary(items, userId, roundId, confirmingTapMs = null) {
+    const user = String(userId ?? '').toLowerCase();
+    const round = String(roundId ?? '').toLowerCase();
+    const taps = (Array.isArray(items) ? items : [])
+        .filter((item) => item && item.action === 'propose' && item.userId === user && String(item.roundId ?? '').toLowerCase() === round)
+        .map((item) => item.tappedAtMs)
+        .filter((at) => typeof at === 'number' && Number.isFinite(at));
+
+    if (typeof confirmingTapMs === 'number' && Number.isFinite(confirmingTapMs)) {
+        taps.push(confirmingTapMs);
+    }
+
+    return { unsent: taps.length, oldestUnsentTapMs: taps.length === 0 ? null : Math.round(Math.min(...taps)) };
+}
+
+/**
  * @typedef {object} ProposalItem
  * @property {string} id            the proposal's UUIDv7 (made at the tap)
  * @property {'propose'|'withdraw'} action
@@ -142,6 +189,8 @@ function retryAfterMs(header) {
  * @property {null|number} [offsetMs]
  * @property {null|number} [rttMs]
  * @property {null|string} [stateHash]
+ * @property {null|number} [offsetSampleAgeMs] the age of the clock sample at the tap (T2)
+ * @property {boolean} [queuedOffline] the browser said it was offline at the tap (T2)
  * @property {number} createdAt
  * @property {number} attempts
  * @property {number} nextAttemptAt
@@ -236,7 +285,7 @@ export class ProposalOutbox {
     /**
      * A tap: stored first, then sent. The id is made from the tap moment unless given (tests).
      */
-    async propose({ roundId, entry, tappedAtMs, offsetMs = null, rttMs = null, stateHash = null, id = null }) {
+    async propose({ roundId, entry, tappedAtMs, offsetMs = null, rttMs = null, stateHash = null, id = null, offsetSampleAgeMs = null, offline = false }) {
         const item = {
             id: id ?? uuidv7(tappedAtMs),
             action: 'propose',
@@ -247,6 +296,8 @@ export class ProposalOutbox {
             offsetMs: typeof offsetMs === 'number' && Number.isFinite(offsetMs) ? offsetMs : null,
             rttMs: typeof rttMs === 'number' && Number.isFinite(rttMs) ? rttMs : null,
             stateHash: typeof stateHash === 'string' ? stateHash : null,
+            offsetSampleAgeMs: typeof offsetSampleAgeMs === 'number' && Number.isFinite(offsetSampleAgeMs) ? offsetSampleAgeMs : null,
+            queuedOffline: offline === true,
             createdAt: this.now(),
             attempts: 0,
             nextAttemptAt: 0,

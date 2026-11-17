@@ -21,7 +21,8 @@
 //   (`reloadContent`) - the cards' markup lives in Twig only. The clock is drawn in place on every tick.
 // - Screen wake lock while a round of the page's entrant runs (or starts within 5 minutes); released otherwise.
 // - tapNowMs(): the server's time now, synchronously - the moment a "Stop" tap happened (B8 proposals);
-//   clockSample() what that time rests on (offset, best round trip) - sent along with the tap.
+//   clockSample() what that time rests on (offset, best round trip, the sample's age) - sent along with the tap;
+//   observeClock() takes a heartbeat's answer as one more sample (T2, assets/competitor_heartbeat.js).
 // - fastPoll(): true while the competitor's own time proposal waits for the judge (or is still on the phone) - the
 //   state is then asked for every 5 s (±20 %, visible tab only, doubled per failed fetch): there is no private
 //   per-entry topic in v1 (R-review-and-plan.md §1.2). replan() plans the next poll again after that changed.
@@ -348,7 +349,15 @@ export class CompetitorPageLive {
      * What the server's time rests on - sent with a tap so the judge can see how fresh it was.
      */
     clockSample() {
-        return { offsetMs: this.clock.offsetMs(), rttMs: this.clock.bestRttMs() };
+        return { offsetMs: this.clock.offsetMs(), rttMs: this.clock.bestRttMs(), sampleAgeMs: this.clock.sampleAgeMs() };
+    }
+
+    /**
+     * Another clock sample - a heartbeat's answer (T2): `{sentAtMs, receivedAtMs}` on this device, `serverNowMs` the
+     * server's. The shortest round trip still wins.
+     */
+    observeClock(sample) {
+        return this.clock.observe(sample);
     }
 
     /**

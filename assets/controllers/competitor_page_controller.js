@@ -6,10 +6,13 @@ import {
     createMemoryStorage,
     createProposalsStorage,
     createTabLock,
+    outboxSummary,
     ProposalOutbox,
     PROPOSALS_LOCK,
+    proposalBody,
     proposalRequest,
 } from '../competitor_proposals_outbox.js';
+import { CompetitorHeartbeat, sendHeartbeat } from '../competitor_heartbeat.js';
 import { currentProposal, NONE, proposalPanel, waitsForJudge } from '../competitor_proposals_view.js';
 
 const FETCH_TIMEOUT_MS = 10000;
@@ -36,6 +39,11 @@ const NIL_ID = '00000000-0000-0000-0000-000000000000';
  * clock draw - a card drawn again from the page's HTML gets its slot back at once. The tap's time is read first,
  * synchronously; "Propose 0:49:12?" → the phone's outbox (assets/competitor_proposals_outbox.js) → the server; Undo
  * withdraws. While something waits for the judge the state is asked for every 5 s (CompetitorPageLive fastPoll).
+ *
+ * T2 - timing you can trust: each send carries how the tap travelled (proposalBody()); while an own round runs (or its
+ * tap still waits on the phone) the page beats every 15 s to `heartbeat-url` with the round's signed token
+ * (assets/competitor_heartbeat.js) - started only once the outbox was read, so a reloaded page never reports
+ * "nothing unsent" over a tap it still holds.
  */
 export default class extends Controller {
     static values = {
@@ -49,6 +57,7 @@ export default class extends Controller {
         csrfToken: String,
         viewer: String,
         proposalLabels: Object,
+        heartbeatUrl: String,
     };
 
     connect() {
@@ -63,6 +72,7 @@ export default class extends Controller {
         this.confirming = new Map();
         this.slotKeys = new WeakMap();
         this.waiting = false;
+        this.heartbeat = null;
 
         const state = this.hasStateValue && Array.isArray(this.stateValue.rounds) ? this.stateValue : { rounds: [] };
 
@@ -88,6 +98,7 @@ export default class extends Controller {
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
                 this.live.onVisible();
+                this.heartbeat?.nudge();
             }
         };
         document.addEventListener('visibilitychange', this.onVisibility);
@@ -118,7 +129,10 @@ export default class extends Controller {
 
     startProposals() {
         this.onTap = (event) => this.tap(event);
-        this.onOnline = () => this.outbox?.connectionBack();
+        this.onOnline = () => {
+            this.outbox?.connectionBack();
+            this.heartbeat?.nudge();
+        };
         this.onBeforeUnload = (event) => {
             if (this.outbox?.hasUnsent()) {
                 event.preventDefault();
@@ -131,14 +145,7 @@ export default class extends Controller {
 
         const send = (item) => item.action === 'withdraw'
             ? proposalRequest(this.withdrawUrlValue.replace(NIL_ID, item.id), {}, this.csrfTokenValue)
-            : proposalRequest(this.proposeUrlValue.replace(NIL_ID, item.roundId), {
-                proposalId: item.id,
-                entry: item.entry,
-                tappedAtMs: Math.round(item.tappedAtMs),
-                offsetMs: item.offsetMs,
-                rttMs: item.rttMs,
-                stateHash: item.stateHash,
-            }, this.csrfTokenValue);
+            : proposalRequest(this.proposeUrlValue.replace(NIL_ID, item.roundId), proposalBody(item, this.tapNowMs()), this.csrfTokenValue);
 
         createProposalsStorage().catch(() => null).then((storage) => {
             if (this.live === null) {
@@ -156,8 +163,58 @@ export default class extends Controller {
                 },
                 onChange: () => this.drawProposals(),
             });
-            this.outbox.load().catch(() => {});
+            this.outbox.load().catch(() => {}).then(() => this.startHeartbeat());
         });
+    }
+
+    /**
+     * T2: the heartbeat of the own rounds - after the outbox was read (its unsent taps go with every beat).
+     */
+    startHeartbeat() {
+        if (this.live === null || this.outbox === null || !this.hasHeartbeatUrlValue || this.heartbeatUrlValue === '') {
+            return;
+        }
+
+        const outbox = this.outbox;
+        this.heartbeat = new CompetitorHeartbeat({
+            send: (body) => sendHeartbeat(this.heartbeatUrlValue, body),
+            active: () => this.heartbeatRounds(),
+            summary: async (roundId) => {
+                let items;
+
+                try {
+                    // Fresh from the storage: a tap of another tab counts too
+                    items = await outbox.storage.getAll();
+                } catch {
+                    items = outbox.own();
+                }
+
+                return outboxSummary(items, this.viewerValue, roundId, this.confirming.get(roundId.toLowerCase())?.tappedAtMs ?? null);
+            },
+            clock: () => ({ atMs: this.tapNowMs(), ...(this.live?.clockSample() ?? {}) }),
+            onSample: (sample) => this.live?.observeClock(sample),
+            onExpired: () => this.live?.requestRefresh(1000),
+            isVisible: () => document.visibilityState === 'visible',
+        });
+        this.heartbeat.start();
+    }
+
+    /**
+     * The rounds to beat for: the viewer's own (a token), running now - or with a tap still on the phone.
+     */
+    heartbeatRounds() {
+        if (this.live === null) {
+            return [];
+        }
+
+        const nowMs = this.live.serverNow();
+
+        return roundsOf(this.live.state)
+            .filter((round) => round.canPropose === true && typeof round.heartbeat === 'string' && round.heartbeat !== '')
+            .filter((round) => roundView(round, nowMs).phase === 'running'
+                || this.outbox?.itemOf(round.roundId)?.action === 'propose'
+                || this.confirming.has(round.roundId.toLowerCase()))
+            .map((round) => ({ roundId: round.roundId, token: round.heartbeat }));
     }
 
     stopProposals() {
@@ -168,6 +225,8 @@ export default class extends Controller {
             this.onTap = null;
         }
 
+        this.heartbeat?.close();
+        this.heartbeat = null;
         this.outbox?.close();
         this.outbox = null;
     }
@@ -194,7 +253,8 @@ export default class extends Controller {
 
         if (action === 'stop') {
             this.answers.delete(roundId);
-            this.confirming.set(roundId, { tappedAtMs });
+            // What the tap's time rests on, at the tap (T2) - and whether the browser knew it was offline
+            this.confirming.set(roundId, { tappedAtMs, sample: this.live.clockSample(), offline: navigator.onLine === false });
         } else if (action === 'cancel') {
             this.confirming.delete(roundId);
         } else if (action === 'confirm') {
@@ -202,13 +262,14 @@ export default class extends Controller {
             this.confirming.delete(roundId);
 
             if (tap && this.outbox !== null && typeof round.entry?.entry === 'string') {
-                const sample = this.live.clockSample();
                 this.outbox.propose({
                     roundId: round.roundId,
                     entry: round.entry.entry,
                     tappedAtMs: tap.tappedAtMs,
-                    offsetMs: sample.offsetMs,
-                    rttMs: sample.rttMs,
+                    offsetMs: tap.sample.offsetMs,
+                    rttMs: tap.sample.rttMs,
+                    offsetSampleAgeMs: tap.sample.sampleAgeMs,
+                    offline: tap.offline,
                     stateHash: round.stopwatch?.stateHash ?? null,
                 }).catch(() => {});
             }
@@ -277,6 +338,7 @@ export default class extends Controller {
             }
         }
 
+        this.heartbeat?.update();
         const waiting = waitsForJudge(panels);
 
         if (waiting !== this.waiting) {

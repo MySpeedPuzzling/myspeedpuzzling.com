@@ -5,15 +5,21 @@
 // - assets/competitor_proposals_view.js: what the round's slot shows (Stop only on the own running entry, the
 //   "Propose?" sheet, sending / offline / waiting / confirmed / changed / rejected / withdrawn / reset / refused)
 // - assets/competitor_page_live.js: the 5-second poll while something waits for the judge
+// - T2 (timing you can trust): proposalBody() / outboxSummary() of the outbox and assets/competitor_heartbeat.js - the
+//   beat's body, its rhythm, nothing while hidden, at once when back, an expired token, a reload's unsent tap
 
 import assert from 'node:assert/strict';
 import {
     classifyAnswer,
     createMemoryStorage,
     LOCK_RETRY_MS,
+    outboxSummary,
     ProposalOutbox,
+    proposalBody,
     proposalRequest,
 } from '../assets/competitor_proposals_outbox.js';
+import { CompetitorHeartbeat, heartbeatBody, heartbeatDelay, HEARTBEAT_MS, MIN_GAP_MS, sendHeartbeat } from '../assets/competitor_heartbeat.js';
+import { createServerClock } from '../assets/round_stopwatch_clock.js';
 import { currentProposal, FINAL_REFUSALS, proposalPanel, secondsAt, waitsForJudge } from '../assets/competitor_proposals_view.js';
 import { CompetitorPageLive, PROPOSAL_POLL_MS } from '../assets/competitor_page_live.js';
 
@@ -509,6 +515,251 @@ const scenarios = {
         live.close();
     },
 };
+
+// ---- T2: timing you can trust
+
+function heartbeatSetup({ rounds = [{ roundId: ROUND, token: 'tok' }], summary = { unsent: 0, oldestUnsentTapMs: null } } = {}) {
+    const clock = { now: NOW };
+    const timers = [];
+    const page = { visible: true, rounds, summary, sent: [], answers: [], samples: [], expired: 0 };
+    const heartbeat = new CompetitorHeartbeat({
+        send: async (body) => {
+            page.sent.push({ at: clock.now, body });
+
+            return page.answers.length > 0 ? page.answers.shift() : { status: 'ok', serverNowMs: clock.now + 500, sentAtMs: clock.now, receivedAtMs: clock.now + 40 };
+        },
+        active: () => page.rounds,
+        summary: async () => page.summary,
+        clock: () => ({ atMs: clock.now + 500, offsetMs: 500, rttMs: 40, sampleAgeMs: 1000 }),
+        onSample: (sample) => page.samples.push(sample),
+        onExpired: () => { page.expired += 1; },
+        isVisible: () => page.visible,
+        now: () => clock.now,
+        schedule: (task, ms) => {
+            const timer = { task, at: clock.now + ms };
+            timers.push(timer);
+
+            return timer;
+        },
+        cancel: (timer) => {
+            const index = timers.indexOf(timer);
+
+            if (index >= 0) {
+                timers.splice(index, 1);
+            }
+        },
+        random: () => 0.5,
+    });
+
+    async function advance(ms) {
+        const until = clock.now + ms;
+
+        for (;;) {
+            await settle();
+            timers.sort((a, b) => a.at - b.at);
+            const next = timers[0];
+
+            if (next === undefined || next.at > until) {
+                break;
+            }
+
+            timers.shift();
+            clock.now = Math.max(clock.now, next.at);
+            next.task();
+            await settle();
+        }
+
+        clock.now = until;
+        await settle();
+    }
+
+    return { heartbeat, page, clock, timers, advance };
+}
+
+Object.assign(scenarios, {
+    async 'T2: a send says how the tap travelled - the tap itself never changes'() {
+        const { outbox, network, advance } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'offline' }, { kind: 'offline' });
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW - 250, offsetMs: 12.5, rttMs: 80, offsetSampleAgeMs: 4200.4, stateHash: 'h1' });
+        assert.equal(item.queuedOffline, false);
+        assert.equal(item.offsetSampleAgeMs, 4200.4);
+
+        const first = proposalBody(item, NOW + 0.4);
+        assert.deepEqual(first, {
+            proposalId: item.id,
+            entry: ENTRY,
+            tappedAtMs: NOW - 250,
+            offsetMs: 12.5,
+            rttMs: 80,
+            stateHash: 'h1',
+            offsetSampleAgeMs: 4200,
+            queuedOffline: false,
+            attempts: 1,
+            sentAtMs: NOW,
+        });
+
+        // Two sends failed - the third says so, the tap is the same
+        await advance(0);
+        await advance(1000);
+        await advance(2000);
+        assert.equal(network.requests.length, 3);
+        const third = proposalBody(network.requests[2], NOW + 3000);
+        assert.equal(third.attempts, 3);
+        assert.equal(third.queuedOffline, true);
+        assert.equal(third.tappedAtMs, NOW - 250);
+        assert.equal(third.proposalId, item.id);
+
+        // A tap made while the browser said it was offline
+        const offline = await setup().outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, offline: true });
+        assert.equal(proposalBody(offline, NOW).queuedOffline, true);
+        assert.equal(proposalBody({ ...offline, offsetSampleAgeMs: undefined }, Number.NaN).offsetSampleAgeMs, null);
+        assert.equal(proposalBody(offline, Number.NaN).sentAtMs, null);
+    },
+
+    async 'T2: a reload keeps the tap - resent with the same id, the original tap and its attempts; the summary holds it'() {
+        const storage = createMemoryStorage();
+        const first = setup({ storage });
+        await first.outbox.load();
+        first.network.answers.push({ kind: 'offline' });
+        const item = await first.outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW - 42_000, offsetMs: 3, rttMs: 50 });
+        await first.advance(0);
+        first.outbox.close();
+
+        // The reloaded page: what the heartbeat reports before anything is sent again
+        const items = await storage.getAll();
+        assert.deepEqual(outboxSummary(items, USER, ROUND.toUpperCase()), { unsent: 1, oldestUnsentTapMs: NOW - 42_000 });
+
+        const second = setup({ storage });
+        await second.outbox.load();
+        // Its backoff after the failed send still holds
+        await second.advance(1000);
+        assert.equal(second.network.requests.length, 1);
+        const body = proposalBody(second.network.requests[0], NOW);
+        assert.equal(body.proposalId, item.id);
+        assert.equal(body.tappedAtMs, NOW - 42_000);
+        assert.equal(body.attempts, 2);
+        assert.equal(body.queuedOffline, true);
+        assert.deepEqual(outboxSummary(await storage.getAll(), USER, ROUND), { unsent: 0, oldestUnsentTapMs: null });
+    },
+
+    'T2: the summary counts own taps of the round and the one in the confirm sheet, never withdrawals or others'() {
+        const items = [
+            { id: 'a', action: 'propose', userId: USER, roundId: ROUND, tappedAtMs: NOW - 5000 },
+            { id: 'b', action: 'withdraw', userId: USER, roundId: ROUND },
+            { id: 'c', action: 'propose', userId: 'someone-else', roundId: ROUND, tappedAtMs: NOW - 9000 },
+            { id: 'd', action: 'propose', userId: USER, roundId: 'another-round', tappedAtMs: NOW - 9000 },
+        ];
+        assert.deepEqual(outboxSummary(items, USER.toUpperCase(), ROUND), { unsent: 1, oldestUnsentTapMs: NOW - 5000 });
+        assert.deepEqual(outboxSummary([], USER, ROUND, NOW - 8000), { unsent: 1, oldestUnsentTapMs: NOW - 8000 }, 'the confirm sheet is a tap the phone holds');
+        assert.deepEqual(outboxSummary(items, USER, ROUND, NOW - 1000), { unsent: 2, oldestUnsentTapMs: NOW - 5000 });
+        assert.deepEqual(outboxSummary(null, USER, ROUND), { unsent: 0, oldestUnsentTapMs: null });
+    },
+
+    'T2: the beat body and its rhythm'() {
+        assert.deepEqual(heartbeatBody('tok', { atMs: NOW + 0.6, offsetMs: -41.5, rttMs: 90, sampleAgeMs: 3000.2 }, { unsent: 1, oldestUnsentTapMs: NOW - 9000 }), {
+            token: 'tok', atMs: NOW + 1, offsetMs: -41.5, rttMs: 90, sampleAgeMs: 3000, unsent: 1, oldestUnsentTapMs: NOW - 9000,
+        });
+        assert.deepEqual(heartbeatBody('tok', { offsetMs: Number.NaN }, null), {
+            token: 'tok', atMs: null, offsetMs: null, rttMs: null, sampleAgeMs: null, unsent: 0, oldestUnsentTapMs: null,
+        });
+        assert.equal(heartbeatDelay(() => 0), HEARTBEAT_MS * 0.8);
+        assert.equal(heartbeatDelay(() => 1), HEARTBEAT_MS * 1.2);
+    },
+
+    async 'T2: beats every 15 s while visible and active, none while hidden, at once when back (2 s apart at most)'() {
+        const { heartbeat, page, advance } = heartbeatSetup();
+        heartbeat.start();
+        await advance(0);
+        assert.equal(page.sent.length, 1, 'at once');
+        assert.equal(page.sent[0].body.token, 'tok');
+        assert.equal(page.sent[0].body.unsent, 0);
+        assert.equal(page.samples.length, 1, 'the answer is a clock sample');
+        assert.equal(page.samples[0].serverNowMs - page.samples[0].sentAtMs, 500);
+
+        await advance(60_000);
+        assert.equal(page.sent.length, 5, 'one per 15 s');
+
+        page.visible = false;
+        await advance(60_000);
+        assert.equal(page.sent.length, 5, 'a hidden page beats nothing');
+        heartbeat.update();
+        await advance(60_000);
+        assert.equal(page.sent.length, 5);
+
+        page.visible = true;
+        heartbeat.nudge();
+        await advance(0);
+        assert.equal(page.sent.length, 6, 'shown again: at once');
+        heartbeat.nudge();
+        heartbeat.nudge();
+        await advance(0);
+        assert.equal(page.sent.length, 6, 'not twice within 2 s');
+        await advance(MIN_GAP_MS);
+        assert.equal(page.sent.length, 7);
+
+        page.rounds = [];
+        heartbeat.update();
+        await advance(60_000);
+        assert.equal(page.sent.length, 7, 'nothing to beat for: silent');
+
+        page.rounds = [{ roundId: ROUND, token: 'tok2' }];
+        heartbeat.update();
+        await advance(0);
+        assert.equal(page.sent.length, 8, 'a round became active');
+        assert.equal(page.sent[7].body.token, 'tok2');
+        heartbeat.close();
+        await advance(60_000);
+        assert.equal(page.sent.length, 8);
+    },
+
+    async 'T2: a beat carries the unsent tap; an expired token asks for the state; a failed beat waits for the next'() {
+        const { heartbeat, page, advance } = heartbeatSetup({ summary: { unsent: 1, oldestUnsentTapMs: NOW - 30_000 } });
+        page.answers.push({ status: 'expired' }, { status: 'error' });
+        heartbeat.start();
+        await advance(0);
+        assert.equal(page.sent[0].body.unsent, 1);
+        assert.equal(page.sent[0].body.oldestUnsentTapMs, NOW - 30_000);
+        assert.equal(page.expired, 1);
+        await advance(15_000);
+        assert.equal(page.sent.length, 2);
+        assert.equal(page.samples.length, 0);
+        await advance(15_000);
+        assert.equal(page.sent.length, 3);
+        assert.equal(page.samples.length, 1);
+        heartbeat.close();
+    },
+
+    async 'T2: sendHeartbeat sends no cookie and reads 200 / 403 / errors'() {
+        const calls = [];
+        const respond = (status, data) => async (url, init) => {
+            calls.push({ url, init });
+
+            return { status, ok: status >= 200 && status < 300, json: async () => data };
+        };
+        let t = NOW;
+        const now = () => (t += 10);
+
+        assert.deepEqual(await sendHeartbeat('/-/competitor-heartbeat', { token: 'x', unsent: 0 }, respond(200, { serverNowMs: 5 }), now), { status: 'ok', serverNowMs: 5, sentAtMs: NOW + 10, receivedAtMs: NOW + 20 });
+        assert.equal(calls[0].init.credentials, 'omit');
+        assert.equal(calls[0].init.method, 'POST');
+        assert.deepEqual(JSON.parse(calls[0].init.body), { token: 'x', unsent: 0 });
+        assert.deepEqual(await sendHeartbeat('/x', {}, respond(403, { error: 'expired_token', serverNowMs: 1 }), now), { status: 'expired' });
+        assert.deepEqual(await sendHeartbeat('/x', {}, respond(429, { error: 'rate_limited', serverNowMs: 1 }), now), { status: 'error' });
+        assert.deepEqual(await sendHeartbeat('/x', {}, async () => { throw new TypeError('offline'); }, now), { status: 'error' });
+    },
+
+    'T2: the clock says how old the sample behind the offset is'() {
+        let local = NOW;
+        const clock = createServerClock({ now: () => local });
+        assert.equal(clock.sampleAgeMs(), null, 'only a hint');
+        clock.observe({ sentAtMs: NOW - 100, receivedAtMs: NOW, serverNowMs: NOW + 1000 });
+        local = NOW + 90_000;
+        assert.equal(clock.sampleAgeMs(), 90_000);
+        clock.observe({ sentAtMs: local - 300, receivedAtMs: local, serverNowMs: local + 1000 });
+        assert.equal(clock.sampleAgeMs(), 90_000, 'the best round trip is still the older one');
+    },
+});
 
 const results = {};
 

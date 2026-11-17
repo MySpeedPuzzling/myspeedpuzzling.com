@@ -14,7 +14,9 @@ use Symfony\Component\Process\Process;
  * tests/competitor-proposals-harness.mjs: the phone's outbox (assets/competitor_proposals_outbox.js - the tap's id and
  * moment kept across resends, offline and a reload, refusals, signed out, Undo before / while / after sending), what
  * the round's slot shows (assets/competitor_proposals_view.js - Stop only on the own running entry, every proposal
- * state) and the 5-second poll while a proposal waits for the judge. Every scenario must report "ok".
+ * state), the 5-second poll while a proposal waits for the judge, and T2's timing evidence (what a send says about
+ * how the tap travelled, the outbox summary, the heartbeat - assets/competitor_heartbeat.js). Every scenario must
+ * report "ok".
  */
 final class CompetitorProposalsScriptTest extends TestCase
 {
@@ -30,7 +32,7 @@ final class CompetitorProposalsScriptTest extends TestCase
         /** @var array<string, string> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
-        self::assertGreaterThanOrEqual(18, count($results));
+        self::assertGreaterThanOrEqual(26, count($results));
 
         foreach ($results as $scenario => $result) {
             self::assertSame('ok', $result, $scenario);

@@ -36,7 +36,7 @@ import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '.
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
-import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
+import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -1662,7 +1662,7 @@ export default class extends Controller {
                 exact: false,
                 result: { value: proposalValue(proposal) },
                 sync: '',
-                note: `${this.age(proposal.receivedAtMs, now)}${proposal.late ? ` · ${this.t('proposalLate')}` : ''}`,
+                note: `${this.age(proposal.receivedAtMs, now)}${waitingNote(proposal) ? ` · ${this.t(waitingNote(proposal))}` : ''}`,
             })).join('');
 
             return;
@@ -1803,14 +1803,10 @@ export default class extends Controller {
             const name = proposerName(proposal, entry);
             const lines = [`${this.t('proposalFrom', { '%time%': this.clockTime(proposal.tappedAtMs) })}${name ? ` · ${this.t('proposalBy', { '%name%': name })}` : ''} · ${this.t('proposalTapped', { '%age%': this.age(proposal.tappedAtMs, this.serverNow()) })}`];
 
-            if (proposal.late) {
-                lines.push(`${this.t('proposalLate')}: ${this.t('proposalLateTimes', {
-                    '%tapped%': formatResultTime(proposal.proposedSeconds),
-                    '%tappedAt%': this.clockTime(proposal.tappedAtMs),
-                    '%received%': formatResultTime(proposal.receiptSeconds),
-                    '%receivedAt%': this.clockTime(proposal.receivedAtMs),
-                })}`);
-            }
+            // Timing (T2): check / arrived later / the phone's clock - the module says what, the page formats it
+            const notes = proposalNotes(proposal);
+            const check = notes.some((note) => note.warning) ? `<div class="small fw-semibold text-warning-emphasis" data-proposal-check>${escapeHtml(this.t('proposalCheck'))}</div>` : '';
+            lines.push(...notes.filter((note) => !note.warning).map((note) => this.proposalNote(note)));
 
             if (proposal.clockChanged) {
                 lines.push(this.t('proposalClockChanged'));
@@ -1837,10 +1833,11 @@ export default class extends Controller {
                 buttons = `<div class="d-flex gap-2">${['not_finished', 'wrong_entry', 'other'].map((reason) => button('rejectWith', this.t(`proposalReason_${reason}`), 'danger', ` data-reason="${reason}"`)).join('')}</div>${button('cancelReject', this.t('proposalRejectCancel'), 'secondary w-100 mt-2')}`;
             } else {
                 status = [state === 'differs' ? this.t('proposalDiffers', { '%saved%': this.describe(panel.saved) }) : '', this.proposalNeedsChoice && pickFormat(this.round) ? this.t('proposalPickPuzzle') : ''].filter(Boolean).join(' · ');
-                buttons = `<button type="button" class="btn btn-success w-100 lr-big-btn" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t(state === 'differs' ? 'proposalReplace' : 'proposalConfirm', { '%time%': time }))}</button><div class="d-flex gap-2 mt-2">${button('changeProposal', this.t('proposalChange'))}${button('rejectProposal', this.t('proposalReject'), 'danger')}</div>`;
+                const other = proposalAlternative(proposal);
+                buttons = `<button type="button" class="btn btn-success w-100 lr-big-btn" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t(state === 'differs' ? 'proposalReplace' : 'proposalConfirm', { '%time%': time }))}</button>${other ? `<button type="button" class="btn btn-outline-success w-100 mt-2" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-use="${other.use}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal">${escapeHtml(this.t('proposalUseTapped', { '%time%': formatResultTime(other.seconds) }))}</button>` : ''}<div class="d-flex gap-2 mt-2">${button('changeProposal', this.t('proposalChange'))}${button('rejectProposal', this.t('proposalReject'), 'danger')}</div>`;
             }
 
-            html = `<div class="lr-proposal" data-state="${state}" role="group"><div class="lr-proposal-time">${escapeHtml(this.t('proposalTitle', { '%time%': time }))}</div><div class="small text-muted">${lines.map(escapeHtml).join('<br>')}</div>${status !== '' ? `<div class="small fw-medium mt-1">${escapeHtml(status)}</div>` : ''}${buttons !== '' ? `<div class="mt-2">${buttons}</div>` : ''}</div>`;
+            html = `<div class="lr-proposal" data-state="${state}" role="group"><div class="lr-proposal-time">${escapeHtml(this.t('proposalTitle', { '%time%': time }))}</div>${check}<div class="small text-muted">${lines.map(escapeHtml).join('<br>')}</div>${status !== '' ? `<div class="small fw-medium mt-1">${escapeHtml(status)}</div>` : ''}${buttons !== '' ? `<div class="mt-2">${buttons}</div>` : ''}</div>`;
         }
 
         // A Confirm that shows up (or now confirms another value) ignores taps for 350 ms - the tap that opened the card
@@ -1856,6 +1853,28 @@ export default class extends Controller {
             this.proposalTarget.innerHTML = html;
             this.proposalTarget.hidden = html === '';
         }
+    }
+
+    /**
+     * One timing line of a proposal (T2, proposalNotes()): seconds as result times, clocks as times of day, ages as
+     * durations.
+     */
+    proposalNote(note) {
+        const values = {};
+
+        for (const [name, seconds] of Object.entries(note.seconds ?? {})) {
+            values[`%${name}%`] = formatResultTime(seconds);
+        }
+
+        for (const [name, atMs] of Object.entries(note.clocks ?? {})) {
+            values[`%${name}%`] = this.clockTime(atMs);
+        }
+
+        for (const [name, [fromMs, toMs]] of Object.entries(note.ages ?? {})) {
+            values[`%${name}%`] = this.age(fromMs, toMs);
+        }
+
+        return `${note.prefix ? `${this.t(note.prefix)}: ` : ''}${this.t(note.key, values)}`;
     }
 
     /**
@@ -1900,7 +1919,8 @@ export default class extends Controller {
         }
 
         const format = pickFormat(this.round);
-        const value = proposalValue(proposal);
+        // The card's default - or the judge's explicit "Use tapped" (T2)
+        const value = proposalValue(proposal, event?.currentTarget?.dataset?.use ?? null);
         const { fields, record, needsChoice } = confirmFields(format, this.choice, value, entry, this.outbox.all(), proposal.id);
 
         if (needsChoice) {

@@ -31,6 +31,9 @@ Encore
     // A competition display - timer screen or stream overlay (competition toolkit D4, assets/display.js): a standalone
     // page with nothing of the site, never precached for every visitor (service worker PRECACHE_SKIP_ENTRIES)
     .addEntry('display', './assets/display.js')
+    // The analytics studio - the commentators' per-round page (docs/features/competitions-management/analytics-studio.md
+    // §7.6, assets/analytics_studio.js): standalone like the display, never precached for every visitor
+    .addEntry('analytics_studio', './assets/analytics_studio.js')
     // Page stylesheets of the online competitions (docs/features/online-competitions/), linked only on their pages
     .addStyleEntry('compete', './assets/styles/compete.scss')
     .addStyleEntry('online_rounds', './assets/styles/online_rounds.scss')
@@ -41,11 +44,11 @@ Encore
 
     // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
     .splitEntryChunks()
-    // ...except the live entry (and its native-app Turbo) and the display: one file of its own each (+ runtime.js),
+    // ...except the live entry (and its native-app Turbo), the display and the analytics studio: one file of its own each (+ runtime.js),
     // sharing no split chunk with `app` - the site's pages keep exactly the script tags they had, and each of these is
     // complete in itself
     .configureSplitChunks((splitChunks) => {
-        splitChunks.chunks = (chunk) => !['live_entry', 'live_entry_native', 'display'].includes(chunk.name);
+        splitChunks.chunks = (chunk) => !['live_entry', 'live_entry_native', 'display', 'analytics_studio'].includes(chunk.name);
     })
 
     // will require an extra script tag for runtime.js

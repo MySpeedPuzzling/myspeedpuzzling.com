@@ -853,6 +853,11 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         const compared = view.compare.map((key) => rows.find((row) => row.key === key)).filter((row) => row !== undefined);
 
         if (compared.length >= 2) {
+            // The compare view's own head: a phone shows it as a full-screen sheet, which needs a way out (×)
+            const head = el('header', 'as-compare-head', detailPanel);
+            el('h2', 'as-compare-head__title', head, t('compare', { count: compared.length, max: 4 }));
+            button('as-compare-head__clear', head, t('compare.clear'), { 'data-as-action': 'clearCompare' });
+            button('as-entrant__close', head, '×', { 'data-as-action': 'close', 'aria-label': t('close') });
             detailPanel.appendChild(renderCompare(compared, slot, model));
 
             return;

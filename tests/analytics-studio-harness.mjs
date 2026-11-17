@@ -1185,6 +1185,11 @@ scenario('render: compare 4 - columns aligned, best values bold, columns past th
     assert.ok(prediction.querySelectorAll('td')[1].querySelector('.as-spinner'), 'E6 predictions pending');
     assert.ok(prediction.querySelectorAll('td')[3].querySelector('.as-opted-out'));
     assert.equal(text(root.querySelector('.as-compare-bar__count')), 'Compare 4/4');
+    // The compare view's head: its title, Clear and the sheet's way out on phones
+    const compareHead = root.querySelector('.as-detail .as-compare-head');
+    assert.equal(text(compareHead.querySelector('.as-compare-head__title')), 'Compare 4/4');
+    assert.equal(compareHead.querySelector('.as-compare-head__clear').getAttribute('data-as-action'), 'clearCompare');
+    assert.equal(compareHead.querySelector('.as-entrant__close').getAttribute('data-as-action'), 'close');
 
     const one = renderModel({ view: { compare: [E(1)], selected: E(1) } }).root;
     assert.equal(one.querySelector('.as-compare'), null);

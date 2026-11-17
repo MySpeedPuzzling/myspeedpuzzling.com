@@ -28,7 +28,7 @@ no qualification, the winner per category has the lowest sum.
   (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum` only), `round_ids` jsonb (ordered,
   validated on write by `CompetitionStandingRounds`: ≥ 1, ≤ 50, rounds of the event and the standing's category, a
   repeated id kept once), `unfinished_penalty_seconds_per_piece` 0..600, `order_rule` (`finished_rounds_first` default /
-  `total_only`), `missing_rule` (`incomplete` only - `as_zero_pieces` is v2), `position`, `published_at` (the public
+  `total_only`), `missing_rule` (`incomplete` default / `as_zero_pieces` - the World Series no-show, below), `position`, `published_at` (the public
   page's switch, A7). At most 20 per event.
 - **Writes:** `CreateCompetitionStanding` / `EditCompetitionStanding` / `DeleteCompetitionStanding`, all under
   `CompetitionParticipantsLock` (deviation from A §3.6 "no lock": they take turns with `DeleteCompetitionRound` /
@@ -59,6 +59,31 @@ no qualification, the winner per category has the lowest sum.
   missing from a finished puzzle are (not) penalised". Organiser JSON: the new keys on `perRound[]`, the rows and
   `rules.penaliseFinishedMissing` (additive). The form has the switch; "Create one standing per category" uses the
   default (off); duplicate copies it. A standing where nothing is missing renders as before.
+- **No-show = `missing_rule = as_zero_pieces`** (Real events W1, [world-series-rules.md](world-series-rules.md) §4 +
+  amendments W1-a/b/c; Jan's World Series: "no-show = limit + 5 s × every piece, stays ranked"): a counted round without
+  a score becomes `StandingScoreStatus::NoShow` (`"no_show"`, scores) = limit × 60 + penalty × the round's no-show pieces
+  (`StandingRoundInput::$noShowPiecesCount`: the round's pieces, a `pick` round's K largest puzzles via
+  `RoundEntryPuzzles::roundPiecesBound()`; unknown = no penalty part). An explicit "Did not start" is a no-show at once;
+  no result / not entered only once the round is **final** (`StandingRoundInput::$final`: organiser view = its results
+  are published, public view = always) - entrants still solving in the live preview are "not yet", and the preview says
+  "No-shows count once a round's results are published" (`StandingTable::noShowsWaitForPublishing()`). Stays missing: a
+  round without a time limit, an unfinished result without a limit, a pair/team without people (`t:` key, W1-a). An
+  entrant without any finished/unfinished score (only no-shows) is left out - so the preview and the public page (which
+  never sees an absentee) list the same people; ranks = preview pinned by `NoShowStandingTest`. Order: the configured
+  `order_rule` (a no-show is no finished round for `finished_rounds_first`). **Substitutes (W1-a):** a changed line-up
+  is another entrant, so with this rule each gets no-shows where the other played - the organiser preview warns
+  "N pairs or teams appear in only some rounds - check substitutes" (`StandingTable::lineupsInSomeRounds()`: `l:` rows
+  missing from a counted round). Form: "Rounds without a result" (two radios, default `incomplete`; "Create one standing
+  per category" keeps the default; duplicate copies it). Rule line: "· a round without a result counts as the time
+  limit + 5 s × all pieces". Cells: "No-show" + the limit (organiser and public; the penalty is in the total and its
+  breakdown). Organiser JSON: `perRound[].status = "no_show"`, nothing else added. **Results desk (W1-b):** the publish
+  dialog's readiness line "N entries without a result will count as no-shows in <standing>" (`round.noShowStandings` on
+  the desk's state, from `GetRoundStandingRules` - one statement). **Defect pieces (W1-c):** no new field; the desk's
+  "Pieces missing" in the result editor gets the help "Only pieces that cost a penalty under your rules." when a standing
+  of the round penalises them (`penalise_finished_missing` on, penalty > 0) - `round.penalisedMissing: true` on the desk
+  state and on `official_results_round_state` (additive, absent otherwise - goldens unchanged; +1 statement per state
+  answer). The judge card does not show it yet (it needs `live_results_controller.js` logic - another lane's file then);
+  the key is in the state for it.
 - **Organiser view** (`GetStandingResults::organiserView()`): every round of the standing, published or not, through
   `GetRoundResultEntries` (people going to the event, the official in-round rank shown per cell); a round counts once
   anything is recorded in it; "provisional" while a round does not count or is unpublished. Piece totals: a `pick`
@@ -72,7 +97,8 @@ no qualification, the winner per category has the lowest sum.
   `playerCode` of private players) - shape `StandingTable::toArray()` (A §6.4 with `includesUnpublished`, `perRound[].status`).
 - The bracket: "Bracket (competition toolkit A9)" below.
 - Tests: `tests/Services/CompetitionToolkit/StandingCalculatorTest.php`, `tests/CompetitionToolkit/CompetitionStandingsTest.php`
-  (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`.
+  (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`,
+  `NoShowStandingTest.php` (as_zero_pieces: preview, public = preview, substitutes warning, form, desk/state keys).
 
 ## Public standings (competition toolkit A7)
 
@@ -208,5 +234,5 @@ an event with steps has a bracket.
 ## Deferred to v2 (R §3, docs/TODO.md "Competition toolkit v2")
 
 The `stages` standing classification and `numbered_across_stages` (a final classification across the bracket's stages),
-`missing_rule = as_zero_pieces`, a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a bracket overlay element for the
+a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a bracket overlay element for the
 displays (the standings element is built - v2 S2).

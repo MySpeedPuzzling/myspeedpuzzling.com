@@ -5537,6 +5537,11 @@ live_results:
     restore:
         offline_copy: "No connection - this is the round as this device knew it at %time%. Results entered elsewhere since then are not shown; what you save here is sent once the connection is back."
         finished_now_tapped_at: "tapped at %time%"
+    shell:
+        offline: "Offline"
+        signed_out: "You are offline - open this page again with a connection."
+        no_copy: "No offline copy of this round on this phone - connect once to load it."
+        other_copies: "Saved on this phone:"
 
 name_tags:
     button: "Name tags"

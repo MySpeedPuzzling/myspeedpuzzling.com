@@ -29,13 +29,15 @@ use Symfony\Component\Process\Process;
  *   52 KB gzip. 2026-11-17 (reliability hardening T1): 186.2 → 195.2 KB / 51.1 → 53.7 KB gzip - "Didn't finish" counted
  *   as missing pieces (official_results_missing.js 2.2 KB, shared with the results desk), a pick round's per-puzzle
  *   rows (several puzzles not finished, a count each), the Missing | Placed switch kept per phone, the time's-up open;
- *   budget 197 KB / 54 KB gzip;
+ *   budget 197 KB / 54 KB gzip. 2026-11-17 (reliability hardening T2): 197.1 KB / 54.1 KB gzip - the evidence-based
+ *   timing notes of a proposal ("Check this time", "Use received", clock note) and uuid_v7.js; budget 205 KB / 56 KB
+ *   gzip, which leaves F1 (account check before sending, monotonic clock, snapshot max wait) its room;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 197_000;
-    private const int GZIP_BUDGET_BYTES = 54_000;
+    private const int MINIFIED_BUDGET_BYTES = 205_000;
+    private const int GZIP_BUDGET_BYTES = 56_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

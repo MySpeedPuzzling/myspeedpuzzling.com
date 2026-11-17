@@ -5542,6 +5542,9 @@ live_results:
         signed_out: "You are offline - open this page again with a connection."
         no_copy: "No offline copy of this round on this phone - connect once to load it."
         other_copies: "Saved on this phone:"
+    offline_ready:
+        ready: "Ready offline - this page opens on this device without a connection (saved %time%)."
+        no_worker: "This app cannot reopen the page without a connection - keep it open, or use the browser."
 
 name_tags:
     button: "Name tags"

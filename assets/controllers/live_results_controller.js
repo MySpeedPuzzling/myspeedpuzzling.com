@@ -19,7 +19,8 @@ import {
     searchEntries,
     shownValue,
 } from '../official_results_live.js';
-import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
+import { nativeReadsQr, parseNameTagUrl, startQrScan } from '../official_results_scan.js';
+import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
 import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -96,6 +97,11 @@ function storageSet(key, value) {
     } catch (e) {
         // A private window - the default next time
     }
+}
+
+// The native apps (Hotwire Native) run no service worker - the same test as assets/live_entry.js
+function isNativeApp() {
+    return /Turbo Native (iOS|Android)|MySpeedPuzzling (iOS|Android)/.test(navigator.userAgent || '');
 }
 
 export default class extends Controller {
@@ -185,6 +191,10 @@ export default class extends Controller {
         this.shellScreen = null;
         this.shellOthers = [];
         this.shellUnsent = 0;
+        // The page's offline copy on this device (toolkit C6): asked for once per page load, once the page is live -
+        // null = not (yet) stored, else when
+        this.offlinePrepared = false;
+        this.offlineReadyAt = null;
         this.setupSnapshots();
 
         this.setKeyboard('text');
@@ -470,6 +480,33 @@ export default class extends Controller {
 
         this.rememberState();
         this.schedulePrefetch();
+        this.prepareOffline();
+    }
+
+    /**
+     * Once the page is live: the service worker stores the page's offline copy + its files (and the QR decoder where
+     * the browser reads no QR codes itself), so a reload without a connection still opens it (toolkit C6). Not from an
+     * offline copy (asked again when it goes live), not in the native apps (they run no worker).
+     */
+    prepareOffline() {
+        if (this.offlinePrepared || this.offlineCopyAt !== null || isNativeApp() || !('serviceWorker' in navigator)) {
+            return;
+        }
+
+        this.offlinePrepared = true;
+
+        nativeReadsQr()
+            .then((native) => prepareOfflineCopy({ serviceWorker: navigator.serviceWorker, locale: this.localeValue, scanner: !native }))
+            .then((stored) => {
+                if (stored !== null && this.isConnected()) {
+                    this.offlineReadyAt = stored.storedAt;
+
+                    if (!this.sheetTarget.hidden) {
+                        this.renderSheet();
+                    }
+                }
+            })
+            .catch(() => {});
     }
 
     // ---- Snapshots + drafts (competition toolkit C4) ----
@@ -565,6 +602,7 @@ export default class extends Controller {
         this.refreshSettings();
         this.scheduleRender();
         this.schedulePrefetch();
+        this.prepareOffline();
     }
 
     /**
@@ -1679,7 +1717,7 @@ export default class extends Controller {
         const items = this.outbox.all();
 
         if (items.length === 0) {
-            this.sheetBodyTarget.innerHTML = `<p class="text-success fs-5 my-4 text-center"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>${escapeHtml(this.t('sheetEmpty'))}</p>`;
+            this.sheetBodyTarget.innerHTML = `<p class="text-success fs-5 my-4 text-center"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>${escapeHtml(this.t('sheetEmpty'))}</p>${this.offlineReadyHtml()}`;
 
             return;
         }
@@ -1706,6 +1744,23 @@ export default class extends Controller {
         if (items.some((item) => item.state === 'pending' || item.state === 'forbidden') || this.outbox.blocked !== null) {
             this.sheetBodyTarget.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-outline-primary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#retry">${escapeHtml(this.t('sheetRetryAll'))}</button>`);
         }
+
+        this.sheetBodyTarget.insertAdjacentHTML('beforeend', this.offlineReadyHtml());
+    }
+
+    /**
+     * Whether this page opens on this device without a connection (toolkit C6) - the native apps cannot.
+     */
+    offlineReadyHtml() {
+        if (isNativeApp()) {
+            return `<p class="small text-muted mt-3 mb-0" data-live-offline-ready="none">${escapeHtml(this.t('offlineNoWorker'))}</p>`;
+        }
+
+        if (this.offlineReadyAt === null) {
+            return '';
+        }
+
+        return `<p class="small text-muted mt-3 mb-0" data-live-offline-ready><i class="bi bi-cloud-check me-1" aria-hidden="true"></i>${escapeHtml(this.t('offlineReady', { '%time%': this.timeOfDay(new Date(this.offlineReadyAt).toISOString()) }))}</p>`;
     }
 
     setText(element, text) {

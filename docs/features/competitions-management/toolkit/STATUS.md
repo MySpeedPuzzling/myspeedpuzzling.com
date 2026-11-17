@@ -51,6 +51,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | C10 | B | merged | 3698eb8b3..3916fe168 | puzzle chips (labels before reveal, order taps), grouped result+puzzles saves, Puzzle missing list, Save puzzle choice; bundle 180 KB/50 KB gzip (now 47.6). Not tried: reveal while card open, offline group save |
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | started | | |
+| A4 | B (swap) | started | | |
 
 ## Hardening list (H) - collected
 - Duplicate competition: copy competitor-page settings (B1)? displays (D8). Rounds copied without puzzles stay `total`.

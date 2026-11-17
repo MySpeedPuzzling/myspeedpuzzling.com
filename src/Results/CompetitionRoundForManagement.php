@@ -40,6 +40,8 @@ readonly final class CompetitionRoundForManagement
         public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
         // The reveal modes (RoundPuzzleReveal values) of its secret puzzles, sorted - [] = no secret puzzle
         public array $secretRevealModes = [],
+        // The round's public URL part - null = no round pages (and no analytics studio) yet
+        public null|string $slug = null,
     ) {
     }
 }

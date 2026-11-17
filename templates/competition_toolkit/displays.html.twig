@@ -33,5 +33,21 @@
                 {{ include('competition_toolkit/_display_add_form.html.twig') }}
             </div>
         </div>
+
+        {#- The commentators' analytics studio of each round (analytics-studio.md §8) - by the round's id, 0 statements -#}
+        {% set studio_rounds = rounds|filter(round => round.slug is not null) %}
+        {% if studio_rounds is not empty %}
+            <section class="mt-4" data-analytics-studio-rounds>
+                <h2 class="h4">{{ 'analytics_studio.organiser.title'|trans }}</h2>
+                <p class="text-muted">{{ 'analytics_studio.organiser.help'|trans }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for round in studio_rounds %}
+                        <a href="{{ path('analytics_studio_round', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="nofollow noopener" data-turbo="false" data-analytics-studio-link="{{ round.id }}">
+                            <i class="bi bi-graph-up me-1" aria-hidden="true"></i>{{ round.name }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
     </div>
 {% endblock %}

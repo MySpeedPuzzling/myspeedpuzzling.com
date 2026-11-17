@@ -1,0 +1,53 @@
+{% extends 'analytics_studio/layout.html.twig' %}
+
+{#
+    The analytics studio of one round (docs/features/competitions-management/analytics-studio.md §1.1, §7) - a data-free
+    shell: the event and round names, the round switcher and where the JSON answers are. No slot, entrant, result or
+    puzzle is in the HTML - assets/analytics-studio/page.js fills #analytics-studio from them (render.js).
+    Variables: page (AnalyticsStudioPage), event_url, studio_route + route_params (the switcher's links).
+#}
+
+{% block title %}{{ page.round.name }} · {{ page.round.eventName }} · {{ 'analytics_studio.page.title'|trans }}{% endblock %}
+
+{% block body %}
+    {# A uuid no entry has - page.js puts the entry's key in its place #}
+    {% set entry_placeholder = '00000000-0000-0000-0000-000000000000' %}
+    <div class="as-page">
+        <header class="as-brand" data-analytics-studio-brand>
+            <a href="{{ event_url }}" class="as-brand__logo" rel="nofollow" title="{{ page.round.eventName }}">
+                <img src="{{ asset('img/speedpuzzling-logo.svg') }}" width="28" height="25" alt="MySpeedPuzzling">
+            </a>
+            <a href="{{ event_url }}" class="as-brand__event" rel="nofollow">{{ page.round.eventName }}</a>
+            <span class="as-brand__sep" aria-hidden="true">/</span>
+            <details class="as-switcher" data-analytics-studio-switcher>
+                <summary aria-label="{{ 'analytics_studio.page.switch_round'|trans }}">{{ page.round.name }}</summary>
+                <ul class="as-switcher__list">
+                    {% for round in page.switcher %}
+                        <li>
+                            <a class="as-switcher__item" href="{{ path(studio_route, route_params|merge({roundSlug: round.slug})) }}" rel="nofollow"{% if round.id == page.round.id %} aria-current="page"{% endif %} data-analytics-studio-round="{{ round.slug }}">
+                                <span>{{ round.name }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </details>
+        </header>
+
+        <div id="analytics-studio"
+             class="as"
+             data-analytics-studio
+             data-locale="{{ app.request.locale }}"
+             data-server-now-ms="{{ page.serverNowMs }}"
+             data-state-url="{{ path('analytics_studio_state', {roundId: page.round.id}) }}"
+             data-analytics-url="{{ path('analytics_studio_analytics', {roundId: page.round.id}) }}"
+             data-entrant-url="{{ path('analytics_studio_entrant', {roundId: page.round.id, entryId: entry_placeholder}) }}"
+             data-predictions-url="{{ path('analytics_studio_predictions', {roundId: page.round.id}) }}"
+             data-entry-placeholder="{{ entry_placeholder }}"
+             data-labels="{{ page.labels|json_encode|e('html_attr') }}">
+            <p class="as-boot" data-analytics-studio-boot>{{ 'analytics_studio.loading'|trans }}</p>
+            <noscript><p class="as-boot">{{ 'analytics_studio.page.no_script'|trans }}</p></noscript>
+        </div>
+
+        <p class="as-gone" role="status" hidden data-analytics-studio-gone>{{ 'analytics_studio.page.gone'|trans }}</p>
+    </div>
+{% endblock %}

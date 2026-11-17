@@ -73,6 +73,9 @@
             {% if is_granted('COMPETITION_TOOLKIT_MANAGE', competition.id.toString) %}{# Timer screens and stream overlays (competition toolkit D8) - only for whom the toolkit is on; byte-identical without it #}<a href="{{ path('competition_displays', {competitionId: competition.id, return: path('online_control_room', {roundId: round_id}), return_title: 'online_rounds.control.title'|trans}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="displays">
                 <i class="bi bi-tv me-1" aria-hidden="true"></i>{{ 'competition_display.list.title'|trans }}
             </a>
+            {% endif %}{% if round.slug is not null %}{# The commentators' analytics studio of this round (analytics-studio.md §8) - 0 statements here #}<a href="{{ path('analytics_studio_round', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="nofollow noopener" data-online-tool="analytics-studio" data-analytics-studio-link>
+                <i class="bi bi-graph-up me-1" aria-hidden="true"></i>{{ 'analytics_studio.organiser.link'|trans }}
+            </a>
             {% endif %}<a href="{{ path('online_accuracy', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="accuracy">
                 <i class="bi bi-bullseye me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.accuracy'|trans }}
             </a>{{ (video_console ?? false) ? include('online_rounds/control_video_tool.html.twig') }}

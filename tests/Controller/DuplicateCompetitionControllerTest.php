@@ -155,6 +155,7 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('form[data-duplicate-form]');
+        self::assertSelectorTextContains('form[data-duplicate-form]', $this->trans('event_duplicate.form.date_required'));
         self::assertSame($before, $this->copies());
     }
 

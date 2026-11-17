@@ -57,6 +57,7 @@ final class EditCompetitionMoveRoundsFieldTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists(self::FIELD . '[checked]');
         self::assertSelectorExists('[data-controller~="date-move-rounds"][data-date-move-rounds-original-value="' . $dateFrom->format('d.m.Y') . '"]');
+        self::assertSelectorExists('[data-date-move-rounds-original-end-value="' . $dateFrom->format('d.m.Y') . '"] input[name="competition_form[dateTo]"][data-date-move-rounds-target="end"]');
 
         $newDay = $dateFrom->modify('+10 days')->format('d.m.Y');
         $browser->submitForm('Save Changes', [

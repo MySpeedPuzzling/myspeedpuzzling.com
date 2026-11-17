@@ -105,6 +105,8 @@ final class EditCompetitionController extends AbstractController
         $moveRoundsOffered = $this->eventDateShift->roundsCanMove($competition);
         $formData->moveRoundsWithDate = $moveRoundsOffered;
         $originalDateFrom = $competition->dateFrom;
+        // The end date follows a new start in the form while it is untouched (date_move_rounds_controller.js)
+        $originalDateTo = $competition->dateTo;
         $roundIds = array_map(
             static fn (CompetitionRound $round): string => $round->id->toString(),
             $moveRoundsOffered ? $this->competitionRoundRepository->ofCompetition($competition) : [],
@@ -213,6 +215,7 @@ final class EditCompetitionController extends AbstractController
             'slug_prefix' => $slugPrefix,
             'series_organization' => $seriesOrganizationRef,
             'original_date_from' => $originalDateFrom,
+            'original_date_to' => $originalDateTo,
         ]);
     }
 }

@@ -10636,6 +10636,7 @@ event_duplicate:
     title: "Duplicate event"
     form:
         date: "New date"
+        date_required: "Choose the date of the copy."
         source_date: "Copy of %date%"
         name: "Name"
         what_moves: "Rounds and registration move by the same number of days; the times of day stay."

@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Services\EventDateShift;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\NextEditionName;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -95,6 +96,12 @@ final class DuplicateCompetitionController extends AbstractController
         );
         $form = $this->formFactory->createNamed('', DuplicateCompetitionFormType::class, $formData);
         $form->handleRequest($request);
+
+        // The date is what the copy is about - its own message rather than the validator's generic one (an unreadable
+        // date has its error already)
+        if ($form->isSubmitted() && $formData->dateFrom === null && $form->get('dateFrom')->getErrors()->count() === 0) {
+            $form->get('dateFrom')->addError(new FormError($this->translator->trans('event_duplicate.form.date_required')));
+        }
 
         if ($form->isSubmitted() && $form->isValid() && $formData->dateFrom !== null) {
             $newCompetitionId = Uuid::uuid7();

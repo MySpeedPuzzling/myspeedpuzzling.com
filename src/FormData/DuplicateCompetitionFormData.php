@@ -16,7 +16,7 @@ final class DuplicateCompetitionFormData
         #[Assert\NotBlank]
         #[Assert\Length(max: 250)]
         public null|string $name = null,
-        #[Assert\NotNull]
+        // Required - checked by the controller with its own message (event_duplicate.form.date_required)
         public null|DateTimeImmutable $dateFrom = null,
     ) {
     }

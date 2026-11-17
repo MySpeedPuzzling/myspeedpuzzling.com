@@ -124,7 +124,7 @@
 
                             {#- "Move the rounds too" (form.moveRoundsWithDate, only while no round has begun): asked once the start date
                                 changed - date_move_rounds_controller.js; without JavaScript simply visible -#}
-                            <div class="row" data-competition-form-target="dateFields"{% if form.moveRoundsWithDate is defined %} data-controller="date-move-rounds" data-date-move-rounds-original-value="{{ original_date_from ? original_date_from|date('d.m.Y', false) : '' }}" data-action="change->date-move-rounds#update input->date-move-rounds#update"{% endif %}>
+                            <div class="row" data-competition-form-target="dateFields"{% if form.moveRoundsWithDate is defined %} data-controller="date-move-rounds" data-date-move-rounds-original-value="{{ original_date_from ? original_date_from|date('d.m.Y', false) : '' }}" data-date-move-rounds-original-end-value="{{ original_date_to ? original_date_to|date('d.m.Y', false) : '' }}" data-action="change->date-move-rounds#update input->date-move-rounds#update"{% endif %}>
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
@@ -137,7 +137,7 @@
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
-                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}', 'data-date-move-rounds-target': 'end'}}) }}
                                         <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                                     </div>
                                     {{ form_errors(form.dateTo) }}

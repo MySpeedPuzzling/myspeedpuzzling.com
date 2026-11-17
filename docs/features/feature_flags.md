@@ -247,6 +247,19 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 - **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('COMPETITION_TOOLKIT_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/CompetitionToolkitVoterTest.php`, `tests/Controller/CompetitionToolkit/CompetitionToolkitHubTest.php`, and every `*PagesTest` under `tests/CompetitionToolkit/` + `tests/Controller/CompetitionToolkit/` (organiser refused with the flag off, admin allowed)
 - **Remove when:** Jan has run a real event with the toolkit (admin-enabled), the H browser walks are done and he says go (`toolkit/STATUS.md`) - set `1` in production first, then after a few quiet weeks delete the flag and `CompetitionToolkitFeature`; `COMPETITION_TOOLKIT_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes, its callers asking `COMPETITION_EDIT`); the "a row already using it keeps it" branches (`ChangeRoundPuzzleRevealController`, `EditCompetitionRoundController`, `CompetitionNameTagsController`) collapse; the `overrideFeatureFlagEnv` calls go
 
+## Event creation wizard (`EVENT_CREATION_WIZARD`)
+
+- **Feature:** the step-by-step way to create an event (`docs/features/competitions-management/toolkit/W-creation-wizard-research.md`): the entry question "What are you organizing?", and on the one-round path Basics → Puzzle & format → Review (W1); the series path (W3), several rounds (W5), Extras (W6) and the "Get ready" checklist (W2) plug into the same structure. The draft is the wizard's state - no storage of its own
+- **Flag:** env var `EVENT_CREATION_WIZARD` → parameter `eventCreationWizard` (`config/services.php`, bound as `$eventCreationWizard`) → `EventCreationWizardFeature::isAvailableTo(?string $playerId)`, the single decision point. Not a Twig global
+- **Default:** `0` (`.env`, and `.env.test` like production). Admins (`is_granted('ADMIN_ACCESS')`) always have it; `1` gives it to every signed-in player who adds an event
+- **Gated files:**
+  - `src/Services/EventWizard/EventCreationWizardFeature.php` — `isAvailableTo()`; `src/Services/EventWizard/EventWizardAccess.php` — every wizard page asks it first (404 without the feature)
+  - the wizard's routes `event_wizard`, `event_wizard_basics`, `event_wizard_basics_edit`, `event_wizard_puzzle`, `event_wizard_review`, `event_wizard_continue` (`src/Controller/EventWizard/*`) - 404 without the feature
+  - `src/Controller/AddCompetitionController.php` — a GET of `add_competition` without `?classic=1` redirects (302) to `event_wizard` (`?organization=` kept) while the feature is available; without it the page is the classic form exactly as before. Its POST is never redirected. `?recurring=1` ticks "Recurring" (the wizard's "A regular series" until W3)
+- **Not gated:** what the wizard created - a draft made by it is an ordinary draft on every page (publish, edit, rounds, puzzles)
+- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('EVENT_CREATION_WIZARD', true)` before the kernel boots), `tests/Controller/EventWizard/*` (organiser refused with the flag off, admin allowed, the classic form byte-identical with the flag off)
+- **Remove when:** the wizard has every path (W3, W5, W6) and Jan retires the classic add form (W9) - set `1` in production first; after a few quiet weeks delete the flag, `EventCreationWizardFeature` and the redirect's condition (`?classic=1` goes with the classic form)
+
 ## Display image preset (`DISPLAY_IMAGE_PRESET` = configuration, no flag)
 
 - **Feature:** the pictures of timer screens and stream overlays (competition toolkit D7, `docs/features/competitions-management/displays.md`, design `toolkit/D-displays-overlays.md` §10.2) are served through imgproxy with a preset sized for a 1920 × 1080 screen

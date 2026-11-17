@@ -13727,8 +13727,6 @@ results_import:
         from_previous_sheet: "De tu hoja anterior: tiene la fecha y el nombre de un evento ya importado, así que al importarlo se actualiza ese evento en lugar de añadir uno nuevo."
         heading: "Eventos de tu hoja"
         tab: "Pestaña «%tab%»"
-        teams: "%count% equipo|%count% equipos"
-        teams_changing: "%count% equipo cambia|%count% equipos cambian"
         warnings: "%count% cosa que revisar|%count% cosas que revisar"
         preview: "Vista previa"
     status:
@@ -13791,14 +13789,11 @@ results_import:
         category: "Competición"
         time_limit: "Tiempo límite"
         no_time_limit: "Ninguno"
-        teams: "Equipos"
         puzzle_not_approved: "Aún no aprobado"
         no_puzzle: "Aún no hay un puzzle enlazado."
         open_event: "Abrir el evento"
         open_results: "Abrir sus resultados"
         results: "Resultados tal como se mostrarán"
-        team: "Equipo"
-        no_teams: "No hay equipos que mostrar."
     differences:
         heading: "Qué cambia"
         claimed: "Reclamado"
@@ -13841,7 +13836,6 @@ results_import:
         failed: "No importado: algo salió mal y no cambió nada. Inténtalo de nuevo."
     result:
         heading: "Importación terminada"
-        teams: "Equipos - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
         open_results: "Resultados"
         open_event: "Evento"
     history:
@@ -15264,3 +15258,12 @@ relay_result:
     format_guide: "Un relevo (cada equipo hace dos puzzles a la vez): duplica cualquier pestaña, mantén las columnas y en la fila 2 añade el enlace de MySpeedPuzzling del segundo puzzle en una nueva columna Link to MySpeedPuzzling 2. Pon el tiempo total de cada equipo en Time. El total se muestra en el evento, nunca en las páginas de los puzzles."
     template_tabs: "Una pestaña cuyo nombre empieza por Template (Template, Template Relay, Template Solo…) es tu copia en blanco: nunca se importa."
     open_round: "Resultados del evento"
+
+results_import_counts:
+    results: "%count% resultado|%count% resultados"
+    changing: "%count% resultado cambia|%count% resultados cambian"
+    label: "Resultados"
+    none: "No hay resultados que mostrar."
+    summary: "Resultados - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
+    summary_of_category: "Resultados (%category%) - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
+    name_column: "Nombre"

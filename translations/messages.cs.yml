@@ -13729,8 +13729,6 @@ results_import:
         from_previous_sheet: "Z vaší předchozí tabulky - má datum a název události importované dříve, takže import aktualizuje tuto událost a nepřidá novou."
         heading: "Události ve vaší tabulce"
         tab: "Záložka „%tab%“"
-        teams: "{1}%count% tým|[2,4]%count% týmy|[0,Inf[%count% týmů"
-        teams_changing: "{1}%count% tým se mění|[2,4]%count% týmy se mění|[0,Inf[%count% týmů se mění"
         warnings: "{1}%count% věc k prohlédnutí|[2,4]%count% věci k prohlédnutí|[0,Inf[%count% věcí k prohlédnutí"
         preview: "Náhled"
     status:
@@ -13793,14 +13791,11 @@ results_import:
         category: "Soutěž"
         time_limit: "Časový limit"
         no_time_limit: "Žádný"
-        teams: "Týmy"
         puzzle_not_approved: "Zatím neschválené"
         no_puzzle: "Zatím není odkaz na puzzle."
         open_event: "Otevřít událost"
         open_results: "Otevřít její výsledky"
         results: "Výsledky, jak se zobrazí"
-        team: "Tým"
-        no_teams: "Žádné týmy k zobrazení."
     differences:
         heading: "Co se změní"
         claimed: "Přihlášený"
@@ -13843,7 +13838,6 @@ results_import:
         failed: "Neimportováno - něco se pokazilo a nic z ní se nezměnilo. Zkuste to prosím znovu."
     result:
         heading: "Import hotový"
-        teams: "Týmy - nové: %added%, změněné: %updated%, odstraněné: %removed%"
         open_results: "Výsledky"
         open_event: "Událost"
     history:
@@ -15266,3 +15260,12 @@ relay_result:
     format_guide: "Štafeta (každý tým skládá dvě puzzle současně): zkopírujte libovolnou záložku, ponechte sloupce a na řádek 2 přidejte do nového sloupce Link to MySpeedPuzzling 2 odkaz na druhé puzzle na MySpeedPuzzling. Do Time napište celkový čas týmu. Celkový čas se zobrazí u události, nikdy na stránkách puzzle."
     template_tabs: "Záložka, jejíž název začíná na Template (Template, Template Relay, Template Solo…), je vaše prázdná šablona - nikdy se neimportuje."
     open_round: "Výsledky události"
+
+results_import_counts:
+    results: "{1}%count% výsledek|[2,4]%count% výsledky|[0,Inf[%count% výsledků"
+    changing: "{1}%count% výsledek se mění|[2,4]%count% výsledky se mění|[0,Inf[%count% výsledků se mění"
+    label: "Výsledky"
+    none: "Žádné výsledky k zobrazení."
+    summary: "Výsledky - nové: %added%, změněné: %updated%, odstraněné: %removed%"
+    summary_of_category: "Výsledky (%category%) - nové: %added%, změněné: %updated%, odstraněné: %removed%"
+    name_column: "Jméno / název"

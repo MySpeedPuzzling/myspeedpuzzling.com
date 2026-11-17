@@ -86,10 +86,16 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.pieces_count,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > CAST(:now AS TIMESTAMP) THEN NULL ELSE puzzle.image END AS puzzle_image,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    -- A relay team's result (docs/features/event-results-import/solo-and-relays.md §2): the total, how many puzzles,
+    -- NULL / 0 for every other result, which reads no extra row. Its link is the result detail, which leads a relay
+    -- result to the event's round (PuzzleResultDetailController)
+    relay_result.seconds AS relay_total_seconds,
+    CASE WHEN time.relay_result_id IS NOT NULL THEN (SELECT COUNT(*) FROM puzzle_solving_time leg WHERE leg.relay_result_id = time.relay_result_id) ELSE 0 END AS relay_puzzle_count
 FROM puzzle_solving_time time
 INNER JOIN puzzle ON puzzle.id = time.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN relay_result ON relay_result.id = time.relay_result_id
 WHERE time.puzzling_team_id = :teamId
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= CAST(:now AS TIMESTAMP))
 ORDER BY solved_at DESC, time.id
@@ -112,6 +118,8 @@ SQL;
          *     pieces_count: int,
          *     puzzle_image: null|string,
          *     manufacturer_name: string,
+         *     relay_total_seconds: null|int,
+         *     relay_puzzle_count: int,
          * }> $rows
          */
         $rows = $this->database->fetchAllAssociative($query, [
@@ -135,6 +143,8 @@ SQL;
             suspicious: $row['suspicious'],
             piecesPlaced: $row['pieces_placed'],
             finishedLaterSeconds: $row['finished_later_seconds'],
+            relayTotalSeconds: $row['relay_total_seconds'],
+            relayPuzzleCount: (int) $row['relay_puzzle_count'],
         ), $rows);
     }
 

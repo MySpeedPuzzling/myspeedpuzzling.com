@@ -28,6 +28,15 @@ readonly final class PuzzlingTeamTime
         // An unfinished competition result: pieces placed when the round's time ran out - not a solve (CountsAsSolve)
         public null|int $piecesPlaced = null,
         public null|int $finishedLaterSeconds = null,
+        // A relay team's result (docs/features/event-results-import/solo-and-relays.md §2): no time of its own - the
+        // team's total of all the relay's puzzles and how many puzzles
+        public null|int $relayTotalSeconds = null,
+        public int $relayPuzzleCount = 0,
     ) {
+    }
+
+    public function isRelay(): bool
+    {
+        return $this->relayTotalSeconds !== null;
     }
 }

@@ -6,14 +6,14 @@
 <section data-results-import-ranked>
     <h2 class="h5 mb-2">{{ 'results_import.preview.results'|trans }}</h2>
     {% if ranked is empty %}
-        <p class="text-muted small">{{ 'results_import.preview.no_teams'|trans }}</p>
+        <p class="text-muted small">{{ 'results_import_counts.none'|trans }}</p>
     {% else %}
         <div class="table-responsive custom-table-wrapper mb-2">
             <table class="table custom-table table-striped table-hover mb-0">
                 <thead>
                 <tr>
                     <th class="text-center" style="width: 3rem;">#</th>
-                    <th>{{ 'results_import.preview.team'|trans }}</th>
+                    <th>{{ 'results_import_counts.name_column'|trans }}</th>
                     <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
                 </tr>
                 </thead>

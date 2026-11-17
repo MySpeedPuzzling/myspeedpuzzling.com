@@ -13722,8 +13722,6 @@ results_import:
         from_previous_sheet: "De votre feuille précédente - il a la date et le nom d'un événement déjà importé, l'import met donc à jour cet événement au lieu d'en ajouter un nouveau."
         heading: "Événements de votre feuille"
         tab: "Onglet « %tab% »"
-        teams: "%count% équipe|%count% équipes"
-        teams_changing: "%count% équipe change|%count% équipes changent"
         warnings: "%count% point à regarder|%count% points à regarder"
         preview: "Aperçu"
     status:
@@ -13786,14 +13784,11 @@ results_import:
         category: "Compétition"
         time_limit: "Temps limite"
         no_time_limit: "Aucun"
-        teams: "Équipes"
         puzzle_not_approved: "Pas encore approuvé"
         no_puzzle: "Aucun puzzle lié pour l'instant."
         open_event: "Ouvrir l'événement"
         open_results: "Ouvrir ses résultats"
         results: "Résultats tels qu'ils seront affichés"
-        team: "Équipe"
-        no_teams: "Aucune équipe à afficher."
     differences:
         heading: "Ce qui change"
         claimed: "Réclamée"
@@ -13836,7 +13831,6 @@ results_import:
         failed: "Non importé - un problème est survenu et rien n'a changé. Veuillez réessayer."
     result:
         heading: "Import terminé"
-        teams: "Équipes - nouvelles : %added%, modifiées : %updated%, supprimées : %removed%"
         open_results: "Résultats"
         open_event: "Événement"
     history:
@@ -15259,3 +15253,12 @@ relay_result:
     format_guide: "Un relais (chaque équipe fait deux puzzles en même temps) : dupliquez n'importe quel onglet, gardez les colonnes et, en ligne 2, ajoutez le lien MySpeedPuzzling du second puzzle dans une nouvelle colonne Link to MySpeedPuzzling 2. Mettez le temps total de chaque équipe dans Time. Le total est affiché sur l'événement, jamais sur les pages des puzzles."
     template_tabs: "Un onglet dont le nom commence par Template (Template, Template Relay, Template Solo…) est votre modèle vierge - il n'est jamais importé."
     open_round: "Résultats de l'événement"
+
+results_import_counts:
+    results: "%count% résultat|%count% résultats"
+    changing: "%count% résultat change|%count% résultats changent"
+    label: "Résultats"
+    none: "Aucun résultat à afficher."
+    summary: "Résultats - nouveaux : %added%, modifiés : %updated%, supprimés : %removed%"
+    summary_of_category: "Résultats (%category%) - nouveaux : %added%, modifiés : %updated%, supprimés : %removed%"
+    name_column: "Nom"

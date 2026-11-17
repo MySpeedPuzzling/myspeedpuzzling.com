@@ -13716,8 +13716,6 @@ results_import:
         from_previous_sheet: "以前のシートから：以前にインポートしたイベントと日付と名前が同じなので、新しく追加せずにそのイベントを更新します。"
         heading: "シート内のイベント"
         tab: "タブ「%tab%」"
-        teams: "%count%チーム"
-        teams_changing: "%count%チームが変更"
         warnings: "確認事項 %count%件"
         preview: "プレビュー"
     status:
@@ -13780,14 +13778,11 @@ results_import:
         category: "競技"
         time_limit: "制限時間"
         no_time_limit: "なし"
-        teams: "チーム"
         puzzle_not_approved: "未承認"
         no_puzzle: "パズルがまだリンクされていません。"
         open_event: "イベントを開く"
         open_results: "結果を開く"
         results: "表示される結果"
-        team: "チーム"
-        no_teams: "表示するチームはありません。"
     differences:
         heading: "変更内容"
         claimed: "申告済み"
@@ -13830,7 +13825,6 @@ results_import:
         failed: "インポートしませんでした。問題が発生しましたが、何も変更されていません。もう一度お試しください。"
     result:
         heading: "インポート完了"
-        teams: "チーム：新規 %added%、変更 %updated%、削除 %removed%"
         open_results: "結果"
         open_event: "イベント"
     history:
@@ -15253,3 +15247,12 @@ relay_result:
     format_guide: "リレー（各チームが2つのパズルを同時に組む）：任意のタブを複製し、列はそのままで、2行目の新しい列 Link to MySpeedPuzzling 2 に2つ目のパズルの MySpeedPuzzling リンクを追加します。各チームの合計タイムを Time に入力してください。合計タイムはイベントに表示され、パズルのページには表示されません。"
     template_tabs: "名前が Template で始まるタブ（Template、Template Relay、Template Solo…）は空のコピーとして扱われ、インポートされません。"
     open_round: "イベントの結果"
+
+results_import_counts:
+    results: "%count%件の結果"
+    changing: "%count%件の結果が変更"
+    label: "結果"
+    none: "表示する結果はありません。"
+    summary: "結果：新規 %added%、変更 %updated%、削除 %removed%"
+    summary_of_category: "結果（%category%）：新規 %added%、変更 %updated%、削除 %removed%"
+    name_column: "名前"

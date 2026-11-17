@@ -1,6 +1,7 @@
 {#
     The events of a check, one row each: a tick box (New and Changed ones only, ticked), the tab's name, the event's
-    name · day · pairs/teams · teams, its status (why it waits or needs fixing in plain words), how many teams change and
+    name · day · solo/pairs/teams (· "Relay · 2 puzzles") · results, its status (why it waits or needs fixing in plain
+    words), how many results change - "results" fits every category, a Solo event's rows are people - and
     the warnings - a link to its preview. "Import" leads to the confirmation (a GET - nothing changes before it).
     Variables: organization, source_id, overview (ResultsImportOverview)
 #}
@@ -38,8 +39,9 @@
                                 {%- if event.eventName is not null and event.eventName != event.title %}<span class="text-break">{{ 'results_import.list.tab'|trans({'%tab%': event.title}) }}</span> · {% endif -%}
                                 {%- if event.localStartsAt %}<span class="text-nowrap">{{ event.localStartsAt|events_date('yMMMd') }}</span> · {% endif -%}
                                 {%- if event.category %}{{ ('competition.round.category.' ~ event.category.value)|trans }} · {% endif -%}
-                                <span class="text-nowrap">{{ 'results_import.list.teams'|trans({'%count%': item.teamCount}) }}</span>
-                                {%- if item.status.value == 'changed' and item.changedTeamCount > 0 %} · <span class="text-nowrap">{{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}</span>{% endif -%}
+                                {%- if event.isRelay %}<span class="text-nowrap" data-results-import-relay-line>{{ 'relay_result.round_heading'|trans({'%count%': event.puzzleIds|length}) }}</span> · {% endif -%}
+                                <span class="text-nowrap">{{ 'results_import_counts.results'|trans({'%count%': item.teamCount}) }}</span>
+                                {%- if item.status.value == 'changed' and item.changedTeamCount > 0 %} · <span class="text-nowrap">{{ 'results_import_counts.changing'|trans({'%count%': item.changedTeamCount}) }}</span>{% endif -%}
                             </div>
 
                             {% if item.previousSheetKey is not null %}

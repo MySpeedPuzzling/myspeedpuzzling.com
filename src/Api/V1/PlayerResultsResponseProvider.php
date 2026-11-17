@@ -83,6 +83,7 @@ final readonly class PlayerResultsResponseProvider implements ProviderInterface
                     datePrecision: ($puzzle->finishedAt === null ? DatePrecision::Day : $puzzle->datePrecision)->value,
                     piecesPlaced: $puzzle->piecesPlaced,
                     finishedLaterSeconds: $puzzle->finishedLaterSeconds,
+                    relayTotalSeconds: $puzzle->relayTotalSeconds,
                 ),
                 $results,
             ),

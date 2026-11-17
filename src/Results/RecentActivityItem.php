@@ -53,12 +53,28 @@ readonly final class RecentActivityItem
         // pieces placed when the round's time ran out - no time, and no relax solve
         public null|int $piecesPlaced = null,
         public null|int $finishedLaterSeconds = null,
+        // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - never edited
+        // nor deleted, its people may only remove it from their profile
+        public bool $importedFromEvent = false,
+        // A relay team's result (docs/features/event-results-import/solo-and-relays.md §2): no time of its own - the
+        // team's total of all the relay's puzzles, how many puzzles, and the round that ranks it (the row's link)
+        public null|int $relayTotalSeconds = null,
+        public int $relayPuzzleCount = 0,
+        public null|string $relayRoundSlug = null,
     ) {
     }
 
     public function isRelaxMode(): bool
     {
-        return $this->time === null && $this->piecesPlaced === null;
+        return $this->time === null && $this->piecesPlaced === null && $this->relayTotalSeconds === null;
+    }
+
+    /**
+     * One of a relay team's results - shown as "Relay · N puzzles · total", linked to the event's round, never as relax
+     */
+    public function isRelay(): bool
+    {
+        return $this->relayTotalSeconds !== null;
     }
 
     public function isUnfinished(): bool
@@ -109,6 +125,10 @@ readonly final class RecentActivityItem
      *     suspicious?: bool,
      *     pieces_placed?: null|int,
      *     finished_later_seconds?: null|int,
+     *     imported_from_event?: bool,
+     *     relay_total_seconds?: null|int,
+     *     relay_puzzle_count?: null|int,
+     *     relay_round_slug?: null|string,
      *     ...
      * } $row
      */
@@ -161,16 +181,33 @@ readonly final class RecentActivityItem
             datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
             piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
             finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
+            importedFromEvent: ($row['imported_from_event'] ?? false) === true,
+            relayTotalSeconds: isset($row['relay_total_seconds']) ? (int) $row['relay_total_seconds'] : null,
+            relayPuzzleCount: isset($row['relay_puzzle_count']) ? (int) $row['relay_puzzle_count'] : 0,
+            relayRoundSlug: $row['relay_round_slug'] ?? null,
         );
     }
 
     /**
      * Whoever tracked the time and every registered group member may edit it,
-     * mirroring PuzzleSolvingTime::canBeModifiedBy().
+     * mirroring PuzzleSolvingTime::canBeModifiedBy() - never an imported event result, that one is the event's.
      */
     public function isEditableBy(null|string $playerId): bool
     {
-        if ($playerId === null) {
+        if ($playerId === null || $this->importedFromEvent) {
+            return false;
+        }
+
+        return $playerId === $this->playerId || Puzzler::listContainsPlayer($this->players, $playerId);
+    }
+
+    /**
+     * An imported event result the player holds a spot of: "Remove from my profile" instead of Edit and Delete
+     * (docs/features/event-results-import/README.md "Gates"), like SolvedPuzzle::isReleasableBy().
+     */
+    public function isReleasableBy(null|string $playerId): bool
+    {
+        if ($playerId === null || $this->importedFromEvent === false) {
             return false;
         }
 

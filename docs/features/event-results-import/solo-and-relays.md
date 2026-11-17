@@ -102,8 +102,9 @@ plan was not what the code needed:
 - A tab that turns into a relay or back after its import is `puzzle_changed_after_import`.
 - The round page reads the relay teams in the same statement as the round's results, so no other round page runs a
   statement more (`OfficialRoundResultsPageTest`).
-- Not done: a claimed relay result reads as a relax solve on the Hub feed, the team page, API v1 and the exports
-  (docs/TODO.md).
+- Since 2026-11-17 a claimed relay result is "Relay · 2 puzzles · total" in the recent activity (linked to the round,
+  only "Remove from my profile" in its ⋯ menu), on the team page and in API v1 (`relay_total_seconds`); the results
+  export and API v0 still read it like a relax one (docs/TODO.md).
 
 A relay is a team event where one team solves **two puzzles at the same time**, and only the **total time** is known.
 

@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -415,6 +416,56 @@ final class BlocklistCanaryTest extends WebTestCase
             static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
         ));
         self::assertCount(2, $crawler->filter('[data-official-results] [data-official-entry-puzzles]'));
+    }
+
+    /**
+     * The public competitor pages (competition toolkit B4, docs/features/competitions-management/competitor-pages.md):
+     * the page of a player the viewer blocked - their person page, their round entry, a line-up with them - is not
+     * there for the blocker; a table page and its state JSON keep the round but show "—" instead of them.
+     */
+    public function testABlockedPlayersCompetitorPageIsNotThereAndATableMasksThem(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $cup]);
+        // "Ben Steady" (table 2 of Group A, half of the Puzzle Sharks) is the blocked player
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $pages = [
+            '/en/competitor/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_BEN,
+            '/en/competitor/' . $cup . '/e/' . OfficialResultsFixture::ENTRY_A_BEN,
+            '/en/competitor/' . $cup . '/g/' . CompetitionLineupId::of($cup, [OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::PARTICIPANT_BEN]),
+            '/competitor-state/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_BEN,
+        ];
+        $tables = ['/en/competitor/' . $cup . '/t/2', '/competitor-state/' . $cup . '/t/2'];
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        foreach ([...$pages, ...$tables] as $url) {
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful($url);
+            self::assertStringContainsString('Ben Steady', (string) $browser->getResponse()->getContent(), 'No canary: ' . $url);
+        }
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        foreach ($pages as $url) {
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(404, 'The blocker is shown a player they blocked: ' . $url);
+        }
+        foreach ($tables as $url) {
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful($url);
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked: ' . $url);
+            self::assertStringNotContainsString(self::BLOCKED, $content, $url);
+            self::assertStringNotContainsString(self::BLOCKED_NAME, $content, $url);
+        }
     }
 
     /**

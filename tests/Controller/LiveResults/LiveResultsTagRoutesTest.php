@@ -54,10 +54,9 @@ final class LiveResultsTagRoutesTest extends WebTestCase
     }
 
     /**
-     * With competitor pages on only the public branch changes: organisers and referees land where they did.
-     * TODO(B4): once the `competitor_page` route exists (CompetitorPageUrl), the public rows of known tags lead to
-     * `/en/competitor/{cid}/{kind}/{id}` - regenerate the golden (UPDATE_GOLDEN=1) and check every such row by eye. Until
-     * then they fall back to the event page, exactly like the "off" matrix.
+     * With competitor pages on only the public branch changes: organisers and referees land where they did; signed out
+     * and puzzlers open the tag's competitor page (`/en/competitor/{cid}/{kind}/{id}`, CompetitorPageController) for a
+     * known tag (every table is one), the event page for an unknown one, the events list for a draft's.
      */
     public function testCompetitorPagesOnEveryViewerAndEveryTagKind(): void
     {

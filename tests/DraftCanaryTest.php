@@ -419,6 +419,62 @@ final class DraftCanaryTest extends WebTestCase
     /**
      * @param self::COMPETITION|self::SERIES|self::ORGANIZATION $table
      */
+    /**
+     * The public competitor pages and their state JSON (competition toolkit B4): a page of an event's own, open to
+     * anybody once the event is published and has competitor pages on, a 404 for a guest and a player off its team
+     * while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
+     * competitor pages and an entry by SQL; Quiet Pines #1 (an edition of a draft series) a table page.
+     */
+    public function testTheCompetitorPagesOfADraftAreNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            'UPDATE competition SET competitor_pages = true WHERE id IN (:night, :pines)',
+            ['night' => $draftNight, 'pines' => OrganizationFixture::EDITION_QUIET_PINES_1],
+        );
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, table_number) VALUES (:id, :participant, :round, 3)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+
+        $items = [
+            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId], '/live/' . $draftNight . '/t/3'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
+        ];
+
+        foreach ($items as [$table, $id, $urls, $tag]) {
+            foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $this->setDraft($table, $id, false);
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseIsSuccessful('No canary: ' . $url . ' is not there once published');
+                }
+                $browser->request('GET', $tag);
+                self::assertStringContainsString('/competitor/', (string) $browser->getResponse()->headers->get('Location'), 'No canary: ' . $tag);
+
+                $this->setDraft($table, $id, true);
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s competitor page is public: ' . $url);
+                }
+                $browser->request('GET', $tag);
+                self::assertResponseRedirects('/en/events', null, 'A tag leads into a draft: ' . $tag);
+            }
+        }
+    }
+
     private function setDraft(string $table, string $id, bool $isDraft): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(

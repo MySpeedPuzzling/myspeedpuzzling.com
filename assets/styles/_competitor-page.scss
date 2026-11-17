@@ -1,0 +1,174 @@
+// The public competitor page (templates/competitor_page/, docs/features/competitions-management/competitor-pages.md):
+// mobile first - one column of round cards people read on a phone at the table.
+.competitor-page {
+    max-width: 40rem;
+    margin: 0 auto;
+}
+
+.competitor-page-title {
+    font-size: 1.375rem;
+    margin-bottom: .25rem;
+    overflow-wrap: anywhere;
+}
+
+.competitor-page-people,
+.competitor-round-puzzle-list {
+    padding-left: 0;
+    list-style: none;
+}
+
+.competitor-page-people {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    margin-bottom: 0;
+
+    .lb-player {
+        font-size: 1.125rem;
+        font-weight: 500;
+    }
+
+    &.is-team .lb-player {
+        font-size: 1rem;
+    }
+}
+
+.competitor-page-person {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .375rem;
+    min-width: 0;
+}
+
+.competitor-page-code {
+    font-size: .875rem;
+}
+
+.competitor-page-you {
+    background-color: $primary;
+    color: #fff;
+}
+
+.competitor-page-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+.competitor-round {
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    padding: .75rem;
+    background: #fff;
+
+    &.is-current {
+        border-color: $primary;
+        box-shadow: 0 0 0 1px $primary;
+    }
+}
+
+.competitor-round-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin-bottom: .25rem;
+}
+
+.competitor-round-name {
+    font-size: 1.0625rem;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.competitor-round-now {
+    background-color: rgba($primary, .12);
+    color: $primary;
+}
+
+.competitor-round-meta {
+    margin-bottom: .375rem;
+}
+
+.competitor-round-table {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: .375rem;
+}
+
+.competitor-round-entrant {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin-bottom: .5rem;
+}
+
+.competitor-round-puzzle-list {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    margin-bottom: .5rem;
+}
+
+.competitor-round-puzzle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+
+.competitor-puzzle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+
+.competitor-puzzle-thumb,
+.competitor-puzzle-tile {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: .375rem;
+    object-fit: cover;
+}
+
+.competitor-puzzle-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-100;
+    color: $gray-600;
+}
+
+.competitor-puzzle-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.competitor-puzzle-name {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.competitor-puzzle-meta {
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+.competitor-round-result {
+    border-top: 1px solid $border-color;
+    padding-top: .5rem;
+}
+
+.competitor-round-result-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1.375rem;
+    font-weight: 600;
+}

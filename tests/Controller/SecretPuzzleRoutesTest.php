@@ -183,6 +183,79 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         }
     }
 
+    /**
+     * The public competitor page and its state JSON (toolkit B4, the public rule of R-review-and-plan.md §1.5): the
+     * secret is not on them for anybody - a maintainer of the event and an admin neither - not its name, puzzle id or
+     * EAN; with "When the stopwatch starts" and a countdown it stays out at scheduled - 1 s and is there at the start.
+     */
+    public function testACompetitorPageNeverCarriesTheSecretBeforeTheReveal(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        $puzzleId = $this->secretPuzzle();
+        $container = self::getContainer();
+        $connection = $container->get(Connection::class);
+        $competitionId = CompetitionApiFixture::COMPETITION_API;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $competitionId]);
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Sam Scanner', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $competitionId],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, table_number) VALUES (:id, :participant, :round, 7)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => CompetitionApiFixture::ROUND_FUTURE],
+        );
+        $urls = [
+            '/en/competitor/' . $competitionId . '/p/' . $participantId,
+            '/en/competitor/' . $competitionId . '/t/7',
+            '/competitor-state/' . $competitionId . '/p/' . $participantId,
+        ];
+        $assertSecret = function (bool $revealed, string $when) use ($browser, $urls, $puzzleId): void {
+            foreach ([[null, 'a guest'], [PlayerFixture::PLAYER_WITH_FAVORITES, 'a maintainer of the event'], [PlayerFixture::PLAYER_ADMIN, 'an admin']] as [$playerId, $who]) {
+                $browser->restart();
+                if ($playerId !== null) {
+                    TestingLogin::asPlayer($browser, $playerId);
+                }
+
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseIsSuccessful("{$who} {$url}");
+                    $content = html_entity_decode((string) $browser->getResponse()->getContent(), ENT_QUOTES | ENT_HTML5);
+                    self::assertStringContainsString('API Visible', $content, 'No canary: the page shows no puzzle at all.');
+
+                    if ($revealed) {
+                        self::assertStringContainsString(self::SECRET_NAME, $content, "{$when}: {$who} {$url}");
+                        continue;
+                    }
+
+                    foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN] as $secret) {
+                        self::assertStringNotContainsString($secret, $content, "{$when}: {$who} {$url}");
+                    }
+                }
+            }
+        };
+
+        $assertSecret(false, 'manual reveal not made');
+
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $roundPuzzle = $entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy(['puzzle' => $puzzleId]);
+        self::assertNotNull($roundPuzzle);
+        $bus = $container->get(MessageBusInterface::class);
+        $bus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch));
+        $entityManager->clear();
+        $round = $entityManager->find(CompetitionRound::class, CompetitionApiFixture::ROUND_FUTURE);
+        self::assertNotNull($round);
+        $hash = SecretRevealPreview::stopwatchStartHash($container->get(SecretRevealPreview::class)->byStopwatchStart($round), $round);
+        $bus->dispatch(new ScheduleRoundStart(CompetitionApiFixture::ROUND_FUTURE, TestClock::now()->modify('+1 second'), PlayerFixture::PLAYER_ADMIN, revealPuzzles: true, revealListHash: $hash));
+        $entityManager->clear();
+
+        $assertSecret(false, 'scheduled - 1 s');
+
+        $container->get(ClockInterface::class)->sleep(1);
+        $assertSecret(true, 'at the start');
+    }
+
     public function testAdminPagesOfASecretPuzzleAreForAdminsOnly(): void
     {
         $browser = self::createClient();

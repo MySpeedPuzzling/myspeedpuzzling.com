@@ -28,10 +28,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The public branch of a tag scan with competitor pages on (B-qr-competitor-page.md §3.3 branch 2): the tag's own
- * competitor page for a tag of somebody in the event, the event page for anything else. The page itself is package
- * B4's - here a stand-in `competitor_page` route of the agreed shape (CompetitorPageUrl) proves the branch now; the
- * app's own router has no such route yet, so LiveResultsTagRoutesTest's "on" matrix still shows the event page.
- * TODO(B4): with the real route, LiveResultsTagRoutesTest covers this end to end - keep this one for the contract.
+ * competitor page for a tag of somebody in the event, the event page for anything else. A stand-in `competitor_page`
+ * route of the agreed shape (CompetitorPageUrl) pins the contract; LiveResultsTagRoutesTest's "on" matrix covers the
+ * real route end to end.
  */
 final class CompetitionTagLandingTest extends KernelTestCase
 {

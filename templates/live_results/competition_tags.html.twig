@@ -150,7 +150,7 @@
         <span>{{ 'name_tags.toolkit.count'|trans({'%count%': tags|length}) }}</span>
     </form>
 
-    <p class="hint">{{ ('name_tags.toolkit.hint_' ~ kind)|trans }}</p>
+    <p class="hint">{{ ('name_tags.toolkit.hint_' ~ kind)|trans }} <span data-scan-public>{{ (competitor_pages ? 'competitor_page.print.scan_page' : 'competitor_page.print.scan_event')|trans }}</span></p>
     {% if layout == 'tents' %}
         <p class="hint">{{ 'name_tags.toolkit.hint_tents'|trans }}</p>
     {% else %}

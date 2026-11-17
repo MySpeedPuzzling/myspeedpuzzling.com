@@ -99,10 +99,8 @@ final readonly class CompetitionTagLanding
 
         // Competitor pages on (toolkit B): the tag's own page - for a tag of nobody in the event, the event page
         if ($canEnterResults === false && $competition->competitorPages) {
-            $competitorPage = $this->competitorPageUrl->of($competitionId, $tag, $locale);
-
-            if ($competitorPage !== null && $this->competitionTagResolver->knows($competitionId, $tag)) {
-                return $competitorPage;
+            if ($this->competitionTagResolver->knows($competitionId, $tag)) {
+                return $this->competitorPageUrl->of($competitionId, $tag, $locale);
             }
         }
 

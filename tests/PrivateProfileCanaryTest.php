@@ -380,6 +380,44 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The public competitor pages (competition toolkit B4): her person page and the table she sits at name her by the
+     * organiser's name only ("Gina Quick") - no profile name, link, #code or id - except for the friend; the state JSON
+     * never carries a player id or code at all.
+     */
+    public function testHerCompetitorPageLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $cup]);
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $pages = ['/en/competitor/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_GINA, '/en/competitor/' . $cup . '/t/1'];
+        $state = '/competitor-state/' . $cup . '/p/' . OfficialResultsFixture::PARTICIPANT_GINA;
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ([...$pages, $state] as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsString('#PLAYER2', $content, $url);
+            }
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        foreach ($pages as $url) {
+            self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary: ' . $url);
+        }
+        self::assertStringContainsString('#PLAYER2', $this->get($browser, $pages[0]), 'her code, for the friend');
+        self::assertStringNotContainsString(self::OWNER, $this->get($browser, $state), 'the JSON names people only');
+    }
+
+    /**
      * The same on a `pick` round's page (competition toolkit A5): her row with its chosen puzzles names her by the
      * organiser's name only (OfficialEntrantsView), except for the friend.
      */

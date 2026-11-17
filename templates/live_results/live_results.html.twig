@@ -144,6 +144,37 @@
     puzzleHidden: 'live_results.puzzles.hidden'|trans,
     puzzleMissing: 'live_results.puzzles.missing_filter'|trans({'%count%': '%count%'}),
     fieldPuzzles: 'live_results.puzzles.field'|trans,
+    proposalTitle: 'live_results.proposals.title'|trans,
+    proposalFrom: 'live_results.proposals.from'|trans,
+    proposalBy: 'live_results.proposals.by'|trans,
+    proposalTapped: 'live_results.proposals.tapped'|trans,
+    proposalLate: 'live_results.proposals.late'|trans,
+    proposalLateTimes: 'live_results.proposals.late_times'|trans,
+    proposalClockChanged: 'live_results.proposals.clock_changed'|trans,
+    proposalLinked: 'live_results.proposals.linked'|trans,
+    proposalConfirm: 'live_results.proposals.confirm'|trans,
+    proposalReplace: 'live_results.proposals.replace'|trans,
+    proposalChange: 'live_results.proposals.change'|trans,
+    proposalReject: 'live_results.proposals.reject'|trans,
+    proposalRejectWhy: 'live_results.proposals.reject_why'|trans,
+    proposalRejectCancel: 'live_results.proposals.reject_cancel'|trans,
+    proposalDiffers: 'live_results.proposals.differs'|trans,
+    proposalMatches: 'live_results.proposals.matches'|trans,
+    proposalPickPuzzle: 'live_results.proposals.pick_puzzle'|trans,
+    proposalConfirmWaiting: 'live_results.proposals.confirm_waiting'|trans,
+    proposalRejectWaiting: 'live_results.proposals.reject_waiting'|trans,
+    proposalRejected: 'live_results.proposals.rejected'|trans,
+    proposalsWaiting: 'live_results.proposals.waiting'|trans,
+    proposalAgeSeconds: 'live_results.proposals.age_seconds'|trans,
+    proposalAgeMinutes: 'live_results.proposals.age_minutes'|trans,
+    fieldProposal: 'live_results.proposals.field'|trans,
+    proposalStatus_confirmed: 'live_results.proposals.status.confirmed'|trans,
+    proposalStatus_rejected: 'live_results.proposals.status.rejected'|trans,
+    proposalStatus_superseded: 'live_results.proposals.status.superseded'|trans,
+    proposalStatus_withdrawn: 'live_results.proposals.status.withdrawn'|trans,
+    proposalReason_not_finished: 'live_results.proposals.reason.not_finished'|trans,
+    proposalReason_wrong_entry: 'live_results.proposals.reason.wrong_entry'|trans,
+    proposalReason_other: 'live_results.proposals.reason.other'|trans,
 } %}
 
 {% block title %}{{ 'live_results.title'|trans }}{% endblock %}
@@ -213,6 +244,10 @@
         .lr-chip-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
         .lr-chip-name { font-size: .8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lr-chip-order { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--bs-success, #198754); color: #fff; font-weight: 700; font-size: .875rem; }
+        .lr-proposal { margin-bottom: .75rem; padding: .75rem; border: 2px solid var(--bs-success, #198754); border-radius: .75rem; background: #f1faf4; }
+        .lr-proposal[data-state="differs"] { border-color: #e0a800; background: #fff8e6; }
+        .lr-proposal[data-state="decided"], .lr-proposal[data-state="matches"], .lr-proposal[data-state="sending"] { border-width: 1px; border-color: var(--bs-border-color, #e3e9ef); background: var(--bs-tertiary-bg, #f8f9fa); }
+        .lr-proposal-time { font-size: 1.75rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
         .lr-hidden { display: none !important; }
     </style>
 
@@ -305,6 +340,8 @@
 
             <div data-live-results-target="recentBlock">
                 {# A pick round's entries with a result but no puzzle chosen (toolkit C10): shown by the controller #}
+                {# Time proposals waiting for a judge (toolkit C9) - rows open the entry: shown by the controller #}
+                <button type="button" class="btn btn-outline-success btn-sm mt-3 me-1" data-live-results-target="proposalsButton" data-action="live-results#toggleProposals" aria-pressed="false" hidden></button>
                 <button type="button" class="btn btn-outline-warning btn-sm mt-3" data-live-results-target="missingButton" data-action="live-results#toggleMissing" aria-pressed="false" hidden></button>
                 <h2 class="lr-recent-title" data-live-results-target="recentTitle">{{ 'live_results.recent.title'|trans }}</h2>
                 <div class="lr-list" data-live-results-target="recent"></div>
@@ -334,6 +371,9 @@
 
             {# A pick round's puzzle chips (toolkit C10): put in by the controller #}
             <div class="mb-3" data-live-results-target="puzzles" hidden></div>
+
+            {# A competitor's time proposal (toolkit C9): put in by the controller #}
+            <div class="lr-entry-step" data-live-results-target="proposal" hidden></div>
 
             {# 3. Confirm - on the same card (competition toolkit C7): the value large, what it replaces, Save focused
                where "Finished now" was. Save ignores a tap within 350 ms of this showing up (a double tap) #}

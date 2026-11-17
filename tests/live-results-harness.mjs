@@ -41,6 +41,7 @@ import {
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick, unfinishedResult } from '../assets/live_entry_puzzles.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
+import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, rejectionChange, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
@@ -1634,9 +1635,234 @@ const scenarios = {
         assert.deepEqual(draft.choice, [P_C, P_A]);
         assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', savedAt: 1 }).choice, null);
     },
+
+    // ---- Time proposals (competition toolkit C9) ----
+
+    async 'a confirmation carries its proposal on the wire, a Keep mine too, an undo does not'() {
+        const { outbox, server } = setup();
+        const { items, persisted } = outbox.enqueueGroup([{ roundId: ROUND_A, entryRef: ANNA, field: 'result', serverValue: null, to: { seconds: 2712 }, proposalId: PROP_1 }]);
+        await persisted;
+        assert.equal(items[0].proposalId, PROP_1);
+        server.decide = () => ({ status: 'conflict', current: { seconds: 2800 } });
+        await outbox.flush();
+        assert.equal(server.requests[0].changes[0].proposalId, PROP_1);
+        assert.equal(server.requests[0].changes[0].field, 'result');
+
+        server.decide = () => ({ status: 'applied', proposal: { id: PROP_1, status: 'confirmed' } });
+        await outbox.keepMine(items[0].id);
+        await outbox.flush();
+        assert.equal(server.requests[1].changes[0].proposalId, PROP_1, 'Keep mine resends the confirmation');
+        assert.deepEqual(server.requests[1].changes[0].from, { seconds: 2800 });
+
+        // Sent already: the opposite change is a plain result change
+        const sent = items[0];
+        server.decide = () => ({ status: 'applied' });
+        outbox.inFlight.add(sent.id);
+        outbox.items.push({ ...sent, state: 'pending' });
+        const opposite = await outbox.undo(sent);
+        outbox.inFlight.delete(sent.id);
+        assert.equal(opposite.proposalId, undefined);
+        assert.equal(outbox.wire(opposite).proposalId, undefined);
+        assert.ok(!('proposalId' in outbox.wire({ id: 'x', field: 'table_number', entryRef: ANNA, from: null, to: 3 })), 'other changes keep their shape');
+    },
+
+    async 'a rejection names its proposal, is never chained and has no opposite'() {
+        const { outbox, server } = setup();
+        const proposal = { id: PROP_1, entry: ANNA };
+        const change = rejectionChange(proposal, 'not_finished');
+        const first = outbox.enqueueGroup([{ roundId: ROUND_A, entryRef: ANNA, field: 'proposal', serverValue: change.from, to: change.to }]);
+        await first.persisted;
+        const second = outbox.enqueueGroup([{ roundId: ROUND_A, entryRef: ANNA, field: 'proposal', serverValue: { id: PROP_2 }, to: rejectionChange({ id: PROP_2 }, 'nonsense').to }]);
+        await second.persisted;
+        server.decide = (sentChange) => ({ status: 'applied', proposal: { id: sentChange.from.id, status: 'rejected' } });
+        const annotations = [];
+        outbox.onProposals = (list, roundId) => annotations.push([roundId, list]);
+        await outbox.flush();
+
+        assert.deepEqual(server.requests[0].changes.map((sent) => [sent.field, sent.entry, sent.from, sent.to]), [
+            ['proposal', ANNA, { id: PROP_1 }, { status: 'rejected', reason: 'not_finished' }],
+            ['proposal', ANNA, { id: PROP_2 }, { status: 'rejected', reason: 'other' }],
+        ]);
+        assert.ok(server.requests[0].changes.every((sent) => !('proposalId' in sent)));
+        assert.deepEqual(annotations, [[ROUND_A, [{ id: PROP_1, status: 'rejected' }, { id: PROP_2, status: 'rejected' }]]]);
+
+        // Sent: nothing to undo
+        assert.equal(await outbox.undo({ ...first.items[0] }), null);
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'a confirmation made offline goes once the device is online again'() {
+        const { outbox, server, clock } = setup();
+        server.answers.push({ kind: 'offline' });
+        const fields = confirmFields(null, [], { seconds: 2713 }, entry(ANNA, 'Anna', 12), [], PROP_1).fields;
+        const { persisted } = outbox.enqueueGroup(fields.map((field) => ({ roundId: ROUND_A, entryRef: ANNA, serverValue: null, ...field })));
+        await persisted;
+        await outbox.flush();
+        assert.equal(outbox.status().offline, true);
+        assert.equal(outbox.all().length, 1, 'kept on the device');
+
+        const proposals = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]);
+        assert.equal(proposalPanel(proposalOfEntry(proposals, ANNA), entry(ANNA, 'Anna', 12), outbox.all()).state, 'sending');
+        assert.deepEqual(waitingProposals(proposals, () => entry(ANNA, 'Anna', 12), outbox.all()), [], 'decided here: not waiting any more');
+
+        let annotated = proposals;
+        outbox.onProposals = (list) => { for (const item of list) { annotated = applyOutcome(annotated, item).proposals; } };
+        server.decide = (change) => ({ status: 'applied', proposal: { id: change.proposalId, status: 'confirmed' } });
+        clock.now += 500;
+        await outbox.connectionBack();
+
+        assert.equal(server.requests.length, 2);
+        assert.equal(server.requests[1].changes[0].proposalId, PROP_1);
+        assert.equal(outbox.hasUnsent(), false);
+        assert.equal(annotated.get(PROP_1).status, 'confirmed');
+        assert.equal(proposalPanel(proposalOfEntry(annotated, ANNA), entry(ANNA, 'Anna', 12), []).state, 'decided');
+    },
+
+    'proposals merge by id and a decided one never turns pending again'() {
+        let proposals = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA), { id: 'broken' }, proposalOf(PROP_2, BEN.toUpperCase())]);
+        assert.deepEqual([...proposals.keys()], [PROP_1, PROP_2]);
+        assert.equal(proposals.get(PROP_2).entry, BEN, 'refs compared lower-cased');
+
+        // Mercure: the competitor withdrew
+        proposals = mergeProposals(proposals, [proposalOf(PROP_1, ANNA, { status: 'withdrawn', decided: { at: new Date(T_STATE - 5000).toISOString(), seconds: null, reason: null } })]);
+        assert.equal(proposals.get(PROP_1).status, 'withdrawn');
+        // An older copy (a state read before) says pending: decided stays decided
+        proposals = mergeProposals(proposals, [proposalOf(PROP_1, ANNA)]);
+        assert.equal(proposals.get(PROP_1).status, 'withdrawn');
+
+        // A state answer drops what it does not list - unless it came after the state was read
+        const late = proposalOf(PROP_3, CARA, { receivedAtMs: T_STATE + 1000 });
+        proposals = mergeProposals(proposals, [late]);
+        proposals = mergeProposals(proposals, [proposalOf(PROP_2, BEN)], { stateAtMs: T_STATE });
+        assert.deepEqual([...proposals.keys()].sort(), [PROP_2, PROP_3].sort());
+        // A snapshot's state (no server time) drops nothing
+        assert.equal(mergeProposals(proposals, [], { stateAtMs: NaN }).size, 2);
+    },
+
+    'the server\'s word on a proposal is kept at once, an old copy asks for the state'() {
+        const proposals = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]);
+        const confirmed = applyOutcome(proposals, { id: PROP_1.toUpperCase(), status: 'confirmed' }, '2026-11-17T10:00:00+00:00');
+        assert.equal(confirmed.stale, false);
+        assert.equal(confirmed.proposals.get(PROP_1).status, 'confirmed');
+        assert.equal(proposals.get(PROP_1).status, 'pending', 'no mutation');
+        assert.equal(applyOutcome(proposals, { id: PROP_1, status: 'not_pending' }).stale, true);
+        assert.equal(applyOutcome(proposals, { id: PROP_9, status: 'unknown' }).stale, true);
+        assert.equal(applyOutcome(proposals, { id: PROP_1, status: 'pending' }).proposals.get(PROP_1).status, 'pending');
+    },
+
+    'the card panel: confirm, differs, matches, sending, decided - late defaults to the receipt'() {
+        const anna = entry(ANNA, 'Anna', 12);
+        const pending = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]).get(PROP_1);
+        assert.deepEqual(proposalPanel(pending, anna, []), { state: 'confirm', value: { seconds: 2712 }, saved: null });
+        assert.deepEqual(proposalValue(pending), { seconds: 2712 });
+
+        const late = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA, { late: true, lateByMs: 12000, receiptSeconds: 2724 })]).get(PROP_1);
+        assert.deepEqual(proposalValue(late), { seconds: 2724 }, 'late: the receipt time');
+        assert.deepEqual(proposalPanel(late, anna, []).value, { seconds: 2724 });
+
+        assert.equal(proposalPanel(pending, entry(ANNA, 'Anna', 12, { result: { seconds: 2800 } }), []).state, 'differs');
+        assert.deepEqual(proposalPanel(pending, entry(ANNA, 'Anna', 12, { result: { seconds: 2800 } }), []).saved, { seconds: 2800 });
+        assert.equal(proposalPanel(pending, entry(ANNA, 'Anna', 12, { result: { seconds: 2712 } }), []).state, 'matches');
+        // This device's waiting result counts as saved
+        assert.equal(proposalPanel(pending, anna, [{ entryRef: ANNA, field: 'result', seq: 1, state: 'pending', to: { seconds: 99 } }]).state, 'differs');
+        // Decided on this device: waiting / its problem shown instead
+        assert.deepEqual(proposalPanel(pending, anna, [{ entryRef: ANNA, field: 'proposal', seq: 1, state: 'pending', from: { id: PROP_1 }, to: {} }]), { state: 'sending', value: { seconds: 2712 }, rejecting: true });
+        assert.equal(proposalPanel(pending, anna, [{ entryRef: ANNA, field: 'result', seq: 1, state: 'conflict', proposalId: PROP_1, to: { seconds: 2712 } }]), null);
+        assert.equal(proposalPanel(null, anna, []), null);
+    },
+
+    'a proposal superseded or withdrawn while its card is open changes the panel in place'() {
+        const anna = entry(ANNA, 'Anna', 12);
+        let proposals = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]);
+        assert.equal(proposalPanel(proposalOfEntry(proposals, ANNA), anna, []).state, 'confirm');
+
+        proposals = mergeProposals(proposals, [proposalOf(PROP_1, ANNA, { status: 'superseded', decided: { at: '2026-11-17T10:00:00+00:00', byName: 'Eva', seconds: null, reason: 'result_recorded' } })]);
+        assert.equal(proposalPanel(proposalOfEntry(proposals, ANNA), anna, []).state, 'decided');
+
+        // The competitor proposes again: the new pending one is the card's
+        proposals = mergeProposals(proposals, [proposalOf(PROP_2, ANNA, { proposedSeconds: 2750, receiptSeconds: 2751 })]);
+        assert.equal(proposalOfEntry(proposals, ANNA).id, PROP_2);
+        assert.deepEqual(proposalPanel(proposalOfEntry(proposals, ANNA), anna, []).value, { seconds: 2750 });
+        assert.equal(decisionOnDevice(PROP_2, []), null);
+    },
+
+    'proposals waiting: pending, known entries, not decided here, oldest first'() {
+        const entries = new Map([[ANNA, entry(ANNA, 'Anna', 12)], [BEN, entry(BEN, 'Ben', 3)]]);
+        const proposals = mergeProposals(new Map(), [
+            proposalOf(PROP_1, ANNA, { receivedAtMs: T_STATE + 50 }),
+            proposalOf(PROP_2, BEN, { receivedAtMs: T_STATE + 10 }),
+            proposalOf(PROP_3, CARA, { receivedAtMs: T_STATE }),
+            proposalOf(PROP_9, ANNA, { status: 'withdrawn' }),
+        ]);
+        const rows = waitingProposals(proposals, (ref) => entries.get(ref) ?? null, []);
+        assert.deepEqual(rows.map((row) => [row.proposal.id, row.entry.ref]), [[PROP_2, BEN], [PROP_1, ANNA]]);
+        assert.deepEqual(waitingProposals(proposals, (ref) => entries.get(ref) ?? null, [{ entryRef: BEN, field: 'result', proposalId: PROP_2, state: 'pending' }]).map((row) => row.proposal.id), [PROP_1]);
+        assert.deepEqual(ageOf(1000, 41000), { unit: 'seconds', count: 40 });
+        assert.deepEqual(ageOf(0, 150000), { unit: 'minutes', count: 2 });
+    },
+
+    'a pick round confirms with the puzzle choice - one group, never without it'() {
+        const format = pickRound(1);
+        const anna = entry(ANNA, 'Anna', 12);
+        assert.equal(confirmFields(format, [], { seconds: 2712 }, anna, [], PROP_1).needsChoice, true);
+        assert.deepEqual(confirmFields(format, [], { seconds: 2712 }, anna, [], PROP_1).fields, []);
+
+        const { fields, needsChoice } = confirmFields(format, [P_B], { seconds: 2712 }, anna, [], PROP_1.toUpperCase());
+        assert.equal(needsChoice, false);
+        assert.deepEqual(fields, [
+            { field: 'puzzles', to: [{ roundPuzzleId: P_B, done: true }] },
+            { field: 'result', to: { seconds: 2712 }, proposalId: PROP_1 },
+        ]);
+
+        // A total round: the result alone - also when the same time is saved (it still confirms)
+        assert.deepEqual(confirmFields(null, [], { seconds: 2712 }, entry(ANNA, 'Anna', 12, { result: { seconds: 2712 } }), [], PROP_1).fields, [{ field: 'result', to: { seconds: 2712 }, proposalId: PROP_1 }]);
+    },
+
+    async 'a pick round\'s confirmation is never split from its puzzles'() {
+        const { outbox, server } = setup({ batchSize: 2 });
+        await save(outbox, BEN, { seconds: 1 });
+        const { fields } = confirmFields(pickRound(1), [P_A], { seconds: 2712 }, entry(ANNA, 'Anna', 12), [], PROP_1);
+        const { persisted, groupId } = outbox.enqueueGroup(fields.map((field) => ({ roundId: ROUND_A, entryRef: ANNA, serverValue: null, ...field })));
+        await persisted;
+        assert.notEqual(groupId, null);
+        await outbox.flush();
+
+        assert.equal(server.requests.length, 2, 'the group waits for the next request rather than split');
+        assert.deepEqual(server.requests[1].changes.map((change) => [change.field, change.proposalId ?? null]), [['puzzles', null], ['result', PROP_1]]);
+    },
+
+    'the draft keeps the proposal a Change edits'() {
+        assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', proposalId: PROP_1, savedAt: 1 }).proposalId, PROP_1);
+        assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', savedAt: 1 }).proposalId, null);
+    },
 };
 
 const P_A = '018d0020-0000-0000-0000-00000000a001';
+const PROP_1 = '019a0000-0000-7000-8000-0000000000f1';
+const PROP_2 = '019a0000-0000-7000-8000-0000000000f2';
+const PROP_3 = '019a0000-0000-7000-8000-0000000000f3';
+const PROP_9 = '019a0000-0000-7000-8000-0000000000f9';
+const T_STATE = 1_763_390_000_000;
+
+function proposalOf(id, ref, extra = {}) {
+    return {
+        id,
+        roundId: ROUND_A,
+        entry: ref,
+        tableNumber: 12,
+        status: 'pending',
+        proposedSeconds: 2712,
+        receiptSeconds: 2713,
+        tappedAtMs: T_STATE - 2000,
+        receivedAtMs: T_STATE - 1000,
+        lateByMs: 1000,
+        late: false,
+        clockChanged: false,
+        proposedBy: { participantId: 'x', name: 'Jana Nováková', linkedAt: null },
+        decided: null,
+        ...extra,
+    };
+}
 const P_B = '018d0020-0000-0000-0000-00000000b002';
 const P_C = '018d0020-0000-0000-0000-00000000c003';
 

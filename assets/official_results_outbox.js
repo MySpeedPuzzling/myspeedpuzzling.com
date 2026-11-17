@@ -17,6 +17,9 @@
  * - A group (`enqueueGroup()`, one Save that changes several fields of an entry - a K-of-N round's `puzzles` + `result`,
  *   competition toolkit R §1.1) is stored in one write, sent only as a whole and never split across requests: not by
  *   the batch size, not by isolating a failing set. The server applies it together or not at all (A rule 7).
+ * - Time proposals (competition toolkit C9): a `result` change may carry `proposalId` (it confirms that proposal), a
+ *   `proposal` change rejects one (`from: {id}`, never chained); undo never opposes a rejection, the server's
+ *   `proposal: {id, status}` annotations go to `onProposals`.
  * - The connection back (`connectionBack()`: the `online` event, a state answered) sends what waited only for being
  *   offline at once, without waiting out the offline pause; changes set apart (rights, refusals, conflicts) stay apart.
  *
@@ -212,6 +215,7 @@ export function createTabLock(name, { locks = globalThis.navigator?.locks, stora
  * @property {string|null} label       the entry's name when saved - for lists of unsent changes
  * @property {string} field            result | table_number | qualified
  * @property {string} [groupId]        changes saved together (enqueueGroup) - sent together, never split
+ * @property {string} [proposalId]     a result change confirming a competitor's time proposal (toolkit C9)
  * @property {*} from
  * @property {*} to
  * @property {'pending'|'conflict'|'rejected'|'forbidden'} state  forbidden: no rights for the round's event (any more)
@@ -235,8 +239,9 @@ export class Outbox {
      * @param {function(function(): Promise): Promise<boolean>} [options.lock]
      * @param {function(object[], string): void} [options.onEntries]  the server's entries after a set (roundId)
      * @param {function(): void} [options.onChange]  the outbox changed (status, items)
+     * @param {function(object[], string): void} [options.onProposals]  the server's `proposal` annotations of a set (roundId)
      */
-    constructor({ storage, send, userId, now = () => Date.now(), newId, lock = null, onEntries = () => {}, onChange = () => {}, batchSize = BATCH_SIZE }) {
+    constructor({ storage, send, userId, now = () => Date.now(), newId, lock = null, onEntries = () => {}, onChange = () => {}, onProposals = () => {}, batchSize = BATCH_SIZE }) {
         this.storage = storage;
         this.send = send;
         this.userId = userId;
@@ -245,6 +250,7 @@ export class Outbox {
         this.lock = lock ?? (async (task) => { await task(); return true; });
         this.onEntries = onEntries;
         this.onChange = onChange;
+        this.onProposals = onProposals;
         this.batchSize = batchSize;
 
         /** @type {OutboxItem[]} */
@@ -389,7 +395,7 @@ export class Outbox {
         const created = [];
         const supersededAll = [];
 
-        for (const { roundId, entryRef, newEntry = null, field, serverValue = null, to, label = null } of changes) {
+        for (const { roundId, entryRef, newEntry = null, field, serverValue = null, to, label = null, proposalId = null } of changes) {
             const earlier = this.itemsOf(entryRef, field);
             const superseded = earlier.filter((item) => item.state !== 'pending' && !this.inFlight.has(item.id));
             const waiting = earlier.filter((item) => !superseded.includes(item));
@@ -397,7 +403,10 @@ export class Outbox {
 
             let from = serverValue;
 
-            if (waiting.length > 0) {
+            // A rejection names its proposal - never a chain of values
+            if (field === 'proposal') {
+                from = serverValue;
+            } else if (waiting.length > 0) {
                 from = waiting[waiting.length - 1].to;
             } else if (conflict !== undefined) {
                 from = conflict.current ?? null;
@@ -423,6 +432,10 @@ export class Outbox {
 
             if (groupId !== null) {
                 item.groupId = groupId;
+            }
+
+            if (proposalId !== null && field === 'result') {
+                item.proposalId = proposalId;
             }
 
             this.items = this.items.filter((candidate) => !superseded.includes(candidate));
@@ -469,6 +482,11 @@ export class Outbox {
 
             if (stored !== undefined && (stored.state !== 'pending' || !this.inFlight.has(stored.id))) {
                 await this.remove(stored.id);
+                continue;
+            }
+
+            // A rejection sent is the server's now - there is no opposite of it
+            if (original.field === 'proposal') {
                 continue;
             }
 
@@ -889,6 +907,10 @@ export class Outbox {
             change.entry = item.entryRef;
         }
 
+        if (item.proposalId) {
+            change.proposalId = item.proposalId;
+        }
+
         return change;
     }
 
@@ -1001,6 +1023,7 @@ export class Outbox {
         this.isolate = false;
         const outcomes = new Map((answer.data?.outcomes ?? []).map((outcome) => [String(outcome.clientChangeId).toLowerCase(), outcome]));
         const createdEntries = new Set();
+        const proposals = (answer.data?.outcomes ?? []).map((outcome) => outcome?.proposal).filter((proposal) => proposal && typeof proposal.id === 'string');
 
         for (const item of batch) {
             const outcome = outcomes.get(item.id.toLowerCase());
@@ -1050,6 +1073,10 @@ export class Outbox {
 
         if (Array.isArray(answer.data?.entries)) {
             this.onEntries(answer.data.entries, roundId);
+        }
+
+        if (proposals.length > 0) {
+            this.onProposals(proposals, roundId);
         }
     }
 }

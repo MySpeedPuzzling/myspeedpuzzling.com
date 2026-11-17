@@ -35,6 +35,7 @@ import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick, unfinishedResult } from '../live_entry_puzzles.js';
+import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -113,8 +114,8 @@ function isNativeApp() {
 export default class extends Controller {
     static targets = [
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
-        'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton',
-        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles',
+        'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
+        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'proposal',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
@@ -180,6 +181,16 @@ export default class extends Controller {
         // "Puzzle missing" list on/off
         this.choice = [];
         this.missingOnly = false;
+        // Time proposals (toolkit C9): the round's, by id - only while the competition has them on; the find view's
+        // "Proposals waiting" list on/off; the proposal a Change edits (its Save confirms it with the judge's value);
+        // the open card's "Not right" reasons shown; when the card's Confirm showed up (the 350 ms guard)
+        this.proposals = new Map();
+        this.proposalsOn = false;
+        this.proposalsOnly = false;
+        this.proposalEditing = null;
+        this.rejecting = false;
+        this.proposalShownAt = null;
+        this.proposalPointerAt = null;
         this.query = '';
         this.historyEntry = false;
         this.leavingHistoryEntry = false;
@@ -652,6 +663,7 @@ export default class extends Controller {
                 rounds: this.rounds,
                 entries: [...this.serverEntries.values()],
                 viewer: this.viewer,
+                ...(this.proposalsOn ? { proposals: [...this.proposals.values()] } : {}),
             },
             clockOffsetMs: this.serverClock.offsetMs(),
             clockMeasuredAt: Date.now(),
@@ -718,6 +730,7 @@ export default class extends Controller {
             typed: this.timeInputTarget.value,
             pieces: this.piecesInputTarget.value,
             choice: pickFormat(this.round) ? this.choice : null,
+            proposalId: this.proposalEditing,
             pending: confirm ? { value: this.pendingValue } : null,
             finishedNow: confirm && this.pendingFinishedNow && this.pendingTappedAt !== null ? { seconds: this.pendingValue?.seconds, tappedAt: this.pendingTappedAt } : null,
         }, Date.now());
@@ -747,6 +760,11 @@ export default class extends Controller {
 
         if (Array.isArray(draft.choice)) {
             this.choice = choiceOf(pickFormat(this.round), draft.choice.map((roundPuzzleId) => ({ roundPuzzleId })));
+        }
+
+        // Change on a proposal: its Save still confirms it (toolkit C9)
+        if (draft.proposalId !== null && this.openProposal(draft.proposalId) !== null) {
+            this.proposalEditing = draft.proposalId;
         }
 
         if (draft.mode === 'pieces') {
@@ -919,6 +937,10 @@ export default class extends Controller {
                 this.localEntries.delete(ref);
             }
         }
+
+        // Time proposals (toolkit C9): the state lists every pending one and those decided lately
+        this.proposalsOn = Array.isArray(state.proposals);
+        this.proposals = this.proposalsOn ? mergeProposals(this.proposals, state.proposals, { stateAtMs: serverTimeOf(state) }) : new Map();
 
         // The reader is decided by the first answer (the outbox is theirs); later answers keep it
         if (!this.ready) {
@@ -1216,6 +1238,11 @@ export default class extends Controller {
                 }
 
                 this.mergeEntries(Array.isArray(data.entries) ? data.entries : []);
+            } else if (data.type === 'official_results.proposals') {
+                this.proposalsOn = true;
+                this.proposals = mergeProposals(this.proposals, data.proposals);
+                this.scheduleRender();
+                this.rememberState();
             } else if (data.type === 'official_results.refresh') {
                 this.refreshState();
             } else if (data.type === 'official_results.round' && data.round) {
@@ -1283,6 +1310,26 @@ export default class extends Controller {
                 this.entriesChanged();
                 this.scheduleRender();
             },
+            // The server's word on the proposals the set decided (toolkit C9) - an old copy asks for the state
+            onProposals: (annotations, roundId) => {
+                if (roundId !== this.roundIdValue) {
+                    return;
+                }
+
+                let stale = false;
+
+                for (const annotation of annotations) {
+                    const applied = applyOutcome(this.proposals, annotation);
+                    this.proposals = applied.proposals;
+                    stale = stale || applied.stale;
+                }
+
+                this.scheduleRender();
+
+                if (stale) {
+                    this.refreshState();
+                }
+            },
         });
 
         this.outbox.load().then(async () => {
@@ -1342,13 +1389,15 @@ export default class extends Controller {
      */
     enqueueGroup(entry, fields) {
         const server = this.serverEntries.get(entry.ref);
-        const { items, persisted } = this.outbox.enqueueGroup(fields.map(({ field, to }) => ({
+        const { items, persisted } = this.outbox.enqueueGroup(fields.map(({ field, to, from, proposalId = null }) => ({
             roundId: this.roundIdValue,
             entryRef: entry.ref,
             newEntry: server === undefined && entry.newEntry ? entry.newEntry : null,
             field,
-            serverValue: server !== undefined ? entryValue(server, field) : (field === 'qualified' ? false : null),
+            // A rejection names its proposal (toolkit C9)
+            serverValue: from !== undefined ? from : (server !== undefined ? entryValue(server, field) : (field === 'qualified' ? false : null)),
             to,
+            proposalId,
             // The name stays readable on the "unsent" list even when the entry is gone or in another round
             label: entry.displayName ?? entry.name ?? '',
         })));
@@ -1579,7 +1628,32 @@ export default class extends Controller {
         this.setText(this.missingButtonTarget, this.t('puzzleMissing', { '%count%': missing.length }));
         this.missingButtonTarget.setAttribute('aria-pressed', String(this.missingOnly));
         this.missingButtonTarget.classList.toggle('active', this.missingOnly);
-        this.recentTitleTarget.hidden = this.missingOnly;
+
+        // Time proposals waiting for a judge (toolkit C9): a list whose rows open the entry's card - never a confirm here
+        const waiting = typed || !this.proposalsOn ? [] : waitingProposals(this.proposals, (ref) => this.entry(ref), items);
+        this.proposalsOnly = this.proposalsOnly && waiting.length > 0;
+        this.missingOnly = this.missingOnly && !this.proposalsOnly;
+        this.proposalsButtonTarget.hidden = waiting.length === 0;
+        this.setText(this.proposalsButtonTarget, this.t('proposalsWaiting', { '%count%': waiting.length }));
+        this.proposalsButtonTarget.setAttribute('aria-pressed', String(this.proposalsOnly));
+        this.proposalsButtonTarget.classList.toggle('active', this.proposalsOnly);
+        this.missingButtonTarget.setAttribute('aria-pressed', String(this.missingOnly));
+        this.missingButtonTarget.classList.toggle('active', this.missingOnly);
+        this.recentTitleTarget.hidden = this.missingOnly || this.proposalsOnly;
+
+        if (this.proposalsOnly) {
+            const now = this.serverNow();
+            this.matchesTarget.innerHTML = '';
+            this.recentTarget.innerHTML = waiting.map(({ proposal, entry }) => this.rowHtml({
+                entry,
+                exact: false,
+                result: { value: proposalValue(proposal) },
+                sync: '',
+                note: `${this.age(proposal.receivedAtMs, now)}${proposal.late ? ` · ${this.t('proposalLate')}` : ''}`,
+            })).join('');
+
+            return;
+        }
 
         const { rows } = this.missingOnly
             ? { rows: rowsOf(missing.map((entry) => ({ entry })), outboxByEntry(items)) }
@@ -1597,8 +1671,12 @@ export default class extends Controller {
         }
     }
 
-    rowHtml({ entry, exact, result, sync: mark }) {
+    rowHtml({ entry, exact, result, sync: mark, note = null }) {
         const sub = [];
+
+        if (note !== null) {
+            sub.push(note);
+        }
 
         if (entry.kind === 'team' && entry.name !== null && Array.isArray(entry.members)) {
             sub.push(entry.members.map((member) => member.name).join(', '));
@@ -1693,6 +1771,197 @@ export default class extends Controller {
 
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
         this.renderPuzzles(entry, items);
+        this.renderProposal(entry, items);
+    }
+
+    /**
+     * The entry's time proposal on its card (toolkit C9, C-judge-page.md §3.1): the proposed time large, from whom and
+     * when, late with both times, a recent link; one big Confirm (the card is its confirm view - 350 ms guard), Change,
+     * Not right. A proposal decided while the card is open (elsewhere, withdrawn, superseded) changes here in place.
+     */
+    renderProposal(entry, items) {
+        const proposal = this.proposalsOn ? proposalOfEntry(this.proposals, entry.ref) : null;
+        const panel = proposalPanel(proposal, entry, items);
+        const state = panel?.state;
+        let html = '';
+
+        if (panel !== null) {
+            const time = formatResultTime(panel.value.seconds);
+            const name = proposal.proposedBy?.name;
+            const lines = [`${this.t('proposalFrom', { '%time%': this.clockTime(proposal.tappedAtMs) })}${name ? ` · ${this.t('proposalBy', { '%name%': name })}` : ''} · ${this.t('proposalTapped', { '%age%': this.age(proposal.tappedAtMs, this.serverNow()) })}`];
+
+            if (proposal.late) {
+                lines.push(`${this.t('proposalLate')}: ${this.t('proposalLateTimes', {
+                    '%tapped%': formatResultTime(proposal.proposedSeconds),
+                    '%tappedAt%': this.clockTime(proposal.tappedAtMs),
+                    '%received%': formatResultTime(proposal.receiptSeconds),
+                    '%receivedAt%': this.clockTime(proposal.receivedAtMs),
+                })}`);
+            }
+
+            if (proposal.clockChanged) {
+                lines.push(this.t('proposalClockChanged'));
+            }
+
+            if (proposal.proposedBy?.linkedAt) {
+                lines.push(this.t('proposalLinked', { '%time%': this.timeOfDay(proposal.proposedBy.linkedAt) }));
+            }
+
+            let status = '';
+            let buttons = '';
+            const button = (action, text, kind = 'secondary', data = '') => `<button type="button" class="btn btn-outline-${kind} flex-fill" data-action="live-results#${action}"${data}>${escapeHtml(text)}</button>`;
+
+            if (state === 'decided') {
+                const seconds = proposal.decided?.seconds;
+                status = this.t(`proposalStatus_${proposal.status}`, { '%time%': Number.isInteger(seconds) ? formatResultTime(seconds) : time, '%proposed%': formatResultTime(proposal.proposedSeconds) })
+                    + (proposal.decided?.byName ? ` · ${proposal.decided.byName}` : '');
+            } else if (state === 'sending') {
+                status = this.t(panel.rejecting ? 'proposalRejectWaiting' : 'proposalConfirmWaiting');
+            } else if (state === 'matches') {
+                status = this.t('proposalMatches');
+            } else if (this.rejecting) {
+                status = this.t('proposalRejectWhy');
+                buttons = `<div class="d-flex gap-2">${['not_finished', 'wrong_entry', 'other'].map((reason) => button('rejectWith', this.t(`proposalReason_${reason}`), 'danger', ` data-reason="${reason}"`)).join('')}</div>${button('cancelReject', this.t('proposalRejectCancel'), 'secondary w-100 mt-2')}`;
+            } else {
+                status = [state === 'differs' ? this.t('proposalDiffers', { '%saved%': this.describe(panel.saved) }) : '', this.proposalNeedsChoice && pickFormat(this.round) ? this.t('proposalPickPuzzle') : ''].filter(Boolean).join(' · ');
+                buttons = `<button type="button" class="btn btn-success w-100 lr-big-btn" data-proposal-confirm data-id="${escapeHtml(proposal.id)}" data-action="pointerdown->live-results#proposalPointerDown live-results#confirmProposal"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t(state === 'differs' ? 'proposalReplace' : 'proposalConfirm', { '%time%': time }))}</button><div class="d-flex gap-2 mt-2">${button('changeProposal', this.t('proposalChange'))}${button('rejectProposal', this.t('proposalReject'), 'danger')}</div>`;
+            }
+
+            html = `<div class="lr-proposal" data-state="${state}" role="group"><div class="lr-proposal-time">${escapeHtml(this.t('proposalTitle', { '%time%': time }))}</div><div class="small text-muted">${lines.map(escapeHtml).join('<br>')}</div>${status !== '' ? `<div class="small fw-medium mt-1">${escapeHtml(status)}</div>` : ''}${buttons !== '' ? `<div class="mt-2">${buttons}</div>` : ''}</div>`;
+        }
+
+        // A Confirm that shows up (or now confirms another value) ignores taps for 350 ms - the tap that opened the card
+        const key = state === 'confirm' || state === 'differs' ? `${proposal.id}|${panel.value.seconds}` : null;
+
+        if (key !== this.proposalKey) {
+            this.proposalKey = key;
+            this.proposalShownAt = key === null ? null : performance.now();
+        }
+
+        if (this.proposalHtml !== html) {
+            this.proposalHtml = html;
+            this.proposalTarget.innerHTML = html;
+            this.proposalTarget.hidden = html === '';
+        }
+    }
+
+    /**
+     * "2 min" / "40 s" ago, on the server's clock.
+     */
+    age(atMs, nowMs) {
+        const { unit, count } = ageOf(atMs, nowMs);
+
+        return this.t(unit === 'seconds' ? 'proposalAgeSeconds' : 'proposalAgeMinutes', { '%count%': count });
+    }
+
+    /**
+     * The entry's proposal the card can still decide - pending and not decided on this device.
+     */
+    openProposal(id = null) {
+        const proposal = this.openRef !== null && this.proposalsOn ? proposalOfEntry(this.proposals, this.openRef) : null;
+
+        if (proposal === null || proposal.status !== 'pending' || (id !== null && proposal.id !== String(id).toLowerCase())
+            || decisionOnDevice(proposal.id, this.outbox?.all() ?? []) !== null) {
+            return null;
+        }
+
+        return proposal;
+    }
+
+    proposalPointerDown(event) {
+        this.proposalPointerAt = typeof event?.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : performance.now();
+    }
+
+    /**
+     * Confirm: the proposed value (the receipt's when late) saved as the entry's result carrying the proposal - with a
+     * pick round's puzzle record in one group, which needs the judge's choice first.
+     */
+    confirmProposal(event) {
+        const tappedAt = event?.detail > 0 && this.proposalPointerAt !== null ? this.proposalPointerAt : performance.now();
+        this.proposalPointerAt = null;
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const proposal = this.openProposal(event?.currentTarget?.dataset?.id ?? null);
+
+        if (this.view !== 'entry' || entry === null || proposal === null || !confirmTapAllowed(this.proposalShownAt, tappedAt)) {
+            return;
+        }
+
+        const format = pickFormat(this.round);
+        const value = proposalValue(proposal);
+        const { fields, record, needsChoice } = confirmFields(format, this.choice, value, entry, this.outbox.all(), proposal.id);
+
+        if (needsChoice) {
+            this.proposalNeedsChoice = true;
+            this.proposalHtml = null;
+            this.renderEntryInfo();
+
+            return;
+        }
+
+        const saved = this.enqueueGroup(entry, fields);
+        const choice = format !== null && Array.isArray(record) && record.length > 0 ? ` · ${describeChoice(format, record)}` : '';
+
+        if (navigator.vibrate) {
+            navigator.vibrate(30);
+        }
+
+        this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.describe(value) + choice }), saved);
+        this.backToFind();
+    }
+
+    /**
+     * Change: the time field with the proposed value - its Save confirms the proposal with the judge's value.
+     */
+    changeProposal() {
+        const proposal = this.openProposal();
+
+        if (proposal === null) {
+            return;
+        }
+
+        this.proposalEditing = proposal.id;
+        this.rejecting = false;
+        this.showTimeForm();
+        this.timeInputTarget.value = formatResultTime(proposalValue(proposal).seconds);
+        this.timeTyped();
+        this.timeInputTarget.focus();
+        this.timeInputTarget.select();
+    }
+
+    rejectProposal() {
+        if (this.openProposal() !== null) {
+            this.rejecting = true;
+            this.renderEntryInfo();
+        }
+    }
+
+    cancelReject() {
+        this.rejecting = false;
+        this.renderEntryInfo();
+    }
+
+    /**
+     * Not right, with the reason: a `proposal` change through the outbox (offline-safe). Nothing to undo - a sent
+     * rejection is final.
+     */
+    rejectWith(event) {
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const proposal = this.openProposal();
+
+        if (entry === null || proposal === null) {
+            return;
+        }
+
+        const change = rejectionChange(proposal, event.currentTarget.dataset.reason);
+        this.enqueueGroup(entry, [change]);
+        this.showToast(this.t('proposalRejected', { '%name%': entry.displayName ?? entry.name ?? '' }), null);
+        this.backToFind();
+    }
+
+    toggleProposals() {
+        this.proposalsOnly = !this.proposalsOnly;
+        this.missingOnly = false;
+        this.renderFind();
     }
 
     /**
@@ -1743,11 +2012,15 @@ export default class extends Controller {
             return Array.isArray(value) && value.length > 0 ? describeChoice(pickFormat(this.round), value) : this.t('puzzlesNone');
         }
 
+        if (field === 'proposal') {
+            return this.t('proposalReject');
+        }
+
         return value === true ? this.t('qualified') : this.t('notQualified');
     }
 
     problemHtml(item, entry, withName) {
-        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified'), puzzles: this.t('fieldPuzzles') }[item.field] ?? '';
+        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified'), puzzles: this.t('fieldPuzzles'), proposal: this.t('fieldProposal') }[item.field] ?? '';
         const title = withName ? `<strong>${escapeHtml(entry?.displayName ?? '')}</strong> · ${escapeHtml(fieldLabel)}` : `<strong>${escapeHtml(fieldLabel)}</strong>`;
         const id = escapeHtml(item.id);
 
@@ -1937,6 +2210,14 @@ export default class extends Controller {
             state = 'none';
         }
 
+        // Proposals' ages ("tapped 2 min ago") move on every 15 s
+        const ageTick = this.proposals.size > 0 ? Math.floor(now / 15000) : null;
+
+        if (ageTick !== this.proposalAgeTick) {
+            this.proposalAgeTick = ageTick;
+            this.scheduleRender();
+        }
+
         if (!force && text === this.lastClockText) {
             return;
         }
@@ -2103,6 +2384,11 @@ export default class extends Controller {
         this.entryNowHtml = null;
         this.entryProblemsHtml = null;
         this.puzzlesHtml = null;
+        this.proposalHtml = null;
+        this.proposalKey = null;
+        this.proposalEditing = null;
+        this.proposalNeedsChoice = false;
+        this.rejecting = false;
         // A pick round: the choice known (the server's, this device's waiting or refused one) is preselected
         const format = pickFormat(this.round);
         const record = format === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value;
@@ -2125,8 +2411,13 @@ export default class extends Controller {
         this.renderEntryInfo();
         this.tickClock(true);
 
+        const proposalConfirm = this.proposalTarget.querySelector('[data-proposal-confirm]');
+
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
             this.piecesInputTarget.focus();
+        } else if (proposalConfirm !== null && this.timeInputTarget.value === '') {
+            // A pending proposal: its Confirm is the likely next tap
+            proposalConfirm.focus();
         } else if (!this.finishedNowTarget.hidden && this.timeInputTarget.value === '') {
             // A running stopwatch: "finished now" is the likely next tap - no keyboard over it
             this.finishedNowTarget.focus();
@@ -2158,6 +2449,8 @@ export default class extends Controller {
         this.forgetDraft();
         this.openRef = null;
         this.pendingValue = null;
+        this.proposalEditing = null;
+        this.rejecting = false;
         this.findInputTarget.value = '';
         this.query = '';
         this.showView('find');
@@ -2367,6 +2660,7 @@ export default class extends Controller {
         }
 
         this.choice = togglePick(this.choice, event.currentTarget.dataset.id, format.toSolve);
+        this.proposalNeedsChoice = false;
 
         // Unfinished: the total depends on the puzzles chosen
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
@@ -2413,6 +2707,7 @@ export default class extends Controller {
 
     toggleMissing() {
         this.missingOnly = !this.missingOnly;
+        this.proposalsOnly = false;
         this.renderFind();
     }
 
@@ -2514,7 +2809,13 @@ export default class extends Controller {
         const value = this.pendingValue;
         // The result, and on a pick round the puzzle record that fits it - one group (toolkit C10, A rule 7)
         const format = pickFormat(this.round);
-        const { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all());
+        let { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all());
+        // Change on a proposal (toolkit C9): the judge's value confirms it - the result carries the proposal
+        const editing = this.proposalEditing !== null ? this.openProposal(this.proposalEditing) : null;
+
+        if (editing !== null) {
+            fields = [...fields.filter((field) => field.field !== 'result'), { field: 'result', to: value, proposalId: editing.id }];
+        }
 
         if (fields.length === 0) {
             this.showToast(this.t('toastNothing'), null);

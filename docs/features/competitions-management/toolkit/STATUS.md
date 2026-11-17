@@ -50,7 +50,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | P1 | A | merged, reviewed: 3 fixes queued as P1F (pause/resume link bypass, stopped-round late taps, re-link resets connectedAt) | 25ca1e978..8c869401e | competition_time_proposal, ProposeRoundTime/Withdraw (event lock), TimeProposalOwnership (linked before start, id/sender bound), late flag, proposalId confirm + `proposal` field reject, resolver off = 0 statements, reset supersedes, `proposals` in state, lineupId when toolkit on, official_results.proposals push |
 | A6 | A | merged | f9bb105a9..db7a0acd4 | competition_standing, StandingCalculator::sum (limit+penalty, order rules, incomplete after all, ties share rank, lineup identity), organiser page + live preview, 'one per category', JSON, prune on round delete/move, duplicate copyStandings() |
 | A7 | A | merged | 1dfc4ce79, 480ef17b6, 690c8b447 | publish/unpublish, event_standing/edition_standing (tabs per category, provisional until all published), OfficialEntrantsView keepHidden + participantIds, links (event parts +0 statements, round page, overview, sitemap) |
-| D8 | A | started | | |
+| D8 | A | merged | 4cd3219a1, 7c20537d1, 8b2f40873 | duplicate copies displays (new tokens, images into the copy's prefix, rounds remapped) + competitor-page settings; convert-to-series refuses displays; Displays links on stopwatch page + control room |
+| D5 | C | started | | |
 | C10 | B | merged | 3698eb8b3..3916fe168 | puzzle chips (labels before reveal, order taps), grouped result+puzzles saves, Puzzle missing list, Save puzzle choice; bundle 180 KB/50 KB gzip (now 47.6). Not tried: reveal while card open, offline group save |
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | merged | 4809c8704, 00d8e47bc, 114c81d9c | competitor_page p/g/t/e + competitor_state, 404 rules, published/live/own results, guest 4 statements, canaries, B2 goldens regenerated; docs competitor-pages.md |
@@ -75,3 +76,4 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - B4 open: show 'Did not start' on public competitor pages? (round page omits it) - decide in H.
 - C9 polish: proposer name only on pair/team cards; document 'undo of a confirmation clears the result, proposal stays confirmed'.
 - Decisions: public pages never show 'Did not start' (round page, competitor page, standings); drop the category badge when the standing name already says it (polish).
+- Orchestrator: CI was red from the A6 merge to D8 (3 guard tests) - fixed. Check CI after EVERY merge.

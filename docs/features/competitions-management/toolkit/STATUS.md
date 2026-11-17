@@ -98,7 +98,10 @@ the documented defaults are used. Packages in worktrees `.claude/worktrees/wz-<p
 | Pkg | State | Commit(s) | Notes |
 |---|---|---|---|
 | W4 | merged | 04210997e..545461e3d | Duplicate asks new date + name (GET form on `duplicate_competition`, edition prefill: name number +1, date + series gap); edit form "Move the rounds too" (ticked, shown when the start date changes; not offered once a round has stopwatch state, results or a secret puzzle), end date follows; `EventDateShift` shared with duplicate; `EditCompetition` now under the participants lock. Not behind a flag. Browser-walked |
-| W1 | in progress | | flag, entry, one-round path |
+| W1 | merged (review agent running) | 548060b5e..4b8b7b8aa | flag `EVENT_CREATION_WIZARD` (`EventCreationWizardFeature`), `add_competition` GET → 302 wizard unless `?classic=1`; entry (`/{_locale}/new-event`, copy list → duplicate form); Basics (`StartEventWizardDraft` = draft + its round, `SaveEventWizardBasics`); Puzzle & format (`SetUpEventWizardRound`: round edit → add puzzle → reveal → format, one transaction); Review (Publish → edit page). Step registry `EventWizardSteps`/`EventWizardPath`/`EventWizardStep`, resume `event_wizard_continue`. **`LockUntilCommittedMiddleware` is re-entrant per key** (nested dispatch under the same key passes through, ResetInterface). Round named after category, 90 min default. S1 = 5 clicks (was 8-10). Browser-walked 375/1280 |
+| W2 | in progress | | checklist + Continue setting up |
+| W3 | in progress | | series path |
+| W5 | in progress | | several rounds + W7 toolkit wiring |
 
 Open items:
 - W4: a duplicate of a source without `dateFrom` now counts days from its first round (internal API too).

@@ -32,6 +32,8 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
         'Query/GetRoundResultEntries.php' => 'Organiser tooling (and write handlers / live updates without a viewer): the participant list as recorded; the raw setting rides along only for RoundResultEntry::forReferee(), which masks private players for referees through PrivateProfileAccess (RefereeEntriesView).',
         'Query/GetCompetitionNameTags.php' => 'A name tag is worn in public: a linked player\'s #CODE is printed only for a public profile, whoever prints it - the organiser\'s own allow list must not decide what strangers read on a badge.',
+        'Query/GetCompetitionLineupTags.php' => 'A printed pair/team tag is seen in public: the name tags\' rule - a linked player\'s #CODE only for a public profile, whoever prints it.',
+        'Query/GetRoundEntryTags.php' => 'A printed round entry tag is seen in public: the name tags\' rule - a linked player\'s #CODE only for a public profile, whoever prints it.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetInsightsContext.php' => 'The player\'s own place on today\'s MSP Rating ladder (the Insights rating tile): the global ranking\'s rule, the same column as the profile header - no place while private, for everybody.',
         'Query/GetInsightsRatingInputs.php' => 'The player\'s own setting (a private player has no MSP rating, Insights says so), and the ladder pool of "which place would that be" - the global ranking\'s, public players only.',

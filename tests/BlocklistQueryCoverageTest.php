@@ -47,6 +47,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetCoPuzzlerChips' => 'Renders the co-puzzlers of a form the viewer is filling in: codes they typed themselves, or the members of a time they may edit.',
         'GetCompetitionEvents' => 'The organiser\'s name is part of a public event, not a player listing.',
         'GetCompetitionNameTags' => self::ORGANISER,
+        'GetCompetitionLineupTags' => self::ORGANISER,
+        'GetRoundEntryTags' => self::ORGANISER,
         'GetCompetitionParticipantsForManagement' => self::ORGANISER,
         'GetCompetitionReferees' => self::ORGANISER,
         'GetLiveResultsEventPeople' => self::ORGANISER,

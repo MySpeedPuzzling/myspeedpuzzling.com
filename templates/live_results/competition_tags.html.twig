@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+{#
+    The competition toolkit's print page of tags (B-qr-competitor-page.md §3.4, CompetitionTagSheet): people, pair/team
+    line-ups, tables or one round's entries, as the A4 sheet of 90 × 55 mm tags or as table tent cards (A4 landscape,
+    folded in half, the upper half upside down). Without the toolkit the page is live_results/name_tags.html.twig,
+    unchanged. Standalone like print_round_tables.
+#}
+<html lang="{{ app.request.locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ ('name_tags.toolkit.kinds.' ~ kind)|trans }} - {{ competition.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 16px; font-size: 14px; }
+        .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 12px; }
+        .controls a, .controls button { color: #333; }
+        .controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; }
+        .controls select, .controls button, .controls input[type="number"] { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+        .controls input[type="number"] { width: 7em; }
+        .controls label.inline { flex-direction: row; align-items: center; min-height: 36px; color: #333; }
+        .controls input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
+        .controls .print { font-weight: bold; }
+        .hint { max-width: 180mm; margin-bottom: 16px; color: #555; font-size: 13px; line-height: 1.4; }
+        .warning { max-width: 180mm; margin-bottom: 16px; padding: 10px 12px; border: 1px solid #e0b252; background: #fff8e6; font-size: 13px; line-height: 1.4; }
+        .warning ul { margin: 6px 0 0 18px; }
+        .empty { color: #666; }
+
+        /* The A4 sheet of tags (the name tags of before) */
+        .sheet { display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 55mm; }
+        .tag { position: relative; display: flex; gap: 3mm; padding: 4mm 4mm 4mm 5mm; border: 1px dashed #bbb; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+        .tag-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        .tag-event { font-size: 8pt; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tag-name { margin-top: 2mm; font-size: 19pt; font-weight: bold; line-height: 1.12; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .tag-name.long { font-size: 15pt; }
+        .tag-who { display: flex; align-items: center; gap: 2mm; margin-top: 2mm; font-size: 11pt; }
+        .tag-who img, .tag-member img { width: 6mm; height: 4.5mm; object-fit: cover; border: 1px solid #ddd; }
+        .tag-members { margin-top: 1.5mm; display: flex; flex-direction: column; gap: 0.8mm; font-size: 10pt; }
+        .tag-members.unnamed { font-size: 13pt; font-weight: bold; }
+        .tag-member { display: flex; align-items: center; gap: 1.5mm; min-width: 0; }
+        .tag-member .member-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tag-member .member-code { color: #444; font-weight: normal; font-size: 9pt; }
+        .tag-table { margin-top: auto; font-size: 10pt; color: #444; }
+        .tag-table strong { font-size: 20pt; color: #111; }
+        .tag-table.only { margin: auto 0; font-size: 14pt; }
+        .tag-table.only strong { display: block; font-size: 64pt; line-height: 1; }
+        .tag-qr { flex: 0 0 30mm; align-self: center; }
+        .tag-qr svg { display: block; width: 30mm; height: 30mm; }
+        .tag-scan { font-size: 8pt; color: #444; }
+
+        /* Table tents: A4 landscape, folded along the middle - the upper half upside down reads from the other side */
+        .tents { display: flex; flex-direction: column; gap: 16px; }
+        .tent { width: 281mm; height: 194mm; display: grid; grid-template-rows: 1fr 1fr; border: 1px solid #ddd; break-after: page; page-break-after: always; break-inside: avoid; }
+        .tent:last-child { break-after: auto; page-break-after: auto; }
+        .tent-face { display: flex; align-items: center; gap: 10mm; padding: 8mm 12mm; overflow: hidden; }
+        .tent-face.upper { transform: rotate(180deg); border-top: 1px dashed #999; }
+        .tent-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3mm; }
+        .tent-event { display: flex; align-items: center; gap: 4mm; font-size: 14pt; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tent-event img { max-height: 14mm; max-width: 40mm; object-fit: contain; }
+        .tent-name { font-size: 40pt; font-weight: bold; line-height: 1.08; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .tent-name.long { font-size: 30pt; }
+        .tent .tag-members { font-size: 18pt; gap: 2mm; }
+        .tent .tag-members.unnamed { font-size: 30pt; }
+        .tent .tag-member img, .tent .tag-who img { width: 10mm; height: 7.5mm; }
+        .tent .tag-member .member-code { font-size: 14pt; }
+        .tent .tag-who { font-size: 18pt; gap: 3mm; }
+        .tent-table { font-size: 22pt; color: #444; }
+        .tent-table strong { font-size: 40pt; color: #111; }
+        .tent-table.only { font-size: 26pt; }
+        .tent-table.only strong { display: block; font-size: 130pt; line-height: 0.95; }
+        .tent-scan { font-size: 12pt; color: #444; }
+        .tent-qr { flex: 0 0 60mm; }
+        .tent-qr svg { display: block; width: 60mm; height: 60mm; }
+
+        /* A phone shows one tag per row - the A4 sheet of two columns (180 mm) would widen the page */
+        @media screen and (max-width: 720px) {
+            .sheet { grid-template-columns: minmax(0, 90mm); }
+            .tents { overflow-x: auto; }
+        }
+
+        {% if layout == 'tents' %}
+        @page { size: A4 landscape; margin: 8mm; }
+        {% else %}
+        @page { size: A4; margin: 10mm 15mm; }
+        {% endif %}
+        @media print {
+            body { padding: 0; }
+            .controls, .hint, .warning { display: none; }
+            .tents { gap: 0; }
+            .tent { border: 0; }
+        }
+    </style>
+</head>
+<body>
+    <form class="controls" method="get" action="{{ path('competition_name_tags', {competitionId: competition.id}) }}" data-tag-controls>
+        <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}">&larr; {{ 'name_tags.back'|trans }}</a>
+        <label>
+            {{ 'name_tags.toolkit.kind'|trans }}
+            <select name="kind" onchange="this.form.submit()" data-tag-kind>
+                {% for option in kinds %}
+                    <option value="{{ option }}" {{ kind == option ? 'selected' }}>{{ ('name_tags.toolkit.kinds.' ~ option)|trans }}{% if option == default_kind and option != 'people' %} {{ 'name_tags.toolkit.your_mode'|trans }}{% endif %}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            {{ 'name_tags.toolkit.layout'|trans }}
+            <select name="layout" onchange="this.form.submit()" data-tag-layout>
+                {% for option in layouts %}
+                    <option value="{{ option }}" {{ layout == option ? 'selected' }}>{{ ('name_tags.toolkit.layouts.' ~ option)|trans }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            {{ 'name_tags.round'|trans }}
+            <select name="round" onchange="this.form.submit()">
+                {% if kind != 'entries' %}
+                    <option value="">{{ 'name_tags.all_rounds'|trans }}</option>
+                {% endif %}
+                {% for option in rounds %}
+                    <option value="{{ option.roundId }}" {{ round is not null and round.roundId == option.roundId ? 'selected' }}>{{ option.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% if kind == 'tables' %}
+            <label>
+                {{ 'name_tags.toolkit.tables_from'|trans }}
+                <input type="number" name="from" min="1" max="9999" value="{{ tables_from }}" onchange="this.form.submit()">
+            </label>
+            <label>
+                {{ 'name_tags.toolkit.tables_to'|trans }}
+                <input type="number" name="to" min="1" max="9999" value="{{ tables_to }}" onchange="this.form.submit()">
+            </label>
+        {% elseif uses_table_numbers %}
+            <label>
+                {{ 'name_tags.sort'|trans }}
+                <select name="sort" onchange="this.form.submit()">
+                    <option value="name" {{ sort == 'name' ? 'selected' }}>{{ 'name_tags.sort_name'|trans }}</option>
+                    <option value="table" {{ sort == 'table' ? 'selected' }}>{{ 'name_tags.sort_table'|trans }}</option>
+                </select>
+            </label>
+        {% endif %}
+        {% if kind == 'people' and waitlisted_count > 0 %}
+            <label class="inline">
+                <span><input type="checkbox" name="waitlist" value="1" {{ with_waitlist ? 'checked' }} onchange="this.form.submit()"> {{ 'name_tags.waitlist'|trans({'%count%': waitlisted_count}) }}</span>
+            </label>
+        {% endif %}
+        <noscript><button type="submit">{{ 'name_tags.show'|trans }}</button></noscript>
+        <button type="button" class="print" onclick="window.print()">{{ 'name_tags.print'|trans }}</button>
+        <span>{{ 'name_tags.toolkit.count'|trans({'%count%': tags|length}) }}</span>
+    </form>
+
+    <p class="hint">{{ ('name_tags.toolkit.hint_' ~ kind)|trans }}</p>
+    {% if layout == 'tents' %}
+        <p class="hint">{{ 'name_tags.toolkit.hint_tents'|trans }}</p>
+    {% else %}
+        <p class="hint">{{ 'name_tags.toolkit.hint_tags'|trans }}</p>
+    {% endif %}
+    {% if round is null and uses_table_numbers %}
+        {% if kind == 'people' %}
+            <p class="hint" data-first-round-note>{{ 'name_tags.first_round_note'|trans }}</p>
+        {% elseif kind == 'lineups' %}
+            <p class="hint" data-first-round-note>{{ 'name_tags.toolkit.lineups_first_round_note'|trans }}</p>
+        {% endif %}
+    {% endif %}
+    {% if kind == 'tables' %}
+        <p class="hint" data-tables-used>
+            {% if tables_used is empty %}
+                {{ 'name_tags.toolkit.tables_none'|trans }}
+            {% else %}
+                {{ 'name_tags.toolkit.tables_used'|trans({'%numbers%': tables_used|join(', ')}) }}
+            {% endif %}
+        </p>
+    {% endif %}
+    {% if lineup_changes is not empty %}
+        <div class="warning" data-lineup-changes>
+            <strong>{{ 'name_tags.toolkit.lineup_changes_title'|trans }}</strong><br>
+            {{ 'name_tags.toolkit.lineup_changes_text'|trans }}
+            <ul>
+                {% for change in lineup_changes %}
+                    <li>{{ 'name_tags.toolkit.lineup_change'|trans({'%lineup%': change.lineup, '%round%': change.round, '%later%': change.later_lineup}) }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if tags is empty %}
+        <p class="empty">
+            {% if kind == 'lineups' %}
+                {{ 'name_tags.toolkit.empty_lineups'|trans }}
+            {% elseif kind == 'entries' %}
+                {{ 'name_tags.toolkit.empty_entries'|trans }}
+            {% elseif kind == 'people' %}
+                {{ 'name_tags.empty'|trans }}
+            {% endif %}
+        </p>
+    {% elseif layout == 'tents' %}
+        <div class="tents">
+            {% for item in tags %}
+                <div class="tent" data-tag>
+                    {% for face in ['upper', 'lower'] %}
+                        <div class="tent-face {{ face }}">
+                            <div class="tent-text">
+                                <div class="tent-event">
+                                    {% if competition.logo %}<img src="{{ competition.logo|thumbnail('puzzle_small') }}" alt="">{% endif %}
+                                    <span>{{ competition.name }}{% if round is not null and not item.table %} · {{ round.name }}{% endif %}</span>
+                                </div>
+                                {% if item.table %}
+                                    <div class="tent-table only">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                                    {% if competitor_pages %}<div class="tent-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
+                                {% else %}
+                                    {% if item.heading is not null %}
+                                        <div class="tent-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
+                                    {% endif %}
+                                    {{ _self.members(item) }}
+                                    {% if item.table_number is not null %}
+                                        <div class="tent-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="tent-qr" data-qr-url="{{ item.qr_url }}">{{ item.qr|raw }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="sheet">
+            {% for item in tags %}
+                <div class="tag" data-tag>
+                    <div class="tag-text">
+                        <div class="tag-event">{{ competition.name }}{% if round is not null and not item.table %} · {{ round.name }}{% endif %}</div>
+                        {% if item.table %}
+                            <div class="tag-table only">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                            {% if competitor_pages %}<div class="tag-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
+                        {% else %}
+                            {% if item.heading is not null %}
+                                <div class="tag-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
+                            {% endif %}
+                            {{ _self.members(item) }}
+                            {% if item.table_number is not null %}
+                                <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="tag-qr" data-qr-url="{{ item.qr_url }}">{{ item.qr|raw }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {#
+        Who is on a tag: a person's flag and #CODE under their name, or a pair's/team's people - their names large when
+        the pair/team has no name of its own.
+    #}
+    {% macro members(item) %}
+        {% if item.members|length == 1 and item.members[0].name is null %}
+            {% set person = item.members[0] %}
+            {% if person.country or person.code %}
+                <div class="tag-who">
+                    {% if person.country %}
+                        <img src="{{ asset('build/images/' ~ person.country ~ '.svg') }}" alt="{{ person.country|upper }}">
+                    {% endif %}
+                    {% if person.code %}
+                        <span>#{{ person.code|upper }}</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% elseif item.members is not empty %}
+            <div class="tag-members{{ item.heading is null ? ' unnamed' }}">
+                {% for member in item.members %}
+                    <div class="tag-member">
+                        {% if member.country %}
+                            <img src="{{ asset('build/images/' ~ member.country ~ '.svg') }}" alt="{{ member.country|upper }}">
+                        {% endif %}
+                        <span class="member-name">{{ member.name }}</span>
+                        {% if member.code %}
+                            <span class="member-code">#{{ member.code|upper }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endmacro %}
+</body>
+</html>

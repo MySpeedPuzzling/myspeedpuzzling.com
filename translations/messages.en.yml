@@ -5560,6 +5560,37 @@ name_tags:
     table: "Table"
     empty: "Nobody to print yet - add participants first."
     hint: "Print on A4 at 100 % (no \"fit to page\") and cut along the dashed lines. The QR code opens the person in the live result entry on an organiser's phone; anybody else who scans it lands on the event page."
+    toolkit:
+        kind: "Print"
+        kinds:
+            people: "People"
+            lineups: "Pairs & teams"
+            tables: "Tables"
+            entries: "Entries of a round"
+        layout: "Layout"
+        layouts:
+            tags: "Tags (A4, 10 per page)"
+            tents: "Table tents (fold in half)"
+        your_mode: "(your QR mode)"
+        count: "{0}No tags|{1}1 tag|]1,Inf[%count% tags"
+        tables_from: "From table"
+        tables_to: "To table"
+        tables_used: "Tables in use: %numbers%"
+        tables_none: "No table numbers are assigned yet - enter which tables to print."
+        hint_people: "One tag per person for the whole competition. The QR code opens the person in the live result entry on an organiser's or judge's phone."
+        hint_lineups: "One tag per pair or team for the whole competition. The QR code stands for these exact people: it follows them through every round they play together."
+        hint_tables: "One card per table for the whole competition. The QR code shows whoever sits at the table in the current round - a card stays on its table."
+        hint_entries: "One tag per entry of the chosen round, with its table. The QR code stands for this entry in this round only."
+        hint_tags: "Print on A4 at 100 % (no \"fit to page\") and cut along the dashed lines."
+        hint_tents: "Print on A4 landscape at 100 % (no \"fit to page\"), fold along the dashed middle line and stand the card on the table: the upper half is printed upside down, so it reads from both sides."
+        lineups_first_round_note: "The table on a tag is the one of the pair's or team's first round - choose a round to print its tables."
+        lineup_changes_title: "Pairs or teams changed between rounds"
+        lineup_changes_text: "A line-up tag stands for its exact people. When somebody plays with somebody else later, the old tag no longer shows those rounds - print a tag for the new pair or team too."
+        lineup_change: "%lineup% → in %round%: %later%"
+        scan_table: "Scan to follow this table"
+        empty_lineups: "No pairs or teams yet - build them on the participants sheet first."
+        empty_entries: "Nobody is in this round yet."
+        print_tags: "Print tags"
 
 series:
     meta:

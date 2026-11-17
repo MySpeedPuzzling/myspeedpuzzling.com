@@ -239,7 +239,7 @@ final class PuzzleAddController extends AbstractController
         // The entry travels on in the form (hidden `official_entry` + `official_member`): a pair/team result is checked
         // again on the save - see below
         $officialEntry = null;
-        [$officialEntryRef, $officialMember] = $this->officialEntryParameters($request);
+        [$officialEntryRef, $officialMember, $officialRoundPuzzle] = $this->officialEntryParameters($request);
 
         // The round's competition - a one-time event or an edition (never a series pick)
         $officialCompetitionId = CompetitionPick::tryFrom($data->competition)?->competitionId();
@@ -257,6 +257,8 @@ final class PuzzleAddController extends AbstractController
                 $userProfile->playerName,
                 // "Which one are you?" of a pair/team nobody is linked to: the member the player picked
                 $officialMember,
+                // A pick round's chosen puzzle (competition toolkit A5)
+                $officialRoundPuzzle,
             );
 
             // The puzzle in the URL is the entry's, or the link is not what the round page made
@@ -269,6 +271,7 @@ final class PuzzleAddController extends AbstractController
         if ($request->isMethod('GET') && $officialEntry === null) {
             $officialEntryRef = null;
             $officialMember = null;
+            $officialRoundPuzzle = null;
         }
 
         if ($officialEntry !== null) {
@@ -381,6 +384,7 @@ final class PuzzleAddController extends AbstractController
                 $userProfile->playerId,
                 $userProfile->playerName,
                 $officialMember,
+                $officialRoundPuzzle,
             );
 
             if ($officialEntry !== null && strtolower($officialEntry->puzzleId) !== strtolower((string) $data->puzzle)) {
@@ -681,6 +685,7 @@ final class PuzzleAddController extends AbstractController
             'official_entry' => $officialEntry,
             'official_entry_ref' => $officialEntryRef,
             'official_member' => $officialMember,
+            'official_round_puzzle' => $officialRoundPuzzle,
             // An official pair/team result opens in its round's mode, never as a solo time
             'copuzzler_picker_without_solo' => $officialEntry?->isGroup() === true,
             'copuzzler_picker_initial_mode' => $officialEntry?->pickerModeWith(count($groupPlayers)),
@@ -723,17 +728,23 @@ final class PuzzleAddController extends AbstractController
 
     /**
      * `official_entry` (a round entry, `participant_round:<id>` / `team:<id>`) and `official_member` (the member the
-     * player said is them): from the "Add to my profile" link, then from the form's hidden fields on a save.
+     * player said is them) and `round_puzzle` (a pick round's chosen puzzle, competition toolkit A5): from the "Add to my
+     * profile" link, then from the form's hidden fields on a save.
      *
-     * @return array{null|string, null|int}
+     * @return array{null|string, null|int, null|string}
      */
     private function officialEntryParameters(Request $request): array
     {
         $parameters = $request->isMethod('POST') && $request->request->has('official_entry') ? $request->request : $request->query;
         $ref = RoundEntryRef::tryFromString($parameters->getString('official_entry'));
         $member = $parameters->getString('official_member');
+        $roundPuzzle = $parameters->getString('round_puzzle');
 
-        return [$ref?->toString(), $ref !== null && ctype_digit($member) ? (int) $member : null];
+        return [
+            $ref?->toString(),
+            $ref !== null && ctype_digit($member) ? (int) $member : null,
+            $ref !== null && Uuid::isValid($roundPuzzle) ? strtolower($roundPuzzle) : null,
+        ];
     }
 
     /**

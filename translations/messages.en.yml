@@ -14116,6 +14116,15 @@ competition_toolkit:
             online_timing: "This round uses online timing, which works with one result for the round only."
             puzzle_in_results: "Recorded results of this round name this puzzle (entrants: %entries%). Change those results on the results desk first."
             conflicts_with_results: "Recorded per-puzzle results of this round do not fit this change (entrants: %entries%). Change or clear those results on the results desk first."
+    round_page:
+        puzzles: "Puzzles this entry solved, in order"
+        finished_at: "finished at %time%"
+        not_finished: "not finished"
+        pieces_placed: "%count% pcs"
+        add_puzzle: "Add %puzzle% · %time%"
+        add_puzzle_unfinished: "Add %puzzle% to my profile"
+        on_profile: "%puzzle% is on your profile"
+        splits_missing: "Per-puzzle times were not recorded, so a single puzzle cannot be added to your profile."
 competitor_page:
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."

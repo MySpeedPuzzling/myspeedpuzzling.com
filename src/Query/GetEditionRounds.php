@@ -9,7 +9,9 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EditionRoundPuzzle;
+use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
@@ -45,6 +47,8 @@ SELECT
     cr.results_link,
     cr.timezone,
     cr.results_published_at IS NOT NULL AS results_published,
+    cr.puzzle_format,
+    cr.puzzles_to_solve,
     c.location_country_code,
     tz_cs.location_country_code AS series_country_code,
     -- The round's online timing has live video on - its watch page (docs/features/online-competitions/), in this
@@ -74,7 +78,11 @@ SQL;
         // hide_until / hide_image_until embargo) - shared with every competition toolkit surface
         /** @var array<string, array<EditionRoundPuzzle>> $puzzlesByRound */
         $puzzlesByRound = [];
+        /** @var array<string, list<RoundPuzzleSlot>> $slotsByRound */
+        $slotsByRound = [];
         foreach ($this->roundPuzzlesVisibleNow->forRounds($roundIds, $this->clock->now()) as $roundId => $visible) {
+            $slotsByRound[$roundId] = $visible->slots;
+
             foreach ($visible->puzzles as $puzzle) {
                 $puzzlesByRound[$roundId][] = new EditionRoundPuzzle(
                     puzzleId: $puzzle->puzzleId,
@@ -90,10 +98,11 @@ SQL;
         }
 
         // Rounds come ordered by start, so the index is the round's position in the schedule
-        return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: null|int|string, starts_at: string, start_time_known: bool, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
+        return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound, $slotsByRound): EditionRoundDetail {
+            /** @var array{id: string, name: string, minutes_limit: null|int|string, starts_at: string, start_time_known: bool, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, puzzle_format: string, puzzles_to_solve: null|int|string, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
 
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
+            $puzzleFormat = RoundPuzzleFormat::tryFrom($row['puzzle_format']) ?? RoundPuzzleFormat::Total;
 
             return new EditionRoundDetail(
                 id: $row['id'],
@@ -113,6 +122,10 @@ SQL;
                 resultsPublished: $row['results_published'],
                 onlineVideo: $row['online_video'],
                 startTimeKnown: $row['start_time_known'],
+                puzzleFormat: $puzzleFormat,
+                puzzlesToSolve: $puzzleFormat === RoundPuzzleFormat::Pick && $row['puzzles_to_solve'] !== null ? (int) $row['puzzles_to_solve'] : null,
+                // A pick round's places - what its entries' records name (competition toolkit A5 chips)
+                puzzleSlots: $puzzleFormat === RoundPuzzleFormat::Pick ? ($slotsByRound[$row['id']] ?? []) : [],
             );
         }, $rounds, array_keys($rounds));
     }

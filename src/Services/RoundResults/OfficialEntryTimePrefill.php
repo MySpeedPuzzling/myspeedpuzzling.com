@@ -30,6 +30,9 @@ use SpeedPuzzling\Web\Value\TeamComposition;
  * in only when the round page offers exactly that to this viewer right now (GetPublishedRoundResults decides it for
  * both) - anything else is ignored silently, like an unknown `?competition=`.
  *
+ * A `pick` round's entry (competition toolkit A5) adds one chosen puzzle at a time: `&round_puzzle=<competition_round_puzzle
+ * id>` names it, its time is the one the round page offers for it (PublishedRoundEntry::puzzleProfileTime()).
+ *
  * Nothing about the entry is stored: the player saves an ordinary time, and every rule of the add form (first tries,
  * duplicates, secret puzzles, privacy) runs as for any other.
  *
@@ -58,8 +61,10 @@ readonly final class OfficialEntryTimePrefill
     /**
      * @param null|int $memberChoice `official_member`: in a pair/team nobody is linked to, the position of the member
      *                               the viewer said is them ("Which one are you?")
+     * @param null|string $roundPuzzleId `round_puzzle`: in a `pick` round (competition toolkit A5), the chosen puzzle whose
+     *                                   time is added - required there, ignored on every other round
      */
-    public function forViewer(string $competitionId, string $officialEntry, string $viewerPlayerId, null|string $viewerName, null|int $memberChoice = null): null|OfficialEntryTime
+    public function forViewer(string $competitionId, string $officialEntry, string $viewerPlayerId, null|string $viewerName, null|int $memberChoice = null, null|string $roundPuzzleId = null): null|OfficialEntryTime
     {
         $ref = RoundEntryRef::tryFromString($officialEntry);
 
@@ -88,16 +93,34 @@ readonly final class OfficialEntryTimePrefill
         $results = $this->getPublishedRoundResults->forRound($round, $viewerPlayerId);
         $entry = $results?->entry($ref->toString());
 
-        if ($results === null || $results->profilePuzzleId === null || $entry === null || $entry->profileState !== OfficialEntryProfileState::Offer) {
+        if ($results === null || $entry === null) {
             return null;
         }
 
-        // A time, or the pieces placed when the round's time ran out (a round with a limit - the form opens with "I didn't
-        // finish within the time limit" on, docs/features/competitions-management/unfinished-results-plan.md)
-        $unfinished = $entry->result->seconds === null && $entry->result->piecesPlaced !== null && $round->minutesLimit !== null;
+        if ($round->isPick()) {
+            // A pick round: one of the puzzles the entry chose, offered on the round page right now - its own time
+            // (PublishedRoundEntry::puzzleProfileTime(), the round page's rule)
+            $time = $this->pickedPuzzleTime($entry, $round, $roundPuzzleId);
 
-        if ($entry->result->seconds === null && $unfinished === false) {
-            return null;
+            if ($time === null) {
+                return null;
+            }
+
+            [$puzzleId, $seconds, $piecesPlaced] = $time;
+        } else {
+            if ($results->profilePuzzleId === null || $entry->profileState !== OfficialEntryProfileState::Offer) {
+                return null;
+            }
+
+            // A time, or the pieces placed when the round's time ran out (a round with a limit - the form opens with "I
+            // didn't finish within the time limit" on, docs/features/competitions-management/unfinished-results-plan.md)
+            $unfinished = $entry->result->seconds === null && $entry->result->piecesPlaced !== null && $round->minutesLimit !== null;
+
+            if ($entry->result->seconds === null && $unfinished === false) {
+                return null;
+            }
+
+            [$puzzleId, $seconds, $piecesPlaced] = [$results->profilePuzzleId, $entry->result->seconds, $unfinished ? $entry->result->piecesPlaced : null];
         }
 
         $category = $entry->isTeam ? $round->category : RoundCategory::Solo;
@@ -106,9 +129,9 @@ readonly final class OfficialEntryTimePrefill
             : [[], []];
 
         return new OfficialEntryTime(
-            puzzleId: $results->profilePuzzleId,
-            seconds: $entry->result->seconds,
-            piecesPlaced: $unfinished ? $entry->result->piecesPlaced : null,
+            puzzleId: $puzzleId,
+            seconds: $seconds,
+            piecesPlaced: $piecesPlaced,
             finishedAt: self::roundDay($round),
             groupPlayers: $groupPlayers,
             teamName: $entry->isTeam ? $this->teamNameTheFormMaySet($entry, $groupPlayers, $viewerPlayerId) : null,
@@ -118,6 +141,36 @@ readonly final class OfficialEntryTimePrefill
             category: $entry->isTeam && $category === RoundCategory::Solo ? RoundCategory::Team : $category,
             memberChoices: $memberChoices,
         );
+    }
+
+    /**
+     * The puzzle of a pick round's entry the link names, when the round page offers adding it to this viewer: its
+     * catalogue id, its time (null for an unfinished pick-one result) and the pieces placed of such a result.
+     *
+     * @return null|array{string, null|int, null|int}
+     */
+    private function pickedPuzzleTime(PublishedRoundEntry $entry, EditionRoundDetail $round, null|string $roundPuzzleId): null|array
+    {
+        if ($roundPuzzleId === null) {
+            return null;
+        }
+
+        foreach ($entry->puzzleChips as $chip) {
+            if ($chip->roundPuzzleId !== strtolower($roundPuzzleId) || $chip->profileState !== OfficialEntryProfileState::Offer) {
+                continue;
+            }
+
+            $time = $entry->puzzleProfileTime($chip, $round->puzzlesToSolve ?? 0, $round->minutesLimit !== null);
+            $puzzleId = $chip->profilePuzzleId();
+
+            if ($time === null || $puzzleId === null || ($time['seconds'] === null && $time['piecesPlaced'] === null)) {
+                return null;
+            }
+
+            return [$puzzleId, $time['seconds'], $time['piecesPlaced']];
+        }
+
+        return null;
     }
 
     /**

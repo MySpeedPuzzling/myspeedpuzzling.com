@@ -176,7 +176,12 @@ amendments R1-R13 → packages in worktrees `.claude/worktrees/lk-<pkg>`, branch
 
 | Pkg | State | Commit(s) on main | Notes |
 |---|---|---|---|
-| design | merged | | §0a binding; order L1a → L1b → L2 → L4a → L3 → L5 → L4b |
+| design | merged | bbb232549 | §0a binding; order L1a → L1b → L2 → L4a → L3 → L5 → L4b |
+| L1a | merged | fd689e4fa..c72030417 | one link path `ParticipantLinks` (+ `connected_via`, append-only `participant_link_log`), every connect/disconnect call site moved (`ParticipantLinkCoverageTest`); account deletion unlinks, soft-deletes own self-joined rows without official data, logs `account_deleted` (fixes self-joined names showing up as unclaimed); sheet suffix "· by themselves / · import / · personal link"; join/leave/compete_connect push the sheet's live topic |
+| L1b | merged | 74089487f, 5f1d870b6 | import player column takes `#code`, bare code, profile URL or id (`PlayerReference`); a code that ever belonged to 2+ players is refused (`code_changed_owner`, R5); same player on rows of different people links none (`player_in_file_twice`); "name differs" warning; preview "→ #CODE · Name" (masked for private/blocked); export `msp_code` |
+| TR | merged | 8f6f7afac | L1a/L1b keys in 5 locales |
+| (CI fix) | merged | 7ca812c0b | main's phpstan red from another session's `PluralMessagesTest` - fixed |
+| L2a | merged (PR #415, squash) | d138b8d98 | **no-Docker mode from here (Jan): PR + CI as the gate.** Claim policy per event (`participant_claims`, automatic = approval while proposals are on and not online), `participant_link_request`, `ParticipantClaims` (open → link, approval → request, dispute, refused pair / 3 refusals → ask organiser), sheet Approve (R1 releases the claimant's other rows) / Decline / Not this person (both irreversible), filters + chips, hub card "Participants & profiles", R3 late proof links may propose, R11 join GET never links under approval. Independent code review: 4 SHOULD fixed (refused match loop, undo of Not this person, requests read once per batch, index use). 51 keys × 5 locales |
 
 ## Gaps 2026-11-17 (orchestrator: sub-session; brief `cm-delivery/brief-gaps-orchestrator.md`)
 Small gaps of the shipped toolkit + creation wizard, three packages in parallel (worktrees `.claude/worktrees/gp-<pkg>`,

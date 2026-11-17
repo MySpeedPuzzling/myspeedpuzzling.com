@@ -25,6 +25,12 @@ class CompetitionParticipantRound
 {
     use HasOfficialResult;
 
+    // The entry's division (shared-puzzles-and-divisions.md §3, D1) - only on a solo entry; a pair/team member's row keeps
+    // null (the team carries it). Lazy, never fetch-joined (RecordRoundResultsStatementPinTest)
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|CompetitionDivision $division = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -46,9 +52,18 @@ class CompetitionParticipantRound
         return RoundEntryRef::participantRound($this->id->toString());
     }
 
+    /**
+     * A moved entry leaves its division behind - the new round's subset of divisions is its own (no callers today).
+     */
     public function changeRound(CompetitionRound $newRound): void
     {
         $this->round = $newRound;
+        $this->division = null;
+    }
+
+    public function changeDivision(null|CompetitionDivision $division): void
+    {
+        $this->division = $division;
     }
 
     public function assignToTeam(CompetitionTeam $team): void

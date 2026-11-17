@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
@@ -76,6 +77,29 @@ readonly final class CompetitionParticipantRoundRepository
             ->innerJoin('cpr.participant', 'participant')
             ->where('cpr.round = :round')
             ->setParameter('round', $round->id->toString())
+            ->getQuery()
+            ->getResult();
+
+        return $entries;
+    }
+
+    /**
+     * The event's entries that carry a division (shared-puzzles-and-divisions.md D1) - also those of removed
+     * (soft-deleted) participants, with their participant.
+     *
+     * @return list<CompetitionParticipantRound>
+     */
+    public function withDivisionInCompetition(Competition $competition): array
+    {
+        /** @var list<CompetitionParticipantRound> $entries */
+        $entries = $this->entityManager->createQueryBuilder()
+            ->select('cpr', 'participant')
+            ->from(CompetitionParticipantRound::class, 'cpr')
+            ->innerJoin('cpr.participant', 'participant')
+            ->innerJoin('cpr.round', 'round')
+            ->where('round.competition = :competition')
+            ->andWhere('cpr.division IS NOT NULL')
+            ->setParameter('competition', $competition->id->toString())
             ->getQuery()
             ->getResult();
 

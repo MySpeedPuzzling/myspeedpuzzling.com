@@ -12,18 +12,22 @@ use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionDisplay;
+use SpeedPuzzling\Web\Entity\CompetitionDivision;
 use SpeedPuzzling\Web\Entity\CompetitionAdvancementStep;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundDivision;
 use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Repository\CompetitionDisplayRepository;
+use SpeedPuzzling\Web\Repository\CompetitionDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -48,7 +52,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * only ever points at its own page's files (PageSectionContentSanitizer::uploadPath()). Standings are copied unpublished
  * with their rounds remapped (copyStandings()), advancement steps too (copyAdvancementSteps()). Displays get new
  * links, their rounds remapped and their pictures copied to the copy's own prefix (copyDisplays()); the competitor-page
- * settings are event settings and copied as they are.
+ * settings are event settings and copied as they are. Divisions are copied with each round's subset (copyDivisions()).
  */
 #[AsMessageHandler]
 readonly final class DuplicateCompetitionHandler
@@ -68,6 +72,8 @@ readonly final class DuplicateCompetitionHandler
         private CompetitionDisplayRepository $displayRepository,
         private CompetitionAdvancementStepRepository $advancementStepRepository,
         private EventDateShift $eventDateShift,
+        private CompetitionDivisionRepository $divisionRepository,
+        private CompetitionRoundDivisionRepository $roundDivisionRepository,
     ) {
     }
 
@@ -155,6 +161,7 @@ readonly final class DuplicateCompetitionHandler
         $this->copyStandings($source, $copy, $roundIdMap, $now);
         $this->copyDisplays($source, $copy, $roundIdMap, $actor, $now);
         $this->copyAdvancementSteps($source, $copy, $roundIdMap, $now);
+        $this->copyDivisions($source, $copy, $roundIdMap, $now);
 
         $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($copy, $actor, $now);
     }
@@ -414,6 +421,36 @@ readonly final class DuplicateCompetitionHandler
 
             if (!$stepCopy->isEmpty()) {
                 $this->advancementStepRepository->save($stepCopy);
+            }
+        }
+    }
+
+    /**
+     * The event's divisions (shared-puzzles-and-divisions.md §3.2, D1) and each copied round's subset - entries are not
+     * copied, so no entry carries one.
+     *
+     * @param array<string, string> $roundIdMap source round id => its copy's id
+     */
+    private function copyDivisions(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): void
+    {
+        $divisionCopies = [];
+        foreach ($this->divisionRepository->ofCompetition($source) as $division) {
+            $divisionCopy = new CompetitionDivision(Uuid::uuid7(), $copy, $division->name, $now, $division->shortName, $division->position);
+            $this->divisionRepository->save($divisionCopy);
+            $divisionCopies[$division->id->toString()] = $divisionCopy;
+        }
+
+        if ($divisionCopies === []) {
+            return;
+        }
+
+        foreach ($this->roundDivisionRepository->ofCompetition($source) as $roundDivision) {
+            $roundCopyId = $roundIdMap[$roundDivision->round->id->toString()] ?? null;
+            $divisionCopy = $divisionCopies[$roundDivision->division->id->toString()] ?? null;
+
+            if ($roundCopyId !== null && $divisionCopy !== null) {
+                // The copied round is persisted, not flushed yet - get() finds it in the unit of work
+                $this->roundDivisionRepository->save(new CompetitionRoundDivision(Uuid::uuid7(), $this->roundRepository->get($roundCopyId), $divisionCopy));
             }
         }
     }

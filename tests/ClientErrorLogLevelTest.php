@@ -19,7 +19,9 @@ use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
+use SpeedPuzzling\Web\Exceptions\DivisionsInUse;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionDivisions;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
@@ -113,6 +115,8 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '422 invalid difficulty estimate' => [new InvalidPuzzleDifficultyEstimate(['items' => 'must be a list of 1 to 500 estimates.']), LogLevel::INFO];
         yield '409 image changed since it was analysed' => [new PuzzleImageChangedMeanwhile('0123456789abcdef'), LogLevel::INFO];
         yield '422 API first try already held' => [new FirstTryConflict('A first attempt of this puzzle is already recorded for you.', new FirstTryAlreadyTaken(FirstTryAssessment::nothing(new DateTimeImmutable('2026-11-06 07:01:25')))), LogLevel::INFO];
+        yield '422 divisions refused' => [new InvalidCompetitionDivisions('duplicate_name', 'Senior'), LogLevel::INFO];
+        yield '409 divisions in use' => [new DivisionsInUse(3), LogLevel::INFO];
         yield '409 conflict stays visible' => [new ConflictHttpException('A team with results cannot be deleted.'), LogLevel::ERROR];
         yield 'a bug stays critical' => [new RuntimeException('A new entity was found'), LogLevel::CRITICAL];
     }

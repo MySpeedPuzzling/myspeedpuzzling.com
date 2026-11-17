@@ -25,6 +25,12 @@ class CompetitionTeam
 
     public const int NAME_MAX_LENGTH = 255;
 
+    // The pair's/team's division (shared-puzzles-and-divisions.md §3, D1) - the entry is what is ranked. Lazy, never
+    // fetch-joined (RecordRoundResultsStatementPinTest)
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|CompetitionDivision $division = null;
+
     /**
      * @throws CompetitionTeamNameTooLong
      */
@@ -45,6 +51,11 @@ class CompetitionTeam
     public function entryRef(): RoundEntryRef
     {
         return RoundEntryRef::team($this->id->toString());
+    }
+
+    public function changeDivision(null|CompetitionDivision $division): void
+    {
+        $this->division = $division;
     }
 
     /**

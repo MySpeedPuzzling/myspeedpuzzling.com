@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionDivision;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
@@ -19,6 +20,7 @@ use SpeedPuzzling\Web\Message\AdvanceQualified;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Results\AdvancementAssignment;
@@ -49,6 +51,7 @@ readonly final class AdvanceQualifiedHandler
         private CompetitionTeamRepository $teamRepository,
         private Connection $database,
         private ClockInterface $clock,
+        private CompetitionRoundDivisionRepository $roundDivisionRepository,
     ) {
     }
 
@@ -193,12 +196,23 @@ readonly final class AdvanceQualifiedHandler
             }
             $participants = $this->participantRepository->findByIds($participantIds);
 
+            // An advanced entry keeps its division when the target round uses it (shared-puzzles-and-divisions.md A11) -
+            // read only when an advanced entry has one
+            $targetDivisions = [];
+            if (array_any($assignments, static fn (AdvancementAssignment $assignment): bool => $assignment->entry->division !== null)) {
+                foreach ($targets as $roundId => $round) {
+                    foreach ($this->roundDivisionRepository->ofRound($round) as $roundDivision) {
+                        $targetDivisions[$roundId][$roundDivision->division->id->toString()] = $roundDivision->division;
+                    }
+                }
+            }
+
             $assignments = array_map(fn (AdvancementAssignment $assignment): AdvancementAssignment => new AdvancementAssignment(
                 seed: $assignment->seed,
                 sourceRoundId: $assignment->sourceRoundId,
                 targetRoundId: $assignment->targetRoundId,
                 entry: $assignment->entry,
-                createdEntryRef: $this->advance($assignment->entry, $targets[$assignment->targetRoundId], $participants),
+                createdEntryRef: $this->advance($assignment->entry, $targets[$assignment->targetRoundId], $participants, $targetDivisions),
                 byCountryRule: $assignment->byCountryRule,
             ), $assignments);
         }
@@ -334,9 +348,12 @@ readonly final class AdvanceQualifiedHandler
 
     /**
      * @param array<string, CompetitionParticipant> $participants the people of the whole plan, loaded at once
+     * @param array<string, array<string, CompetitionDivision>> $targetDivisions target round id => the divisions it uses
      */
-    private function advance(RoundResultEntry $entry, CompetitionRound $target, array $participants): string
+    private function advance(RoundResultEntry $entry, CompetitionRound $target, array $participants, array $targetDivisions): string
     {
+        $division = $entry->division !== null ? $targetDivisions[strtolower($target->id->toString())][$entry->division->id] ?? null : null;
+
         if ($target->category === RoundCategory::Solo) {
             assert($entry->participantId !== null);
             $participantRound = new CompetitionParticipantRound(
@@ -344,12 +361,14 @@ readonly final class AdvanceQualifiedHandler
                 $participants[$entry->participantId] ?? $this->participantRepository->get($entry->participantId),
                 $target,
             );
+            $participantRound->changeDivision($division);
             $this->participantRoundRepository->save($participantRound);
 
             return $participantRound->entryRef()->toString();
         }
 
         $team = new CompetitionTeam(Uuid::uuid7(), $target, $entry->name);
+        $team->changeDivision($division);
         $this->teamRepository->save($team);
 
         foreach ($entry->participantIds() as $participantId) {

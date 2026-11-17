@@ -60,6 +60,10 @@ use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
+use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
+use SpeedPuzzling\Web\Message\SetRoundEntryDivisions;
+use SpeedPuzzling\Web\Value\DivisionInput;
+use SpeedPuzzling\Web\Value\EntryDivisionInput;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionAdvancementStep;
@@ -325,6 +329,20 @@ final class SerializedByLockMessagesTest extends TestCase
         $expected = [$referee->lockKey(), CompetitionDisplaysLock::key($competitionId)];
         sort($expected);
         self::assertSame($expected, $keys);
+    }
+
+    /**
+     * The divisions (shared-puzzles-and-divisions.md D1): the list + round subsets and entries' divisions are written
+     * under the event's participants lock - entries are participant data, and a round deleted or moved meanwhile never
+     * gets a subset.
+     */
+    public function testDivisionWritesLockTheEvent(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+
+        self::assertSame($key, (new SetCompetitionDivisions($competitionId, [new DivisionInput('division', 'Senior')], []))->lockKey());
+        self::assertSame($key, (new SetRoundEntryDivisions(strtolower($competitionId), 'round', [new EntryDivisionInput('participant', null, 'Senior')]))->lockKey());
     }
 
     /**

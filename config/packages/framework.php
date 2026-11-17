@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\InternalApiParticipantsNotAdded;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionDivisions;
+use SpeedPuzzling\Web\Exceptions\DivisionsInUse;
 use SpeedPuzzling\Web\Exceptions\OnlineDetectionModeLocked;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotUsed;
@@ -134,6 +136,10 @@ return App::config([
             OnlineVideoNotConfigured::class => ['log_level' => 'info'],
             OnlineTimingNotUsed::class => ['log_level' => 'info'],
             InternalApiParticipantsNotAdded::class => ['log_level' => 'info'],
+            // An event's divisions or entries' divisions refused - answered 422 / 409 with the reason, nothing applied
+            // (docs/features/internal-api.md, Divisions; the divisions page catches these itself)
+            InvalidCompetitionDivisions::class => ['log_level' => 'info'],
+            DivisionsInUse::class => ['log_level' => 'info'],
             // The image analysis pipeline sending an invalid analysis / difficulty estimate / model record, or an analysis
             // of a picture the puzzle no longer has - answered 422 / 409, nothing stored (docs/features/internal-api.md,
             // Puzzle image analysis, Puzzle difficulty labels and estimates)

@@ -24,6 +24,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *   form; warm or cold the earlier published rounds (1 per category kind of them) and GetPlayerPredictions' own per
  *   member without a cached prediction;
  * - predictions: GetPlayerPredictions' own per member without a cached prediction.
+ * - round-predictions: never computes (the cache's multi-get) - 3 whatever is cached; a pair/team round 2 (no entrants).
  */
 final class AnalyticsStudioQueryBudgetTest extends WebTestCase
 {
@@ -52,6 +53,11 @@ final class AnalyticsStudioQueryBudgetTest extends WebTestCase
         yield 'entrant, warm' => [$groupB . '/entrant/' . F::ENTRY_B_HUGO, true, 4];
         yield 'predictions, 1 entry, cold' => [$groupB . '/predictions?entries=' . F::ENTRY_B_HUGO, false, 7];
         yield 'predictions, 4 entries, cold' => [$groupA . '/predictions?entries=' . implode(',', [F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN]), false, 19];
+        // The round's predictions (R30): what is cached, in one multi-get - nothing computed; `warming` sends the warm
+        // (in memory in tests; production adds the transport's INSERT, at most once a minute). Pair rounds: no entrants
+        yield 'round-predictions, warming, cold' => [$groupB . '/round-predictions', false, 3];
+        yield 'round-predictions, warming again' => [$groupB . '/round-predictions', true, 3];
+        yield 'round-predictions, pairs' => ['/analytics-studio/' . F::ROUND_PAIRS . '/round-predictions', false, 2];
         yield 'predictions, 4 entries, warm' => [$groupA . '/predictions?entries=' . implode(',', [F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN]), true, 3];
     }
 

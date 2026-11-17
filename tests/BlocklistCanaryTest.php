@@ -698,7 +698,7 @@ final class BlocklistCanaryTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
         $base = '/analytics-studio/' . OfficialResultsFixture::ROUND_GROUP_A;
-        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_A_BEN, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_A_BEN];
+        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_A_BEN, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_A_BEN, $base . '/round-predictions'];
         $read = function (string $url) use ($browser): string {
             $this->clearAnalyticsStudioCache();
             $browser->request('GET', $url);

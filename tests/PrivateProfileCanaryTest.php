@@ -699,7 +699,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'player' => self::OWNER, 'puzzle' => PuzzleFixture::PUZZLE_5000],
         );
         $base = '/analytics-studio/' . OfficialResultsFixture::ROUND_GROUP_B;
-        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_B_GINA, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_B_GINA];
+        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_B_GINA, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_B_GINA, $base . '/round-predictions'];
 
         foreach ([null, ...array_values(self::STRANGERS), self::FRIEND] as $viewer) {
             $browser->restart();

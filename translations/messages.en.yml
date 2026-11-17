@@ -14146,6 +14146,31 @@ competitor_page:
         time_proposals_help: "A competitor signed in on their own page can tap Stop when they finish. A judge confirms the time. Needs public competitor pages."
         save: "Save"
         saved: "Competitor page settings saved."
+    page:
+        title: "%name% · %event%"
+        table: "Table %number%"
+        table_lead: "Whoever sits at this table in each round - the current round first."
+        your_page: "Your competitor page"
+        no_rounds: "Not in any round yet."
+        table_unused: "No round uses this table yet."
+    round:
+        current: "Now"
+        running: "In progress"
+        scheduled: "Starting soon"
+        stopped: "Paused"
+        nobody: "Nobody at this table in this round."
+        unpaired: "No pair or team yet."
+        pick: "Pick %count% of %total% puzzles"
+        pick_all: "Solve all %total% puzzles"
+        puzzle_hidden: "Puzzle revealed at the start"
+    result:
+        official: "Official result"
+        live: "Confirmed by the judge - not official yet"
+        own: "Your time, confirmed by the judge - not published yet"
+        none: "No official result."
+    print:
+        scan_page: "Anybody else who scans it opens the public competitor page."
+        scan_event: "Anybody else who scans it lands on the event page."
 competition_display:
     copy_name: "%name% (copy)"
     kind:

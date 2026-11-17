@@ -1,0 +1,16 @@
+{#- One puzzle every viewer may see (VisibleRoundPuzzle): its picture unless still under wraps, name, pieces · brand. Expects: puzzle -#}
+<span class="competitor-puzzle" data-competitor-puzzle="{{ puzzle.puzzleId }}">
+    {%- if puzzle.imageHidden or puzzle.puzzleImage is null -%}
+        <span class="competitor-puzzle-tile" aria-hidden="true"><i class="bi {{ puzzle.imageHidden ? 'bi-eye-slash' : 'bi-puzzle' }}"></i></span>
+    {%- else -%}
+        <img class="competitor-puzzle-thumb" src="{{ puzzle.puzzleImage|thumbnail('puzzle_small') }}" alt="" width="48" height="48" loading="lazy">
+    {%- endif -%}
+    <span class="competitor-puzzle-text">
+        {%- if puzzle.imageHidden -%}
+            <span class="competitor-puzzle-name">{{ puzzle.puzzleName }}</span>
+        {%- else -%}
+            <a class="competitor-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+        {%- endif -%}
+        <span class="competitor-puzzle-meta">{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}{% if puzzle.manufacturerName %} · {{ puzzle.manufacturerName }}{% endif %}</span>
+    </span>
+</span>

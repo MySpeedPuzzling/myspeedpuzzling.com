@@ -1,0 +1,97 @@
+{#
+    One round on a competitor page (CompetitorPageRound). Expects: round, is_table (bool), view.
+
+    Names, puzzles and results only as CompetitorPageView has them - a hidden puzzle is "revealed at the start" with
+    nothing of it, a masked entry (blocklist) is a dash, a result shows its state: official + place (published), "not
+    official yet" (the organiser's choice) or the viewer's own confirmed time - never a place before publishing.
+#}
+{%- set entry = round.entry -%}
+{%- set phase = round.stopwatch.status() -%}
+<section class="competitor-round{{ round.current ? ' is-current' }}" data-competitor-round="{{ round.roundId }}" data-competitor-round-phase="{{ phase ?? 'idle' }}"{% if round.current %} data-competitor-round-current{% endif %}>
+    <header class="competitor-round-head">
+        <h2 class="competitor-round-name">{{ round.name }}</h2>
+        {%- if round.current %} <span class="badge rounded-pill competitor-round-now">{{ 'competitor_page.round.current'|trans }}</span>{% endif -%}
+        {%- if phase == 'running' %} <span class="badge rounded-pill bg-success" data-competitor-round-running>{{ 'competitor_page.round.running'|trans }}</span>
+        {%- elseif phase == 'scheduled' %} <span class="badge rounded-pill bg-primary">{{ 'competitor_page.round.scheduled'|trans }}</span>
+        {%- elseif phase == 'stopped' %} <span class="badge rounded-pill bg-warning text-dark">{{ 'competitor_page.round.stopped'|trans }}</span>
+        {%- endif %}
+    </header>
+
+    <p class="competitor-round-meta small text-muted">
+        <span data-round-category>{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+        <span aria-hidden="true">·</span> {{ include('event_parts/_event_time.html.twig', {time: round.startsAt, online: false}) }}
+        {%- if round.minutesLimit is not null %} <span aria-hidden="true">·</span> {{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}{% endif -%}
+    </p>
+
+    {% if round.tableNumber is not null and not is_table %}
+        <p class="competitor-round-table" data-competitor-table>{{ 'competitor_page.page.table'|trans({'%number%': round.tableNumber}) }}</p>
+    {% endif %}
+
+    {#- Who plays: the occupant of a table, the pair/team of a person's pair/team round, the entry of an entry tag -#}
+    {% if round.masked %}
+        <p class="competitor-round-entrant text-muted" data-competitor-masked>—</p>
+    {% elseif entry is null %}
+        <p class="competitor-round-entrant text-muted" data-competitor-nobody>{{ 'competitor_page.round.nobody'|trans }}</p>
+    {% elseif entry.unpaired %}
+        <p class="competitor-round-entrant text-muted" data-competitor-unpaired>{{ 'competitor_page.round.unpaired'|trans }}</p>
+    {% elseif is_table or (entry.isTeam and view.kind.value == 'p') %}
+        <div class="competitor-round-entrant" data-competitor-entrant>
+            {% if entry.isTeam and entry.teamName is not null %}<div class="small fw-medium"><i class="bi bi-people-fill me-1" aria-hidden="true"></i>{{ entry.teamName }}</div>{% endif %}
+            {% for entrant in entry.entrants %}
+                {{ include('_leaderboard_player.html.twig', {player: entrant, small: entry.isTeam, show_tier: false}) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {#- Puzzles: the public reveal rule, for everybody -#}
+    <div class="competitor-round-puzzles" data-competitor-puzzles>
+        {% if round.isPick %}
+            <p class="small mb-1 fw-medium" data-competitor-pick>
+                {{- round.puzzlesToSolve == round.slots|length ? 'competitor_page.round.pick_all'|trans({'%total%': round.slots|length}) : 'competitor_page.round.pick'|trans({'%count%': round.puzzlesToSolve, '%total%': round.slots|length}) -}}
+            </p>
+            <ul class="competitor-round-puzzle-list">
+                {% for slot in round.slots %}
+                    <li class="competitor-round-puzzle"{% if slot.puzzle is null %} data-competitor-puzzle-hidden{% endif %}>
+                        <span class="official-entry-puzzle-label">{{ slot.label }}</span>
+                        {% if slot.puzzle is not null %}{{ include('competitor_page/_puzzle.html.twig', {puzzle: slot.puzzle}) }}{% else %}<span class="text-muted small">{{ 'competitor_page.round.puzzle_hidden'|trans }}</span>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% elseif round.puzzles is not empty %}
+            <ul class="competitor-round-puzzle-list">
+                {% for puzzle in round.puzzles %}
+                    <li class="competitor-round-puzzle">{{ include('competitor_page/_puzzle.html.twig', {puzzle: puzzle}) }}</li>
+                {% endfor %}
+            </ul>
+        {% elseif not round.published %}
+            <p class="small text-muted mb-0" data-competitor-puzzle-secret><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ 'competitor_page.round.puzzle_hidden'|trans }}</p>
+        {% endif %}
+    </div>
+
+    {#- The result as far as the viewer may see it -#}
+    {% if entry is not null and entry.result is not null %}
+        {% set state = entry.resultState.value %}
+        <div class="competitor-round-result is-{{ state }}" data-competitor-result="{{ state }}">
+            <div class="competitor-round-result-value">
+                {%- if entry.rank is not null %}<span class="lb-rank{{ entry.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ entry.rank }}" data-competitor-rank="{{ entry.rank }}" title="{{ 'round_results.official.rank'|trans }}">{{ entry.rank }}</span> {% endif -%}
+                <span class="competitor-round-time">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: entry.piecesCount}) }}</span>
+                {%- if entry.qualified %} <span class="badge rounded-pill official-qualified-badge" data-competitor-qualified>{{ 'official_results.qualified'|trans }}</span>{% endif -%}
+            </div>
+            <div class="small {{ state == 'official' ? 'text-success' : 'text-muted' }}">{{ ('competitor_page.result.' ~ state)|trans }}</div>
+            {% if entry.puzzleChips is not empty %}
+                <ol class="official-entry-puzzle-list mt-1" data-competitor-chips>
+                    {% for chip in entry.puzzleChips %}
+                        <li class="official-entry-puzzle{{ chip.done ? ' is-done' }}">
+                            <span class="official-entry-puzzle-label">{{ chip.label }}</span>
+                            {%- if chip.puzzle is not null %} <span class="official-entry-puzzle-name">{{ chip.puzzle.puzzleName }}</span>{% endif %}
+                            {%- if chip.done %} <i class="bi bi-check-lg text-success" aria-hidden="true"></i>{% if chip.atSeconds is not null %} <span class="official-entry-puzzle-time">{{ chip.atSeconds|puzzlingTime }}</span>{% endif %}
+                            {%- elseif chip.piecesPlaced is not null %} <span class="text-muted">{{ 'competition_toolkit.round_page.pieces_placed'|trans({'%count%': chip.piecesPlaced}) }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            {% endif %}
+        </div>
+    {% elseif entry is not null and not entry.unpaired and round.published %}
+        <p class="small text-muted mb-0" data-competitor-no-result>{{ 'competitor_page.result.none'|trans }}</p>
+    {% endif %}
+</section>

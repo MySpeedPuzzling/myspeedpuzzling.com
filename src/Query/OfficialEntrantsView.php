@@ -303,7 +303,11 @@ SQL,
 SQL;
     }
 
-    private static function entrant(
+    /**
+     * One person of an entry as a public page may show them - the masking rule above, shared with the competitor
+     * pages (GetCompetitorPage), which show the entrant of rounds without a ranked result too.
+     */
+    public static function entrant(
         string $name,
         null|string $country,
         null|string $playerId,
@@ -328,9 +332,12 @@ SQL;
     }
 
     /**
+     * The blocklist's group rule for one entry (the person, or the members of a pair/team): hidden from the viewer when
+     * a linked player is hidden from them - unless the viewer is one of them. Shared with the competitor pages.
+     *
      * @param list<PublishedRoundEntrant> $entrants
      */
-    private function isHiddenFromViewer(array $entrants, null|string $viewerPlayerId): bool
+    public function isHiddenFromViewer(array $entrants, null|string $viewerPlayerId): bool
     {
         if (self::isViewers($entrants, $viewerPlayerId)) {
             return false;
@@ -348,7 +355,7 @@ SQL;
     /**
      * @param list<PublishedRoundEntrant> $entrants
      */
-    private static function isViewers(array $entrants, null|string $viewerPlayerId): bool
+    public static function isViewers(array $entrants, null|string $viewerPlayerId): bool
     {
         if ($viewerPlayerId === null) {
             return false;

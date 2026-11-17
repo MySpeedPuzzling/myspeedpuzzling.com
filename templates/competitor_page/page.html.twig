@@ -1,0 +1,84 @@
+{#
+    The public competitor page (docs/features/competitions-management/competitor-pages.md, CompetitorPageController) -
+    where a scanned competition tag leads anybody but the event's organisers and referees: a person (p), a pair/team
+    line-up (g), a table (t) or one round's entry (e), with their rounds. Mobile first - people scan it with a phone at
+    the table. Never indexed.
+
+    Everything shown comes from CompetitorPageView: names masked like the public round page, puzzles by the public reveal
+    rule (a hidden one has no name, picture or id here - not even in an attribute), results only as the viewer may see
+    them (official + place once published; before that "not official yet" when the organiser chose it, or the viewer's
+    own time - never a place).
+
+    The root carries what the live part (B5) needs: the state URL, the server's time, the public stopwatch topics.
+#}
+{% extends 'base.html.twig' %}
+
+{% set is_table = view.kind.value == 't' %}
+{% set header_name = view.teamName ?? (view.entrants|map(e => e.playerName)|join(' & ')) %}
+
+{% block title %}
+    {%- if is_table -%}
+        {{- 'competitor_page.page.title'|trans({'%name%': 'competitor_page.page.table'|trans({'%number%': view.tableNumber}), '%event%': view.competition.displayName}) -}}
+    {%- else -%}
+        {{- 'competitor_page.page.title'|trans({'%name%': header_name, '%event%': view.competition.displayName}) -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    {% set event_route = view.competition.routeName %}
+    <div class="competitor-page"
+         data-competitor-page
+         data-competitor-page-kind="{{ view.kind.value }}"
+         data-competitor-page-state-url-value="{{ path('competitor_state', {competitionId: view.competitionId, kind: view.kind.value, id: view.tagId}) }}"
+         data-competitor-page-server-now-ms-value="{{ view.serverNow|date('U') * 1000 }}"
+         data-competitor-page-mercure-url-value="{{ mercure_public_url }}"
+         data-competitor-page-topics-value="{{ view.topics|json_encode|e('html_attr') }}"
+    >
+        <p class="competitor-page-event small mb-1">
+            {% if event_route is not null %}
+                <a href="{{ path(event_route, view.competition.routeParameters) }}" class="text-muted" data-competitor-event-link><i class="bi bi-chevron-left me-1" aria-hidden="true"></i>{{ view.competition.displayName }}</a>
+            {% else %}
+                <span class="text-muted">{{ view.competition.displayName }}</span>
+            {% endif %}
+        </p>
+
+        <header class="competitor-page-header" data-competitor-header>
+            {% if is_table %}
+                <h1 class="competitor-page-title"><i class="bi bi-grid-3x3-gap me-2" aria-hidden="true"></i>{{ 'competitor_page.page.table'|trans({'%number%': view.tableNumber}) }}</h1>
+                <p class="small text-muted mb-0">{{ 'competitor_page.page.table_lead'|trans }}</p>
+            {% else %}
+                {% if view.isTeam and view.teamName is not null %}
+                    <h1 class="competitor-page-title" data-competitor-team-name><i class="bi bi-people-fill me-2" aria-hidden="true"></i>{{ view.teamName }}</h1>
+                {% else %}
+                    <h1 class="visually-hidden">{{ header_name }}</h1>
+                {% endif %}
+                <ul class="competitor-page-people{{ view.isTeam ? ' is-team' }}">
+                    {% for entrant in view.entrants %}
+                        <li class="competitor-page-person" data-competitor-person>
+                            {{ include('_leaderboard_player.html.twig', {player: entrant, small: view.isTeam and view.teamName is not null, show_tier: false}) }}
+                            {#- #code only of a profile the viewer may see (playerId is set only then) -#}
+                            {%- if entrant.playerId is not null and entrant.linkedPlayerCode is not null %} <span class="competitor-page-code text-muted" data-competitor-code>#{{ entrant.linkedPlayerCode }}</span>{% endif -%}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if view.viewerIsEntrant %}
+                    <p class="small mb-0 mt-1"><span class="badge rounded-pill competitor-page-you" data-competitor-own>{{ 'competitor_page.page.your_page'|trans }}</span></p>
+                {% endif %}
+            {% endif %}
+        </header>
+
+        {% if view.rounds is empty %}
+            <p class="text-muted mt-3" data-competitor-no-rounds>{{ (is_table ? 'competitor_page.page.table_unused' : 'competitor_page.page.no_rounds')|trans }}</p>
+        {% else %}
+            <div class="competitor-page-rounds">
+                {% for round in view.rounds %}
+                    {{ include('competitor_page/_round.html.twig', {round: round, is_table: is_table}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

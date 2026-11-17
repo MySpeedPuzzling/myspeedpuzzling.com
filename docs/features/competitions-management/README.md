@@ -619,8 +619,8 @@ no qualification, the winner per category has the lowest sum.
   (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum` only), `round_ids` jsonb (ordered,
   validated on write by `CompetitionStandingRounds`: ≥ 1, ≤ 50, rounds of the event and the standing's category, a
   repeated id kept once), `unfinished_penalty_seconds_per_piece` 0..600, `order_rule` (`finished_rounds_first` default /
-  `total_only`), `missing_rule` (`incomplete` only - `as_zero_pieces` is v2), `position`, `published_at` (nothing sets
-  it until A7). At most 20 per event.
+  `total_only`), `missing_rule` (`incomplete` only - `as_zero_pieces` is v2), `position`, `published_at` (the public
+  page's switch, A7). At most 20 per event.
 - **Writes:** `CreateCompetitionStanding` / `EditCompetitionStanding` / `DeleteCompetitionStanding`, all under
   `CompetitionParticipantsLock` (deviation from A §3.6 "no lock": they take turns with `DeleteCompetitionRound` /
   `MoveRoundToCompetition`, which prune standings, so a round going away is never saved into one). Refusals
@@ -646,9 +646,48 @@ no qualification, the winner per category has the lowest sum.
   `COMPETITION_TOOLKIT_MANAGE`. Organiser JSON `official_results_standing_state`
   (`GET /{_locale}/official-results/standings/{standingId}`, `COMPETITION_RESULTS_ENTRY`, `no-store`; referees get no
   `playerCode` of private players) - shape `StandingTable::toArray()` (A §6.4 with `includesUnpublished`, `perRound[].status`).
-- Not built yet: the public page + publishing (A7), the bracket (A8/A9).
+- Not built yet: the bracket (A8/A9).
 - Tests: `tests/Services/CompetitionToolkit/StandingCalculatorTest.php`, `tests/CompetitionToolkit/CompetitionStandingsTest.php`
   (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`.
+
+### Public standings (competition toolkit A7)
+
+Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (no public JSON, no Mercure topic in v1).
+
+- **Publishing:** `PublishCompetitionStanding` / `UnpublishCompetitionStanding` (under `CompetitionParticipantsLock` like
+  every standing write; publishing again keeps the first moment), `publish_competition_standing` (POST, field
+  `publish` 1/0, CSRF `_publish_token` = `publish-standing-{id}`, `COMPETITION_TOOLKIT_MANAGE`) from buttons on the
+  standings page, which also shows Published / Not published and a "Public page" link.
+- **Pages:** `event_standing` `/{_locale}/events/{slug}/standings/{standingSlug}` (cs `/eventy/{slug}/poradi/…`; an
+  edition's event URL redirects 301) and `edition_standing` `/{_locale}/series/{s}/{e}/standings/{standingSlug}`, both
+  through `StandingPageBuilder`: 404 for an event that is not public (drafts, unapproved - its team too, like the round
+  results pages) and for an unpublished standing. Tabs to the event's other published standings (a 6+6+6 World Series
+  has three). `noindex` while no round counts.
+- **Computation:** `GetStandingResults::publicView()` = `StandingCalculator::sum()` over the standing's rounds whose
+  official results are published and have something ranked, entries ONLY from `OfficialEntrantsView::forRounds(...,
+  keepHidden: true)` (ranked results, private players masked, removed people left out); the rows hidden from the viewer
+  (blocklist group rule) are dropped **after** the standing's ranking, without renumbering. Unpublished rounds show "–"
+  and make nobody missing; "Provisional · after 3 of 6 rounds" until all count, then "Final". With every round
+  published its keys, ranks and totals equal the organiser preview (pinned by `PublicStandingsTest`). For this,
+  `PublishedRoundEntry` carries `participantIds` (lower case, never rendered) and `hiddenFromViewer` - the round page's
+  output is unchanged (goldens). Entrant keys: `p:{participantId}` / `l:{CompetitionLineupId}` / `t:{teamId}`, like the
+  organiser view; never in the HTML. Statements: event lookup, visibility, the event, the standing, its rounds, ≤ 2 for
+  the entries.
+- **Links:** the published standings ride on `GetCompetitionEvents::byId()` as JSON (`CompetitionEvent::$publishedStandings`,
+  `PublishedStandingRef`) - no statement of their own (`DetailPagesQueryBudgetTest::testPublishedStandingsAddNoStatement…`).
+  Event/edition page: a "Standings:" row under the rounds heading (`event_parts/_standings_links.html.twig`, appended to
+  the heading's line, so untouched events render byte-identically; public pages only); round page: "Part of … →" for
+  each published standing that includes the round (`round_results/_standings_links.html.twig`); results overview: a
+  Standings button once one is published (toolkit voter); sitemap: published standings of public events with at least
+  one published round (`GetCompetitionSlugsForSitemap::standingSlugs()`).
+- **Layout:** mobile first - rank, name (the round page's `_leaderboard_player`), total; the round columns from `lg`
+  up, below that a compact "R1 … R2 …" line per row and a legend naming the rounds.
+- Known edges: the public view counts people with `deleted_at IS NULL` (the organiser view: people going to the event),
+  so a waitlisted person with a published result is in the public sum only; the penalty per missing piece of an
+  unfinished pick-round entry uses its chosen puzzles' pieces (a number inside the total, never a puzzle name).
+- Tests: `tests/CompetitionToolkit/PublicStandingsTest.php` (publish/unpublish, organiser buttons, provisional, ranks =
+  preview, drafts/unapproved 404, links, sitemap, edition URL), canaries `BlocklistCanaryTest`,
+  `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…InAPublicStanding`, `…StandingOfADraft…`), `DetailPagesQueryBudgetTest`.
 
 ## Round Stopwatch
 

@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -416,6 +417,55 @@ final class BlocklistCanaryTest extends WebTestCase
             static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
         ));
         self::assertCount(2, $crawler->filter('[data-official-results] [data-official-entry-puzzles]'));
+    }
+
+    /**
+     * The public standings (competition toolkit A7): the blocked player's row - solo, or a pair with them - is not there
+     * for the blocker, and everybody else keeps the standing's places (ranked over every entrant, hidden rows dropped
+     * after that, like the round page). Group B (not published) counts for nobody.
+     */
+    public function testBlockedPlayerIsNowhereInAPublicStanding(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]);
+        PublishedStanding::insert($database, $cup, 'overall-pairs', 'Overall pairs', 'duo', [OfficialResultsFixture::ROUND_PAIRS]);
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_PAIRS]);
+        // "Ben Steady", tied second in Group A and half of the Puzzle Sharks, is the blocked player
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $solo = '/en/events/results-cup/standings/overall-solo';
+        $pairs = '/en/events/results-cup/standings/overall-pairs';
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $solo);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the standing does not link the player.');
+        self::assertStringContainsString('Ben Steady', $content);
+        self::assertSame(['1', '2', '2', '4'], $crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank')));
+        $browser->request('GET', $pairs);
+        self::assertStringContainsString('Puzzle Sharks', (string) $browser->getResponse()->getContent(), 'No canary: the pairs standing does not list the pair.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $solo);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['1', '2', '4'], $crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank')));
+        $browser->request('GET', $pairs);
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
+        self::assertStringNotContainsString('Ben Steady', $content);
     }
 
     /**

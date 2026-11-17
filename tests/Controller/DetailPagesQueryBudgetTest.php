@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -146,6 +147,29 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
 
         $browser->getCookieJar()->clear();
         self::assertSame($guest, $this->measure($browser, self::PARTNER_FINDER_OPEN), 'a guest pays nothing for the link');
+    }
+
+    /**
+     * Published standings (competition toolkit A7) ride on the event's own statement (GetCompetitionEvents::byId()): the
+     * event and edition pages link them for no statement of their own.
+     */
+    public function testPublishedStandingsAddNoStatementToTheEventAndEditionPages(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([self::HILLTOP => 'hilltop-puzzle-weekend', self::SEASON_ONE => 'season-one'] as $url => $slug) {
+            $before = $this->measure($browser, $url);
+            /** @var array{competition_id: string, round_id: string, category: string} $round */
+            $round = $database->fetchAssociative(
+                'SELECT c.id AS competition_id, r.id AS round_id, r.category FROM competition c INNER JOIN competition_round r ON r.competition_id = c.id WHERE c.slug = :slug ORDER BY r.starts_at LIMIT 1',
+                ['slug' => $slug],
+            );
+            PublishedStanding::insert($database, $round['competition_id'], 'overall', 'Overall', $round['category'], [$round['round_id']]);
+
+            self::assertSame($before, $this->measure($browser, $url), 'a published standing must not add statements: ' . $url);
+            self::assertSelectorExists('[data-event-standing-link]');
+        }
     }
 
     public function testTenMoreEditionsAddNoStatementToTheSeriesPage(): void

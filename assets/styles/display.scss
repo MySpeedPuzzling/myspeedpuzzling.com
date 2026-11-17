@@ -1,0 +1,244 @@
+// The competition display page (Encore entry `display`, competition toolkit D4) - assets/displays/render.js builds the
+// DOM. Kept to what OBS's browser source and older TV browsers render: absolute positions, transform: scale, flexbox
+// without `gap` - no :has(), container queries or other recent CSS (D-displays-overlays.md §7.4). The fonts'
+// @font-face rules are inline in the template (font-display: block survives there).
+
+@import "flag-icons/sass/flag-icons";
+
+.msp-display-body {
+    cursor: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+.msp-display-body--pointer {
+    cursor: default;
+}
+
+.msp-display {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.msp-display__stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+}
+
+.msp-display__background,
+.msp-display__background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.msp-display__invalid {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    max-width: 80%;
+    padding: 0.75em 1.25em;
+    border-radius: 0.5em;
+    background: rgba(13, 16, 23, 0.85);
+    color: #fff;
+    font: 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+
+.msp-display__fullscreen {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10000;
+    display: none;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(13, 16, 23, 0.8);
+    color: #fff;
+    font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    cursor: pointer;
+}
+
+.msp-display-body--pointer .msp-display__fullscreen {
+    display: block;
+}
+
+.msp-el {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.msp-el__body {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.msp-el__line,
+.msp-el__badge {
+    white-space: nowrap;
+}
+
+.msp-el__badge {
+    display: inline-block;
+    padding: 0.15em 0.8em;
+}
+
+.msp-el__text {
+    white-space: pre-line;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+.msp-el__track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.msp-el__bar {
+    position: absolute;
+    left: 0;
+}
+
+.msp-el__image,
+.msp-el__slide {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.msp-el--rotator .msp-el__slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.msp-el__qr {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.msp-el__puzzles {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    height: 100%;
+}
+
+.msp-el__puzzles--column {
+    flex-direction: column;
+}
+
+.msp-el__puzzles--grid {
+    flex-wrap: wrap;
+}
+
+.msp-el__puzzle {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25em;
+    overflow: hidden;
+}
+
+.msp-el__puzzle-image {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.msp-el__puzzle-name,
+.msp-el__puzzle-brand,
+.msp-el__puzzle-pieces {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msp-el__puzzle-brand,
+.msp-el__puzzle-pieces {
+    font-size: 0.7em;
+    opacity: 0.85;
+}
+
+.msp-el__rows {
+    width: 100%;
+}
+
+.msp-el__row {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0.15em 0.35em;
+    white-space: nowrap;
+}
+
+.msp-el__row--ticker {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msp-el__cell {
+    flex: 0 0 auto;
+    margin-right: 0.5em;
+}
+
+.msp-el__cell:last-child {
+    margin-right: 0;
+}
+
+.msp-el__cell--rank {
+    min-width: 2em;
+    text-align: right;
+}
+
+.msp-el__cell--flag .fi {
+    margin-right: 0.15em;
+}
+
+.msp-el__cell--name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msp-el__name,
+.msp-el__members {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msp-el__members {
+    font-size: 0.6em;
+    opacity: 0.8;
+}
+
+.msp-el__cell--result,
+.msp-el__cell--table {
+    font-variant-numeric: tabular-nums;
+}

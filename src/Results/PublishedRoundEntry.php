@@ -22,6 +22,8 @@ readonly final class PublishedRoundEntry
     /**
      * @param list<PublishedRoundEntrant> $entrants the person, or the members of the pair/team (by name)
      * @param list<PublishedEntryPuzzle> $puzzleChips the chosen puzzles in solving order (pick rounds on the round page)
+     * @param list<string> $participantIds the event's participant ids of the person / the members (lower case) - who the
+     *     entrant is across rounds for the public standings (competition toolkit A7); never rendered
      */
     public function __construct(
         public RoundEntryRef $ref,
@@ -37,6 +39,9 @@ readonly final class PublishedRoundEntry
         // A `pick` round's per-puzzle record (competition toolkit A3) - null on every other round and without one
         public null|RoundEntryPuzzles $puzzles = null,
         public array $puzzleChips = [],
+        public array $participantIds = [],
+        // Only with OfficialEntrantsView::forRounds(keepHidden: true) - the standings drop such rows after their ranking
+        public bool $hiddenFromViewer = false,
     ) {
     }
 
@@ -65,6 +70,8 @@ readonly final class PublishedRoundEntry
             profileState: $profileState,
             puzzles: $this->puzzles,
             puzzleChips: $this->puzzleChips,
+            participantIds: $this->participantIds,
+            hiddenFromViewer: $this->hiddenFromViewer,
         );
     }
 
@@ -85,6 +92,8 @@ readonly final class PublishedRoundEntry
             profileState: $this->profileState,
             puzzles: $this->puzzles,
             puzzleChips: $puzzleChips,
+            participantIds: $this->participantIds,
+            hiddenFromViewer: $this->hiddenFromViewer,
         );
     }
 

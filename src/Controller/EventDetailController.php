@@ -131,6 +131,7 @@ final class EventDetailController extends AbstractController
             dateTo: $competitionEvent->dateTo,
             now: $now,
             zone: RoundTimezone::resolve(null, $competitionEvent->locationCountryCode?->name),
+            standings: $competitionEvent->publishedStandings,
         );
 
         $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);

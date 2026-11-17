@@ -2,7 +2,8 @@
 
 {#
     The standings of an event (competition toolkit A6, competition_standings_manage): each with its live preview over
-    every round, published or not. Variables: competition, rounds, tables (list<StandingTable>), missing_categories.
+    every round, published or not. Variables: competition, rounds, tables (list<StandingTable>), missing_categories,
+    public_urls (standing id => its public page, published ones only - A7).
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -28,6 +29,7 @@
             </a>
         </div>
         <p class="text-muted" style="max-width: 48rem;">{{ 'competition_standing.list.intro'|trans }}</p>
+        <p class="small text-muted" style="max-width: 48rem;">{{ 'public_standing.organiser.publish_help'|trans }}</p>
 
         {% if missing_categories is not empty %}
             <form method="post" action="{{ path('create_competition_standings_per_category', {competitionId: competition.id}) }}" class="card card-body bg-body-tertiary mb-4" style="max-width: 48rem;" data-standings-per-category>
@@ -48,7 +50,27 @@
                         <h2 class="h5 mb-0">{{ table.standing.name }}</h2>
                         <span class="badge bg-secondary">{{ ('competition.round.category.' ~ table.standing.category.value)|trans }}</span>
                         <span class="small text-muted">{{ ('competition_standing.order.' ~ table.standing.rules.order.value)|trans }}{% if table.standing.rules.penaltySecondsPerPiece > 0 %} · {{ 'competition_standing.penalty_short'|trans({'%seconds%': table.standing.rules.penaltySecondsPerPiece}) }}{% endif %}</span>
-                        <div class="ms-auto d-flex gap-2">
+                        {% if table.standing.publishedAt is not null %}
+                            <span class="badge bg-success" data-standing-published>{{ 'public_standing.organiser.published'|trans }}</span>
+                        {% else %}
+                            <span class="badge text-bg-light border" data-standing-unpublished>{{ 'public_standing.organiser.not_published'|trans }}</span>
+                        {% endif %}
+                        <div class="ms-auto d-flex flex-wrap gap-2">
+                            {% if public_urls[table.standing.id] is defined %}
+                                <a href="{{ public_urls[table.standing.id] }}" class="btn btn-sm btn-outline-primary" data-standing-public-link>
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'public_standing.organiser.view_public'|trans }}
+                                </a>
+                            {% endif %}
+                            <form method="post" action="{{ path('publish_competition_standing', {competitionId: competition.id, standingId: table.standing.id}) }}"
+                                {%- if table.standing.publishedAt is not null %} onsubmit="return confirm({{ 'public_standing.organiser.unpublish_confirm'|trans({'%name%': table.standing.name})|json_encode }});"{% endif %}>
+                                <input type="hidden" name="_publish_token" value="{{ csrf_token('publish-standing-' ~ table.standing.id) }}">
+                                <input type="hidden" name="publish" value="{{ table.standing.publishedAt is null ? '1' : '0' }}">
+                                {% if table.standing.publishedAt is null %}
+                                    <button type="submit" class="btn btn-sm btn-success" data-standing-publish><i class="bi bi-globe me-1"></i>{{ 'public_standing.organiser.publish'|trans }}</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" data-standing-unpublish><i class="bi bi-eye-slash me-1"></i>{{ 'public_standing.organiser.unpublish'|trans }}</button>
+                                {% endif %}
+                            </form>
                             <a href="{{ path('edit_competition_standing', {competitionId: competition.id, standingId: table.standing.id}) }}" class="btn btn-sm btn-outline-secondary" data-standing-edit-link>
                                 <i class="bi bi-pencil me-1"></i>{{ 'competition_standing.list.edit'|trans }}
                             </a>

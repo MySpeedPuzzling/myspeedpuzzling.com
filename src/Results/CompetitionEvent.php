@@ -43,6 +43,7 @@ use SpeedPuzzling\Web\Value\EventTypes;
  *     registration_timezone?: null|string,
  *     has_page_sections?: bool|string,
  *     has_published_official_results?: bool|string,
+ *     published_standings?: null|string,
  *     organization_id?: null|string,
  *     is_draft?: bool|string,
  *     eligibility?: null|string,
@@ -60,6 +61,9 @@ readonly final class CompetitionEvent
     public null|string $registrationLink;
     public null|string $resultsLink;
 
+    /**
+     * @param list<PublishedStandingRef> $publishedStandings
+     */
     public function __construct(
         public string $id,
         public string $name,
@@ -105,6 +109,9 @@ readonly final class CompetitionEvent
         public bool $isDraft = false,
         // What kind of event - its own (an edition without them shows its series'), null = not set
         public null|EventTypes $eventTypes = null,
+        // Its published standings (competition toolkit A7), by position - only GetCompetitionEvents::byId() reads them, in
+        // its own statement: the event, edition and round pages link them at no statement of their own
+        public array $publishedStandings = [],
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -160,6 +167,7 @@ readonly final class CompetitionEvent
             eligibility: $row['eligibility'] ?? null,
             isDraft: self::parseBool($row['is_draft'] ?? false),
             eventTypes: EventTypes::fromJson($row['event_types'] ?? null),
+            publishedStandings: PublishedStandingRef::listFromJson($row['published_standings'] ?? null),
         );
     }
 

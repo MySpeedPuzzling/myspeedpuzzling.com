@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\CompetitionToolkit;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetCompetitionTagEntries;
+use SpeedPuzzling\Web\Results\CompetitionTagEntry;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\TimeProposals\TimeProposalScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -221,6 +223,20 @@ final class TimeProposalEndpointsTest extends WebTestCase
             \SpeedPuzzling\Web\Value\CompetitionLineupId::of(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::PARTICIPANT_BEN]),
             $sharks['lineupId'],
         );
+
+        // A member on the waitlist (H1): listed no more, but the line-up still counts them - the tag route's rule
+        // (GetCompetitionTagEntries::ofLineup(): every member not removed), so the printed tag still opens the pair
+        self::db()->executeStatement("UPDATE competition_participant SET registration_status = 'waitlisted' WHERE id = :id", ['id' => OfficialResultsFixture::PARTICIPANT_BEN]);
+        $this->browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_PAIRS);
+        $entries = $this->json()['entries'];
+        self::assertIsArray($entries);
+        $sharksWaiting = array_values(array_filter($entries, static fn (mixed $entry): bool => is_array($entry) && $entry['ref'] === self::SHARKS))[0];
+        self::assertIsArray($sharksWaiting['members']);
+        self::assertSame([OfficialResultsFixture::PARTICIPANT_ANNA], array_column($sharksWaiting['members'], 'participantId'));
+        self::assertSame($sharks['lineupId'], $sharksWaiting['lineupId']);
+        $tagEntries = self::getContainer()->get(GetCompetitionTagEntries::class)->ofLineup(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $sharks['lineupId']);
+        self::assertContains(self::SHARKS, array_map(static fn (CompetitionTagEntry $entry): string => (string) $entry->entry?->toString(), $tagEntries));
+        self::db()->executeStatement('UPDATE competition_participant SET registration_status = NULL WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_BEN]);
 
         // A person's entry never has one
         $this->browser->request('GET', self::FINAL_STATE);

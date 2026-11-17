@@ -27,7 +27,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
  * Statements: the round, the entries, for a pair/team round their members, and for a `pick` round (competition toolkit
  * A3) the piece counts of its puzzles - entries of a `pick` round carry their per-puzzle record (`puzzles`). The round's
  * statement reads its competition's competitor pages / QR tag mode too: while either is set, team entries carry their
- * `lineupId` (competition toolkit P1, R-review-and-plan.md §1.8, CompetitionLineupId over the members listed).
+ * `lineupId` (competition toolkit P1, R-review-and-plan.md §1.8, CompetitionLineupId over every member not removed -
+ * the waitlisted ones too, the tag route's rule - while only the going ones are listed).
  */
 readonly final class GetRoundResultEntries
 {
@@ -60,14 +61,9 @@ SQL, [
             throw new CompetitionRoundNotFound();
         }
 
-        $entries = $round['category'] === 'solo' ? $this->people($roundId) : $this->teams($roundId);
-
-        if ($round['lineups'] && $round['category'] !== 'solo') {
-            $entries = array_map(static fn (RoundResultEntry $entry): RoundResultEntry => self::copy(
-                $entry,
-                lineupId: $entry->participantIds() === [] ? null : CompetitionLineupId::of($round['competition_id'], $entry->participantIds()),
-            ), $entries);
-        }
+        $entries = $round['category'] === 'solo'
+            ? $this->people($roundId)
+            : $this->teams($roundId, $round['lineups'] ? $round['competition_id'] : null);
 
         if ($round['puzzle_format'] === RoundPuzzleFormat::Pick->value && $round['puzzles_to_solve'] !== null) {
             $entries = $this->withPuzzles($roundId, $round['puzzles_to_solve'], $entries);
@@ -94,7 +90,7 @@ SQL, [
         ), $entries);
     }
 
-    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null, null|string $lineupId = null): RoundResultEntry
+    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null): RoundResultEntry
     {
         return new RoundResultEntry(
             ref: $entry->ref,
@@ -119,7 +115,7 @@ SQL, [
             puzzles: $entry->puzzles,
             puzzlesUsed: $puzzlesUsed ?? $entry->puzzlesUsed,
             piecesCount: $piecesCount ?? $entry->piecesCount,
-            lineupId: $lineupId ?? $entry->lineupId,
+            lineupId: $entry->lineupId,
         );
     }
 
@@ -234,9 +230,10 @@ SQL,
     }
 
     /**
+     * @param null|string $lineupsOf the competition id while its pairs/teams carry their `lineupId`, else null
      * @return list<RoundResultEntry>
      */
-    private function teams(string $roundId): array
+    private function teams(string $roundId, null|string $lineupsOf): array
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -272,9 +269,10 @@ SELECT
     p.id AS player_id,
     p.code AS player_code,
     p.name AS player_name,
-    p.is_private AS player_is_private
+    p.is_private AS player_is_private,
+    ({$going}) AS going
 FROM competition_participant_round cpr
-INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
+INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
 LEFT JOIN player p ON p.id = cp.player_id
 WHERE cpr.round_id = :roundId
     AND cpr.team_id IS NOT NULL
@@ -285,8 +283,19 @@ SQL,
 
         /** @var array<string, list<RoundResultEntryMember>> $members */
         $members = [];
+        // The line-up counts every member not removed - the waitlist too - exactly like the tag route
+        // (GetCompetitionTagEntries::ofLineup(), GetCompetitionLineupTags), so the phone matches a printed line-up tag by
+        // the entry's `lineupId` even while a member waits for a spot (toolkit H1)
+        /** @var array<string, list<string>> $lineupMembers */
+        $lineupMembers = [];
         foreach ($memberRows as $row) {
-            /** @var array{team_id: string, participant_round_id: string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
+            /** @var array{team_id: string, participant_round_id: string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool, going: bool} $row */
+            $lineupMembers[$row['team_id']][] = $row['participant_id'];
+
+            if ($row['going'] !== true) {
+                continue;
+            }
+
             $members[$row['team_id']][] = new RoundResultEntryMember(
                 participantId: $row['participant_id'],
                 participantRoundId: $row['participant_round_id'],
@@ -330,6 +339,7 @@ SQL,
                 resultEnteredById: $row['result_entered_by_id'],
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
                 puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
+                lineupId: $lineupsOf !== null && isset($lineupMembers[$row['id']]) ? CompetitionLineupId::of($lineupsOf, $lineupMembers[$row['id']]) : null,
             );
         }
 

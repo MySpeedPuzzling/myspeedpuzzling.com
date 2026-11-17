@@ -179,7 +179,9 @@ final class CompetitionDisplayLiveUpdatesTest extends WebTestCase
             }
 
             foreach ($queries as $query) {
-                if (is_array($query) && is_string($query['sql'] ?? null)) {
+                // The standings' own presence check (v2 S1, CompetitionStandingsLiveUpdates, forwarded from here) is
+                // pinned in CompetitionStandingsLiveUpdatesTest - this test counts what the displays pay
+                if (is_array($query) && is_string($query['sql'] ?? null) && !str_contains($query['sql'], 'competition_standing')) {
                     $statements[] = $query['sql'];
                 }
             }

@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The standings of an event (competition toolkit A6, competition_standings_manage): each with its live preview over
+    every round, published or not. Variables: competition, rounds, tables (list<StandingTable>), missing_categories.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition_standing.list.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'competition_standing.list.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_toolkit', {competitionId: competition.id}), fallbackTitle: 'competition_toolkit.title'|trans}) }}
+
+    <div class="pb-4" data-competition-standings>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <h1 class="h2 mb-0">{{ 'competition_standing.list.title'|trans }}</h1>
+            <a href="{{ path('add_competition_standing', {competitionId: competition.id}) }}" class="btn btn-sm btn-primary ms-auto" data-standing-add-link>
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition_standing.list.add'|trans }}
+            </a>
+        </div>
+        <p class="text-muted" style="max-width: 48rem;">{{ 'competition_standing.list.intro'|trans }}</p>
+
+        {% if missing_categories is not empty %}
+            <form method="post" action="{{ path('create_competition_standings_per_category', {competitionId: competition.id}) }}" class="card card-body bg-body-tertiary mb-4" style="max-width: 48rem;" data-standings-per-category>
+                <input type="hidden" name="_token" value="{{ csrf_token('standings-per-category-' ~ competition.id) }}">
+                <p class="small mb-2">{{ 'competition_standing.list.per_category_help'|trans({'%categories%': missing_categories|map(c => ('competition.round.category.' ~ c.value)|trans)|join(', ')}) }}</p>
+                <div><button type="submit" class="btn btn-sm btn-outline-primary">{{ 'competition_standing.list.per_category'|trans }}</button></div>
+            </form>
+        {% endif %}
+
+        {% if rounds is empty %}
+            <p class="text-muted">{{ 'competition_standing.list.no_rounds'|trans }}</p>
+        {% endif %}
+
+        {% for table in tables %}
+            <section class="card shadow-sm mb-4" data-standing="{{ table.standing.id }}">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h2 class="h5 mb-0">{{ table.standing.name }}</h2>
+                        <span class="badge bg-secondary">{{ ('competition.round.category.' ~ table.standing.category.value)|trans }}</span>
+                        <span class="small text-muted">{{ ('competition_standing.order.' ~ table.standing.rules.order.value)|trans }}{% if table.standing.rules.penaltySecondsPerPiece > 0 %} · {{ 'competition_standing.penalty_short'|trans({'%seconds%': table.standing.rules.penaltySecondsPerPiece}) }}{% endif %}</span>
+                        <div class="ms-auto d-flex gap-2">
+                            <a href="{{ path('edit_competition_standing', {competitionId: competition.id, standingId: table.standing.id}) }}" class="btn btn-sm btn-outline-secondary" data-standing-edit-link>
+                                <i class="bi bi-pencil me-1"></i>{{ 'competition_standing.list.edit'|trans }}
+                            </a>
+                            <form method="post" action="{{ path('delete_competition_standing', {competitionId: competition.id, standingId: table.standing.id}) }}" onsubmit="return confirm({{ 'competition_standing.list.delete_confirm'|trans({'%name%': table.standing.name})|json_encode }});">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-standing-' ~ table.standing.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-standing-delete>
+                                    <i class="bi bi-trash"></i><span class="visually-hidden">{{ 'competition_standing.list.delete'|trans }}</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {{ include('competition_toolkit/_standing_table.html.twig') }}
+                </div>
+            </section>
+        {% else %}
+            <p class="text-muted" data-standings-empty>{{ 'competition_standing.list.empty'|trans }}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

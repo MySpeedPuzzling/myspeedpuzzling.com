@@ -1,0 +1,83 @@
+{#
+    A computed standing (StandingTable) for the organiser: one column per round, provisional while a round is not
+    published or does not count yet. Variables: table, competition.
+#}
+<div data-standing-preview="{{ table.standing.id }}">
+    <p class="small mb-2">
+        {% if table.provisional %}
+            <span class="badge bg-warning text-dark" data-standing-provisional>{{ 'competition_standing.preview.provisional'|trans }}</span>
+        {% else %}
+            <span class="badge bg-success">{{ 'competition_standing.preview.final'|trans }}</span>
+        {% endif %}
+        <span class="text-muted">{{ 'competition_standing.preview.after_rounds'|trans({'%counted%': table.roundsCounted, '%count%': table.roundsTotal}) }}</span>
+        <span class="text-muted d-block">{{ 'competition_standing.preview.includes_unpublished'|trans }}</span>
+    </p>
+
+    {% if table.skippedRounds > 0 %}
+        <p class="small text-danger mb-2" data-standing-skipped>{{ 'competition_standing.preview.skipped_rounds'|trans({'%count%': table.skippedRounds}) }}</p>
+    {% endif %}
+    {% for round in table.roundsWithoutLimit %}
+        <p class="small text-warning-emphasis mb-1" data-standing-no-limit>{{ 'competition_standing.preview.no_limit'|trans({'%round%': round.name}) }}</p>
+    {% endfor %}
+    {% for round in table.roundsWithoutPieces %}
+        <p class="small text-warning-emphasis mb-1" data-standing-no-pieces>{{ 'competition_standing.preview.no_pieces'|trans({'%round%': round.name}) }}</p>
+    {% endfor %}
+
+    {% if table.rounds is empty %}
+        <p class="small text-muted mb-0">{{ 'competition_standing.preview.no_rounds'|trans }}</p>
+    {% elseif table.rows is empty %}
+        <p class="small text-muted mb-0" data-standing-empty>{{ 'competition_standing.preview.no_results'|trans }}</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle small mb-0" data-standing-table>
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-end">#</th>
+                        <th scope="col">{{ 'competition_standing.preview.entrant'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'competition_standing.preview.total'|trans }}</th>
+                        {% for round in table.rounds %}
+                            <th scope="col" class="text-end text-nowrap {{ round.counted ? '' : 'text-muted' }}">
+                                {{ round.name }}
+                                {% if not round.published %}<i class="bi bi-eye-slash ms-1" title="{{ 'competition_standing.preview.unpublished_round'|trans }}"></i>{% endif %}
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table.rows %}
+                        <tr data-standing-row="{{ row.key }}" class="{{ row.complete ? '' : 'text-muted' }}">
+                            <td class="text-end fw-semibold" data-standing-rank>{{ row.rank ?? '–' }}</td>
+                            <td>
+                                <span data-standing-name>{{ row.name }}</span>
+                                {% if row.entrants|length > 1 %}
+                                    {# The same pair/team name may stand for two line-ups (a substitute) - the people tell them apart #}
+                                    <span class="d-block text-muted" data-standing-people>{{ row.entrants|map(e => e.name)|join(', ') }}</span>
+                                {% endif %}
+                                {% if not row.complete %}
+                                    <span class="badge text-bg-light border ms-1" data-standing-incomplete>{{ 'competition_standing.preview.rounds_of'|trans({'%scored%': row.roundsScored, '%count%': table.roundsCounted}) }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap fw-semibold" data-standing-total>{{ row.totalSeconds|puzzlingTime }}</td>
+                            {% for round in table.rounds %}
+                                {% set score = row.perRound[round.id] %}
+                                <td class="text-end text-nowrap" data-standing-score="{{ score.status.value }}">
+                                    {% if score.status.value == 'finished' %}
+                                        {{ score.scoreSeconds|puzzlingTime }}
+                                    {% elseif score.status.value == 'unfinished' %}
+                                        <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.scoreSeconds|puzzlingTime }}*</span>
+                                    {% elseif score.status.value == 'not_counted' %}
+                                        –
+                                    {% else %}
+                                        <span class="text-danger">{{ ('competition_standing.status.' ~ score.status.value)|trans }}</span>
+                                    {% endif %}
+                                    {% if score.rank is not null %}<span class="text-muted">({{ score.rank }}.)</span>{% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-1 mb-0">{{ 'competition_standing.preview.legend'|trans }}</p>
+    {% endif %}
+</div>

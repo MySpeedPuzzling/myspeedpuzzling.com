@@ -13,6 +13,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationApprovalPolicy;
@@ -36,7 +38,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *
  * The logo path is shared with the source: no code deletes a competition logo, and every file deletion asks
  * GetStoredFileReferences, which sees both rows. Page section pictures are copied to the copy's own prefix - a section
- * only ever points at its own page's files (PageSectionContentSanitizer::uploadPath()).
+ * only ever points at its own page's files (PageSectionContentSanitizer::uploadPath()). Standings are copied unpublished
+ * with their rounds remapped (copyStandings()).
  */
 #[AsMessageHandler]
 readonly final class DuplicateCompetitionHandler
@@ -52,6 +55,7 @@ readonly final class DuplicateCompetitionHandler
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private CompetitionStandingRepository $standingRepository,
     ) {
     }
 
@@ -123,11 +127,15 @@ readonly final class DuplicateCompetitionHandler
 
         $this->competitionRepository->save($copy);
 
+        $roundIdMap = [];
         foreach ($this->roundRepository->ofCompetition($source) as $round) {
-            $this->roundRepository->save($this->copyRound($round, $copy, $shift));
+            $roundCopy = $this->copyRound($round, $copy, $shift);
+            $roundIdMap[$round->id->toString()] = $roundCopy->id->toString();
+            $this->roundRepository->save($roundCopy);
         }
 
         $this->copyPageSections($source, $copy, $now);
+        $this->copyStandings($source, $copy, $roundIdMap, $now);
 
         $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($copy, $actor, $now);
     }
@@ -175,6 +183,35 @@ readonly final class DuplicateCompetitionHandler
             teamSize: $round->teamSize,
             startTimeKnown: $round->startTimeKnown,
         );
+    }
+
+    /**
+     * The event's standings (competition toolkit A6, A-round-formats.md §3.6) - unpublished, the same slug (the copy has
+     * none yet), their rounds remapped to the copies; an id that is not a round of the source any more is left out.
+     *
+     * @param array<string, string> $roundIdMap source round id => its copy's id
+     */
+    private function copyStandings(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): void
+    {
+        foreach ($this->standingRepository->ofCompetition($source) as $standing) {
+            $this->standingRepository->save(new CompetitionStanding(
+                id: Uuid::uuid7(),
+                competition: $copy,
+                category: $standing->category,
+                name: $standing->name,
+                slug: $standing->slug,
+                roundIds: array_values(array_filter(array_map(
+                    static fn (string $roundId): null|string => $roundIdMap[$roundId] ?? null,
+                    $standing->roundIds(),
+                ))),
+                createdAt: $now,
+                position: $standing->position,
+                mode: $standing->mode,
+                unfinishedPenaltySecondsPerPiece: $standing->unfinishedPenaltySecondsPerPiece,
+                orderRule: $standing->orderRule,
+                missingRule: $standing->missingRule,
+            ));
+        }
     }
 
     /**

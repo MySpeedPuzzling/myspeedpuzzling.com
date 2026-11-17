@@ -67,7 +67,9 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   organiser text (nothing in them is people or results based); gallery photos and sponsor logos are copied to the copy's
   own `competition-pages/<id>/` prefix, because a section only ever points at its own page's files
   (`PageSectionContentSanitizer::uploadPath()`) - a picture missing from the storage is left out (warning in the log). An
-  edition's inherited series sections stay on the series.
+  edition's inherited series sections stay on the series;
+- the standings (competition toolkit A6): unpublished, same name, slug, category and rules, their rounds remapped onto
+  the copied rounds (`copyStandings()`).
 
 **Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
 check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the
@@ -600,12 +602,55 @@ Design: `toolkit/A-round-formats.md` §2.7-2.8, §3.4 (extraction); binding `too
 - **Unchanged for `total` rounds, byte for byte:** `OfficialRoundResultsGoldenTest` (published guest / entrant with an offer / published pairs / unpublished) - the chips are included at the end of an existing template line.
 - Tests: `tests/CompetitionToolkit/PickRoundPublicPageTest.php`, `tests/Controller/OfficialRoundResultsGoldenTest.php`, the pick-round cases in `BlocklistCanaryTest` / `PrivateProfileCanaryTest`.
 
+<<<<<<< HEAD
 ### Public competitor pages (competition toolkit B4)
 
 Design: `toolkit/B-qr-competitor-page.md` §4, §7; binding `toolkit/R-review-and-plan.md` §2.3, §2.6. As built: `competitor-pages.md`.
 
 - `competitor_page` (`/en/competitor/{competitionId}/{p|g|t|e}/{id}`, `CompetitorPageUrl`'s contract with the scan landing) + `competitor_state` JSON - only while the event has competitor pages on (else 404, organisers too); drafts 404 off the team; a person / line-up / entry hidden from the viewer 404, a table masks them; `private, no-store`, never indexed.
 - `GetCompetitorPage`: tag → entries (B2's rules, with names masked by `OfficialEntrantsView::entrant()`), current round by `LiveResultsCurrentRound`, puzzles by `RoundPuzzlesVisibleNow` (public rule for everybody), official result + place from `OfficialEntrantsView::forRounds()` (published rounds only); before publishing the confirmed result only with `competitor_pages_live_results` or for the competitor themself - never a place. Guest ≤ 4 statements (`CompetitorPageQueryBudgetTest`).
+=======
+### Standings - sum of rounds (competition toolkit A6)
+
+Design: `toolkit/A-round-formats.md` §3.1-3.4, §3.6; binding `toolkit/R-review-and-plan.md` §3 (no stages
+classification, no standings Mercure topic, no public JSON in v1). Jan's World Series: 6 solo + 6 pair + 6 team rounds,
+no qualification, the winner per category has the lowest sum.
+
+- **Model:** `competition_standing` (`CompetitionStanding`, FK `competition_id` ON DELETE CASCADE): name (≤ 80), slug
+  (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum` only), `round_ids` jsonb (ordered,
+  validated on write by `CompetitionStandingRounds`: ≥ 1, ≤ 50, rounds of the event and the standing's category, a
+  repeated id kept once), `unfinished_penalty_seconds_per_piece` 0..600, `order_rule` (`finished_rounds_first` default /
+  `total_only`), `missing_rule` (`incomplete` only - `as_zero_pieces` is v2), `position`, `published_at` (nothing sets
+  it until A7). At most 20 per event.
+- **Writes:** `CreateCompetitionStanding` / `EditCompetitionStanding` / `DeleteCompetitionStanding`, all under
+  `CompetitionParticipantsLock` (deviation from A §3.6 "no lock": they take turns with `DeleteCompetitionRound` /
+  `MoveRoundToCompetition`, which prune standings, so a round going away is never saved into one). Refusals
+  `InvalidCompetitionStanding::$reason` (`no_rounds`, `too_many_rounds`, `unknown_round`, `wrong_category`,
+  `limit_reached`, `invalid_name`); a standing of another event = `CompetitionStandingNotFound`. Deleting or moving a
+  round prunes it from the event's standings (+1 statement on a round delete); readers also skip ids that are no round
+  of the event and category any more (a round whose category changed - the page says so).
+- **The rule:** `StandingCalculator::sum()` (pure, stateless): finished = seconds; unfinished = limit × 60 + penalty ×
+  missing pieces (unknown pieces = no penalty part; a round without a limit cannot score it - missing); DNS / no result
+  / not entered = missing. Complete entrants first, ranked (`finished_rounds_first`: rounds finished desc, then total;
+  `total_only`: total; equal keys share a rank, "1, 2, 2, 4"); incomplete ones after without a rank ("5 of 6 rounds"),
+  by rounds scored, then the rule. An entrant with no score at all is left out. Entrants across rounds: the participant
+  (solo) or the exact line-up (`CompetitionLineupId` - a substitute is another entrant); name and people of the last
+  round they are in. A round that does not count scores nobody and makes nobody missing.
+- **Organiser view** (`GetStandingResults::organiserView()`): every round of the standing, published or not, through
+  `GetRoundResultEntries` (people going to the event, the official in-round rank shown per cell); a round counts once
+  anything is recorded in it; "provisional" while a round does not count or is unpublished. Piece totals: a `pick`
+  round's entry piece count, else the sum of the round's puzzles.
+- **Pages:** hub card "Standings & bracket" (list + link); `competition_standings_manage`
+  (`/en/manage-event-standings/{competitionId}`): each standing with its live preview, "Create one standing per
+  category" (all rounds of each category without one, default rules - the World Series in one click), New / Edit
+  (`add_competition_standing`, `edit_competition_standing` - form + preview) / Delete (CSRF). All behind
+  `COMPETITION_TOOLKIT_MANAGE`. Organiser JSON `official_results_standing_state`
+  (`GET /{_locale}/official-results/standings/{standingId}`, `COMPETITION_RESULTS_ENTRY`, `no-store`; referees get no
+  `playerCode` of private players) - shape `StandingTable::toArray()` (A §6.4 with `includesUnpublished`, `perRound[].status`).
+- Not built yet: the public page + publishing (A7), the bracket (A8/A9).
+- Tests: `tests/Services/CompetitionToolkit/StandingCalculatorTest.php`, `tests/CompetitionToolkit/CompetitionStandingsTest.php`
+  (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`.
+>>>>>>> ct/a6
 
 ## Round Stopwatch
 

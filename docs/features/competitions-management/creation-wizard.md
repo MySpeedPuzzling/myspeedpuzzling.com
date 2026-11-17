@@ -32,7 +32,31 @@ signed-in player's "Add event"; the classic forms stay reachable from it until J
 | One round | Basics → Puzzle & format → Extras → Review | Basics creates the draft **and its round** (hidden `draftId` makes a double submit idempotent); Puzzle: category, limit, puzzle(s) (catalogue or new), secret + reveal (automatic / when I start the stopwatch / manual), pick K of N |
 | Several rounds | Basics → Structure → Puzzles → Extras → Review | Basics without a start time. Structure templates "Qualification" (stages, top N go on) / "Every round counts" (solo/pairs/teams counts, add up per category) - a GET form listing the generated rounds, each with its name, day (prefilled only for a one-day event) and time (empty, required); "Create the rounds" (POST, the template's answer re-read from the query string) writes rounds + starts + steps/standings in one transaction and goes on to Puzzles - a missing start or one outside the event's days is a row error (422), nothing written before (no rounds with made-up starts in between); then the editable table; read-only once any entry, result or stopwatch run exists (re-checked under the lock). Stages → advancement steps, "add up" → one standing per category (`StandingsPerCategory`, never published). Puzzles grid: one row per round, one secret switch, row errors for the one-puzzle-per-category rule |
 | Backfill (WB) | The event → Puzzles → Link my results → Done | see "Backfill" below - submitted at once, never a draft |
-| Series | Series Basics → Dates + each date's round → Review | rule (weekly / Nth weekday / picked days, `EditionsPreview` shared with "Add several dates"), start time, a round per date or none; re-sending creates nothing twice; Publish publishes the series and its draft dates. Series page: "Add the next dates" (prefilled from the last dates) and a quick "Add puzzle" per date |
+| Series | Series Basics → Dates + each date's round → Review | rule (weekly / Nth weekday / picked days, `EditionsPreview` shared with "Add several dates"), start time, a round per date or none; re-sending creates nothing twice; the rule fills the series' "When it happens" in the creator's language while it is empty ("Third Saturday of the month at 7:00 PM", picked days: "At 7:00 PM on each date" - `SeriesScheduleText`, `CompetitionSeries::scheduleFromDatesRule()`, also on "Add the next dates"; a typed text is never replaced); Publish publishes the series and its draft dates. Series page: "Add the next dates" (prefilled from the last dates) and a quick "Add puzzle" per date |
+
+## Puzzle search (G2, 2026-11-17)
+Every wizard puzzle picker (`EventWizardPuzzleSlotFormType`, the one-round Puzzle step, the Puzzles grid, Backfill's
+Puzzles) starts with **one field, "Find the puzzle"** (name, EAN or brand code - `puzzle_search_picker_controller.js`,
+partial `event_wizard/_puzzle_search.html.twig`): `puzzle_search_autocomplete` (`PuzzleSearchAutocompleteController`)
+= the site's own search (`SearchPuzzle::byUserInput`, best match, 15 rows, from 2 letters - `PuzzleTextSearch` on the
+trigram indexes), each option with its brand (`PuzzleChoicesBuilder::buildWithBrands()`). Never a secret puzzle
+(`hide_until`), a secret picture only by name, without picture and codes (as on `/puzzle`); public like the brand
+picker - an organiser's own secret puzzles stay on the brand path. A pick hands the option to the brand + puzzle picker
+(`time_form_autocomplete#pickFound`): the brand is set silently, the puzzle selected - **the form sends exactly what the
+brand path sends** (brand + puzzle id), so no composite changed; the brand's whole list is fetched only when its puzzle
+picker is opened. Enter in the field never sends the form (a hardware scanner's digits + Enter pick the only result
+once it is in). The brand path (brand → puzzle, a new puzzle by name + pieces) stays below, hidden while the picker is
+empty behind "Choose the brand instead, or add a new puzzle", shown by a pick, by a search with no result and whenever
+it holds a value or an error.
+
+## Rounds added later (G2)
+A round added in the several-rounds schedule table **joins every unpublished standing that adds up every round of its
+category** (`StandingsJoiningNewRounds`, decided under the lock in `SetUpEventWizardStructureHandler` on the event as it
+was before the save - `EditCompetitionStanding`, name and rules kept). A standing narrowed by hand (a round of its
+category left out) or published is never touched; the table says beforehand which standings take new rounds ("new
+Solo rounds count in it"). **Advancement steps are never joined** (group, semifinal or final is the organiser's call):
+the table says so and links "Set up qualification". The normal "Add round" page is unchanged (the organiser's deep tool;
+standings are managed on their page).
 
 Path rule: an edition → series; a draft with no round that is not an edition → several rounds (the one-round path always
 creates its round with the draft); one round → one round.
@@ -41,8 +65,12 @@ creates its round with the draft); one round → one round.
 (links), judges, and the toolkit rows - QR name tags (mode), competitor pages (+ live results, time proposals),
 timer screen and stream overlay (preset), overall standings. Off by default, details only when switched on, an
 existing display/standing is shown as "added - Manage" (never deleted from here). Each row writes through its own
-message only when its value changed (separate transactions: a later refusal keeps earlier ones). No Extras for a
-series - every feature belongs to a date.
+message only when its value changed, **all in one transaction** (`SaveEventWizardExtras`, G2): a row refused while
+writing (the display limit, a standing) writes nothing at all - 422 with that row's error (`EventWizardExtraRefused`
+names the row), the event re-read from the database (`EntityManager::refresh`: the rolled-back rows stay in the
+request's memory otherwise). The composite holds the event's participants lock and the referees' and displays' keys its
+nested messages take (`SerializedByLocks` - `LockUntilCommittedMiddleware` takes every key, sorted, until the commit).
+No Extras for a series - every feature belongs to a date.
 
 **Review**: every value incl. the inferred ones, the approval note (`OrganizationApprovalPolicy`), Publish
 (`PublishCompetition`) → the edit page with "Published - here's what's left", or Keep as draft.
@@ -166,5 +194,5 @@ S1 one round, one puzzle: 5 (was 8-10) · S2 12 monthly dates with a round each:
 `tests/Controller/EventWizard/*` (paths, Extras, checklist, series), `tests/Services/EventWizard/*`, handler tests
 (`StartEventWizardDraftTwiceTest`, `SetUpEventWizardStructureHandlerTest`, `AddEventWizardEditionsHandlerTest`,
 `PublishEventWizardSeriesHandlerTest`), `DuplicateCompetitionControllerTest`, `EditCompetitionMoveRounds*Test`,
-`LockUntilCommittedMiddlewareTest`. Backfill: `EventWizardBackfillTest`, `LinkMyResultsEntryTest`, `LinkSolvingTimesToEventHandlerTest`,
+`LockUntilCommittedMiddlewareTest`, `PuzzleSearchAutocompleteControllerTest`. Backfill: `EventWizardBackfillTest`, `LinkMyResultsEntryTest`, `LinkSolvingTimesToEventHandlerTest`,
 `WaitingEventLinkCanaryTest`.

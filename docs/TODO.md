@@ -47,6 +47,7 @@ Deferred by design (R §3):
 Event creation wizard (`docs/features/competitions-management/toolkit/W-creation-wizard-research.md`, step 2 of Jan's request - research done, nothing built):
 - [ ] **Quick fix first (W4): the web "Duplicate" never shifts dates** - the copy keeps the old dates and editing them does not move the rounds (`EditCompetitionHandler` never touches rounds; editions are dated by their first round, so the copy still shows on the old day). Ask for the new date on Duplicate and pass the existing `dateFrom` override (`DuplicateDateShift`); offer "move the rounds too" when an event's date is edited (W §1.2 item 6)
 - [ ] Validate the wizard with 2-3 organisers (W0, §7), then W1-W9 (§6)
+- [ ] W9: the wizard is every player's "Add event" since WF (2026-11-17, no flag) - Jan decides when to retire the classic forms it still links (`add_competition?classic=1` "Use the classic form", "Add several dates" on the series page)
 
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)
 

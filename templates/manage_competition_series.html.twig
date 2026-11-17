@@ -20,11 +20,9 @@
                 <i class="bi bi-plus-lg me-1"></i>{{ 'series.add_edition'|trans }}
             </a>
             {# The event creation wizard's Dates + each date's round for an existing series (W3) #}
-            {% if wizard %}
-                <a href="{{ path('event_wizard_series_next_dates', {seriesId: series.id}) }}" class="btn btn-primary" data-next-dates-link>
-                    <i class="bi bi-calendar-plus me-1"></i>{{ 'event_wizard_series.next_dates.button'|trans }}
-                </a>
-            {% endif %}
+            <a href="{{ path('event_wizard_series_next_dates', {seriesId: series.id}) }}" class="btn btn-primary" data-next-dates-link>
+                <i class="bi bi-calendar-plus me-1"></i>{{ 'event_wizard_series.next_dates.button'|trans }}
+            </a>
             {# docs/features/organizations/README.md "Add several dates" #}
             <a href="{{ path('add_editions', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary" data-add-editions-link>
                 <i class="bi bi-calendar-plus me-1"></i>{{ 'organizer_tools.menu.add_editions'|trans }}
@@ -58,12 +56,12 @@
 
         {% if upcoming_editions|length > 0 %}
             <h2 class="h4 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>
-            {{ include('_series_editions_table.html.twig', {editions: upcoming_editions, series: series, quick_add_puzzle: wizard}) }}
+            {{ include('_series_editions_table.html.twig', {editions: upcoming_editions, series: series}) }}
         {% endif %}
 
         {% if past_editions|length > 0 %}
             <h2 class="h4 mt-4 mb-3">{{ 'series.past_editions'|trans }}</h2>
-            {{ include('_series_editions_table.html.twig', {editions: past_editions, series: series, quick_add_puzzle: wizard}) }}
+            {{ include('_series_editions_table.html.twig', {editions: past_editions, series: series}) }}
         {% endif %}
 
         {% if upcoming_editions|length == 0 and past_editions|length == 0 %}

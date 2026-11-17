@@ -78,7 +78,7 @@ final class EventTypesTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         $browser->submit(self::withTypes($crawler->selectButton('Submit for Approval')->form([
             'competition_form[name]' => 'Single Puzzle Night',
             'competition_form[isOnline]' => '0',

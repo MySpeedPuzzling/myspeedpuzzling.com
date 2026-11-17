@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\Query\GetEventWizardSeries;
 use SpeedPuzzling\Web\Query\GetEventWizardState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardPath;
 use Symfony\Bundle\SecurityBundle\Security;
 
@@ -16,14 +15,13 @@ use Symfony\Bundle\SecurityBundle\Security;
  * Whether "Continue setting up" (event_wizard_continue → the draft's first step not done) is offered for an event - W2,
  * docs/features/competitions-management/toolkit/W-creation-wizard-research.md §6: a draft (whoever made it, the classic
  * form included) whose path has wizard steps (EventWizardPath::steps() - a several-rounds draft's only once W5 builds
- * them; an edition never: it is set up by its series' wizard), for whom the wizard is available and who edits the event.
+ * them; an edition never: it is set up by its series' wizard), for whoever edits the event (the wizard is every
+ * player's, no flag).
  * A draft series (W3's path) resumes at event_wizard_series_continue - seriesOffered*(). Anything else: no link.
  */
 readonly final class EventWizardResume
 {
     public function __construct(
-        private EventCreationWizardFeature $feature,
-        private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private Security $security,
         private GetEventWizardState $getEventWizardState,
         private GetEventWizardSeries $getEventWizardSeries,
@@ -36,21 +34,15 @@ readonly final class EventWizardResume
      */
     public function offered(bool $isDraft, bool $isEdition, int $roundsCount): bool
     {
-        return $isDraft
-            && self::hasSteps($isEdition, $roundsCount)
-            && $this->feature->isAvailableTo($this->retrieveLoggedUserProfile->getProfile()?->playerId);
+        return $isDraft && self::hasSteps($isEdition, $roundsCount);
     }
 
     /**
-     * Of an event by its id (the draft banner, the edit page): one statement (GetEventWizardState), only when the wizard
-     * is available and the viewer edits the event.
+     * Of an event by its id (the draft banner, the edit page): one statement (GetEventWizardState), only when the viewer
+     * edits the event.
      */
     public function offeredFor(string $competitionId): bool
     {
-        if ($this->feature->isAvailableTo($this->retrieveLoggedUserProfile->getProfile()?->playerId) === false) {
-            return false;
-        }
-
         if ($this->security->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
             return false;
         }
@@ -65,19 +57,14 @@ readonly final class EventWizardResume
      */
     public function seriesOffered(bool $isDraft): bool
     {
-        return $isDraft && $this->feature->isAvailableTo($this->retrieveLoggedUserProfile->getProfile()?->playerId);
+        return $isDraft;
     }
 
     /**
-     * A series by its id (its draft banner): one statement (GetEventWizardSeries), only when the wizard is available and
-     * the viewer edits the series.
+     * A series by its id (its draft banner): one statement (GetEventWizardSeries), only when the viewer edits the series.
      */
     public function seriesOfferedFor(string $seriesId): bool
     {
-        if ($this->feature->isAvailableTo($this->retrieveLoggedUserProfile->getProfile()?->playerId) === false) {
-            return false;
-        }
-
         if ($this->security->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId) === false) {
             return false;
         }

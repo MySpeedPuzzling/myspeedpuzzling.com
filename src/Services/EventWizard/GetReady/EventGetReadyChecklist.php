@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Results\GetReadyFacts;
 use SpeedPuzzling\Web\Results\GetReadyRoundFacts;
 use SpeedPuzzling\Web\Results\GetReadyRow;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
-use SpeedPuzzling\Web\Services\EventWizard\EventCreationWizardFeature;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -21,9 +20,8 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  * §2): every GetReadyItem asked over one set of facts (GetEventGetReadyFacts - two statements, whatever the number of
  * rounds).
  *
- * Null = no checklist: without the wizard (EventCreationWizardFeature - not a single statement then, the page stays
- * byte-identical) and once the event is over (every round finished; an event without rounds: after its last day).
- * The caller has checked COMPETITION_EDIT.
+ * Null = no checklist: nobody signed in, and once the event is over (every round finished; an event without rounds:
+ * after its last day). The caller has checked COMPETITION_EDIT.
  */
 readonly final class EventGetReadyChecklist
 {
@@ -37,7 +35,6 @@ readonly final class EventGetReadyChecklist
      * @param iterable<GetReadyItem> $items
      */
     public function __construct(
-        private EventCreationWizardFeature $feature,
         private GetEventGetReadyFacts $getEventGetReadyFacts,
         private Security $security,
         #[AutowireIterator(GetReadyItem::class)]
@@ -47,7 +44,7 @@ readonly final class EventGetReadyChecklist
 
     public function of(string $competitionId, null|string $playerId): null|GetReadyChecklist
     {
-        if ($this->feature->isAvailableTo($playerId) === false) {
+        if ($playerId === null) {
             return null;
         }
 

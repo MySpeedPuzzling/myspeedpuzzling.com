@@ -27,8 +27,11 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
+        // "Add event" is the event creation wizard (no flag) - the classic form stays at ?classic=1
         $browser->request('GET', '/en/add-event');
+        $this->assertResponseRedirects('/en/new-event', 302);
 
+        $browser->request('GET', '/en/add-event?classic=1');
         $this->assertResponseIsSuccessful();
     }
 
@@ -37,7 +40,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $this->assertResponseIsSuccessful();
 
         $browser->submitForm('Submit for Approval', [
@@ -58,7 +61,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $this->assertResponseIsSuccessful();
 
         $browser->submitForm('Submit for Approval', [
@@ -85,7 +88,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Submit for Approval', [
             'competition_form[name]' => 'Online Weekend Jam',
             'competition_form[isOnline]' => '1',
@@ -109,7 +112,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Submit for Approval', [
             'competition_form[name]' => 'Ongoing Online Jam',
             'competition_form[isOnline]' => '1',
@@ -126,7 +129,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
 
         // Shown in place of the registration and results fields once "recurring" is ticked
         self::assertCount(1, $crawler->filter('[data-competition-form-target="editionLinks"] #competition_form_registrationLink'));
@@ -141,7 +144,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
 
         // Typed before "recurring" was ticked and hid them - an error there would be invisible
         $browser->submitForm('Submit for Approval', [
@@ -166,7 +169,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         // The help under Location says why a series may leave it empty (shown by competition_form_controller.js)
         $this->assertSelectorTextContains('[data-competition-form-target="seriesLocationHelp"]', 'each edition has its own location');
         self::assertCount(1, $crawler->filter('label[data-competition-form-target="locationLabel"][for="competition_form_location"]'));
@@ -192,7 +195,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Submit for Approval', [
             'competition_form[name]' => 'Placeless Puzzle Open',
             'competition_form[isOnline]' => '0',
@@ -214,7 +217,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         // The kept logo lives in the kernel's storage - one kernel for both submits
         $browser->disableReboot();
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         $form = $crawler->selectButton('Submit for Approval')->form();
         $form['competition_form[isOnline]'] = '0';
         $form['competition_form[location]'] = 'Prague';
@@ -246,7 +249,7 @@ final class AddCompetitionControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->disableReboot();
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         $form = $crawler->selectButton('Submit for Approval')->form();
         $form['competition_form[isOnline]'] = '1';
         $form->setValues(['competition_form[isRecurring]' => true]);

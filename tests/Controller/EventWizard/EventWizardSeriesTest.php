@@ -10,7 +10,6 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -26,9 +25,6 @@ use Symfony\Component\DomCrawler\Form;
  */
 final class EventWizardSeriesTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'EVENT_CREATION_WIZARD';
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
 
     /** Every month on the third Saturday from 1 January 2027, 12 dates - a solo round of 60 minutes at 19:00 */
@@ -50,47 +46,11 @@ final class EventWizardSeriesTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
         $this->browser = self::createClient();
     }
 
-    protected function tearDown(): void
+    public function testAnAdminHasTheSeriesPathToo(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    public function testWithTheFlagOffAnOrganiserHasNoSeriesPathNorItsLinks(): void
-    {
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $seriesId = $this->startSeries();
-        self::assertNotNull($seriesId);
-        $this->addMonthlyDates($seriesId);
-
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        self::ensureKernelShutdown();
-        $this->browser = self::createClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-
-        foreach (['/en/new-event/series/basics', '/en/new-event/series/' . $seriesId . '/dates', '/en/new-event/series/' . $seriesId . '/next-dates', '/en/new-event/series/' . $seriesId . '/review', '/en/new-event/series/' . $seriesId] as $url) {
-            $this->browser->request('GET', $url);
-            self::assertResponseStatusCodeSame(404, $url);
-        }
-
-        // The classic page stays as it was: "Add several dates", no wizard links
-        $crawler = $this->browser->request('GET', '/en/manage-series/' . $seriesId);
-        self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('[data-add-editions-link]'));
-        self::assertCount(0, $crawler->filter('[data-next-dates-link]'));
-        self::assertCount(0, $crawler->filter('[data-quick-add-puzzle]'));
-    }
-
-    public function testAnAdminHasTheSeriesPathWithTheFlagOff(): void
-    {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        self::ensureKernelShutdown();
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
         $this->browser->request('GET', '/en/new-event/series/basics');
@@ -352,14 +312,6 @@ final class EventWizardSeriesTest extends WebTestCase
         foreach ($editionIds as $editionId) {
             self::assertCount(0, $crawler->filter('[data-organized-id="' . $editionId . '"] [data-event-wizard-continue]'));
         }
-
-        // Without the wizard: no link
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        self::ensureKernelShutdown();
-        $this->browser = self::createClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $this->browser->request('GET', '/en/you-organize');
-        self::assertSelectorNotExists('[data-organized-id="' . $seriesId . '"] [data-event-wizard-continue]');
     }
 
     /**

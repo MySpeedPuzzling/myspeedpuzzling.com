@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * Who may open a page of the wizard's series path (W3) - EventWizardAccess for a series: the feature (404 without it),
+ * Who may open a page of the wizard's series path (W3) - EventWizardAccess for a series: a signed-in player (404 without),
  * COMPETITION_SERIES_EDIT (403 otherwise), and a step only while the series is a draft (null = the caller sends the
  * organiser to the series' management page).
  */

@@ -26,7 +26,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        $crawler = $browser->request('GET', '/en/add-event');
+        $crawler = $browser->request('GET', '/en/add-event?classic=1');
         // The player's organizations by name, "None" first; pending and draft ones say so
         self::assertSame(['', OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT, OrganizationFixture::ORGANIZATION_MAPLE_PENDING, OrganizationFixture::ORGANIZATION_RIVERBEND], $this->optionValues($crawler));
         self::assertSame(['None', 'Cedar Grove Puzzle Guild (draft)', 'Maple Leaf Puzzlers (waiting for approval)', 'Riverbend Jigsaw Association'], $this->optionLabels($crawler));
@@ -60,7 +60,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', '/en/add-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
+        $crawler = $browser->request('GET', '/en/add-event?classic=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter(self::SELECT));
 
@@ -85,7 +85,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        $crawler = $browser->request('GET', '/en/add-event?organization=' . strtoupper(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        $crawler = $browser->request('GET', '/en/add-event?classic=1&organization=' . strtoupper(OrganizationFixture::ORGANIZATION_RIVERBEND));
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $crawler->filter(self::SELECT . ' option[selected]')->attr('value'));
 
         // An approved organization: approved at once - no "reviewed by an admin", a neutral button
@@ -96,7 +96,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         self::assertNull($crawler->filter('[data-approval-note-target="direct"]')->attr('hidden'));
 
         // Not one of the player's: nothing pre-selected - and it waits for an admin
-        $crawler = $browser->request('GET', '/en/add-event?organization=' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT);
+        $crawler = $browser->request('GET', '/en/add-event?classic=1&organization=' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT);
         self::assertSame([], $this->selectedValues($crawler));
         self::assertSame('Submit for Approval', trim($crawler->filter('button[data-approval-note-target="submit"]')->text()));
         self::assertNull($crawler->filter('[data-approval-note-target="review"]')->attr('hidden'));
@@ -107,7 +107,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Save as draft', [
             'competition_form[name]' => 'Quiet Draft Evening',
             'competition_form[isOnline]' => '0',
@@ -133,7 +133,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Save as draft', [
             'competition_form[name]' => 'Riverbend Puzzle Mornings',
             'competition_form[isOnline]' => '0',
@@ -266,7 +266,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        // Admins always have the event creation wizard - the classic form is ?classic=1 (EventCreationWizardFeature)
+        // "Add event" is the event creation wizard - the classic form is ?classic=1
         $crawler = $browser->request('GET', '/en/add-event?classic=1');
         $values = $this->optionValues($crawler);
         foreach ([OrganizationFixture::ORGANIZATION_RIVERBEND, OrganizationFixture::ORGANIZATION_MAPLE_PENDING, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT] as $organizationId) {

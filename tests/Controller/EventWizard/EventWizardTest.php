@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -19,72 +18,41 @@ use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * The event creation wizard's one-round path (W1, docs/features/competitions-management/toolkit/
- * W-creation-wizard-research.md §3.1-§3.4, §3.9): the flag, the redirect from "Add event", the entry screen, Basics
+ * W-creation-wizard-research.md §3.1-§3.4, §3.9): the redirect from "Add event" (every player, no flag), the entry screen, Basics
  * (the draft + its single round), Puzzle & format (one transaction - SetUpEventWizardRound) and Review.
  */
 final class EventWizardTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'EVENT_CREATION_WIZARD';
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
 
     private KernelBrowser $browser;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
         $this->browser = self::createClient();
     }
 
-    protected function tearDown(): void
+    public function testEveryOrganiserIsLedFromAddEventToTheWizardAndKeepsTheClassicForm(): void
     {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    public function testWithTheFlagOffAnOrganiserGetsTheClassicFormAndNoWizard(): void
-    {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
+        // A normal organiser (not an admin): the wizard is THE way to add an event, no flag
         $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $this->browser->request('GET', '/en/add-event');
+        self::assertResponseRedirects('/en/new-event', 302);
+
+        $crawler = $this->browser->request('GET', '/en/new-event');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('/en/add-event?classic=1', (string) $crawler->filter('[data-event-wizard-classic]')->attr('href'));
+
+        // "Prefer one form?" - the classic form stays reachable
+        $this->browser->request('GET', '/en/add-event?classic=1');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('form[name="competition_form"]');
-
-        foreach (['/en/new-event', '/en/new-event/basics', '/en/new-event?kind=one_round'] as $url) {
-            $this->browser->request('GET', $url);
-            self::assertResponseStatusCodeSame(404, $url);
-        }
-
-        $competitionId = $this->startDraft();
-        self::assertNull($competitionId, 'Nothing is created without the feature');
     }
 
-    public function testTheClassicFormIsTheSameWithTheFlagOffAsWithClassic(): void
+    public function testAnAdminHasTheWizardToo(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $this->browser = $this->newClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $crawler = $this->browser->request('GET', '/en/add-event');
-        $flagOff = self::withoutTokens($crawler->filter('form[name="competition_form"]')->outerHtml());
-
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        self::ensureKernelShutdown();
-        $this->browser = $this->newClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $crawler = $this->browser->request('GET', '/en/add-event?classic=1');
-        self::assertResponseIsSuccessful();
-
-        // The form exactly as it was (the page around it differs only by the address: language links, feedback link)
-        self::assertSame($flagOff, self::withoutTokens($crawler->filter('form[name="competition_form"]')->outerHtml()));
-    }
-
-    public function testAnAdminHasTheWizardWithTheFlagOff(): void
-    {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
@@ -93,10 +61,6 @@ final class EventWizardTest extends WebTestCase
 
         $this->browser->request('GET', '/en/new-event');
         self::assertResponseIsSuccessful();
-
-        $this->browser->request('GET', '/en/add-event?classic=1');
-        self::assertResponseIsSuccessful();
-        self::assertSelectorExists('form[name="competition_form"]');
     }
 
     public function testAddEventLeadsToTheEntryKeepingTheOrganization(): void
@@ -502,24 +466,6 @@ final class EventWizardTest extends WebTestCase
         self::assertTrue($this->database()->fetchOne('SELECT is_draft FROM competition WHERE id = :id', ['id' => $competitionId]));
     }
 
-    public function testWithTheFlagTurnedOffTheDraftsStepsAre404(): void
-    {
-        $this->browser = $this->newClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $competitionId = $this->startDraft();
-        self::assertNotNull($competitionId);
-
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        self::ensureKernelShutdown();
-        $this->browser = $this->newClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-
-        foreach (['basics', 'puzzle', 'extras', 'review'] as $step) {
-            $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
-            self::assertResponseStatusCodeSame(404, $step);
-        }
-    }
-
     public function testReviewPublishesAndGoesToTheEditPage(): void
     {
         $this->browser = $this->newClient();
@@ -660,7 +606,7 @@ final class EventWizardTest extends WebTestCase
     }
 
     /**
-     * A fresh kernel - after a flag changed (OverridesFeatureFlagEnv is read when the kernel boots)
+     * A fresh kernel
      */
     private function newClient(): KernelBrowser
     {
@@ -703,10 +649,5 @@ final class EventWizardTest extends WebTestCase
     private function database(): Connection
     {
         return self::getContainer()->get(Connection::class);
-    }
-
-    private static function withoutTokens(string $html): string
-    {
-        return (string) preg_replace(['/value="[^"]{20,}"/', '/nonce="[^"]*"/', '/csrf[^"]*"[^"]*"/i'], '', $html);
     }
 }

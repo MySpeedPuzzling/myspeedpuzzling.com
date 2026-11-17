@@ -495,7 +495,7 @@ No new entity, column or table is required for v1. Resume needs no storage: the 
 
 | Risk | Mitigation |
 |---|---|
-| **Existing organisers** (WJPC, WI-JPA, Sarah Does Puzzles, Minnesota, CSP…) know the classic pages | Wizard only *creates*; every management page stays; "Use the classic form" link during rollout; feature flag (new `EVENT_CREATION_WIZARD`, documented in `docs/features/feature_flags.md`), admins first |
+| **Existing organisers** (WJPC, WI-JPA, Sarah Does Puzzles, Minnesota, CSP…) know the classic pages | Wizard only *creates*; every management page stays; "Use the classic form" link during rollout; ~~feature flag (new `EVENT_CREATION_WIZARD`), admins first~~ - as built: no flag since WF (2026-11-17, Jan: "no feature flags"), the wizard is every player's "Add event" (`docs/features/feature_flags.md` "Retired") |
 | Abandoned drafts pile up | drafts are invisible anyway; "You organize" already lists them; optional later prune/nudge |
 | Hidden defaults surprise (round name, zone, reveal delay) | Review step shows every inferred value with "edit"; nothing inferred is invisible |
 | **Secret puzzles revealed early** ("would be a disaster") | wizard writes through the same messages with `shownAutomaticRevealAt` / `SecretPuzzleAccess`; draft events are invisible until publish; secret default reveal mode must be shown on Review |
@@ -516,14 +516,14 @@ No new entity, column or table is required for v1. Resume needs no storage: the 
 |---|---|---|---|
 | **W0** | Validate with 2-3 organisers (§7), adjust this doc | - | 1 week calendar, ~3 h work |
 | **W4** (do first, independent) | Web "Duplicate" asks for the new date (+ name) and passes the existing `dateFrom` override → rounds and registration move; editing an event's date offers "move the rounds too" | - | 1 d |
-| **W1** | Entry screen + one-round fast path (Basics, Puzzle & format, Review) behind `EVENT_CREATION_WIZARD`; composite round message; redirect to edit page | W0 | 3-4 d |
+| **W1** | Entry screen + one-round fast path (Basics, Puzzle & format, Review) behind `EVENT_CREATION_WIZARD` (retired by WF, 2026-11-17 - no flag); composite round message; redirect to edit page | W0 | 3-4 d |
 | **W2** | Resume (step derived from the draft), step rail, "Finish later"; "Get ready" checklist on the edit page (data-derived items for rounds/puzzles/registration/referees/seating/tags) | W1 | 2-3 d |
 | **W3** | Series path: Dates + per-date round template (composite of `AddEditions` + rounds), "Add the next dates" from the series page, per-edition quick "Add puzzle" | W1 | 3 d |
 | **W5** | Several rounds: Structure (templates "every round counts" / "qualification" / empty), schedule table, Puzzles grid incl. pick-K and secret defaults | W1 | 4-5 d |
 | **W6** | Extras toggles (registration, judges, toolkit rows) + checklist items for each | W2, W5 | 2-3 d |
 | **W7** | Stage arrows → advancement steps, categories → standings (toolkit flag) | W5, toolkit A6/A8 on main | 2 d |
 | **W8** | All 6 locales, 375 px browser walks per path, canary checks (drafts), docs (`docs/features/competitions-management/creation-wizard.md`, events rule file) | all | 2 d |
-| **W9** | Flag on for everyone; after a few weeks decide on retiring the classic add form (keep edit pages) | W8 + feedback | - |
+| **W9** | ~~Flag on for everyone~~ (done by WF 2026-11-17: no flag); decide on retiring the classic add form (keep edit pages) | W8 + feedback | - |
 
 Order recommendation: W4 → W1 → W2 → W3 (series is Jan's explicit pain) → W5 → W6 → W7 → W8.
 

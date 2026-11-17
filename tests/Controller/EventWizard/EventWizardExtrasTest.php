@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Tests\Controller\EventWizard;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -21,10 +20,6 @@ use Symfony\Component\DomCrawler\Field\ChoiceFormField;
  */
 final class EventWizardExtrasTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'EVENT_CREATION_WIZARD';
-    private const string TOOLKIT_FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
     private const string FORM = 'event_wizard_extras_form';
 
@@ -32,17 +27,8 @@ final class EventWizardExtrasTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
         self::ensureKernelShutdown();
         $this->browser = self::createClient();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testContinueWithNothingOnWritesNothingAndGoesToReview(): void
@@ -196,9 +182,6 @@ final class EventWizardExtrasTest extends WebTestCase
 
     public function testToolkitRowsWriteTheirSettingsAndDisplays(): void
     {
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, true);
-        self::ensureKernelShutdown();
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
 

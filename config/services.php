@@ -164,8 +164,6 @@ return static function (ContainerConfigurator $configurator): void {
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 
-    // The event creation wizard (docs/features/feature_flags.md): organisers get it only while 1, admins always.
-    $parameters->set('eventCreationWizard', '%env(bool:EVENT_CREATION_WIZARD)%');
     // The imgproxy preset display pictures are served with (DisplayImages) - empty = the original upload
     $parameters->set('displayImagePreset', '%env(trim:string:DISPLAY_IMAGE_PRESET)%');
 
@@ -207,7 +205,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
-        ->bind('$eventCreationWizard', '%eventCreationWizard%')
         ->bind('$displayImagePreset', '%displayImagePreset%')
         ->bind('$insightsPublic', '%insightsPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')

@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -24,33 +23,19 @@ use Symfony\Component\Messenger\MessageBusInterface;
 /**
  * W2 of the event creation wizard (docs/features/competitions-management/toolkit/W-creation-wizard-research.md §3.10,
  * §6): the "Get ready" checklist on the edit page, its statement cost, "Continue setting up" of a resumable draft on
- * the edit page, the draft banner and "You organize", and the checklist right after the wizard's Publish. The page
- * without the wizard is pinned byte for byte by EditPageWithoutWizardGoldenTest.
+ * the edit page, the draft banner and "You organize", and the checklist right after the wizard's Publish. Every
+ * organiser has them - the wizard has no flag.
  */
 final class GetReadyChecklistTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use QueryCountAssertions;
 
-    private const string FLAG = 'EVENT_CREATION_WIZARD';
     private const string EVENT = CompetitionFixture::COMPETITION_UNAPPROVED;
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
     private const string DRAFT = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
     private const string DRAFT_ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
 
     private null|KernelBrowser $client = null;
-
-    protected function setUp(): void
-    {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
 
     public function testAFreshEventHasDetailsDoneTheRoundToAddAndJudgesAsASuggestion(): void
     {
@@ -66,14 +51,8 @@ final class GetReadyChecklistTest extends WebTestCase
         self::assertSame('false', $crawler->filter('[data-get-ready]')->attr('data-get-ready-force-open-value'));
     }
 
-    public function testWithoutTheFlagAnOrganiserHasNoChecklistAnAdminHasIt(): void
+    public function testAnAdminHasTheChecklistToo(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-
-        $this->editPage(self::EVENT, self::ORGANISER);
-        self::assertSelectorNotExists('[data-get-ready]');
-
-        self::ensureKernelShutdown();
         $this->editPage(self::EVENT, PlayerFixture::PLAYER_ADMIN);
         self::assertSelectorExists('[data-get-ready]');
     }
@@ -125,28 +104,30 @@ final class GetReadyChecklistTest extends WebTestCase
 
     public function testTheChecklistCostsTwoStatements(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $without = $this->measure(self::EVENT, self::ORGANISER);
+        $this->client = self::createClient();
+        $fresh = $this->measureWithClient(self::EVENT, self::ORGANISER);
+        self::assertSame(2, $this->checklistStatements(), 'the event with its counts + its rounds with theirs');
 
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        self::ensureKernelShutdown();
-        self::assertSame($without + 2, $this->measure(self::EVENT, self::ORGANISER), 'the event with its counts + its rounds with theirs');
+        // The same page without its checklist (the event is over: the facts are read, nothing else) costs the same
+        $this->insertRound(self::EVENT, 'Morning', TestClock::now()->modify('-5 hours')->format('Y-m-d H:i:s'));
+        $over = $this->measureWithClient(self::EVENT, self::ORGANISER);
+        self::assertSelectorNotExists('[data-get-ready]');
+        self::assertSame(2, $this->checklistStatements());
+        self::assertSame($over, $fresh, 'the rows ask nothing beyond the facts');
     }
 
     public function testTheChecklistCostsTwoStatementsWhateverTheNumberOfRounds(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->client = self::createClient();
         $this->prepareFullEvent();
         foreach (range(1, 4) as $more) {
             $this->insertRound(self::EVENT, 'Extra ' . $more, '2027-01-0' . $more . ' 10:00:00');
         }
-        $without = $this->measureWithClient(self::EVENT, self::ORGANISER);
 
         // Six rounds with entries, puzzles, a judge and a display: still two
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        self::ensureKernelShutdown();
-        self::assertSame($without + 2, $this->measure(self::EVENT, self::ORGANISER));
+        $this->measureWithClient(self::EVENT, self::ORGANISER);
+        self::assertSelectorExists('[data-get-ready]');
+        self::assertSame(2, $this->checklistStatements());
     }
 
     public function testContinueSettingUpForAResumableDraft(): void
@@ -171,20 +152,9 @@ final class GetReadyChecklistTest extends WebTestCase
         self::assertResponseRedirects('/en/new-event/' . self::DRAFT . '/extras');
     }
 
-    public function testNoContinueWithoutTheWizardOrForADraftItCannotResume(): void
+    public function testADraftWithSeveralRoundsResumesToo(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $this->editPage(self::DRAFT, self::DRAFT_ORGANISER);
-        self::assertSelectorNotExists('[data-event-wizard-continue]');
-        $this->browser()->request('GET', '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG);
-        self::assertSelectorExists('[data-draft-banner-own]');
-        self::assertSelectorNotExists('[data-event-wizard-continue]');
-        $this->browser()->request('GET', '/en/you-organize');
-        self::assertSelectorNotExists('[data-event-wizard-continue]');
-
         // A second round: since W5 several rounds have their wizard steps - the draft resumes there (its Puzzles step)
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        self::ensureKernelShutdown();
         $this->client = self::createClient();
         $this->insertRound(self::DRAFT, 'Second round', '2026-11-08 20:30:00');
         $this->editPage(self::DRAFT, self::DRAFT_ORGANISER, newClient: false);
@@ -306,13 +276,6 @@ final class GetReadyChecklistTest extends WebTestCase
     /**
      * The second request is counted (the first warms the caches)
      */
-    private function measure(string $competitionId, string $playerId): int
-    {
-        $this->client = self::createClient();
-
-        return $this->measureWithClient($competitionId, $playerId);
-    }
-
     private function measureWithClient(string $competitionId, string $playerId): int
     {
         TestingLogin::asPlayer($this->browser(), $playerId);
@@ -322,6 +285,17 @@ final class GetReadyChecklistTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         return $this->queryCount($this->browser());
+    }
+
+    /**
+     * The statements of the last measured request that are the checklist's facts (GetEventGetReadyFacts)
+     */
+    private function checklistStatements(): int
+    {
+        return count(array_filter(
+            $this->executedSql($this->browser()),
+            static fn (string $sql): bool => str_contains($sql, 'AS overlays_count') || str_contains($sql, 'AS with_table_number'),
+        ));
     }
 
     /**

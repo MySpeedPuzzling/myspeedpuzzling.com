@@ -116,7 +116,7 @@ final class EligibilityScheduleTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         // Typed into "When it happens", then "Recurring" left unticked: an event, no error, nothing kept
         $browser->submitForm('Submit for Approval', [
             'competition_form[name]' => 'Single Puzzle Night',

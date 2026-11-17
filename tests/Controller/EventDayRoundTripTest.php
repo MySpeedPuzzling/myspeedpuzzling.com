@@ -94,7 +94,7 @@ final class EventDayRoundTripTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event');
+        $browser->request('GET', '/en/add-event?classic=1');
         $browser->submitForm('Submit for Approval', [
             'competition_form[name]' => 'Riverbend Jigsaw Association Monday Meetup',
             'competition_form[isOnline]' => '0',

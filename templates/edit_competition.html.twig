@@ -29,8 +29,8 @@
                     {% endif %}
                 {% endif %}
 
-                {# The event creation wizard (W2): "Continue setting up" of a draft, the "Get ready" checklist - on the line of the
-                    button row so that without the wizard not a byte of the page changes (EditPageWithoutWizardGoldenTest) -#}
+                {# The event creation wizard (W2): "Continue setting up" of a draft, the "Get ready" checklist (none once the event
+                    is over) - on the line of the button row -#}
                 {% if wizard_continue %}{{ include('event_wizard/_continue_setting_up.html.twig', {competition_id: competition.id, layout: 'edit'}) }}{% endif %}{% if get_ready is not null %}{{ include('event_wizard/_get_ready.html.twig', {checklist: get_ready, published: get_ready_published}) }}{% endif %}<div class="mb-3 d-flex flex-wrap gap-2">
                     <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}

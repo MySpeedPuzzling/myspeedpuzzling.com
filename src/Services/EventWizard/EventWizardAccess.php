@@ -18,7 +18,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 /**
  * Who may open a wizard page, shared by every step's controller:
  *
- * - the feature (EventCreationWizardFeature) - without it every wizard route is a 404;
+ * - a signed-in player (every one gets the wizard, no flag) - nobody signed in: every wizard route is a 404;
  * - a draft's steps only for whom COMPETITION_EDIT grants (403 otherwise);
  * - only while the event is a draft on a path whose steps include the page (null = the caller sends the organiser to
  *   the event's edit page - a published event, an edition or an event with several rounds until W3/W5 build theirs).
@@ -26,7 +26,6 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 readonly final class EventWizardAccess
 {
     public function __construct(
-        private EventCreationWizardFeature $feature,
         private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private Security $security,
         private GetEventWizardState $getEventWizardState,
@@ -41,7 +40,7 @@ readonly final class EventWizardAccess
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($player === null || $this->feature->isAvailableTo($player->playerId) === false) {
+        if ($player === null) {
             throw new NotFoundHttpException();
         }
 

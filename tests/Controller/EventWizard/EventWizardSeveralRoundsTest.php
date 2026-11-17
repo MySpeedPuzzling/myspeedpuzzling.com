@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -26,26 +25,13 @@ use Symfony\Component\DomCrawler\Form;
  */
 final class EventWizardSeveralRoundsTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'EVENT_CREATION_WIZARD';
-    private const string TOOLKIT_FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
 
     private KernelBrowser $browser;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
         $this->browser = self::createClient();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testTheEntrysFollowUpAnswerLeadsToBasicsOfTheSeveralRoundsPath(): void
@@ -344,7 +330,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertSame(2, $round['puzzles_to_solve']);
     }
 
-    public function testAnotherPlayerCannotOpenTheStepsAndWithoutTheFlagTheyAre404(): void
+    public function testAnotherPlayerCannotOpenTheSteps(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft('qualification');
@@ -353,15 +339,6 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         foreach (['structure', 'puzzles'] as $step) {
             $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
             self::assertResponseStatusCodeSame(403, $step);
-        }
-
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-        self::ensureKernelShutdown();
-        $this->browser = self::createClient();
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        foreach (['structure', 'puzzles'] as $step) {
-            $this->browser->request('GET', '/en/new-event/' . $competitionId . '/' . $step);
-            self::assertResponseStatusCodeSame(404, $step);
         }
     }
 

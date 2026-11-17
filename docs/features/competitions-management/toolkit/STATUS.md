@@ -92,8 +92,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 
 ## Creation wizard (2026-11-17, orchestrator: sub-session; design `W-creation-wizard-research.md`)
 Jan: rework creating competitions into a wizard (toggle features, one round without extra clicks, especially series)
-and fix Duplicate (new dates). Flag `EVENT_CREATION_WIZARD` (admins always). Organiser interviews (W0) did not happen -
-the documented defaults are used. Packages in worktrees `.claude/worktrees/wz-<pkg>`, branches `wz/<pkg>`.
+and fix Duplicate (new dates). No flag (WF, 2026-11-17: `EVENT_CREATION_WIZARD` retired - the wizard is every player's
+"Add event"). Organiser interviews (W0) did not happen - the documented defaults are used. Packages in worktrees `.claude/worktrees/wz-<pkg>`, branches `wz/<pkg>`.
 
 | Pkg | State | Commit(s) | Notes |
 |---|---|---|---|

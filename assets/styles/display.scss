@@ -242,3 +242,199 @@
 .msp-el__cell--table {
     font-variant-numeric: tabular-nums;
 }
+
+// ---- standings (competition toolkit v2 S2): title panel, a head with the round labels, rows with fixed-width
+// score cells on the right (render.js sets their widths from the element's font size, so the head lines up)
+
+.msp-standings__title {
+    flex: 0 0 auto;
+    margin-bottom: 0.3em;
+    padding: 0.3em 0.6em 0.35em;
+    border-left: 0.18em solid transparent;
+    border-radius: 0.2em;
+    background-color: rgba(13, 16, 23, 0.86);
+    text-align: left;
+}
+
+.msp-standings__name {
+    overflow: hidden;
+    font-size: 1.1em;
+    font-weight: 700;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msp-standings__subtitle {
+    margin-top: 0.15em;
+    overflow: hidden;
+    font-size: 0.58em;
+    font-weight: 500;
+    opacity: 0.9;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msp-standings__badge {
+    display: inline-block;
+    margin-right: 0.6em;
+    padding: 0.08em 0.55em;
+    border-radius: 0.3em;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.msp-standings__rows {
+    flex: 0 0 auto;
+}
+
+.msp-standings__row {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0.22em 0.5em;
+    border-radius: 0.2em;
+    white-space: nowrap;
+}
+
+.msp-standings__row--head {
+    flex: 0 0 auto;
+    padding-top: 0;
+    padding-bottom: 0.1em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    opacity: 0.8;
+    text-transform: uppercase;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+
+    .msp-standings__cell {
+        font-size: 0.5em;
+    }
+
+    .msp-standings__sub,
+    .msp-standings__missing {
+        display: none;
+    }
+}
+
+.msp-standings__cell {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    margin-right: 0.45em;
+}
+
+.msp-standings__cell:last-child {
+    margin-right: 0;
+}
+
+.msp-standings__cell--rank {
+    text-align: center;
+}
+
+.msp-standings__rank {
+    display: inline-block;
+    min-width: 1.6em;
+    padding: 0.06em 0.2em;
+    border-radius: 0.25em;
+    background-color: rgba(255, 255, 255, 0.14);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.msp-standings__row--head .msp-standings__rank {
+    display: none;
+}
+
+.msp-standings__rank--1 {
+    background-color: #f2c23c;
+    color: #1d1500;
+}
+
+.msp-standings__rank--2 {
+    background-color: #cfd6de;
+    color: #12161c;
+}
+
+.msp-standings__rank--3 {
+    background-color: #d58c4f;
+    color: #1d0e00;
+}
+
+.msp-standings__cell--flag {
+    line-height: 1;
+
+    .fi {
+        margin-right: 0.15em;
+        border-radius: 0.08em;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+    }
+}
+
+.msp-standings__cell--name {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+}
+
+.msp-standings__entrant,
+.msp-standings__sub {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msp-standings__entrant {
+    font-weight: 600;
+}
+
+.msp-standings__sub {
+    font-size: 0.55em;
+    font-weight: 400;
+    opacity: 0.78;
+}
+
+.msp-standings__cell--stage {
+    overflow: hidden;
+    font-size: 0.6em;
+    opacity: 0.85;
+    text-overflow: ellipsis;
+}
+
+.msp-standings__cell--round {
+    font-size: 0.68em;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.88;
+    text-align: right;
+}
+
+.msp-standings__row--head .msp-standings__cell--round {
+    font-size: 0.5em;
+}
+
+.msp-standings__cell--total {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.msp-standings__total {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.msp-standings__missing {
+    font-size: 0.5em;
+    font-weight: 400;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.msp-standings__empty {
+    text-align: left;
+}

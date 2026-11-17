@@ -153,10 +153,10 @@ keeps its version, so open displays do not reload.
   the default, plain texts (control characters removed, length capped). A style key (D §4.1 minus the cut fonts) is
   kept only with a valid value; missing = the theme's/type's default. There is no field for raw CSS, HTML, classes or
   URLs, except the event's own uploads and one `https://` QR link (≤ 300 characters).
-- **15 element types** (`DisplayDesignSanitizer::ELEMENT_TYPES`, props in `props()`): `timer`, `status`, `progress`,
+- **16 element types** (`DisplayDesignSanitizer::ELEMENT_TYPES`, props in `props()`; `standings` = v2 S2, below): `timer`, `status`, `progress`,
   `text`, `field`, `round_badge`, `image` (upload or the event/series/organization logo), `rotator` (≤ 30 pictures),
   `clock`, `puzzle` (+ `hiddenText`), `finished_count`, `leaderboard` (≤ 30 rows), `ticker` (latest finishers, ≤ 10,
-  list only), `qr`, `box`. The results types (`RESULTS_TYPES`: `finished_count`, `leaderboard`, `ticker`) carry `source`
+  list only), `qr`, `box`, `standings`. The results types (`RESULTS_TYPES`: `finished_count`, `leaderboard`, `ticker`) carry `source`
   published|live + `whenUnpublished` + `unpublishedText`.
 - **Fonts (4):** `rubik`, `bebas`, `roboto_mono`, `courier_prime`. They are self-hosted woff2 latin + latin-ext
   (`public/fonts/rubik/`, `public/fonts/display/`, OFL), as `@font-face` "MSP Display …" in
@@ -329,6 +329,47 @@ editor badges those elements. `DisplayPreset::fits()` checks the kind, both in t
 - `ConvertCompetitionToSeriesHandler` **refuses** an event with displays (`SeriesConversionBlocker` `displays`;
   `ConvertCompetitionForeignKeyCoverageTest` lists `competition_display.competition_id` as refused).
 
+## Standings element (competition toolkit v2 S2)
+
+Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 2026-11-17:
+
+- **Type `standings`** (16th type; sanitizer + `schema.js` + fixture cases): props `standingId` (`auto` | a uuid,
+  lowercased; anything else `auto`), `rows` 1-30 (10), `columns` ⊆ `rank, flag, name, members, total, rounds, missing,
+  stage` (`rank, flag, name, total`), `title` (true), `rowStyle` (as the leaderboard), `whenEmpty` `nothing|text`,
+  `emptyText` ≤ 80. Not a results type (no `source`: a standing is public data), but `usesResults()` is true for a
+  shown one, so the `results` signals of a published round reach the display; `standingsDemand()` lists the shown ones.
+- **State** (`DisplayStandings`, called by `GetCompetitionDisplayState`): key `standings: {elementId: standing|null}`
+  only when a standings element is shown (every other design's answer is byte-identical). A standing = the guest
+  snapshot (`PublicStandingSnapshots::forGuest()`, S1): `{name, category, provisional, final, roundsCounted,
+  roundsTotal, rounds [{name, counted}], rows [{key, rank, complete, name, members, countries, totalSeconds (T6
+  penalised), totalTimeSeconds, totalMissingPieces, totalPenaltySeconds, roundsScored, perRound [{status, scoreSeconds,
+  missingPieces}]}]}`, rows cut to the element's `rows`, `key` = HMAC of the entrant key with the token. `auto` = the
+  published standing counting the shown round, else the first published one of its category, else the first published
+  one (by position); an unpublished, unknown or other event's standing → null → `whenEmpty`. Statuses are passed as
+  the calculator's strings (a new one such as `no_show` renders by its score). One try/catch: a failure = every
+  element null + a warning, the timer never blanks. Statements: warm +0 (snapshot + list cached per generation), cold
+  ≤ +5.
+- **Texts** (`CompetitionDisplayPayload`, only with standings): `standingProvisional`, `standingRoundsOf`,
+  `standingRoundShort`, `standingTotal` and the plural ones per number shown (`standingFinal` per round count,
+  `standingMissing` per missing pieces count) - the public standing page's texts, no new translation.
+- **Renderer** (`render.js` `updateStandings()`, `msp-standings__*` in `display.scss`): a title panel (name, accent
+  "Provisional" badge + "2 of 6 rounds" / "Final - all 6 rounds"), a head with R1…Rn + Total when the rounds column is
+  on, rows diffed by key with podium-coloured rank pills, flags, name with members / "5 of 6 rounds" under it, the
+  round scores (unfinished with *, not counted –), the penalised total with "N pieces missing" under it (`missing`
+  column). Right-hand cells have fixed widths from the element's font size so the head lines up. Rows get a dark
+  translucent background by default (readable over video) unless `rowStyle` sets one.
+- **Signals**: a standing or step write → `standingsChanged()` → new generation, then `display.signal` `what:
+  standings` (S1); results/round signals as before (the generation is bumped first). The runtime treats it like any
+  other signal (debounced fetch).
+- **Editor**: catalogue group Results; the standing picker is fed by `config.standings` (`GetCompetitionStandings::
+  ofCompetition()`, +1 statement on the editor page; unpublished ones marked); sample data = a 12-row standing after
+  4 of 6 rounds (one row with 12 pieces missing, one incomplete) with texts in the display's language
+  (`config.standingTexts` = `CompetitionDisplayPayload::sampleStandingTexts()`).
+- Tests: `DisplayStandingsTest` (auto/explicit picks, unpublished/foreign/unknown → null, byte-identical answer
+  without the element, T6 total + texts per count, Czech texts, statement budget, signal after a generation bump,
+  failure → null + warning), fixture cases `standings: …`, `DisplayDesignSanitizerTest::testStandingsDemand…`,
+  render harness `standings: …` + XSS, editor harness sample standing.
+
 ## Build and service worker
 
 - Encore entry `display` (`assets/display.js` + `assets/styles/display.scss`) gets its own file without shared split
@@ -342,8 +383,8 @@ editor badges those elements. `DisplayPreset::fits()` checks the kind, both in t
   hub's origin) → H.
 - English only so far (`competition_display.*`); the 5 other locales come with the TR package.
 - v2 (R §3): live control (spotlight/message elements and page), copy from another event, ticker marquee,
-  multi-select/align/distribute, sibling snapping, the standings/bracket overlay element, scenes, animations, 4:3 and
-  portrait.
+  multi-select/align/distribute, sibling snapping, the bracket overlay element, scenes, animations, 4:3 and portrait
+  (the standings element is built - v2 S2 above).
 
 ## Tests
 

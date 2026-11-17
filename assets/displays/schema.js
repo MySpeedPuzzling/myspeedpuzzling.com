@@ -14,8 +14,10 @@ export const MAX_BYTES = 65536;
 
 export const ELEMENT_TYPES = [
     'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-    'finished_count', 'leaderboard', 'ticker', 'qr', 'box',
+    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings',
 ];
+// The standings element's columns (competition toolkit v2 S2) - `stage` shows only once a standing has stages
+export const STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
 export const RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
 export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
@@ -149,6 +151,24 @@ export const PROP_SPECS = {
         { key: 'quietZone', kind: 'bool', default: true },
     ],
     box: [],
+    // A published standing (competition toolkit v2 S2, displays-standings.md §3.2) - public data, so no `source`
+    standings: [
+        { key: 'standingId', kind: 'standing', default: 'auto' },
+        { key: 'rows', kind: 'int', min: 1, max: 30, default: 10 },
+        { key: 'columns', kind: 'subset', options: STANDINGS_COLUMNS, default: ['rank', 'flag', 'name', 'total'] },
+        { key: 'title', kind: 'bool', default: true },
+        {
+            key: 'rowStyle',
+            kind: 'object',
+            fields: [
+                { key: 'background', kind: 'color', default: null },
+                { key: 'altBackground', kind: 'color', default: null },
+                { key: 'gap', kind: 'int', min: 0, max: 40, default: 4 },
+            ],
+        },
+        { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+    ],
 };
 
 const DEFAULT_BACKGROUND_COLOR = '#0d1017';
@@ -162,6 +182,7 @@ const ID_PATTERN = /^[a-z0-9]{8}$/;
 const URL_PATTERN = /^https:\/\/[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::[0-9]{1,5})?(?:[/?#][A-Za-z0-9\-._~:/?#[\]@!$&()*+,;=%]*)?$/;
 const CONTROL_CHARACTERS = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g;
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const STANDING_ID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export function normaliseDesign(input, { competitionId }) {
     const errors = [];
@@ -188,8 +209,14 @@ function isLive(element) {
     return RESULTS_TYPES.includes(element?.type) && element.props?.source === 'live';
 }
 
+// A result edit in a published round changes a published standing - its `results` signals must reach the display
 export function usesResults(design) {
-    return shownResultsElements(design).length > 0;
+    return shownResultsElements(design).length > 0 || (Array.isArray(design?.elements) ? design.elements : []).some((element) => element !== null
+        && typeof element === 'object'
+        && element.type === 'standings'
+        && element.hidden !== true
+        && Array.isArray(element.when?.phases)
+        && element.when.phases.length > 0);
 }
 
 export function usesLiveResults(design) {
@@ -497,6 +524,9 @@ function propValue(spec, value, path, competitionId, errors) {
             return typeof value === 'string' && Array.from(value).length <= spec.max && URL_PATTERN.test(value) ? value : null;
         case 'images':
             return imageList(value, `${path}/${spec.key}`, competitionId, errors);
+        case 'standing':
+            // `auto` or a standing's id (lowercased) - whether it is a published standing of the event is the state's question
+            return typeof value === 'string' && STANDING_ID_PATTERN.test(value) ? value.toLowerCase() : spec.default;
         default:
             return null;
     }

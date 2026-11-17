@@ -14274,6 +14274,7 @@ competition_display:
             round: "Manche 1"
             category: "Solo"
             puzzle: "Puzzle d'exemple"
+            standing: "Championnat individuel"
         group:
             clock: "Chronomètre"
             text: "Texte"
@@ -14296,6 +14297,7 @@ competition_display:
             leaderboard: "Classement"
             finished_count: "Nombre d'arrivées"
             ticker: "Dernières arrivées"
+            standings: "Classement"
         section:
             general: "Élément"
             position: "Position et taille (% de l'écran)"
@@ -14357,6 +14359,14 @@ competition_display:
             fg: "Couleur du code"
             bg: "Fond"
             quietZone: "Bordure blanche"
+            standingId: "Classement"
+            standing_auto: "Automatique - le classement de la manche à l’écran"
+            standing_auto_help: "Affiche le classement publié qui compte la manche à l’écran, sinon le premier classement publié de sa catégorie."
+            standing_help: "Seules les manches aux résultats publiés comptent - le classement reste « Provisoire » tant qu’elles ne le sont pas toutes."
+            standing_unpublished: "non publié - l’affichage ne montre rien"
+            title: "Afficher le nom du classement"
+            whenEmpty: "Sans classement publié"
+            emptyText: "Texte sans classement publié"
             image:
                 source: "Image"
             clock:
@@ -14434,6 +14444,10 @@ competition_display:
             members: "Membres"
             result: "Résultat"
             table: "Table"
+            total: "Total"
+            rounds: "Manches"
+            missing: "Pièces manquantes"
+            stage: "Phase"
             published: "Publiés"
             live: "En direct, avant publication"
             event_page: "Page de l'événement"

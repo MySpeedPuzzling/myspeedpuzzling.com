@@ -92,13 +92,70 @@ export function sampleResults(nowMs, published) {
 }
 
 /**
+ * A made-up standing after 4 of 6 rounds (competition toolkit v2 S2): 12 rows, one with pieces missing, one incomplete
+ * (listed last, without a rank) - for every standings element of the design.
+ */
+export function sampleStanding(name = 'Solo championship') {
+    // The numbers CompetitionDisplayPayload::sampleStandingTexts() gives texts for: 6 rounds, 12 pieces missing
+    const roundsTotal = 6;
+    const roundsCounted = 4;
+    const rows = SAMPLE_NAMES.slice(0, 12).map(([entrant, countries], index) => {
+        const complete = index !== 11;
+        const missing = index === 6 ? 12 : 0;
+        const perRound = Array.from({ length: roundsTotal }, (_, round) => {
+            if (round >= roundsCounted) {
+                return { status: 'not_counted', scoreSeconds: null, missingPieces: 0 };
+            }
+
+            if (!complete && round === 2) {
+                return { status: 'did_not_start', scoreSeconds: null, missingPieces: 0 };
+            }
+
+            if (missing > 0 && round === 1) {
+                return { status: 'unfinished', scoreSeconds: 3600 + missing * 10, missingPieces: missing };
+            }
+
+            return { status: 'finished', scoreSeconds: 1500 + index * 41 + round * 67, missingPieces: 0 };
+        });
+        const totalSeconds = perRound.reduce((sum, score) => sum + (score.scoreSeconds ?? 0), 0);
+
+        return {
+            key: `standing${index}`,
+            rank: complete ? index + 1 : null,
+            complete,
+            name: entrant,
+            members: countries.length > 1 ? ['Jana Malá', 'Petr Veselý'] : [],
+            countries,
+            totalSeconds,
+            totalTimeSeconds: totalSeconds - missing * 10,
+            totalMissingPieces: missing,
+            totalPenaltySeconds: missing * 10,
+            roundsScored: complete ? roundsCounted : roundsCounted - 1,
+            perRound,
+        };
+    });
+
+    return {
+        name,
+        category: 'solo',
+        provisional: true,
+        final: false,
+        roundsCounted,
+        roundsTotal,
+        rounds: Array.from({ length: roundsTotal }, (_, round) => ({ name: `Round ${round + 1}`, counted: round < roundsCounted })),
+        rows,
+    };
+}
+
+/**
  * The state the preview renders, and the "now" it renders at.
  * Options: mode ('sample' | 'display'), phase (PREVIEW_PHASES), published, revealed, nowMs, design (QR placeholders
  * for QR elements the server has not drawn yet), images (pictures uploaded in this session: path → URL), labels
- * ({round, category, puzzle} for the sample round and puzzles).
+ * ({round, category, puzzle, standing} for the sample round, puzzles and standing), standingTexts (the standings
+ * element's texts for the sample standing's numbers, in the display's language).
  */
 export function previewState(base, options) {
-    const { mode, phase, published, revealed, nowMs, design, images = {}, labels = {} } = options;
+    const { mode, phase, published, revealed, nowMs, design, images = {}, labels = {}, standingTexts = {} } = options;
     const state = { ...base, images: { ...(base.images ?? {}), ...images }, qr: { ...(base.qr ?? {}) } };
 
     for (const element of design?.elements ?? []) {
@@ -128,6 +185,15 @@ export function previewState(base, options) {
     state.texts = { ...(base.texts ?? {}), category: base.texts?.category ?? labels.category ?? '' };
     state.stopwatch = sampleStopwatch(PREVIEW_PHASES.includes(phase) ? phase : 'running', nowMs, minutesLimit);
     state.results = usesResults ? sampleResults(nowMs, published) : null;
+
+    const standings = (design?.elements ?? []).filter((element) => element.type === 'standings');
+
+    if (standings.length > 0) {
+        const sample = sampleStanding(labels.standing);
+        state.standings = Object.fromEntries(standings.map((element) => [element.id, sample]));
+        // The display's language, for the sample's own numbers (the editor page's `standingTexts`)
+        state.texts = { ...state.texts, ...standingTexts };
+    }
     state.puzzles = revealed
         ? [
             { name: `${labels.puzzle ?? 'Sample puzzle'} A`, brand: 'Ravensburger', pieces: 500, imageUrl: null },

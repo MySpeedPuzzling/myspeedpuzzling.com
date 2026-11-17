@@ -84,8 +84,10 @@ export function layerLabel(element, t) {
 }
 
 export class EditorPanel {
-    constructor({ document, t, commit, getImages, upload, uploadAvailable, kind }) {
+    constructor({ document, t, commit, getImages, upload, uploadAvailable, kind, standings = [] }) {
         this.document = document;
+        // The event's standings for the standings element's picker: [{id, name, published}]
+        this.standings = Array.isArray(standings) ? standings : [];
         this.t = t;
         this.commit = commit;
         this.getImages = getImages;
@@ -689,10 +691,56 @@ export class EditorPanel {
                 case 'images':
                     this.rotatorImages(parent, { label, fieldKey, value: value ?? [], set });
                     break;
+                case 'standing':
+                    this.standingField(parent, { label, fieldKey, value, onValue: (v) => set(v, null, true) });
+                    break;
                 default:
                     break;
             }
         }
+    }
+
+    // `auto` or one of the event's standings; an unpublished one is marked - the display shows nothing for it
+    standingField(parent, { label, fieldKey, value, onValue }) {
+        const { row, id } = this.row(parent, label, fieldKey);
+        const select = this.el('select', 'form-select form-select-sm', null, row);
+        select.id = id;
+        select.dataset.field = fieldKey;
+        const options = [{ value: 'auto', text: this.t('prop.standing_auto') }];
+
+        for (const standing of this.standings) {
+            if (typeof standing?.id !== 'string' || typeof standing.name !== 'string') {
+                continue;
+            }
+
+            options.push({
+                value: standing.id,
+                text: standing.published === true ? standing.name : `${standing.name} - ${this.t('prop.standing_unpublished')}`,
+            });
+        }
+
+        // A chosen standing deleted meanwhile still shows as chosen (the display shows nothing for it)
+        if (value !== 'auto' && !options.some((option) => option.value === value)) {
+            options.push({ value, text: `? - ${this.t('prop.standing_unpublished')}` });
+        }
+
+        for (const item of options) {
+            const option = this.el('option', null, item.text, select);
+            option.value = item.value;
+            option.selected = item.value === value;
+        }
+
+        select.addEventListener('change', () => onValue(select.value));
+
+        const chosen = this.standings.find((standing) => standing?.id === value);
+
+        if (value !== 'auto' && chosen?.published !== true) {
+            this.el('div', 'form-text mt-0 mb-2 text-warning', this.t('prop.standing_unpublished'), parent);
+        } else {
+            this.el('div', 'form-text mt-0 mb-2', this.t(value === 'auto' ? 'prop.standing_auto_help' : 'prop.standing_help'), parent);
+        }
+
+        return select;
     }
 
     rotatorImages(parent, { label, fieldKey, value, set }) {

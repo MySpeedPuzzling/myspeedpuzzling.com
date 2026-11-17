@@ -149,6 +149,8 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §2.1-2.2, §3.1. A
   private players masked for everybody incl. the allowed friend (`PrivateProfileCanaryTest::testThePublicStandingJsonNeverNamesHer`);
   drafts 404 (`DraftCanaryTest::testTheStandingsOfADraftAreNotThere`).
 - Tests: `PublicStandingStateTest`, `PublicStandingSnapshotsTest`, `CompetitionStandingsLiveUpdatesTest`.
+- **On the displays (v2 S2):** the `standings` element shows a guest snapshot (`DisplayStandings`) - see
+  [displays.md](displays.md) "Standings element".
 
 ## Advancement steps (competition toolkit A8)
 
@@ -206,5 +208,5 @@ an event with steps has a bracket.
 ## Deferred to v2 (R §3, docs/TODO.md "Competition toolkit v2")
 
 The `stages` standing classification and `numbered_across_stages` (a final classification across the bracket's stages),
-`missing_rule = as_zero_pieces`, a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a standings/bracket overlay element for the
-displays.
+`missing_rule = as_zero_pieces`, a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a bracket overlay element for the
+displays (the standings element is built - v2 S2).

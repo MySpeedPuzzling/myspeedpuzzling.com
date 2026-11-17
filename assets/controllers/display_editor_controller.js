@@ -58,6 +58,7 @@ export default class extends Controller {
             document,
             t: this.t,
             kind: config.kind,
+            standings: config.standings ?? [],
             uploadAvailable: typeof config.uploadUrl === 'string' && config.uploadUrl !== '',
             getImages: () => ({ ...(this.baseState.images ?? {}), ...this.images }),
             upload: (file) => this.upload(file),
@@ -169,7 +170,8 @@ export default class extends Controller {
             nowMs: Date.now() + this.clockOffsetMs,
             design: this.state.design,
             images: this.images,
-            labels: { round: this.t('sample.round'), category: this.t('sample.category'), puzzle: this.t('sample.puzzle') },
+            labels: { round: this.t('sample.round'), category: this.t('sample.category'), puzzle: this.t('sample.puzzle'), standing: this.t('sample.standing') },
+            standingTexts: this.config.standingTexts ?? {},
         });
     }
 

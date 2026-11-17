@@ -14529,6 +14529,7 @@ competition_display:
             round: "Round 1"
             category: "Solo"
             puzzle: "Sample puzzle"
+            standing: "Solo championship"
         group:
             clock: "Clock"
             text: "Text"
@@ -14551,6 +14552,7 @@ competition_display:
             leaderboard: "Leaderboard"
             finished_count: "Finished count"
             ticker: "Latest finishers"
+            standings: "Standings"
         section:
             general: "Element"
             position: "Position and size (% of the screen)"
@@ -14612,6 +14614,14 @@ competition_display:
             fg: "Code colour"
             bg: "Background"
             quietZone: "White border"
+            standingId: "Standing"
+            standing_auto: "Automatic - the standing of the round on screen"
+            standing_auto_help: "Shows the published standing that counts the round on screen, else the first published one of its category."
+            standing_help: "Only rounds with published results count - the standing says “Provisional” until all of them do."
+            standing_unpublished: "not published - the display shows nothing"
+            title: "Show the standing's name"
+            whenEmpty: "Without a published standing"
+            emptyText: "Text without a published standing"
             image:
                 source: "Picture"
             clock:
@@ -14689,6 +14699,10 @@ competition_display:
             members: "Members"
             result: "Result"
             table: "Table"
+            total: "Total"
+            rounds: "Rounds"
+            missing: "Pieces missing"
+            stage: "Stage"
             published: "Published"
             live: "Live, before publishing"
             event_page: "Event page"

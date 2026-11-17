@@ -14281,6 +14281,7 @@ competition_display:
             round: "Kolo 1"
             category: "Jednotlivci"
             puzzle: "Ukázkové puzzle"
+            standing: "Šampionát jednotlivců"
         group:
             clock: "Stopky"
             text: "Text"
@@ -14303,6 +14304,7 @@ competition_display:
             leaderboard: "Žebříček"
             finished_count: "Počet dokončených"
             ticker: "Poslední dokončení"
+            standings: "Celkové pořadí"
         section:
             general: "Prvek"
             position: "Pozice a velikost (% obrazovky)"
@@ -14364,6 +14366,14 @@ competition_display:
             fg: "Barva kódu"
             bg: "Pozadí"
             quietZone: "Bílý okraj"
+            standingId: "Celkové pořadí"
+            standing_auto: "Automaticky - celkové pořadí kola na obrazovce"
+            standing_auto_help: "Ukáže zveřejněné celkové pořadí, které započítává kolo na obrazovce, jinak první zveřejněné celkové pořadí jeho kategorie."
+            standing_help: "Počítají se jen kola se zveřejněnými výsledky - dokud nejsou zveřejněná všechna, je pořadí „Průběžné“."
+            standing_unpublished: "nezveřejněné - obrazovka nic neukáže"
+            title: "Zobrazit název celkového pořadí"
+            whenEmpty: "Bez zveřejněného celkového pořadí"
+            emptyText: "Text bez zveřejněného celkového pořadí"
             image:
                 source: "Obrázek"
             clock:
@@ -14441,6 +14451,10 @@ competition_display:
             members: "Členové"
             result: "Výsledek"
             table: "Stůl"
+            total: "Celkem"
+            rounds: "Kola"
+            missing: "Chybějící dílky"
+            stage: "Fáze"
             published: "Zveřejněné"
             live: "Živě, před zveřejněním"
             event_page: "Stránka události"

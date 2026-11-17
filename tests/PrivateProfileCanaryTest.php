@@ -632,6 +632,56 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The displays' standings element (competition toolkit v2 S2): a published standing with her Group B row shows her
+     * by the organiser's name only - no profile name, id or #code, for everybody, the friend included (the guest
+     * snapshot has no viewer, so no allow list unmasks).
+     */
+    public function testACompetitionDisplayStandingNeverNamesHer(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :b', ['b' => OfficialResultsFixture::ROUND_GROUP_B]);
+        PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]);
+        $token = 'DispPrivate22222222222';
+        $database->insert('competition_display', [
+            'id' => Uuid::uuid7()->toString(),
+            'competition_id' => $cup,
+            'kind' => 'overlay',
+            'name' => 'Stream',
+            'token' => $token,
+            'locale' => 'en',
+            'design' => '{"schema": 1, "elements": [{"id": "stand001", "type": "standings", "hidden": false, "when": {"phases": ["idle"]}, "props": {"standingId": "auto", "rows": 30, "columns": ["rank", "flag", "name", "members", "total"]}}]}',
+            'created_at' => TestClock::FROZEN_NOW,
+            'updated_at' => TestClock::FROZEN_NOW,
+            'follow_mode' => 'pinned',
+            'pinned_round_id' => OfficialResultsFixture::ROUND_GROUP_B,
+            'uses_results' => true,
+            'uses_live_results' => false,
+        ], ['uses_results' => 'boolean', 'uses_live_results' => 'boolean']);
+        $code = $database->fetchOne('SELECT code FROM player WHERE id = :id', ['id' => self::OWNER]);
+        self::assertIsString($code);
+        $urls = ['/display/' . $token . '/state', '/display/' . $token];
+        $read = fn (string $url): string => html_entity_decode($this->get($browser, $url), ENT_QUOTES | ENT_HTML5);
+
+        foreach ([null, self::FRIEND, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+                $read($urls[0]);
+            }
+
+            foreach ($urls as $url) {
+                $content = $read($url);
+                self::assertStringContainsString('Gina Quick', $content, "No canary: the standing does not list her ({$url}).");
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display standing names a private player ({$url}).");
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsStringIgnoringCase('"' . $code . '"', $content, $url);
+            }
+        }
+    }
+
+    /**
      * The analytics studio (docs/features/competitions-management/analytics-studio.md D3, R16): she is an entrant of
      * Group B ("Gina Quick") and the fastest solver of its puzzle - by the organiser's name, never analysable, and a
      * nameless record holder; nothing of her profile, her id or her history in any answer, for everybody, the friend

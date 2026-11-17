@@ -67,7 +67,11 @@ function baseState(overrides = {}) {
         results: null,
         images: { [IMAGE]: 'https://img.example/a.png', [IMAGE2]: 'https://img.example/b.png' },
         qr: {},
-        texts: { startsIn: 'Starts in %time%', timesUp: "Time's up", stopped: 'Paused', notStarted: 'Not started', finished: 'finished', piecesPlaced: '%count% pieces', table: 'Table %number%', pieces: '%count% pieces', category: 'Solo', invalid: 'No longer valid' },
+        texts: {
+            startsIn: 'Starts in %time%', timesUp: "Time's up", stopped: 'Paused', notStarted: 'Not started', finished: 'finished', piecesPlaced: '%count% pieces', table: 'Table %number%', pieces: '%count% pieces', category: 'Solo', invalid: 'No longer valid',
+            standingProvisional: 'Provisional', standingRoundsOf: '%scored% of %count% rounds', standingRoundShort: 'R%number%', standingTotal: 'Total',
+            standingFinal: { 3: 'Final - all 3 rounds' }, standingMissing: { 50: '50 pieces missing' },
+        },
         ...overrides,
     };
 }
@@ -376,7 +380,14 @@ const ALLOWED_ATTRIBUTES = ['class', 'style', 'src', 'alt', 'viewBox', 'preserve
 const CLASS_PATTERN = /^(msp-[a-z0-9_-]+|fi|fi-[a-z]{2})$/;
 const EVIL = '<img src=x onerror=alert(1)></script><script>alert(1)</script>"\'><svg onload=alert(1)>javascript:alert(1) expression(alert(1)) url(javascript:x)';
 
-function evilState() {
+function evilStanding() {
+    const score = { status: EVIL, scoreSeconds: EVIL, missingPieces: EVIL };
+    const row = { key: EVIL, rank: EVIL, complete: EVIL, name: EVIL, members: [EVIL], countries: [EVIL, 'cz" onload="x', 'CZ', 'cz'], totalSeconds: EVIL, totalTimeSeconds: EVIL, totalMissingPieces: EVIL, totalPenaltySeconds: EVIL, roundsScored: EVIL, perRound: [score, EVIL, null], stageName: EVIL };
+
+    return { name: EVIL, category: EVIL, provisional: EVIL, final: EVIL, roundsCounted: EVIL, roundsTotal: EVIL, rounds: [{ name: EVIL, counted: EVIL }, EVIL, null], rows: [row, { ...row, key: 'second' }, EVIL] };
+}
+
+function evilState(standingIds = []) {
     const evilRow = { key: EVIL, rank: 1, name: EVIL, members: [EVIL], countries: [EVIL, 'cz" onload="x', 'CZ', 'cz'], resultSeconds: EVIL, piecesPlaced: EVIL, didNotFinish: false, tableNumber: EVIL, enteredAtMs: EVIL };
 
     return baseState({
@@ -390,6 +401,7 @@ function evilState() {
         images: { [IMAGE]: 'javascript:alert(1)', [IMAGE2]: EVIL },
         qr: Object.fromEntries(Array.from({ length: 60 }, (_, index) => [`xss${String(index).padStart(5, '0')}`, { rows: [EVIL] }])),
         texts: Object.fromEntries(Object.keys(baseState().texts).map((key) => [key, EVIL])),
+        standings: Object.fromEntries(standingIds.map((id) => [id, evilStanding()])),
     });
 }
 
@@ -432,9 +444,10 @@ for (const testCase of corpus.cases) {
         const input = JSON.parse(JSON.stringify(testCase.input ?? null));
         const { document, root } = dom();
         const renderer = createRenderer({ document, root, design: input, competitionId: corpus.competitionId, kind: 'screen' });
-        renderer.render(evilState(), START);
+        const ids = (Array.isArray(input?.elements) ? input.elements : []).map((item) => item?.id).filter((id) => typeof id === 'string');
+        renderer.render(evilState(ids), START);
         renderer.render(baseState(), START);
-        renderer.render(evilState(), START + 5_000);
+        renderer.render(evilState(ids), START + 5_000);
         const problem = injected(root);
 
         return problem === null ? true : problem;
@@ -463,6 +476,126 @@ check('xss: every element type fed evil data in every string', () => {
     assert(window.document.querySelectorAll('script').length === 0, 'no script');
     // Countries: only the valid lowercase code becomes a flag class
     equal([...root.querySelectorAll('.fi')].map((flag) => flag.className), ['fi fi-cz'], 'flags');
+});
+
+// ---- standings (competition toolkit v2 S2)
+
+const SCORE = (seconds, status = 'finished', missingPieces = 0) => ({ status, scoreSeconds: seconds, missingPieces });
+const NOT_COUNTED = { status: 'not_counted', scoreSeconds: null, missingPieces: 0 };
+const STANDING_ROW = (key, rank, name, totalSeconds, extra = {}) => ({
+    key, rank, complete: true, name, members: [], countries: ['cz'], totalSeconds, totalTimeSeconds: totalSeconds, totalMissingPieces: 0, totalPenaltySeconds: 0, roundsScored: 2,
+    perRound: [SCORE(totalSeconds - 1000), SCORE(1000), NOT_COUNTED], ...extra,
+});
+const STANDING = (rows, extra = {}) => ({
+    name: 'World Series - Solo', category: 'solo', provisional: true, final: false, roundsCounted: 2, roundsTotal: 3,
+    rounds: [{ name: 'Solo 1', counted: true }, { name: 'Solo 2', counted: true }, { name: 'Solo 3', counted: false }], rows, ...extra,
+});
+const standingRows = (root) => [...root.querySelectorAll('.msp-standings__rows .msp-standings__row')];
+
+check('standings: title, provisional badge, ranks with podium, rounds, T6 total + missing pieces, incomplete rows', () => {
+    const columns = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing'];
+    const standing = STANDING([
+        STANDING_ROW('a', 1, 'Dora', 2400),
+        STANDING_ROW('b', 2, 'Bob', 4900, { totalTimeSeconds: 4800, totalMissingPieces: 50, totalPenaltySeconds: 100, perRound: [SCORE(1300, 'unfinished', 50), SCORE(3600), NOT_COUNTED] }),
+        STANDING_ROW('c', 3, 'Team Cyril', 5400, { members: ['Cyril', 'Eve'], countries: ['cz', 'sk'] }),
+        STANDING_ROW('d', 4, 'Alice', 6000),
+        // A status this renderer does not know yet (no_show) - its score shows
+        STANDING_ROW('e', 5, 'Eva', 7200, { perRound: [SCORE(3600, 'no_show'), SCORE(3600), NOT_COUNTED] }),
+        STANDING_ROW('f', null, 'Filip', 1500, { complete: false, roundsScored: 1, perRound: [SCORE(1500), { status: 'did_not_start', scoreSeconds: null, missingPieces: 0 }, NOT_COUNTED] }),
+    ]);
+    const { root, node } = render([element('st000001', 'standings', { columns, rows: 10, title: true })], baseState({ standings: { st000001: standing } }));
+    const el = node('st000001');
+    equal(el.querySelector('.msp-standings__name').textContent, 'World Series - Solo', 'name');
+    equal(el.querySelector('.msp-standings__badge').textContent, 'Provisional', 'badge');
+    equal(el.querySelector('.msp-standings__subtitle-text').textContent, '2 of 3 rounds', 'subtitle');
+    const rows = standingRows(root);
+    equal(rows.map((row) => row.querySelector('.msp-standings__rank').textContent), ['1', '2', '3', '4', '5', '–'], 'ranks');
+    equal(rows.slice(0, 4).map((row) => row.querySelector('.msp-standings__rank').className), ['msp-standings__rank msp-standings__rank--1', 'msp-standings__rank msp-standings__rank--2', 'msp-standings__rank msp-standings__rank--3', 'msp-standings__rank'], 'podium');
+    equal(rows.map((row) => row.querySelector('.msp-standings__total').textContent), ['40:00', '1:21:40', '1:30:00', '1:40:00', '2:00:00', '25:00'], 'penalised totals');
+    equal(rows[1].querySelector('.msp-standings__missing').textContent, '50 pieces missing', 'missing pieces');
+    assert(rows[0].querySelector('.msp-standings__missing').style.display === 'none', 'nothing missing = no line');
+    equal([...rows[1].querySelectorAll('.msp-standings__cell--round')].map(text), ['21:40*', '1:00:00', '–'], 'rounds: unfinished starred, not counted dashed');
+    equal(rows[4].querySelector('.msp-standings__cell--round').textContent, '1:00:00', 'an unknown status shows its score');
+    equal(rows[2].querySelector('.msp-standings__sub').textContent, 'Cyril, Eve', 'members');
+    equal(rows[5].querySelector('.msp-standings__sub').textContent, '1 of 2 rounds', 'incomplete');
+    equal([...rows[2].querySelectorAll('.fi')].map((flag) => flag.className), ['fi fi-cz', 'fi fi-sk'], 'flags');
+    const head = el.querySelector('.msp-standings__row--head');
+    assert(visible(head), 'head shown with the rounds column');
+    equal([...head.querySelectorAll('.msp-standings__cell--round')].map(text), ['R1', 'R2', 'R3'], 'round labels');
+    equal(head.querySelector('.msp-standings__total').textContent, 'Total', 'total label');
+    // Row and head cells line up: the same fixed widths
+    equal(head.querySelector('.msp-standings__cell--total').style.width, rows[0].querySelector('.msp-standings__cell--total').style.width, 'aligned');
+});
+
+check('standings: final subtitle, default columns, rows cut, no head without rounds', () => {
+    const standing = STANDING([STANDING_ROW('a', 1, 'A', 100), STANDING_ROW('b', 2, 'B', 200), STANDING_ROW('c', 3, 'C', 300)], { provisional: false, final: true, roundsCounted: 3 });
+    const { root, node } = render([element('st000001', 'standings', { rows: 2 })], baseState({ standings: { st000001: standing } }));
+    const el = node('st000001');
+    assert(!visible(el.querySelector('.msp-standings__badge')), 'no badge');
+    equal(el.querySelector('.msp-standings__subtitle-text').textContent, 'Final - all 3 rounds', 'final');
+    equal(standingRows(root).length, 2, 'rows cut');
+    assert(!visible(el.querySelector('.msp-standings__row--head')), 'no head');
+    assert(el.querySelector('.msp-standings__cell--round') === null, 'no round cells');
+    assert(standingRows(root)[0].querySelector('.msp-standings__missing').style.display === 'none', 'no missing column');
+});
+
+check('standings: no standing = whenEmpty (nothing or the own text), a later standing replaces it', () => {
+    const { document, root } = dom();
+    const elements = [element('st000001', 'standings', { whenEmpty: 'text', emptyText: 'Standings after round 1' }), element('st000002', 'standings')];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'overlay' });
+    renderer.render(baseState({ standings: { st000001: null, st000002: null } }), START);
+    const [first, second] = root.querySelectorAll('.msp-el');
+    equal(first.querySelector('.msp-standings__empty').textContent, 'Standings after round 1', 'own text');
+    assert(!visible(first.querySelector('.msp-standings__title')), 'no title');
+    assert(!visible(second.querySelector('.msp-standings__empty')), 'nothing');
+    equal(second.querySelectorAll('.msp-standings__rows .msp-standings__row').length, 0, 'no rows');
+    // No `standings` in the state at all (an old answer) - the same
+    renderer.render(baseState(), START);
+    assert(visible(first.querySelector('.msp-standings__empty')), 'still the text');
+    renderer.render(baseState({ standings: { st000001: STANDING([STANDING_ROW('a', 1, 'A', 100)]), st000002: null } }), START);
+    assert(!visible(first.querySelector('.msp-standings__empty')), 'text gone');
+    equal(first.querySelectorAll('.msp-standings__rows .msp-standings__row').length, 1, 'row shown');
+    // An unpublished standing afterwards - empty again
+    renderer.render(baseState({ standings: { st000001: null, st000002: null } }), START);
+    equal(first.querySelectorAll('.msp-standings__rows .msp-standings__row').length, 0, 'rows gone');
+    assert(visible(first.querySelector('.msp-standings__empty')), 'text back');
+});
+
+check('standings: rows diffed by key (nodes reused and moved), another round count rebuilds the cells', () => {
+    const { document, root } = dom();
+    const elements = [element('st000001', 'standings', { columns: ['rank', 'name', 'total', 'rounds'] })];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    const state = (rows, extra = {}) => baseState({ standings: { st000001: STANDING(rows, extra) } });
+    renderer.render(state([STANDING_ROW('a', 1, 'A', 100), STANDING_ROW('b', 2, 'B', 200), STANDING_ROW('c', 3, 'C', 300)]), START);
+    const before = Object.fromEntries(standingRows(root).map((row) => [row.querySelector('.msp-standings__entrant').textContent, row]));
+    renderer.render(state([STANDING_ROW('c', 1, 'C', 90), STANDING_ROW('a', 2, 'A', 100)]), START);
+    equal(standingRows(root).map((row) => row.querySelector('.msp-standings__entrant').textContent), ['C', 'A'], 'order');
+    assert(standingRows(root)[0] === before.C && standingRows(root)[1] === before.A, 'nodes reused');
+    assert(!root.contains(before.B), 'removed');
+    equal(standingRows(root)[0].querySelector('.msp-standings__rank').textContent, '1', 'rank updated');
+    // A fourth round added to the standing: every row gets its cells again
+    const rounds = [...STANDING([]).rounds, { name: 'Solo 4', counted: false }];
+    renderer.render(state([STANDING_ROW('c', 1, 'C', 90, { perRound: [SCORE(40), SCORE(50), NOT_COUNTED, NOT_COUNTED] })], { rounds, roundsTotal: 4 }), START);
+    equal(standingRows(root)[0].querySelectorAll('.msp-standings__cell--round').length, 4, 'four round cells');
+    equal(root.querySelectorAll('.msp-standings__row--head .msp-standings__cell--round').length, 4, 'four labels');
+    // The standing changes nothing by itself - no timer for it
+    equal(renderer.nextChangeMs(state([STANDING_ROW('c', 1, 'C', 90)]), START), null, 'no next change');
+});
+
+check('xss: a standing fed evil data in every string', () => {
+    const { document, root, window } = dom();
+    const elements = [element('st000001', 'standings', { columns: ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'], whenEmpty: 'text', emptyText: EVIL }), element('st000002', 'standings', { whenEmpty: 'text', emptyText: EVIL })];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    const state = evilState(['st000001']);
+    state.standings.st000002 = EVIL;
+    renderer.render(state, START);
+    renderer.render(baseState(), START);
+    renderer.render(state, START + 1_000);
+    const problem = injected(root);
+    assert(problem === null, problem);
+    assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
+    assert(window.document.querySelectorAll('script').length === 0, 'no script');
+    equal([...root.querySelectorAll('.fi')].map((flag) => flag.className), ['fi fi-cz', 'fi fi-cz'], 'flags');
 });
 
 check('no innerHTML / outerHTML / insertAdjacentHTML / document.write in the display scripts', () => {

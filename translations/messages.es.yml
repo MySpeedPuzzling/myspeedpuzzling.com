@@ -14279,6 +14279,7 @@ competition_display:
             round: "Ronda 1"
             category: "Individual"
             puzzle: "Puzzle de ejemplo"
+            standing: "Campeonato individual"
         group:
             clock: "Reloj"
             text: "Texto"
@@ -14301,6 +14302,7 @@ competition_display:
             leaderboard: "Tabla de posiciones"
             finished_count: "Número de terminados"
             ticker: "Últimos en terminar"
+            standings: "Clasificación general"
         section:
             general: "Elemento"
             position: "Posición y tamaño (% de la pantalla)"
@@ -14362,6 +14364,14 @@ competition_display:
             fg: "Color del código"
             bg: "Fondo"
             quietZone: "Borde blanco"
+            standingId: "Clasificación general"
+            standing_auto: "Automático: la clasificación general de la ronda en pantalla"
+            standing_auto_help: "Muestra la clasificación general publicada que cuenta la ronda en pantalla; si no, la primera publicada de su categoría."
+            standing_help: "Solo cuentan las rondas con resultados publicados: la clasificación es «Provisional» hasta que lo estén todas."
+            standing_unpublished: "no publicada: la pantalla no muestra nada"
+            title: "Mostrar el nombre de la clasificación general"
+            whenEmpty: "Sin clasificación general publicada"
+            emptyText: "Texto sin clasificación general publicada"
             image:
                 source: "Imagen"
             clock:
@@ -14439,6 +14449,10 @@ competition_display:
             members: "Miembros"
             result: "Resultado"
             table: "Mesa"
+            total: "Total"
+            rounds: "Rondas"
+            missing: "Piezas que faltan"
+            stage: "Fase"
             published: "Publicados"
             live: "En vivo, antes de publicar"
             event_page: "Página del evento"

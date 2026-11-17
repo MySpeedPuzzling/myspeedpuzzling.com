@@ -33,8 +33,12 @@ export const FONT_STACKS = {
 
 const DEFAULT_FONT_SIZES = {
     timer: 160, status: 48, progress: 32, text: 48, field: 48, round_badge: 40, image: 32, rotator: 32, clock: 64,
-    puzzle: 32, finished_count: 40, leaderboard: 32, ticker: 28, qr: 32, box: 32,
+    puzzle: 32, finished_count: 40, leaderboard: 32, ticker: 28, qr: 32, box: 32, standings: 30,
 };
+
+// A standings row's background when the design gives none - readable over a stream's video and on a hall screen
+const STANDINGS_ROW_BACKGROUND = '#0d1017cc';
+const STANDINGS_ROW_ALT_BACKGROUND = '#161b26cc';
 
 const SHADOWS = {
     soft: '0 2px 8px rgba(0,0,0,0.5)',
@@ -315,6 +319,95 @@ export function tickerText(row, texts) {
     return parts.join(' · ');
 }
 
+// ---- standings (competition toolkit v2 S2)
+
+function template(text, values) {
+    let result = typeof text === 'string' ? text : '';
+
+    for (const [key, value] of Object.entries(values)) {
+        result = result.split(key).join(String(value));
+    }
+
+    return result;
+}
+
+/**
+ * The standing the element shows - null = nothing (the element's `whenEmpty`).
+ */
+export function standingFor(element, state) {
+    const standing = state.standings?.[element.id] ?? null;
+
+    return standing !== null && typeof standing === 'object' && Array.isArray(standing.rows) ? standing : null;
+}
+
+/**
+ * The line under the standing's name: "Provisional · 2 of 6 rounds" / "Final - all 6 rounds".
+ */
+export function standingSubtitle(standing, texts) {
+    const total = number(standing.roundsTotal, 0);
+
+    if (standing.final === true) {
+        const final = texts.standingFinal?.[String(total)];
+
+        return typeof final === 'string' ? final : '';
+    }
+
+    const rounds = template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(standing.roundsCounted, 0), '%count%': total });
+
+    return [texts.standingProvisional ?? '', rounds].filter((part) => part !== '').join(' · ');
+}
+
+/**
+ * A standing row's total - the penalised total (time + the penalty for missing pieces, T6), as on the public page.
+ */
+export function standingTotalText(row) {
+    return typeof row.totalSeconds === 'number' ? formatDuration(row.totalSeconds * 1000, 'auto') : '';
+}
+
+/**
+ * "3 pieces missing" (in the display's language, per count), '' when nothing is missing.
+ */
+export function standingMissingText(row, texts) {
+    const count = number(row.totalMissingPieces, 0);
+
+    if (count <= 0) {
+        return '';
+    }
+
+    const text = texts.standingMissing?.[String(count)];
+
+    return typeof text === 'string' ? text : `−${count}`;
+}
+
+/**
+ * One round's score of a row: the time (an unfinished one with *), – without a score. A status this renderer does not
+ * know yet still shows its score (statuses are the calculator's strings - new ones come without a new renderer).
+ */
+export function standingScoreText(score) {
+    if (score === null || typeof score !== 'object') {
+        return '–';
+    }
+
+    if (typeof score.scoreSeconds !== 'number') {
+        return '–';
+    }
+
+    const time = formatDuration(score.scoreSeconds * 1000, 'auto');
+
+    return score.status === 'unfinished' ? `${time}*` : time;
+}
+
+/**
+ * "5 of 6 rounds" under an incomplete row's name (listed after everybody, without a rank).
+ */
+export function standingIncompleteText(row, standing, texts) {
+    if (row.complete !== false) {
+        return '';
+    }
+
+    return template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(row.roundsScored, 0), '%count%': number(standing.roundsCounted, 0) });
+}
+
 /**
  * The visibility of an element: not hidden, shown in the phase, and its results / puzzle conditions.
  */
@@ -581,6 +674,21 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                 break;
             case 'qr':
                 view.refs.signature = null;
+                break;
+            case 'standings':
+                body.style.flexDirection = 'column';
+                body.style.justifyContent = 'flex-start';
+                body.style.alignItems = 'stretch';
+                view.refs.title = el('div', 'msp-standings__title', body);
+                view.refs.name = el('div', 'msp-standings__name', view.refs.title);
+                view.refs.subtitle = el('div', 'msp-standings__subtitle', view.refs.title);
+                view.refs.badge = el('span', 'msp-standings__badge', view.refs.subtitle);
+                view.refs.subtitleText = el('span', 'msp-standings__subtitle-text', view.refs.subtitle);
+                view.refs.head = el('div', 'msp-standings__row msp-standings__row--head', body);
+                view.refs.list = el('div', 'msp-standings__rows', body);
+                view.refs.empty = el('span', 'msp-el__line msp-standings__empty', body);
+                view.refs.rows = new Map();
+                view.refs.layout = null;
                 break;
             default:
                 break;
@@ -980,6 +1088,206 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         });
     }
 
+    // The cells of a standings row (and of its head) in the element's column order: rank, flag, name (members under
+    // it), stage, the rounds, total (the missing pieces under it)
+    function standingCells(node, columns, roundCount, size) {
+        const cells = {};
+        // Fixed widths in px of the element's font size: the head (smaller text) lines up with the rows
+        const fixed = (cell, ems) => {
+            cell.style.flex = `0 0 ${Math.round(size * ems)}px`;
+            cell.style.width = `${Math.round(size * ems)}px`;
+
+            return cell;
+        };
+
+        if (columns.includes('rank')) {
+            cells.rank = fixed(el('span', 'msp-standings__cell msp-standings__cell--rank', node), 1.9);
+            cells.rankPill = el('span', 'msp-standings__rank', cells.rank);
+        }
+
+        if (columns.includes('flag')) {
+            cells.flag = el('span', 'msp-standings__cell msp-standings__cell--flag', node);
+        }
+
+        cells.name = el('span', 'msp-standings__cell msp-standings__cell--name', node);
+        cells.nameText = el('span', 'msp-standings__entrant', cells.name);
+        cells.sub = el('span', 'msp-standings__sub', cells.name);
+
+        if (columns.includes('stage')) {
+            cells.stage = fixed(el('span', 'msp-standings__cell msp-standings__cell--stage', node), 4.5);
+        }
+
+        cells.rounds = [];
+
+        if (columns.includes('rounds')) {
+            for (let index = 0; index < roundCount; index += 1) {
+                cells.rounds.push(fixed(el('span', 'msp-standings__cell msp-standings__cell--round', node), 3.3));
+            }
+        }
+
+        if (columns.includes('total')) {
+            cells.total = fixed(el('span', 'msp-standings__cell msp-standings__cell--total', node), 3.9);
+            cells.totalText = el('span', 'msp-standings__total', cells.total);
+            cells.missing = el('span', 'msp-standings__missing', cells.total);
+        }
+
+        return cells;
+    }
+
+    function clearRows(view) {
+        for (const entry of view.refs.rows.values()) {
+            entry.node.remove();
+        }
+
+        view.refs.rows.clear();
+    }
+
+    function updateStandings(view, element, state) {
+        const props = element.props;
+        const texts = state.texts ?? {};
+        const standing = standingFor(element, state);
+        const rows = standing !== null ? standing.rows.slice(0, props.rows) : [];
+        const rounds = standing !== null && Array.isArray(standing.rounds) ? standing.rounds : [];
+        const columns = props.columns;
+        const emptyText = props.whenEmpty === 'text' ? (props.emptyText ?? '') : '';
+        const showEmpty = (standing === null || rows.length === 0) && emptyText !== '';
+
+        setText(view, 'empty', view.refs.empty, showEmpty ? emptyText : '');
+        view.refs.empty.style.display = showEmpty ? '' : 'none';
+
+        const showTitle = standing !== null && props.title === true;
+        view.refs.title.style.display = showTitle ? '' : 'none';
+
+        if (showTitle) {
+            setText(view, 'name', view.refs.name, typeof standing.name === 'string' ? standing.name : '');
+            const provisional = standing.final !== true;
+            // "Provisional" as a badge, then "2 of 6 rounds"; a final standing says "Final - all 6 rounds"
+            const badge = provisional ? (texts.standingProvisional ?? '') : '';
+            const rest = provisional
+                ? template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(standing.roundsCounted, 0), '%count%': number(standing.roundsTotal, 0) })
+                : standingSubtitle(standing, texts);
+            setText(view, 'badge', view.refs.badge, badge);
+            view.refs.badge.style.display = badge !== '' ? '' : 'none';
+            setStyle(view.refs.badge, 'backgroundColor', accent());
+            setStyle(view.refs.title, 'borderLeftColor', accent());
+            setText(view, 'subtitle', view.refs.subtitleText, rest);
+        }
+
+        // Another number of rounds (or other columns) - every row's cells are built again
+        const layout = `${columns.join(',')}|${columns.includes('rounds') ? rounds.length : 0}`;
+
+        if (view.refs.layout !== layout) {
+            view.refs.layout = layout;
+            clearRows(view);
+
+            while (view.refs.head.firstChild) {
+                view.refs.head.firstChild.remove();
+            }
+
+            view.refs.headCells = standingCells(view.refs.head, columns, columns.includes('rounds') ? rounds.length : 0, fontSize(element));
+            view.refs.headTexts = {};
+        }
+
+        const showHead = standing !== null && rows.length > 0 && (columns.includes('rounds') || columns.includes('stage'));
+        view.refs.head.style.display = showHead ? '' : 'none';
+        view.refs.list.style.display = standing === null ? 'none' : '';
+
+        if (showHead) {
+            const head = view.refs.headCells;
+            const headSet = (key, node, value) => {
+                if (view.refs.headTexts[key] !== value) {
+                    view.refs.headTexts[key] = value;
+                    node.textContent = value;
+                }
+            };
+
+            head.rounds.forEach((cell, index) => {
+                const round = rounds[index] ?? {};
+                headSet(`round${index}`, cell, template(texts.standingRoundShort ?? 'R%number%', { '%number%': index + 1 }));
+                setStyle(cell, 'opacity', round.counted === false ? '0.45' : '');
+            });
+
+            if (head.total) {
+                headSet('total', head.totalText, texts.standingTotal ?? '');
+            }
+        }
+
+        const rowStyle = props.rowStyle ?? {};
+        const ownBackground = safeColor(rowStyle.background);
+
+        syncRows(view, rows, () => {
+            const node = el('div', 'msp-standings__row');
+
+            return { node, cells: standingCells(node, columns, columns.includes('rounds') ? rounds.length : 0, fontSize(element)), texts: {} };
+        }, (entry, row, index) => {
+            const { cells } = entry;
+            const set = (key, node, value) => {
+                if (entry.texts[key] !== value) {
+                    entry.texts[key] = value;
+                    node.textContent = value;
+                }
+            };
+            const rank = typeof row.rank === 'number' ? row.rank : null;
+
+            if (cells.rank) {
+                set('rank', cells.rankPill, rank !== null ? String(rank) : '–');
+                const podium = rank !== null && rank <= 3 ? `msp-standings__rank msp-standings__rank--${rank}` : 'msp-standings__rank';
+
+                if (cells.rankPill.className !== podium) {
+                    cells.rankPill.className = podium;
+                }
+            }
+
+            if (cells.flag) {
+                const countries = (Array.isArray(row.countries) ? row.countries : []).filter((code) => typeof code === 'string' && COUNTRY_PATTERN.test(code)).slice(0, 4);
+                const signature = countries.join(',');
+
+                if (entry.texts.flag !== signature) {
+                    entry.texts.flag = signature;
+
+                    while (cells.flag.firstChild) {
+                        cells.flag.firstChild.remove();
+                    }
+
+                    for (const code of countries) {
+                        el('span', `fi fi-${code}`, cells.flag);
+                    }
+                }
+            }
+
+            set('name', cells.nameText, typeof row.name === 'string' ? row.name : '');
+            const members = columns.includes('members') && Array.isArray(row.members) ? row.members.filter((name) => typeof name === 'string').join(', ') : '';
+            const sub = [members, standingIncompleteText(row, standing, texts)].filter((part) => part !== '').join(' · ');
+            set('sub', cells.sub, sub);
+            cells.sub.style.display = sub === '' ? 'none' : '';
+
+            if (cells.stage) {
+                set('stage', cells.stage, typeof row.stageName === 'string' ? row.stageName : '');
+            }
+
+            const perRound = Array.isArray(row.perRound) ? row.perRound : [];
+            cells.rounds.forEach((cell, at) => {
+                set(`round${at}`, cell, standingScoreText(perRound[at] ?? null));
+                setStyle(cell, 'opacity', rounds[at]?.counted === false ? '0.45' : '');
+            });
+
+            if (cells.total) {
+                set('total', cells.totalText, standingTotalText(row));
+                const missing = columns.includes('missing') ? standingMissingText(row, texts) : '';
+                set('missing', cells.missing, missing);
+                cells.missing.style.display = missing === '' ? 'none' : '';
+            }
+
+            const alt = index % 2 === 1;
+            const background = ownBackground !== null
+                ? (alt ? safeColor(rowStyle.altBackground) ?? ownBackground : ownBackground)
+                : (alt ? safeColor(rowStyle.altBackground) ?? STANDINGS_ROW_ALT_BACKGROUND : STANDINGS_ROW_BACKGROUND);
+            setStyle(entry.node, 'backgroundColor', background);
+            setStyle(entry.node, 'marginBottom', `${number(rowStyle.gap, 4)}px`);
+            setStyle(entry.node, 'opacity', row.complete === false ? '0.8' : '');
+        });
+    }
+
     function updateQr(view, element, state) {
         const props = element.props;
         const code = state.qr?.[element.id] ?? null;
@@ -1105,6 +1413,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                     break;
                 case 'qr':
                     updateQr(view, element, state);
+                    break;
+                case 'standings':
+                    updateStandings(view, element, state);
                     break;
                 default:
                     break;

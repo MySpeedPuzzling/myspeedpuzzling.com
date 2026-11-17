@@ -11,7 +11,8 @@ use stdClass;
 
 /**
  * The boundary of a display design - schema v1 (docs/features/competitions-management/toolkit/D-displays-overlays.md
- * §4, §4.1, §5 with the v1 cuts of R-review-and-plan.md §3: no spotlight/message elements, 4 fonts, no standings).
+ * §4, §4.1, §5 with the v1 cuts of R-review-and-plan.md §3: no spotlight/message elements, 4 fonts) + the `standings`
+ * element of competition toolkit v2 S2 (displays-standings.md §3.2).
  *
  * A strict whitelist: only the known element types, keys and value ranges come out; there is no field for raw CSS,
  * HTML, SVG, classes or URLs except this event's own uploaded pictures and one https link for a QR code.
@@ -35,11 +36,14 @@ final readonly class DisplayDesignSanitizer
 
     public const array ELEMENT_TYPES = [
         'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-        'finished_count', 'leaderboard', 'ticker', 'qr', 'box',
+        'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings',
     ];
 
     /** Elements that show official results - each has a `source` (published | live) */
     public const array RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
+
+    /** Columns of the standings element (competition toolkit v2 S2) - `stage` shows only once a standing has stages */
+    public const array STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
 
     public const array FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
     public const array PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
@@ -49,6 +53,7 @@ final readonly class DisplayDesignSanitizer
 
     private const string COLOR_PATTERN = '/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\z/';
     private const string ID_PATTERN = '/^[a-z0-9]{8}\z/';
+    private const string UUID_PATTERN = '/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\z/';
     private const string URL_PATTERN = '~^https://[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::[0-9]{1,5})?(?:[/?#][A-Za-z0-9\-._\~:/?#\[\]@!$&()*+,;=%]*)?\z~';
     private const string CONTROL_CHARACTERS = '/[\x{0000}-\x{0009}\x{000B}-\x{001F}\x{007F}-\x{009F}]/u';
     private const int URL_MAX_LENGTH = 300;
@@ -94,7 +99,45 @@ final readonly class DisplayDesignSanitizer
             return true;
         }
 
-        return false;
+        // A result edit in a published round changes a published standing - its `results` signals must reach the display
+        return self::standingsDemand($design) !== [];
+    }
+
+    /**
+     * The shown standings elements (competition toolkit v2 S2, displays-standings.md §3.2) - each gets its standing in
+     * the display's state. Not a results type: a standing is public data (published rounds of a published standing),
+     * so it has no `source` and never asks for live results.
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @return array<string, array{standingId: string, rows: int}> element id => what it shows
+     */
+    public static function standingsDemand(array $design): array
+    {
+        $demand = [];
+
+        foreach (is_array($design['elements'] ?? null) ? $design['elements'] : [] as $element) {
+            if (
+                !is_array($element)
+                || ($element['type'] ?? null) !== 'standings'
+                || ($element['hidden'] ?? false) === true
+                || !is_array($element['when'] ?? null)
+                || ($element['when']['phases'] ?? []) === []
+                || !is_string($element['id'] ?? null)
+            ) {
+                continue;
+            }
+
+            $props = is_array($element['props'] ?? null) ? $element['props'] : [];
+            $standingId = $props['standingId'] ?? null;
+            $rows = $props['rows'] ?? null;
+
+            $demand[$element['id']] = [
+                'standingId' => is_string($standingId) && ($standingId === 'auto' || preg_match(self::UUID_PATTERN, $standingId) === 1) ? strtolower($standingId) : 'auto',
+                'rows' => is_int($rows) ? max(1, min(30, $rows)) : 10,
+            ];
+        }
+
+        return $demand;
     }
 
     /**
@@ -563,6 +606,19 @@ final readonly class DisplayDesignSanitizer
                 ...self::resultsSource($input),
             ],
             'qr' => self::qrProps($input),
+            'standings' => [
+                'standingId' => self::standingRef(self::get($input, 'standingId')),
+                'rows' => self::integer(self::get($input, 'rows'), 1, 30, 10),
+                'columns' => self::subset(self::get($input, 'columns'), self::STANDINGS_COLUMNS, ['rank', 'flag', 'name', 'total']),
+                'title' => self::boolean(self::get($input, 'title'), true),
+                'rowStyle' => [
+                    'background' => self::color(self::get(self::get($input, 'rowStyle'), 'background')),
+                    'altBackground' => self::color(self::get(self::get($input, 'rowStyle'), 'altBackground')),
+                    'gap' => self::integer(self::get(self::get($input, 'rowStyle'), 'gap'), 0, 40, 4),
+                ],
+                'whenEmpty' => self::enum(self::get($input, 'whenEmpty'), ['nothing', 'text'], 'nothing'),
+                'emptyText' => self::plain(self::get($input, 'emptyText'), 80, multiline: false, trim: true),
+            ],
             default => [], // box
         };
     }
@@ -627,6 +683,16 @@ final readonly class DisplayDesignSanitizer
             'transition' => self::enum(self::get($input, 'transition'), ['none', 'fade'], 'fade'),
             'fit' => self::enum(self::get($input, 'fit'), ['contain', 'cover'], 'contain'),
         ];
+    }
+
+    /**
+     * `auto` (the display picks the standing of the round it shows) or a standing's id, lowercased - anything else is
+     * `auto`. Whether the id is a published standing of this event is the state's question (an unknown one shows
+     * nothing), not the design's: a standing can be published or deleted after the design was saved.
+     */
+    private static function standingRef(mixed $value): string
+    {
+        return is_string($value) && preg_match(self::UUID_PATTERN, $value) === 1 ? strtolower($value) : 'auto';
     }
 
     /**

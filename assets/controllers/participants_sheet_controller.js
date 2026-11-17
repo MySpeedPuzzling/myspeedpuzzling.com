@@ -5,6 +5,7 @@ import { SheetModel } from '../participants_sheet/sheet_model.js';
 import { changeTarget, isEmpty, refusalDetails } from '../participants_sheet/sheet_changes.js';
 import { SheetSaveQueue } from '../participants_sheet/sheet_save_queue.js';
 import { SheetUndo } from '../participants_sheet/sheet_undo.js';
+import { withPickRecords } from '../participants_sheet/sheet_puzzles.js';
 import { SheetLive } from '../participants_sheet/sheet_live.js';
 import { SheetGrid, escapeHtml } from '../participants_sheet/sheet_grid.js';
 import { PreviewDialog } from '../participants_sheet/preview_dialog.js';
@@ -781,6 +782,15 @@ export default class extends Controller {
      * @returns {{performed: boolean, errors: Array}}
      */
     act(action, { origin = this.currentTab, quiet = false, anchor = undefined } = {}) {
+        // A result on a `pick` round takes the per-puzzle record along (competition toolkit A4): never a
+        // `puzzles_mismatch` dead end - a record that cannot fit is cleared, said here, and the undo brings it back
+        const picked = withPickRecords(action, this.model, (roundId) => this.queue.results(roundId));
+        action = picked.action;
+
+        if (picked.cleared.length > 0) {
+            this.notify(this.texts.round.t('puzzles_cleared'), { kind: 'info' });
+        }
+
         const errors = action.errors ?? [];
 
         // `quiet`: the caller shows the refusal itself (an editor's error, read out by its role=alert); otherwise it is
@@ -812,7 +822,7 @@ export default class extends Controller {
             const rounds = new Set();
 
             for (const change of action.results ?? []) {
-                this.queue.results(change.roundId).set(change.ref, change.field, change.to, change.from);
+                this.queue.results(change.roundId).set(change.ref, change.field, change.to, change.from, change.group ?? null);
                 rounds.add(change.roundId);
             }
 

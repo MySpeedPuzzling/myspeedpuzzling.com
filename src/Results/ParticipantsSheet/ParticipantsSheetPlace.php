@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results\ParticipantsSheet;
 
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 
@@ -25,11 +26,15 @@ readonly final class ParticipantsSheetPlace implements \JsonSerializable
         public null|DateTimeImmutable $enteredAt,
         // Who entered the result - a name, else "#CODE"
         public null|string $enteredBy,
+        // A `pick` round's entry (competition toolkit A4): the JSON carries `puzzles` (null = nothing recorded); absent
+        // on every other round
+        public bool $puzzlesUsed = false,
+        public null|RoundEntryPuzzles $puzzles = null,
     ) {
     }
 
     /**
-     * @return array{id: string, participantId: string, roundId: string, teamId: null|string, table: null|int, result: null|array{seconds: int}|array{piecesPlaced: int}|array{didNotStart: true}, qualified: bool, enteredAt: null|string, enteredBy: null|string}
+     * @return array{id: string, participantId: string, roundId: string, teamId: null|string, table: null|int, result: null|array{seconds: int}|array{piecesPlaced: int}|array{didNotStart: true}, qualified: bool, enteredAt: null|string, enteredBy: null|string, puzzles?: null|list<array{roundPuzzleId: string, done: bool, atSeconds?: int, piecesPlaced?: int}>}
      */
     public function jsonSerialize(): array
     {
@@ -43,6 +48,7 @@ readonly final class ParticipantsSheetPlace implements \JsonSerializable
             'qualified' => $this->qualified,
             'enteredAt' => $this->enteredAt?->format(DateTimeImmutable::ATOM),
             'enteredBy' => $this->enteredBy,
+            ...($this->puzzlesUsed ? ['puzzles' => $this->puzzles?->toWire()] : []),
         ];
     }
 }

@@ -42,7 +42,9 @@ final class ParticipantsSheetCoreTextsTest extends KernelTestCase
         ];
 
         foreach ($files as $file) {
-            preg_match_all("/\\bt[c]?\\('([A-Za-z0-9_]+)'/", (string) file_get_contents($file), $matches);
+            // The round texts' own calls (`texts.round.t(…)` - ParticipantsSheetRoundTextsTest)
+            $source = (string) preg_replace("/\\.round\\.tc?\\('[A-Za-z0-9_]+'/", '', (string) file_get_contents($file));
+            preg_match_all("/\\bt[c]?\\('([A-Za-z0-9_]+)'/", $source, $matches);
             $used = [...$used, ...$matches[1]];
         }
 

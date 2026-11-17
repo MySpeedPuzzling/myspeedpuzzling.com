@@ -9,6 +9,8 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -136,7 +138,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
             array_column($people, 'name'),
         );
         $anna = self::find($people, OfficialResultsFixture::PARTICIPANT_ANNA);
-        self::assertSame(['id', 'name', 'country', 'externalId', 'note', 'source', 'removedAt', 'connectedAt', 'player', 'registration', 'playerResultRounds'], array_keys($anna));
+        self::assertSame(['id', 'name', 'country', 'externalId', 'note', 'source', 'removedAt', 'connectedAt', 'linkedVia', 'player', 'registration', 'playerResultRounds'], array_keys($anna));
         self::assertSame('cz', $anna['country']);
         self::assertNull($anna['registration'], 'The event does not manage registration');
         self::assertSame([], $anna['playerResultRounds']);
@@ -189,6 +191,35 @@ final class ParticipantsSheetStateTest extends WebTestCase
             self::assertIsString($round['id']);
             self::assertContains('/round-results/' . $round['id'], $topics);
         }
+    }
+
+    /**
+     * How each link was made (participant-linking.md §7.1) - the profile cell's grey suffix; null for an unlinked
+     * person and a link made before the method was recorded
+     */
+    public function testEveryPersonSaysHowTheirLinkWasMade(): void
+    {
+        $people = self::getContainer()->get(GetParticipantsSheetState::class)
+            ->forCompetition(CompetitionFixture::COMPETITION_WJPC_2024, PlayerFixture::PLAYER_ADMIN)
+            ->people;
+
+        $linkedVia = [];
+        foreach ($people as $person) {
+            $linkedVia[$person->id] = $person->linkedVia;
+        }
+
+        self::assertSame('import', $linkedVia[CompetitionParticipantFixture::PARTICIPANT_CONNECTED]);
+        self::assertSame('self_join', $linkedVia[CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED]);
+        self::assertSame('organiser', $linkedVia[CompetitionParticipantFixture::PARTICIPANT_PRIVATE]);
+        self::assertNull($linkedVia[CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+        // A link made before the method was recorded
+        $this->database()->executeStatement('UPDATE competition_participant SET connected_via = NULL WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_CONNECTED]);
+
+        $person = self::getContainer()->get(GetParticipantsSheetState::class)
+            ->person(CompetitionFixture::COMPETITION_WJPC_2024, CompetitionParticipantFixture::PARTICIPANT_CONNECTED, PlayerFixture::PLAYER_ADMIN);
+        self::assertNull($person->linkedVia);
+        self::assertNotNull($person->player);
     }
 
     public function testAPrivateProfileIsWithheldButItsParticipantStays(): void

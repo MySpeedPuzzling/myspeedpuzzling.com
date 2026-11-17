@@ -1475,10 +1475,14 @@ export class PeopleView {
             return { text: '', html: '', marker, copy: '' };
         }
 
+        // How the link was made (participant-linking.md §7.1) - nothing for the organiser's own links
+        const via = linkedViaText(person.linkedVia, (key) => this.t(key));
+        const viaHtml = via !== null ? ` <span class="sheet-muted sheet-linked-via">· ${escapeHtml(via)}</span>` : '';
+
         if (player.visible !== true) {
             const text = this.t('people_profile_hidden');
 
-            return { text, html: `<span class="sheet-muted">${escapeHtml(text)}</span>`, marker, copy: '' };
+            return { text, html: `<span class="sheet-muted">${escapeHtml(text)}</span>${viaHtml}`, marker, copy: '' };
         }
 
         const code = player.code ? `#${String(player.code).toUpperCase()}` : '';
@@ -1492,7 +1496,7 @@ export class PeopleView {
 
         return {
             text: [name, code !== name ? code : ''].filter(Boolean).join(' '),
-            html: `${avatar}${escapeHtml(name)}${code && code !== name ? ` <span class="sheet-muted">${escapeHtml(code)}</span>` : ''}${link}`,
+            html: `${avatar}${escapeHtml(name)}${code && code !== name ? ` <span class="sheet-muted">${escapeHtml(code)}</span>` : ''}${link}${viaHtml}`,
             marker,
             copy: code,
         };
@@ -3307,6 +3311,25 @@ export async function searchPlayers(context, model, text, personId, signal) {
                 : { id: player.key, visible: true, name: player.label, code: player.code ?? null, country: player.country ?? null, avatar: player.avatar ?? null, profileUrl: null },
         };
     });
+}
+
+/**
+ * The grey suffix of the profile cell: how the link was made (`linkedVia`, a ParticipantLinkMethod value) - "by
+ * themselves" for the player's own acts, "import", "personal link"; null for the organiser's links and links made before
+ * the method was recorded.
+ */
+export function linkedViaText(linkedVia, t) {
+    switch (linkedVia) {
+        case 'self_join':
+        case 'claim':
+            return t('people_linked_by_themselves');
+        case 'import':
+            return t('people_linked_import');
+        case 'online_link':
+            return t('people_linked_online_link');
+        default:
+            return null;
+    }
 }
 
 /** O1: `Corners · Table 2 · Kim Example, Pat Sample` - without "Table n" when it has none, "(no name)" when unnamed. */

@@ -311,6 +311,7 @@ FROM (
         cp.source,
         cp.deleted_at,
         cp.connected_at,
+        cp.connected_via,
         cp.registration_status,
         cp.registered_at,
         cp.paid_at,
@@ -359,7 +360,7 @@ SQL,
 
         $people = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, online_token: null|string, uses_online_timing: bool} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, connected_via: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, online_token: null|string, uses_online_timing: bool} $row */
             $playerId = $row['player_id'] !== null ? strtolower($row['player_id']) : null;
             $managed = $registrationManaged ?? $row['registration_managed'];
             // A removed participant's link opens nothing any more (OnlineAccess) - not shown
@@ -374,6 +375,7 @@ SQL,
                 source: $row['source'],
                 removedAt: self::date($row['deleted_at']),
                 connectedAt: self::date($row['connected_at']),
+                linkedVia: $playerId !== null ? $row['connected_via'] : null,
                 player: $playerId !== null ? $this->player(
                     playerId: $playerId,
                     name: $row['player_name'],

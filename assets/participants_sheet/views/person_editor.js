@@ -36,7 +36,7 @@ import {
 } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { allowedActions, paidBefore, performRegistrationAction, registrationStatus, waitlistPositions } from '../registration_actions.js';
-import { formatDate, notify, reasonFor, searchPlayers, teamLabelText } from './people_view.js';
+import { formatDate, linkedViaText, notify, reasonFor, searchPlayers, teamLabelText } from './people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
 const TEXT_FIELDS = ['name', 'externalId', 'note'];
@@ -534,9 +534,12 @@ export class PersonEditor {
         }
 
         const unlink = removed ? '' : ` <button type="button" class="btn btn-sm btn-outline-secondary" data-unlink data-focus-key="unlink">${escapeHtml(this.t('people_profile_unlink'))}</button>`;
+        // How the link was made (participant-linking.md §7.1), as in the People grid's profile cell
+        const via = linkedViaText(person.linkedVia, (key) => this.t(key));
+        const viaHtml = via !== null ? ` <span class="sheet-muted sheet-linked-via">· ${escapeHtml(via)}</span>` : '';
 
         if (player.visible !== true) {
-            return `<div class="sheet-person-player"><span class="sheet-muted">${escapeHtml(this.t('people_profile_hidden'))}</span>${unlink}</div>`;
+            return `<div class="sheet-person-player"><span class="sheet-muted">${escapeHtml(this.t('people_profile_hidden'))}</span>${viaHtml}${unlink}</div>`;
         }
 
         const code = player.code ? `#${String(player.code).toUpperCase()}` : '';
@@ -549,7 +552,7 @@ export class PersonEditor {
             ? `<a href="${escapeHtml(player.profileUrl)}" target="_blank" rel="noopener" data-focus-key="profile">${label} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (${escapeHtml(this.say('editor_new_tab'))})</span></a>`
             : `<span>${label}</span>`;
 
-        return `<div class="sheet-person-player">${shown}${unlink}</div>`;
+        return `<div class="sheet-person-player">${shown}${viaHtml}${unlink}</div>`;
     }
 
     roundsHtml(person) {

@@ -230,6 +230,7 @@ export class Working {
                         source: 'manual',
                         removedAt: null,
                         connectedAt: null,
+                        linkedVia: null,
                         player: null,
                         registration: null,
                         playerResultRounds: [],
@@ -271,7 +272,7 @@ export class Working {
                 // `playerResultRounds` (the own-time guard) stays as it was until the next state says whose times count:
                 // the server checks a changeset against the player the person had when it started too (contract §3.1)
                 if (change.to === null) {
-                    this.write('people', person.id, { ...person, player: null, connectedAt: null });
+                    this.write('people', person.id, { ...person, player: null, connectedAt: null, linkedVia: null });
                 } else {
                     // `_player` = what the organiser picked (name, code, avatar) - shown until the next state says more;
                     // a profile hidden from this organiser (O9: blocked, private) shows as "Linked to a profile" only
@@ -283,6 +284,8 @@ export class Working {
                             ? { visible: true, name: null, code: null, country: null, avatar: null, profileUrl: null, ...shown, id: change.to }
                             : { id: change.to, visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null },
                         connectedAt: person.player?.id === change.to ? person.connectedAt : new Date(now).toISOString(),
+                        // The organiser's own link shows no method (participant-linking.md §7.1)
+                        linkedVia: person.player?.id === change.to ? (person.linkedVia ?? null) : 'organiser',
                     });
                 }
 
@@ -621,6 +624,7 @@ export class SheetModel {
                 playerResultRounds: [],
                 removedAt: null,
                 connectedAt: null,
+                linkedVia: null,
                 source: 'manual',
                 country: null,
                 ...person,

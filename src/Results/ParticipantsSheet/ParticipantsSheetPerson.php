@@ -26,6 +26,8 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
         public string $source,
         public null|DateTimeImmutable $removedAt,
         public null|DateTimeImmutable $connectedAt,
+        // How the link was made - ParticipantLinkMethod value; null = not linked or linked before it was recorded
+        public null|string $linkedVia,
         public null|ParticipantsSheetPlayer $player,
         // null = the event does not manage registration
         public null|ParticipantsSheetRegistration $registration,
@@ -39,7 +41,7 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
     }
 
     /**
-     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, source: string, removedAt: null|string, connectedAt: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>, online?: ParticipantsSheetOnlineLink}
+     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, source: string, removedAt: null|string, connectedAt: null|string, linkedVia: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>, online?: ParticipantsSheetOnlineLink}
      */
     public function jsonSerialize(): array
     {
@@ -52,6 +54,7 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
             'source' => $this->source,
             'removedAt' => $this->removedAt?->format(DateTimeImmutable::ATOM),
             'connectedAt' => $this->connectedAt?->format(DateTimeImmutable::ATOM),
+            'linkedVia' => $this->linkedVia,
             'player' => $this->player,
             'registration' => $this->registration,
             'playerResultRounds' => $this->playerResultRounds,

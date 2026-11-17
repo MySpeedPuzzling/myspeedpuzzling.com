@@ -15513,3 +15513,9 @@ results_import_counts:
     summary: "Results - new: %added%, changed: %updated%, removed: %removed%"
     summary_of_category: "%category% results - new: %added%, changed: %updated%, removed: %removed%"
     name_column: "Name"
+
+participant_linking:
+    sheet_suffix:
+        by_themselves: "by themselves"
+        import: "import"
+        online_link: "personal link"

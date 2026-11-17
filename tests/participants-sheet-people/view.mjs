@@ -151,6 +151,46 @@ function registrationServer(model, answer = () => ({ ok: true })) {
 }
 
 export default function (test) {
+    test('participant linking L1a: the profile cell says in grey how the link was made - nothing for the organiser\'s own', async () => {
+        const state = smallState();
+        const profile = (id) => ({ id, visible: true, name: `Name ${id}`, code: id, country: null, avatar: null, profileUrl: null });
+        state.people = [
+            person('l1', 'Self Joined', { player: profile('a1'), linkedVia: 'self_join' }),
+            person('l2', 'Claimed', { player: profile('a2'), linkedVia: 'claim' }),
+            person('l3', 'Imported', { player: profile('a3'), linkedVia: 'import' }),
+            person('l4', 'Online', { player: profile('a4'), linkedVia: 'online_link' }),
+            person('l5', 'Organiser', { player: profile('a5'), linkedVia: 'organiser' }),
+            person('l6', 'Old Link', { player: profile('a6') }),
+            person('l7', 'Hidden', { player: { id: 'a7', visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null }, linkedVia: 'import' }),
+        ];
+        const { view, model, editor } = await setup({ state });
+        const personEditor = editor();
+        assert.match(personEditor.playerHtml(model.person('l3')), /sheet-linked-via">· people_linked_import</);
+        assert.doesNotMatch(personEditor.playerHtml(model.person('l5')), /sheet-linked-via/);
+        const suffix = (id) => {
+            const html = view.playerCell(model.person(id)).html;
+            const match = html.match(/sheet-linked-via">· ([^<]*)</);
+
+            return match ? match[1] : null;
+        };
+
+        assert.equal(suffix('l1'), 'people_linked_by_themselves');
+        assert.equal(suffix('l2'), 'people_linked_by_themselves');
+        assert.equal(suffix('l3'), 'people_linked_import');
+        assert.equal(suffix('l4'), 'people_linked_online_link');
+        assert.equal(suffix('l5'), null);
+        assert.equal(suffix('l6'), null);
+        assert.equal(suffix('l7'), 'people_linked_import');
+
+        // The organiser links somebody else in the sheet: their own link, no suffix until the state says otherwise
+        model.applyLocalMany([{ id: 'g1', changes: [{ op: 'player', participant: 'l1', from: 'a1', to: 'a9', _player: profile('a9') }] }]);
+        assert.equal(model.person('l1').linkedVia, 'organiser');
+        assert.equal(suffix('l1'), null);
+
+        model.applyLocalMany([{ id: 'g2', changes: [{ op: 'player', participant: 'l3', from: 'a3', to: null }] }]);
+        assert.equal(model.person('l3').linkedVia, null);
+    });
+
     test('M1: a block pasted on the selection column lands on the names - renamed only through the preview, nothing on the selection', async () => {
         const { view, acted, changes } = await setup();
         view.paste({ row: 'p-ana', col: 'select' }, [['Zed Newperson', 'cz'], ['Yan Other', 'us']], [{ row: 'p-ana', col: 'select' }]);

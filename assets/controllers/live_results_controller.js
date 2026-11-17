@@ -18,6 +18,7 @@ import {
     shownValue,
 } from '../official_results_live.js';
 import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
+import { fillLink, landingOf, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 
@@ -29,11 +30,16 @@ import { chooseTranslation } from '../translation_choice.js';
  * device's own unsent values on top of the server's. Other devices' saves come in over a private Mercure topic,
  * the stopwatch over its public one - one stream with the page's own token (official_results_events.js). Inputs are
  * never re-rendered: lists and texts around them are.
+ *
+ * The page carries no data of the round or of its reader (competition toolkit C1): one state fetch with `?viewer=1`
+ * fills it (live_entry_page.js decides the variants), the outbox starts with the viewer's player id from it. Until it
+ * answers the page says "Loading the round…" - a failure is tried again by itself (and on Retry / back online).
  */
 
-const UUID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
 const REQUEST_TIMEOUT_MS = 15000;
 const STATE_REFRESH_MS = 60000;
+// The first state did not come: tried again after 2, 4 … 30 s (and at once when the device is back online)
+const LOAD_RETRY_MAX_MS = 30000;
 const FLUSH_TICK_MS = 5000;
 const TOAST_MS = 8000;
 // "Finished now" trusts the stopwatch it knows only while live updates flow, or this soon after a state fetch
@@ -72,28 +78,28 @@ function storageSet(key, value) {
 
 export default class extends Controller {
     static targets = [
-        'initialState', 'roundSelect', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
+        'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
         'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmTable', 'confirmName', 'confirmResult', 'confirmNote', 'saveButton',
-        'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList', 'eventPeople',
+        'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
         'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
     ];
 
     static values = {
-        userId: String,
-        competitionId: String,
         roundId: String,
         locale: String,
         stateUrl: String,
+        eventPeopleUrl: String,
         recordUrl: String,
         liveUrl: String,
         scanUrl: String,
         loginUrl: String,
         csrfToken: String,
         entrant: String,
-        entrantName: String,
+        table: String,
+        entry: String,
         autoPicked: Boolean,
         notice: String,
         messages: Object,
@@ -101,37 +107,35 @@ export default class extends Controller {
     };
 
     connect() {
-        const state = JSON.parse(this.initialStateTarget.textContent);
         // The server's clock: the state fetch with the shortest round trip (round_stopwatch_clock.js) - "Finished now"
-        // and the countdown agree with the projector; the page's own server time until the first fetch answers
+        // and the countdown agree with the projector
         this.serverClock = createServerClock();
-        this.serverClock.hint(serverTimeOf(state) - Date.now());
-        this.stopwatchKnownAt = Date.now();
-        // The event's people who are no entry of this round - quick add offers them before typing a name in again
-        this.eventPeople = this.hasEventPeopleTarget ? JSON.parse(this.eventPeopleTarget.textContent || '[]') : [];
+        this.stopwatchKnownAt = 0;
+        // Nothing of the round until its state answers (the page renders none of it)
+        this.ready = false;
+        this.userId = '';
+        this.competition = null;
+        this.round = null;
+        this.rounds = [];
+        this.stopwatch = { status: null, startedAt: null, stoppedAt: null };
+        this.viewer = null;
+        this.settings = pageSettings(null);
+        this.outbox = null;
+        // The event's people who are no entry of this round - quick add offers them before typing a name in again;
+        // asked for when quick add (or a landing) needs them
+        this.eventPeople = null;
+        this.eventPeopleLoading = null;
+        this.landing = landingOf({ entrant: this.entrantValue, table: this.tableValue, entry: this.entryValue });
+        this.loadAttempts = 0;
         // The round's private results topic + its public stopwatch topic, with the token the state carries - kept open,
         // renewed and caught up by OfficialResultsEvents (signed out / no rights: the banner's Retry takes it from there)
         this.events = new OfficialResultsEvents({
-            subscription: state.mercure ?? null,
+            subscription: null,
             onMessage: (data) => this.receiveUpdate(data),
             refresh: () => (this.isConnected() ? this.refreshState() : Promise.resolve('closed')),
         });
         this.serverEntries = new Map();
         this.localEntries = new Map();
-        this.applyState(state);
-
-        if (this.autoPickedValue) {
-            const remembered = this.readRememberedRound();
-            const target = preferredRound(this.roundIdValue, remembered, this.rounds, Date.now());
-
-            if (target !== this.roundIdValue) {
-                window.Turbo?.visit(this.liveUrl(target), { action: 'replace' });
-
-                return;
-            }
-        }
-
-        this.cleanUrl();
 
         this.view = 'find';
         this.openRef = null;
@@ -144,14 +148,20 @@ export default class extends Controller {
         this.toastTimer = null;
         this.renderQueued = false;
         this.stateBlocked = null;
+        this.loadFailed = false;
         this.storageMissing = false;
         this.foreign = 0;
         this.lastClockSecond = null;
 
-        this.setupOutbox();
-        this.setKeyboard(storageGet(KEYBOARD_KEY) ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text'));
+        this.setKeyboard('text');
 
-        this.onOnline = () => this.flushSoon();
+        this.onOnline = () => {
+            if (!this.ready) {
+                this.loadNow();
+            }
+
+            this.flushSoon();
+        };
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
                 this.refreshState();
@@ -160,12 +170,12 @@ export default class extends Controller {
         };
         this.onFocus = () => {
             // Back from the sign-in tab
-            if (this.outbox.blocked !== null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
+            if (this.outbox?.blocked != null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
                 this.retryAll();
             }
         };
         this.onBeforeUnload = (event) => {
-            if (this.outbox.hasUnsent()) {
+            if (this.outbox?.hasUnsent()) {
                 event.preventDefault();
                 event.returnValue = '';
             }
@@ -175,7 +185,7 @@ export default class extends Controller {
             const liveResults = new URL(this.liveUrl(UUID_PLACEHOLDER).replace(UUID_PLACEHOLDER, ''), window.location.href).pathname;
 
             // Another live entry page sends this device's changes too - only leaving the tool asks
-            if (this.outbox.hasUnsent() && !target.startsWith(liveResults) && !window.confirm(this.t('leaveUnsent'))) {
+            if (this.outbox?.hasUnsent() && !target.startsWith(liveResults) && !window.confirm(this.t('leaveUnsent'))) {
                 event.preventDefault();
 
                 return;
@@ -203,48 +213,151 @@ export default class extends Controller {
         document.addEventListener('turbo:before-visit', this.onBeforeVisit);
         document.addEventListener('keydown', this.onKeydown);
 
-        if (typeof BroadcastChannel !== 'undefined') {
-            this.channel = new BroadcastChannel(CHANNEL);
-            this.channel.onmessage = (event) => {
-                if (event.data?.type === 'outbox' && event.data.userId === this.userIdValue) {
-                    this.outbox.load();
-                }
-            };
-        }
-
         this.clockTimer = setInterval(() => this.tickClock(), 250);
         this.flushTimer = setInterval(() => this.flushSoon(), FLUSH_TICK_MS);
         this.stateTimer = setInterval(() => {
-            if (document.visibilityState === 'visible') {
+            if (this.ready && document.visibilityState === 'visible') {
                 this.refreshState();
             }
         }, STATE_REFRESH_MS);
 
         this.render();
-        this.tickClock();
+        this.findInputTarget.focus({ preventScroll: true });
 
-        if (this.entrantValue !== '') {
-            const entry = entryOfParticipant(this.allEntries(), this.entrantValue);
+        // One fetch fills the page: the round, its entries, the clock, the stream's token and who reads it
+        this.loadNow();
+    }
 
-            if (entry !== null) {
-                this.openEntry(entry.ref);
-            } else {
-                this.notice(this.t('entrantNotInRound', { '%name%': this.entrantNameValue }), 'warning');
+    /**
+     * Asks for the state until the page has it (its first answer starts the page - start()).
+     */
+    loadNow() {
+        clearTimeout(this.loadTimer);
+        this.loadTimer = null;
+
+        return this.refreshState().then((kind) => {
+            if (this.ready || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || this.stateBlocked === 'gone') {
+                // Signed out / no rights: the banner's Retry (and the window's focus) asks again
+                return;
             }
-        } else {
-            this.findInputTarget.focus({ preventScroll: true });
+
+            this.loadAttempts += 1;
+            this.loadFailed = true;
+            this.scheduleRender();
+            this.loadTimer = setTimeout(() => this.loadNow(), Math.min(LOAD_RETRY_MAX_MS, 1000 * (2 ** this.loadAttempts)));
+        });
+    }
+
+    /**
+     * The first state answered: everything that needs the round or its reader starts here.
+     */
+    start(state) {
+        this.ready = true;
+        this.loadFailed = false;
+        clearTimeout(this.loadTimer);
+        this.userId = this.settings.playerId ?? '';
+
+        if (this.autoPickedValue) {
+            const remembered = this.readRememberedRound();
+            const target = preferredRound(this.roundIdValue, remembered, this.rounds, Date.now());
+
+            if (target !== this.roundIdValue) {
+                window.Turbo ? window.Turbo.visit(this.liveUrl(target), { action: 'replace' }) : window.location.replace(this.liveUrl(target));
+
+                return;
+            }
         }
+
+        this.cleanUrl();
+        this.setupOutbox();
+
+        if (typeof BroadcastChannel !== 'undefined') {
+            this.channel = new BroadcastChannel(CHANNEL);
+            this.channel.onmessage = (event) => {
+                if (event.data?.type === 'outbox' && event.data.userId === this.userId) {
+                    this.outbox.load();
+                }
+            };
+        }
+
+        this.setKeyboard(storageGet(KEYBOARD_KEY) ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text'));
+        this.events.update(state.mercure ?? null);
+        this.events.start();
+        this.render();
+        this.tickClock(true);
+        this.land();
 
         if (this.noticeValue !== '') {
             this.notice(this.noticeValue, 'warning');
         }
+    }
 
-        // The page came with the state (and the stream's token); this fetch syncs the clock
-        this.events.start();
-        this.refreshState();
+    /**
+     * `?entrant=` / `?entry=` / `?table=`: the entry opens, or the find view says why not.
+     */
+    land(people = this.eventPeople) {
+        const target = resolveLanding(this.landing, this.allEntries(), people, this.settings.roundName);
+
+        if (target === null) {
+            return;
+        }
+
+        if (target.needPeople) {
+            // Who is it? The event's people tell the name - asked once, then the landing is decided without them
+            this.loadEventPeople().then((loaded) => {
+                if (this.isConnected() && this.landing !== null && this.view === 'find') {
+                    this.land(loaded);
+                }
+            });
+
+            return;
+        }
+
+        this.landing = null;
+
+        if (target.open) {
+            this.openEntry(target.open);
+        } else if (target.notice) {
+            this.notice(this.t(target.notice, target.parameters), 'warning');
+        }
+    }
+
+    /**
+     * The event's people who are no entry of this round (official_results_event_people) - once per page; a failed
+     * request leaves the list empty and asks again next time.
+     */
+    loadEventPeople() {
+        if (this.eventPeople !== null) {
+            return Promise.resolve(this.eventPeople);
+        }
+
+        if (this.eventPeopleLoading) {
+            return this.eventPeopleLoading;
+        }
+
+        const abort = new AbortController();
+        const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+
+        this.eventPeopleLoading = officialResultsRequest(this.eventPeopleUrlValue.replace(UUID_PLACEHOLDER, this.roundIdValue), { signal: abort.signal })
+            .then((answer) => {
+                if (answer.kind === 'ok' && Array.isArray(answer.data?.people)) {
+                    this.eventPeople = answer.data.people;
+                    this.peopleIndex = null;
+                }
+
+                return this.eventPeople ?? [];
+            })
+            .catch(() => [])
+            .finally(() => {
+                clearTimeout(timer);
+                this.eventPeopleLoading = null;
+            });
+
+        return this.eventPeopleLoading;
     }
 
     disconnect() {
+        clearTimeout(this.loadTimer);
         clearInterval(this.clockTimer);
         clearInterval(this.flushTimer);
         clearInterval(this.stateTimer);
@@ -314,7 +427,7 @@ export default class extends Controller {
             return '';
         }
 
-        return enteredBy.playerId === this.userIdValue ? this.t('you') : (enteredBy.name ?? '');
+        return enteredBy.playerId === this.userId ? this.t('you') : (enteredBy.name ?? '');
     }
 
     // ---- State ----
@@ -324,13 +437,90 @@ export default class extends Controller {
         this.round = state.round;
         this.rounds = Array.isArray(state.rounds) ? state.rounds : [];
         this.stopwatch = state.round?.stopwatch ?? { status: null, startedAt: null, stoppedAt: null };
-        this.serverEntries = new Map((state.entries ?? []).map((entry) => [entry.ref, entry]));
 
-        for (const ref of this.serverEntries.keys()) {
-            this.localEntries.delete(ref);
+        // An answer without entries (`?entries=0`) keeps the ones the page has
+        if (Array.isArray(state.entries)) {
+            this.serverEntries = new Map(state.entries.map((entry) => [entry.ref, entry]));
+
+            for (const ref of this.serverEntries.keys()) {
+                this.localEntries.delete(ref);
+            }
         }
 
+        // The reader is decided by the first answer (the outbox is theirs); later answers keep it
+        if (!this.ready) {
+            this.viewer = state.viewer ?? null;
+        }
+
+        this.refreshSettings();
         this.indexDirty = true;
+    }
+
+    refreshSettings() {
+        this.settings = pageSettings({ competition: this.competition, round: this.round, viewer: this.viewer ?? null });
+        this.applySettings();
+    }
+
+    /**
+     * The template's variants for this round and reader (live_entry_page.js pageSettings()): touches only what changed,
+     * never an input's value.
+     */
+    applySettings() {
+        const settings = this.settings;
+        const key = JSON.stringify([settings, this.rounds.map((round) => [round.id, round.name, round.stopwatch?.status ?? null])]);
+
+        if (this.settingsKey === key) {
+            return;
+        }
+
+        this.settingsKey = key;
+        const competitionId = settings.competitionId;
+
+        for (const link of this.element.querySelectorAll('[data-href]')) {
+            link.setAttribute('href', fillLink(link.dataset.href, this.roundIdValue, competitionId));
+        }
+
+        for (const element of this.organiserLinkTargets) {
+            element.hidden = !settings.organiser;
+        }
+
+        // The round picker: every round of the event, this one selected
+        const options = roundOptions(this.rounds, this.roundIdValue, this.t('stopwatchRunning'));
+
+        if (options.length > 0) {
+            const select = this.roundSelectTarget;
+            select.replaceChildren(...options.map((option) => {
+                const element = document.createElement('option');
+                element.value = option.value;
+                element.textContent = option.label;
+                element.selected = option.selected;
+
+                return element;
+            }));
+            select.disabled = false;
+        }
+
+        if (settings.roundName !== '') {
+            document.title = this.t('pageTitle', { '%round%': settings.roundName });
+        }
+
+        const placeholder = this.t(settings.usesTables ? 'findPlaceholder' : 'findPlaceholderNames');
+        this.findInputTarget.setAttribute('placeholder', placeholder);
+        this.findInputTarget.setAttribute('aria-label', placeholder);
+        this.keyboardToggleTarget.hidden = !settings.usesTables;
+        this.entryTableTarget.hidden = !settings.usesTables;
+
+        // Quick add: a person, or a pair/team with its members
+        this.setText(this.addTitleTarget, this.t(settings.solo ? 'addTitlePerson' : 'addTitleTeam'));
+        this.setText(this.addNameLabelTarget, this.t(settings.solo ? 'addNameLabel' : 'addTeamNameLabel'));
+        this.setText(this.addPeopleTitleTarget, this.t(settings.solo ? 'addEventPeople' : 'addEventPeopleMembers'));
+        this.setText(this.addNoteTarget, this.t(settings.canSetTables ? 'addNote' : 'addNoteResultOnly'));
+        this.addMembersFieldTarget.hidden = settings.solo;
+        this.addTableFieldTarget.hidden = !settings.canSetTables;
+
+        while (!settings.solo && this.addMembersTarget.querySelectorAll('input[data-member]').length < settings.members) {
+            this.addMemberInput(null, { focus: false });
+        }
     }
 
     mergeEntries(entries, { fromOwnSave = false } = {}) {
@@ -359,7 +549,7 @@ export default class extends Controller {
     }
 
     usesTables() {
-        return this.competition?.isOnline !== true && this.round?.tableNumbersOff !== true;
+        return this.settings.usesTables;
     }
 
     /**
@@ -466,7 +656,7 @@ export default class extends Controller {
         const sentAt = Date.now();
 
         try {
-            const answer = await officialResultsRequest(this.stateUrlValue, { signal: abort.signal });
+            const answer = await officialResultsRequest(stateUrl(this.stateUrlValue, this.roundIdValue), { signal: abort.signal });
             const answeredAt = Date.now();
 
             if (answer.kind === 'ok') {
@@ -475,8 +665,14 @@ export default class extends Controller {
                 this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
                 this.scheduleRender();
-                // A fresh token - the stream is renewed with it in its last minutes, or opened again if it is down
-                this.events.update(answer.data.mercure ?? null);
+
+                if (!this.ready) {
+                    // The page's first state: everything that needs the round or its reader starts now
+                    this.start(answer.data);
+                } else {
+                    // A fresh token - the stream is renewed with it in its last minutes, or opened again if it is down
+                    this.events.update(answer.data.mercure ?? null);
+                }
             } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
                 this.stateBlocked = answer.kind;
                 this.scheduleRender();
@@ -515,6 +711,7 @@ export default class extends Controller {
             if (data.type === 'official_results.entries') {
                 if (data.round) {
                     this.round = data.round;
+                    this.refreshSettings();
                 }
 
                 this.mergeEntries(Array.isArray(data.entries) ? data.entries : []);
@@ -522,6 +719,7 @@ export default class extends Controller {
                 this.refreshState();
             } else if (data.type === 'official_results.round' && data.round) {
                 this.round = data.round;
+                this.refreshSettings();
                 this.scheduleRender();
             }
 
@@ -569,10 +767,10 @@ export default class extends Controller {
 
         this.outbox = new Outbox({
             storage,
-            userId: this.userIdValue,
+            userId: this.userId,
             newId: newClientId,
             send: (roundId, changes) => this.sendChanges(roundId, changes),
-            lock: createTabLock(`msp-official-results-outbox:${this.userIdValue}`),
+            lock: createTabLock(`msp-official-results-outbox:${this.userId}`),
             onEntries: (entries, roundId) => {
                 if (roundId === this.roundIdValue) {
                     this.mergeEntries(entries, { fromOwnSave: true });
@@ -616,7 +814,7 @@ export default class extends Controller {
     }
 
     broadcast() {
-        this.channel?.postMessage({ type: 'outbox', userId: this.userIdValue });
+        this.channel?.postMessage({ type: 'outbox', userId: this.userId });
     }
 
     enqueue(entry, field, to) {
@@ -647,6 +845,14 @@ export default class extends Controller {
 
     async retryAll() {
         this.stateBlocked = null;
+
+        if (!this.ready) {
+            this.loadAttempts = 0;
+            await this.loadNow();
+
+            return;
+        }
+
         await this.refreshState();
         await this.outbox.retryNow();
         this.broadcast();
@@ -692,7 +898,11 @@ export default class extends Controller {
         let state = 'saved';
         let text = this.t('syncSaved');
 
-        if (blocked === 'auth') {
+        if (!this.ready && (blocked === null || blocked === undefined)) {
+            // Nothing of the round yet - no claim that anything is saved
+            state = 'waiting';
+            text = this.t('loading');
+        } else if (blocked === 'auth') {
             state = 'blocked';
             text = this.t('syncSignIn');
         } else if (blocked === 'forbidden') {
@@ -724,15 +934,10 @@ export default class extends Controller {
             this.tablesTarget.hidden = false;
             this.tablesTarget.textContent = tables;
 
-            if (this.hasReadinessTarget) {
-                this.readinessTarget.hidden = this.round.tablesReadiness !== true || this.round.entries.withTableNumber >= this.round.entries.total;
-            }
+            this.readinessTarget.hidden = !this.settings.organiser || this.round.tablesReadiness !== true || this.round.entries.withTableNumber >= this.round.entries.total;
         } else {
             this.tablesTarget.hidden = true;
-
-            if (this.hasReadinessTarget) {
-                this.readinessTarget.hidden = true;
-            }
+            this.readinessTarget.hidden = true;
         }
     }
 
@@ -757,6 +962,11 @@ export default class extends Controller {
             </div>`);
         } else if (reason === 'gone') {
             parts.push(`<div class="alert alert-danger mb-2" role="alert" data-live-round-gone>${escapeHtml(this.t('bannerGone'))}</div>`);
+        } else if (!this.ready && this.loadFailed) {
+            parts.push(`<div class="alert alert-warning mb-2" role="alert" data-live-load-failed>
+                <p class="mb-2">${escapeHtml(this.t('loadFailed'))}</p>
+                <button type="button" class="btn btn-warning" data-action="live-results#retry">${escapeHtml(this.t('retry'))}</button>
+            </div>`);
         }
 
         // No rights for another round's event (yesterday's event, a removed maintainer): only those changes wait -
@@ -1091,6 +1301,12 @@ export default class extends Controller {
             text = this.t('stopwatchNotStarted');
         }
 
+        if (!this.ready) {
+            // The stopwatch comes with the round's state
+            text = '\u00a0';
+            state = 'none';
+        }
+
         if (!force && text === this.lastClockText) {
             return;
         }
@@ -1171,13 +1387,13 @@ export default class extends Controller {
             return;
         }
 
-        storageSet(ROUND_KEY + this.competitionIdValue, JSON.stringify({ roundId, at: Date.now() }));
+        storageSet(ROUND_KEY + (this.settings.competitionId ?? ''), JSON.stringify({ roundId, at: Date.now() }));
         window.Turbo ? window.Turbo.visit(this.liveUrl(roundId)) : window.location.assign(this.liveUrl(roundId));
     }
 
     readRememberedRound() {
         try {
-            return JSON.parse(storageGet(ROUND_KEY + this.competitionIdValue) ?? 'null');
+            return JSON.parse(storageGet(ROUND_KEY + (this.settings.competitionId ?? '')) ?? 'null');
         } catch (e) {
             return null;
         }
@@ -1188,14 +1404,11 @@ export default class extends Controller {
     }
 
     cleanUrl() {
-        // ?entrant= / ?auto= / ?notice= do their job once - a reload must not open the entrant again
-        const url = new URL(window.location.href);
+        // ?entrant= / ?entry= / ?table= / ?auto= / ?notice= do their job once - a reload must not land again
+        const url = urlWithoutLanding(window.location.href);
 
-        if (url.searchParams.has('entrant') || url.searchParams.has('auto') || url.searchParams.has('notice')) {
-            url.searchParams.delete('entrant');
-            url.searchParams.delete('auto');
-            url.searchParams.delete('notice');
-            window.history.replaceState(window.history.state, '', url.toString());
+        if (url !== null) {
+            window.history.replaceState(window.history.state, '', url);
         }
     }
 
@@ -1644,6 +1857,10 @@ export default class extends Controller {
     // ---- Overlays ----
 
     openSheet() {
+        if (!this.ready) {
+            return;
+        }
+
         this.renderSheet();
         this.sheetTarget.hidden = false;
         this.claimHistory();
@@ -1668,6 +1885,10 @@ export default class extends Controller {
     }
 
     async openScanner() {
+        if (!this.ready) {
+            return;
+        }
+
         this.clearNotice();
         this.scannerTarget.hidden = false;
         this.scanHintTarget.textContent = this.t('scanHint');
@@ -1694,7 +1915,7 @@ export default class extends Controller {
         this.scannerTarget.hidden = true;
         const tag = parseNameTagUrl(text);
 
-        if (tag === null || tag.competitionId !== this.competitionIdValue.toLowerCase()) {
+        if (tag === null || tag.competitionId !== String(this.settings.competitionId ?? '').toLowerCase()) {
             this.showFind({ focus: false });
             this.releaseHistory();
             this.notice(this.t('scanForeign'), 'warning');
@@ -1707,8 +1928,8 @@ export default class extends Controller {
         if (entry === null) {
             this.showFind({ focus: false });
             this.releaseHistory();
-            const link = this.scanUrlValue.replace(UUID_PLACEHOLDER, tag.participantId);
-            this.notice(this.t('scanNotInRound'), 'warning', ` <a class="alert-link" href="${escapeHtml(link)}">${escapeHtml(this.t('openTheirRound'))}</a>`);
+            const link = fillLink(this.scanUrlValue, tag.participantId, this.settings.competitionId);
+            this.notice(this.t('scanNotInRound', { '%round%': this.settings.roundName }), 'warning', ` <a class="alert-link" href="${escapeHtml(link)}">${escapeHtml(this.t('openTheirRound'))}</a>`);
 
             return;
         }
@@ -1723,6 +1944,17 @@ export default class extends Controller {
     // ---- Quick add ----
 
     openAdd() {
+        if (!this.ready) {
+            return;
+        }
+
+        // The event's people (asked for once) - the suggestions follow when they come
+        this.loadEventPeople().then(() => {
+            if (this.isConnected() && this.view === 'add') {
+                this.addTyped();
+            }
+        });
+
         const typed = this.query.trim();
         this.clearNotice();
         this.addFormTarget.reset();
@@ -1734,7 +1966,7 @@ export default class extends Controller {
             delete input.dataset.participantName;
         }
 
-        if (typed !== '' && /^\d+$/.test(typed) && this.hasAddTableTarget) {
+        if (typed !== '' && /^\d+$/.test(typed) && this.settings.canSetTables) {
             this.addTableTarget.value = typed;
         } else if (typed !== '' && !typed.startsWith('#')) {
             this.addNameTarget.value = typed;
@@ -1745,14 +1977,14 @@ export default class extends Controller {
         this.addNameTarget.focus();
     }
 
-    addMemberInput(event) {
+    addMemberInput(event = null, { focus = true } = {}) {
         const inputs = this.addMembersTarget.querySelectorAll('input[data-member]');
 
         if (inputs.length >= 20) {
             return;
         }
 
-        const label = (event.currentTarget.dataset.label ?? '').replace('__N__', String(inputs.length + 1));
+        const label = this.t('addMember').replace('__N__', String(inputs.length + 1));
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'form-control form-control-lg';
@@ -1763,7 +1995,10 @@ export default class extends Controller {
         input.setAttribute('autocapitalize', 'words');
         input.maxLength = 255;
         this.addMembersTarget.appendChild(input);
-        input.focus();
+
+        if (focus) {
+            input.focus();
+        }
     }
 
     /**
@@ -1772,12 +2007,12 @@ export default class extends Controller {
      */
     addValues() {
         const name = this.addNameTarget.value.trim();
-        const members = this.hasAddMembersTarget
+        const members = !this.settings.solo
             ? [...this.addMembersTarget.querySelectorAll('input[data-member]')]
                 .filter((input) => input.value.trim() !== '')
                 .map((input) => (input.dataset.participantId ? { participantId: input.dataset.participantId, name: input.value.trim() } : input.value.trim()))
             : [];
-        const tableText = this.hasAddTableTarget ? this.addTableTarget.value.trim() : '';
+        const tableText = this.settings.canSetTables ? this.addTableTarget.value.trim() : '';
 
         return { name, members, tableText };
     }
@@ -1805,7 +2040,7 @@ export default class extends Controller {
 
     eventPeopleIndex() {
         if (!this.peopleIndex) {
-            this.peopleIndex = buildSearchIndex(this.eventPeople.map((person) => ({
+            this.peopleIndex = buildSearchIndex((this.eventPeople ?? []).map((person) => ({
                 ref: `participant:${person.participantId}`,
                 kind: 'person',
                 name: person.name,
@@ -1865,10 +2100,8 @@ export default class extends Controller {
         this.addSuggestionListTarget.innerHTML = suggestions.map((entry) => this.rowHtml(entry, items, false)).join('');
         this.addSuggestionsTarget.hidden = suggestions.length === 0;
 
-        if (this.hasAddPeopleTarget) {
-            this.addPeopleListTarget.innerHTML = people.map((person) => this.personHtml(person)).join('');
-            this.addPeopleTarget.hidden = people.length === 0;
-        }
+        this.addPeopleListTarget.innerHTML = people.map((person) => this.personHtml(person)).join('');
+        this.addPeopleTarget.hidden = people.length === 0;
     }
 
     personHtml(person) {
@@ -1899,13 +2132,13 @@ export default class extends Controller {
      */
     pickEventPerson(event) {
         const participantId = event.currentTarget.dataset.participantId;
-        const person = this.eventPeople.find((candidate) => candidate.participantId === participantId);
+        const person = (this.eventPeople ?? []).find((candidate) => candidate.participantId === participantId);
 
         if (!person) {
             return;
         }
 
-        if (this.round?.category !== 'solo') {
+        if (!this.settings.solo) {
             // The member field the referee was typing this person's name into, else the first empty one, else a new one
             const inputs = [...this.addMembersTarget.querySelectorAll('input[data-member]')];
             let input = inputs.includes(this.lastMemberInput) && !this.lastMemberInput.dataset.participantId
@@ -1913,7 +2146,7 @@ export default class extends Controller {
                 : inputs.find((candidate) => candidate.value.trim() === '');
 
             if (!input) {
-                this.addMemberInput({ currentTarget: this.addMembersTarget.parentElement.querySelector('[data-action="live-results#addMemberInput"]') });
+                this.addMemberInput(null);
                 const inputs = this.addMembersTarget.querySelectorAll('input[data-member]');
                 input = inputs[inputs.length - 1];
             }
@@ -1982,7 +2215,7 @@ export default class extends Controller {
 
     addEntrant(event) {
         event.preventDefault();
-        const solo = this.round?.category === 'solo';
+        const solo = this.settings.solo;
         const { name, members, tableText } = this.addValues();
         let error = null;
 

@@ -11,28 +11,25 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * The live entry's clock (live_results_controller.js): its page and every state answer carry the server's time in
+ * The live entry's clock (live_results_controller.js): every state answer carries the server's time in
  * milliseconds - `serverNow` has whole seconds only, which let a referee's phone lag the projector by up to a second.
  * The answer with the shortest round trip sets the offset (round_stopwatch_clock.js).
  */
 final class LiveEntryServerClockTest extends WebTestCase
 {
-    public function testThePageAndTheStateCarryTheServersTimeInMilliseconds(): void
+    public function testTheStateCarriesTheServersTimeInMilliseconds(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $page = $browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A);
-        self::assertResponseIsSuccessful();
-        $embedded = json_decode($page->filter('script[data-live-results-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($embedded);
-        self::assertServerTime($embedded);
-
-        $browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A);
-        self::assertResponseIsSuccessful();
-        $state = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($state);
-        self::assertServerTime($state);
+        // The page carries no state of its own (competition toolkit C1): every way the state is asked for has it
+        foreach (['', '?viewer=1', '?viewer=1&entries=0'] as $query) {
+            $browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . $query);
+            self::assertResponseIsSuccessful();
+            $state = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+            self::assertIsArray($state);
+            self::assertServerTime($state);
+        }
     }
 
     /**

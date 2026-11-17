@@ -53,7 +53,8 @@ final class LiveResultsLinksTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/zadavani-vysledku/' . OfficialResultsFixture::ROUND_GROUP_A);
         self::assertResponseIsSuccessful();
-        self::assertSame('/cs/live/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/p/00000000-0000-0000-0000-000000000000', $crawler->filter('[data-live-results-scan-url-value]')->attr('data-live-results-scan-url-value'));
+        // Data-free page (competition toolkit C1): the event's id comes from the round state (live_entry_page.js fillLink())
+        self::assertSame('/cs/live/11111111-1111-1111-1111-111111111111/p/00000000-0000-0000-0000-000000000000', $crawler->filter('[data-live-results-scan-url-value]')->attr('data-live-results-scan-url-value'));
 
         $this->browser->request('GET', '/jmenovky-ucastniku/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         self::assertResponseIsSuccessful();

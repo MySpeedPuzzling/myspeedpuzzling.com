@@ -1,5 +1,5 @@
 // Runs the browser modules of the live result entry (assets/official_results_outbox.js, official_results_live.js,
-// official_results_scan.js, official_results_time.js) through their scenarios and prints {scenario: "ok" | error} as
+// official_results_scan.js, official_results_time.js, live_entry_page.js) through their scenarios and prints {scenario: "ok" | error} as
 // JSON - tests/LiveResultsScriptsTest.php asserts every one is "ok". The outbox runs on an in-memory store with a
 // fake clock and a fake server.
 
@@ -20,6 +20,17 @@ import {
     shownValue,
 } from '../assets/official_results_live.js';
 import { parseNameTagUrl } from '../assets/official_results_scan.js';
+import {
+    COMPETITION_PLACEHOLDER,
+    fillLink,
+    landingOf,
+    pageSettings,
+    resolveLanding,
+    roundOptions,
+    stateUrl,
+    UUID_PLACEHOLDER,
+    urlWithoutLanding,
+} from '../assets/live_entry_page.js';
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
@@ -821,6 +832,149 @@ const scenarios = {
         ];
 
         assert.equal(preferredRound('a', { roundId: 'b', at: now - 60000 }, rounds, now), 'b', 'not started yet - not over either');
+    },
+
+    // ---- The page filled from the state (live_entry_page.js, competition toolkit C1) ----
+
+    async 'the page asks for the state with who reads it, and the entries can be left out'() {
+        const template = `/en/official-results/rounds/${UUID_PLACEHOLDER}`;
+
+        assert.equal(stateUrl(template, ROUND_A), `/en/official-results/rounds/${ROUND_A}?viewer=1`);
+        assert.equal(stateUrl(template, ROUND_A, { entries: false }), `/en/official-results/rounds/${ROUND_A}?viewer=1&entries=0`);
+        assert.equal(stateUrl(template, ROUND_A, { viewer: false }), `/en/official-results/rounds/${ROUND_A}`, 'the existing consumers\' URL');
+        assert.equal(stateUrl(`${template}?x=1`, ROUND_A, { viewer: true }), `/en/official-results/rounds/${ROUND_A}?x=1&viewer=1`);
+    },
+
+    async 'nothing of a round is shown before its state answers'() {
+        const settings = pageSettings(null);
+
+        assert.equal(settings.usesTables, false, 'no table bits before the round is known');
+        assert.equal(settings.organiser, false, 'no organiser tools before the reader is known');
+        assert.equal(settings.canSetTables, false);
+        assert.equal(settings.playerId, null, 'no outbox owner');
+        assert.equal(settings.roundName, '');
+    },
+
+    async 'an organiser of an in-person solo round gets the tables and the organiser tools'() {
+        const settings = pageSettings({
+            competition: { id: 'c1', isOnline: false },
+            round: { id: ROUND_A, name: 'Group A', category: 'solo', tableNumbersOff: false },
+            viewer: { playerId: 'p1', organiser: true },
+        });
+
+        assert.deepEqual(settings, { usesTables: true, solo: true, members: 0, organiser: true, canSetTables: true, playerId: 'p1', competitionId: 'c1', roundName: 'Group A' });
+    },
+
+    async 'a referee never gets the organiser tools nor a table field'() {
+        const settings = pageSettings({
+            competition: { id: 'c1', isOnline: false },
+            round: { id: ROUND_A, name: 'Pairs', category: 'duo', tableNumbersOff: false },
+            viewer: { playerId: 'p2', organiser: false },
+        });
+
+        assert.equal(settings.organiser, false);
+        assert.equal(settings.usesTables, true, 'tables are shown on rows and found by number');
+        assert.equal(settings.canSetTables, false, 'a referee\'s table numbers are refused by the server');
+        assert.equal(settings.solo, false);
+        assert.equal(settings.members, 2, 'a pair starts with two member fields');
+        assert.equal(settings.playerId, 'p2');
+    },
+
+    async 'online events and rounds without table numbers find by name only, a team starts with three members'() {
+        const online = pageSettings({ competition: { id: 'c', isOnline: true }, round: { category: 'team', tableNumbersOff: false }, viewer: { playerId: 'p', organiser: true } });
+        const off = pageSettings({ competition: { id: 'c', isOnline: false }, round: { category: 'solo', tableNumbersOff: true }, viewer: { playerId: 'p', organiser: true } });
+
+        assert.equal(online.usesTables, false);
+        assert.equal(online.canSetTables, false);
+        assert.equal(online.members, 3);
+        assert.equal(off.usesTables, false);
+        assert.equal(off.canSetTables, false);
+    },
+
+    async 'a state without a viewer (another consumer\'s answer) never makes anybody an organiser'() {
+        const settings = pageSettings({ competition: { id: 'c', isOnline: false }, round: { category: 'solo', tableNumbersOff: false } });
+
+        assert.equal(settings.organiser, false);
+        assert.equal(settings.playerId, null);
+        assert.equal(pageSettings({ round: { category: 'solo' }, viewer: { playerId: '', organiser: 'yes' } }).organiser, false, 'only a real true');
+    },
+
+    async 'the round picker lists every round from the state, this one selected, a running one named'() {
+        const options = roundOptions([
+            { id: ROUND_A, name: 'Group A', stopwatch: { status: 'running' } },
+            { id: ROUND_B, name: 'Group B', stopwatch: { status: null } },
+            { id: 'r3', name: 'Final' },
+        ], ROUND_B, 'Running');
+
+        assert.deepEqual(options, [
+            { value: ROUND_A, label: 'Group A · Running', selected: false },
+            { value: ROUND_B, label: 'Group B', selected: true },
+            { value: 'r3', label: 'Final', selected: false },
+        ]);
+        assert.deepEqual(roundOptions(undefined, ROUND_A, 'Running'), []);
+    },
+
+    async 'the template\'s links get the round and the event'() {
+        assert.equal(fillLink(`/en/manage-event-rounds/${COMPETITION_PLACEHOLDER}`, ROUND_A, 'c1'), '/en/manage-event-rounds/c1');
+        assert.equal(fillLink(`/en/round-seating/${UUID_PLACEHOLDER}`, ROUND_A, 'c1'), `/en/round-seating/${ROUND_A}`);
+        assert.equal(fillLink(`/cs/live/${COMPETITION_PLACEHOLDER}/p/${UUID_PLACEHOLDER}`, 'person', 'c1'), '/cs/live/c1/p/person');
+    },
+
+    async 'landing parameters: one at a time, anything malformed is no landing'() {
+        assert.equal(landingOf({}), null);
+        assert.equal(landingOf({ entrant: '', table: '', entry: '' }), null);
+        assert.deepEqual(landingOf({ entrant: 'ABC-1' }), { kind: 'entrant', participantId: 'abc-1' });
+        assert.deepEqual(landingOf({ table: '12' }), { kind: 'table', number: 12 });
+        assert.deepEqual(landingOf({ table: 7 }), { kind: 'table', number: 7 });
+        assert.equal(landingOf({ table: '0' }), null);
+        assert.equal(landingOf({ table: '12a' }), null);
+        assert.equal(landingOf({ table: '10000' }), null);
+        assert.deepEqual(landingOf({ entry: BEN.toUpperCase() }), { kind: 'entry', ref: BEN });
+        assert.equal(landingOf({ entry: 'person:018d0020-0000-0000-0000-000000000302' }), null);
+        assert.deepEqual(landingOf({ entrant: 'p', table: '3', entry: BEN }), { kind: 'entrant', participantId: 'p' }, 'the entrant first');
+        assert.deepEqual(landingOf({ table: '3', entry: BEN }), { kind: 'entry', ref: BEN });
+    },
+
+    async 'a landing opens the entry once the state is there'() {
+        const entries = [
+            entry(ANNA, 'Anna Fast', 1, { participantId: 'P-ANNA' }),
+            entry(BEN, 'Ben Steady', 12, { participantId: 'p-ben' }),
+            { ...entry('team:t1', 'Sharks', 5), kind: 'team', members: [{ name: 'Cara', participantId: 'p-cara' }] },
+        ];
+
+        assert.deepEqual(resolveLanding(landingOf({ table: '12' }), entries, null, 'Group A'), { open: BEN });
+        assert.deepEqual(resolveLanding(landingOf({ entry: BEN }), entries, null, 'Group A'), { open: BEN });
+        assert.deepEqual(resolveLanding(landingOf({ entrant: 'p-anna' }), entries, null, 'Group A'), { open: ANNA }, 'case-insensitive ids');
+        assert.deepEqual(resolveLanding(landingOf({ entrant: 'p-cara' }), entries, null, 'Group A'), { open: 'team:t1' }, 'a member opens the pair/team');
+        assert.equal(resolveLanding(null, entries, null, 'Group A'), null);
+    },
+
+    async 'a landing nobody of the round answers says why, with the round\'s name'() {
+        const entries = [entry(ANNA, 'Anna Fast', 1, { participantId: 'p-anna' })];
+
+        assert.deepEqual(resolveLanding(landingOf({ table: '9' }), entries, null, 'Group A'), { notice: 'tableEmpty', parameters: { '%number%': 9, '%round%': 'Group A' } });
+        assert.deepEqual(resolveLanding(landingOf({ entry: CARA }), entries, null, 'Group A'), { notice: 'entryNotInRound', parameters: { '%round%': 'Group A' } });
+        assert.deepEqual(resolveLanding(landingOf({ table: '1' }), [], null, 'Group A'), { notice: 'tableEmpty', parameters: { '%number%': 1, '%round%': 'Group A' } }, 'an empty round');
+    },
+
+    async 'an entrant of another round is named from the event\'s people, asked for only then'() {
+        const entries = [entry(ANNA, 'Anna Fast', 1, { participantId: 'p-anna' })];
+        const landing = landingOf({ entrant: 'p-gina' });
+
+        assert.deepEqual(resolveLanding(landing, entries, null, 'Group A'), { needPeople: true }, 'not loaded yet - ask for them');
+        assert.deepEqual(
+            resolveLanding(landing, entries, [{ participantId: 'P-GINA', name: 'Gina Quick' }], 'Group A'),
+            { notice: 'entrantNotInRound', parameters: { '%name%': 'Gina Quick', '%round%': 'Group A' } },
+        );
+        // Not going (waitlist) or the people could not be loaded: the name tag's text without a name
+        assert.deepEqual(resolveLanding(landing, entries, [], 'Group A'), { notice: 'scanNotInRound', parameters: { '%round%': 'Group A' } });
+    },
+
+    async 'the landing parameters are taken out of the URL, nothing else'() {
+        assert.equal(urlWithoutLanding('https://x.test/en/live-results/r?entrant=a&auto=1&notice=tag_unknown&table=3&entry=team:b&keep=1'), 'https://x.test/en/live-results/r?keep=1');
+        assert.equal(urlWithoutLanding('https://x.test/en/live-results/r?table=3'), 'https://x.test/en/live-results/r');
+        assert.equal(urlWithoutLanding('https://x.test/en/live-results/r'), null, 'nothing to replace');
+        assert.equal(urlWithoutLanding('https://x.test/en/live-results/r?keep=1'), null);
     },
 };
 

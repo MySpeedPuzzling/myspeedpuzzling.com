@@ -1,12 +1,14 @@
 {% extends 'base.html.twig' %}
 
 {# The referee's phone during a round - docs/features/competitions-management/live-results.md.
-   No site header/footer: every pixel of a 375 px screen goes to find → enter → confirm. #}
+   No site header/footer: every pixel of a 375 px screen goes to find → enter → confirm.
+   Data-free (competition toolkit C1): nothing of the round, the event or the person reading it is rendered here -
+   live_results_controller.js fills the page from the round state (`?viewer=1`). Variants (solo/pair/team, tables or not,
+   organiser or referee) are all in the markup, hidden, and shown by the controller; links carry placeholders. #}
 
 {% set hide_comparison_launcher = true %}
 {% set uuid_placeholder = '00000000-0000-0000-0000-000000000000' %}
-{% set solo_round = round.category.value == 'solo' %}
-{% set uses_tables = not competition.isOnline and not round.tableNumbersOff %}
+{% set competition_placeholder = '11111111-1111-1111-1111-111111111111' %}
 
 {# Texts the controller writes itself (placeholders filled in JS) #}
 {% set live_messages = {
@@ -38,8 +40,8 @@
     toastUndone: 'live_results.toast.undone'|trans,
     toastNothing: 'live_results.toast.nothing'|trans,
     scanForeign: 'live_results.scan.foreign'|trans,
-    scanNotInRound: 'live_results.scan.not_in_round'|trans({'%round%': round.name}),
-    entrantNotInRound: 'live_results.entrant_not_in_round'|trans({'%round%': round.name}),
+    scanNotInRound: 'live_results.scan.not_in_round'|trans({'%round%': '%round%'}),
+    entrantNotInRound: 'live_results.entrant_not_in_round'|trans({'%round%': '%round%'}),
     openTheirRound: 'live_results.scan.open_their_round'|trans,
     scanCamera: 'live_results.scan.camera_error'|trans,
     scanDecoder: 'live_results.scan.decoder_error'|trans,
@@ -107,11 +109,27 @@
     rowSaved: 'live_results.row.saved'|trans,
     rowWaiting: 'live_results.row.waiting'|trans,
     rowProblem: 'live_results.row.problem'|trans,
+    pageTitle: 'live_results.title'|trans ~ ' - %round% – MySpeedPuzzling',
+    findPlaceholder: 'live_results.find.placeholder'|trans,
+    findPlaceholderNames: 'live_results.find.placeholder_names'|trans,
+    addTitlePerson: 'live_results.add.title_person'|trans,
+    addTitleTeam: 'live_results.add.title_team'|trans,
+    addNameLabel: 'live_results.add.name'|trans,
+    addTeamNameLabel: 'live_results.add.team_name'|trans,
+    addEventPeople: 'live_results.add.event_people'|trans,
+    addEventPeopleMembers: 'live_results.add.event_people_members'|trans,
+    addNote: 'live_results.add.note'|trans,
+    addNoteResultOnly: 'live_results.add.note_result_only'|trans,
+    addMember: 'live_results.add.member'|trans({'%number%': '__N__'}),
+    loading: 'live_results.page.loading'|trans,
+    loadFailed: 'live_results.page.load_failed'|trans,
+    tableEmpty: 'live_results.page.table_empty'|trans({'%number%': '%number%', '%round%': '%round%'}),
+    entryNotInRound: 'live_results.page.entry_not_in_round'|trans({'%round%': '%round%'}),
 } %}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
-{% block title %}{{ 'live_results.title'|trans }} - {{ round.name }}{% endblock %}
+{% block title %}{{ 'live_results.title'|trans }}{% endblock %}
 
 {% block header %}{% endblock %}
 {% block footer %}{% endblock %}
@@ -181,18 +199,18 @@
 
     <div class="lr"
          data-controller="live-results"
-         data-live-results-user-id-value="{{ logged_user.profile.playerId }}"
-         data-live-results-competition-id-value="{{ competition.id }}"
-         data-live-results-round-id-value="{{ round.id }}"
+         data-live-results-round-id-value="{{ round_id }}"
          data-live-results-locale-value="{{ app.request.locale }}"
-         data-live-results-state-url-value="{{ path('official_results_round_state', {roundId: round.id}) }}"
+         data-live-results-state-url-value="{{ path('official_results_round_state', {roundId: uuid_placeholder}) }}"
+         data-live-results-event-people-url-value="{{ path('official_results_event_people', {roundId: uuid_placeholder}) }}"
          data-live-results-record-url-value="{{ path('official_results_record', {roundId: uuid_placeholder}) }}"
          data-live-results-live-url-value="{{ path('live_results', {roundId: uuid_placeholder}) }}"
-         data-live-results-scan-url-value="{{ path('live_results_scan', {competitionId: competition.id, participantId: uuid_placeholder}) }}"
-         data-live-results-login-url-value="{{ path('login', {return: path('live_results', {roundId: round.id})}) }}"
+         data-live-results-scan-url-value="{{ path('live_results_scan', {competitionId: competition_placeholder, participantId: uuid_placeholder}) }}"
+         data-live-results-login-url-value="{{ path('login', {return: path('live_results', {roundId: round_id})}) }}"
          data-live-results-csrf-token-value="{{ csrf_token('official_results') }}"
-         data-live-results-entrant-value="{{ entrant ? entrant.participantId : '' }}"
-         data-live-results-entrant-name-value="{{ entrant ? entrant.name : '' }}"
+         data-live-results-entrant-value="{{ entrant_id ?? '' }}"
+         data-live-results-table-value="{{ table ?? '' }}"
+         data-live-results-entry-value="{{ entry ?? '' }}"
          data-live-results-auto-picked-value="{{ auto_picked ? 'true' : 'false' }}"
          data-live-results-notice-value="{{ unknown_tag ? 'live_results.scan.unknown_person'|trans : '' }}"
          data-live-results-messages-value="{{ live_messages|json_encode|e('html_attr') }}"
@@ -207,27 +225,22 @@
     >
         <div class="lr-bar">
             <div class="lr-bar-row">
-                {% if organiser %}{# referees (live-results.md "Referees") get no organiser tools #}
-                <a class="lr-icon-btn" href="{{ path('manage_competition_rounds', {competitionId: competition.id}) }}" aria-label="{{ 'live_results.back_to_rounds'|trans }}" title="{{ 'live_results.back_to_rounds'|trans }}">
+                {# Organisers only (referees - live-results.md "Referees" - get no organiser tools): shown by the controller #}
+                <a class="lr-icon-btn" href="#" hidden data-live-results-target="organiserLink" data-href="{{ path('manage_competition_rounds', {competitionId: competition_placeholder}) }}" aria-label="{{ 'live_results.back_to_rounds'|trans }}" title="{{ 'live_results.back_to_rounds'|trans }}">
                     <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </a>
-                {% endif %}
-                <select class="form-select lr-round-select" aria-label="{{ 'live_results.round'|trans }}" data-action="live-results#switchRound" data-live-results-target="roundSelect">
-                    {% for option in rounds %}
-                        <option value="{{ option.roundId }}" {{ option.roundId == round.id ? 'selected' }}>
-                            {{- option.name -}}
-                            {%- if option.stopwatchStatus == 'running' %} · {{ 'live_results.stopwatch.running'|trans }}{% endif -%}
-                        </option>
-                    {% endfor %}
+                {# The event's rounds come with the state #}
+                <select class="form-select lr-round-select" aria-label="{{ 'live_results.round'|trans }}" data-action="live-results#switchRound" data-live-results-target="roundSelect" disabled>
+                    <option value="">{{ 'live_results.page.loading'|trans }}</option>
                 </select>
-                <button type="button" class="lr-pill" data-live-results-target="pill" data-action="live-results#openSheet" data-state="saved" aria-haspopup="dialog">
+                <button type="button" class="lr-pill" data-live-results-target="pill" data-action="live-results#openSheet" data-state="waiting" aria-haspopup="dialog">
                     <span class="lr-pill-dot" aria-hidden="true"></span>
-                    <span data-live-results-target="pillText">{{ 'live_results.sync.saved'|trans }}</span>
+                    <span data-live-results-target="pillText">{{ 'live_results.page.loading'|trans }}</span>
                 </button>
             </div>
             <div class="lr-status" aria-live="off">
                 <span data-live-results-target="stopwatch">&nbsp;</span>
-                <span data-live-results-target="tables"{% if not uses_tables %} hidden{% endif %}>&nbsp;</span>
+                <span data-live-results-target="tables" hidden>&nbsp;</span>
             </div>
         </div>
 
@@ -240,15 +253,15 @@
                        class="form-control lr-find-input"
                        data-live-results-target="findInput"
                        data-action="input->live-results#search"
-                       placeholder="{{ (uses_tables ? 'live_results.find.placeholder' : 'live_results.find.placeholder_names')|trans }}"
-                       aria-label="{{ (uses_tables ? 'live_results.find.placeholder' : 'live_results.find.placeholder_names')|trans }}"
+                       placeholder="{{ 'live_results.find.placeholder_names'|trans }}"
+                       aria-label="{{ 'live_results.find.placeholder_names'|trans }}"
                        inputmode="search"
                        enterkeyhint="go"
                        autocomplete="off"
                        autocorrect="off"
                        autocapitalize="off"
                        spellcheck="false">
-                <button type="button" class="btn btn-outline-secondary lr-keyboard" data-live-results-target="keyboardToggle" data-action="live-results#toggleKeyboard"{% if not uses_tables %} hidden{% endif %}
+                <button type="button" class="btn btn-outline-secondary lr-keyboard" data-live-results-target="keyboardToggle" data-action="live-results#toggleKeyboard" hidden
                         aria-label="{{ 'live_results.find.keyboard'|trans }}" title="{{ 'live_results.find.keyboard'|trans }}">{{ 'live_results.find.keyboard_letters'|trans }}</button>
                 <button type="button" class="btn btn-outline-primary" data-action="live-results#openScanner"
                         aria-label="{{ 'live_results.scan.button'|trans }}" title="{{ 'live_results.scan.button'|trans }}">
@@ -258,12 +271,11 @@
 
             <div class="mt-2" data-live-results-target="findNotice" role="status" hidden></div>
 
-            {% if uses_tables and organiser %}
-                <div class="alert alert-info small py-2 px-3 mt-2 mb-0" data-live-results-target="readiness" hidden>
-                    {{ 'live_results.tables.recommended'|trans }}
-                    <a href="{{ path('round_seating', {roundId: round.id}) }}" class="alert-link text-nowrap">{{ 'live_results.tables.seating'|trans }}</a>
-                </div>
-            {% endif %}
+            {# Organisers, rounds with tables: shown by the controller #}
+            <div class="alert alert-info small py-2 px-3 mt-2 mb-0" data-live-results-target="readiness" hidden>
+                {{ 'live_results.tables.recommended'|trans }}
+                <a href="#" data-href="{{ path('round_seating', {roundId: uuid_placeholder}) }}" class="alert-link text-nowrap">{{ 'live_results.tables.seating'|trans }}</a>
+            </div>
 
             <div class="lr-list" data-live-results-target="matches"></div>
 
@@ -276,11 +288,10 @@
                 <div class="lr-list" data-live-results-target="recent"></div>
             </div>
 
-            {% if organiser %}{# referees get no organiser tools #}
-            <p class="text-center mt-4 mb-0">
-                <a href="{{ path('results_desk', {roundId: round.id}) }}" class="small">{{ 'live_results.results_desk'|trans }}</a>
+            {# Organisers only (referees get no organiser tools): shown by the controller #}
+            <p class="text-center mt-4 mb-0" hidden data-live-results-target="organiserLink">
+                <a href="#" data-href="{{ path('results_desk', {roundId: uuid_placeholder}) }}" class="small">{{ 'live_results.results_desk'|trans }}</a>
             </p>
-            {% endif %}
         </section>
 
         {# 2. Enter #}
@@ -289,7 +300,7 @@
                 <button type="button" class="btn btn-link lr-icon-btn p-0" data-action="live-results#backToFind" aria-label="{{ 'live_results.back'|trans }}" title="{{ 'live_results.back'|trans }}">
                     <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </button>
-                <span class="lr-table" data-live-results-target="entryTable"{% if not uses_tables %} hidden{% endif %}></span>
+                <span class="lr-table" data-live-results-target="entryTable" hidden></span>
                 <div class="flex-grow-1 min-w-0">
                     <div class="lr-entry-name" id="lr-entry-name" data-live-results-target="entryName"></div>
                     <div class="small text-muted" data-live-results-target="entryMembers"></div>
@@ -365,33 +376,27 @@
                 <button type="button" class="btn btn-link lr-icon-btn p-0" data-action="live-results#backToFind" aria-label="{{ 'live_results.back'|trans }}" title="{{ 'live_results.back'|trans }}">
                     <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </button>
-                <h1 class="h5 mb-0" id="lr-add-title">{{ (solo_round ? 'live_results.add.title_person' : 'live_results.add.title_team')|trans }}</h1>
+                <h1 class="h5 mb-0" id="lr-add-title" data-live-results-target="addTitle">{{ 'live_results.add.title_person'|trans }}</h1>
             </div>
 
+            {# A solo round adds a person, a pair/team round a name + members (2 for a pair, 3 for a team - put in by the
+               controller): the controller shows the round's variant #}
             <form data-live-results-target="addForm" data-action="submit->live-results#addEntrant input->live-results#addTyped" novalidate>
-                {% if solo_round %}
-                    <label for="lr-add-name" class="form-label">{{ 'live_results.add.name'|trans }}</label>
-                    <input type="text" id="lr-add-name" class="form-control form-control-lg mb-3" data-live-results-target="addName" autocomplete="off" autocapitalize="words" enterkeyhint="next" maxlength="255">
-                {% else %}
-                    <label for="lr-add-name" class="form-label">{{ 'live_results.add.team_name'|trans }}</label>
-                    <input type="text" id="lr-add-name" class="form-control form-control-lg mb-3" data-live-results-target="addName" autocomplete="off" autocapitalize="words" enterkeyhint="next" maxlength="255">
-                    <fieldset class="mb-3">
-                        <legend class="form-label fs-6 mb-2">{{ 'live_results.add.members'|trans }}</legend>
-                        <div class="d-flex flex-column gap-2" data-live-results-target="addMembers">
-                            {% for number in 1..(round.category.value == 'duo' ? 2 : 3) %}
-                                <input type="text" class="form-control form-control-lg" data-member aria-label="{{ 'live_results.add.member'|trans({'%number%': number}) }}" placeholder="{{ 'live_results.add.member'|trans({'%number%': number}) }}" autocomplete="off" autocapitalize="words" maxlength="255">
-                            {% endfor %}
-                        </div>
-                        <button type="button" class="btn btn-link px-0" data-action="live-results#addMemberInput" data-label="{{ 'live_results.add.member'|trans({'%number%': '__N__'}) }}">
-                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'live_results.add.another_member'|trans }}
-                        </button>
-                    </fieldset>
-                {% endif %}
+                <label for="lr-add-name" class="form-label" data-live-results-target="addNameLabel">{{ 'live_results.add.name'|trans }}</label>
+                <input type="text" id="lr-add-name" class="form-control form-control-lg mb-3" data-live-results-target="addName" autocomplete="off" autocapitalize="words" enterkeyhint="next" maxlength="255">
+                <fieldset class="mb-3" data-live-results-target="addMembersField" hidden>
+                    <legend class="form-label fs-6 mb-2">{{ 'live_results.add.members'|trans }}</legend>
+                    <div class="d-flex flex-column gap-2" data-live-results-target="addMembers"></div>
+                    <button type="button" class="btn btn-link px-0" data-action="live-results#addMemberInput">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'live_results.add.another_member'|trans }}
+                    </button>
+                </fieldset>
 
-                {% if uses_tables and organiser %}
+                {# Table numbers only where this page can set them (organisers, a round with tables): shown by the controller #}
+                <div data-live-results-target="addTableField" hidden>
                     <label for="lr-add-table" class="form-label">{{ 'live_results.add.table'|trans }}</label>
                     <input type="text" id="lr-add-table" class="form-control form-control-lg mb-3" data-live-results-target="addTable" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done">
-                {% endif %}
+                </div>
 
                 <div class="alert alert-danger py-2 small" data-live-results-target="addError" role="alert" hidden></div>
 
@@ -402,13 +407,13 @@
 
                 {# People of the event who are not in this round: put in by their id, never typed in as a second person #}
                 <div data-live-results-target="addPeople" hidden>
-                    <h2 class="lr-recent-title mt-0">{{ (solo_round ? 'live_results.add.event_people' : 'live_results.add.event_people_members')|trans }}</h2>
+                    <h2 class="lr-recent-title mt-0" data-live-results-target="addPeopleTitle">{{ 'live_results.add.event_people'|trans }}</h2>
                     <div class="lr-list mb-3" data-live-results-target="addPeopleList"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.add.submit'|trans }}</button>
-                {# Table numbers only where this page can set them (organisers, a round with tables) #}
-                <p class="small text-muted mt-2 mb-0" data-live-results-add-note>{{ (uses_tables and organiser ? 'live_results.add.note' : 'live_results.add.note_result_only')|trans }}</p>
+                {# A table number is promised only where this page can set it (organisers, a round with tables) #}
+                <p class="small text-muted mt-2 mb-0" data-live-results-add-note data-live-results-target="addNote">{{ 'live_results.add.note_result_only'|trans }}</p>
             </form>
         </section>
 
@@ -441,7 +446,5 @@
             <p class="lr-scanner-hint mb-0" data-live-results-target="scanHint" aria-live="polite">{{ 'live_results.scan.hint'|trans }}</p>
         </div>
 
-        <script type="application/json" data-live-results-target="eventPeople">{{ event_people|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
-        <script type="application/json" data-live-results-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
     </div>
 {% endblock %}

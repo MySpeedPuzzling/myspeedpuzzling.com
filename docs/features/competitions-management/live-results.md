@@ -8,7 +8,7 @@ Decided 2026-10-07 (RESULTS-SPEC §4, §5): "focus on quick action, verify and c
 
 | Route | Path | Who | What |
 |---|---|---|---|
-| `live_results` | `GET /en/live-results/{roundId}` (localized, cs `/zadavani-vysledku/{roundId}`) | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's); `?notice=tag_unknown` says the scanned name tag is nobody of this event (any more) |
+| `live_results` | `GET /en/live-results/{roundId}` (localized, cs `/zadavani-vysledku/{roundId}`) | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's); `?table=<n>` opens the entry at that table, `?entry=<participant_round:id\|team:id>` that entry (the landings of the competition toolkit's table/entry QR codes - a malformed value is ignored, nobody there = "Nobody sits at table N in Group A" / "This entry is not in Group A"); `?notice=tag_unknown` says the scanned name tag is nobody of this event (any more). Every landing parameter is taken out of the URL once used |
 | `live_results_event` | `GET /en/live-results/event/{competitionId}` (localized, cs `/zadavani-vysledku-udalosti/{competitionId}`) | organisers and referees | the link to hand the referees (the referees page shows it with a QR): 302 to the current round (`?auto=1`), or - when the event has no rounds - to the round list (organisers) / the event page (referees) |
 | `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` - **never change this path**: printed name tags carry it | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; a person removed from the event, unknown or of another event → the current round with `?notice=tag_unknown`; an event without rounds → the round list with a warning; everybody else → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
 | `competition_name_tags` | `GET /en/name-tags/{competitionId}` (localized, cs `/jmenovky-ucastniku/{competitionId}`) | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table`, `?waitlist=1` (offered only while somebody is on the waitlist) |
@@ -29,8 +29,13 @@ device's own pick wins while it is fresh (12 hours) and that round is not stoppe
 
 No site header/footer: a sticky bar with back, the round picker (a switch is a Turbo visit to the other round) and
 the **sync pill**, and below it the stopwatch ("Running 0:47:12") and "Tables: 18 / 20" (in-person rounds that use
-table numbers). The page renders from the state embedded in it (same JSON as `official_results_round_state`, its
-live updates token included), then fetches that state once (clock sync).
+table numbers). **The page carries no data of the round, its event or its reader** (competition toolkit C1 - the same
+markup can later be kept as an offline shell): it says "Loading the round…" and fills itself from one fetch of
+`official_results_round_state?viewer=1` (round, rounds, entries, clock, live updates token, and `viewer` = the player
+id that owns the outbox + whether the organiser tools show). Every variant (solo / pair / team quick add, tables or not,
+organiser or referee) is in the markup hidden and chosen by `assets/live_entry_page.js` (`pageSettings()`,
+`roundOptions()`, `resolveLanding()` - node harness); links carry placeholders the page fills in. A failed first fetch
+says so and is tried again by itself (2, 4 … 30 s, at once when back online, Retry).
 
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and
@@ -59,8 +64,8 @@ live updates token included), then fetches that state once (clock sync).
    input empty and focused.
 5. **Quick add** - "Not on the list? Add an entrant": a name (solo round) or a pair/team name + members, optional table
    (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
-   entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, embedded
-   in the page: another group, a forgotten import row, the individual rounds' people in a pairs round - people going
+   entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, asked
+   for by the page when quick add first opens - `official_results_event_people`: another group, a forgotten import row, the individual rounds' people in a pairs round - people going
    to the event only: somebody of the waitlist who turns up gets a spot in the participants sheet's People tab first). Picking one of
    them puts that participant into the round (solo: `newEntry.participantId`; a pair/team: the member field gets them,
    `members[].participantId`) - never a second person of the same name, so their link, country and notifications stay.
@@ -89,13 +94,14 @@ player; an edition is a competition - series owners and maintainers stay full or
   result (the new entrant is created by the result change; a table number sent with it is refused). Everything else -
   results desk, export, seating, publish/unpublish, table numbers, advancing, the overview, rounds, stopwatch control,
   participants, registration, check-in, name tags, the event edit page, the referees page - stays `COMPETITION_EDIT`.
-- **The page for a referee** hides what they cannot use: no back link to the round list, no results desk / seating
+- **The page for a referee** hides what they cannot use (the state's `viewer.organiser` is false - the markup is the same
+  for everybody, the server refuses a referee's table numbers whatever the page shows): no back link to the round list, no results desk / seating
   links, no "give every entry a table number" hint, no table field in quick add (and its note promises the first
   result only, not a table number - like an organiser's on a round without tables).
 - **Private players** (browser verification of PR #136): a referee never gets the #code, profile name or id of a
   linked player who is private to them - PrivateProfileAccess decides, so one who lets the referee see them (allow
   list) stays visible. `RefereeEntriesView` masks the round's entries (`RoundResultEntry::forReferee()`, flagged
-  `playerWithheld`) in the page's initial state, `official_results_round_state` and the answers to the referee's own
+  `playerWithheld`) in `official_results_round_state` and the answers to the referee's own
   saves; the quick add's event people (`GetLiveResultsEventPeople`, `withPrivateCodes: false`) lose the code the same
   way. The referee's live updates come on a topic of their own, `/round-results/{roundId}/referees`
   (`OfficialResultsSubscription::forRound($roundId, organiser: false)`): an update has no viewer, so it withholds

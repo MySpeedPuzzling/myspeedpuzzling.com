@@ -5529,6 +5529,11 @@ live_results:
         saved: "Saved"
         waiting: "Not sent yet"
         problem: "Needs you"
+    page:
+        loading: "Loading the round…"
+        load_failed: "The round could not be loaded - check the connection. It is tried again by itself."
+        table_empty: "Nobody sits at table %number% in %round%."
+        entry_not_in_round: "This entry is not in %round%."
 
 name_tags:
     button: "Name tags"

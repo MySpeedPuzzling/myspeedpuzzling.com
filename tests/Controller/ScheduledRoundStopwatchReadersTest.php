@@ -121,8 +121,16 @@ final class ScheduledRoundStopwatchReadersTest extends WebTestCase
         $page = $this->browser->request('GET', '/en/live-results/' . self::ROUND);
 
         self::assertResponseIsSuccessful();
-        // The round picker names only a running round so
-        self::assertStringNotContainsString('Running', $page->filter('.lr-round-select option[value="' . self::ROUND . '"]')->text());
+        // The round picker (filled from the state - live_entry_page.js roundOptions()) names only a running round so
+        $this->browser->request('GET', '/en/official-results/rounds/' . self::ROUND . '?viewer=1');
+        self::assertResponseIsSuccessful();
+        $state = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($state);
+        self::assertIsArray($state['rounds']);
+        $round = array_values(array_filter($state['rounds'], static fn (mixed $round): bool => is_array($round) && $round['id'] === self::ROUND))[0] ?? null;
+        self::assertIsArray($round);
+        self::assertIsArray($round['stopwatch']);
+        self::assertSame('scheduled', $round['stopwatch']['status']);
         $messages = json_decode((string) $page->filter('[data-controller~="live-results"]')->attr('data-live-results-messages-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($messages);
         self::assertSame('Starts in %time%', $messages['stopwatchStartsIn']);

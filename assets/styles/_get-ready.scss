@@ -1,0 +1,25 @@
+// The "Get ready" checklist on an event's edit page (templates/event_wizard/_get_ready.html.twig, W2 of the event
+// creation wizard): the <summary> is the card header - its own chevron instead of the browser's marker.
+[data-get-ready] {
+    summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .get-ready-chevron {
+        transition: transform .15s ease;
+    }
+
+    details:not([open]) {
+        .get-ready-chevron {
+            transform: rotate(-90deg);
+        }
+
+        summary {
+            border-bottom: 0;
+        }
+    }
+}

@@ -172,7 +172,8 @@
             </form>
         </li>
     {% endif %}
-    {% if publish_series %}
+    {# "Continue setting up" a draft in the event creation wizard (W2) - from the item's own data, no statement -#}
+    {% if draft_routes and item.ownDraft and not item.isOrganization and not item.isSeries and event_wizard_resumable(true, item.isEdition, item.roundCount) %}<li>{{ include('event_wizard/_continue_setting_up.html.twig', {competition_id: item.id, layout: 'action'}) }}</li>{% endif %}{% if publish_series %}
         <li>
             <form method="post" action="{{ path('publish_competition_series', {seriesId: item.seriesId}) }}" data-turbo-frame="_top">
                 <input type="hidden" name="_token" value="{{ csrf_token('publish_competition_series_' ~ item.seriesId) }}">

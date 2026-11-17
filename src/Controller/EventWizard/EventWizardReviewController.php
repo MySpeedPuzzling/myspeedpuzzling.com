@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
+use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -74,6 +75,8 @@ final class EventWizardReviewController extends AbstractController
                 $competition = $this->competitionRepository->get($competitionId);
                 $approved = $competition->isApproved() && $competition->isRejected() === false;
                 $this->addFlash('success', $this->translator->trans($approved ? 'drafts_core.flash.published' : 'drafts_core.flash.published_waiting'));
+                // The edit page opens its "Get ready" checklist with "Published - here's what's left" (W2)
+                $this->addFlash(EventGetReadyChecklist::PUBLISHED_FLASH, '1');
 
                 return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
             }

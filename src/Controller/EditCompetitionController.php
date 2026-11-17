@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use SpeedPuzzling\Web\Services\EventDateShift;
+use SpeedPuzzling\Web\Services\EventWizard\EventWizardResume;
+use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -31,6 +33,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -56,6 +59,8 @@ final class EditCompetitionController extends AbstractController
         private readonly OrganizationSelectChoices $organizationSelectChoices,
         private readonly EventDateShift $eventDateShift,
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly EventGetReadyChecklist $getReadyChecklist,
+        private readonly EventWizardResume $eventWizardResume,
     ) {
     }
 
@@ -208,6 +213,14 @@ final class EditCompetitionController extends AbstractController
             $slugPrefix = null;
         }
 
+        // The event creation wizard's "Get ready" checklist + "Continue setting up" of a draft (W2) - null / false without
+        // the wizard (no statement then: the page stays as it was)
+        $getReady = $this->getReadyChecklist->of($competitionId, $playerId);
+        $wizardContinue = $getReady !== null && $this->eventWizardResume->offered($competitionEvent->isDraft, $seriesId !== null, $getReady->roundsCount);
+        // Just published from the wizard's Review (EventWizardReviewController): the checklist open, "here's what's left"
+        $session = $getReady !== null ? $request->getSession() : null;
+        $justPublished = $session instanceof FlashBagAwareSessionInterface && $session->getFlashBag()->get(EventGetReadyChecklist::PUBLISHED_FLASH) !== [];
+
         return $this->render('edit_competition.html.twig', [
             'form' => $form,
             'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
@@ -216,6 +229,9 @@ final class EditCompetitionController extends AbstractController
             'series_organization' => $seriesOrganizationRef,
             'original_date_from' => $originalDateFrom,
             'original_date_to' => $originalDateTo,
+            'get_ready' => $getReady,
+            'wizard_continue' => $wizardContinue,
+            'get_ready_published' => $justPublished,
         ]);
     }
 }

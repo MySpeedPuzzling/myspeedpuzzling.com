@@ -1,0 +1,53 @@
+{#
+    The "Get ready" checklist on an event's edit page (W2 of the event creation wizard,
+    docs/features/competitions-management/toolkit/W-creation-wizard-research.md §3.10): rows derived from the event's data
+    (EventGetReadyChecklist, one GetReadyItem each) - ✓ done, ○ to do (counted in "n of m done"), 💡 a tip without a tick.
+    Collapsible: a <details> (works without JavaScript); get_ready_controller.js remembers a collapse per viewer and event
+    in localStorage - except right after Publish (published), when it is open under "Published - here's what's left".
+
+    Variables: checklist (GetReadyChecklist), published (bool)
+#}
+{%- set done = checklist.doneCount -%}
+{%- set total = checklist.totalCount -%}
+<section class="card shadow-sm mb-3{{ published ? ' border-success' : '' }}" data-get-ready data-controller="get-ready" data-get-ready-id-value="{{ checklist.competitionId }}" data-get-ready-force-open-value="{{ published ? 'true' : 'false' }}" aria-label="{{ 'event_wizard.get_ready.aria'|trans }}">
+    <details open data-get-ready-target="details" data-action="toggle->get-ready#toggled">
+        <summary class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2 py-2" style="cursor: pointer;">
+            <span class="fw-semibold me-auto" data-get-ready-heading>
+                {%- if published -%}
+                    <i class="bi bi-check2-circle text-success me-1" aria-hidden="true"></i>{{ 'event_wizard.get_ready.published_heading'|trans }}
+                {%- elseif checklist.dateFrom is not null -%}
+                    {{ 'event_wizard.get_ready.heading_date'|trans({'%date%': checklist.dateFrom|events_date('MMMd')}) }}
+                {%- else -%}
+                    {{ 'event_wizard.get_ready.heading'|trans }}
+                {%- endif -%}
+            </span>
+            <span class="small {{ done == total ? 'text-success' : 'text-muted' }}" data-get-ready-count>{{ 'event_wizard.get_ready.done_count'|trans({'%done%': done, '%total%': total}) }}</span>
+            <i class="bi bi-chevron-down small text-muted get-ready-chevron" aria-hidden="true"></i>
+        </summary>
+        <ul class="list-group list-group-flush">
+            {% for row in checklist.rows %}
+                <li class="list-group-item d-flex align-items-start gap-2 py-2" data-get-ready-row="{{ row.key }}" data-get-ready-state="{{ row.done is same as(true) ? 'done' : (row.done is same as(false) ? 'todo' : 'tip') }}">
+                    {%- if row.done is same as(true) -%}
+                        <i class="bi bi-check-circle-fill text-success mt-1" aria-hidden="true"></i>
+                        <span class="visually-hidden">{{ 'event_wizard.get_ready.state_done'|trans }}</span>
+                    {%- elseif row.done is same as(false) -%}
+                        <i class="bi bi-circle text-muted mt-1" aria-hidden="true"></i>
+                        <span class="visually-hidden">{{ 'event_wizard.get_ready.state_todo'|trans }}</span>
+                    {%- else -%}
+                        <i class="bi bi-lightbulb text-warning mt-1" aria-hidden="true"></i>
+                        <span class="visually-hidden">{{ 'event_wizard.get_ready.state_tip'|trans }}</span>
+                    {%- endif -%}
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="{{ row.done is same as(true) ? 'text-body-secondary' : '' }}">{{ row.labelKey|trans(row.labelParameters) }}</div>
+                        {% if row.noteKey is not null %}
+                            <div class="small text-muted">{{ row.noteKey|trans(row.noteParameters) }}</div>
+                        {% endif %}
+                    </div>
+                    {% if row.route is not null and row.linkKey is not null %}
+                        <a href="{{ path(row.route, row.routeParameters|merge({return: path('edit_competition', {competitionId: checklist.competitionId}), return_title: 'competition.edit_event'|trans})) }}" class="btn btn-sm {{ row.done is same as(false) ? 'btn-outline-primary' : 'btn-link' }} text-nowrap flex-shrink-0">{{ row.linkKey|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </details>
+</section>

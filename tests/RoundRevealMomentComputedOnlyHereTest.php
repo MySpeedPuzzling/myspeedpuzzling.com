@@ -30,6 +30,7 @@ final class RoundRevealMomentComputedOnlyHereTest extends TestCase
         'src/Query/GetBadges.php' => 'The achievements earned with a time: badge rows stamped within minutes after the time was saved - no round, no reveal moment.',
         'src/Value/RecapProgress.php' => 'Whether a recap is opened right after the time was saved (the level-up celebration) - no round, no reveal moment.',
         'src/Services/Sandbox/SandboxPeople.php' => 'Sandbox only: made-up players\' sign-up moments - no round, no reveal moment.',
+        'src/Query/GetTimeProposals.php' => 'The judge page lists proposals decided in the last 10 minutes next to the pending ones - no round start, no reveal moment.',
         'src/Services/Sandbox/SandboxResultPlanner.php' => 'Sandbox only: when a made-up result was solved and saved - no round, no reveal moment.',
     ];
 

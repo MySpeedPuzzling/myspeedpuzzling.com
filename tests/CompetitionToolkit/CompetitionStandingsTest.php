@@ -217,7 +217,7 @@ final class CompetitionStandingsTest extends KernelTestCase
     public function testDuplicatingTheEventCopiesItsStandingsUnpublishedWithTheCopiedRounds(): void
     {
         $solo = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(5, StandingOrder::TotalOnly));
-        $this->database->executeStatement('UPDATE competition_standing SET published_at = NOW() WHERE id = :id', ['id' => $solo]);
+        $this->database->executeStatement('UPDATE competition_standing SET published_at = :at WHERE id = :id', ['id' => $solo, 'at' => '2026-01-01 00:00:00']);
         $this->create('World Series - Pairs', RoundCategory::Duo, $this->pairRounds);
 
         $copyId = Uuid::uuid7();

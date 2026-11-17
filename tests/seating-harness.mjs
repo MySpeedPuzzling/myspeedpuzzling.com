@@ -26,6 +26,7 @@ const operations = {
     seen: ({ attribute, current }) => seating.seenNumber(attribute, current),
     matches: ({ entry, query }) => seating.matchesQuery(entry, query),
     fold: ({ text }) => seating.fold(text),
+    copyTargets: ({ targets, chosen }) => seating.copyRequestTargets(targets, chosen),
 };
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\OfficialResults;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Exceptions\SeatingSourceRoundNotAvailable;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Results\SeatingProposalRow;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\SeatingProposer;
 use SpeedPuzzling\Web\Value\SeatingSource;
@@ -18,9 +20,10 @@ use Symfony\Component\Routing\Attribute\Route;
  * Auto-assign of the seating page, as a proposal - table numbers for every entrant of the round, nothing written
  * (docs/features/competitions-management/seating.md). The page applies it with `official_results_assign_table_numbers`.
  *
- * Query: `source` (earlier_rounds | msp_times | random | name; none = the best available), `order` (fastest_first |
- * slowest_first), `seed` (random: the draw to repeat; none = a new draw), `first` (the first table number, default 1).
- * 400 `invalid_seating_options` for anything else.
+ * Query: `source` (earlier_rounds | msp_times | random | name | same_tables; none = the best available), `order`
+ * (fastest_first | slowest_first), `seed` (random: the draw to repeat; none = a new draw), `first` (the first table
+ * number, default 1), `from_round` (same_tables: the earlier round of the same kind to take the tables from; none = the
+ * latest one with tables). 400 `invalid_seating_options` for anything else.
  */
 final class SeatingProposalController extends AbstractController
 {
@@ -54,28 +57,35 @@ final class SeatingProposalController extends AbstractController
         $order = $request->query->getString('order', 'fastest_first');
         $seed = self::positiveInt($request->query->getString('seed'), self::MAX_SEED);
         $first = self::positiveInt($request->query->getString('first', '1'), SeatingProposer::MAX_TABLE_NUMBER);
+        $fromRound = $request->query->getString('from_round');
 
         if (
             ($sourceParameter !== '' && $source === null)
             || !in_array($order, ['fastest_first', 'slowest_first'], true)
             || ($request->query->has('seed') && $seed === null)
             || $first === null
+            || ($request->query->has('from_round') && preg_match('/^' . FirstTryConflictsController::ID_REQUIREMENT . '$/', $fromRound) !== 1)
         ) {
             return OfficialResultsApi::error('invalid_seating_options', JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $proposal = $this->seatingProposer->propose(
-            competitionId: $competitionId,
-            roundId: $round->id->toString(),
-            source: $source,
-            slowestFirst: $order === 'slowest_first',
-            randomSeed: $seed ?? random_int(1, self::MAX_SEED),
-            firstTable: $first,
-            locale: $request->getLocale(),
-        );
+        try {
+            $proposal = $this->seatingProposer->propose(
+                competitionId: $competitionId,
+                roundId: $round->id->toString(),
+                source: $source,
+                slowestFirst: $order === 'slowest_first',
+                randomSeed: $seed ?? random_int(1, self::MAX_SEED),
+                firstTable: $first,
+                locale: $request->getLocale(),
+                fromRoundId: $fromRound === '' ? null : $fromRound,
+            );
+        } catch (SeatingSourceRoundNotAvailable) {
+            return OfficialResultsApi::error('invalid_seating_options', JsonResponse::HTTP_BAD_REQUEST);
+        }
 
         // The last table must stay a table number (1..9999)
-        if ($proposal->rows !== [] && $first + count($proposal->rows) - 1 > SeatingProposer::MAX_TABLE_NUMBER) {
+        if ($proposal->rows !== [] && max(array_map(static fn (SeatingProposalRow $row): int => $row->tableNumber, $proposal->rows)) > SeatingProposer::MAX_TABLE_NUMBER) {
             return OfficialResultsApi::error('invalid_seating_options', JsonResponse::HTTP_BAD_REQUEST);
         }
 

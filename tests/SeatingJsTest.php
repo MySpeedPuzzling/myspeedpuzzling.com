@@ -216,6 +216,27 @@ final class SeatingJsTest extends TestCase
     }
 
     /**
+     * "Use these tables in later rounds" sends the rounds chosen in the confirm with the hash the confirm showed - the
+     * server refuses a round that changed since (competition toolkit W3).
+     */
+    public function testTheCopySendsTheChosenRoundsWithTheirConfirmHash(): void
+    {
+        $targets = [
+            ['roundId' => 'r2', 'name' => 'Challenge 2', 'hash' => 'aaa'],
+            ['roundId' => 'r3', 'name' => 'Challenge 3', 'hash' => 'bbb'],
+            ['roundId' => 'r4', 'name' => 'Challenge 4', 'hash' => 'ccc'],
+        ];
+
+        self::assertSame([
+            [['round' => 'r2', 'hash' => 'aaa'], ['round' => 'r4', 'hash' => 'ccc']],
+            [],
+        ], $this->runInNode([
+            ['op' => 'copyTargets', 'targets' => $targets, 'chosen' => ['r4', 'r2', 'unknown']],
+            ['op' => 'copyTargets', 'targets' => $targets, 'chosen' => []],
+        ]));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function entry(string $id, null|int $tableNumber, null|string $name = null): array

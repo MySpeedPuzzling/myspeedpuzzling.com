@@ -28,6 +28,9 @@ readonly final class SeatingProposal implements \JsonSerializable
         public int $firstTable,
         /** @var list<SeatingProposalRow> by proposed table */
         public array $rows,
+        // "Same tables as round X" - null when the round has no earlier round of its kind with table numbers (the
+        // source is then not offered at all)
+        public null|SeatingSameTables $sameTables = null,
     ) {
     }
 
@@ -43,13 +46,17 @@ readonly final class SeatingProposal implements \JsonSerializable
     {
         $sources = [];
         foreach (SeatingSource::cases() as $source) {
+            if ($source === SeatingSource::SameTables && $this->sameTables === null) {
+                continue;
+            }
+
             $sources[] = [
                 'source' => $source->value,
                 'withData' => $this->withDataBySource[$source->value] ?? 0,
             ];
         }
 
-        return [
+        $json = [
             'roundId' => $this->roundId,
             'source' => $this->source->value,
             'defaultSource' => $this->defaultSource->value,
@@ -64,5 +71,11 @@ readonly final class SeatingProposal implements \JsonSerializable
             'withoutData' => count($this->rows) - $this->withData(),
             'rows' => $this->rows,
         ];
+
+        if ($this->sameTables !== null) {
+            $json['sameTables'] = $this->sameTables;
+        }
+
+        return $json;
     }
 }

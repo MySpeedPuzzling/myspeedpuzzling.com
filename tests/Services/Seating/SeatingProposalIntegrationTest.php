@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\Seating;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\SeatingSourceRoundNotAvailable;
 use SpeedPuzzling\Web\Query\GetSeatingSeedTimes;
 use SpeedPuzzling\Web\Results\SeatingProposal;
 use SpeedPuzzling\Web\Results\SeatingProposalRow;
@@ -200,6 +201,76 @@ final class SeatingProposalIntegrationTest extends KernelTestCase
 
         self::assertSame(SeatingSource::Name, $proposal->defaultSource);
         self::assertSame(['Gina Quick', 'Hugo Slow', 'Ivan Last'], self::names($proposal));
+    }
+
+    public function testThePairsFinalTakesThePairsTablesForExactlyTheSamePeople(): void
+    {
+        $round = OfficialResultsFixture::ROUND_PAIRS_FINAL;
+        // Puzzle Sharks sat at table 1, Corner Pieces at 2, Edge Hunters at 3 in the Pairs round
+        $this->pair($round, 'Sharks again', [OfficialResultsFixture::PARTICIPANT_BEN, OfficialResultsFixture::PARTICIPANT_ANNA]);
+        $this->pair($round, 'Corners again', [OfficialResultsFixture::PARTICIPANT_CARA, OfficialResultsFixture::PARTICIPANT_DAN]);
+        $this->pair($round, 'Edges again', [OfficialResultsFixture::PARTICIPANT_GINA, OfficialResultsFixture::PARTICIPANT_HUGO]);
+        // Eva sat with Filip (no table) - with Ivan she is another pair
+        $this->pair($round, 'New pair', [OfficialResultsFixture::PARTICIPANT_EVA, OfficialResultsFixture::PARTICIPANT_IVAN]);
+
+        // 3 of 4 matched - not the same field, results stay the best available
+        self::assertSame(SeatingSource::EarlierRounds, $this->propose($round)->defaultSource);
+
+        $proposal = $this->propose($round, SeatingSource::SameTables);
+
+        self::assertSame(SeatingSource::SameTables, $proposal->source);
+        self::assertSame(['Sharks again', 'Corners again', 'Edges again', 'New pair'], self::names($proposal));
+        self::assertSame([1, 2, 3, 4], self::tables($proposal));
+        self::assertSame([true, true, true, false], array_map(static fn (SeatingProposalRow $row): bool => $row->hasData, $proposal->rows));
+        self::assertSame('Pairs', $proposal->rows[0]->basisRoundName);
+        self::assertNull($proposal->rows[3]->basisRoundName);
+        self::assertNotNull($proposal->sameTables);
+        self::assertSame(OfficialResultsFixture::ROUND_PAIRS, $proposal->sameTables->fromRoundId);
+        self::assertSame(1, $proposal->sameTables->notMatched);
+        self::assertSame([['roundId' => OfficialResultsFixture::ROUND_PAIRS, 'name' => 'Pairs']], $proposal->sameTables->rounds);
+        self::assertSame(3, $proposal->withDataBySource[SeatingSource::SameTables->value]);
+    }
+
+    public function testTheSameFieldIsSeatedAtTheSameTablesByDefault(): void
+    {
+        // The Final becomes Group B's field: Gina 1, Hugo 2, Ivan 3 there
+        $this->database->delete('competition_participant_round', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+        foreach ([OfficialResultsFixture::PARTICIPANT_IVAN, OfficialResultsFixture::PARTICIPANT_GINA, OfficialResultsFixture::PARTICIPANT_HUGO] as $participantId) {
+            $this->database->insert('competition_participant_round', [
+                'id' => Uuid::uuid7()->toString(),
+                'participant_id' => $participantId,
+                'round_id' => OfficialResultsFixture::ROUND_FINAL,
+            ]);
+        }
+
+        $proposal = $this->propose(OfficialResultsFixture::ROUND_FINAL);
+
+        self::assertSame(SeatingSource::SameTables, $proposal->defaultSource);
+        self::assertSame(SeatingSource::SameTables, $proposal->source);
+        self::assertSame(['Gina Quick', 'Hugo Slow', 'Ivan Last'], self::names($proposal));
+        self::assertSame([1, 2, 3], self::tables($proposal));
+        self::assertSame('Group B', $proposal->sameTables?->fromRoundName);
+
+        // Group A on request: none of them played it - by name from the first table
+        $fromGroupA = $this->proposer->propose(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_FINAL, SeatingSource::SameTables, false, 1, 1, 'en', OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $fromGroupA->sameTables?->fromRoundId);
+        self::assertSame(3, $fromGroupA->sameTables->notMatched);
+        self::assertSame([1, 2, 3], self::tables($fromGroupA));
+    }
+
+    public function testSameTablesComeOnlyFromAnEarlierRoundOfTheSameKind(): void
+    {
+        // Group A is the event's first round - nothing to take the tables from, the source is not offered
+        $proposal = $this->propose(OfficialResultsFixture::ROUND_GROUP_A, SeatingSource::SameTables);
+        self::assertNull($proposal->sameTables);
+        self::assertNotSame(SeatingSource::SameTables, $proposal->source);
+        $sources = $proposal->jsonSerialize()['sources'];
+        self::assertIsArray($sources);
+        self::assertNotContains('same_tables', array_column($sources, 'source'));
+
+        $this->expectException(SeatingSourceRoundNotAvailable::class);
+        // The Pairs round is not of the Final's kind
+        $this->proposer->propose(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_FINAL, SeatingSource::SameTables, false, 1, 1, 'en', OfficialResultsFixture::ROUND_PAIRS);
     }
 
     private function propose(

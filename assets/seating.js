@@ -214,6 +214,18 @@ export function proposalCoversEntrants(rows, byRef) {
 }
 
 /**
+ * "Use these tables in later rounds": the rounds chosen in the confirm, each with the hash the confirm showed - a round
+ * whose entrants or tables changed since is refused by the server (CopyRoundTableNumbers), never numbered unseen.
+ */
+export function copyRequestTargets(targets, chosenRoundIds) {
+    const chosen = new Set(chosenRoundIds);
+
+    return targets
+        .filter((target) => chosen.has(target.roundId))
+        .map((target) => ({ round: target.roundId, hash: target.hash }));
+}
+
+/**
  * What undoes a write: every entry it listed back to the table it had before (`before` = Map ref => number) - `from` is
  * the number the write set, so an entry somebody else renumbered since is not undone over their change.
  */

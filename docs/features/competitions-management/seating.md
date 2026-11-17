@@ -14,11 +14,12 @@ watching). Optional, but highly recommended: a referee then enters results by ta
 | Seating page of a round | `round_seating` (`/en/round-seating/{roundId}`, cs `/zasedaci-poradek-kola/{roundId}`) | `RoundSeatingController`, `templates/seating/round_seating.html.twig`, `controllers/round_seating_controller.js` (lazy) |
 | Printable lists | `round_seating_print` (`/en/print-round-seating/{roundId}`, `?list=tables` / `?list=names`) | `RoundSeatingPrintController`, `templates/seating/print.html.twig` - standalone like the table layout print |
 | Auto-assign proposal (JSON) | `official_results_seating_proposal` (GET `/{_locale}/official-results/rounds/{roundId}/seating-proposal`) | `SeatingProposalController` → `SeatingProposer` |
+| "Use these tables in later rounds" (JSON) | `official_results_copy_table_numbers_targets` (GET) / `official_results_copy_table_numbers` (POST), both `/{_locale}/official-results/rounds/{roundId}/copy-table-numbers` | `CopyTableNumbersTargetsController` / `CopyTableNumbersController` → `SameTablesCopy`, `CopyRoundTableNumbers` |
 | The seating step ("Tables: x / y assigned") on every page managing a round | round list, results desk, results overview, stopwatch control page, seating page, live entry | `templates/seating/_readiness.html.twig`, `SeatingReadiness::isShown()` - see "The seating step: one rule" |
 
 All of them: `CompetitionEditVoter` on the round's competition, `noindex`, `Cache-Control: private, no-store`. The
 JSON endpoint follows `OfficialResultsApi` (401 `sign_in_required`, 403 `forbidden`, never a login redirect).
-`?propose=auto|earlier_rounds|msp_times|random|name` on the seating page opens the auto-assign proposal at once - the
+`?propose=auto|earlier_rounds|msp_times|random|name|same_tables` on the seating page opens the auto-assign proposal at once - the
 "Seat them now" link after advancing qualified entries (`&first=101` pre-fills the first table number, e.g. for the
 second of two semifinals in one hall).
 
@@ -121,10 +122,46 @@ was added or removed) the page asks for a fresh proposal instead of applying.
 3. **Random draw** (`random`) - `sha256(seed:ref)` order; the proposal shows "Draw no. 48213" and **Draw again**; the
    same number with the same entrants gives the same order (also after changing the first table).
 4. **By name** (`name`) - the page language's collation (`Collator`).
+5. **Same tables as round X** (`same_tables`, `?from_round=<roundId>`; competition toolkit W3 - World Series rules
+   §6). The tables come from one earlier round of the same kind that uses table numbers and has at least one
+   (`SeatingProposer::sameTablesRounds()` = `earlierRounds()` filtered; the page's select lists them). Default round
+   (`defaultSameTablesRound()`): the latest of them listed before this round, else the last of them. Identity = the
+   one of `earlier_rounds` - the same participant, **exactly the same set of participants** for a pair/team. Matched
+   entrants keep the table they had there; the rest keep their current table when no matched entrant takes it, else -
+   and when they have none - get the tables after the highest, by name ("N entries have no table in Round X"); from the
+   first table number when nobody has a table. `SeatingProposer::sameTables()` (pure). An unknown or other-kind
+   `from_round` = 400 `invalid_seating_options`. The source is **only offered** (radio + `sources` entry + JSON
+   `sameTables` {fromRound, notMatched, rounds}) when such a round exists - the proposal JSON of a round without one is
+   unchanged. Fastest/slowest does not apply (hidden).
 
-**Default** (the page opens with it, marked "best available"): earlier rounds when they place at least half of the
+**Default** (the page opens with it, marked "best available"): **same tables** when the round is the same field as the
+default round of source 5 - at least 90 % of the entrants had a table there **and** at least 90 % of that round's
+seated entries are entrants here (`sameTablesIsDefault()`; Q-J7 - the second half keeps a final of 20 from a semifinal
+of 100 seeded by results, not by the semifinal's tables); else earlier rounds when they place at least half of the
 entrants or more of them than MySpeedPuzzling times (the round's entrants came from qualification), else MySpeedPuzzling
 times when anybody has data, else by name. Each source shows "n of N with data".
+
+## Same tables in every round (competition toolkit W3)
+
+A World Series championship keeps everybody at the same table in every challenge. **Same tables in every round = print
+the table tents once**: table tags kind `t` are a card per table for the whole event (`competition_name_tags?kind=t`,
+`?layout=tents`), and round 1's "Find your table" list serves the e-mail the organisers send beforehand. When rounds of
+different championships run at once, give each its own table range (`first` = 201) - a table tag picks among the
+rounds using that number.
+
+- Per round: Auto-assign → "Same tables as [round]" → **Apply these tables** - the usual one `AssignTableNumbers` write.
+- For many rounds at once: on the seating page of a round whose every entry has a table, **Use these tables in later
+  rounds** (shown only when a later round of the same kind uses table numbers - decided from the round list the page
+  has anyway, 0 statements). The confirm (`official_results_copy_table_numbers_targets`, read on opening it) lists every
+  later round of the kind with "N of M get their table from here, K tables change", each ticked. **Copy the tables**
+  sends `{targets: [{round, hash}]}` → `CopyRoundTableNumbers` (one handler under `CompetitionParticipantsLock`):
+  `SameTablesCopy::plan()` read again under the lock, the same rule as source 5 per target, **all or nothing over
+  every target**; refused (`TableNumbersCopyRefused`, 422 `copy_refused` with `problems` {round, reason, message}) when
+  a target's `hash` (`SameTablesCopy::hash()` = its entrant refs + how many have a table) differs from the confirm's
+  (`changed_meanwhile`), a target is not a later round of the kind using table numbers (`round_not_available`), nothing
+  was chosen, the source has no table, or a table would pass 9999. The page then shows the reasons and the targets
+  again. Every changed round gets `OfficialResultsLiveUpdates::entriesChanged()` after the commit. No Undo toast (the
+  rounds' own seating pages can renumber).
 
 ## Printed lists
 
@@ -157,4 +194,8 @@ default source, earlier-round source selection incl. pairs, pairs/teams times, c
 slowest first from table 101, MySpeedPuzzling baselines / median / private player / no times in the JSON, pairs by
 their pair time or members, a no-puzzle round at 500 pieces, pairs final from the pairs round, draw and by name),
 `tests/Controller/Seating/*` (page, print, proposal endpoint, stopwatch readiness incl. pages that must not change),
-`tests/SeatingJsTest.php` (assets/seating.js under node).
+`tests/SeatingJsTest.php` (assets/seating.js under node). Same tables (W3): `SeatingProposerTest` (`sameTables()`:
+same people, kept / moved tables, pairs by exact member set; the 90 % rule; source rounds), `SeatingProposalIntegrationTest`
+(pairs final from the pairs round, the same field by default, other-kind round refused),
+`SeatingProposalControllerTest`, `RoundSeatingControllerTest` (option + copy button), `CopyRoundTableNumbersHandlerTest`,
+`CopyTableNumbersControllerTest`, `RefereeRightsTest` (organisers only), `SerializedByLockMessagesTest`.

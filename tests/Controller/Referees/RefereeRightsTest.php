@@ -263,6 +263,7 @@ final class RefereeRightsTest extends WebTestCase
         yield 'unpublish' => [$round . '/unpublish', []];
         yield 'table numbers' => [$round . '/table-numbers', ['assignments' => []]];
         yield 'table numbers usage' => [$round . '/table-numbers-usage', ['off' => true]];
+        yield 'copy table numbers' => ['/en/official-results/rounds/' . OfficialResultsFixture::ROUND_PAIRS . '/copy-table-numbers', ['targets' => []]];
         yield 'advance' => ['/en/official-results/competitions/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/advance', [
             'sourceRoundIds' => [OfficialResultsFixture::ROUND_PAIRS],
             'targetRoundIds' => [OfficialResultsFixture::ROUND_PAIRS_FINAL],

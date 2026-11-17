@@ -33,6 +33,7 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
 
 /**
  * The public competitor page of a scanned competition tag (docs/features/competitions-management/competitor-pages.md,
@@ -348,37 +349,9 @@ readonly final class GetCompetitorPage
             rank: $rank,
             qualified: $qualified,
             puzzleChips: $chips,
-            piecesCount: $result !== null && $result->isUnfinished() ? self::piecesCount($isPick, $round['puzzles_to_solve'], $chips, $puzzles) : null,
+            piecesCount: $result !== null && $result->isUnfinished() ? UnfinishedPiecesCount::of($isPick, $round['puzzles_to_solve'], $chips, $puzzles) : null,
             unpaired: $row['kind'] === 'unpaired',
         );
-    }
-
-    /**
-     * The pieces an unfinished result is out of, when the public may know them: a one-result round's one puzzle, or all
-     * K puzzles a pick entry chose - each shown to everybody.
-     *
-     * @param list<PublishedEntryPuzzle> $chips
-     */
-    private static function piecesCount(bool $isPick, null|int $toSolve, array $chips, RoundPuzzlesNow $puzzles): null|int
-    {
-        if ($isPick === false) {
-            return count($puzzles->slots) === 1 && count($puzzles->puzzles) === 1 ? $puzzles->puzzles[0]->piecesCount : null;
-        }
-
-        if ($toSolve === null || count($chips) !== $toSolve) {
-            return null;
-        }
-
-        $pieces = 0;
-        foreach ($chips as $chip) {
-            if ($chip->puzzle === null) {
-                return null;
-            }
-
-            $pieces += $chip->puzzle->piecesCount;
-        }
-
-        return $pieces;
     }
 
     /**

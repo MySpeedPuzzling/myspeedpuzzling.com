@@ -48,14 +48,17 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
+use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
+use SpeedPuzzling\Web\Message\DeleteCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Message\DeleteCompetitionStanding;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
+use SpeedPuzzling\Web\Message\EditCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
@@ -112,6 +115,8 @@ use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\StandingRules;
+use SpeedPuzzling\Web\Value\AdvancementStepSettings;
+use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -253,6 +258,20 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new DeleteCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
         self::assertSame($key, (new PublishCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
         self::assertSame($key, (new UnpublishCompetitionStanding('standing', $competitionId))->lockKey());
+    }
+
+    /**
+     * The advancement steps' writes (competition toolkit A8) take turns with round deletes and moves, which prune steps.
+     */
+    public function testAdvancementStepWritesLockTheEventLikeRoundDeletes(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+        $settings = new AdvancementStepSettings(['group'], ['final'], AdvanceDistribution::Single);
+
+        self::assertSame($key, (new CreateCompetitionAdvancementStep(Uuid::uuid7(), $competitionId, null, $settings))->lockKey());
+        self::assertSame($key, (new EditCompetitionAdvancementStep('step', $competitionId, 'Groups', $settings))->lockKey());
+        self::assertSame($key, (new DeleteCompetitionAdvancementStep('step', strtolower($competitionId)))->lockKey());
     }
 
     /**

@@ -3,7 +3,7 @@
 // stdin, and prints one result per case as JSON.
 
 import { readFileSync } from 'node:fs';
-import { bestOfEachCountry, qualificationDiff, seatAdvanced, topN } from '../assets/official_results_qualification.js';
+import { bestOfEachCountry, overallForRound, prefillFromStep, qualificationDiff, seatAdvanced, topN } from '../assets/official_results_qualification.js';
 import { PendingChanges, keepMineInEditor, openEditor, saveEditor, savedMeanwhile } from '../assets/official_results_pending_changes.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
@@ -117,6 +117,10 @@ process.stdout.write(JSON.stringify(cases.map((testCase) => {
             return qualificationDiff(testCase.entries, testCase.selected, testCase.keepOthers);
         case 'seatAdvanced':
             return seatAdvanced(testCase.targetEntries, testCase.refs, testCase.slowestFirst ?? false);
+        case 'overallForRound':
+            return overallForRound(testCase.answer, testCase.entries);
+        case 'prefillFromStep':
+            return prefillFromStep(testCase.step, testCase.rounds);
         case 'pending':
             return runPending(testCase.steps);
         case 'suite':

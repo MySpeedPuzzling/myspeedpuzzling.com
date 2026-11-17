@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
@@ -31,6 +32,7 @@ readonly final class DeleteCompetitionRoundHandler
         private RoundStopwatchReveal $roundStopwatchReveal,
         private ClockInterface $clock,
         private CompetitionStandingRepository $standingRepository,
+        private CompetitionAdvancementStepRepository $advancementStepRepository,
     ) {
     }
 
@@ -118,6 +120,13 @@ readonly final class DeleteCompetitionRoundHandler
         // The event's standings lose the round (competition toolkit A6) - none for an event without standings
         foreach ($this->standingRepository->ofCompetition($round->competition) as $standing) {
             $standing->pruneRound($message->roundId);
+        }
+
+        // ... and its advancement steps (competition toolkit A8): a step left without sources or targets goes too
+        foreach ($this->advancementStepRepository->ofCompetition($round->competition) as $step) {
+            if ($step->pruneRound($message->roundId) && $step->isEmpty()) {
+                $this->advancementStepRepository->delete($step);
+            }
         }
 
         // Its competition's times - and an edition's series picks - are reconciled once it is gone (CompetitionRoundsChanged)

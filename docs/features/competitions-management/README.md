@@ -76,7 +76,9 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   flags, follow mode - each with a **new link** (token; the source's TV links keep showing the source), a pinned round
   and the followed rounds remapped onto the copied rounds, pictures copied to the copy's own
   `competition-displays/<id>/` prefix (the design sanitizer accepts only the event's own uploads) - a picture missing
-  from the storage is left out (warning in the log) (`copyDisplays()`).
+  from the storage is left out (warning in the log) (`copyDisplays()`);
+- the advancement steps (competition toolkit A8): same settings, their rounds and by-source map remapped onto the copied
+  rounds (`copyAdvancementSteps()`) - see results-desk.md "Declared advancement steps".
 
 **Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
 check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the

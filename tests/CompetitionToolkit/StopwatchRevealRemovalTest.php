@@ -191,8 +191,8 @@ final class StopwatchRevealRemovalTest extends WebTestCase
             'stop' => 8,
             'remove' => 20,
             'set' => 16,
-            // 20 + the read of the event's standings, which lose the round (competition toolkit A6)
-            'delete round' => 21,
+            // 20 + the reads of the event's standings (competition toolkit A6) and advancement steps (A8), which lose the round
+            'delete round' => 22,
             // 16 + the read of its displays' uploaded pictures, deleted after the commit (D7)
             'delete event' => 17,
         ], $counts);

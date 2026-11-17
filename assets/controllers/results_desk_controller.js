@@ -5,7 +5,7 @@ import { officialResultsRequest, newClientId, isGone } from '../official_results
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { rankEntries } from '../official_results_ranking.js';
-import { bestOfEachCountry, qualificationDiff, topN } from '../official_results_qualification.js';
+import { bestOfEachCountry, overallForRound, qualificationDiff, topN } from '../official_results_qualification.js';
 import {
     PendingChanges,
     sameValue,
@@ -1679,8 +1679,19 @@ export default class extends Controller {
     // ---------------------------------------------------------------- qualification helpers
 
     openHelper(event) {
-        const mode = event.currentTarget.dataset.helper;
-        this.helper = { mode, count: mode === 'top' ? Math.max(1, this.rankedEntries().filter((entry) => entry.qualified).length || 10) : 1, keepOthers: mode === 'country', include: new Map() };
+        const button = event.currentTarget;
+        const mode = button.dataset.helper;
+        // An advancement step's "Mark top N" (competition toolkit A8) brings its N - and for "top N over all its rounds"
+        // the address of the server's proposal; the review dialog and "Apply" are the same as by hand
+        const preset = Math.floor(Number(button.dataset.helperCount) || 0);
+        const presetUrl = mode === 'top' ? (button.dataset.helperPresetUrl ?? null) : null;
+        this.helper = {
+            mode,
+            count: preset > 0 ? preset : (mode === 'top' ? Math.max(1, this.rankedEntries().filter((entry) => entry.qualified).length || 10) : 1),
+            keepOthers: mode === 'country',
+            include: new Map(),
+            overall: presetUrl ? { url: presetUrl, answer: null, failed: false, requestId: 0 } : null,
+        };
 
         this.helperBodyTarget.querySelectorAll('[data-helper-section]').forEach((section) => {
             section.hidden = section.dataset.helperSection !== mode;
@@ -1700,6 +1711,43 @@ export default class extends Controller {
         this.helperModalTarget.querySelector('[data-helper-title]').textContent = this.t(`helper_title_${mode}`);
         this.renderHelper();
         this.modal(this.helperModalTarget).show();
+
+        if (this.helper.overall !== null) {
+            this.loadOverallProposal();
+        }
+    }
+
+    /**
+     * "Top N over all the step's rounds" (competition toolkit A8): the server ranks every source round together by the
+     * advancement seed (saved results); the dialog shows this round's part of it. The latest request wins.
+     */
+    async loadOverallProposal() {
+        const helper = this.helper;
+        const overall = helper?.overall;
+
+        if (!overall) {
+            return;
+        }
+
+        const requestId = ++overall.requestId;
+        overall.answer = null;
+        overall.failed = false;
+        this.renderHelper();
+
+        const separator = overall.url.includes('?') ? '&' : '?';
+        const answer = await officialResultsRequest(`${overall.url}${separator}count=${encodeURIComponent(String(helper.count))}`);
+
+        if (this.helper !== helper || overall.requestId !== requestId) {
+            return;
+        }
+
+        if (answer.kind === 'ok') {
+            overall.answer = answer.data;
+        } else {
+            overall.failed = true;
+        }
+
+        this.renderHelper();
     }
 
     helperChanged(event) {
@@ -1712,6 +1760,12 @@ export default class extends Controller {
         if (target.matches('[data-helper-count]')) {
             this.helper.count = Math.max(0, Math.floor(Number(target.value) || 0));
             this.helper.include = new Map();
+
+            if (this.helper.overall !== null) {
+                this.loadOverallProposal();
+
+                return;
+            }
         } else if (target.matches('[data-helper-keep]')) {
             this.helper.keepOthers = target.checked;
         } else if (target.matches('[data-helper-include]')) {
@@ -1737,7 +1791,7 @@ export default class extends Controller {
         }
 
         if (helper.mode === 'top') {
-            const proposal = topN(ranked, helper.count);
+            const proposal = helper.overall !== null ? overallForRound(helper.overall.answer, ranked) : topN(ranked, helper.count);
             const tied = new Set(proposal.tiedAtCut);
 
             return {
@@ -1768,6 +1822,19 @@ export default class extends Controller {
     }
 
     renderHelper(withLists = true) {
+        // An advancement step's overall proposal is on its way (or failed): nothing to review or apply yet
+        if (this.helper.overall !== null && this.helper.overall.answer === null) {
+            const decide = this.helperBodyTarget.querySelector('[data-helper-decide]');
+            if (decide) {
+                decide.innerHTML = '';
+            }
+
+            this.helperSummaryTarget.innerHTML = `<p class="text-body-secondary mb-0">${escapeHtml(this.t(this.helper.overall.failed ? 'step_overall_failed' : 'step_overall_loading'))}</p>`;
+            this.helperApplyTarget.disabled = true;
+
+            return;
+        }
+
         const ranked = this.rankedEntries();
         const byRef = new Map(ranked.map((entry) => [entry.ref, entry]));
         const proposal = this.helperProposal();
@@ -1804,7 +1871,7 @@ export default class extends Controller {
         const listOf = (refs) => refs.map((ref) => `<li>${label(ref)}</li>`).join('');
         const qualifiedNow = ranked.filter((entry) => entry.qualified === true).length;
         const total = qualifiedNow + diff.mark.length - diff.unmark.length;
-        this.helperSummaryTarget.innerHTML = `<p class="fw-semibold mb-2">${escapeHtml(this.t('helper_diff', { mark: diff.mark.length, unmark: diff.unmark.length, total }))}</p>
+        this.helperSummaryTarget.innerHTML = `${this.helper.overall !== null ? `<p class="small text-body-secondary mb-2">${escapeHtml(this.t('step_overall_note'))}</p>` : ''}<p class="fw-semibold mb-2">${escapeHtml(this.t('helper_diff', { mark: diff.mark.length, unmark: diff.unmark.length, total }))}</p>
             ${diff.mark.length > 0 ? `<details><summary>${escapeHtml(this.tc('helper_will_mark', diff.mark.length))}</summary><ul class="small mb-2">${listOf(diff.mark)}</ul></details>` : ''}
             ${diff.unmark.length > 0 ? `<details><summary>${escapeHtml(this.tc('helper_will_unmark', diff.unmark.length))}</summary><ul class="small mb-2">${listOf(diff.unmark)}</ul></details>` : ''}`;
 
@@ -1834,6 +1901,22 @@ export default class extends Controller {
         this.render();
         this.flush();
         this.toast(this.t('helper_applied', { mark: mark.length, unmark: unmark.length }), 'info');
+    }
+
+    /**
+     * An advancement step's "Advance" (competition toolkit A8): the Advance dialog on this page opens prefilled from
+     * the step (advance_qualified_controller.js `openStep`) - the dry run, plan hash and apply are unchanged.
+     */
+    advanceStep(event) {
+        let step;
+
+        try {
+            step = JSON.parse(event.currentTarget.dataset.step ?? 'null');
+        } catch {
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent('advance-qualified:open-step', { detail: { step } }));
     }
 
     // ---------------------------------------------------------------- publishing

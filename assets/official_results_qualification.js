@@ -163,3 +163,85 @@ export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = fals
 
     return assignments;
 }
+
+/**
+ * "Mark top N overall" of an advancement step (competition toolkit A8): the server's answer
+ * (official_results_advancement_step_preset - AdvancementSeeding over all the step's source rounds, saved results)
+ * narrowed to this desk's round: only its own ranked entries are proposed, the ties at the cut highlighted like Top N.
+ *
+ * @param {{selected?: Array<{ref: string}>, tiedAtCut?: string[]}|null} answer
+ * @returns {{selected: string[], tiedAtCut: string[]}} refs
+ */
+export function overallForRound(answer, entries) {
+    const own = new Set(ranked(entries).map((entry) => entry.ref));
+    const selected = (Array.isArray(answer?.selected) ? answer.selected : [])
+        .map((item) => item?.ref)
+        .filter((ref) => typeof ref === 'string' && own.has(ref));
+    const tiedAtCut = (Array.isArray(answer?.tiedAtCut) ? answer.tiedAtCut : [])
+        .filter((ref) => typeof ref === 'string' && own.has(ref));
+
+    return { selected: [...new Set(selected)], tiedAtCut: [...new Set(tiedAtCut)] };
+}
+
+const DISTRIBUTIONS = ['single', 'balanced', 'by_source'];
+
+/**
+ * What the Advance dialog starts with for a declared advancement step (competition toolkit A8) - the step's settings
+ * checked against the rounds the dialog knows (a round gone, or of another category now, is left out; a distribution
+ * that no longer fits the targets is left for the organiser to choose). The dry run, plan hash and apply work as for
+ * a choice made by hand.
+ *
+ * @param {object} step AdvancementStepOverview's JSON
+ * @param {Array<{id: string, category: string}>} rounds
+ * @returns {{sources: string[], targets: string[], distribution: string|null, targetBySource: Object<string, string>,
+ *            countryRule: number|null}|null} null = nothing usable (no source or no target left)
+ */
+export function prefillFromStep(step, rounds) {
+    if (step === null || typeof step !== 'object' || !Array.isArray(rounds)) {
+        return null;
+    }
+
+    const known = new Map(rounds.map((round) => [String(round.id).toLowerCase(), round]));
+    const ids = (list) => (Array.isArray(list) ? [...new Set(list
+        .filter((id) => typeof id === 'string')
+        .map((id) => id.toLowerCase())
+        .filter((id) => known.has(id)))] : []);
+
+    const sourceIds = ids(step.sourceRoundIds);
+    const category = sourceIds.length > 0 ? known.get(sourceIds[0]).category : null;
+    const sources = sourceIds.filter((id) => known.get(id).category === category);
+    const targets = ids(step.targetRoundIds).filter((id) => known.get(id).category === category && !sources.includes(id));
+
+    if (sources.length === 0 || targets.length === 0) {
+        return null;
+    }
+
+    let distribution = DISTRIBUTIONS.includes(step.distribution) ? step.distribution : null;
+
+    if ((distribution === 'single' && targets.length !== 1) || (distribution === 'balanced' && targets.length < 2)) {
+        distribution = null;
+    }
+
+    const original = (id) => known.get(id).id;
+    const targetBySource = {};
+
+    if (distribution === 'by_source' && step.targetBySource !== null && typeof step.targetBySource === 'object') {
+        const map = Object.fromEntries(Object.entries(step.targetBySource).map(([source, target]) => [source.toLowerCase(), String(target).toLowerCase()]));
+
+        for (const source of sources) {
+            if (targets.includes(map[source])) {
+                targetBySource[original(source)] = original(map[source]);
+            }
+        }
+    }
+
+    const country = Number.isInteger(step.bestOfEachCountry) && step.bestOfEachCountry >= 1 ? Math.min(99, step.bestOfEachCountry) : null;
+
+    return {
+        sources: sources.map(original),
+        targets: targets.map(original),
+        distribution,
+        targetBySource,
+        countryRule: country,
+    };
+}

@@ -1,0 +1,16 @@
+{#
+    What an advancement step declares, in one sentence (competition toolkit A8) - the steps page and the results desk's
+    banner. Variables: item (AdvancementStepsView item: step, sources, targets).
+#}
+{%- set settings = item.step.settings -%}
+{%- set targets = item.targets|join(', ') -%}
+{%- if settings.qualifyCount is null -%}
+    {{ 'advancement_step.summary.by_hand'|trans({'%targets%': targets}) }}
+{%- elseif item.step.overall -%}
+    {{ 'advancement_step.summary.overall'|trans({'%count%': settings.qualifyCount, '%sources%': item.sources|join(', '), '%targets%': targets}) }}
+{%- elseif settings.sourceRoundIds|length > 1 -%}
+    {{ 'advancement_step.summary.per_round'|trans({'%count%': settings.qualifyCount, '%targets%': targets}) }}
+{%- else -%}
+    {{ 'advancement_step.summary.top'|trans({'%count%': settings.qualifyCount, '%targets%': targets}) }}
+{%- endif -%}
+{%- if settings.bestOfEachCountry is not null %} {{ 'advancement_step.summary.country'|trans({'%count%': settings.bestOfEachCountry}) }}{% endif -%}

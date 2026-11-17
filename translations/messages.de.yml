@@ -15147,6 +15147,7 @@ analytics_studio:
   "organiser.link": "Analysestudio"
   "organiser.title": "Analysestudio"
   "organiser.help": "Eine Live-Ansicht jeder Runde für Kommentatoren: alle Teilnehmer im Blick auf die Puzzles der Runde, ihre Historie, Vorhersagen und die Ergebnisse, sobald sie eintreffen. Öffnen Sie es auf einem zweiten Bildschirm."
+  "link": "Analysestudio"
 finished_missing:
     export_column: "Fehlende Teile (fertig)"
     missing_short: "{1}1 Teil fehlt|[0,Inf[%count% Teile fehlen"

@@ -48,6 +48,10 @@
         {%- endif %}
         <span data-round-category>{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
     </div>
+    {#- The round's analytics studio for commentators (docs/features/competitions-management/analytics-studio.md §8): built
+        from the page's own route parameters, no statement; one element right after the header line, so
+        OfficialRoundResultsGoldenTest strips it and pins the rest byte for byte -#}
+    <p class="small mt-n2 mb-3" data-analytics-studio-link><a href="{{ path(round_route == 'event_round_results' ? 'event_analytics_studio' : 'edition_analytics_studio', round_route_params|merge({roundSlug: round.slug})) }}" rel="nofollow" class="text-nowrap"><i class="bi bi-bar-chart-line me-1" aria-hidden="true"></i>{{ 'analytics_studio.link'|trans }} <span aria-hidden="true">→</span></a></p>
 
     <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
         {% if page.previousRound %}

@@ -15137,6 +15137,7 @@ analytics_studio:
   "organiser.link": "アナリティクススタジオ"
   "organiser.title": "アナリティクススタジオ"
   "organiser.help": "実況者向けに各ラウンドをライブで表示します：ラウンドのパズルに対する出場者全員の記録、予測、そして入ってくる結果。セカンドスクリーンで開いてください。"
+  "link": "アナリティクススタジオ"
 finished_missing:
     export_column: "欠けたピース（完成）"
     missing_short: "{1}欠けたピース1個|[0,Inf[欠けたピース%count%個"

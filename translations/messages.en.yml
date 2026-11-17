@@ -15394,6 +15394,7 @@ analytics_studio:
     "organiser.link": "Analytics studio"
     "organiser.title": "Analytics studio"
     "organiser.help": "A live view of each round for commentators: every entrant against the round's puzzles, their history, predictions and the results as they come in. Open it on a second screen."
+    "link": "Analytics studio"
 finished_missing:
     export_column: "Pieces missing (finished)"
     missing_short: "{0}No pieces missing|{1}1 piece missing|]1,Inf[%count% pieces missing"

@@ -15148,6 +15148,7 @@ analytics_studio:
   "organiser.link": "Estudio de análisis"
   "organiser.title": "Estudio de análisis"
   "organiser.help": "Una vista en vivo de cada ronda para comentaristas: cada participante frente a los puzzles de la ronda, su historial, sus predicciones y los resultados a medida que llegan. Ábrelo en una segunda pantalla."
+  "link": "Estudio de análisis"
 finished_missing:
     export_column: "Piezas que faltan (terminado)"
     missing_short: "{1}falta 1 pieza|[0,Inf[faltan %count% piezas"

@@ -25,7 +25,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 /**
  * The rounds timeline of the edition and one-time event pages (docs/features/events-page/detail-pages.md "Rounds
  * timeline", detail-pages-plan.md 1.3): one row per round in schedule order, past / live / next / later, earlier rounds
- * folded, the links each round offers (results, add a time, watch its studio live) - and the page's dates, from the same
+ * folded, the links each round offers (results, its analytics studio, add a time, watch its studio live) - and the page's dates, from the same
  * sessions rule as the events page (OccurrenceDates::sessions()). Pure apart from the URL generator and whether a media
  * server is configured; each rule has a test in RoundsTimelineBuilderTest.
  */
@@ -124,6 +124,7 @@ readonly final class RoundsTimelineBuilder
                 watchUrl: $videoAvailable && $round->onlineVideo && self::stillWatchable($round, $now)
                     ? $this->urlGenerator->generate('online_watch', ['roundId' => $round->id])
                     : null,
+                analyticsStudioUrl: $isPublic ? $this->analyticsStudioUrl($event, $round) : null,
             );
         }
 
@@ -265,6 +266,30 @@ readonly final class RoundsTimelineBuilder
                 'roundSlug' => $round->slug,
             ]),
             'edition_detail' => $this->urlGenerator->generate('edition_round_results', [
+                'seriesSlug' => (string) $event->seriesSlug,
+                'editionSlug' => (string) $event->slug,
+                'roundSlug' => $round->slug,
+            ]),
+            default => null,
+        };
+    }
+
+    /**
+     * The studio page of a slugged round (analytics-studio.md §8, R18) - independent of results; the studio itself
+     * answers 404 for a round without a slug or an event that is not public
+     */
+    private function analyticsStudioUrl(CompetitionReference $event, EditionRoundDetail $round): null|string
+    {
+        if ($round->slug === null) {
+            return null;
+        }
+
+        return match ($event->routeName()) {
+            'event_detail' => $this->urlGenerator->generate('event_analytics_studio', [
+                'slug' => (string) $event->slug,
+                'roundSlug' => $round->slug,
+            ]),
+            'edition_detail' => $this->urlGenerator->generate('edition_analytics_studio', [
                 'seriesSlug' => (string) $event->seriesSlug,
                 'editionSlug' => (string) $event->slug,
                 'roundSlug' => $round->slug,

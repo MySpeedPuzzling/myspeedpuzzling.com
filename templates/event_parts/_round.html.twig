@@ -6,7 +6,7 @@
 
     Date leaf (the round's day in its own zone) · name in its badge colour · category, time limit, the start time in the
     event's zone named (online: the visitor's own after it) and the when label · its puzzles · its links (watch the
-    studio live, results, add a time, registration). The next round
+    studio live, results, its analytics studio, add a time, registration). The next round
     (or a running one) is highlighted; a screen reader hears "Next round:" and the date in words first.
 #}
 {%- set round = item.round -%}
@@ -40,7 +40,7 @@
             </p>
         {% endif %}
         {%- set show_registration = status == 'next' and event.registrationLink -%}
-        {% if item.resultsUrl or item.addTimeUrl or item.watchUrl or show_registration %}
+        {% if item.resultsUrl or item.analyticsStudioUrl or item.addTimeUrl or item.watchUrl or show_registration %}
             <p class="ev-round-links">
                 {#- The studio's watch page (docs/features/online-competitions/): live video on, a public page -#}
                 {% if item.watchUrl %}
@@ -51,6 +51,10 @@
                 {% endif %}
                 {% if item.resultsUrl %}
                     <a href="{{ item.resultsUrl }}" data-round-results-link>{{ (item.officialResults ? 'event_rounds.official_results' : 'round_results.link')|trans }}</a>
+                {% endif %}
+                {#- Commentators prepare before the round: every slugged round of a public page (analytics-studio.md §8) -#}
+                {% if item.analyticsStudioUrl %}
+                    <a href="{{ item.analyticsStudioUrl }}" rel="nofollow" data-analytics-studio-link>{{ 'analytics_studio.link'|trans }}</a>
                 {% endif %}
                 {% if item.addTimeUrl %}
                     <a href="{{ item.addTimeUrl }}" data-round-add-time>{{ 'event_rounds.add_my_time'|trans }}</a>

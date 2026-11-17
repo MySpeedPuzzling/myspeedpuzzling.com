@@ -36,6 +36,9 @@ readonly final class TimelineRound
         public bool $puzzlesAnnounced,
         // the studio's watch page - a public page, live video available and on, until a while after the round
         public null|string $watchUrl = null,
+        // The round's analytics studio (docs/features/competitions-management/analytics-studio.md §8) - a public page and a
+        // round with a slug, before its results too: commentators prepare before the round
+        public null|string $analyticsStudioUrl = null,
     ) {
     }
 

@@ -15150,6 +15150,7 @@ analytics_studio:
   "organiser.link": "Analytické studio"
   "organiser.title": "Analytické studio"
   "organiser.help": "Živý pohled na každé kolo pro komentátory: všichni soutěžící proti puzzle kola, jejich historie, predikce a výsledky, jak přicházejí. Otevřete ho na druhé obrazovce."
+  "link": "Analytické studio"
 finished_missing:
     export_column: "Chybějící dílky (dokončeno)"
     missing_short: "{1}chybí 1 dílek|[2,4]chybí %count% dílky|[0,Inf[chybí %count% dílků"

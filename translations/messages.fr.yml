@@ -15143,6 +15143,7 @@ analytics_studio:
   "organiser.link": "Studio d'analyse"
   "organiser.title": "Studio d'analyse"
   "organiser.help": "Une vue en direct de chaque manche pour les commentateurs : chaque concurrent face aux puzzles de la manche, son historique, ses prédictions et les résultats à mesure qu'ils arrivent. Ouvrez-la sur un second écran."
+  "link": "Studio d'analyse"
 finished_missing:
     export_column: "Pièces manquantes (terminé)"
     missing_short: "[0,1]%count% pièce manquante|]1,Inf[%count% pièces manquantes"

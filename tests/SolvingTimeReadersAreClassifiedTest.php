@@ -66,6 +66,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetBotTrustEligibility.php' => 'neutral: the bot-blocker trust cookie - "has logged a result" is evidence of a real person, an unfinished result too.',
         'Query/GetBrandDirectory.php' => self::PERFORMANCE,
         'Query/GetBrandHub.php' => self::PERFORMANCE,
+        'Query/GetEventWizardStructureLock.php' => self::NEUTRAL,
         'Query/GetAnalyticsStudioEntrantHistory.php' => self::SOLVE_IN_PHP . ' The analytics studio\'s attempts on a round puzzle (AnalyticsStudioAttempt::countsAsSolve()) - an unfinished one is listed with its pieces, never a solve or a time.',
         'Query/GetAnalyticsStudioLineupHistory.php' => self::SOLVE_IN_PHP . ' The analytics studio\'s line-up attempts - folded like the members\' (AnalyticsStudioAttempts).',
         'Query/GetAnalyticsStudioPuzzleStats.php' => self::PERFORMANCE,

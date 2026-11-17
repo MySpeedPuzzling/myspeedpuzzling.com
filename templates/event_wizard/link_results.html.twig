@@ -32,8 +32,9 @@
                     {% if time.isLinkedHere %}
                         <i class="ci-check-circle text-success mt-1" aria-hidden="true"></i>
                     {% else %}
+                        {#- Only the box - the row itself is its label -#}
                         {%- set choice = form.times[time.timeId] -%}
-                        {{ form_widget(choice, {attr: {class: 'form-check-input mt-1 flex-shrink-0'}}) }}
+                        <input type="checkbox" class="form-check-input mt-1 flex-shrink-0" id="{{ choice.vars.id }}" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}"{% if choice.vars.checked %} checked{% endif %}>
                     {% endif %}
                     <label class="flex-grow-1" style="min-width: 0;"{% if not time.isLinkedHere %} for="{{ form.times[time.timeId].vars.id }}"{% endif %}>
                         <span class="d-block text-truncate fw-semibold">{{ time.puzzleName }}</span>

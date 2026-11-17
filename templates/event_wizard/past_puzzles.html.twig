@@ -8,8 +8,8 @@
     {#- Category + W1's picker (time_form_autocomplete) - empty = no round -#}
     <div class="border rounded p-2 mb-2" data-event-wizard-past-row>
         <div class="row g-2">
-            <div class="col-12 col-sm-4">{{ form_row(row.category) }}</div>
-            <div class="col-12 col-sm-8"
+            <div class="col-12 col-md-3">{{ form_row(row.category) }}</div>
+            <div class="col-12 col-md-9"
                  data-controller="time-form-autocomplete"
                  data-time-form-autocomplete-optional-value="true"
                  data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
@@ -35,7 +35,7 @@
             <div class="fw-semibold mb-1">{{ 'event_wizard_backfill.puzzles.existing'|trans }}</div>
             <ul class="mb-0 ps-3">
                 {% for round in rounds %}
-                    <li>{{ round.name }}{% for round_puzzle in round.roundPuzzles %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</li>
+                    <li>{{ round.name }}{% for round_puzzle in round.roundPuzzles|filter(round_puzzle => round_puzzle.puzzle.name not in round.name) %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</li>
                 {% endfor %}
             </ul>
         </div>

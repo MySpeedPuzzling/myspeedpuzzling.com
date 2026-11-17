@@ -15320,7 +15320,7 @@ event_wizard_backfill:
         no_rounds: "None yet"
         results: "Results"
         linked: "{1}1 result linked|[0,Inf[%count% results linked"
-        waiting: "{1}+ 1 result - linked once an admin approves the event (usually within a day)|[0,Inf[+ %count% results - linked once an admin approves the event (usually within a day)"
+        waiting: "{1}1 result - linked once an admin approves the event (usually within a day)|[0,Inf[%count% results - linked once an admin approves the event (usually within a day)"
         open_event: "Open the event"
         link_more: "Link more results"
         edit: "Edit the event"

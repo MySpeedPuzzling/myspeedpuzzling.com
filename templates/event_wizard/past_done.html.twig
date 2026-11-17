@@ -22,15 +22,15 @@
                 <dt class="col-sm-4">{{ 'event_wizard_backfill.done.rounds'|trans }}</dt>
                 <dd class="col-sm-8" data-event-wizard-past-rounds>
                     {% for round in rounds %}
-                        <div>{{ round.name }}{% for round_puzzle in round.roundPuzzles %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</div>
+                        <div>{{ round.name }}{% for round_puzzle in round.roundPuzzles|filter(round_puzzle => round_puzzle.puzzle.name not in round.name) %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</div>
                     {% else %}
                         <span class="text-muted">{{ 'event_wizard_backfill.done.no_rounds'|trans }}</span>
                     {% endfor %}
                 </dd>
                 <dt class="col-sm-4">{{ 'event_wizard_backfill.done.results'|trans }}</dt>
                 <dd class="col-sm-8" data-event-wizard-past-results>
-                    {{ 'event_wizard_backfill.done.linked'|trans({'%count%': linked_count}) }}
-                    {% if waiting_count > 0 %}<div class="text-muted" data-event-wizard-past-waiting>{{ 'event_wizard_backfill.done.waiting'|trans({'%count%': waiting_count}) }}</div>{% endif %}
+                    {% if linked_count > 0 or waiting_count == 0 %}<div>{{ 'event_wizard_backfill.done.linked'|trans({'%count%': linked_count}) }}</div>{% endif %}
+                    {% if waiting_count > 0 %}<div class="text-muted" data-event-wizard-past-waiting><i class="ci-time me-1"></i>{{ 'event_wizard_backfill.done.waiting'|trans({'%count%': waiting_count}) }}</div>{% endif %}
                 </dd>
             </dl>
         </div>

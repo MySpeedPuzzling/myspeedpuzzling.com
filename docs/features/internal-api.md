@@ -338,6 +338,66 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
   https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/members/<playerId>/replace-with-guest | jq
 ```
 
+### Online timing
+
+Setting up an online round without a browser - demo, test-cup and load-run events on the sandbox and on production
+([`online-competitions/`](./online-competitions/README.md)). Each endpoint goes through the same message and rules as
+the web page it mirrors. Drafts work; no feature flag (the internal API is admin-only).
+
+| Method | Path | Mirrors | Body |
+|---|---|---|---|
+| `PUT` | `/internal-api/rounds/{roundId}/online-timing` | the round's "Online timing" page | `detectionMode` (`off`/`shadow`/`on`), `unfinishedMeasure` (`left`/`placed`), `missingPieceRule` (`complete_required`/`penalty_5s`), `videoEnabled`, `participantsSeeEachOther` - all optional |
+| `POST` | `/internal-api/competitions/{competitionId}/participants` | the participants sheet | `participants` (`[{"name", "country"}]`, ≤ 1000), `roundIds` (required, `[]` = none) |
+| `GET` | `/internal-api/competitions/{competitionId}/online-links` | the links page / its CSV | - |
+
+- **`PUT …/online-timing`**: turns online timing on when it is off (`EnableOnlineRound`, credited to the reviewer player -
+  it also gives everybody going without a personal link one), then saves the settings (`UpdateOnlineRoundSettings`). A
+  field left out keeps the round's value; a round just turned on has the page's defaults (`off`, `left`,
+  `complete_required`, video off); the studio and recording are not on the page and are kept. Answers `200`
+  `{"roundId", "competitionId", "turnedOn", "linksGiven", "detectionModeLocked", "videoAvailable", "onlineTiming": {…}}`.
+  Refusals, all before anything is written: `409` for a round that cannot use online timing (an in-person event, not
+  solo, a pick round - the reason in `error`), `409` for another finish detection from the round's start until a Reset
+  (the same mode with other settings is saved), **`422 video_not_configured`** for a change of the video switches while
+  no media server is configured (the page hides them then and keeps their values - sending the stored values is fine),
+  `404` unknown round, `400` invalid field. `GET /internal-api/competitions/{idOrSlug}` shows the same object per round
+  as `onlineTiming` (`null` = not used).
+- **`POST …/participants`**: one change set of the participants sheet (`ApplyParticipantSheetChanges`, under
+  `CompetitionParticipantsLock`, the reviewer player in its receipt): a new participant per new person and an entry per
+  round somebody is not in yet - one group, all or nothing. **Idempotent by name**: a name is matched to the event's
+  participants who are not removed by the import's name key (`ParticipantNameKey` - case, spaces, diacritics,
+  apostrophes and dashes do not matter); a match is not added again, only entered into the rounds it is missing (its
+  country is kept); the same name twice in the body is one person; a removed participant is never brought back. Two
+  calls racing each other can still both create a person. Answers `201` `[{"participantId", "name", "roundIds",
+  "created"}]` in the body's order (`roundIds` = every round the participant is in now). `409 ambiguous_name` (a name
+  of several participants), `422 refused` (the sheet's rules, e.g. an unknown country - the reasons in `error`),
+  `409 changed_meanwhile` (send it again), `404` unknown competition or a round of another event. On an event that
+  manages registration a new person may land on the waitlist (and gets no link).
+- **`GET …/online-links`**: like the links page it first gives a link to everybody going without one
+  (`GenerateOnlineTokens`) - **a GET that writes**, as the page does; nothing is written when nobody misses one. Answers
+  `[{"participantId", "name", "roundIds", "url"}]` for everybody going (not removed, not waitlisted), by name; `url` is
+  the language-free `/compete/{token}` (`OnlineLinkUrl::neutral()`, like the CSV). `409` when no round of the event uses
+  online timing, `404` unknown competition. **The answer holds secrets**: `Cache-Control: private, no-store`, and it is
+  never logged (`InternalApiAuditSubscriber` skips GETs and never logs a body).
+
+```bash
+# Turn on online timing for a round, with finish detection in shadow mode
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"detectionMode": "shadow"}' https://sandbox.myspeedpuzzling.com/internal-api/rounds/<roundId>/online-timing | jq
+# → {"roundId": "…", "turnedOn": true, "linksGiven": 0, "detectionModeLocked": false, "videoAvailable": false,
+#    "onlineTiming": {"enabledAt": "…", "detectionMode": "shadow", "unfinishedMeasure": "left", …}}
+
+# Add made-up people and enter them into the round
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"participants": [{"name": "Load Tester 1", "country": "cz"}, {"name": "Load Tester 2", "country": null}], "roundIds": ["<roundId>"]}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/competitions/<competitionId>/participants | jq
+# → [{"participantId": "…", "name": "Load Tester 1", "roundIds": ["<roundId>"], "created": true}, …]
+
+# Their personal links (secrets - keep them out of logs and chats)
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  https://sandbox.myspeedpuzzling.com/internal-api/competitions/<competitionId>/online-links | jq
+# → [{"participantId": "…", "name": "Load Tester 1", "roundIds": ["<roundId>"], "url": "https://sandbox.myspeedpuzzling.com/compete/…"}]
+```
+
 ### E-mail blocks and messages to players
 
 For a player whose e-mail does not arrive (a mistyped domain like `googlemail.mail.com`): stop every e-mail to the

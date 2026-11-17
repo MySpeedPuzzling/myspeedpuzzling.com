@@ -16,6 +16,11 @@ use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
+use SpeedPuzzling\Web\Exceptions\InternalApiParticipantsNotAdded;
+use SpeedPuzzling\Web\Exceptions\OnlineDetectionModeLocked;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingNotUsed;
+use SpeedPuzzling\Web\Exceptions\OnlineVideoNotConfigured;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
@@ -122,6 +127,13 @@ return App::config([
             NamePublicationNotConfirmed::class => ['log_level' => 'info'],
             PuzzleNotRevealedYet::class => ['log_level' => 'info'],
             RoundPuzzlesNotAttachable::class => ['log_level' => 'info'],
+            // Online timing through the internal API refused - answered 409 / 422 with the reason, nothing applied
+            // (docs/features/internal-api.md, Online timing; the web pages catch these themselves)
+            OnlineTimingNotAvailable::class => ['log_level' => 'info'],
+            OnlineDetectionModeLocked::class => ['log_level' => 'info'],
+            OnlineVideoNotConfigured::class => ['log_level' => 'info'],
+            OnlineTimingNotUsed::class => ['log_level' => 'info'],
+            InternalApiParticipantsNotAdded::class => ['log_level' => 'info'],
             // The image analysis pipeline sending an invalid analysis / difficulty estimate / model record, or an analysis
             // of a picture the puzzle no longer has - answered 422 / 409, nothing stored (docs/features/internal-api.md,
             // Puzzle image analysis, Puzzle difficulty labels and estimates)

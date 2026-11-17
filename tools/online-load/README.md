@@ -86,9 +86,11 @@ DATABASE_URL='postgresql://postgres:postgres@postgres:5432/speedpuzzling_<x>_tes
 
 Then the participants: `local-stack.sh console myspeedpuzzling:import-competition-participants <competitionId> <file>`
 (the file inside the working tree - it is mounted at `/app`). Their links come from the links page, which needs a
-signed-in organiser - on a throwaway copy without a browser, a few lines of PHP through the app's own pieces do the
-same (`GenerateOnlineTokens` on the message bus, then `GetOnlineLinks::ofCompetition()` + `OnlineLinkUrl::of()`, the
-CSV the page writes); that script stays out of the repository. Then run:
+signed-in organiser - without a browser, the internal API does all three steps through the pages' own messages
+(`docs/features/internal-api.md` "Online timing"): `PUT /internal-api/rounds/{roundId}/online-timing` turns online
+timing on, `POST /internal-api/competitions/{competitionId}/participants` adds made-up people into the round (instead of
+the import, idempotent by name) and `GET /internal-api/competitions/{competitionId}/online-links` answers every personal
+link (`[{participantId, name, roundIds, url}]` - secrets). Then run:
 
 ```sh
 NAME_PREFIX=<x> tools/online-load/k6.sh ramp100 -e BASE_URL=http://<x>-web:8080 -e SPOOF_IPS=1 -e N=100 -e DURATION=6m

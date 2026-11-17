@@ -37,6 +37,8 @@ readonly final class AdminCompetitionRound
         // read-only here (the round form sets it)
         public string $puzzleFormat = 'total',
         public null|int $puzzlesToSolve = null,
+        // null = the round does not use online timing (docs/features/internal-api.md "Online timing")
+        public null|AdminOnlineTiming $onlineTiming = null,
     ) {
     }
 
@@ -60,6 +62,14 @@ readonly final class AdminCompetitionRound
      *     results_count: int,
      *     puzzle_format?: string,
      *     puzzles_to_solve?: null|int,
+     *     online_enabled_at?: null|string,
+     *     online_detection_mode?: null|string,
+     *     online_unfinished_measure?: null|string,
+     *     online_missing_piece_rule?: null|string,
+     *     online_video_enabled?: null|bool,
+     *     online_participants_see_each_other?: null|bool,
+     *     online_studio_enabled?: null|bool,
+     *     online_recording_enabled?: null|bool,
      *     ...
      * } $row
      * @param list<AdminRoundPuzzle> $puzzles
@@ -84,6 +94,7 @@ readonly final class AdminCompetitionRound
             puzzles: $puzzles,
             puzzleFormat: $row['puzzle_format'] ?? 'total',
             puzzlesToSolve: $row['puzzles_to_solve'] ?? null,
+            onlineTiming: AdminOnlineTiming::fromDatabaseRow($row),
         );
     }
 
@@ -109,6 +120,7 @@ readonly final class AdminCompetitionRound
             'resultsCount' => $this->resultsCount,
             'puzzleFormat' => $this->puzzleFormat,
             'puzzlesToSolve' => $this->puzzlesToSolve,
+            'onlineTiming' => $this->onlineTiming?->toArray(),
             'puzzles' => array_map(static fn (AdminRoundPuzzle $puzzle): array => $puzzle->toArray(), $this->puzzles),
         ];
     }

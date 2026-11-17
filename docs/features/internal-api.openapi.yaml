@@ -923,6 +923,168 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/rounds/{roundId}/online-timing:
+    put:
+      summary: Turn on online timing for a round and save its settings
+      operationId: putRoundOnlineTiming
+      description: |
+        What the round's "Online timing" page does: turns online timing on when it is
+        off (`EnableOnlineRound`, credited to the reviewer player - everybody going
+        without a personal link gets one), then saves the settings
+        (`UpdateOnlineRoundSettings`). A field left out keeps the round's value; a
+        round just turned on has the page's defaults. Refused before anything is
+        written: a round that cannot use online timing (409 - an in-person event, not
+        solo, a pick round), another finish detection from the round's start until a
+        Reset (409), a change of the video switches while no media server is
+        configured (422 `video_not_configured` - the stored values are accepted).
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                detectionMode: { type: string, enum: [off, shadow, on] }
+                unfinishedMeasure: { type: string, enum: [left, placed] }
+                missingPieceRule: { type: string, enum: [complete_required, penalty_5s] }
+                videoEnabled: { type: boolean }
+                participantsSeeEachOther: { type: boolean }
+      responses:
+        "200":
+          description: The round's online timing after the change
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roundId: { type: string, format: uuid }
+                  competitionId: { type: string, format: uuid }
+                  turnedOn: { type: boolean, description: Turned on by this request }
+                  linksGiven: { type: integer, description: Personal links given when it was turned on }
+                  detectionModeLocked: { type: boolean, description: The round has a start - finish detection stays until a Reset }
+                  videoAvailable: { type: boolean, description: A media server is configured }
+                  onlineTiming:
+                    $ref: "#/components/schemas/OnlineTiming"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          description: The video switches cannot change - no media server is configured (`code` = `video_not_configured`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal-api/competitions/{competitionId}/participants:
+    post:
+      summary: Add people to a competition and enter them into rounds
+      operationId: addCompetitionParticipants
+      description: |
+        One change set of the participants sheet (`ApplyParticipantSheetChanges`,
+        one group - all or nothing). Idempotent by name: a name is matched to the
+        event's participants who are not removed by the import's name key (case,
+        spaces, diacritics, apostrophes and dashes do not matter) - a match is only
+        entered into the rounds it is missing; the same name twice is one person.
+        `409` `ambiguous_name` (several participants have the name) or
+        `changed_meanwhile` (send it again), `422` `refused` (the sheet's rules, e.g.
+        an unknown country), `404` for an unknown competition or a round of another one.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [participants, roundIds]
+              properties:
+                participants:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [name]
+                    properties:
+                      name: { type: string, maxLength: 255 }
+                      country: { type: [string, "null"], example: cz, description: Country code (lower or upper case) }
+                roundIds:
+                  type: array
+                  description: Rounds of this competition to enter everybody into - `[]` = none
+                  items: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Everybody of the body, in its order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    participantId: { type: string, format: uuid }
+                    name: { type: string, description: As stored (a matched participant keeps their spelling) }
+                    roundIds: { type: array, items: { type: string, format: uuid }, description: Every round the participant is in now }
+                    created: { type: boolean, description: Added by this request (false = matched by name) }
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          description: Refused by the participants sheet's rules (`code` = `refused`), nothing added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal-api/competitions/{competitionId}/online-links:
+    get:
+      summary: The personal links of everybody going
+      operationId: getCompetitionOnlineLinks
+      description: |
+        What the links page does: whoever is going without a link gets one first
+        (`GenerateOnlineTokens` - a GET that writes, like the page; nothing is written
+        when nobody misses one). Everybody going (not removed, not waitlisted), by
+        name, with the language-free `/compete/{token}` address. The answer holds
+        secrets: `Cache-Control: private, no-store`, never logged. `409` when no round
+        of the event uses online timing.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "200":
+          description: The links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    participantId: { type: string, format: uuid }
+                    name: { type: string }
+                    roundIds: { type: array, items: { type: string, format: uuid } }
+                    url: { type: string, example: "https://myspeedpuzzling.com/compete/2ConnectedTestCupToken" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /internal-api/rounds/{roundId}/puzzles:
     put:
       summary: Set the round's puzzles
@@ -3956,6 +4118,11 @@ components:
         resultsCount:
           type: integer
           description: Solving times that belong to the round.
+        onlineTiming:
+          description: The round's online timing - null when it does not use it
+          oneOf:
+            - $ref: "#/components/schemas/OnlineTiming"
+            - type: "null"
         puzzles:
           type: array
           items:
@@ -3977,6 +4144,18 @@ components:
                   hidesEverywhere:
                     type: boolean
                     description: The round keeps the puzzle secret on the whole site, not only on its event pages
+
+    OnlineTiming:
+      type: object
+      properties:
+        enabledAt: { type: string, format: date-time }
+        detectionMode: { type: string, enum: [off, shadow, on] }
+        unfinishedMeasure: { type: string, enum: [left, placed] }
+        missingPieceRule: { type: string, enum: [complete_required, penalty_5s] }
+        videoEnabled: { type: boolean }
+        participantsSeeEachOther: { type: boolean }
+        studioEnabled: { type: boolean, description: Not on the page - kept as it is }
+        recordingEnabled: { type: boolean, description: Not on the page - kept as it is }
 
     ConfirmReveal:
       type: object

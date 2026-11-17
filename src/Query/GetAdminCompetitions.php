@@ -277,6 +277,14 @@ SQL, ['id' => $id]);
          *     results_count: int,
          *     puzzle_format: string,
          *     puzzles_to_solve: null|int,
+         *     online_enabled_at: null|string,
+         *     online_detection_mode: null|string,
+         *     online_unfinished_measure: null|string,
+         *     online_missing_piece_rule: null|string,
+         *     online_video_enabled: null|bool,
+         *     online_participants_see_each_other: null|bool,
+         *     online_studio_enabled: null|bool,
+         *     online_recording_enabled: null|bool,
          * }> $roundRows
          */
         $roundRows = $this->database->fetchAllAssociative(<<<SQL
@@ -298,10 +306,19 @@ SELECT
     cr.puzzles_to_solve,
     c.location_country_code,
     cs.location_country_code AS series_country_code,
-    (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) AS results_count
+    (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) AS results_count,
+    online.enabled_at AS online_enabled_at,
+    online.detection_mode AS online_detection_mode,
+    online.unfinished_measure AS online_unfinished_measure,
+    online.missing_piece_rule AS online_missing_piece_rule,
+    online.video_enabled AS online_video_enabled,
+    online.participants_see_each_other AS online_participants_see_each_other,
+    online.studio_enabled AS online_studio_enabled,
+    online.recording_enabled AS online_recording_enabled
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id
+LEFT JOIN online_round online ON online.round_id = cr.id
 WHERE cr.competition_id = :competitionId
     AND (CAST(:roundId AS UUID) IS NULL OR cr.id = CAST(:roundId AS UUID))
 ORDER BY cr.starts_at, cr.name, cr.id

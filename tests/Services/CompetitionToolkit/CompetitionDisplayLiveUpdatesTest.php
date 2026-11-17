@@ -37,8 +37,9 @@ final class CompetitionDisplayLiveUpdatesTest extends WebTestCase
             $signals->puzzlesChanged(self::ROUND);
             $signals->roundChanged(self::ROUND);
         });
-        self::assertCount(1, $statements);
-        self::assertStringContainsString('competition_display', $statements[0]);
+        // ... plus one for the standings (v2 S1: does a published standing count this round?) - forwarded from here
+        self::assertCount(2, $statements);
+        self::assertCount(1, array_filter($statements, static fn (string $sql): bool => str_contains($sql, 'competition_display')));
 
         // The next request (the object's own memory gone - worker mode resets it): the shared cache answers
         self::getContainer()->get(CompetitionDisplaysPresence::class)->reset();
@@ -46,9 +47,11 @@ final class CompetitionDisplayLiveUpdatesTest extends WebTestCase
             $signals->resultsChanged(self::ROUND);
             $signals->roundsChanged(self::CUP);
         });
-        // ... only the event itself, asked for the first time, is read
-        self::assertCount(1, $statements);
-        self::assertStringNotContainsString('competition_round', $statements[0]);
+        // ... only the event itself, asked for the first time, is read (displays + standings, once each)
+        self::assertCount(2, $statements);
+        foreach ($statements as $sql) {
+            self::assertStringNotContainsString('competition_round', $sql);
+        }
 
         self::getContainer()->get(CompetitionDisplaysPresence::class)->reset();
         self::assertSame([], self::statementsOf(static function () use ($signals): void {
@@ -179,9 +182,7 @@ final class CompetitionDisplayLiveUpdatesTest extends WebTestCase
             }
 
             foreach ($queries as $query) {
-                // The standings' own presence check (v2 S1, CompetitionStandingsLiveUpdates, forwarded from here) is
-                // pinned in CompetitionStandingsLiveUpdatesTest - this test counts what the displays pay
-                if (is_array($query) && is_string($query['sql'] ?? null) && !str_contains($query['sql'], 'competition_standing')) {
+                if (is_array($query) && is_string($query['sql'] ?? null)) {
                     $statements[] = $query['sql'];
                 }
             }

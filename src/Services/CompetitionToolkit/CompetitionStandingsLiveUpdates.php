@@ -82,11 +82,14 @@ final readonly class CompetitionStandingsLiveUpdates
     private function forRound(string $roundId, bool $forgetFirst, \Closure $wanted): void
     {
         try {
-            if ($forgetFirst) {
-                $this->presence->forgetRound($roundId);
-            }
-
             $presence = $this->presence->forRound($roundId);
+
+            // An event without a published standing (nearly all) pays nothing: whether this round's results are published
+            // only matters once a standing is published, and publishing one forgets every answer of the event
+            if ($forgetFirst && $presence->anyPublished) {
+                $this->presence->forgetRound($roundId);
+                $presence = $this->presence->forRound($roundId);
+            }
         } catch (\Throwable $exception) {
             $this->logger->warning('Could not tell whether a round counts in a published standing', [
                 'round_id' => $roundId,
@@ -104,11 +107,14 @@ final readonly class CompetitionStandingsLiveUpdates
     private function forCompetition(string $competitionId, bool $forgetFirst): void
     {
         try {
-            if ($forgetFirst) {
-                $this->presence->changed($competitionId);
-            }
-
             $presence = $this->presence->forCompetition($competitionId);
+
+            // Rounds added, deleted or moved: only an event with a published standing reads its answers again (publishing
+            // a standing forgets them all)
+            if ($forgetFirst && $presence->anyPublished) {
+                $this->presence->changed($competitionId);
+                $presence = $this->presence->forCompetition($competitionId);
+            }
         } catch (\Throwable $exception) {
             $this->logger->warning('Could not tell whether an event has published standings', [
                 'competition_id' => $competitionId,

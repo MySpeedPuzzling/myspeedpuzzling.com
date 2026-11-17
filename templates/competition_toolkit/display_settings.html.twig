@@ -22,7 +22,12 @@
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_displays', {competitionId: competition.id}), fallbackTitle: 'competition_display.list.title'|trans}) }}
 
     <div class="pb-4" style="max-width: 40rem;" data-competition-display-settings>
-        <h1 class="h2">{{ display.name }}</h1>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <h1 class="h2 mb-0">{{ display.name }}</h1>
+            <a href="{{ path('edit_competition_display', {displayId: display.id}) }}" class="btn btn-sm btn-primary ms-auto" data-display-edit-link>
+                <i class="bi bi-pencil-square me-1"></i>{{ 'competition_display.editor.edit_design'|trans }}
+            </a>
+        </div>
         <p class="text-muted">
             <span class="badge {{ display.kind.value == 'overlay' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ ('competition_display.kind.' ~ display.kind.value)|trans }}</span>
             {{ ('competition_display.kind.' ~ display.kind.value ~ '_help')|trans }}

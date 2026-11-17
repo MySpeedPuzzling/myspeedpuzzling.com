@@ -38,6 +38,9 @@
                     <button type="button" class="btn btn-sm btn-outline-primary" data-copy-link-target="button" data-action="copy-link#copy" data-display-copy-link>
                         <i class="bi bi-link-45deg me-1"></i><span>{{ 'competition_display.list.copy_link'|trans }}</span>
                     </button>
+                    <a href="{{ path('edit_competition_display', {displayId: display.id}) }}" class="btn btn-sm btn-primary" data-display-edit-link>
+                        <i class="bi bi-pencil-square me-1"></i>{{ 'competition_display.editor.edit_design'|trans }}
+                    </a>
                     <a href="{{ display_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer" data-turbo="false" data-display-open-link>
                         <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'competition_display.list.open'|trans }}
                     </a>

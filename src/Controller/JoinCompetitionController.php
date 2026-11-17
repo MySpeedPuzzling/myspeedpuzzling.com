@@ -6,27 +6,31 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
+use SpeedPuzzling\Web\Query\GetParticipantClaimPolicy;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ClaimOutcome;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventJustJoined;
+use SpeedPuzzling\Web\Value\ParticipantClaimPolicy;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -49,6 +53,8 @@ final class JoinCompetitionController extends AbstractController
         private readonly GetEventAttendance $getEventAttendance,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         private readonly ParticipantsSheetLiveUpdates $sheetLiveUpdates,
+        private readonly GetParticipantClaimPolicy $getParticipantClaimPolicy,
+        private readonly RateLimiterFactoryInterface $participantClaimLimiter,
     ) {
     }
 
@@ -93,12 +99,23 @@ final class JoinCompetitionController extends AbstractController
                 return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId]);
             }
 
+            if ($participantId !== '' && $this->claimLimitReached($profile)) {
+                return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+            }
+
             // Already going = "Change" (claiming another row of the organizer's list), no new join: no marketplace
             // follow-up. Only asked where a follow-up could happen at all.
             $wasGoing = $this->mightBeMarketplaceEvent($competition)
                 && $this->getMarketplaceEvents->isPlayerGoing($competition->id, $profile->playerId);
 
-            $joined = $this->join($competitionId, $profile->playerId, $participantId !== '' ? $participantId : null);
+            $outcome = null;
+            $joined = $this->join($competitionId, $profile->playerId, $participantId !== '' ? $participantId : null, outcome: $outcome);
+
+            $notLinked = $this->claimNotLinked($outcome, $competitionId, $competitionUrl);
+
+            if ($notLinked !== null) {
+                return $notLinked;
+            }
 
             if ($wasGoing) {
                 if ($joined) {
@@ -113,6 +130,8 @@ final class JoinCompetitionController extends AbstractController
 
         $isGoing = count($this->getCompetitionParticipants->getPlayerConnections($competitionId, $profile->playerId)) > 0;
         $hasNotConnected = $this->getCompetitionParticipants->hasNotConnectedParticipants($competitionId);
+        $claimPolicy = $this->getParticipantClaimPolicy->of($competitionId)['policy'];
+        $matchingParticipantId = null;
 
         if ($isGoing === false) {
             // Opted in and their name is on the organizer's list: no need to make them pick it
@@ -120,10 +139,16 @@ final class JoinCompetitionController extends AbstractController
                 ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)
                 : null;
 
-            if ($matchingParticipantId !== null || $hasNotConnected === false) {
-                $joined = $this->join($competitionId, $profile->playerId, $matchingParticipantId);
+            // R11 (participant-linking.md §0a): a GET never links a name where the organiser confirms who is who - the
+            // match is only pre-selected, like on a managed event. Open events keep the one-tap GET
+            $linksOnGet = $matchingParticipantId === null || $claimPolicy === ParticipantClaimPolicy::Open;
 
-                return $this->afterJoin($joined, $competition, $profile, $competitionUrl);
+            if (($matchingParticipantId !== null && $linksOnGet) || $hasNotConnected === false) {
+                $outcome = null;
+                $joined = $this->join($competitionId, $profile->playerId, $matchingParticipantId, outcome: $outcome);
+
+                return $this->claimNotLinked($outcome, $competitionId, $competitionUrl)
+                    ?? $this->afterJoin($joined, $competition, $profile, $competitionUrl);
             }
         }
 
@@ -139,6 +164,8 @@ final class JoinCompetitionController extends AbstractController
             'profile_country' => CountryCode::fromCode($profile->country),
             'not_connected_participants' => $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId),
             'is_self_joined' => $this->getCompetitionParticipants->isPlayerSelfJoined($competitionId, $profile->playerId),
+            'matching_participant_id' => $matchingParticipantId,
+            'claims_need_approval' => $claimPolicy === ParticipantClaimPolicy::Approval,
         ]);
     }
 
@@ -179,13 +206,30 @@ final class JoinCompetitionController extends AbstractController
                 }
             }
 
+            if ($participantId !== '' && $this->claimLimitReached($profile)) {
+                return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+            }
+
             $wasGoing = $this->mightBeMarketplaceEvent($competition)
                 && $this->getMarketplaceEvents->isPlayerGoing($competition->id, $profile->playerId);
 
-            $joined = $this->join($competitionId, $profile->playerId, $participantId !== '' ? $participantId : null);
+            $outcome = null;
+            $joined = $this->join(
+                $competitionId,
+                $profile->playerId,
+                $participantId !== '' ? $participantId : null,
+                releasesOwnRegistration: $request->request->getBoolean('release_paid'),
+                outcome: $outcome,
+            );
 
             if ($joined === false) {
                 return $this->redirect($competitionUrl);
+            }
+
+            $notLinked = $this->claimNotLinked($outcome, $competitionId, $competitionUrl);
+
+            if ($notLinked !== null) {
+                return $notLinked;
             }
 
             if ($participantId !== '') {
@@ -241,32 +285,37 @@ final class JoinCompetitionController extends AbstractController
                 ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)
                 : null,
             'register_csrf_id' => self::REGISTER_CSRF_PREFIX . $competitionId,
+            'claims_need_approval' => $this->getParticipantClaimPolicy->of($competitionId)['policy'] === ParticipantClaimPolicy::Approval,
         ]);
     }
 
     /**
+     * @param-out null|ClaimOutcome $outcome a pick's claim outcome (participant-linking.md §5.1), null for a self-join
      * @return bool whether the player joined
      */
-    private function join(string $competitionId, string $playerId, null|string $participantId): bool
-    {
+    private function join(
+        string $competitionId,
+        string $playerId,
+        null|string $participantId,
+        bool $releasesOwnRegistration = false,
+        null|ClaimOutcome &$outcome = null,
+    ): bool {
         try {
-            $this->messageBus->dispatch(new JoinCompetition(
+            $envelope = $this->messageBus->dispatch(new JoinCompetition(
                 competitionId: $competitionId,
                 playerId: $playerId,
                 participantId: $participantId,
+                releasesOwnRegistration: $releasesOwnRegistration,
             ));
+
+            $result = $envelope->last(HandledStamp::class)?->getResult();
+            $outcome = $result instanceof ClaimOutcome ? $result : null;
 
             // The organiser's open participants sheets learn about the new or changed link (participant-linking.md §5.8)
             $this->sheetLiveUpdates->changedAfterResponse($competitionId);
 
             return true;
         } catch (HandlerFailedException $e) {
-            if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
-                $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
-
-                return false;
-            }
-
             $notOpen = $e->getPrevious();
 
             if ($notOpen instanceof RegistrationNotOpen) {
@@ -277,6 +326,44 @@ final class JoinCompetitionController extends AbstractController
 
             throw $e;
         }
+    }
+
+    /**
+     * A pick that did not link the player (participant-linking.md §5.1, §6.2): the page says what happened instead -
+     * null when it linked them (or was no pick), the usual "You're going" flow goes on.
+     */
+    private function claimNotLinked(null|ClaimOutcome $outcome, string $competitionId, string $competitionUrl): null|Response
+    {
+        return match ($outcome) {
+            null, ClaimOutcome::Linked, ClaimOutcome::AlreadyYours => null,
+            ClaimOutcome::Requested => $this->flashAndRedirect('success', 'participant_linking.flash.requested', $competitionUrl),
+            ClaimOutcome::DisputeSent => $this->flashAndRedirect('info', 'participant_linking.flash.dispute_sent', $competitionUrl),
+            ClaimOutcome::AskOrganiser => $this->flashAndRedirect('warning', 'participant_linking.flash.ask_organiser', $competitionUrl),
+            ClaimOutcome::NotAvailable => $this->flashAndRedirect('warning', 'participant_linking.flash.not_available', $this->generateUrl('join_competition', ['competitionId' => $competitionId])),
+            ClaimOutcome::ReleaseNotConfirmed => $this->flashAndRedirect('warning', 'competition_registration.flash.release_paid_not_confirmed', $this->generateUrl('join_competition', ['competitionId' => $competitionId])),
+        };
+    }
+
+    private function flashAndRedirect(string $type, string $message, string $url): Response
+    {
+        $this->addFlash($type, $this->translator->trans($message));
+
+        return $this->redirect($url, Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Limiter `participant_claim` (participant-linking.md §10.2): 10 picks per 10 minutes per player - a pick is a request
+     * to an organiser or a link, never a loop.
+     */
+    private function claimLimitReached(PlayerProfile $profile): bool
+    {
+        if ($this->participantClaimLimiter->create($profile->playerId)->consume()->isAccepted()) {
+            return false;
+        }
+
+        $this->addFlash('warning', $this->translator->trans('participant_linking.flash.too_many_claims'));
+
+        return true;
     }
 
     /**

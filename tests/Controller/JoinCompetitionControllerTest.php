@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 final class JoinCompetitionControllerTest extends WebTestCase
 {
@@ -145,6 +146,84 @@ final class JoinCompetitionControllerTest extends WebTestCase
             $browser->request('POST', '/en/join-event/' . $competitionId, ['self_join' => '1']);
             $this->assertResponseStatusCodeSame(404);
             self::assertSame(0, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, $competitionId));
+        }
+    }
+
+    /**
+     * R11 (participant-linking.md §0a): where the organiser confirms who is who, the GET never links the name match - it
+     * is pre-selected and the page says a pick waits for the organiser (§6.2)
+     */
+    public function testUnderApprovalTheGetOnlyPreselectsTheMatch(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE competition SET participant_claims = 'approval' WHERE id = :id", ['id' => CompetitionFixture::COMPETITION_WJPC_2024]);
+        $database->executeStatement(
+            "UPDATE competition_participant SET name = 'Admin  user', country = 'cz' WHERE id = :id",
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
+
+        $this->assertResponseIsSuccessful();
+        self::assertNull($database->fetchOne('SELECT player_id FROM competition_participant WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]));
+        self::assertSame(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, $crawler->filter('select[name="participant_id"] option[selected]')->attr('value'));
+        self::assertCount(1, $crawler->filter('[data-claims-need-approval]'));
+        self::assertStringContainsString('Ask the organiser to link me', $crawler->filter('[data-claim-submit="ask"]')->text());
+        self::assertStringContainsString('The organisers will see your name and #code', $crawler->text());
+
+        // The pick is a request: not going yet, the event page says it waits - and Take back withdraws it
+        $browser->request('POST', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+        $this->assertResponseRedirects();
+        $page = $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-success', 'Sent - the organiser will confirm it.');
+        self::assertSame(0, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, CompetitionFixture::COMPETITION_WJPC_2024));
+        $pending = $page->filter('[data-participant-link-pending]');
+        self::assertCount(1, $pending);
+        self::assertStringContainsString('Waiting for the organiser to confirm you are Admin user', $pending->text());
+
+        $browser->submit($page->filter('[data-participant-link-withdraw]')->form());
+        $this->assertResponseRedirects();
+        $page = $browser->followRedirect();
+        self::assertCount(0, $page->filter('[data-participant-link-pending]'));
+        self::assertSame('withdrawn', $database->fetchOne('SELECT status FROM participant_link_request WHERE player_id = :pid', ['pid' => PlayerFixture::PLAYER_ADMIN]));
+    }
+
+    public function testAPickOfANameLinkedToSomebodyElseAsksTheOrganiser(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('POST', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_CONNECTED]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-info', 'This name is linked to another profile. We asked the organiser to check it.');
+        self::assertSame(0, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, CompetitionFixture::COMPETITION_WJPC_2024));
+    }
+
+    /**
+     * Limiter participant_claim (participant-linking.md §10.2): per player, the picks stop after the budget
+     */
+    public function testTooManyPicksAreStopped(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        /** @var RateLimiterFactoryInterface $limiter */
+        $limiter = self::getContainer()->get('limiter.participant_claim');
+        $limiter->create(PlayerFixture::PLAYER_ADMIN)->reset();
+        $limiter->create(PlayerFixture::PLAYER_ADMIN)->consume(100000);
+
+        try {
+            $browser->request('POST', '/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+            $this->assertResponseRedirects('/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
+            self::assertNull(self::getContainer()->get(Connection::class)->fetchOne('SELECT player_id FROM competition_participant WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]));
+            $browser->followRedirect();
+            self::assertSelectorTextContains('.alert-warning', 'Too many tries');
+        } finally {
+            $limiter->create(PlayerFixture::PLAYER_ADMIN)->reset();
         }
     }
 

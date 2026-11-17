@@ -23,6 +23,9 @@ readonly final class EventAttendance
         // Null otherwise (and never read for an in-person event)
         public null|string $onlineParticipantId = null,
         public null|string $onlineToken = null,
+        // The participant (the organiser's name for them) the viewer asked to be linked to, waiting for the organiser
+        // (docs/features/competitions-management/participant-linking.md §6.1) - not going yet (D4)
+        public null|string $pendingRequestParticipantName = null,
     ) {
     }
 

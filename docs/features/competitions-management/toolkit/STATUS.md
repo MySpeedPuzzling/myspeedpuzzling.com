@@ -24,4 +24,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 ## Packages
 | Pkg | Lane | State | Commit(s) on branch | Notes |
 |---|---|---|---|---|
-| F0 | A | started | | |
+| F0 | A | merged | 17a4fefc4..0ab0e5422 | flag+voter, hub, RoundPuzzlesVisibleNow, golden pins |
+| A1 | A | started | | |
+| C1 | B | started | | |
+| B1 | C | started | | |

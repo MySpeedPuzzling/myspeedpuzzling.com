@@ -133,6 +133,7 @@ final class SystemClockCoverageTest extends TestCase
         'Controller/InternalApi/RoundsInternalApiTest.php' => [["'tomorrow'"], self::INPUT],
         'Controller/OnlineRounds/OnlineRoundSettingsControllerTest.php' => [["'+1 hour'", "'-5 minutes'", "'-90 minutes'", "'-30 minutes'"], self::STOPWATCH_TABLE],
         'Controller/StaleDocumentControllerTest.php' => [["'yesterday'"], self::INPUT],
+        'Services/LiveResults/LiveResultsCurrentRoundTest.php' => [["'now'"], 'The key of the shared fixture tests/fixtures/live-current-round-cases.json - each case carries an absolute moment the PHP and the JS twin both judge.'],
         'DatePickerScriptTest.php' => [["'today'"], 'flatpickr\'s maxDate option - the browser judges it on the visitor\'s clock.'],
         'MessageHandler/OnlineRoundSetUpHandlersTest.php' => [["'+1 hour'", "'-5 minutes'", "'-90 minutes'", "'-30 minutes'"], self::STOPWATCH_TABLE],
         'MessageHandler/SyncPlanSwitchPortalConfigurationHandlerTest.php' => [["'now'"], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],

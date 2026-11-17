@@ -13848,14 +13848,14 @@ competition_toolkit:
         checkbox: "{0}Odhalit puzzle při spuštění stopek|{1}Odhalit puzzle při spuštění stopek|[2,4]Odhalit %count% puzzle při spuštění stopek|[5,Inf[Odhalit %count% puzzlí při spuštění stopek"
         help: "Pro zkušební běh nechte nezaškrtnuté - pak se nic neodhalí. Pro ostrý start zaškrtněte: puzzle se odhalí při startu (po odpočtu, pokud ho naplánujete) a už nikdy nepůjdou znovu skrýt."
         confirm: "{0}Spustit stopky a při startu odhalit puzzle? Jakmile bude venku, už ho nikdy nepůjde skrýt.|{1}Spustit stopky a při startu odhalit puzzle? Jakmile bude venku, už ho nikdy nepůjde skrýt.|[2,4]Spustit stopky a při startu odhalit %count% puzzle? Jakmile budou venku, už je nikdy nepůjde skrýt.|[5,Inf[Spustit stopky a při startu odhalit %count% puzzlí? Jakmile budou venku, už je nikdy nepůjde skrýt."
-        button_suffix: "{0}odhalit 1 puzzle|{1}odhalit 1 puzzle|[2,4]odhalit %count% puzzle|[5,Inf[odhalit %count% puzzlí"
+        button_suffix: "{0}neodhalit žádné puzzle|{1}odhalit 1 puzzle|[2,4]odhalit %count% puzzle|[5,Inf[odhalit %count% puzzlí"
         scope:
             everywhere: "všude na MySpeedPuzzling"
             name_everywhere: "jeho název všude, obrázek na této události"
             event: "na této události"
         countdown_reveals: "Tento odpočet po skončení odhalí: %puzzles%."
         countdown_reveals_nothing: "Tento odpočet nic neodhalí (byl spuštěn bez „Odhalit“): %puzzles%. Chcete-li je odhalit při startu, zrušte ho a spusťte znovu se zaškrtnutým políčkem."
-        still_hidden: "Stále skryté - stopky byly spuštěny bez „Odhalit“: %puzzles%."
+        still_hidden: "Stále skryté (stopky byly spuštěny bez „Odhalit“): %puzzles%."
         still_hidden_link: "Odhalte je na stránce puzzlí kola"
         missed: "Stopky byly spuštěny bez „Odhalit“, takže toto puzzle zůstává skryté - použijte „Odhalit teď“."
         source: "Při spuštění stopek: odhalí se, když spustíte stopky kola se zaškrtnutým „Odhalit“. Start bez zaškrtnutí (zkušební běh) nic neodhalí."
@@ -13965,7 +13965,7 @@ competitor_page:
         live_results: "Ukazovat potvrzené výsledky před zveřejněním"
         live_results_help: "Stránky soutěžících ukážou výsledek, jakmile ho rozhodčí potvrdí, s označením, že ještě není oficiální. Pořadí počká, dokud kolo nezveřejníte."
         time_proposals: "Umožnit soutěžícím navrhnout svůj čas"
-        time_proposals_help: "Soutěžící přihlášený na své vlastní stránce může po dokončení klepnout na Stop. Čas potvrdí rozhodčí. Vyžaduje veřejné stránky soutěžících."
+        time_proposals_help: "Soutěžící přihlášený na své vlastní stránce může po dokončení klepnout na „Hotovo - navrhnout můj čas“. Čas potvrdí rozhodčí. Vyžaduje veřejné stránky soutěžících."
         save: "Uložit"
         saved: "Nastavení stránek soutěžících uloženo."
     page:
@@ -14403,15 +14403,15 @@ competition_display:
 time_proposal:
     reason:
         sign_in_required: "Pro navržení svého času se přihlaste."
-        invalid_proposal: "Tento návrh času se nepodařilo přečíst - klepněte znovu na Stop."
+        invalid_proposal: "Tento návrh času se nepodařilo přečíst - klepněte na tlačítko znovu."
         rate_limited: "Příliš mnoho návrhů času v krátké době - počkejte pár minut a zkuste to znovu."
         round_not_found: "Toto kolo už neexistuje."
         proposals_off: "Tato událost nepřijímá návrhy časů od soutěžících."
-        invalid_proposal_id: "Tento návrh času nelze přijmout - klepněte znovu na Stop."
+        invalid_proposal_id: "Tento návrh času nelze přijmout - klepněte na tlačítko znovu."
         entry_not_in_round: "Tento soutěžící není v tomto kole."
         not_your_entry: "Čas za tohoto soutěžícího může navrhnout jen soutěžící přihlášený svým vlastním profilem."
         linked_after_start: "Váš profil byl s tímto soutěžícím propojen až po startu kola, proto v tomto kole nemůžete navrhnout čas. Požádejte rozhodčího, aby váš čas zadal."
-        clock_ahead: "Čas na tomto telefonu nesedí - váš čas nebyl odeslán. Načtěte stránku znovu a klepněte znovu na Stop."
+        clock_ahead: "Čas na tomto telefonu nesedí - váš čas nebyl odeslán. Načtěte stránku znovu a klepněte na tlačítko znovu."
         not_running: "Kolo neběží - není co zastavit."
         times_up: "Časový limit vypršel - váš výsledek zapíše rozhodčí."
         too_late: "Tento návrh času dorazil příliš dlouho po skončení kola - váš výsledek zapíše rozhodčí."
@@ -14419,7 +14419,7 @@ time_proposal:
         already_proposed: "Na rozhodčího už čeká jeden čas."
         proposal_not_found: "Tento návrh času neexistuje."
 competition_standing:
-    rounds_count: "{0}%count% kol|{1}%count% kolo|[2,4]%count% kola|[5,Inf[%count% kol"
+    rounds_count: "{0}Žádná kola|{1}%count% kolo|[2,4]%count% kola|[5,Inf[%count% kol"
     per_category_name: "Celkově - %category%"
     penalty_short: "+%seconds% s za každý chybějící dílek"
     card:
@@ -14458,7 +14458,7 @@ competition_standing:
         final: "Všechna kola zveřejněna"
         after_rounds: "po %counted% z %count% kol"
         includes_unpublished: "Zahrnuje kola, jejichž výsledky ještě nejsou zveřejněné - vidíte to jen vy."
-        skipped_rounds: "{0}%count% kol tohoto celkového pořadí už nepatří do jeho kategorie a jsou vynechána - upravte celkové pořadí.|{1}%count% kolo tohoto celkového pořadí už nepatří do jeho kategorie a je vynecháno - upravte celkové pořadí.|[2,4]%count% kola tohoto celkového pořadí už nepatří do jeho kategorie a jsou vynechána - upravte celkové pořadí.|[5,Inf[%count% kol tohoto celkového pořadí už nepatří do jeho kategorie a jsou vynechána - upravte celkové pořadí."
+        skipped_rounds: "{0}Počítají se všechna kola tohoto celkového pořadí.|{1}%count% kolo tohoto celkového pořadí už nepatří do jeho kategorie a je vynecháno - upravte celkové pořadí.|[2,4]%count% kola tohoto celkového pořadí už nepatří do jeho kategorie a jsou vynechána - upravte celkové pořadí.|[5,Inf[%count% kol tohoto celkového pořadí už nepatří do jeho kategorie a jsou vynechána - upravte celkové pořadí."
         no_limit: "„%round%“ nemá časový limit - nedokončený výsledek tam nejde ohodnotit a počítá se jako chybějící kolo."
         no_pieces: "„%round%“ zatím nemá puzzle, takže jeho počet dílků není znám - penalizace za chybějící dílky se tam nepřičítá."
         no_rounds: "Toto celkové pořadí nemá žádná kola - upravte ho a vyberte je."
@@ -14471,12 +14471,12 @@ competition_standing:
     status:
         unfinished_help: "%pieces% položených dílků"
         unfinished_without_limit: "nedokončeno"
-        did_not_start: "DNS"
+        did_not_start: "Bez startu"
         no_result: "bez výsledku"
         not_in_round: "nezapsán"
     flash:
         added: "Celkové pořadí bylo vytvořeno."
-        added_per_category: "{0}Nebylo vytvořeno žádné celkové pořadí.|{1}Bylo vytvořeno %count% celkové pořadí.|[2,4]Byla vytvořena %count% celková pořadí.|[5,Inf[Bylo vytvořeno %count% celkových pořadí."
+        added_per_category: "{0}Nebylo vytvořeno žádné celkové pořadí - každá kategorie už nějaké má.|{1}Bylo vytvořeno %count% celkové pořadí.|[2,4]Byla vytvořena %count% celková pořadí.|[5,Inf[Bylo vytvořeno %count% celkových pořadí."
         saved: "Celkové pořadí bylo uloženo."
         deleted: "Celkové pořadí „%name%“ bylo smazáno."
     refused:
@@ -14492,7 +14492,7 @@ public_standing:
     other_standings: "Celková pořadí této události"
     provisional: "Průběžné"
     after_rounds: "po %counted% z %count% kol - výsledky ostatních kol ještě nejsou zveřejněné"
-    final: "{0}Konečné - %count% kol|{1}Konečné - %count% kolo|[2,4]Konečné - všechna %count% kola|[5,Inf[Konečné - všech %count% kol"
+    final: "{0}Konečné|{1}Konečné - %count% kolo|[2,4]Konečné - všechna %count% kola|[5,Inf[Konečné - všech %count% kol"
     rank: "Místo"
     total: "Celkem"
     rounds_of: "%scored% z %count% kol"
@@ -14523,7 +14523,7 @@ public_standing:
 advancement_step:
     card:
         none: "Zatím žádné kroky postupu. Krok určuje, kdo jde dál: „nejlepších 8 z každé skupiny jde do semifinále“."
-        count: "{0}Nastaveno %count% kroků postupu.|{1}Nastaven %count% krok postupu.|[2,4]Nastaveny %count% kroky postupu.|[5,Inf[Nastaveno %count% kroků postupu."
+        count: "{0}Zatím není nastaven žádný krok postupu.|{1}Nastaven %count% krok postupu.|[2,4]Nastaveny %count% kroky postupu.|[5,Inf[Nastaveno %count% kroků postupu."
         manage: "Kroky postupu"
     list:
         title: "Kroky postupu"

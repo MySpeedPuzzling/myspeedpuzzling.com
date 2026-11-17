@@ -5558,7 +5558,7 @@ official_results:
     unknown_round_puzzle: "L'un de ces puzzles n'est pas (ou plus) un puzzle de cette manche."
     puzzle_listed_twice: "Un puzzle figure deux fois."
     too_many_puzzles: "Plus de puzzles que chaque concurrent de cette manche n'en assemble."
-    invalid_split: "L'heure de fin d'un puzzle est comprise entre 0:00:01 et 23:59:59."
+    invalid_split: "L'heure de fin d'un puzzle doit être comprise entre 0:00:01 et 23:59:59."
     splits_out_of_order: "Les puzzles terminés viennent en premier, dans l'ordre où ils ont été terminés, chacun à un temps postérieur au précédent."
     puzzles_mismatch: "Le résultat ne correspond pas aux puzzles - un résultat terminé exige que tous ses puzzles soient terminés (le dernier au temps du résultat), les pièces posées doivent être la somme sur les puzzles, et un concurrent qui n'a pas pris le départ n'a pas de puzzles. Modifiez les deux ensemble."
     group_refused: "Enregistré avec une autre modification de ce concurrent qui a été refusée - aucune des deux n'a été enregistrée."
@@ -13841,14 +13841,14 @@ competition_toolkit:
         checkbox: "[0,1]Révéler le puzzle au démarrage du chronomètre|]1,Inf[Révéler les %count% puzzles au démarrage du chronomètre"
         help: "Laissez la case décochée pour un essai - rien n'est alors révélé. Cochez-la pour le vrai départ : les puzzles sont dévoilés au départ (après le compte à rebours, si vous en programmez un) et ne peuvent plus jamais être masqués."
         confirm: "[0,1]Démarrer le chronomètre et révéler le puzzle au départ ? Une fois dévoilé, il ne pourra plus jamais être masqué.|]1,Inf[Démarrer le chronomètre et révéler les %count% puzzles au départ ? Une fois dévoilés, ils ne pourront plus jamais être masqués."
-        button_suffix: "[0,1]révéler 1 puzzle|]1,Inf[révéler %count% puzzles"
+        button_suffix: "{0}ne révéler aucun puzzle|{1}révéler 1 puzzle|]1,Inf[révéler %count% puzzles"
         scope:
             everywhere: "partout sur MySpeedPuzzling"
             name_everywhere: "son nom partout, son image sur cet événement"
             event: "sur cet événement"
         countdown_reveals: "Ce compte à rebours révèle à sa fin : %puzzles%."
         countdown_reveals_nothing: "Ce compte à rebours ne révèle rien (il a été lancé sans « Révéler ») : %puzzles%. Pour les révéler au départ, annulez-le et relancez-le avec la case cochée."
-        still_hidden: "Toujours masqués - le chronomètre a été démarré sans « Révéler » : %puzzles%."
+        still_hidden: "Toujours masqués (le chronomètre a été démarré sans « Révéler ») : %puzzles%."
         still_hidden_link: "Les révéler sur la page des puzzles de la manche"
         missed: "Le chronomètre a été démarré sans « Révéler », ce puzzle reste donc masqué - utilisez « Révéler maintenant »."
         source: "Au démarrage du chronomètre : il est révélé quand vous démarrez le chronomètre de la manche avec « Révéler » coché. Un démarrage sans la case cochée (un essai) ne révèle rien."
@@ -13958,7 +13958,7 @@ competitor_page:
         live_results: "Afficher les résultats confirmés avant publication"
         live_results_help: "Les pages des concurrents affichent un résultat dès qu'un arbitre le confirme, marqué comme pas encore officiel. Les rangs attendent la publication de la manche."
         time_proposals: "Laisser les concurrents proposer leur temps"
-        time_proposals_help: "Un concurrent connecté sur sa propre page peut toucher Stop quand il termine. Un arbitre confirme le temps. Nécessite les pages publiques des concurrents."
+        time_proposals_help: "Un concurrent connecté sur sa propre page peut toucher « Fini - proposer mon temps » quand il termine. Un arbitre confirme le temps. Nécessite les pages publiques des concurrents."
         save: "Enregistrer"
         saved: "Réglages des pages des concurrents enregistrés."
     page:
@@ -14396,15 +14396,15 @@ competition_display:
 time_proposal:
     reason:
         sign_in_required: "Connectez-vous pour proposer votre temps."
-        invalid_proposal: "Cette proposition de temps n'a pas pu être lue - touchez Stop à nouveau."
+        invalid_proposal: "Cette proposition de temps n'a pas pu être lue - touchez à nouveau le bouton."
         rate_limited: "Trop de propositions de temps en peu de temps - attendez quelques minutes et réessayez."
         round_not_found: "Cette manche n'existe plus."
         proposals_off: "Cet événement n'accepte pas de propositions de temps des concurrents."
-        invalid_proposal_id: "Cette proposition de temps n'a pas pu être acceptée - touchez Stop à nouveau."
+        invalid_proposal_id: "Cette proposition de temps n'a pas pu être acceptée - touchez à nouveau le bouton."
         entry_not_in_round: "Ce concurrent n'est pas dans cette manche."
         not_your_entry: "Seul le concurrent connecté avec son propre profil peut proposer un temps pour ce concurrent."
         linked_after_start: "Votre profil a été lié à ce concurrent après le début de la manche, vous ne pouvez donc pas proposer de temps dans cette manche. Demandez à un arbitre de saisir votre temps."
-        clock_ahead: "L'heure de ce téléphone est décalée - votre temps n'a pas été envoyé. Rechargez la page et touchez Stop à nouveau."
+        clock_ahead: "L'heure de ce téléphone est décalée - votre temps n'a pas été envoyé. Rechargez la page et touchez à nouveau le bouton."
         not_running: "La manche n'est pas en cours - rien à arrêter."
         times_up: "La limite de temps est dépassée - un arbitre enregistrera votre résultat."
         too_late: "Cette proposition de temps est arrivée trop longtemps après la fin de la manche - un arbitre enregistre votre résultat."
@@ -14412,7 +14412,7 @@ time_proposal:
         already_proposed: "Un temps attend déjà l'arbitre."
         proposal_not_found: "Cette proposition de temps n'existe pas."
 competition_standing:
-    rounds_count: "[0,1]%count% manche|]1,Inf[%count% manches"
+    rounds_count: "{0}Aucune manche|{1}%count% manche|]1,Inf[%count% manches"
     per_category_name: "Général - %category%"
     penalty_short: "+%seconds% s par pièce manquante"
     card:
@@ -14451,7 +14451,7 @@ competition_standing:
         final: "Toutes les manches publiées"
         after_rounds: "après %counted% manches sur %count%"
         includes_unpublished: "Inclut des manches dont les résultats ne sont pas encore publiés - vous seul le voyez."
-        skipped_rounds: "[0,1]%count% manche de ce classement n'est plus de sa catégorie et est laissée de côté - modifiez le classement.|]1,Inf[%count% manches de ce classement ne sont plus de sa catégorie et sont laissées de côté - modifiez le classement."
+        skipped_rounds: "{0}Toutes les manches de ce classement comptent.|{1}%count% manche de ce classement n'est plus de sa catégorie et est laissée de côté - modifiez le classement.|]1,Inf[%count% manches de ce classement ne sont plus de sa catégorie et sont laissées de côté - modifiez le classement."
         no_limit: "« %round% » n'a pas de limite de temps - un résultat non terminé n'y peut pas être compté et vaut une manche manquante."
         no_pieces: "« %round% » n'a pas encore de puzzle, ses pièces sont donc inconnues - aucune pénalité par pièce manquante n'y est ajoutée."
         no_rounds: "Ce classement n'a pas de manches - modifiez-le pour les choisir."
@@ -14464,12 +14464,12 @@ competition_standing:
     status:
         unfinished_help: "%pieces% pièces posées"
         unfinished_without_limit: "pas terminé"
-        did_not_start: "NP"
+        did_not_start: "N'a pas pris le départ"
         no_result: "pas de résultat"
         not_in_round: "pas inscrit"
     flash:
         added: "Le classement a été créé."
-        added_per_category: "[0,1]%count% classement a été créé.|]1,Inf[%count% classements ont été créés."
+        added_per_category: "{0}Aucun classement n'a été créé - chaque catégorie en a déjà un.|{1}%count% classement a été créé.|]1,Inf[%count% classements ont été créés."
         saved: "Le classement a été enregistré."
         deleted: "Le classement « %name% » a été supprimé."
     refused:
@@ -14485,7 +14485,7 @@ public_standing:
     other_standings: "Classements de cet événement"
     provisional: "Provisoire"
     after_rounds: "après %counted% manches sur %count% - les résultats des autres manches ne sont pas encore publiés"
-    final: "[0,1]Final - %count% manche|]1,Inf[Final - les %count% manches"
+    final: "{0}Final|{1}Final - %count% manche|]1,Inf[Final - les %count% manches"
     rank: "Place"
     total: "Total"
     rounds_of: "%scored% manches sur %count%"
@@ -14516,7 +14516,7 @@ public_standing:
 advancement_step:
     card:
         none: "Pas encore d'étapes de qualification. Une étape déclare qui avance : « les 8 meilleurs de chaque groupe vont en demi-finale »."
-        count: "[0,1]%count% étape de qualification déclarée.|]1,Inf[%count% étapes de qualification déclarées."
+        count: "{0}Aucune étape de qualification déclarée pour l'instant.|{1}%count% étape de qualification déclarée.|]1,Inf[%count% étapes de qualification déclarées."
         manage: "Étapes de qualification"
     list:
         title: "Étapes de qualification"

@@ -4996,7 +4996,7 @@ live_results:
     field: "Puzzles"
   proposals:
     title: "Vorgeschlagen: %time%"
-    from: "von seinem Handy um %time%"
+    from: "vom eigenen Handy um %time%"
     by: "von %name%"
     tapped: "vor %age% getippt"
     late: "Verspätet"
@@ -5491,7 +5491,7 @@ official_results:
     unknown_round_puzzle: "Eines dieser Puzzles ist (nicht mehr) ein Puzzle dieser Runde."
     puzzle_listed_twice: "Ein Puzzle ist doppelt aufgeführt."
     too_many_puzzles: "Mehr Puzzles, als jeder Teilnehmer dieser Runde löst."
-    invalid_split: "Die Zeit, zu der ein Puzzle fertig war, liegt zwischen 0:00:01 und 23:59:59."
+    invalid_split: "Die Zeit, zu der ein Puzzle fertig war, muss zwischen 0:00:01 und 23:59:59 liegen."
     splits_out_of_order: "Fertige Puzzles kommen zuerst, in der Reihenfolge, in der sie fertig wurden, jedes zu einer späteren Zeit als das vorherige."
     puzzles_mismatch: "Das Ergebnis passt nicht zu den Puzzles – ein fertiges Ergebnis braucht alle seine Puzzles fertig (das letzte zur Zeit des Ergebnisses), gelegte Teile müssen die Summe über die Puzzles sein, und ein Teilnehmer, der nicht gestartet ist, hat keine Puzzles. Ändern Sie beides zusammen."
     group_refused: "Zusammen mit einer anderen, abgelehnten Änderung dieses Teilnehmers gespeichert – keine der beiden wurde gespeichert."
@@ -13845,14 +13845,14 @@ competition_toolkit:
         checkbox: "{0}Puzzles beim Start der Stoppuhr enthüllen|{1}Das Puzzle beim Start der Stoppuhr enthüllen|]1,Inf[Die %count% Puzzles beim Start der Stoppuhr enthüllen"
         help: "Lassen Sie es für einen Testlauf leer – dann wird nichts enthüllt. Haken Sie es für den echten Start an: Die Puzzles werden beim Start enthüllt (nach dem Countdown, falls Sie einen planen) und können nie wieder verborgen werden."
         confirm: "{0}Stoppuhr starten und die Puzzles beim Start enthüllen? Einmal enthüllt, können sie nie wieder verborgen werden.|{1}Stoppuhr starten und das Puzzle beim Start enthüllen? Einmal enthüllt, kann es nie wieder verborgen werden.|]1,Inf[Stoppuhr starten und die %count% Puzzles beim Start enthüllen? Einmal enthüllt, können sie nie wieder verborgen werden."
-        button_suffix: "{0}Puzzles enthüllen|{1}1 Puzzle enthüllen|]1,Inf[%count% Puzzles enthüllen"
+        button_suffix: "{0}kein Puzzle enthüllen|{1}1 Puzzle enthüllen|]1,Inf[%count% Puzzles enthüllen"
         scope:
             everywhere: "überall auf MySpeedPuzzling"
             name_everywhere: "sein Name überall, sein Bild bei dieser Veranstaltung"
             event: "bei dieser Veranstaltung"
         countdown_reveals: "Dieser Countdown enthüllt an seinem Ende: %puzzles%."
         countdown_reveals_nothing: "Dieser Countdown enthüllt nichts (er wurde ohne „Enthüllen“ gestartet): %puzzles%. Um sie beim Start zu enthüllen, brechen Sie ihn ab und starten Sie erneut mit angehaktem Kästchen."
-        still_hidden: "Noch verborgen – die Stoppuhr wurde ohne „Enthüllen“ gestartet: %puzzles%."
+        still_hidden: "Noch verborgen (die Stoppuhr wurde ohne „Enthüllen“ gestartet): %puzzles%."
         still_hidden_link: "Auf der Puzzleseite der Runde enthüllen"
         missed: "Die Stoppuhr wurde ohne „Enthüllen“ gestartet, daher bleibt dieses Puzzle verborgen – nutzen Sie „Jetzt enthüllen“."
         source: "Beim Start der Stoppuhr: Es wird enthüllt, wenn Sie die Stoppuhr der Runde mit angehaktem „Enthüllen“ starten. Ein Start ohne Haken (ein Testlauf) enthüllt nichts."
@@ -13962,7 +13962,7 @@ competitor_page:
         live_results: "Bestätigte Ergebnisse vor dem Veröffentlichen zeigen"
         live_results_help: "Teilnehmerseiten zeigen ein Ergebnis, sobald ein Schiedsrichter es bestätigt, als noch nicht offiziell gekennzeichnet. Ränge warten, bis Sie die Runde veröffentlichen."
         time_proposals: "Teilnehmer ihre Zeit vorschlagen lassen"
-        time_proposals_help: "Ein Teilnehmer, der auf seiner eigenen Seite angemeldet ist, kann beim Fertigwerden auf Stopp tippen. Ein Schiedsrichter bestätigt die Zeit. Erfordert öffentliche Teilnehmerseiten."
+        time_proposals_help: "Ein Teilnehmer, der auf seiner eigenen Seite angemeldet ist, kann beim Fertigwerden auf „Fertig – Zeit vorschlagen“ tippen. Ein Schiedsrichter bestätigt die Zeit. Erfordert öffentliche Teilnehmerseiten."
         save: "Speichern"
         saved: "Einstellungen der Teilnehmerseiten gespeichert."
     page:
@@ -14400,15 +14400,15 @@ competition_display:
 time_proposal:
     reason:
         sign_in_required: "Melden Sie sich an, um Ihre Zeit vorzuschlagen."
-        invalid_proposal: "Dieser Zeitvorschlag konnte nicht gelesen werden – tippen Sie erneut auf Stopp."
+        invalid_proposal: "Dieser Zeitvorschlag konnte nicht gelesen werden – tippen Sie erneut auf die Schaltfläche."
         rate_limited: "Zu viele Zeitvorschläge in kurzer Zeit – warten Sie ein paar Minuten und versuchen Sie es erneut."
         round_not_found: "Diese Runde existiert nicht mehr."
         proposals_off: "Diese Veranstaltung nimmt keine Zeitvorschläge von Teilnehmern an."
-        invalid_proposal_id: "Dieser Zeitvorschlag konnte nicht angenommen werden – tippen Sie erneut auf Stopp."
+        invalid_proposal_id: "Dieser Zeitvorschlag konnte nicht angenommen werden – tippen Sie erneut auf die Schaltfläche."
         entry_not_in_round: "Dieser Teilnehmer ist nicht in dieser Runde."
         not_your_entry: "Nur der mit seinem eigenen Profil angemeldete Teilnehmer kann für diesen Eintrag eine Zeit vorschlagen."
         linked_after_start: "Ihr Profil wurde erst nach dem Start der Runde mit diesem Teilnehmer verknüpft, daher können Sie in dieser Runde keine Zeit vorschlagen. Bitten Sie einen Schiedsrichter, Ihre Zeit einzugeben."
-        clock_ahead: "Die Uhrzeit auf diesem Handy stimmt nicht – Ihre Zeit wurde nicht gesendet. Laden Sie die Seite neu und tippen Sie erneut auf Stopp."
+        clock_ahead: "Die Uhrzeit auf diesem Handy stimmt nicht – Ihre Zeit wurde nicht gesendet. Laden Sie die Seite neu und tippen Sie erneut auf die Schaltfläche."
         not_running: "Die Runde läuft nicht – nichts zu stoppen."
         times_up: "Das Zeitlimit ist abgelaufen – ein Schiedsrichter erfasst Ihr Ergebnis."
         too_late: "Dieser Zeitvorschlag kam zu lange nach dem Ende der Runde an – ein Schiedsrichter erfasst Ihr Ergebnis."
@@ -14416,7 +14416,7 @@ time_proposal:
         already_proposed: "Eine Zeit wartet bereits auf den Schiedsrichter."
         proposal_not_found: "Dieser Zeitvorschlag existiert nicht."
 competition_standing:
-    rounds_count: "{0}%count% Runden|{1}%count% Runde|]1,Inf[%count% Runden"
+    rounds_count: "{0}Keine Runden|{1}%count% Runde|]1,Inf[%count% Runden"
     per_category_name: "Gesamt – %category%"
     penalty_short: "+%seconds% s pro fehlendem Teil"
     card:
@@ -14455,7 +14455,7 @@ competition_standing:
         final: "Alle Runden veröffentlicht"
         after_rounds: "nach %counted% von %count% Runden"
         includes_unpublished: "Enthält Runden, deren Ergebnisse noch nicht veröffentlicht sind – nur Sie sehen das."
-        skipped_rounds: "{0}Keine Runde dieser Gesamtwertung wird ausgelassen.|{1}%count% Runde dieser Gesamtwertung gehört nicht mehr zu ihrer Kategorie und wird ausgelassen – bearbeiten Sie die Gesamtwertung.|]1,Inf[%count% Runden dieser Gesamtwertung gehören nicht mehr zu ihrer Kategorie und werden ausgelassen – bearbeiten Sie die Gesamtwertung."
+        skipped_rounds: "{0}Jede Runde dieser Gesamtwertung zählt.|{1}%count% Runde dieser Gesamtwertung gehört nicht mehr zu ihrer Kategorie und wird ausgelassen – bearbeiten Sie die Gesamtwertung.|]1,Inf[%count% Runden dieser Gesamtwertung gehören nicht mehr zu ihrer Kategorie und werden ausgelassen – bearbeiten Sie die Gesamtwertung."
         no_limit: "„%round%“ hat kein Zeitlimit – ein dort nicht beendetes Ergebnis kann nicht gewertet werden und zählt als fehlende Runde."
         no_pieces: "„%round%“ hat noch kein Puzzle, daher ist die Teilezahl unbekannt – dort wird keine Strafe pro fehlendem Teil addiert."
         no_rounds: "Diese Gesamtwertung hat keine Runden – bearbeiten Sie sie, um sie auszuwählen."
@@ -14468,12 +14468,12 @@ competition_standing:
     status:
         unfinished_help: "%pieces% Teile gelegt"
         unfinished_without_limit: "nicht beendet"
-        did_not_start: "DNS"
+        did_not_start: "Nicht gestartet"
         no_result: "kein Ergebnis"
         not_in_round: "nicht dabei"
     flash:
         added: "Die Gesamtwertung wurde erstellt."
-        added_per_category: "{0}Es wurde keine Gesamtwertung erstellt.|{1}%count% Gesamtwertung wurde erstellt.|]1,Inf[%count% Gesamtwertungen wurden erstellt."
+        added_per_category: "{0}Keine Gesamtwertung erstellt – jede Kategorie hat bereits eine.|{1}%count% Gesamtwertung wurde erstellt.|]1,Inf[%count% Gesamtwertungen wurden erstellt."
         saved: "Die Gesamtwertung wurde gespeichert."
         deleted: "Die Gesamtwertung „%name%“ wurde gelöscht."
     refused:
@@ -14489,7 +14489,7 @@ public_standing:
     other_standings: "Gesamtwertungen dieser Veranstaltung"
     provisional: "Vorläufig"
     after_rounds: "nach %counted% von %count% Runden – die Ergebnisse der anderen Runden sind noch nicht veröffentlicht"
-    final: "{0}Endstand – %count% Runden|{1}Endstand – %count% Runde|]1,Inf[Endstand – alle %count% Runden"
+    final: "{0}Endstand|{1}Endstand – %count% Runde|]1,Inf[Endstand – alle %count% Runden"
     rank: "Platz"
     total: "Summe"
     rounds_of: "%scored% von %count% Runden"
@@ -14520,7 +14520,7 @@ public_standing:
 advancement_step:
     card:
         none: "Noch keine Qualifikationsschritte. Ein Schritt legt fest, wer weiterkommt: „die besten 8 jeder Gruppe kommen ins Halbfinale“."
-        count: "{0}Kein Qualifikationsschritt festgelegt.|{1}%count% Qualifikationsschritt festgelegt.|]1,Inf[%count% Qualifikationsschritte festgelegt."
+        count: "{0}Noch kein Qualifikationsschritt festgelegt.|{1}%count% Qualifikationsschritt festgelegt.|]1,Inf[%count% Qualifikationsschritte festgelegt."
         manage: "Qualifikationsschritte"
     list:
         title: "Qualifikationsschritte"

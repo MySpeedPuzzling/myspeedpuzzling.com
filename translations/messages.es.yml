@@ -5492,7 +5492,7 @@ official_results:
     unknown_round_puzzle: "Uno de estos puzzles no es (ya) un puzzle de esta ronda."
     puzzle_listed_twice: "Un puzzle aparece dos veces."
     too_many_puzzles: "Más puzzles de los que resuelve cada participante de esta ronda."
-    invalid_split: "El tiempo en que se terminó un puzzle está entre 0:00:01 y 23:59:59."
+    invalid_split: "El tiempo en que se terminó un puzzle debe estar entre 0:00:01 y 23:59:59."
     splits_out_of_order: "Los puzzles terminados van primero, en el orden en que se terminaron, cada uno con un tiempo posterior al anterior."
     puzzles_mismatch: "El resultado no coincide con los puzzles: un resultado terminado necesita todos sus puzzles terminados (el último en el tiempo del resultado), las piezas colocadas deben ser la suma de las de los puzzles y un participante que no empezó no tiene puzzles. Cambia ambos a la vez."
     group_refused: "Se guardaba junto con otro cambio de este participante que fue rechazado: no se guardó ninguno de los dos."
@@ -13846,14 +13846,14 @@ competition_toolkit:
         checkbox: "[0,1]Revelar el puzzle al iniciar el cronómetro|]1,Inf[Revelar los %count% puzzles al iniciar el cronómetro"
         help: "Déjalo sin marcar para una prueba: entonces no se revela nada. Márcalo para el inicio real: los puzzles se revelan al inicio (tras la cuenta atrás, si programas una) y nunca pueden volver a ocultarse."
         confirm: "[0,1]¿Iniciar el cronómetro y revelar el puzzle al inicio? Una vez revelado, nunca puede volver a ocultarse.|]1,Inf[¿Iniciar el cronómetro y revelar los %count% puzzles al inicio? Una vez revelados, nunca pueden volver a ocultarse."
-        button_suffix: "[0,1]revelar 1 puzzle|]1,Inf[revelar %count% puzzles"
+        button_suffix: "{0}no revelar ningún puzzle|{1}revelar 1 puzzle|]1,Inf[revelar %count% puzzles"
         scope:
             everywhere: "en todo MySpeedPuzzling"
             name_everywhere: "su nombre en todas partes, su imagen en este evento"
             event: "en este evento"
         countdown_reveals: "Esta cuenta atrás revela al terminar: %puzzles%."
         countdown_reveals_nothing: "Esta cuenta atrás no revela nada (se inició sin «Revelar»): %puzzles%. Para revelarlos al inicio, cancélala e inicia de nuevo con la casilla marcada."
-        still_hidden: "Aún ocultos: el cronómetro se inició sin «Revelar»: %puzzles%."
+        still_hidden: "Aún ocultos (el cronómetro se inició sin «Revelar»): %puzzles%."
         still_hidden_link: "Revélalos en la página de puzzles de la ronda"
         missed: "El cronómetro se inició sin «Revelar», así que este puzzle sigue oculto: usa «Revelar ahora»."
         source: "Al iniciar el cronómetro: se revela cuando inicias el cronómetro de la ronda con «Revelar» marcado. Un inicio sin la marca (una prueba) no revela nada."
@@ -13963,7 +13963,7 @@ competitor_page:
         live_results: "Mostrar resultados confirmados antes de publicar"
         live_results_help: "Las páginas de participante muestran un resultado en cuanto un árbitro lo confirma, marcado como aún no oficial. Las posiciones esperan hasta que publiques la ronda."
         time_proposals: "Dejar que los participantes propongan su tiempo"
-        time_proposals_help: "Un participante con la sesión iniciada en su propia página puede tocar Stop al terminar. Un árbitro confirma el tiempo. Requiere páginas públicas de participante."
+        time_proposals_help: "Un participante con la sesión iniciada en su propia página puede tocar «Listo: proponer mi tiempo» al terminar. Un árbitro confirma el tiempo. Requiere páginas públicas de participante."
         save: "Guardar"
         saved: "Ajustes de la página de participante guardados."
     page:
@@ -14401,15 +14401,15 @@ competition_display:
 time_proposal:
     reason:
         sign_in_required: "Inicia sesión para proponer tu tiempo."
-        invalid_proposal: "No se pudo leer esta propuesta de tiempo: toca Stop de nuevo."
+        invalid_proposal: "No se pudo leer esta propuesta de tiempo: toca el botón de nuevo."
         rate_limited: "Demasiadas propuestas de tiempo en poco tiempo: espera unos minutos e inténtalo de nuevo."
         round_not_found: "Esta ronda ya no existe."
         proposals_off: "Este evento no acepta propuestas de tiempo de los participantes."
-        invalid_proposal_id: "No se pudo aceptar esta propuesta de tiempo: toca Stop de nuevo."
+        invalid_proposal_id: "No se pudo aceptar esta propuesta de tiempo: toca el botón de nuevo."
         entry_not_in_round: "Este participante no está en esta ronda."
         not_your_entry: "Solo el participante con la sesión iniciada con su propio perfil puede proponer un tiempo para este participante."
         linked_after_start: "Tu perfil se vinculó a este participante después de que empezara la ronda, así que no puedes proponer un tiempo en esta ronda. Pide a un árbitro que introduzca tu tiempo."
-        clock_ahead: "La hora de este móvil no es correcta: tu tiempo no se envió. Recarga la página y toca Stop de nuevo."
+        clock_ahead: "La hora de este móvil no es correcta: tu tiempo no se envió. Recarga la página y toca el botón de nuevo."
         not_running: "La ronda no está en marcha: no hay nada que parar."
         times_up: "El límite de tiempo ha terminado: un árbitro registrará tu resultado."
         too_late: "Esta propuesta de tiempo llegó demasiado tarde tras el final de la ronda: un árbitro registra tu resultado."
@@ -14417,7 +14417,7 @@ time_proposal:
         already_proposed: "Ya hay un tiempo esperando al árbitro."
         proposal_not_found: "Esta propuesta de tiempo no existe."
 competition_standing:
-    rounds_count: "{0}%count% rondas|{1}%count% ronda|]1,Inf[%count% rondas"
+    rounds_count: "{0}Ninguna ronda|{1}%count% ronda|]1,Inf[%count% rondas"
     per_category_name: "General - %category%"
     penalty_short: "+%seconds% s por pieza que falta"
     card:
@@ -14456,7 +14456,7 @@ competition_standing:
         final: "Todas las rondas publicadas"
         after_rounds: "tras %counted% de %count% rondas"
         includes_unpublished: "Incluye rondas cuyos resultados aún no están publicados: solo tú ves esto."
-        skipped_rounds: "{0}%count% rondas de esta clasificación general ya no son de su categoría y se dejan fuera: edita la clasificación general.|{1}%count% ronda de esta clasificación general ya no es de su categoría y se deja fuera: edita la clasificación general.|]1,Inf[%count% rondas de esta clasificación general ya no son de su categoría y se dejan fuera: edita la clasificación general."
+        skipped_rounds: "{0}Cuentan todas las rondas de esta clasificación general.|{1}%count% ronda de esta clasificación general ya no es de su categoría y se deja fuera: edita la clasificación general.|]1,Inf[%count% rondas de esta clasificación general ya no son de su categoría y se dejan fuera: edita la clasificación general."
         no_limit: "«%round%» no tiene límite de tiempo: un resultado no terminado allí no se puede puntuar y cuenta como ronda que falta."
         no_pieces: "«%round%» aún no tiene puzzle, así que sus piezas son desconocidas: allí no se añade penalización por pieza que falta."
         no_rounds: "Esta clasificación general no tiene rondas: edítala para elegirlas."
@@ -14474,7 +14474,7 @@ competition_standing:
         not_in_round: "no inscrito"
     flash:
         added: "Se creó la clasificación general."
-        added_per_category: "{0}Se crearon %count% clasificaciones generales.|{1}Se creó %count% clasificación general.|]1,Inf[Se crearon %count% clasificaciones generales."
+        added_per_category: "{0}No se creó ninguna clasificación general: cada categoría ya tiene una.|{1}Se creó %count% clasificación general.|]1,Inf[Se crearon %count% clasificaciones generales."
         saved: "Se guardó la clasificación general."
         deleted: "Se eliminó la clasificación general «%name%»."
     refused:
@@ -14490,7 +14490,7 @@ public_standing:
     other_standings: "Clasificaciones generales de este evento"
     provisional: "Provisional"
     after_rounds: "tras %counted% de %count% rondas: los resultados de las demás rondas aún no están publicados"
-    final: "{0}Final - %count% rondas|{1}Final - %count% ronda|]1,Inf[Final - las %count% rondas"
+    final: "{0}Final|{1}Final - %count% ronda|]1,Inf[Final - las %count% rondas"
     rank: "Puesto"
     total: "Total"
     rounds_of: "%scored% de %count% rondas"
@@ -14521,7 +14521,7 @@ public_standing:
 advancement_step:
     card:
         none: "Aún no hay pasos de avance. Un paso indica quién pasa: «los 8 mejores de cada grupo van a la semifinal»."
-        count: "{0}%count% pasos de avance definidos.|{1}%count% paso de avance definido.|]1,Inf[%count% pasos de avance definidos."
+        count: "{0}Aún no hay ningún paso de avance definido.|{1}%count% paso de avance definido.|]1,Inf[%count% pasos de avance definidos."
         manage: "Pasos de avance"
     list:
         title: "Pasos de avance"

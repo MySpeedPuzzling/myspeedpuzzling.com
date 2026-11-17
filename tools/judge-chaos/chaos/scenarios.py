@@ -964,19 +964,29 @@ def s12c_background_tab(context):
     second = judge(context, 'organiser', name='judgeB')
     first.open_live()
     second.open_live()
+    # A phone puts a background tab in the background: hidden (another tab in front), then frozen
     first.cdp('Page.setWebLifecycleState', {'state': 'frozen'})
+    live_tab = first.driver.current_window_handle
+    first.driver.switch_to.new_window('tab')
+    first.go('/site.webmanifest')
     second.enter_result(175)
     second.wait_saved(20)
     deadline = time.time() + minutes * 60
     while time.time() < deadline:
         time.sleep(30)
         second.js('return 1')  # keep the other session alive
+        first.js('return 1')
+    first.driver.close()
+    first.driver.switch_to.window(live_tab)
     first.cdp('Page.setWebLifecycleState', {'state': 'active'})
     started = time.time()
+    context['evidence']['visibility_after'] = first.js('return document.visibilityState')
     first.back_to_find()
-    first.wait(lambda: 'Chaos Tester 175' in first.info()['body'], timeout=90, interval=1,
+    first.wait(lambda: 'Chaos Tester 175' in first.info()['body'], timeout=180, interval=1,
                message='the other judge\'s 175 after the tab came back')
     context['evidence']['catch_up_s'] = round(time.time() - started, 1)
+    check(context['evidence']['catch_up_s'] <= 15, 'the page caught up only %.0f s after it came back (expected: the '
+          'state fetched when the tab comes back)' % context['evidence']['catch_up_s'])
     tapped = finished_now(first, 176)
     first.wait_saved(20)
     expected = elapsed_at(db, tapped)

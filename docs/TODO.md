@@ -14,8 +14,8 @@ that would otherwise be forgotten. Newest section on top.
 Ops steps of the rollout:
 - [ ] After merging to main: `docker compose restart js-watch` on every dev checkout - new Encore entries `live_entry`, `live_entry_native`, `display` (the watcher does not pick up new entries)
 - [x] Deploy: the reveal mode `stopwatch` is read by the new release only - nobody may choose it before the release is fully out (#406 is out; every organiser is offered it since 2026-11-17)
-- [ ] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals")
-- [ ] Real-device walks: the native apps on the live entry page (C3 Turbo bootstrap `live_entry_native`), iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
+- [x] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals") - **done by reliability T4: production mode, 100 proposals within 1 s p95 106 ms, the event lock held ~20 ms per save - no per-round lock needed**
+- [ ] Real-device walks (no native apps exist - PWA only): iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
 - [ ] Browser walk of display live signals (D5) - the dev hub's origin blocked it
 - [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
 - [x] Open the toolkit to every organiser - the organiser flag was retired on 2026-11-17 (`feature_flags.md` "Retired")
@@ -27,15 +27,15 @@ Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11
 
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy
-- [ ] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner)
+- [x] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner) - **done in H1 (line-up id from the server; tag links stay in the tool)**
 - [ ] Panther `tests/Panther/LiveEntryOfflineTest.php` (R §4.4 step 4, C §7.4) does not exist - the offline flows were walked by hand only; write it or drop it from the plan
 - [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3); preferences `scanAfterSave` / `myTables` are stored but unused (deferred features); `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build")
 - [ ] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales for `official_results.reason.*`; the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
-- [ ] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed"
-- [ ] B8 polish: pending/sending boxes in a neutral style (not `$primary` pink)
-- [ ] Standings: drop the category badge when the standing's name already says it
-- [ ] Decision "public pages never show Did not start" (STATUS): the competitor page still shows "Did not start" on published rounds (`GetCompetitorPage::entry()`, pinned by `CompetitorPageControllerTest`) and in the live/own states - drop it there (code + test) or revise the decision
-- [ ] Competitor page after a judge's undo of a confirmed proposal: the result is cleared, the proposal stays `confirmed`, and `proposalPanel()` (`assets/competitor_proposals_view.js`) keeps showing "Confirmed" with no result and no Stop button - the competitor cannot propose again (`competitor-pages.md` "Proposals end to end")
+- [x] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed" - **done in H1 (name on pair/team cards only) + H3 (an undone confirmation supersedes the proposal)**
+- [x] B8 polish: pending/sending boxes in a neutral style (not `$primary` pink) - **done in H1**
+- [x] Standings: drop the category badge when the standing's name already says it - **done in H1**
+- [x] Decision "public pages never show Did not start" (STATUS): the competitor page still shows "Did not start" on published rounds (`GetCompetitorPage::entry()`, pinned by `CompetitorPageControllerTest`) and in the live/own states - drop it there (code + test) or revise the decision - **done in H1 (only the competitor themself sees it)**
+- [x] Competitor page after a judge's undo of a confirmed proposal: the result is cleared, the proposal stays `confirmed`, and `proposalPanel()` (`assets/competitor_proposals_view.js`) keeps showing "Confirmed" with no result and no Stop button - the competitor cannot propose again (`competitor-pages.md` "Proposals end to end") - **done in H3 (superseded `result_cleared`, Stop shown again)**
 - [ ] Local paratest workers: `PluralMessagesTest` / `XlsxSafetyTest` run out of memory (CI fine); `SandboxSimulatedResultsTest` failed once in CI - watch
 - [ ] Not browser-tried yet: reveal while a judge's card is open, an offline group save (C10); the reveal checkbox end to end (A1, checkpoint 1)
 

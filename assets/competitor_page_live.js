@@ -28,7 +28,7 @@
 //   per-entry topic in v1 (R-review-and-plan.md §1.2). replan() plans the next poll again after that changed.
 
 import { OfficialResultsEvents } from './official_results_events.js';
-import { createServerClock, isNewerState, startedAtMs, stopwatchView } from './round_stopwatch_clock.js';
+import { createServerClock, isNewerState, monotonicNow, startedAtMs, stopwatchView } from './round_stopwatch_clock.js';
 
 export const FOLLOW_WINDOW_MS = 12 * 3600 * 1000;
 export const MAX_TOPICS = 12;
@@ -259,7 +259,7 @@ export class CompetitorPageLive {
         wakeLock = () => {},
         isVisible = () => true,
         fastPoll = () => false,
-        now = () => Date.now(),
+        now = monotonicNow,
         schedule = (task, ms) => setTimeout(task, ms),
         cancel = (timer) => clearTimeout(timer),
         random = () => Math.random(),
@@ -279,7 +279,8 @@ export class CompetitorPageLive {
         this.random = random;
         this.createEvents = createEvents;
 
-        this.clock = createServerClock({ now });
+        // A sleep or a change of the phone's clock seen: a fresh sample (D2)
+        this.clock = createServerClock({ now, onJump: () => this.requestRefresh(VISIBLE_JITTER_MS) });
         this.timers = {};
         this.refreshAt = null;
         this.waiters = [];
@@ -450,8 +451,17 @@ export class CompetitorPageLive {
             return;
         }
 
+        // A sleep in the background is counted before the clock is drawn again (D2)
+        this.clock.shown();
         this.requestRefresh(VISIBLE_JITTER_MS);
         this.updateWakeLock(true);
+    }
+
+    /**
+     * The page went to the background - the phone may sleep (performance.now() then stands still on most phones).
+     */
+    onHidden() {
+        this.clock.hidden();
     }
 
     // ---- state

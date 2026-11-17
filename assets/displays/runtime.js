@@ -17,7 +17,7 @@
 // - No leaks: every timer lives in one named slot (a new one cancels the old), no state history is kept.
 
 import { OfficialResultsEvents } from '../official_results_events.js';
-import { createServerClock, isNewerState, stopwatchView } from '../round_stopwatch_clock.js';
+import { createServerClock, isNewerState, monotonicNow, stopwatchView } from '../round_stopwatch_clock.js';
 
 export const SIGNAL_DEBOUNCE_MS = 1500;
 export const SAFETY_POLL_MS = 60 * 1000;
@@ -54,7 +54,7 @@ export class DisplayRuntime {
         fetchState,
         fetchDesign,
         reload,
-        now = () => Date.now(),
+        now = monotonicNow,
         schedule = (task, ms) => setTimeout(task, ms),
         cancel = (timer) => clearTimeout(timer),
         createEvents = (options) => new OfficialResultsEvents(options),
@@ -74,7 +74,8 @@ export class DisplayRuntime {
         this.random = random;
         this.requestWakeLock = requestWakeLock;
 
-        this.clock = createServerClock({ now });
+        // On the monotonic clock: a change of the computer's clock moves no timer; one seen asks for a sample (D2)
+        this.clock = createServerClock({ now, onJump: () => this.refresh() });
         this.timers = {};
         this.inFlight = null;
         this.fetchAgain = false;
@@ -190,6 +191,7 @@ export class DisplayRuntime {
     }
 
     onVisible() {
+        this.clock.shown();
         this.refresh();
         this.acquireWakeLock();
     }

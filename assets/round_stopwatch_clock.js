@@ -150,21 +150,84 @@ export function isNewerState(current, incoming) {
 }
 
 /**
+ * This device's monotonic clock on the epoch scale (ms): `performance.timeOrigin + performance.now()` - a change of the
+ * device's wall clock while the page is open (NTP, a manual change, a DST bug) moves `Date.now()`, never this
+ * (reliability hardening F1, D2). `Date.now()` where the browser has no `performance`.
+ */
+export function monotonicNow() {
+    const performance = globalThis.performance;
+
+    if (performance && typeof performance.now === 'function' && Number.isFinite(performance.timeOrigin)) {
+        return performance.timeOrigin + performance.now();
+    }
+
+    return Date.now();
+}
+
+// The wall clock and the monotonic one disagreeing by more than this about the time that passed: a clock change or a sleep
+export const CLOCK_JUMP_MS = 2000;
+
+/**
  * The server's clock minus this device's (ms), from the answer with the shortest round trip: its error is at most half
  * of it. Every state fetch is a sample (`observe()`), the page's own server time a first guess without a round trip
  * (`hint()`). Samples older than `windowMs` before the newest one are dropped, so a drifting clock is followed - and
- * the newest sample always stays. `sampleAgeMs()`: the age of the sample in use (sent with a competitor's tap - T2).
+ * the newest sample always stays. `sampleAgeMs()`: the age of the sample in use (sent with a competitor's tap - T2;
+ * null right after a jump - the estimate then rests on the hint).
+ *
+ * Measured on the monotonic clock (`now`, monotonicNow() - callers stamp `sentAtMs` / `receivedAtMs` with the same
+ * clock), so a wall clock change while the page is open moves nothing (D2). `performance.now()` stops while most phones
+ * sleep: when the wall clock (`wallNow`) and the monotonic one disagree by more than CLOCK_JUMP_MS about the time that
+ * passed,
+ * - after `hidden()` (the page was in the background - it may have slept): the estimate moves on by the difference (a
+ *   sleep the monotonic clock did not count);
+ * - while the page stayed visible: the wall clock changed - the estimate stays;
+ * either way the estimate becomes the hint, the samples are dropped (a fresh one decides - a sample taken across the
+ * jump is left out) and `onJump()` asks the page for one. An injected `now` without `wallNow` sees no jumps (tests).
  */
-export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 * 1000, maxSamples = 12 } = {}) {
+export function createServerClock({ now, wallNow, windowMs = 10 * 60 * 1000, maxSamples = 12, jumpMs = CLOCK_JUMP_MS, onJump = () => {} } = {}) {
+    const readNow = now ?? monotonicNow;
+    const readWall = wallNow ?? (now === undefined || now === monotonicNow ? () => Date.now() : null);
     let hint = 0;
     let samples = [];
+    let skew = null;
+    let mayHaveSlept = false;
+    // Moments (monotonic) a jump was seen at - a sample sent before the last one says nothing
+    let jumpedAt = -Infinity;
 
     function best() {
         return samples.length === 0 ? null : samples.reduce((chosen, sample) => (sample.rttMs < chosen.rttMs ? sample : chosen));
     }
 
-    function offsetMs() {
+    function bestOffset() {
         return best()?.offsetMs ?? hint;
+    }
+
+    // Looks for a wall clock change or a sleep since the last look - true when it saw one
+    function look() {
+        if (readWall === null) {
+            return false;
+        }
+
+        const current = readWall() - readNow();
+
+        // Compared with the last look, so a slow drift of the two clocks is followed and never counts as a jump
+        if (skew === null || Math.abs(current - skew) <= jumpMs) {
+            skew = current;
+
+            return false;
+        }
+
+        const deltaMs = current - skew;
+        // The wall clock ran on while the monotonic one stood after the page went to the background: a sleep - the
+        // server's time moved on by it too. Otherwise the wall clock was changed - nothing of the server's moved.
+        hint = bestOffset() + (mayHaveSlept && deltaMs > 0 ? deltaMs : 0);
+        mayHaveSlept = false;
+        samples = [];
+        jumpedAt = readNow();
+        skew = readWall() - readNow();
+        onJump({ deltaMs });
+
+        return true;
     }
 
     return {
@@ -175,6 +238,11 @@ export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 *
         },
 
         observe({ sentAtMs, receivedAtMs, serverNowMs }) {
+            // A jump seen after the request went out: the sample says nothing - onJump() asked for another
+            if (look() || sentAtMs < jumpedAt) {
+                return false;
+            }
+
             if (![sentAtMs, receivedAtMs, serverNowMs].every((value) => typeof value === 'number' && Number.isFinite(value))) {
                 return false;
             }
@@ -193,7 +261,11 @@ export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 *
             return true;
         },
 
-        offsetMs,
+        offsetMs() {
+            look();
+
+            return bestOffset();
+        },
 
         bestRttMs() {
             return samples.length === 0 ? null : Math.min(...samples.map((sample) => sample.rttMs));
@@ -203,11 +275,25 @@ export function createServerClock({ now = () => Date.now(), windowMs = 10 * 60 *
         sampleAgeMs() {
             const chosen = best();
 
-            return chosen === null ? null : Math.max(0, now() - chosen.atMs);
+            return chosen === null ? null : Math.max(0, readNow() - chosen.atMs);
         },
 
         serverNow() {
-            return now() + offsetMs();
+            look();
+
+            return readNow() + bestOffset();
+        },
+
+        /** The page went to the background - a jump seen before it is shown again may be a sleep */
+        hidden() {
+            look();
+            mayHaveSlept = true;
+        },
+
+        /** The page is shown again: a sleep is looked for now (the page asks for a fresh state anyway) */
+        shown() {
+            look();
+            mayHaveSlept = false;
         },
     };
 }

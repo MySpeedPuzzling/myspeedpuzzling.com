@@ -7,6 +7,7 @@ import {
     createServerClock,
     formatCountdown,
     isNewerState,
+    monotonicNow,
     startedAtMs,
     stopwatchView,
 } from '../round_stopwatch_clock.js';
@@ -50,10 +51,12 @@ export default class extends Controller {
         this.lastPhase = null;
         this.lastTexts = new Map();
 
-        this.clock = createServerClock();
+        // On the monotonic clock: a change of the device's clock moves no stopwatch; a sleep or a change seen asks for a
+        // fresh sample (reliability hardening F1, D2)
+        this.clock = createServerClock({ onJump: () => this.refetch() });
         // The page's own server time - no round trip known yet; the first state fetch refines it
         if (this.serverNowMsValue) {
-            this.clock.hint(this.serverNowMsValue - Date.now());
+            this.clock.hint(this.serverNowMsValue - monotonicNow());
         }
 
         this.state = this.stateValue ?? {};
@@ -67,7 +70,10 @@ export default class extends Controller {
 
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
+                this.clock.shown();
                 this.refetch();
+            } else {
+                this.clock.hidden();
             }
         };
         document.addEventListener('visibilitychange', this.onVisibility);
@@ -141,11 +147,11 @@ export default class extends Controller {
             return;
         }
 
-        const sentAtMs = Date.now();
+        const sentAtMs = monotonicNow();
 
         try {
             const response = await fetch(this.stateUrlValue, { cache: 'no-store' });
-            const receivedAtMs = Date.now();
+            const receivedAtMs = monotonicNow();
 
             if (!response.ok) {
                 return;

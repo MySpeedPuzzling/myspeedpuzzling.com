@@ -7,6 +7,7 @@ import {
     clockParts,
     countdownSeconds,
     createServerClock,
+    monotonicNow,
     formatCountdown,
     isNewerState,
     startedAtMs,
@@ -17,6 +18,7 @@ import {
 const NOW = Date.parse('2026-11-10T18:00:00Z');
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
 
 function stopwatch(status, startedAtMs, extra = {}) {
     return {
@@ -182,6 +184,89 @@ const scenarios = {
         clock.observe({ sentAtMs: 11 * MINUTE, receivedAtMs: 11 * MINUTE + 200, serverNowMs: 11 * MINUTE + 1600 });
         assert.equal(clock.offsetMs(), 1500);
         assert.equal(clock.bestRttMs(), 200);
+    },
+
+    async 'a wall clock change while the page is open moves nothing (D2)'() {
+        // The device: a monotonic clock and a wall clock that agree until the wall one jumps
+        const device = { mono: 5_000_000, wall: 5_000_000 };
+        const jumps = [];
+        const clock = createServerClock({ now: () => device.mono, wallNow: () => device.wall, onJump: (jump) => jumps.push(jump) });
+        const tick = (ms) => {
+            device.mono += ms;
+            device.wall += ms;
+        };
+
+        const sent = device.mono;
+        tick(40);
+        assert.ok(clock.observe({ sentAtMs: sent, receivedAtMs: device.mono, serverNowMs: 9_000_020 }));
+        tick(1000);
+        const before = clock.serverNow();
+        assert.equal(before, 9_001_040);
+
+        // NTP / a manual change: the wall clock jumps +1 h, the monotonic one does not
+        device.wall += HOUR;
+        tick(250);
+        assert.equal(clock.serverNow(), before + 250, 'Finished now is the stopwatch\'s time, not the phone\'s new wall clock');
+        assert.equal(jumps.length, 1, 'the page is asked for a fresh sample');
+        assert.equal(jumps[0].deltaMs, HOUR);
+
+        // Back again (-1 h): nothing moves either
+        device.wall -= HOUR;
+        tick(250);
+        assert.equal(clock.serverNow(), before + 500);
+        assert.equal(jumps.length, 2);
+
+        // A fresh sample still counts (the estimate kept as the hint until then)
+        const again = device.mono;
+        tick(30);
+        assert.ok(clock.observe({ sentAtMs: again, receivedAtMs: device.mono, serverNowMs: 9_001_570 }));
+        assert.equal(clock.offsetMs(), 9_001_570 - (again + 15));
+    },
+
+    async 'a phone that slept while the page was hidden catches up at once; a sample across a jump is left out (D2)'() {
+        // performance.now() stops while most phones sleep - Date.now() does not
+        const device = { mono: 5_000_000, wall: 5_000_000 };
+        const jumps = [];
+        const clock = createServerClock({ now: () => device.mono, wallNow: () => device.wall, onJump: (jump) => jumps.push(jump) });
+
+        const sent = device.mono;
+        device.mono += 40;
+        device.wall += 40;
+        clock.observe({ sentAtMs: sent, receivedAtMs: device.mono, serverNowMs: 9_000_020 });
+        const before = clock.serverNow();
+
+        // Hidden, 10 minutes asleep, shown again
+        clock.hidden();
+        device.wall += 10 * MINUTE;
+        clock.shown();
+        assert.equal(clock.serverNow(), before + 10 * MINUTE, 'the sleep counted');
+        assert.equal(jumps.length, 1);
+
+        // A request out while the phone slept (or the clock changed) says nothing
+        const out = device.mono;
+        device.wall += 5000;
+        device.mono += 30;
+        assert.equal(clock.serverNow(), before + 10 * MINUTE + 30, 'seen while visible: a clock change, nothing moves');
+        assert.equal(jumps.length, 2);
+        assert.equal(clock.observe({ sentAtMs: out, receivedAtMs: device.mono, serverNowMs: 1 }), false, 'sent before the jump');
+        assert.equal(clock.bestRttMs(), null);
+        const fresh = device.mono;
+        device.mono += 20;
+        device.wall += 20;
+        assert.ok(clock.observe({ sentAtMs: fresh, receivedAtMs: device.mono, serverNowMs: 7_000_000 }));
+        assert.equal(clock.serverNow(), 7_000_010);
+
+        // An injected clock without a wall clock sees no jumps (the other tests)
+        const plain = createServerClock({ now: () => 0 });
+        plain.hidden();
+        plain.shown();
+        assert.equal(plain.serverNow(), 0);
+    },
+
+    async 'the browser clock is the monotonic one on the epoch scale'() {
+        const value = monotonicNow();
+        assert.ok(Math.abs(value - Date.now()) < 5000);
+        assert.ok(monotonicNow() >= value);
     },
 };
 

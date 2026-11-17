@@ -6,6 +6,7 @@
 import './styles/display.scss';
 import { createRenderer } from './displays/render.js';
 import { DisplayRuntime } from './displays/runtime.js';
+import { monotonicNow } from './round_stopwatch_clock.js';
 
 const FETCH_TIMEOUT_MS = 10000;
 const CURSOR_IDLE_MS = 3000;
@@ -21,7 +22,8 @@ function readJson(root, name) {
 async function getJson(url) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
-    const sentAtMs = Date.now();
+    // The clock's samples: on its monotonic clock (round_stopwatch_clock.js, D2)
+    const sentAtMs = monotonicNow();
 
     try {
         const response = await fetch(url, {
@@ -30,7 +32,7 @@ async function getJson(url) {
             headers: { Accept: 'application/json' },
             signal: controller?.signal,
         });
-        const receivedAtMs = Date.now();
+        const receivedAtMs = monotonicNow();
 
         if (response.status === 404) {
             return { status: 'gone' };
@@ -89,6 +91,8 @@ function start() {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             runtime.onVisible();
+        } else {
+            runtime.clock.hidden();
         }
     });
 

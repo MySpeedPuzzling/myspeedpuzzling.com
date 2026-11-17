@@ -24,8 +24,10 @@
 
 import { escapeHtml } from '../sheet_grid.js';
 import {
+    approveRequest,
     buildAction,
     cleanFieldValue,
+    declineRequest,
     linkProfile,
     newTeamRow,
     putInTeam,
@@ -36,7 +38,7 @@ import {
 } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { allowedActions, paidBefore, performRegistrationAction, registrationStatus, waitlistPositions } from '../registration_actions.js';
-import { formatDate, linkedViaText, notify, reasonFor, searchPlayers, teamLabelText } from './people_view.js';
+import { formatDate, linkedViaText, notify, reasonFor, requestedBy, searchPlayers, teamLabelText } from './people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
 const TEXT_FIELDS = ['name', 'externalId', 'note'];
@@ -526,6 +528,37 @@ export class PersonEditor {
     }
 
     playerHtml(person) {
+        return this.linkedHtml(person) + this.requestsHtml(person);
+    }
+
+    /**
+     * The person's pending link requests (participant-linking.md §7.1): who asks (their name and #code, as they showed
+     * themselves) with Approve / Decline - one line each, 44 px buttons on a phone.
+     */
+    requestsHtml(person) {
+        const requests = person.removedAt === null && typeof this.model.pendingRequests === 'function' ? this.model.pendingRequests(person.id) : [];
+
+        if (requests.length === 0) {
+            return '';
+        }
+
+        const lines = requests.map((request) => {
+            const who = requestedBy(request);
+            const text = this.t(request.kind === 'dispute' ? 'link_request_dispute' : 'link_request_asks', { player: who });
+
+            return `<li class="sheet-person-request" data-link-request="${escapeHtml(request.id)}">
+                    <span class="sheet-request-chip">${escapeHtml(text)}</span>
+                    <span class="sheet-person-request-actions">
+                        <button type="button" class="btn btn-sm btn-success" data-approve-request="${escapeHtml(request.id)}" data-focus-key="approve-${escapeHtml(request.id)}"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t('link_request_approve'))}</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-decline-request="${escapeHtml(request.id)}" data-focus-key="decline-${escapeHtml(request.id)}"><i class="bi bi-x-lg me-1" aria-hidden="true"></i>${escapeHtml(this.t('link_request_decline'))}</button>
+                    </span>
+                </li>`;
+        });
+
+        return `<ul class="sheet-person-requests list-unstyled mb-0 mt-2">${lines.join('')}</ul>`;
+    }
+
+    linkedHtml(person) {
         const player = person.player;
         const removed = person.removedAt !== null;
 
@@ -533,7 +566,8 @@ export class PersonEditor {
             return '';
         }
 
-        const unlink = removed ? '' : ` <button type="button" class="btn btn-sm btn-outline-secondary" data-unlink data-focus-key="unlink">${escapeHtml(this.t('people_profile_unlink'))}</button>`;
+        const unlink = removed ? '' : ` <button type="button" class="btn btn-sm btn-outline-secondary" data-unlink data-focus-key="unlink">${escapeHtml(this.t('people_profile_unlink'))}</button>`
+            + ` <button type="button" class="btn btn-sm btn-outline-danger" data-not-them data-focus-key="not-them" title="${escapeHtml(this.t('not_this_person_help'))}">${escapeHtml(this.t('not_this_person'))}</button>`;
         // How the link was made (participant-linking.md §7.1), as in the People grid's profile cell
         const via = linkedViaText(person.linkedVia, (key) => this.t(key));
         const viaHtml = via !== null ? ` <span class="sheet-muted sheet-linked-via">· ${escapeHtml(via)}</span>` : '';
@@ -944,6 +978,55 @@ export class PersonEditor {
             this.context.queue.dismiss(theirs.dataset.problemTheirs);
             this.dirty.clear();
             this.sync(true);
+
+            return;
+        }
+
+        const approve = target.closest('[data-approve-request]');
+
+        if (approve) {
+            const request = this.model.request(approve.dataset.approveRequest);
+            const error = request !== null ? this.perform(approveRequest(this.model, request, this.builderOptions())) : null;
+
+            if (error !== null) {
+                this.notify(error, approve);
+            }
+
+            return;
+        }
+
+        const decline = target.closest('[data-decline-request]');
+
+        if (decline) {
+            const request = this.model.request(decline.dataset.declineRequest);
+
+            if (request !== null && window.confirm(this.t('link_request_decline_confirm', { player: requestedBy(request), name: person.name }))) {
+                const error = this.perform(declineRequest(this.model, request, this.builderOptions()));
+
+                if (error !== null) {
+                    this.notify(error, decline);
+                }
+            }
+
+            return;
+        }
+
+        const notThem = target.closest('[data-not-them]');
+
+        if (notThem) {
+            const who = person.player?.visible === true ? (person.player.name ?? `#${String(person.player.code ?? '').toUpperCase()}`) : this.t('people_profile_hidden');
+
+            if (!window.confirm(this.t('not_this_person_confirm', { player: who }))) {
+                return;
+            }
+
+            const error = this.perform(linkProfile(this.model, person.id, null, { ...this.builderOptions(), notThem: true }));
+
+            if (error !== null) {
+                this.notify(error, notThem);
+            } else {
+                this.context.announce(this.say('editor_unlinked'));
+            }
 
             return;
         }

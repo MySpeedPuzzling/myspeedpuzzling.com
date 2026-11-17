@@ -9,6 +9,9 @@
         <a class="ev-action-button ev-action-primary" href="#registration">{{ 'event_detail.going.registration'|trans }}</a>
     {% elseif attendance.isGoing %}
         <a class="ev-action-button ev-action-going" href="#taking-part"><span aria-hidden="true">✓ </span>{{ 'competition.join.you_are_going'|trans }}</a>
+    {% elseif attendance.pendingRequestParticipantName is not null %}
+        {# A link request waiting for the organiser (participant-linking.md §6.1) - said down in Taking part #}
+        <a class="ev-action-button" href="#taking-part" data-participant-link-pending-action><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'participant_linking.attendance.waiting_short'|trans }}</a>
     {% else %}
         <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: competition_id}) }}">{{ 'competition.join.im_going'|trans }}</a>
     {% endif %}

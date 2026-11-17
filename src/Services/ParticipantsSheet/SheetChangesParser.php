@@ -18,7 +18,8 @@ use SpeedPuzzling\Web\Value\SheetChangeOp;
  *
  *     {"op": "newParticipant", "id": "<uuid>", "name": "Kim Example", "country": "us", "externalId": null}
  *     {"op": "field", "participant": "<uuid>", "field": "name" | "country" | "externalId" | "note", "from": …, "to": …}
- *     {"op": "player", "participant": "<uuid>", "from": null | "<player uuid>", "to": null | "<player uuid>"}
+ *     {"op": "player", "participant": "<uuid>", "from": null | "<player uuid>", "to": null | "<player uuid>", "notThem"?: true}
+ *     {"op": "declineLinkRequest", "request": "<uuid>", "from": "pending"}
  *     {"op": "place", "participant": "<uuid>", "round": "<uuid>", "from": "out" | "in" | "team:<uuid>", "to": …}
  *     {"op": "newTeam", "id": "<uuid>", "round": "<uuid>", "name": null | "Corners"}
  *     {"op": "renameTeam", "team": "<uuid>", "from": null | "…", "to": null | "…"}
@@ -148,6 +149,11 @@ final readonly class SheetChangesParser
                 self::id($change, 'participant'),
                 self::nullableId($change, 'from'),
                 self::nullableId($change, 'to'),
+                self::optionalBool($change, 'notThem'),
+            ),
+            SheetChangeOp::DeclineLinkRequest => SheetChange::declineLinkRequest(
+                self::id($change, 'request'),
+                self::nullableString($change, 'from'),
             ),
             SheetChangeOp::Place => SheetChange::place(
                 self::id($change, 'participant'),
@@ -251,6 +257,23 @@ final readonly class SheetChangesParser
 
         if ($value !== null && !is_string($value)) {
             throw new UnreadableSheetChanges(UnreadableSheetChanges::MISSING_FIELD, sprintf('"%s" must be a string or null.', $key));
+        }
+
+        return $value;
+    }
+
+    /**
+     * Left out = false.
+     *
+     * @param array<mixed> $change
+     * @throws UnreadableSheetChanges
+     */
+    private static function optionalBool(array $change, string $key): bool
+    {
+        $value = $change[$key] ?? false;
+
+        if (!is_bool($value)) {
+            throw new UnreadableSheetChanges(UnreadableSheetChanges::MISSING_FIELD, sprintf('"%s" must be true or false.', $key));
         }
 
         return $value;

@@ -32,6 +32,11 @@ readonly final class SheetChange
         public null|string $name = null,
         public null|string $country = null,
         public null|string $externalId = null,
+        // declineLinkRequest: the request (ParticipantLinkRequest)
+        public null|string $requestId = null,
+        // player → null: the organiser says the linked player is not this person - a refused pair (participant-linking.md
+        // D11), not a plain unlink
+        public bool $notThem = false,
     ) {
     }
 
@@ -45,9 +50,17 @@ readonly final class SheetChange
         return new self(SheetChangeOp::Field, participantId: $participantId, field: $field, from: $from, to: $to);
     }
 
-    public static function player(string $participantId, null|string $from, null|string $to): self
+    public static function player(string $participantId, null|string $from, null|string $to, bool $notThem = false): self
     {
-        return new self(SheetChangeOp::Player, participantId: $participantId, from: $from, to: $to);
+        return new self(SheetChangeOp::Player, participantId: $participantId, from: $from, to: $to, notThem: $notThem && $to === null);
+    }
+
+    /**
+     * `from` is the request's status the page saw - `pending`
+     */
+    public static function declineLinkRequest(string $requestId, null|string $from): self
+    {
+        return new self(SheetChangeOp::DeclineLinkRequest, from: $from, to: 'declined', requestId: $requestId);
     }
 
     public static function place(string $participantId, string $roundId, string $from, string $to): self
@@ -89,20 +102,23 @@ readonly final class SheetChange
      * The change in the wire format SheetChangesParser reads (ids canonical, values as parsed) - the change trail of a
      * change set's receipt (ParticipantSheetChangeReceipt::$changes); parsed again, it is this change.
      *
-     * @return array<string, null|string|int>
+     * @return array<string, null|string|int|bool>
      */
     public function toArray(): array
     {
         return match ($this->op) {
             SheetChangeOp::NewParticipant => ['op' => $this->op->value, 'id' => $this->id, 'name' => $this->name, 'country' => $this->country, 'externalId' => $this->externalId],
             SheetChangeOp::Field => ['op' => $this->op->value, 'participant' => $this->participantId, 'field' => $this->field?->value, 'from' => $this->from, 'to' => $this->to],
-            SheetChangeOp::Player => ['op' => $this->op->value, 'participant' => $this->participantId, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::Player => $this->notThem
+                ? ['op' => $this->op->value, 'participant' => $this->participantId, 'from' => $this->from, 'to' => $this->to, 'notThem' => true]
+                : ['op' => $this->op->value, 'participant' => $this->participantId, 'from' => $this->from, 'to' => $this->to],
             SheetChangeOp::Place => ['op' => $this->op->value, 'participant' => $this->participantId, 'round' => $this->roundId, 'from' => $this->from, 'to' => $this->to],
             SheetChangeOp::NewTeam => ['op' => $this->op->value, 'id' => $this->id, 'round' => $this->roundId, 'name' => $this->name],
             SheetChangeOp::RenameTeam => ['op' => $this->op->value, 'team' => $this->teamId, 'from' => $this->from, 'to' => $this->to],
             SheetChangeOp::DeleteTeam => ['op' => $this->op->value, 'team' => $this->teamId],
             SheetChangeOp::Remove, SheetChangeOp::Restore => ['op' => $this->op->value, 'participant' => $this->participantId],
             SheetChangeOp::TeamSize => ['op' => $this->op->value, 'round' => $this->roundId, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::DeclineLinkRequest => ['op' => $this->op->value, 'request' => $this->requestId, 'from' => $this->from],
         };
     }
 

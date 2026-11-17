@@ -125,6 +125,8 @@ readonly final class DuplicateCompetitionHandler
         $copy->changeEventTypes($source->eventTypes());
         // Competitor pages & QR (competition toolkit B1) - event settings like the registration ones
         $copy->changeCompetitorPageSettings($source->competitorPageSettings());
+        // The claim policy as the organiser chose it - null (automatic) stays automatic (participant-linking.md §3.2)
+        $copy->changeParticipantClaimPolicy($source->participantClaims);
 
         if ($source->registrationTimezone !== null) {
             $copy->changeRegistrationSettings(

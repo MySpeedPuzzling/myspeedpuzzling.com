@@ -44,6 +44,75 @@ export default function (test) {
         assert.ok(matchesSearch(kim, '   '));
     });
 
+    test('participant linking filters: not linked, asks to be linked, linked by themselves (participant-linking.md §7.1)', () => {
+        const state = smallState();
+        state.people = state.people.map((row) => {
+            if (row.id === 'p-pat') {
+                return { ...row, player: { id: 'pl-pat', visible: true, name: 'Pat', code: 'pat', country: null, avatar: null, profileUrl: null }, linkedVia: 'claim_approved' };
+            }
+
+            return row.id === 'p-kim' ? { ...row, linkedVia: 'organiser' } : row;
+        });
+        state.requests = [
+            { id: 'r1', participantId: 'p-ana', kind: 'claim', playerId: 'pl-x', playerName: 'Xena', playerCode: 'xena', createdAt: '2026-10-08T08:00:00+00:00' },
+        ];
+        const m = new SheetModel(state, { now: () => 0 });
+        const which = (filter) => m.people({ includeRemoved: true }).filter((row) => matchesFilter(m, row, filter)).map((row) => row.id);
+
+        assert.deepEqual(which('asks'), ['p-ana']);
+        assert.deepEqual(which('linked_themselves'), ['p-pat']);
+        assert.ok(!which('not_linked').includes('p-kim'));
+        assert.ok(!which('not_linked').includes('p-pat'));
+        assert.ok(which('not_linked').includes('p-ana'));
+        assert.equal(filterCounts(m, FILTERS).asks, 1);
+
+        // Declined on the page: no longer asks
+        m.applyLocal('g1', [{ op: 'declineLinkRequest', request: 'r1', from: 'pending' }]);
+        assert.deepEqual(which('asks'), []);
+        assert.equal(m.request('r1').status, 'declined');
+    });
+
+    test('approving links the claimant and approves the request; a link of somebody else supersedes it', () => {
+        const state = smallState();
+        state.requests = [
+            { id: 'r1', participantId: 'p-ana', kind: 'claim', playerId: 'pl-x', playerName: 'Xena', playerCode: 'xena', createdAt: '2026-10-08T08:00:00+00:00' },
+            { id: 'r2', participantId: 'p-jo', kind: 'claim', playerId: 'pl-y', playerName: 'Yan', playerCode: 'yan', createdAt: '2026-10-08T08:00:00+00:00' },
+        ];
+        const m = new SheetModel(state, { now: () => 0 });
+
+        m.applyLocal('g1', [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-x' }]);
+        assert.equal(m.request('r1').status, 'approved');
+        assert.equal(m.person('p-ana').linkedVia, 'claim_approved');
+
+        m.applyLocal('g2', [{ op: 'player', participant: 'p-jo', from: null, to: 'pl-z' }]);
+        assert.equal(m.request('r2').status, 'superseded');
+        assert.equal(m.person('p-jo').linkedVia, 'organiser');
+    });
+
+    test('approving a claimant on the list already lets go of their other rows at once (R1, as the server)', () => {
+        const state = smallState();
+        const own = { id: 'pl-x', visible: true, name: 'Xena', code: 'xena', country: null, avatar: null, profileUrl: null };
+        state.people = state.people.map((row) => {
+            if (row.id === 'p-jo') {
+                return { ...row, source: 'self_joined', player: own };
+            }
+
+            return row.id === 'p-lee' ? { ...row, player: own } : row;
+        });
+        state.requests = [
+            { id: 'r1', participantId: 'p-ana', kind: 'claim', playerId: 'pl-x', playerName: 'Xena', playerCode: 'xena', createdAt: '2026-10-08T08:00:00+00:00' },
+        ];
+        const m = new SheetModel(state, { now: () => 0 });
+
+        m.applyLocal('g1', [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-x' }]);
+
+        assert.equal(m.person('p-ana').player.id, 'pl-x');
+        // Jo's own self-joined row (no result) is their "I left" record; Lee's row (the organiser's) is only unlinked
+        assert.notEqual(m.person('p-jo').removedAt, null);
+        assert.equal(m.person('p-lee').player, null);
+        assert.equal(m.person('p-lee').removedAt, null);
+    });
+
     test('filters: not in any round, joined by themselves, removed, duplicate names', () => {
         const state = smallState();
         state.people = state.people.map((row) => (row.id === 'p-jo' ? { ...row, source: 'self_joined' } : row));
@@ -62,14 +131,14 @@ export default function (test) {
     test('counts per filter follow the search', () => {
         const m = model();
         const filters = offeredFor(FILTERS, m.competition);
-        assert.deepEqual(filters.map((filter) => filter.key), ['all', 'no_round', 'joined', 'duplicates', 'removed']);
-        assert.deepEqual(filterCounts(m, filters), { all: 13, no_round: 1, joined: 0, duplicates: 0, removed: 1 });
-        assert.deepEqual(filterCounts(m, filters, 'example'), { all: 2, no_round: 1, joined: 0, duplicates: 0, removed: 0 });
+        assert.deepEqual(filters.map((filter) => filter.key), ['all', 'no_round', 'joined', 'not_linked', 'asks', 'linked_themselves', 'duplicates', 'removed']);
+        assert.deepEqual(filterCounts(m, filters), { all: 13, no_round: 1, joined: 0, not_linked: 12, asks: 0, linked_themselves: 0, duplicates: 0, removed: 1 });
+        assert.deepEqual(filterCounts(m, filters, 'example'), { all: 2, no_round: 1, joined: 0, not_linked: 1, asks: 0, linked_themselves: 0, duplicates: 0, removed: 0 });
     });
 
     test('a managed in-person event offers the registration filters and columns; online: no check-in', () => {
         const managed = { registrationManaged: true, isOnline: false };
-        assert.deepEqual(offeredFor(FILTERS, managed).map((filter) => filter.key), ['all', 'no_round', 'joined', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed']);
+        assert.deepEqual(offeredFor(FILTERS, managed).map((filter) => filter.key), ['all', 'no_round', 'joined', 'not_linked', 'asks', 'linked_themselves', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed']);
         assert.ok(!offeredFor(FILTERS, { registrationManaged: true, isOnline: true }).some((filter) => filter.key.includes('checked')));
         assert.deepEqual(offeredFor(COLUMN_OPTIONS, { registrationManaged: false }).map((column) => column.key), ['name', 'country', 'player', 'rounds', 'externalId', 'source', 'joined', 'note']);
         assert.ok(offeredFor(COLUMN_OPTIONS, managed).some((column) => column.key === 'registered'));
@@ -84,15 +153,15 @@ export default function (test) {
         const m = new SheetModel(state, { now: () => 0 });
         const which = (filter) => m.people({ includeRemoved: true }).filter((row) => matchesFilter(m, row, filter)).map((row) => row.id);
 
-        assert.deepEqual(offeredFor(FILTERS, m.competition, m.rounds()).map((filter) => filter.key), ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'duplicates', 'removed']);
+        assert.deepEqual(offeredFor(FILTERS, m.competition, m.rounds()).map((filter) => filter.key), ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'not_linked', 'asks', 'linked_themselves', 'duplicates', 'removed']);
         assert.deepEqual(which('multi_solo'), ['p-kim']);
         assert.ok(which('no_solo').includes('p-jo') && !which('no_solo').includes('p-pat') && !which('no_solo').includes('p-ana'));
         assert.ok(!which('no_solo').includes('p-ola'), 'removed people only under Removed');
 
         // Only solo rounds: "In no solo round" = "Not in any round" - not offered; one solo round: no "2+"
         const soloOnly = [{ id: 'a', category: 'solo' }, { id: 'b', category: 'solo' }];
-        assert.deepEqual(offeredFor(FILTERS, {}, soloOnly).map((filter) => filter.key), ['all', 'no_round', 'multi_solo', 'joined', 'duplicates', 'removed']);
-        assert.deepEqual(offeredFor(FILTERS, {}, [{ id: 'a', category: 'solo' }, { id: 'p', category: 'duo' }]).map((filter) => filter.key), ['all', 'no_round', 'no_solo', 'joined', 'duplicates', 'removed']);
+        assert.deepEqual(offeredFor(FILTERS, {}, soloOnly).map((filter) => filter.key), ['all', 'no_round', 'multi_solo', 'joined', 'not_linked', 'asks', 'linked_themselves', 'duplicates', 'removed']);
+        assert.deepEqual(offeredFor(FILTERS, {}, [{ id: 'a', category: 'solo' }, { id: 'p', category: 'duo' }]).map((filter) => filter.key), ['all', 'no_round', 'no_solo', 'joined', 'not_linked', 'asks', 'linked_themselves', 'duplicates', 'removed']);
     });
 
     test('BR4: the round select - "In Pairs" (any place in it) / "Not in Pairs"; with the filters and the search', () => {
@@ -105,7 +174,7 @@ export default function (test) {
         assert.ok(!visiblePeople(m, 'all', '', null, 'out:r-pairs').includes('p-kim'));
         assert.deepEqual(visiblePeople(m, 'all', 'kim', null, 'out:r-pairs'), []);
         assert.ok(matchesRoundFilter(m, m.person('p-ana'), 'in:r-gone'), 'a round that is gone filters nothing');
-        assert.deepEqual(filterCounts(m, offeredFor(FILTERS, m.competition), '', 'in:r-solo'), { all: 2, no_round: 0, joined: 0, duplicates: 0, removed: 0 });
+        assert.deepEqual(filterCounts(m, offeredFor(FILTERS, m.competition), '', 'in:r-solo'), { all: 2, no_round: 0, joined: 0, not_linked: 1, asks: 0, linked_themselves: 0, duplicates: 0, removed: 0 });
     });
 
     test('BR4: sorting by name, country, external ID (numbers as numbers), registered, joined - empty values last both ways', () => {

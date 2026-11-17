@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
+use SpeedPuzzling\Web\Repository\ParticipantLinkRequestRepository;
 use SpeedPuzzling\Web\Results\ParticipantImportPlan;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantImportOperations;
@@ -43,6 +44,7 @@ readonly final class ParticipantImportApplier
         private CompetitionParticipantRoundRepository $participantRoundRepository,
         private ClockInterface $clock,
         private ParticipantLinks $participantLinks,
+        private ParticipantLinkRequestRepository $requestRepository,
     ) {
     }
 
@@ -70,6 +72,22 @@ readonly final class ParticipantImportApplier
         ParticipantImportOperations $operations,
         ParticipantLinkMethod $linkVia = ParticipantLinkMethod::Organiser,
         null|Player $by = null,
+    ): ParticipantImportResult {
+        // The event's pending link requests are read once for every link and removal of these operations
+        return $this->participantLinks->inBatch(
+            $competitionId,
+            fn (): ParticipantImportResult => $this->write($competitionId, $operations, $linkVia, $by),
+        );
+    }
+
+    /**
+     * @throws ParticipantImportPreviewStale
+     */
+    private function write(
+        string $competitionId,
+        ParticipantImportOperations $operations,
+        ParticipantLinkMethod $linkVia,
+        null|Player $by,
     ): ParticipantImportResult {
         $competition = $this->competitionRepository->get($competitionId);
         $now = $this->clock->now();
@@ -124,6 +142,7 @@ readonly final class ParticipantImportApplier
         $teams = $this->load(CompetitionTeam::class, array_keys($teamIds), static fn (CompetitionTeam $team): string => $team->id->toString());
         $entries = $this->load(CompetitionParticipantRound::class, array_keys($entryIds), static fn (CompetitionParticipantRound $entry): string => $entry->id->toString());
         $membersOfDeletedTeams = $this->entriesOfTeams($operations->deletedTeams);
+        $declinedRequests = $this->requestRepository->byIds($operations->declinedRequests);
 
         // 2. The changes
 
@@ -165,7 +184,9 @@ readonly final class ParticipantImportApplier
             }
 
             if (($operation['disconnect'] ?? false) === true) {
-                $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $by, $now);
+                // "Not this person" (the sheet's notThem) is a refused pair from now on (participant-linking.md D11)
+                $why = ($operation['notThem'] ?? false) === true ? ParticipantLinkAction::NotThisPerson : ParticipantLinkAction::Unlinked;
+                $this->participantLinks->unlink($participant, $why, $by, $now);
             }
 
             // Already linked to the same player (a plan made before the link, re-applied): the link keeps its moment
@@ -189,6 +210,8 @@ readonly final class ParticipantImportApplier
 
             if ($operation['softDelete']) {
                 $participant->softDelete($now);
+                // Its pending link requests are nobody's to decide any more (participant-linking.md §11)
+                $this->participantLinks->participantRemoved($participant, $now);
             }
 
             $participants[$operation['key']] = $participant;
@@ -261,6 +284,12 @@ readonly final class ParticipantImportApplier
             }
 
             $this->competitionTeamRepository->delete($team);
+        }
+
+        // The organiser's "no" to link requests (the sheet's declineLinkRequest, participant-linking.md §5.3) - a request
+        // decided meanwhile is left as it is
+        foreach ($declinedRequests as $request) {
+            $this->participantLinks->decline($request, $by, $now);
         }
 
         return new ParticipantImportResult(

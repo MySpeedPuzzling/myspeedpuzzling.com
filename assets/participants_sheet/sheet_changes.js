@@ -139,6 +139,12 @@ export function changeTarget(change, model = null) {
         }
         case 'teamSize':
             return { key: `round:${change.round}:teamSize`, people: [], teams: [], rounds: [change.round] };
+        case 'declineLinkRequest': {
+            // The request's person: its chip is in their profile cell
+            const participantId = model?.request?.(change.request)?.participantId ?? null;
+
+            return { key: participantId !== null ? `person:${participantId}:player` : `request:${change.request}`, people: participantId !== null ? [participantId] : [], teams: [], rounds: [] };
+        }
         default:
             return { key: `change:${change.op}`, people: [], teams: [], rounds: [] };
     }
@@ -224,7 +230,17 @@ export function checkChange(change, state, { countries = null } = {}) {
                 return 'participant_removed';
             }
 
-            return change.to !== null && linkedElsewhere(state, change.to, change.participant) ? 'player_linked_elsewhere' : null;
+            // Approving a claimant who is on the list already lets go of their other rows first (participant-linking.md
+            // R1) - the server decides that, the browser does not refuse it
+            const approval = change.to !== null && typeof state.pendingRequestFor === 'function' && state.pendingRequestFor(change.participant, change.to) !== null;
+
+            return change.to !== null && !approval && linkedElsewhere(state, change.to, change.participant) ? 'player_linked_elsewhere' : null;
+        }
+
+        case 'declineLinkRequest': {
+            const request = typeof state.request === 'function' ? state.request(change.request) : null;
+
+            return request === null || request.status !== 'pending' ? 'request_not_found' : null;
         }
 
         case 'place': {
@@ -498,6 +514,9 @@ function invertChange(change, before) {
             return before.person(change.id) === null ? [{ op: 'remove', participant: change.id }] : [];
         case 'field':
             return [{ op: 'field', participant: change.participant, field: change.field, from: cleanFieldValue(change.field, change.to), to: change.from }];
+        case 'declineLinkRequest':
+            // Never undone - a refused pair stays on the record (participant-linking.md D11); the step says so (irreversible)
+            return [];
         case 'player': {
             const previous = before.person(change.participant)?.player ?? null;
             const inverse = { op: 'player', participant: change.participant, from: change.to, to: change.from };
@@ -782,7 +801,48 @@ export function linkProfile(model, personId, player, options = {}) {
         change._player = { visible: true, ...player };
     }
 
-    return buildAction(model, [[change]], { label: { key: to === null ? 'unlink' : 'link' }, ...actionOptions(options) });
+    // "Not this person" (participant-linking.md D11): the unlink is a refused pair - the player cannot claim it again
+    if (to === null && options.notThem === true) {
+        change.notThem = true;
+    }
+
+    const key = to === null ? (change.notThem ? 'not_them' : 'unlink') : 'link';
+    const action = buildAction(model, [[change]], { label: { key }, ...actionOptions(options) });
+
+    // A refused pair stays on the record - linking again would not take it back, so the step is not undone (like a
+    // decline): the organiser links the profile again by hand when it was a mistake
+    return change.notThem ? { ...action, irreversible: action.groups.length > 0 } : action;
+}
+
+/**
+ * Approve a pending link request (participant-linking.md §5.3): the `player` change to the claimant - `from` the
+ * row's current player (a dispute) or null. The server lets go of the claimant's other rows first (R1).
+ */
+export function approveRequest(model, request, options = {}) {
+    const person = model.person(request.participantId);
+
+    if (person === null) {
+        return buildAction(model, [], actionOptions(options));
+    }
+
+    const change = {
+        op: 'player',
+        participant: request.participantId,
+        from: person.player?.id ?? null,
+        to: request.playerId,
+        _player: { id: request.playerId, visible: true, name: request.playerName, code: request.playerCode, country: null, avatar: null, profileUrl: null },
+    };
+
+    return buildAction(model, [[change]], { label: { key: 'approve' }, ...actionOptions(options) });
+}
+
+/**
+ * Decline a pending link request (§5.3) - never undone: the step is marked `irreversible` and its undo says so.
+ */
+export function declineRequest(model, request, options = {}) {
+    const action = buildAction(model, [[{ op: 'declineLinkRequest', request: request.id, from: 'pending' }]], { label: { key: 'decline' }, ...actionOptions(options) });
+
+    return { ...action, irreversible: action.groups.length > 0 };
 }
 
 /**

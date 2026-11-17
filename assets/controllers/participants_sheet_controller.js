@@ -893,6 +893,13 @@ export default class extends Controller {
             return;
         }
 
+        if (action.irreversible === true) {
+            this.notify(core.t('undo_irreversible', { action: this.labelOf(action.label) }), { kind: 'info' });
+            this.renderUndo();
+
+            return;
+        }
+
         // People removed from the event meanwhile are left as they are - said
         const skipped = [...new Set((action.skipped ?? []).map((change) => this.model.person(change.participant)?.name).filter(Boolean))];
         const skippedText = skipped.length > 0 ? core.t('undo_skipped_removed', { names: skipped.join(', ') }) : '';

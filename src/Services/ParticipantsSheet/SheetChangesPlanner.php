@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Services\ParticipantImport\SiteSnapshotReader;
 use SpeedPuzzling\Web\Services\ParticipantsSheet\Plan\SheetPlan;
 use SpeedPuzzling\Web\Services\ParticipantsSheet\Plan\SheetPlanRun;
+use SpeedPuzzling\Web\Value\LinkRequestStatus;
 use SpeedPuzzling\Web\Value\SheetChange;
 use SpeedPuzzling\Web\Value\SheetChangeGroup;
 use SpeedPuzzling\Web\Value\SheetChangeOp;
@@ -19,7 +20,7 @@ use SpeedPuzzling\Web\Value\SheetChangeOp;
  * when the handler calls it: the event as SiteSnapshotReader reads it for the import too, the groups evaluated in order
  * against it (SheetPlanRun), and the net difference written as the import's operations
  * (docs/features/competitions-management/participants-spreadsheet.md §6). A constant number of statements for any
- * number of groups.
+ * number of groups (one more for the event's link requests).
  */
 readonly final class SheetChangesPlanner
 {
@@ -51,9 +52,14 @@ readonly final class SheetChangesPlanner
         $playerIds = [];
         $newParticipantIds = [];
         $teamIds = [];
+        $requestIds = [];
 
         foreach ($groups as $group) {
             foreach ($group->changes as $change) {
+                if ($change->requestId !== null) {
+                    $requestIds[$change->requestId] = true;
+                }
+
                 if ($change->op === SheetChangeOp::Player && is_string($change->to)) {
                     $playerIds[$change->to] = true;
                 }
@@ -89,9 +95,50 @@ readonly final class SheetChangesPlanner
             // another event is refused, one that does not exist at all was deleted already (deleteTeam: unchanged)
             foreignParticipantIds: $this->existing('competition_participant', array_keys(array_diff_key($newParticipantIds, $participantIdsOfEvent))),
             foreignTeamIds: $this->existing('competition_team', array_keys(array_diff_key($teamIds, $site->teams))),
+            requests: $this->requests($competitionId, array_keys($requestIds)),
         );
 
         return $run->run($groups);
+    }
+
+    /**
+     * The event's pending link requests and the ones the changes name (participant-linking.md §5.3) - one statement. A
+     * request of another event is not read: the change naming it is refused (request_not_found).
+     *
+     * @param list<string> $requestIds
+     * @return array<string, array{participantId: string, playerId: string, status: string, releasesOwnRegistration: bool}>
+     */
+    private function requests(string $competitionId, array $requestIds): array
+    {
+        $rows = $this->database->fetchAllAssociative(
+            <<<SQL
+SELECT id, participant_id, player_id, status, releases_own_registration
+FROM participant_link_request
+WHERE competition_id = :competitionId
+    AND (status = :pending OR id IN (:ids))
+ORDER BY created_at, id
+SQL,
+            [
+                'competitionId' => $competitionId,
+                'pending' => LinkRequestStatus::Pending->value,
+                // An empty IN () is no valid SQL - the nil id matches nothing
+                'ids' => $requestIds !== [] ? $requestIds : ['00000000-0000-0000-0000-000000000000'],
+            ],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $requests = [];
+        foreach ($rows as $row) {
+            /** @var array{id: string, participant_id: string, player_id: string, status: string, releases_own_registration: bool} $row */
+            $requests[strtolower($row['id'])] = [
+                'participantId' => strtolower($row['participant_id']),
+                'playerId' => strtolower($row['player_id']),
+                'status' => $row['status'],
+                'releasesOwnRegistration' => $row['releases_own_registration'],
+            ];
+        }
+
+        return $requests;
     }
 
     /**

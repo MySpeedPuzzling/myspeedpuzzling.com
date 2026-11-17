@@ -238,7 +238,8 @@ final class ParticipantsSheetPageTest extends WebTestCase
         self::assertSame($competition, $state['competition']['id']);
         self::assertCount(5, self::listOf($state['rounds']));
         self::assertCount(9, self::listOf($state['people']));
-        self::assertSame(['serverNow', 'version', 'competition', 'rounds', 'people', 'places', 'teams', 'mercure'], array_keys($state));
+        // + the pending link requests and the People filters' counts (participant-linking.md §7.1)
+        self::assertSame(['serverNow', 'version', 'competition', 'rounds', 'people', 'places', 'teams', 'mercure', 'requests', 'counts'], array_keys($state));
     }
 
     public function testTheEmbeddedStateIsWhatTheStateEndpointAnswers(): void

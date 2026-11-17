@@ -155,6 +155,9 @@ final class PlanBuilder
     /** @var array<int, list<int>> row number => every row naming the same player for another person (D7: none links) */
     private array $playerInFileTwice = [];
 
+    /** @var array<string, array<string, true>> participant id => player ids refused for it (participant-linking.md D11) */
+    private array $refusedPairs = [];
+
     public function __construct(
         private readonly SiteSnapshot $site,
         private readonly ParticipantImportRows $file,
@@ -198,6 +201,10 @@ final class PlanBuilder
             );
             $person->before = $person->state();
             $this->people[$person->key] = $person;
+
+            foreach ($participant['refusedPlayerIds'] ?? [] as $refusedPlayerId) {
+                $this->refusedPairs[$participant['id']][$refusedPlayerId] = true;
+            }
 
             // A player's own "I left" record is not the organiser's data: restoring it would sign them up again
             if ($participant['selfJoined'] && $participant['deletedAt'] !== null) {
@@ -1566,6 +1573,18 @@ final class PlanBuilder
      */
     private function canConnect(string $playerId, string $personKey, PlanRow $row, string $name, string $cell): bool
     {
+        // A refused pair (D11: declined, "Not this person", "Not me") is never linked again by a file - the organiser
+        // links it in the sheet when it is right after all
+        if (isset($this->refusedPairs[$personKey][strtolower($playerId)])) {
+            $row->messages[] = self::message('linking.link_refused_before', [
+                '%row%' => $row->rowNumber,
+                '%name%' => $name,
+                '%reference%' => $cell,
+            ]);
+
+            return false;
+        }
+
         $otherKey = ParticipantRules::playerLinkedTo($playerId, $personKey, $this->links());
 
         if ($otherKey !== null) {

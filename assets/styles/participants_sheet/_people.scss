@@ -932,3 +932,59 @@ $people-panel-width: 24rem;
 .sheet-plist-more[hidden] {
     display: none;
 }
+
+// Pending link requests (participant-linking.md §7.1): a yellow chip in the profile cell, the person editor and the
+// phone cards - who asks, with Approve / Decline
+.sheet-request-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: 0 .375rem;
+    border: 1px solid rgba($warning, .6);
+    border-radius: .25rem;
+    background-color: rgba($warning, .18);
+    color: shade-color($warning, 60%);
+    font-size: .8125rem;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+button.sheet-request-chip {
+    cursor: pointer;
+}
+
+.sheet-request-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: .2rem;
+    background: transparent;
+    color: inherit;
+
+    &:hover,
+    &:focus-visible {
+        background-color: rgba($warning, .35);
+    }
+}
+
+.sheet-person-request {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .25rem;
+}
+
+.sheet-person-request-actions {
+    display: inline-flex;
+    gap: .5rem;
+}
+
+// Phones (the editor as a sheet): 44 px targets
+.sheet-person.is-modal .sheet-person-request-actions .btn {
+    min-height: 2.75rem;
+}

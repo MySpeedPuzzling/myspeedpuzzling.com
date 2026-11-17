@@ -908,3 +908,50 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   `#CODE`); the template's player column is `msp_code`. Help: "Put a player's #code in the file only when they gave it
   to you." Not done here: the `email` column, `link_refused_before` (L2), the D8 notification (L2).
 
+
+### L2a - claim policy, requests, organiser decisions, refusals (2026-11-17)
+
+- `competition.participant_claims` (`ParticipantClaimPolicy` open / approval, NULL = automatic): one rule
+  `ParticipantClaimPolicy::resolve()` - `approval` while competitor pages + time proposals are on at an event that is not
+  online by the series-aware rule (an edition by its series' flag, R9). Read by `Competition::participantClaimPolicy()`
+  and, without the entity, `GetParticipantClaimPolicy` (1 statement). `ChangeParticipantClaimPolicy` touches the
+  competition row only (no lock; the SerializedByLock scanner does not see it as a participant writer, so it needs no
+  allow-list entry - like `ChangeCompetitorPageSettings`). Duplicate copies it.
+- `participant_link_request` (`ParticipantLinkRequest`, §3.3 without `found_via` - R10; claimant name + #code snapshot,
+  `releases_own_registration`), written only by `ParticipantLinks` (`request()`, `decline()`, `withdraw()`,
+  `participantRemoved()`, and `link()`'s §4 step 3: the player's request for the row approved - an organiser's link of a
+  claimant is `claim_approved`, a dispute's old link is unlinked as `not_this_person`; other requests on the row and the
+  player's request for another row superseded). Log actions `requested` / `declined` / `withdrawn` / `superseded`.
+- `ParticipantClaims::claim()` = the §5.1 table (+ `release_not_confirmed`: the player's own paid registration needs
+  the `release_paid` yes, also under `approval`) - used by `JoinCompetition`'s pick (returns the `ClaimOutcome`; a
+  removed / other event's participant is `not_available` and a linked one a dispute - no more 404 /
+  `CompetitionParticipantAlreadyConnectedToDifferentPlayer`) and the new `ClaimParticipant` (no UI yet - L3).
+  Refused pairs + the limit of 3: `GetRefusedParticipantLinks` (1 statement); the import reads them in its participants
+  statement (`link_refused_before`, +0).
+- Sheet (§5.3, R1): approve = the `player` change to the claimant; when the claimant is on the list already **and has a
+  pending request for that row**, `SheetPlanRun` lets go of their other rows in the same group (own self-joined row
+  without a result soft-deleted - not made the organiser's; other rows unlinked); a paid own row without the claimant's
+  yes is refused `claimant_registration_paid`. Without a request the old `player_linked_elsewhere` stays. Decline =
+  `declineLinkRequest {request, from: "pending"}` (three-way on the status; never undone - the client marks the step
+  `irreversible`, its undo says so). "Not this person" = `player → null` with `notThem: true` (`unlink(not_this_person)`).
+  A removed participant's pending requests are superseded (sheet, import full sync, leave, self-join release).
+- R3: `TimeProposalOwnership` refuses a link made after the round's first start only for `claim` / NULL.
+- R11: the join GET links a name match only under `open`; under `approval` the match is preselected, the page says
+  "The organiser confirms who is who" and the submit asks the organiser (+ the privacy line). Flashes per outcome;
+  limiter `participant_claim` (10 / 10 min per player) on picks. Event page: "Waiting for the organiser to confirm you
+  are %name%" + Take back (`withdraw_participant_link_request`, CSRF per event) from `GetEventAttendance`'s statement
+  (+0); the header button reads "Waiting for the organiser".
+- Sheet state: `competition.claimPolicy` / `claimPolicyChosen`, `requests` (GetParticipantLinkRequests, +1 statement,
+  the snapshot - the player table is not read, so no coverage-test exemption was needed), `counts`; the version hashes
+  the policy columns, requests (id, status) and `connected_via`. People filters "Not linked / Asks to be linked / Linked
+  by themselves", the yellow request chip (✓ / ✗, "N ask" opens the person editor), Approve / Decline + "Not this
+  person" in the profile cell's options and the person editor, the chip on phone cards; grey suffix "· approved".
+- Hub card "Participants & profiles" (first): counters to the sheet filters (`GetParticipantLinkSummary`, 1 statement)
+  and the policy radios (redirect / 422).
+- Review fixes: the join page's name match skips refused pairs and a player at 3 refusals gets the page with a note
+  (never a redirect loop); "Not this person" is never undone either (the refused pair stays - linking again by hand
+  is the way back); an import / sheet change set reads the event's pending requests once (`ParticipantLinks::
+  inBatch()`, `ResetInterface`) instead of 2 statements per link; the paid-registration consent counts only while the
+  event manages registration; a removal supersedes the person's requests in the plan too (a decline in the same set
+  is a conflict); the sheet shows R1's release of the claimant's other rows at once (`Working::releaseClaimant()`).
+- Not built here: notifications and "Not me" (L2b), the "Is this you?" card and the "This is me" surfaces (L3).

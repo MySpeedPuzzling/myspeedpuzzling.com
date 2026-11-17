@@ -9,7 +9,23 @@
     A visitor gets "I'm going" too - joining asks them to sign in first and brings them back.
     An event that manages registration shows its registration card instead (attendance.registration,
     docs/features/competitions-management/registration.md).
+
+    A pending link request (participant-linking.md §6.1, D4) says so first - the viewer is not going by it.
 #}
+{% if attendance.pendingRequestParticipantName is not null %}
+    <div class="alert alert-warning small py-2 px-3 mb-2 d-flex flex-wrap align-items-center gap-2" role="status" data-participant-link-pending>
+        <span class="me-auto">
+            <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+            {{ 'participant_linking.attendance.waiting'|trans({'%name%': '<strong>' ~ attendance.pendingRequestParticipantName|e ~ '</strong>'})|raw }}
+        </span>
+        <form method="post" action="{{ path('withdraw_participant_link_request', {'competitionId': competition_id}) }}" class="d-inline">
+            <input type="hidden" name="_token" value="{{ csrf_token('participant-link-withdraw-' ~ competition_id|lower) }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" data-participant-link-withdraw>
+                {{ 'participant_linking.attendance.take_back'|trans }}
+            </button>
+        </form>
+    </div>
+{% endif %}
 {% if attendance.registration is not null %}
     {{ include('_event_registration_card.html.twig', {competition_id: competition_id, attendance: attendance, registration: attendance.registration}) }}
 {% elseif attendance.isGoing %}
@@ -26,7 +42,7 @@
             {{ 'competition.join.leave'|trans }}
         </button>
     </form>
-{% else %}
+{% elseif attendance.pendingRequestParticipantName is null %}
     <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-primary">
         <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
     </a>

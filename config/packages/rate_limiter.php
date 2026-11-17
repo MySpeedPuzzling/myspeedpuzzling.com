@@ -145,6 +145,14 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 day',
             ],
+            // A claim of a name from an event's participant list (JoinCompetitionController's pick, docs/features/
+            // competitions-management/participant-linking.md §10.2): a link or a request to the organiser - per player,
+            // enough to correct a wrong pick a few times, no spam of an organiser's queue
+            'participant_claim' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '10 minutes',
+            ],
             // "This was my team" on an imported event result (ClaimEventResultSlotHandler,
             // docs/features/event-results-import/README.md "Gates"): every claim puts a result on the player's profile and
             // tells its other claimers. Per player, counted in the handler - more teams than anybody puzzled in a day.

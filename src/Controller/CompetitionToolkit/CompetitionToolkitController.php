@@ -7,6 +7,11 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\FormData\CompetitorPageSettingsFormData;
 use SpeedPuzzling\Web\FormType\CompetitorPageSettingsFormType;
+use SpeedPuzzling\Web\FormType\ParticipantClaimPolicyFormType;
+use SpeedPuzzling\Web\FormData\ParticipantClaimPolicyFormData;
+use SpeedPuzzling\Web\Message\ChangeParticipantClaimPolicy;
+use SpeedPuzzling\Web\Query\GetParticipantClaimPolicy;
+use SpeedPuzzling\Web\Query\GetParticipantLinkSummary;
 use SpeedPuzzling\Web\Message\ChangeCompetitorPageSettings;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
@@ -30,7 +35,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The competition toolkit's one settings hub of an event (docs/features/competitions-management/toolkit/
- * R-review-and-plan.md §1.4): a card per area - competitor pages & QR, displays & overlays, standings, round formats &
+ * R-review-and-plan.md §1.4): a card per area - participants & profiles (participant-linking.md §7.5), competitor pages & QR, displays & overlays, standings, round formats &
  * reveals, judges. Each toolkit package fills its own card partial (templates/competition_toolkit/_card_*.html.twig).
  * Only for whom COMPETITION_TOOLKIT_MANAGE grants (= COMPETITION_EDIT: every organiser of the event, admins).
  *
@@ -50,6 +55,8 @@ final class CompetitionToolkitController extends AbstractController
         private readonly CompetitionDisplaysPage $competitionDisplaysPage,
         private readonly GetCompetitionStandings $getCompetitionStandings,
         private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
+        private readonly GetParticipantClaimPolicy $getParticipantClaimPolicy,
+        private readonly GetParticipantLinkSummary $getParticipantLinkSummary,
     ) {
     }
 
@@ -72,6 +79,23 @@ final class CompetitionToolkitController extends AbstractController
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
         $rounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
+
+        // Participants & profiles (participant-linking.md §7.5): the claim policy radios
+        $claimPolicy = $this->getParticipantClaimPolicy->of($competitionId);
+        $claimPolicyForm = $this->createForm(
+            ParticipantClaimPolicyFormType::class,
+            ParticipantClaimPolicyFormData::fromStored($claimPolicy['stored']),
+            ['action' => $request->getRequestUri()],
+        );
+        $claimPolicyForm->handleRequest($request);
+
+        if ($claimPolicyForm->isSubmitted() && $claimPolicyForm->isValid()) {
+            $this->messageBus->dispatch(new ChangeParticipantClaimPolicy($competitionId, $claimPolicyForm->getData()->toPolicy()));
+
+            $this->addFlash('success', $this->translator->trans('participant_linking.hub.saved'));
+
+            return $this->redirect($request->getRequestUri());
+        }
 
         // Competitor pages & QR are for in-person events (an online round has its own finish flow)
         $competitorPagesForm = null;
@@ -102,6 +126,9 @@ final class CompetitionToolkitController extends AbstractController
         $response = $this->render('competition_toolkit/hub.html.twig', [
             'competition' => $competition,
             'rounds' => $rounds,
+            'claim_policy_form' => $claimPolicyForm,
+            'claim_policy' => $claimPolicy,
+            'link_summary' => $this->getParticipantLinkSummary->of($competitionId),
             'competitor_pages_form' => $competitorPagesForm,
             // "Print tags": the kind the saved QR mode prints first (CompetitionTagPrintKind::defaultFor())
             'print_tags_kind' => $competitorPageSettings !== null ? self::printTagsKind($competitorPageSettings, $rounds) : null,

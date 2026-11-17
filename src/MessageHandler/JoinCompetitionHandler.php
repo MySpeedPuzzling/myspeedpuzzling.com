@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
@@ -19,8 +18,8 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
 use SpeedPuzzling\Web\Services\CompetitionSelfJoin;
-use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
-use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantClaims;
+use SpeedPuzzling\Web\Value\ClaimOutcome;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -31,7 +30,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * (registration.md) a new spot - joining yourself, or again after cancelling - is a registration: only while its window
  * is open, reserved under the capacity, waitlisted when full (first come, first served - JoinCompetition takes turns with
  * every other participant write of the event). Picking your name from the organiser's list is no new spot: it always
- * works and keeps the row's status - the organiser holds that spot. Nothing at all on an event that is not publicly
+ * works and keeps the row's status - the organiser holds that spot; it is a claim (ParticipantClaims: linked at once,
+ * or a request the organiser decides, participant-linking.md §5.1). Nothing at all on an event that is not publicly
  * visible - a draft, waiting for approval or rejected (docs/features/organizations/README.md, P17).
  */
 #[AsMessageHandler]
@@ -47,17 +47,16 @@ readonly final class JoinCompetitionHandler
         private CountCompetitionRegistrations $countCompetitionRegistrations,
         private CompetitionRegistrationMailer $registrationMailer,
         private CompetitionSelfJoin $competitionSelfJoin,
-        private ParticipantLinks $participantLinks,
+        private ParticipantClaims $participantClaims,
     ) {
     }
 
     /**
      * @throws CompetitionNotFound
      * @throws CompetitionParticipantNotFound
-     * @throws CompetitionParticipantAlreadyConnectedToDifferentPlayer
      * @throws RegistrationNotOpen
      */
-    public function __invoke(JoinCompetition $message): void
+    public function __invoke(JoinCompetition $message): null|ClaimOutcome
     {
         // Only a publicly visible event can be joined (docs/features/organizations/README.md, P17): a draft, an event
         // waiting for approval or a rejected one has no public page - picking a name from its list included
@@ -68,30 +67,19 @@ readonly final class JoinCompetitionHandler
         $player = $this->playerRepository->get($message->playerId);
 
         if ($message->participantId !== null) {
-            $participant = $this->participantRepository->get($message->participantId);
-
-            // Validate everything before touching the player's current rows: a rolled-back handler
-            // leaves its changed entities in the entity manager, and the next flush of the same
-            // request would still write them
-            if ($participant->competition->id->toString() !== $message->competitionId || $participant->isDeleted()) {
-                throw new CompetitionParticipantNotFound();
-            }
-
-            if ($participant->player !== null && $participant->player->id->equals($player->id) === false) {
-                throw new CompetitionParticipantAlreadyConnectedToDifferentPlayer();
-            }
-
-            $this->competitionSelfJoin->releaseOtherParticipants($message->competitionId, $player, keep: $participant);
-
-            // A claim from a name - linked at once (open policy, package L2 brings ParticipantClaims and the approval
-            // policy here). Re-picking your own name keeps the link's moment (TimeProposalOwnership)
-            $this->participantLinks->link($participant, $player, ParticipantLinkMethod::Claim, $player, $this->clock->now());
-
-            return;
+            // A claim from a name (participant-linking.md §5.1): linked at once, a request for the organiser, a dispute
+            // or a neutral refusal - ParticipantClaims decides, everything checked before the first change.
+            // Re-picking your own name keeps the link's moment (TimeProposalOwnership)
+            return $this->participantClaims->claim(
+                $this->competitionRepository->get($message->competitionId),
+                $player,
+                $this->participantRepository->get($message->participantId),
+                $message->releasesOwnRegistration,
+            );
         }
 
         if ($this->getCompetitionParticipants->isPlayerSelfJoined($message->competitionId, $message->playerId)) {
-            return;
+            return null;
         }
 
         $competition = $this->competitionRepository->get($message->competitionId);
@@ -113,6 +101,8 @@ readonly final class JoinCompetitionHandler
         }
 
         $this->competitionSelfJoin->handOwnLink($participant);
+
+        return null;
     }
 
     /**

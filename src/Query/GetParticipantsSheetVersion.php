@@ -13,7 +13,8 @@ use Doctrine\DBAL\Connection;
  * online, managed registration, capacity), its participants (id, name, country, external id, player, removed at,
  * source, registration status, registered at, paid at, checked in at, organiser's note), round entries (id,
  * participant, round, pair/team), pairs/teams (id, round, name) and rounds (id, name, category, expected team size,
- * start, time zone, badge colours, table numbers off, results published at), each in id order. One statement.
+ * start, time zone, badge colours, table numbers off, results published at), each in id order - plus the claim policy
+ * and its inputs, the link requests (id, status) and how each link was made (participant-linking.md §7.1). One statement.
  *
  * Official results, table numbers and qualified marks are NOT in it: they change all day on event day and travel on the
  * rounds' own topics (OfficialResultsLiveUpdates) - a page merges those by entry, not by fetching everything again.
@@ -30,7 +31,7 @@ readonly final class GetParticipantsSheetVersion
         $query = <<<SQL
 SELECT encode(sha256(convert_to(concat_ws(E'\n',
     (
-        SELECT json_build_array(c.name, c.is_online, c.registration_managed, c.capacity)::text
+        SELECT json_build_array(c.name, c.is_online, c.registration_managed, c.capacity, c.participant_claims, c.competitor_pages, c.time_proposals)::text
         FROM competition c
         WHERE c.id = :competitionId
     ),
@@ -65,6 +66,19 @@ SELECT encode(sha256(convert_to(concat_ws(E'\n',
         )::text, E'\n' ORDER BY cr.id)
         FROM competition_round cr
         WHERE cr.competition_id = :competitionId
+    ),
+    '#',
+    (
+        SELECT string_agg(json_build_array(lr.id, lr.status)::text, E'\n' ORDER BY lr.id)
+        FROM participant_link_request lr
+        WHERE lr.competition_id = :competitionId
+    ),
+    '#',
+    (
+        SELECT string_agg(json_build_array(cp.id, cp.connected_via)::text, E'\n' ORDER BY cp.id)
+        FROM competition_participant cp
+        WHERE cp.competition_id = :competitionId
+            AND cp.connected_via IS NOT NULL
     )
 ), 'UTF8')), 'hex')
 SQL;

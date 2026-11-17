@@ -1,0 +1,63 @@
+{#
+    Participants & profiles (docs/features/competitions-management/participant-linking.md §7.5) - the first card: it
+    matters before the event. Counters linking to the participants sheet's People filters, and the claim policy radios
+    (D3). Variables: competition, link_summary (GetParticipantLinkSummary), claim_policy (GetParticipantClaimPolicy),
+    claim_policy_form.
+#}
+{% set sheet_url = path('participants_sheet', {competitionId: competition.id}) %}
+<div class="col-lg-6">
+    <div class="card shadow-sm h-100" data-toolkit-card="participant-links">
+        <div class="card-body">
+            <h3 class="h5"><i class="bi bi-person-check me-2"></i>{{ 'participant_linking.hub.title'|trans }}</h3>
+            <p class="small text-muted">{{ 'participant_linking.hub.help'|trans }}</p>
+
+            <ul class="list-unstyled small mb-3" data-participant-link-counters>
+                <li class="mb-1">
+                    <a href="{{ sheet_url }}?tab=people&amp;filter=not_linked" data-counter="linked">
+                        {{ 'participant_linking.hub.linked_of'|trans({'%linked%': link_summary.linked, '%people%': link_summary.people}) }}
+                    </a>
+                </li>
+                {% if link_summary.requests > 0 %}
+                    <li class="mb-1">
+                        <a href="{{ sheet_url }}?tab=people&amp;filter=asks" class="fw-semibold link-warning" data-counter="requests">
+                            <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'participant_linking.hub.waiting'|trans({'%count%': link_summary.requests}) }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if link_summary.linkedByThemselves > 0 %}
+                    <li class="mb-1">
+                        <a href="{{ sheet_url }}?tab=people&amp;filter=linked_themselves" data-counter="by-themselves">
+                            {{ 'participant_linking.hub.by_themselves'|trans({'%count%': link_summary.linkedByThemselves}) }}
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+
+            {% set form = claim_policy_form %}
+            {{ form_start(form, {attr: {'data-claim-policy-settings': ''}}) }}
+                {{ form_errors(form) }}
+                <fieldset class="mb-3">
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ 'participant_linking.hub.policy_label'|trans }}</legend>
+                    {{ form_errors(form.policy) }}
+                    {% for choice in form.policy %}
+                        <div class="form-check mb-1">
+                            {{ form_widget(choice, {attr: {'aria-describedby': choice.vars.id ~ '_help'}}) }}
+                            <label class="form-check-label" for="{{ choice.vars.id }}">{{ ('participant_linking.hub.policy.' ~ choice.vars.value)|trans }}</label>
+                            <div class="form-text mt-0" id="{{ choice.vars.id }}_help">
+                                {% if choice.vars.value == 'automatic' %}
+                                    {{ (claim_policy.proposalsEffective ? 'participant_linking.hub.policy.automatic_now_approval' : 'participant_linking.hub.policy.automatic_now_open')|trans }}
+                                {% else %}
+                                    {{ ('participant_linking.hub.policy.' ~ choice.vars.value ~ '_help')|trans }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </fieldset>
+
+                <button type="submit" class="btn btn-sm btn-primary" data-claim-policy-save>
+                    {{ 'participant_linking.hub.save'|trans }}
+                </button>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>

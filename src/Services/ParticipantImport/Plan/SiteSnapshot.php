@@ -12,7 +12,7 @@ use SpeedPuzzling\Web\Value\PlayerReference;
  * What the event looks like before an import or a participants sheet change set - read once by SiteSnapshotReader,
  * never changed.
  *
- * @phpstan-type SnapshotParticipant array{id: string, name: string, country: null|string, externalId: null|string, playerId: null|string, playerName: null|string, deletedAt: null|DateTimeImmutable, selfJoined: bool, organizerNote: null|string, registrationStatus: null|string, connectedVia?: null|string, playerCode?: null|string, playerMasked?: bool}
+ * @phpstan-type SnapshotParticipant array{id: string, name: string, country: null|string, externalId: null|string, playerId: null|string, playerName: null|string, deletedAt: null|DateTimeImmutable, selfJoined: bool, organizerNote: null|string, registrationStatus: null|string, connectedVia?: null|string, playerCode?: null|string, playerMasked?: bool, refusedPlayerIds?: list<string>}
  * @phpstan-type SnapshotEntry array{id: string, participantId: string, roundId: string, teamId: null|string, ownOfficialData: bool}
  * @phpstan-type SnapshotTeam array{id: string, roundId: string, name: null|string}
  * @phpstan-type SnapshotPlayer array{code: string, name: null|string, masked: bool}

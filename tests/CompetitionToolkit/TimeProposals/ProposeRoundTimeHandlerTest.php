@@ -121,6 +121,28 @@ final class ProposeRoundTimeHandlerTest extends KernelTestCase
      * R §2.4 item 1: anybody may connect to an unconnected participant - a link made after the round's start does not
      * count for that round
      */
+    /**
+     * R3 (participant-linking.md §0a): a late link that is proof - a claim link, an approved claim, the organiser's link
+     * - may propose ("connect even during it"); only a claim from a name (or an old link without a method) is refused
+     */
+    public function testALateLinkThatIsProofMayPropose(): void
+    {
+        foreach (['claim_link', 'claim_approved', 'organiser', 'import', 'online_link', 'self_join'] as $method) {
+            self::link(OfficialResultsFixture::PARTICIPANT_EVA, PlayerFixture::PLAYER_PRIVATE, TestClock::now()->modify('-5 minutes'));
+            self::db()->executeStatement('UPDATE competition_participant SET connected_via = :via WHERE id = :id', ['via' => $method, 'id' => OfficialResultsFixture::PARTICIPANT_EVA]);
+
+            $answer = self::propose(self::UNNAMED_PAIR, PlayerFixture::PLAYER_PRIVATE, roundId: OfficialResultsFixture::ROUND_PAIRS);
+
+            self::assertNotSame('linked_after_start', $answer->reason, $method);
+            self::assertSame(TimeProposalAnswer::PROPOSED, $answer->status, $method);
+            self::db()->executeStatement('DELETE FROM competition_time_proposal');
+        }
+
+        // A claim from a name stays refused
+        self::db()->executeStatement("UPDATE competition_participant SET connected_via = 'claim' WHERE id = :id", ['id' => OfficialResultsFixture::PARTICIPANT_EVA]);
+        self::assertSame('linked_after_start', self::propose(self::UNNAMED_PAIR, PlayerFixture::PLAYER_PRIVATE, roundId: OfficialResultsFixture::ROUND_PAIRS)->reason);
+    }
+
     public function testALinkMadeAfterTheRoundsStartIsRefused(): void
     {
         self::link(OfficialResultsFixture::PARTICIPANT_EVA, PlayerFixture::PLAYER_PRIVATE, TestClock::now()->modify('-5 minutes'));

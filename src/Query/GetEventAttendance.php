@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 use SpeedPuzzling\Web\Results\EventAttendance;
 use SpeedPuzzling\Web\Results\EventRegistration;
+use SpeedPuzzling\Web\Value\LinkRequestStatus;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -32,6 +33,8 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * (CompetitionParticipant::$onlineLinkConfirmedAt: opened it signed in, or joined by themselves) - a participant claimed
  * from the organiser's list never hands out its link. A one-time event that is not online runs the statements it
  * always ran.
+ *
+ * And the viewer's pending link request (participant-linking.md §6.1 "Waiting for the organiser") - in the same statement.
  */
 readonly final class GetEventAttendance
 {
@@ -91,10 +94,11 @@ SELECT
         AND player_id IS NULL
         AND {$going}
     ) AS has_not_connected_participants,
-    {$this->sqlIsFollowing()} AS is_following{$onlineColumns}{$onlineJoin}
+    {$this->sqlIsFollowing()} AS is_following,
+    {$this->sqlPendingRequestName()} AS pending_request_participant_name{$onlineColumns}{$onlineJoin}
 SQL;
 
-        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, online_participant_id?: null|string, online_token?: null|string} $row */
+        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, pending_request_participant_name: null|string, online_participant_id?: null|string, online_token?: null|string} $row */
         $row = $this->database
             ->executeQuery($query, [
                 'competitionId' => $competitionId,
@@ -108,7 +112,31 @@ SQL;
             isFollowing: $row['is_following'],
             onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
             onlineToken: $row['online_token'] ?? null,
+            pendingRequestParticipantName: $row['pending_request_participant_name'],
         );
+    }
+
+    /**
+     * The name (as the organiser wrote it) of the participant the viewer's pending link request is for - "Waiting for the
+     * organiser to confirm you are %name%" (docs/features/competitions-management/participant-linking.md §6.1). One per
+     * player and event (ParticipantLinks::request()); a visitor's `:playerId` is null - none.
+     */
+    private function sqlPendingRequestName(): string
+    {
+        $pending = LinkRequestStatus::Pending->value;
+
+        return <<<SQL
+(
+        SELECT pending_participant.name
+        FROM participant_link_request pending_request
+        INNER JOIN competition_participant pending_participant ON pending_participant.id = pending_request.participant_id
+        WHERE pending_request.competition_id = :competitionId
+            AND pending_request.player_id = :playerId
+            AND pending_request.status = '{$pending}'
+        ORDER BY pending_request.created_at DESC
+        LIMIT 1
+    )
+SQL;
     }
 
     /**
@@ -199,7 +227,8 @@ SELECT
             AND ahead.registration_status = '{$waitlisted}'
             AND (COALESCE(ahead.registered_at, '-infinity'), ahead.id) <= (COALESCE(mine.registered_at, '-infinity'), mine.id)
     ) END AS waitlist_position,
-    {$this->sqlIsFollowing()} AS is_following{$onlineColumns}
+    {$this->sqlIsFollowing()} AS is_following,
+    {$this->sqlPendingRequestName()} AS pending_request_participant_name{$onlineColumns}
 FROM (SELECT 1) AS viewer
 LEFT JOIN LATERAL (
     SELECT cp.id, cp.registration_status, cp.source, cp.registered_at
@@ -223,6 +252,7 @@ SQL;
          *     player_source: null|string,
          *     waitlist_position: null|int|string,
          *     is_following: bool,
+         *     pending_request_participant_name: null|string,
          *     online_participant_id?: null|string,
          *     online_token?: null|string,
          * } $row
@@ -272,6 +302,7 @@ SQL;
             isFollowing: $row['is_following'],
             onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
             onlineToken: $row['online_token'] ?? null,
+            pendingRequestParticipantName: $row['pending_request_participant_name'],
         );
     }
 

@@ -138,7 +138,8 @@ export default function (test) {
         key(cell('p-kim', 'player'), 'Enter');
         await new Promise((resolve) => setTimeout(resolve, 200));
         const options = [...view.grid.listbox.children];
-        assert.deepEqual(options.map((li) => li.textContent), ['people_profile_unlink']);
+        // Unlink, and "Not this person" (participant-linking.md D11)
+        assert.deepEqual(options.map((li) => li.textContent), ['people_profile_unlink', 'not_this_person not_this_person_help']);
         assert.ok(options.every((li) => li.getAttribute('aria-selected') === 'false'), 'nothing highlighted (autoHighlight: false)');
         key(view.grid.editor, 'Tab');
         assert.deepEqual(changes(), [], 'Tab moved on, Kim stays linked');

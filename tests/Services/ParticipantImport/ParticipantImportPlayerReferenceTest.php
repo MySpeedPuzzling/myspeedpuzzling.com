@@ -88,6 +88,30 @@ final class ParticipantImportPlayerReferenceTest extends KernelTestCase
         ], $this->texts($plan->rows[0]->messages));
     }
 
+    /**
+     * D11 (participant-linking.md, L2a): a refused pair - declined, "Not this person", "Not me" - is never linked again
+     * by a file (`link_refused_before`); another player for the row still is
+     */
+    public function testARefusedPairIsNotLinkedByTheImport(): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO participant_link_log (id, competition_id, participant_id, participant_name, player_id, player_name, action, method, by_player_id, at)
+             VALUES (:id, :competition, :participant, 'Jane Unconnected', :player, 'Admin User', 'not_this_person', NULL, NULL, " . TestClock::SQL_NOW . ")",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => self::WJPC, 'participant' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, 'player' => PlayerFixture::PLAYER_ADMIN],
+        );
+
+        $plan = $this->plan([self::row(2, 'Jane Unconnected', '#admin', CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED)]);
+
+        self::assertNull(self::operations($plan)->participants[0]['connectPlayerId'] ?? null);
+        self::assertContains(
+            'Row 2: "Jane Unconnected" was refused for #admin before (declined, or "Not this person") - not linked again by an import. Link it in the participants sheet if it is right.',
+            $this->texts($plan->rows[0]->messages),
+        );
+
+        $plan = $this->plan([self::row(2, 'Jane Unconnected', PlayerFixture::PLAYER_WITH_STRIPE, CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED)]);
+        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, self::operations($plan)->participants[0]['connectPlayerId']);
+    }
+
     public function testTheSameNameKeyIsNoNameDifference(): void
     {
         $plan = $this->plan([self::row(2, 'admin  USER', '#admin')]);

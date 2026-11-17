@@ -17,6 +17,7 @@ import { performRegistrationAction, registrationStatus } from '../registration_a
 import {
     FILTERS,
     HIDDEN_WHEN_EMPTY,
+    requestedBy,
     filterCounts,
     notify,
     offeredFor,
@@ -388,12 +389,17 @@ export class PeopleListView {
         const flag = person.country ? ` <span class="fi fi-${escapeHtml(person.country)} shadow-custom" role="img" aria-label="${escapeHtml(this.context.countries[person.country] ?? person.country.toUpperCase())}"></span>` : '';
         const removed = person.removedAt !== null ? ` <span class="sheet-badge sheet-badge-removed">${escapeHtml(this.say('badge_removed'))}</span>` : '';
         const joined = person.source === 'self_joined' ? ` <span class="sheet-badge sheet-badge-joined">${escapeHtml(this.t('people_badge_joined'))}</span>` : '';
+        // Pending link requests (participant-linking.md §7.1) - decided in the person editor the card opens
+        const requests = person.removedAt === null && typeof this.model.pendingRequests === 'function' ? this.model.pendingRequests(id) : [];
+        const asks = requests.length === 1
+            ? ` <span class="sheet-request-chip">${escapeHtml(this.t(requests[0].kind === 'dispute' ? 'link_request_dispute' : 'link_request_asks', { player: requestedBy(requests[0]) }))}</span>`
+            : (requests.length > 1 ? ` <span class="sheet-request-chip">${escapeHtml(this.sayCount('link_requests_count', requests.length))}</span>` : '');
         const marks = this.model.marks.withPrefix(`person:${id}:`).concat(this.model.marks.withPrefix(`place:${id}:`));
         const attention = marks.find((mark) => mark.state === 'conflict' || mark.state === 'refused');
         const saving = marks.some((mark) => mark.state === 'saving' || mark.state === 'waiting');
 
         return `<button type="button" class="sheet-pcard${person.removedAt !== null ? ' is-removed' : ''}" data-open="${escapeHtml(id)}">
-                <span class="sheet-pcard-name">${person.removedAt !== null ? `<s>${escapeHtml(person.name)}</s>` : escapeHtml(person.name)}${flag}${removed}${joined}</span>
+                <span class="sheet-pcard-name">${person.removedAt !== null ? `<s>${escapeHtml(person.name)}</s>` : escapeHtml(person.name)}${flag}${removed}${joined}${asks}</span>
                 <span class="sheet-pcard-summary">${summary.length > 0 ? escapeHtml(summary.join(' · ')) : escapeHtml(this.say('no_round_yet'))}</span>
                 ${problems.length > 0 ? `<span class="sheet-pcard-problems"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(problems.join(' · '))}</span>` : ''}
                 ${attention ? `<span class="sheet-pcard-problems sheet-pcard-refused"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> ${escapeHtml(this.context.markerFor(attention.key)?.text ?? '')}</span>` : ''}

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
@@ -80,6 +81,25 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         // The source keeps everything
         self::assertSame(4, $this->countRows('SELECT COUNT(*) FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id', $source));
         self::assertSame(9, $this->countRows('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id', $source));
+    }
+
+    /**
+     * The claim policy is an event setting (participant-linking.md §3.2) - the organiser's choice is copied, automatic
+     * stays automatic; link requests are never copied
+     */
+    public function testTheClaimPolicyIsCopied(): void
+    {
+        $source = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+
+        self::assertNull($this->competition($this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE))['participant_claims']);
+
+        $this->database->executeStatement("UPDATE competition SET participant_claims = 'approval' WHERE id = :id", ['id' => $source]);
+        // The first copy loaded the source into the identity map - the SQL change above is not in that entity
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $copy = $this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertSame('approval', $this->competition($copy)['participant_claims']);
+        self::assertSame(0, $this->countRows('SELECT COUNT(*) FROM participant_link_request WHERE competition_id = :id', $copy));
     }
 
     public function testEveryCopyGetsItsOwnSlug(): void

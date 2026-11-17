@@ -11,6 +11,7 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionDisplay;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionStanding;
@@ -18,14 +19,17 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
+use SpeedPuzzling\Web\Repository\CompetitionDisplayRepository;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationApprovalPolicy;
 use SpeedPuzzling\Web\Value\DuplicateDateShift;
+use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\PageSectionOwner;
 use SpeedPuzzling\Web\Value\PageSectionType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -39,7 +43,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * The logo path is shared with the source: no code deletes a competition logo, and every file deletion asks
  * GetStoredFileReferences, which sees both rows. Page section pictures are copied to the copy's own prefix - a section
  * only ever points at its own page's files (PageSectionContentSanitizer::uploadPath()). Standings are copied unpublished
- * with their rounds remapped (copyStandings()).
+ * with their rounds remapped (copyStandings()). Displays get new links, their rounds remapped and their pictures copied
+ * to the copy's own prefix (copyDisplays()); the competitor-page settings are event settings and copied as they are.
  */
 #[AsMessageHandler]
 readonly final class DuplicateCompetitionHandler
@@ -56,6 +61,7 @@ readonly final class DuplicateCompetitionHandler
         private ClockInterface $clock,
         private LoggerInterface $logger,
         private CompetitionStandingRepository $standingRepository,
+        private CompetitionDisplayRepository $displayRepository,
     ) {
     }
 
@@ -110,6 +116,8 @@ readonly final class DuplicateCompetitionHandler
             eligibility: $source->eligibility,
         );
         $copy->changeEventTypes($source->eventTypes());
+        // Competitor pages & QR (competition toolkit B1) - event settings like the registration ones
+        $copy->changeCompetitorPageSettings($source->competitorPageSettings());
 
         if ($source->registrationTimezone !== null) {
             $copy->changeRegistrationSettings(
@@ -136,6 +144,7 @@ readonly final class DuplicateCompetitionHandler
 
         $this->copyPageSections($source, $copy, $now);
         $this->copyStandings($source, $copy, $roundIdMap, $now);
+        $this->copyDisplays($source, $copy, $roundIdMap, $actor, $now);
 
         $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($copy, $actor, $now);
     }
@@ -212,6 +221,135 @@ readonly final class DuplicateCompetitionHandler
                 missingRule: $standing->missingRule,
             ));
         }
+    }
+
+    /**
+     * The event's displays (competition toolkit D8, D-displays-overlays.md §3.3): each with a new link (token), its
+     * design, language and round to follow - a pinned round and the followed rounds remapped onto the copied rounds (an id
+     * that is not a round of the source any more is left out; no followed round left = every round, as the display
+     * treats it). Pictures are copied to the copy's own prefix - the sanitizer accepts only the event's own uploads -
+     * and a picture missing from the storage is left out of the copy.
+     *
+     * @param array<string, string> $roundIdMap source round id => its copy's id
+     */
+    private function copyDisplays(Competition $source, Competition $copy, array $roundIdMap, Player $actor, DateTimeImmutable $now): void
+    {
+        $displays = $this->displayRepository->ofCompetition($source);
+
+        if ($displays === []) {
+            return;
+        }
+
+        $sourcePrefix = DisplayImages::PREFIX . strtolower($source->id->toString()) . '/';
+        $copyPrefix = DisplayImages::PREFIX . strtolower($copy->id->toString()) . '/';
+        /** @var array<string, null|string> $copiedPictures source path => the copy's path (null = could not be copied) */
+        $copiedPictures = [];
+
+        $copyPicture = function (mixed $path) use ($sourcePrefix, $copyPrefix, &$copiedPictures): null|string {
+            if (!is_string($path) || !str_starts_with($path, $sourcePrefix)) {
+                return null;
+            }
+
+            if (!array_key_exists($path, $copiedPictures)) {
+                $copyPath = $copyPrefix . substr($path, strlen($sourcePrefix));
+
+                try {
+                    $this->filesystem->copy($path, $copyPath);
+                    $copiedPictures[$path] = $copyPath;
+                } catch (FilesystemException $exception) {
+                    $this->logger->warning('A display picture could not be copied for a duplicated event.', [
+                        'exception' => $exception,
+                        'path' => $path,
+                    ]);
+                    $copiedPictures[$path] = null;
+                }
+            }
+
+            return $copiedPictures[$path];
+        };
+
+        foreach ($displays as $display) {
+            $pinnedRoundId = $display->pinnedRound !== null ? ($roundIdMap[$display->pinnedRound->id->toString()] ?? null) : null;
+
+            $followRoundIds = null;
+            if ($display->followRoundIds !== null) {
+                $followRoundIds = array_values(array_filter(array_map(
+                    static fn (string $roundId): null|string => $roundIdMap[strtolower($roundId)] ?? null,
+                    $display->followRoundIds,
+                )));
+                $followRoundIds = $followRoundIds !== [] ? $followRoundIds : null;
+            }
+
+            $this->displayRepository->save(new CompetitionDisplay(
+                id: Uuid::uuid7(),
+                competition: $copy,
+                kind: $display->kind,
+                name: $display->name,
+                token: OnlineToken::generate(),
+                locale: $display->locale,
+                design: self::designWithPictures($display->design, $copyPicture),
+                createdAt: $now,
+                createdBy: $actor,
+                updatedAt: $now,
+                followMode: $display->followMode,
+                // The copied round is persisted, not flushed yet - get() finds it in the unit of work
+                pinnedRound: $pinnedRoundId !== null ? $this->roundRepository->get($pinnedRoundId) : null,
+                followRoundIds: $followRoundIds,
+                usesLiveResults: $display->usesLiveResults,
+                usesResults: $display->usesResults,
+            ));
+        }
+    }
+
+    /**
+     * The design with every picture (background, image elements, rotator images - DisplayDesignSanitizer::imagePaths())
+     * pointing at its copy; a picture without a copy is dropped the way the sanitizer drops a missing one.
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @param callable(mixed): (null|string) $copyPicture
+     * @return array<string, mixed>
+     */
+    private static function designWithPictures(array $design, callable $copyPicture): array
+    {
+        if (is_array($design['canvas'] ?? null) && is_array($design['canvas']['background'] ?? null) && is_array($design['canvas']['background']['image'] ?? null)) {
+            $path = $copyPicture($design['canvas']['background']['image']['path'] ?? null);
+            $image = $design['canvas']['background']['image'];
+            $image['path'] = $path;
+            $design['canvas']['background']['image'] = $path !== null ? $image : null;
+        }
+
+        if (is_array($design['elements'] ?? null)) {
+            foreach ($design['elements'] as $index => $element) {
+                if (!is_array($element) || !is_array($element['props'] ?? null)) {
+                    continue;
+                }
+
+                $props = $element['props'];
+
+                if (($element['type'] ?? null) === 'image' && ($props['path'] ?? null) !== null) {
+                    $props['path'] = $copyPicture($props['path']);
+                }
+
+                if (($element['type'] ?? null) === 'rotator' && is_array($props['images'] ?? null)) {
+                    $images = [];
+
+                    foreach ($props['images'] as $image) {
+                        $path = is_array($image) ? $copyPicture($image['path'] ?? null) : null;
+
+                        if ($path !== null) {
+                            $images[] = ['path' => $path];
+                        }
+                    }
+
+                    $props['images'] = $images;
+                }
+
+                $element['props'] = $props;
+                $design['elements'][$index] = $element;
+            }
+        }
+
+        return $design;
     }
 
     /**

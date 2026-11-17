@@ -44,6 +44,25 @@ readonly final class CompetitionDisplayRepository
         return is_numeric($count) ? (int) $count : 0;
     }
 
+    /**
+     * @return list<CompetitionDisplay> oldest first
+     */
+    public function ofCompetition(Competition $competition): array
+    {
+        /** @var list<CompetitionDisplay> $displays */
+        $displays = $this->entityManager->createQueryBuilder()
+            ->select('display')
+            ->from(CompetitionDisplay::class, 'display')
+            ->where('display.competition = :competition')
+            ->setParameter('competition', $competition)
+            ->orderBy('display.createdAt')
+            ->addOrderBy('display.id')
+            ->getQuery()
+            ->getResult();
+
+        return $displays;
+    }
+
     public function save(CompetitionDisplay $display): void
     {
         $this->entityManager->persist($display);

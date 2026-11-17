@@ -60,7 +60,9 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   description, website and registration links, location + country, online flag, "Who can enter", dates, the logo, the
   organization (one-time events; an edition's copy is a new edition of the **same series** and has its series'),
   maintainers (plus the source's creator when somebody else makes the copy - the people who ran it keep running it),
-  the managed-registration **settings** (on/off, capacity, window and its zone, entry fee text, payment instructions);
+  the managed-registration **settings** (on/off, capacity, window and its zone, entry fee text, payment instructions),
+  the competitor-page settings (competition toolkit B1: competitor pages, live results before publishing, time
+  proposals, QR tag mode - event settings like the registration ones);
 - every round: name, start + zone, time limit, category, team size, reveal delay, badge colours, "no table numbers",
   slug (unique per competition, so the same one);
 - the event's own page content sections (public-page.md) with their order and visibility. Every section type is
@@ -69,7 +71,12 @@ internal API has the same with optional overrides (`POST /internal-api/competiti
   (`PageSectionContentSanitizer::uploadPath()`) - a picture missing from the storage is left out (warning in the log). An
   edition's inherited series sections stay on the series;
 - the standings (competition toolkit A6): unpublished, same name, slug, category and rules, their rounds remapped onto
-  the copied rounds (`copyStandings()`).
+  the copied rounds (`copyStandings()`);
+- the displays (competition toolkit D8, toolkit/D-displays-overlays.md §3.3): name, kind, language, design, results
+  flags, follow mode - each with a **new link** (token; the source's TV links keep showing the source), a pinned round
+  and the followed rounds remapped onto the copied rounds, pictures copied to the copy's own
+  `competition-displays/<id>/` prefix (the design sanitizer accepts only the event's own uploads) - a picture missing
+  from the storage is left out (warning in the log) (`copyDisplays()`).
 
 **Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
 check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the

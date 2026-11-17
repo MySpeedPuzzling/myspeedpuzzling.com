@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\LockUntilCommittedMiddleware;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLocks;
 use SpeedPuzzling\Web\Tests\TestDouble\FlakyLockStore;
+use SpeedPuzzling\Web\Tests\TestDouble\RecordingLockStore;
 use Symfony\Component\Lock\Exception\LockAcquiringException;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\InMemoryStore;
@@ -157,6 +158,82 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
     }
 
     /**
+     * The composite's own key first (the order every composite takes keys in: the event's key held, a nested key
+     * acquired inside), then the others sorted, each once - two multi-key composites never wait for each other crosswise.
+     */
+    public function testACompositeTakesItsOwnKeyFirstThenTheOthersSorted(): void
+    {
+        $store = $this->recordingStore();
+        $this->lockFactory = new LockFactory($store);
+        $composite = new Envelope($this->composite('m-event', ['z-displays', 'a-referees', 'z-displays', 'm-event']));
+
+        $this->middleware()->handle($composite, $this->stack(static fn (): Envelope => $composite));
+
+        self::assertSame(['m-event', 'a-referees', 'z-displays'], $store->saved);
+        self::assertSame(['m-event', 'a-referees', 'z-displays'], $store->deleted);
+    }
+
+    /**
+     * A key that cannot be taken after another one was: nothing is handled, the key already taken is released and the
+     * middleware holds nothing afterwards (the next message of either key acquires it as usual).
+     */
+    public function testAFailureOnALaterKeyReleasesTheKeysAlreadyTaken(): void
+    {
+        $store = $this->recordingStore(failOn: 'z-displays');
+        $this->lockFactory = new LockFactory($store);
+        $middleware = $this->middleware();
+
+        try {
+            $middleware->handle(new Envelope($this->composite('m-event', ['z-displays'])), $this->stack(static function (): never {
+                self::fail('Must not handle the message without every lock');
+            }));
+            self::fail('Expected the lock failure to propagate');
+        } catch (LockAcquiringException) {
+        }
+
+        self::assertSame(['m-event', 'z-displays'], $store->saved);
+        self::assertSame(['m-event'], $store->deleted);
+
+        // Nothing is left marked as held: the next message of the key acquires it (it would pass through otherwise)
+        $next = new Envelope($this->lockedMessage('m-event'));
+        $middleware->handle($next, $this->stack(static fn (): Envelope => $next));
+        self::assertSame(['m-event', 'z-displays', 'm-event'], $store->saved);
+        self::assertSame(['m-event', 'm-event'], $store->deleted);
+    }
+
+    /**
+     * A composite nested in another one that holds some of its keys already: only the keys not held yet are acquired,
+     * and only those are released when the nested one is done - the outer keeps its own until its commit.
+     */
+    public function testANestedCompositeAcquiresAndReleasesOnlyTheKeysNotHeldYet(): void
+    {
+        $store = $this->recordingStore();
+        $this->lockFactory = new LockFactory($store);
+        $middleware = $this->middleware();
+        $outer = new Envelope($this->lockedMessage('a-event'));
+        $inner = new Envelope($this->composite('a-event', ['b-displays']));
+        $during = [];
+
+        $middleware->handle($outer, $this->stack(function () use ($middleware, $outer, $inner, $store, &$during): Envelope {
+            $middleware->handle($inner, $this->stack(static function () use ($inner, $store, &$during): Envelope {
+                $during['saved_inside_inner'] = $store->saved;
+
+                return $inner;
+            }));
+            $during['deleted_after_inner'] = $store->deleted;
+            $during['event_free_after_inner'] = $this->isLockFree('a-event');
+
+            return $outer;
+        }));
+
+        self::assertSame(['a-event', 'b-displays'], $during['saved_inside_inner']);
+        self::assertSame(['b-displays'], $during['deleted_after_inner']);
+        self::assertFalse($during['event_free_after_inner'], 'The outer message keeps its key until it is done');
+        self::assertTrue($this->isLockFree('a-event'));
+        self::assertTrue($this->isLockFree('b-displays'));
+    }
+
+    /**
      * The lock store keeps its own long-lived database connection. After Postgres restarted,
      * the first lock of every worker failed with ConnectionLost (production 2026-09-03: a
      * Stripe webhook answered 500). DBAL closes a lost connection, so one more attempt
@@ -237,6 +314,36 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
         $probe->release();
 
         return true;
+    }
+
+    /**
+     * @param list<string> $moreKeys
+     */
+    private function composite(string $key, array $moreKeys): SerializedByLocks
+    {
+        return new class ($key, $moreKeys) implements SerializedByLocks {
+            /**
+             * @param list<string> $moreKeys
+             */
+            public function __construct(private string $key, private array $moreKeys)
+            {
+            }
+
+            public function lockKey(): string
+            {
+                return $this->key;
+            }
+
+            public function moreLockKeys(): array
+            {
+                return $this->moreKeys;
+            }
+        };
+    }
+
+    private function recordingStore(null|string $failOn = null): RecordingLockStore
+    {
+        return new RecordingLockStore($failOn);
     }
 
     private function lockedMessage(string $key = self::LOCK_KEY): SerializedByLock

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\CompetitionToolkit;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionDisplay;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
@@ -286,6 +287,45 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
         self::assertResponseRedirects(self::LIST, 303);
         self::assertSame(['Projector'], array_map(static fn (CompetitionDisplayOverview $display): string => $display->name, $this->displays()));
+    }
+
+    public function testANewDisplayStartsFromTheChosenPreset(): void
+    {
+        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $page = $browser->request('GET', self::LIST);
+
+        // Grouped by the kind each preset is for, Blank first
+        self::assertSame('blank', $page->filter('select[name="' . self::ADD_FORM . '[preset]"] option[selected]')->attr('value'));
+        self::assertCount(7, $page->filter('select[name="' . self::ADD_FORM . '[preset]"] option'));
+
+        $browser->submit($page->filter('[data-display-add]')->form([
+            self::ADD_FORM . '[kind]' => 'overlay',
+            self::ADD_FORM . '[preset]' => 'obs_leaderboard_sidebar',
+            self::ADD_FORM . '[name]' => 'OBS sidebar',
+        ]));
+
+        self::assertResponseRedirects(self::LIST, 303);
+        $displayId = $this->displays()[0]->id;
+        /** @var array{design: string, uses_live_results: bool} $row */
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative('SELECT design, uses_live_results FROM competition_display WHERE id = :id', ['id' => $displayId]);
+        self::assertStringContainsString('leaderboard', $row['design']);
+        self::assertTrue($row['uses_live_results']);
+    }
+
+    public function testAPresetForTheOtherKindIsRefused(): void
+    {
+        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $page = $browser->request('GET', self::LIST);
+
+        $page = $browser->submit($page->filter('[data-display-add]')->form([
+            self::ADD_FORM . '[kind]' => 'screen',
+            self::ADD_FORM . '[preset]' => 'obs_corner_timer',
+            self::ADD_FORM . '[name]' => 'Wrong',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('This design is for the other type of display.', $page->filter('[data-display-add-form]')->text());
+        self::assertSame([], $this->displays());
     }
 
     public function testAnUnknownDisplayIsNotFound(): void

@@ -20,6 +20,7 @@
                 </div>
             {% endfor %}
         </fieldset>
+        {{ form_row(form.preset, {row_attr: {class: 'mb-2'}}) }}
         {{ form_row(form.name, {row_attr: {class: 'mb-2'}}) }}
         {{ form_row(form.locale, {row_attr: {class: 'mb-3'}}) }}
         <button type="submit" class="btn btn-sm btn-primary" data-display-add>

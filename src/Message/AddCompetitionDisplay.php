@@ -8,9 +8,11 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\CompetitionDisplaysLock;
 use SpeedPuzzling\Web\Value\DisplayKind;
+use SpeedPuzzling\Web\Value\DisplayPreset;
 
 /**
- * A new display of an event, starting from the blank design (D-displays-overlays.md §3.3; the presets come with D2).
+ * A new display of an event, starting from one of the presets (D-displays-overlays.md §3.3, §6) - the preset must fit
+ * the kind (Blank fits both).
  * Adds and duplicates of one event take turns, so the cap is counted exactly.
  */
 readonly final class AddCompetitionDisplay implements SerializedByLock
@@ -22,6 +24,7 @@ readonly final class AddCompetitionDisplay implements SerializedByLock
         public string $name,
         public string $locale,
         public null|string $actorPlayerId,
+        public DisplayPreset $presetKey = DisplayPreset::Blank,
     ) {
     }
 

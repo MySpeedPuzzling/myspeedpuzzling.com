@@ -10,10 +10,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\ChangeRoundUnboxed;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
+use SpeedPuzzling\Web\MessageHandler\ResyncUnboxedRoundPicturesWhenPublished;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -87,6 +89,55 @@ final class SecretPuzzleHidesTest extends WebTestCase
         $this->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, false));
 
         self::assertSame([$reveal, $reveal], $this->hides($puzzleId));
+    }
+
+    /**
+     * Switched on after the round's first publish: the picture follows max(reveal, first publish) at once - the handler
+     * reads the publish after its lock
+     */
+    public function testSwitchingItOnAfterTheFirstPublishUsesThatPublish(): void
+    {
+        self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $this->moveClockTo(self::automaticRevealOf(self::ROUND)->modify('+5 minutes'));
+        $reveal = self::automaticRevealOf(self::ROUND)->format('Y-m-d H:i:s');
+
+        $publishedAt = $this->now()->format('Y-m-d H:i:s');
+        $this->dispatch(new PublishRoundResults(self::COMPETITION, self::ROUND));
+        $this->moveClockTo($this->now()->modify('+1 hour'));
+        $this->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, true));
+
+        self::assertSame([$reveal, $publishedAt], $this->hides($puzzleId));
+    }
+
+    /**
+     * The race the publish handler cannot see (it decides on a read before any lock): "Unboxed" switched on and
+     * committed between that read and the publish's commit re-synced while the round was unpublished - the picture
+     * would stay hidden for good. The event of the publish (asynchronous, after the commit) syncs it again.
+     */
+    public function testThePublishEventRepairsAPictureKeptBackByARace(): void
+    {
+        self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $this->moveClockTo(self::automaticRevealOf(self::ROUND)->modify('+5 minutes'));
+        $reveal = self::automaticRevealOf(self::ROUND)->format('Y-m-d H:i:s');
+        $publishedAt = $this->now()->format('Y-m-d H:i:s');
+        $database = self::getContainer()->get(Connection::class);
+
+        // What the race leaves behind: a published unboxed round whose secret puzzle's picture is hidden for good
+        $this->dispatch(new PublishRoundResults(self::COMPETITION, self::ROUND));
+        $database->executeStatement('UPDATE competition_round SET unboxed = true WHERE id = :id', ['id' => self::ROUND]);
+        $database->executeStatement('UPDATE puzzle SET hide_image_until = :never WHERE id = :id', ['never' => self::NEVER, 'id' => $puzzleId]);
+
+        // Asynchronous in production (an in-memory transport in tests) - its handler runs here as the worker would
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $handler = self::getContainer()->get(ResyncUnboxedRoundPicturesWhenPublished::class);
+        $handler(new OfficialRoundResultsPublished(Uuid::fromString(self::ROUND)));
+        $entityManager->flush();
+        $entityManager->clear();
+
+        self::assertSame([$reveal, $publishedAt], $this->hides($puzzleId));
     }
 
     /**

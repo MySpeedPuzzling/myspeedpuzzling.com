@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEventOfferChoices;
+use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\RoundPuzzlesVisibleNow;
 use SpeedPuzzling\Web\Results\VisibleRoundPuzzle;
@@ -91,6 +92,13 @@ final class UnboxedRoundTest extends WebTestCase
         $sellerId = $this->database->fetchOne('SELECT player_id FROM sell_swap_list_item WHERE id = :id', ['id' => SellSwapListItemFixture::SELLSWAP_01]);
         assert(is_string($sellerId));
         $this->sellerId = $sellerId;
+
+        // The marketplace at the event (?event=): an in-person event the seller goes to
+        $this->database->executeStatement('UPDATE competition SET is_online = false WHERE id = :id', ['id' => self::COMPETITION]);
+        $this->database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status, player_id) VALUES (:id, 'Sal Seller', 'cz', :competition, 'imported', 'registered', :player)",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => self::COMPETITION, 'player' => $sellerId],
+        );
 
         $this->displayToken = self::createDisplay(self::COMPETITION, [['type' => 'puzzle', 'props' => ['show' => ['image', 'name', 'brand', 'pieces'], 'max' => 6]]], self::ROUND);
 
@@ -240,6 +248,7 @@ final class UnboxedRoundTest extends WebTestCase
         $surfaces['event page puzzles (tag)'] = (string) json_encode($container->get(GetPuzzleOverview::class)->byTagId(TagFixture::TAG_ONLINE));
         $surfaces['competition puzzles (WJPC hub)'] = (string) json_encode($container->get(GetCompetitionPuzzles::class)->forCompetitions([self::COMPETITION]));
         $surfaces['solved puzzles of the event'] = (string) json_encode($container->get(GetCompetitionPuzzles::class)->solvedPuzzleOverviews(self::COMPETITION, 10));
+        $surfaces['marketplace at the event'] = (string) json_encode($container->get(GetMarketplaceListings::class)->search(event: self::COMPETITION));
         $surfaces['marketplace picker'] = (string) json_encode($container->get(GetEventOfferChoices::class)->forPicker($this->sellerId, self::COMPETITION));
 
         return $surfaces;

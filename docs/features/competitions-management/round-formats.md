@@ -176,15 +176,24 @@ Design: [world-series-rules.md](world-series-rules.md) §7 + review amendments W
   page + state, analytics studio, judge chips of `pick` rounds, event/edition page rounds, round results page, public
   API, "Add to my profile" per puzzle). The SQL side is used by the surfaces on the SQL reveal rule (W2-a): the event
   page's tagged puzzles (`GetPuzzleOverview::byTagId()`), `GetCompetitionPuzzles` (WJPC hub + the event page's solved
-  list) and the marketplace "What will you bring?" picker (`GetEventOfferChoices` - a puzzle of this event's rounds
-  shows no picture while a round keeps it back; this also applies the existing secret image-only rule there, which the
-  picker did not honour before - it only hides more). The results import's event card is an organiser page (the
+  list), the marketplace "What will you bring?" picker (`GetEventOfferChoices`) and the marketplace narrowed to the
+  event (`GetMarketplaceListings::search()` with `event`, `?event=`): there a puzzle of this event's rounds shows no
+  picture while a round keeps it back, one lateral lookup per listing (`RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin()`),
+  only under the event filter. This also applies the existing secret image-only rule there, which those lists did not
+  honour before - it only hides more. The marketplace without the event filter shows a catalogue puzzle's picture
+  (inherent, W2-b). The results import's event card is an organiser page (the
   organization's team only) and keeps the sheet's puzzle as entered.
 - **Site-wide hide** (`SecretPuzzleHides::hideOf()`): a `hides_everywhere` row of an unboxed round keeps
   `hide_image_until` at `HIDDEN_UNTIL_REVEALED` until the first publish, then `max(reveal, first publish)`;
   `hide_until` (the name) stays the reveal. `PublishRoundResultsHandler` re-syncs **only on the first publish of an
   unboxed round** (locks via `lockRoundsForChange()`, reads the round again) - every other round runs the statements it
-  ran before. A public catalogue puzzle keeps its picture on its own page and in the catalogue (inherent, W2-b - the
+  ran before. It decides on a read before any lock, so "Unboxed" switched on and committed in between would re-sync
+  while the round was unpublished (picture hidden for good): the publish's `OfficialRoundResultsPublished` (async,
+  after the commit) runs `ResyncUnboxedRoundPicturesWhenPublished`, which re-syncs an unboxed published round whose
+  secret puzzle's picture is still `HIDDEN_UNTIL_REVEALED` (0 statements for other rounds - the round comes from the
+  identity map the notification handler of the same event fills; one cheap check for unboxed ones, the lock only when
+  something is to repair). Switching "Unboxed" on after the first publish reads the publish after the lock and syncs
+  to `max(reveal, first publish)` at once. A public catalogue puzzle keeps its picture on its own page and in the catalogue (inherent, W2-b - the
   organiser help says "use a new (secret) puzzle for a truly unboxed challenge"); while its picture is hidden
   site-wide, the strict `SecretPuzzleAccess` checks (codes, EANs) hold too; times can be logged once the name is out.
 - **Pushes:** the first publish of an unboxed round and every change of the switch call

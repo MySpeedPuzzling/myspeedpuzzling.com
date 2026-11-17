@@ -57,7 +57,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | B4 | C | merged | 4809c8704, 00d8e47bc, 114c81d9c | competitor_page p/g/t/e + competitor_state, 404 rules, published/live/own results, guest 4 statements, canaries, B2 goldens regenerated; docs competitor-pages.md |
 | P1F | A (extra slot) | merged | 48360480f, 19db0c38c | stopwatch_first_started_at (stopwatchOriginalStartAt()), taps before Stop accepted (too_late from the round's end), re-pick keeps connectedAt |
 | B5 | C | merged | 6248122d2, ad14ea84a | competitor_page_live.js (phases, offset, jittered refetch, wake lock, tapNowMs), token-less public stream mode; walked via refetch path (dev hub refuses anonymous) |
-| B8 | C | started | | |
+| B8 | C | merged | 1568afc75, 4c572485e | Stop button + confirm sheet, competitor_proposals_outbox.js (UUIDv7 id + tappedAtMs kept offline), states incl. confirmed/changed/rejected, sign-in hint, current round first on phones. **Checkpoint 2 (proposal loop) walked end to end** |
 | A4 | B (swap) | merged | 973884dc5, 41725625e, 89d05d343 | desk per-puzzle editor (grouped saves), sheet recompute/clear+undo + Puzzles column, export Puzzle N columns (total pinned) |
 | C9 | B | merged | 870b6023b | proposal panel (Confirm focused / Replace / Change / Not right + reason), Proposals waiting list opens the card, outbox proposalId + `proposal` reject (offline ok), late → receipt default; bundle 190 KB/52 KB gzip (50.8) |
 | A8 | B | started | | |
@@ -77,3 +77,4 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - C9 polish: proposer name only on pair/team cards; document 'undo of a confirmation clears the result, proposal stays confirmed'.
 - Decisions: public pages never show 'Did not start' (round page, competitor page, standings); drop the category badge when the standing name already says it (polish).
 - Orchestrator: CI was red from the A6 merge to D8 (3 guard tests) - fixed. Check CI after EVERY merge.
+- B8 polish: pending/sending boxes use a neutral style (not $primary pink).

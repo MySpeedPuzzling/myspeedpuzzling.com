@@ -138,6 +138,8 @@ final class PublicStandingsTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-standing-provisional]');
         self::assertSelectorTextContains('[data-standing-state]', 'after 3 of 6 rounds');
+        // "World Series - Solo" says its category already: no [Solo] badge after it
+        self::assertSelectorNotExists('[data-standing-category]');
 
         // Rounds 1-3 only: Dora is fastest there, Bob's unfinished round 6 and Dora's no-show in round 4 do not count yet
         self::assertSame([['1', 'Dora', '00:40:00'], ['2', 'Bob', '00:45:00'], ['3', 'Alice', '00:50:00'], ['4', 'Cyril', '00:55:00']], self::pageRows($crawler));
@@ -288,6 +290,8 @@ final class PublicStandingsTest extends WebTestCase
         $crawler = $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();
         self::assertSame([['1', 'Olga Official', '00:50:00']], self::pageRows($crawler));
+        // "Overall" does not say its category: the badge does
+        self::assertSelectorExists('[data-standing-title] [data-standing-category]');
 
         $crawler = $this->browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026');
         self::assertSame([$url], $crawler->filter('[data-event-standing-link]')->each(static fn (Crawler $link): string => (string) $link->attr('href')));

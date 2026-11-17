@@ -198,7 +198,8 @@ Only while the competition has time proposals on (the round state's `proposals`,
 longer lists unless it came after the state was read). Server side: `official-results.md` "Time proposals".
 
 - **Entry card**: a panel above Finished now - "Proposed 0:49:00", from their phone at the tap's time of day, by the
-  participant as the organiser recorded them, "tapped 3 min ago"; late (> 5 s to the receipt) shows both times and
+  participant as the organiser recorded them (pair/team cards only - a solo card's name is the proposer already,
+  `proposerName()`), "tapped 3 min ago"; late (> 5 s to the receipt) shows both times and
   defaults to the receipt seconds; "stopwatch changed" and "linked recently" hints. One big **Confirm** (focused, the
   card is its confirm view - the 350 ms guard of C7 applies; "Replace with" in warning colour when another result is
   saved; "Matches the saved time" and no button when equal), **Change** (the time field prefilled; its Save confirms the
@@ -210,6 +211,8 @@ longer lists unless it came after the state was read). Server side: `official-re
   puzzle choice is required first); a rejection is `field: "proposal"` (`from: {id}`, never chained, no Undo once sent).
   Offline both wait like any change; the outcome's `proposal: {id, status}` updates the page at once (`not_pending` /
   `unknown` fetch the state).
+- **Undoing a confirmation** (the result's Undo, or clearing it later) clears the result only: the proposal stays
+  `confirmed` and is not offered again - by design in v1. The judge enters the time again by hand.
 
 ## Reliability (`assets/official_results_outbox.js`)
 

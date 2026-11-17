@@ -14,6 +14,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Exception\TransformationFailedException;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -22,6 +23,8 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\Extension\Core\Type\TimezoneType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -201,16 +204,38 @@ final class CompetitionRoundFormType extends AbstractType
             /** @var int $puzzlesCount */
             $puzzlesCount = $options['puzzles_count'];
 
-            $builder->add('puzzleFormat', EnumType::class, [
-                'class' => RoundPuzzleFormat::class,
+            // Three choices that say what they are (reliability hardening T1) - the model stays `total` / `pick` K:
+            // "Solve all N" is `pick` with K = N, set here on submit, so nobody types K = N
+            $builder->add('puzzleFormat', ChoiceType::class, [
+                'property_path' => 'puzzleFormatChoice',
                 'label' => 'competition_toolkit.round_format.form.label',
-                'choice_label' => static fn (RoundPuzzleFormat $format): string => 'competition_toolkit.round_format.form.' . $format->value,
+                'choices' => [
+                    'competition_toolkit.round_format.name.total' => CompetitionRoundFormData::FORMAT_CHOICE_TOTAL,
+                    'competition_toolkit.round_format.name.choice_all' => CompetitionRoundFormData::FORMAT_CHOICE_ALL,
+                    'competition_toolkit.round_format.name.choice_pick' => CompetitionRoundFormData::FORMAT_CHOICE_PICK,
+                ],
+                'choice_translation_parameters' => static fn (): array => ['%count%' => $puzzlesCount],
                 'expanded' => true,
             ]);
 
+            $builder->addEventListener(FormEvents::SUBMIT, static function (FormEvent $event) use ($puzzlesCount): void {
+                $data = $event->getData();
+
+                if (!$data instanceof CompetitionRoundFormData) {
+                    return;
+                }
+
+                $data->puzzleFormat = $data->puzzleFormatChoice === CompetitionRoundFormData::FORMAT_CHOICE_TOTAL ? RoundPuzzleFormat::Total : RoundPuzzleFormat::Pick;
+
+                if ($data->puzzleFormatChoice === CompetitionRoundFormData::FORMAT_CHOICE_ALL) {
+                    // No puzzles yet: K = 1 is refused by the handler with "add the puzzles first" (to_solve_range)
+                    $data->puzzlesToSolve = max(1, $puzzlesCount);
+                }
+            });
+
             $builder->add('puzzlesToSolve', IntegerType::class, [
-                'label' => 'competition_toolkit.round_format.form.to_solve',
-                'help' => 'competition_toolkit.round_format.form.to_solve_help',
+                'label' => 'competition_toolkit.round_format.name.to_solve',
+                'help' => 'competition_toolkit.round_format.name.to_solve_help',
                 'help_translation_parameters' => ['%count%' => $puzzlesCount],
                 'required' => false,
                 'attr' => [

@@ -16,6 +16,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final class CompetitionRoundFormData
 {
+    public const string FORMAT_CHOICE_TOTAL = 'total';
+    public const string FORMAT_CHOICE_ALL = 'all';
+    public const string FORMAT_CHOICE_PICK = 'pick';
+
     public function __construct(
         #[Assert\NotBlank]
         #[Assert\Length(max: 250)]
@@ -60,6 +64,9 @@ final class CompetitionRoundFormData
             constraints: [new Assert\NotNull(), new Assert\Positive()],
         )]
         public null|int $puzzlesToSolve = null,
+        // What the form offers (reliability hardening T1): "total", "all" (= `pick` with K = the round's puzzles, read
+        // back as "all" whenever K = N) or "pick" - CompetitionRoundFormType turns it into the two fields above on submit
+        public string $puzzleFormatChoice = self::FORMAT_CHOICE_TOTAL,
     ) {
     }
 
@@ -94,6 +101,11 @@ final class CompetitionRoundFormData
         $data->teamSize = $round->teamSize;
         $data->puzzleFormat = $round->puzzleFormat;
         $data->puzzlesToSolve = $round->puzzlesToSolveCount();
+        $data->puzzleFormatChoice = match (true) {
+            $round->puzzleFormat === RoundPuzzleFormat::Total => self::FORMAT_CHOICE_TOTAL,
+            $data->puzzlesToSolve !== null && $data->puzzlesToSolve >= $round->roundPuzzles->count() => self::FORMAT_CHOICE_ALL,
+            default => self::FORMAT_CHOICE_PICK,
+        };
 
         return $data;
     }

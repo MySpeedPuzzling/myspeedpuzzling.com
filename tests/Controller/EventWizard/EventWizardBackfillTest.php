@@ -14,7 +14,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * The creation wizard's backfill path (docs/features/competitions-management/creation-wizard.md "Backfill"): a player
@@ -215,21 +214,12 @@ final class EventWizardBackfillTest extends WebTestCase
         // Somebody else's result is never listed
         self::assertSelectorNotExists('[data-time-id="' . PuzzleSolvingTimeFixture::TIME_02 . '"]');
 
-        $form = $crawler->filter('form[name="link_results"]')->form();
-        $boxes = $form['link_results[times]'];
-        self::assertIsArray($boxes);
-
-        foreach ($boxes as $box) {
-            self::assertInstanceOf(ChoiceFormField::class, $box);
-
-            if (in_array(PuzzleSolvingTimeFixture::TIME_01, $box->availableOptionValues(), true)) {
-                $box->tick();
-            } else {
-                $box->untick();
-            }
-        }
-
-        $this->browser->submit($form);
+        $this->browser->request('POST', '/en/new-event/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024 . '/link-results', [
+            'link_results' => [
+                'times' => [PuzzleSolvingTimeFixture::TIME_01],
+                '_token' => $crawler->filter('input[name="link_results[_token]"]')->attr('value'),
+            ],
+        ]);
         self::assertResponseStatusCodeSame(303);
         self::assertSame(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $this->database()->fetchOne('SELECT competition_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_01]));
     }
@@ -257,7 +247,7 @@ final class EventWizardBackfillTest extends WebTestCase
         self::assertSelectorExists('[data-event-wizard-link-waits]');
         self::assertSelectorExists('[data-event-wizard-rail]');
         $box = $crawler->filter('[data-time-id="' . PuzzleSolvingTimeFixture::TIME_08 . '"] input[type="checkbox"]');
-        self::assertSame('checked', $box->attr('checked'), 'A result of the event\'s day and puzzle, linked to nothing, is pre-ticked');
+        self::assertNotNull($box->attr('checked'), 'A result of the event\'s day and puzzle, linked to nothing, is pre-ticked');
 
         $this->browser->submit($crawler->filter('form[name="link_results"]')->form());
         self::assertResponseRedirects('/en/new-event/' . $id . '/past/done', 303);

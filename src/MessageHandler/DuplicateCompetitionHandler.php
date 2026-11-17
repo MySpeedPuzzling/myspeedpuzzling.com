@@ -183,7 +183,7 @@ readonly final class DuplicateCompetitionHandler
      */
     private function copyRound(CompetitionRound $round, Competition $copy, DuplicateDateShift $shift): CompetitionRound
     {
-        return new CompetitionRound(
+        $roundCopy = new CompetitionRound(
             id: Uuid::uuid7(),
             competition: $copy,
             name: $round->name,
@@ -200,6 +200,13 @@ readonly final class DuplicateCompetitionHandler
             teamSize: $round->teamSize,
             startTimeKnown: $round->startTimeKnown,
         );
+
+        // "Unboxed" (world-series-rules.md §7) - the copy has no puzzles and no results yet, so nothing to re-sync
+        if ($round->unboxed) {
+            $roundCopy->changeUnboxed(true);
+        }
+
+        return $roundCopy;
     }
 
     /**

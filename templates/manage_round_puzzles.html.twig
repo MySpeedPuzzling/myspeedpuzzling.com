@@ -64,6 +64,23 @@
                 · <a href="{{ path('edit_competition_round', {roundId: round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}">{{ 'competition_toolkit.round_format.change'|trans }}</a>
             </p>
         {% endif %}
+        {# World Series rules W2: "Unboxed" - no box picture on the event's pages, screens and phones until the round's
+           results are first published (world-series-rules.md §7) #}
+        {% if toolkit_manage %}
+            <form method="post" action="{{ path('change_round_unboxed', {roundId: round.id}) }}" class="mb-3 col-xl-9 px-0" data-round-unboxed="{{ round.unboxed ? 'on' : 'off' }}"
+                {%- if round.keepsPicturesUnboxed %} onsubmit="return this.unboxed.checked || confirm('{{ 'competition.round_puzzles.unboxed.confirm_off'|trans|e('js') }}')"{% endif %}>
+                <input type="hidden" name="_token" value="{{ csrf_token('change_round_unboxed_' ~ round.id) }}">
+                <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" role="switch" name="unboxed" value="1" id="round-unboxed-{{ round.id }}"{{ round.unboxed ? ' checked' }}>
+                    <label class="form-check-label" for="round-unboxed-{{ round.id }}">{{ 'competition.round_puzzles.unboxed.label'|trans }}</label>
+                </div>
+                <p class="small text-muted mb-1">{{ 'competition.round_puzzles.unboxed.help'|trans }}</p>
+                {% if round.unboxed and round.resultsFirstPublishedAt is not null %}
+                    <p class="small text-muted mb-1" data-round-unboxed-published>{{ 'competition.round_puzzles.unboxed.published'|trans }}</p>
+                {% endif %}
+                <button type="submit" class="btn btn-sm btn-outline-primary">{{ 'competition.round_puzzles.unboxed.save'|trans }}</button>
+            </form>
+        {% endif %}
         {% if toolkit_manage and puzzles|length > 0 %}
             {% set arranged = puzzles|sort((a, b) => a.position <=> b.position) %}
             <details class="card mb-3 col-xl-9 px-0" data-arrange-round-puzzles>

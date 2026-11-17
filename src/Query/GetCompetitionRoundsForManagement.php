@@ -40,6 +40,7 @@ SELECT
     cr.puzzles_to_solve,
     cr.reveal_delay_minutes,
     cr.slug,
+    cr.unboxed,
     COUNT(crp.id) AS puzzle_count,
     STRING_AGG(DISTINCT crp.reveal_mode, ',' ORDER BY crp.reveal_mode) FILTER (WHERE crp.hide_until_round_starts) AS secret_reveal_modes
 FROM competition_round cr
@@ -77,6 +78,7 @@ SQL;
              *     reveal_delay_minutes: int|string,
              *     secret_reveal_modes: null|string,
              *     slug: null|string,
+             *     unboxed: bool,
              * } $row
              */
 
@@ -101,6 +103,7 @@ SQL;
                 revealDelayMinutes: (int) $row['reveal_delay_minutes'],
                 secretRevealModes: $row['secret_reveal_modes'] !== null ? explode(',', $row['secret_reveal_modes']) : [],
                 slug: $row['slug'],
+                unboxed: $row['unboxed'],
             );
         }, $data, array_keys($data));
     }

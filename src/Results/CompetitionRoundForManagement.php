@@ -42,6 +42,8 @@ readonly final class CompetitionRoundForManagement
         public array $secretRevealModes = [],
         // The round's public URL part - null = no round pages (and no analytics studio) yet
         public null|string $slug = null,
+        // "Unboxed" (world-series-rules.md §7): no box picture until the round's results are first published
+        public bool $unboxed = false,
     ) {
     }
 }

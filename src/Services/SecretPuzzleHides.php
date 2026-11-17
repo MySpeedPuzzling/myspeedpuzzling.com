@@ -25,10 +25,12 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  * several rounds. Its hide dates are the LATEST reveal among the round puzzles that keep it hidden everywhere
  * (CompetitionRoundPuzzle::$hidesEverywhere, still secret): puzzle.hide_image_until = the latest of all of them,
  * puzzle.hide_until = the latest of those hiding it entirely ("entirely" beats "image only"). A manual reveal not made
- * yet counts as never (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED).
+ * yet counts as never (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED). An unboxed round's row keeps the picture until its
+ * results are first published (never yet before, then the later of the reveal and the publish).
  *
  * Call resync() after anything that may move a reveal: adding a puzzle to a round, a reveal change, "Reveal now",
- * a round's start or its reveal delay (CompetitionRound::changeRevealDelay()), removing the puzzle from a round,
+ * a round's start or its reveal delay (CompetitionRound::changeRevealDelay()), the round's "Unboxed" switch and the first
+ * publish of an unboxed round's results, removing the puzzle from a round,
  * deleting a round or an event, a merge. With no such row left the dates stay as they are - a puzzle is never revealed
  * by accident. So a reveal still ahead on a row going away (a countdown with the stopwatch tick) is taken back before
  * the removal, while the row exists (RoundStopwatchReveal::withdrawBeforeRemoving()).
@@ -247,8 +249,16 @@ readonly final class SecretPuzzleHides
                 default => $row->revealsAt() ?? $neverRevealed,
             };
 
-            if ($imageHiddenUntil === null || $revealsAt > $imageHiddenUntil) {
-                $imageHiddenUntil = $revealsAt;
+            // An unboxed round (world-series-rules.md §7) keeps the picture back until its results are first published:
+            // never yet before it, then the later of the reveal and that publish - the name follows the reveal alone
+            $pictureRevealsAt = $revealsAt;
+            if ($row->round->unboxed) {
+                $firstPublishedAt = $row->round->resultsFirstPublishedAt;
+                $pictureRevealsAt = $firstPublishedAt === null ? $neverRevealed : max($revealsAt, $firstPublishedAt);
+            }
+
+            if ($imageHiddenUntil === null || $pictureRevealsAt > $imageHiddenUntil) {
+                $imageHiddenUntil = $pictureRevealsAt;
             }
 
             if (($row->hideMode ?? PuzzleHideMode::Entirely) === PuzzleHideMode::Entirely && ($hiddenUntil === null || $revealsAt > $hiddenUntil)) {

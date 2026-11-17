@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventOfferChoice;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The "What will you bring?" picker (docs/features/marketplace/11-events.md): the seller's published listings with
@@ -36,6 +37,11 @@ readonly final class GetEventOfferChoices
 
         $qualifies = GetMarketplaceEvents::SQL_QUALIFIES;
         $going = GetMarketplaceEvents::sqlPlayerGoing('c.id', 'ssli.player_id');
+        // A puzzle of this event's rounds shows no picture while a round keeps it back - a secret not revealed yet, or an
+        // unboxed round before its results are published (RoundPuzzleReveal::sqlImageHidden(), world-series-rules.md W2-a)
+        // (one lateral lookup per listing - RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin())
+        $roundKeepsPicture = RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin('p', ':competitionId', 'event_picture');
+        $imageHidden = '(p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp) OR event_picture.kept IS TRUE';
 
         $query = <<<SQL
 SELECT
@@ -48,8 +54,8 @@ SELECT
     p.name AS puzzle_name,
     p.search_names,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
+    CASE WHEN {$imageHidden} THEN NULL ELSE p.image END AS image,
+    CASE WHEN {$imageHidden} THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name AS manufacturer_name,
     EXISTS (
         SELECT 1
@@ -70,6 +76,7 @@ SELECT
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON p.id = ssli.puzzle_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
+{$roundKeepsPicture}
 WHERE ssli.player_id = :playerId
     AND ssli.published_on_marketplace = true
 ORDER BY ssli.added_at DESC, ssli.id DESC

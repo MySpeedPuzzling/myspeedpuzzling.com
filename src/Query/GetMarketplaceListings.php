@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\PuzzleTextSearch;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The marketplace's listings. Marketplace at events (docs/features/marketplace/11-events.md):
@@ -60,6 +61,8 @@ use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
  */
 readonly final class GetMarketplaceListings
 {
+    private const string PICTURE_EMBARGOED = 'p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp';
+
     private const string COLUMNS = '
     ssli.id AS item_id,
     p.id AS puzzle_id,
@@ -205,6 +208,15 @@ JOIN player pl ON ssli.player_id = pl.id';
 
         $orderKeys = self::orderKeys($sort, $hasSearch, $event !== null);
         $columns = self::COLUMNS;
+
+        // At an event, a puzzle of its rounds shows no picture while a round keeps it back - a secret not revealed yet,
+        // or an unboxed round before its results are published (world-series-rules.md W2; one lateral lookup per
+        // listing, only under the event filter - RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin())
+        if ($event !== null) {
+            $joins .= "\n" . RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin('p', ':event', 'event_picture');
+            $columns = str_replace(self::PICTURE_EMBARGOED, self::PICTURE_EMBARGOED . ' OR event_picture.kept IS TRUE', $columns);
+        }
+
         $from = self::FROM;
         $innerOrder = implode(', ', $orderKeys);
         $outerOrder = implode(', ', array_map(static fn (string $key): string => 'page.' . $key, $orderKeys));

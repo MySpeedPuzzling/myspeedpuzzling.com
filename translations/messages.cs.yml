@@ -4289,6 +4289,16 @@ qr_code:
     "logo_replaces_current": "Vaše nové logo tu zůstalo, nemusíte ho vybírat znovu. Po uložení nahradí současné logo."
     "maintainers": "Správci"
     "maintainers_help": "Začněte psát jméno hráče pro vyhledávání. Vybraní uživatelé budou moci spravovat tuto událost."
+  round_puzzles:
+    unboxed:
+      label: "Bez krabice – žádné obrázky krabic, dokud nejsou zveřejněny výsledky"
+      help: "Soutěžící skládají, aniž by krabici viděli. Obrázky puzzlí tohoto kola zůstanou skryté na stránkách, obrazovkách i telefonech vaší události, dokud nezveřejníte výsledky kola; názvy se řídí nastavením odhalení níže. Puzzle, které už je v naší databázi, si svůj obrázek ponechá na vlastní stránce – pro skutečnou výzvu bez krabice použijte nové (tajné) puzzle."
+      published: "Výsledky kola jsou zveřejněny, proto se jeho obrázky zobrazují."
+      save: "Uložit"
+      saved_on: "Toto kolo je nyní bez krabice – jeho obrázky zůstanou skryté, dokud nezveřejníte jeho výsledky."
+      saved_off: "Toto kolo už není bez krabice."
+      confirm_off: "Obrázky puzzlí tohoto kola se zobrazí při jejich běžném odhalení – ihned, pokud už nastalo. Pokračovat?"
+      badge: "Bez krabice"
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Držet puzzle v tajnosti až do odhalení"

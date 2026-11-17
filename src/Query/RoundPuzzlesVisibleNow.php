@@ -26,6 +26,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  *   RoundPuzzleReveal): before it the puzzle is left out entirely, or - PuzzleHideMode::ImageOnly - shown by name
  *   without its picture.
  * - The puzzle's site-wide embargo: hide_until leaves the puzzle out, hide_image_until takes its picture away.
+ * - An unboxed round (CompetitionRound::$unboxed): no picture of any of its puzzles until its results are first
+ *   published - the SQL twin is RoundPuzzleReveal::sqlImageHidden().
  *
  * Every round also comes as its slots (competition toolkit A2): each puzzle as a place with its position and neutral
  * label, in the organiser's order (RoundPuzzleLabel) - a hidden one by its label only.
@@ -87,7 +89,8 @@ SELECT
     CASE WHEN p.hide_until > :now::timestamp THEN p.hide_until END AS puzzle_embargoed_until,
     m.name AS manufacturer_name,
     cr.starts_at AS round_starts_at,
-    cr.reveal_delay_minutes AS round_reveal_delay_minutes
+    cr.reveal_delay_minutes AS round_reveal_delay_minutes,
+    cr.unboxed AND cr.results_first_published_at IS NULL AS round_keeps_pictures_unboxed
 FROM competition_round_puzzle crp
 INNER JOIN puzzle p ON p.id = crp.puzzle_id
 INNER JOIN competition_round cr ON cr.id = crp.round_id
@@ -112,7 +115,7 @@ SQL;
         $slotsByRound = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_puzzle_id: string, round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, position: null|int|string, label: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, puzzle_image_embargoed: bool, puzzle_image_embargoed_until: null|string, puzzle_embargoed: bool, puzzle_embargoed_until: null|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
+            /** @var array{round_puzzle_id: string, round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, position: null|int|string, label: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, puzzle_image_embargoed: bool, puzzle_image_embargoed_until: null|string, puzzle_embargoed: bool, puzzle_embargoed_until: null|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string, round_keeps_pictures_unboxed: bool|string} $row */
             $roundId = $row['round_id'];
             $hideUntilRoundStarts = $row['hide_until_round_starts'];
             if (is_string($hideUntilRoundStarts)) {
@@ -151,6 +154,17 @@ SQL;
                     $nameMomentUnknown = $revealAt === null;
                     $nameMoments[] = $revealAt;
                 }
+            }
+
+            // An unboxed round (world-series-rules.md §7) keeps the picture of every puzzle back until its results are
+            // first published - secret or not, outside the reveal above, and never the name. No moment: publishing is not
+            // scheduled, it pushes instead (OfficialResultsLiveUpdates::puzzlesRevealed())
+            $keepsPicturesUnboxed = $row['round_keeps_pictures_unboxed'];
+            if (is_string($keepsPicturesUnboxed)) {
+                $keepsPicturesUnboxed = $keepsPicturesUnboxed === 't' || $keepsPicturesUnboxed === '1' || $keepsPicturesUnboxed === 'true';
+            }
+            if ($keepsPicturesUnboxed) {
+                $imageHidden = true;
             }
 
             foreach ($moments as $moment) {

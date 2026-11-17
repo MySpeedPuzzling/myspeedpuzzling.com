@@ -59,6 +59,15 @@ class CompetitionRound implements EntityWithEvents
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $stopwatchFirstStartedAt = null;
 
+    // "Unboxed" (docs/features/competitions-management/world-series-rules.md §7): the box picture of the round's puzzles
+    // is not shown on the event's pages, screens and phones until the round's results are first published - the name
+    // follows the round's normal reveal. The moment is $resultsFirstPublishedAt (unpublishing never hides it again). The
+    // one rule: RoundPuzzlesVisibleNow in PHP, RoundPuzzleReveal::sqlImageHidden() in SQL, SecretPuzzleHides for the
+    // site-wide hide of a puzzle the round keeps hidden everywhere. Changed only through changeUnboxed().
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $unboxed = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -283,6 +292,24 @@ class CompetitionRound implements EntityWithEvents
     public function areResultsPublished(): bool
     {
         return $this->resultsPublishedAt !== null;
+    }
+
+    /**
+     * The organiser's "Unboxed" switch (ChangeRoundUnboxedHandler, under the round's lock) - re-sync the round's secret
+     * puzzles afterwards (SecretPuzzleHides).
+     */
+    public function changeUnboxed(bool $unboxed): void
+    {
+        $this->unboxed = $unboxed;
+    }
+
+    /**
+     * Whether the round's box pictures are still kept back because the round is unboxed - until its results are first
+     * published (RoundPuzzleReveal::sqlImageHidden() is the SQL twin).
+     */
+    public function keepsPicturesUnboxed(): bool
+    {
+        return $this->unboxed && $this->resultsFirstPublishedAt === null;
     }
 
     public function changeTableNumbersUsage(bool $off): void

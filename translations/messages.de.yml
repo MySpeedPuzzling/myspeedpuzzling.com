@@ -4214,6 +4214,16 @@ qr_code:
     "logo_replaces_current": "Ihr neues Logo ist noch da, Sie müssen es nicht erneut auswählen. Beim Speichern ersetzt es das aktuelle Logo."
     "maintainers": "Verwalter"
     "maintainers_help": "Beginnen Sie mit der Eingabe eines Spielernamens zum Suchen. Ausgewählte Benutzer können diese Veranstaltung verwalten."
+  round_puzzles:
+    unboxed:
+      label: "Ohne Schachtelbild – keine Bilder, bis die Ergebnisse veröffentlicht sind"
+      help: "Die Teilnehmer puzzeln, ohne die Schachtel zu sehen. Die Bilder der Puzzles dieser Runde bleiben auf den Seiten, Bildschirmen und Handys Ihrer Veranstaltung verborgen, bis Sie die Ergebnisse der Runde veröffentlichen; die Namen folgen den Enthüllungs-Einstellungen unten. Ein Puzzle, das schon in unserer Datenbank ist, behält sein Bild auf der eigenen Seite – nehmen Sie für eine wirklich verdeckte Aufgabe ein neues (geheimes) Puzzle."
+      published: "Die Ergebnisse der Runde sind veröffentlicht, daher werden ihre Bilder angezeigt."
+      save: "Speichern"
+      saved_on: "Diese Runde ist jetzt ohne Schachtelbild – ihre Bilder bleiben verborgen, bis Sie ihre Ergebnisse veröffentlichen."
+      saved_off: "Diese Runde ist nicht mehr ohne Schachtelbild."
+      confirm_off: "Die Bilder der Puzzles dieser Runde werden zur normalen Enthüllung angezeigt – sofort, wenn sie schon vorbei ist. Fortfahren?"
+      badge: "Ohne Schachtelbild"
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Dieses Puzzle bis zur Enthüllung geheim halten"

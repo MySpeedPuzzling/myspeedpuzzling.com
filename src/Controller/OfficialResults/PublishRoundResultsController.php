@@ -57,6 +57,9 @@ final class PublishRoundResultsController extends AbstractController
 
         $body = OfficialResultsApi::bodyOrEmpty($request);
 
+        // The first publish of an unboxed round lets its pictures out (world-series-rules.md §7) - read before the dispatch
+        $picturesComeOut = $round->keepsPicturesUnboxed();
+
         $this->messageBus->dispatch(new PublishRoundResults($competitionId, $roundId));
 
         $reveal = null;
@@ -67,7 +70,9 @@ final class PublishRoundResultsController extends AbstractController
 
         $this->liveUpdates->roundChanged($roundId);
 
-        if ($reveal === 'revealed') {
+        // Open judge pages and the event's displays read the round's puzzles again (after the commit) - a reveal or an
+        // unboxed round's pictures
+        if ($reveal === 'revealed' || $picturesComeOut) {
             // After the commit - the reveal push: the round's open pages read its puzzles again
             $this->liveUpdates->puzzlesRevealed($roundId);
         }

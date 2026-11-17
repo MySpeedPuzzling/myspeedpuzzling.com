@@ -2,7 +2,7 @@
 
 Where a scanned competition tag leads anybody but the event's organisers and referees, once the organiser switched
 "Public competitor pages" on (toolkit hub card, B1). Design: `toolkit/B-qr-competitor-page.md` §4, §7; binding
-`toolkit/R-review-and-plan.md` §2.3, §2.6. The live clock (B5) and "propose my time" (B8) build on this read side.
+`toolkit/R-review-and-plan.md` §2.3, §2.6. The live clock (B5) and "propose my time" (B8, below) build on this read side.
 
 ## Routes
 
@@ -96,6 +96,46 @@ is the DOM adapter of the pure module `assets/competitor_page_live.js` (`Competi
   root, and an empty `[data-competitor-round-actions]` slot in each card for the Stop button.
 - Dev: the local hub refuses anonymous subscribers (no `anonymous` directive; production allows it) and its CORS list
   is `localhost:8080` only - locally the page lives on the refetch path.
+
+## Propose my time (B8)
+
+Jan: the competitor, signed in as the person linked to the tag, taps Stop on their own page → a **proposal** that a
+judge confirms (C9), never official on its own. Server side: P1 (`official-results.md` "Time proposals").
+
+- **Who sees the button:** only with the event's time proposals on (`competitor_pages AND time_proposals AND NOT
+  is_online`), only on the viewer's **own** entry (the linked solo entrant or a member of the pair/team - person, line-up,
+  table or entry page alike): the round JSON then carries `canPropose: true` + `proposal` (their latest proposal of
+  the entry: the pending one, else the last tapped, `TimeProposalView::forCompetitor()` - no judge identity, no link
+  moment; `GetTimeProposals::latestOfEntries()`, one statement, only then). Somebody else, a guest or an organiser
+  looking at the page gets neither key, nor the page's endpoints/CSRF token. Without time proposals the JSON and the
+  HTML are unchanged. The browser shows the button while the round's phase is `running`, the entry has no result and
+  nothing waits for the judge (`assets/competitor_proposals_view.js`); the server checks everything again
+  (`linked_after_start`, `times_up`, … shown plainly as the server's translated message).
+- **A guest** on a page whose entrant has a linked profile: "Sign in to propose your time" (`signInToPropose: true`
+  in the round JSON, the hint in the card before the round starts only - the controller hides it once the round runs;
+  login with `?return=` back to the page). It never says who is linked.
+- **The tap:** the page root carries `propose-url`/`withdraw-url` (route templates with a nil UUID), the stateless CSRF
+  token `time_proposal`, the viewer's id and the labels. The click handler reads `tapNowMs()` first, synchronously;
+  "Propose 0:49:12?" (the time of the tap, not of the confirm) → Propose stores it in the phone's outbox
+  (`assets/competitor_proposals_outbox.js`, IndexedDB `msp_competitor_proposals`, the id = a UUIDv7 made from the tap
+  moment, `tappedAtMs` + clock offset/RTT + the stopwatch `stateHash`; resent unchanged until answered; offline
+  backoff 1 s … 30 s and at once on `online`; 429/5xx back off; 401/stale CSRF stop sending and keep the item;
+  refusals drop it and show why; one tab sends - Web Locks; `beforeunload` warns while something is unsent).
+- **States in the card's slot:** Stop / "Propose?" sheet / sending / saved on this phone (offline) / sign in again /
+  reload / waiting for the judge (+ Undo) / taking back / confirmed / "Confirmed as X - you proposed Y" / not accepted
+  (+ reason, Stop again while it runs) / withdrawn (Stop again) / clock reset / recorded otherwise. Undo = withdraw:
+  a tap still on the phone is dropped (the server never hears of it), one on its way is withdrawn after its answer, a
+  sent one gets a withdraw item. The answer's proposal and the state's are merged (`currentProposal()`: a decided
+  answer beats a stale pending state, a later tap beats an older one).
+- **Polling:** while something waits for the judge (pending / sending / offline / taking back) the state is asked for
+  every 5 s ±20 % (visible tab only, doubled per failed fetch - `CompetitorPageLive` `fastPoll` + `replan()`); no
+  private per-entry Mercure topic in v1 (R §1.2).
+- **The slot is redrawn on every clock draw** when its descriptor changes, so a card drawn again from the page's HTML
+  gets its slot back at once.
+- **Current round first on phones:** on person and line-up pages the current round's card (`.is-current`) comes first
+  below 768 px (CSS `order`); the HTML order is unchanged (a table page already lists it first).
+- Tests: `tests/competitor-proposals-harness.mjs` → `CompetitorProposalsScriptTest`,
+  `tests/Controller/CompetitorPage/CompetitorPageProposalsTest.php`.
 
 ## Statements
 

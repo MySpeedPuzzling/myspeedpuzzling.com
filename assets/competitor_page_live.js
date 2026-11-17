@@ -20,7 +20,11 @@
 // - A round whose content changed (puzzles, results, who plays) is re-drawn by the page from its HTML
 //   (`reloadContent`) - the cards' markup lives in Twig only. The clock is drawn in place on every tick.
 // - Screen wake lock while a round of the page's entrant runs (or starts within 5 minutes); released otherwise.
-// - tapNowMs(): the server's time now, synchronously - the moment a "Stop" tap happened (B8 proposals).
+// - tapNowMs(): the server's time now, synchronously - the moment a "Stop" tap happened (B8 proposals);
+//   clockSample() what that time rests on (offset, best round trip) - sent along with the tap.
+// - fastPoll(): true while the competitor's own time proposal waits for the judge (or is still on the phone) - the
+//   state is then asked for every 5 s (±20 %, visible tab only, doubled per failed fetch): there is no private
+//   per-entry topic in v1 (R-review-and-plan.md §1.2). replan() plans the next poll again after that changed.
 
 import { OfficialResultsEvents } from './official_results_events.js';
 import { createServerClock, isNewerState, startedAtMs, stopwatchView } from './round_stopwatch_clock.js';
@@ -42,6 +46,7 @@ export const MAX_POLL_MS = 5 * 60 * 1000;
 export const POLL_SPREAD = 0.2;
 export const GONE_POLL_MS = 5 * 60 * 1000;
 export const WAKE_BEFORE_START_MS = 5 * 60 * 1000;
+export const PROPOSAL_POLL_MS = 5 * 1000;
 // setTimeout's limit is ~24.8 days; nothing here waits that long
 const MAX_DELAY_MS = 24 * 3600 * 1000;
 const ACTIVE_PHASES = ['scheduled', 'running'];
@@ -196,6 +201,15 @@ export function pollDelay({ live, active, errors = 0, random = Math.random }) {
 }
 
 /**
+ * The poll while a proposal waits for the judge: 5 s, doubled per failed fetch up to 5 minutes, spread ±20 %.
+ */
+export function proposalPollDelay({ errors = 0, random = Math.random }) {
+    const backedOff = Math.min(MAX_POLL_MS, PROPOSAL_POLL_MS * (2 ** Math.min(errors, 10)));
+
+    return Math.round(backedOff * (1 - POLL_SPREAD + random() * 2 * POLL_SPREAD));
+}
+
+/**
  * The earliest reveal moment still ahead (server time) - null without one.
  */
 export function nextRevealAtMs(state, nowMs) {
@@ -228,6 +242,7 @@ export class CompetitorPageLive {
      * @param {function({all: boolean, roundIds: string[]}): void} [options.reloadContent] draws changed cards again
      * @param {function(boolean): void} [options.wakeLock]                     true: keep the screen on, false: release
      * @param {function(): boolean} [options.isVisible]
+     * @param {function(): boolean} [options.fastPoll]   a proposal waits for the judge: poll every 5 s (B8)
      * @param {function(): number} [options.now]
      * @param {function(function(), number): *} [options.schedule]
      * @param {function(*): void} [options.cancel]
@@ -242,6 +257,7 @@ export class CompetitorPageLive {
         reloadContent = () => {},
         wakeLock = () => {},
         isVisible = () => true,
+        fastPoll = () => false,
         now = () => Date.now(),
         schedule = (task, ms) => setTimeout(task, ms),
         cancel = (timer) => clearTimeout(timer),
@@ -255,6 +271,7 @@ export class CompetitorPageLive {
         this.reloadContentFn = reloadContent;
         this.wakeLockFn = wakeLock;
         this.isVisible = isVisible;
+        this.fastPollFn = fastPoll;
         this.now = now;
         this.scheduleFn = schedule;
         this.cancelFn = cancel;
@@ -325,6 +342,22 @@ export class CompetitorPageLive {
      */
     tapNowMs() {
         return this.clock.serverNow();
+    }
+
+    /**
+     * What the server's time rests on - sent with a tap so the judge can see how fresh it was.
+     */
+    clockSample() {
+        return { offsetMs: this.clock.offsetMs(), rttMs: this.clock.bestRttMs() };
+    }
+
+    /**
+     * Plans the next poll again - after a proposal started or stopped waiting for the judge.
+     */
+    replan() {
+        if (!this.closed && !this.gone) {
+            this.schedulePoll();
+        }
     }
 
     /**
@@ -611,12 +644,17 @@ export class CompetitorPageLive {
             return;
         }
 
-        const delay = pollDelay({
+        let delay = pollDelay({
             live: this.events?.isLive() ?? false,
             active: isActive(this.state, this.serverNow()) && this.isVisible(),
             errors: this.errors,
             random: this.random,
         });
+
+        // The competitor's own proposal waits for the judge - no private topic tells the phone, so it asks (B8)
+        if (this.fastPollFn() && this.isVisible()) {
+            delay = Math.min(delay, proposalPollDelay({ errors: this.errors, random: this.random }));
+        }
 
         this.set('poll', delay, () => {
             // A hidden page polls nothing - it asks once it is shown again (onVisible)

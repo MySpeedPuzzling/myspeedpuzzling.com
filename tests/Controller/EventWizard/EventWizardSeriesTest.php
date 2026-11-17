@@ -14,6 +14,9 @@ use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\DomCrawler\Field\FormField;
+use Symfony\Component\DomCrawler\Form;
 
 /**
  * The event creation wizard's series path (W3, docs/features/competitions-management/toolkit/
@@ -48,6 +51,7 @@ final class EventWizardSeriesTest extends WebTestCase
     protected function setUp(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, true);
+        $this->browser = self::createClient();
     }
 
     protected function tearDown(): void
@@ -59,7 +63,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testWithTheFlagOffAnOrganiserHasNoSeriesPathNorItsLinks(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $seriesId = $this->startSeries();
         self::assertNotNull($seriesId);
@@ -86,6 +89,7 @@ final class EventWizardSeriesTest extends WebTestCase
     public function testAnAdminHasTheSeriesPathWithTheFlagOff(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, false);
+        self::ensureKernelShutdown();
         $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
@@ -95,7 +99,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testTheEntryLeadsASeriesToItsBasics(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $this->browser->request('GET', '/en/new-event?kind=series');
@@ -104,7 +107,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testSeriesPathEndToEnd(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $seriesId = $this->startSeries();
@@ -182,7 +184,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testTheSameBasicsPageSentTwiceCreatesOneSeries(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $before = $this->rowCount('SELECT COUNT(*) FROM competition_series');
 
@@ -201,7 +202,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testBasicsRefusesAMissingNameWith422(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $before = $this->rowCount('SELECT COUNT(*) FROM competition_series');
 
@@ -212,7 +212,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testDatesRefuseWith422(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $seriesId = $this->startSeries();
         self::assertNotNull($seriesId);
@@ -221,8 +220,10 @@ final class EventWizardSeriesTest extends WebTestCase
         // Nothing checked
         $crawler = $this->browser->request('GET', $url);
         $form = $crawler->filter('#event-wizard-dates-preview form')->form();
-        foreach ($form->get('selected') as $checkbox) {
-            self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
+        $checkboxes = $form->get('selected');
+        self::assertIsArray($checkboxes);
+        foreach ($checkboxes as $checkbox) {
+            self::assertInstanceOf(ChoiceFormField::class, $checkbox);
             $checkbox->untick();
         }
         $this->browser->submit($form);
@@ -247,7 +248,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testNoRoundsJustDates(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $seriesId = $this->startSeries();
         self::assertNotNull($seriesId);
@@ -261,7 +261,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testAnotherPlayerCannotOpenTheSeriesSteps(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $seriesId = $this->startSeries();
         self::assertNotNull($seriesId);
@@ -277,7 +276,6 @@ final class EventWizardSeriesTest extends WebTestCase
 
     public function testTheNextDatesFollowTheLastOnesAndQuickAddPuzzleReturnsToTheSeries(): void
     {
-        $this->browser = self::createClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $seriesId = $this->startSeries();
         self::assertNotNull($seriesId);
@@ -296,14 +294,14 @@ final class EventWizardSeriesTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/new-event/series/' . $seriesId . '/next-dates');
         self::assertResponseIsSuccessful();
         $form = $crawler->filter('form[data-event-wizard-dates-form]')->form();
-        self::assertSame('nth_weekday', $form->get('rule')->getValue());
-        self::assertSame('3', $form->get('nth')->getValue());
-        self::assertSame('6', $form->get('weekday')->getValue());
-        self::assertSame('19.12.2027', $form->get('starting')->getValue());
-        self::assertSame('19:00', $form->get('startTime')->getValue());
-        self::assertSame('60', $form->get('minutesLimit')->getValue());
-        self::assertSame('solo', $form->get('category')->getValue());
-        self::assertSame('1', $form->get('withRounds')->getValue());
+        self::assertSame('nth_weekday', self::value($form, 'rule'));
+        self::assertSame('3', self::value($form, 'nth'));
+        self::assertSame('6', self::value($form, 'weekday'));
+        self::assertSame('19.12.2027', self::value($form, 'starting'));
+        self::assertSame('19:00', self::value($form, 'startTime'));
+        self::assertSame('60', self::value($form, 'minutesLimit'));
+        self::assertSame('solo', self::value($form, 'category'));
+        self::assertSame('1', self::value($form, 'withRounds'));
 
         $form['count'] = '2';
         $crawler = $this->browser->submit($form);
@@ -339,7 +337,7 @@ final class EventWizardSeriesTest extends WebTestCase
      */
     private function startSeries(array $overrides = []): null|string
     {
-        $before = $this->database()->fetchFirstColumn('SELECT id FROM competition_series');
+        $before = self::ids($this->database()->fetchFirstColumn('SELECT id FROM competition_series'));
         $crawler = $this->browser->request('GET', '/en/new-event/series/basics');
 
         if ($this->browser->getResponse()->getStatusCode() !== 200) {
@@ -352,9 +350,9 @@ final class EventWizardSeriesTest extends WebTestCase
         }
 
         $this->browser->submit($crawler->filter('form[name="event_wizard_series_basics_form"]')->form(), $values);
-        $created = array_values(array_diff($this->database()->fetchFirstColumn('SELECT id FROM competition_series'), $before));
+        $created = array_values(array_diff(self::ids($this->database()->fetchFirstColumn('SELECT id FROM competition_series')), $before));
 
-        return isset($created[0]) && is_string($created[0]) ? $created[0] : null;
+        return $created[0] ?? null;
     }
 
     private function addMonthlyDates(string $seriesId): void
@@ -369,7 +367,7 @@ final class EventWizardSeriesTest extends WebTestCase
      */
     private function rounds(string $seriesId): array
     {
-        return array_values($this->database()->fetchAllAssociative(
+        return ($this->database()->fetchAllAssociative(
             'SELECT cr.*, c.date_from, c.is_draft AS edition_draft FROM competition_round cr JOIN competition c ON c.id = cr.competition_id WHERE c.series_id = :id ORDER BY cr.starts_at',
             ['id' => $seriesId],
         ));
@@ -381,6 +379,25 @@ final class EventWizardSeriesTest extends WebTestCase
         self::assertTrue(is_int($value) || is_string($value));
 
         return (int) $value;
+    }
+
+    private static function value(Form $form, string $name): string
+    {
+        $field = $form->get($name);
+        self::assertInstanceOf(FormField::class, $field);
+        $value = $field->getValue();
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    /**
+     * @param list<mixed> $ids
+     * @return list<string>
+     */
+    private static function ids(array $ids): array
+    {
+        return array_values(array_filter($ids, is_string(...)));
     }
 
     private static function string(mixed $value): string

@@ -102,13 +102,13 @@
                         {{ form_row(form.teamSize) }}
                     </div>
                     <div class="row">
-                        <div class="col-6 col-sm-5">
+                        <div class="col-12 col-sm-6">
                             <div class="required">{{ form_row(form.minutesLimit) }}</div>
                         </div>
-                        <div class="col-6 col-sm-5">
+                        <div class="col-12 col-sm-6">
                             <div class="required">
                                 {{ form_label(form.startTime) }}
-                                {{ form_widget(form.startTime, {type: 'time'}) }}
+                                {{ form_widget(form.startTime, {type: 'time', attr: {class: 'form-control w-auto'}}) }}
                                 {{ form_errors(form.startTime) }}
                             </div>
                         </div>

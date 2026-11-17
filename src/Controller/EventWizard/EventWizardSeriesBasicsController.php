@@ -114,6 +114,7 @@ final class EventWizardSeriesBasicsController extends AbstractController
             $formData->locationCountryCode = CountryCode::fromCode($organizationCountry)->name ?? CountryCode::fromCode($player->country)?->name;
         }
 
+        $currentLogo = $series?->logo;
         $form = $this->createForm(EventWizardSeriesBasicsFormType::class, $formData, [
             'action' => $request->getRequestUri(),
         ]);
@@ -176,7 +177,7 @@ final class EventWizardSeriesBasicsController extends AbstractController
                 // Left the organization's team since the entry screen
                 $form->addError(new FormError($this->translator->trans('organizer_tools.form.organization_not_managed')));
 
-                return $this->page($form, $progress, $restoredPhotos, $player->playerId, $organizationName, $series?->logo);
+                return $this->page($form, $progress, $restoredPhotos, $player->playerId, $organizationName, $currentLogo);
             }
 
             $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
@@ -195,7 +196,7 @@ final class EventWizardSeriesBasicsController extends AbstractController
             return $this->redirectToRoute(EventWizardStep::Dates->route(), ['seriesId' => $seriesId], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->page($form, $progress, $restoredPhotos, $player->playerId, $organizationName, $series?->logo);
+        return $this->page($form, $progress, $restoredPhotos, $player->playerId, $organizationName, $currentLogo);
     }
 
     private function addSeries(string $seriesId, string $playerId, CompetitionFormData $data): void

@@ -275,7 +275,7 @@ final class EventWizardSeriesDatesController extends AbstractController
      * @param FormInterface<EventWizardDatesFormData> $form
      * @param null|list<array{date: DateTimeImmutable, value: string, name: string, taken: bool, id: string}> $preview
      */
-    private function nameExample(FormInterface $form, null|array $preview, string $locale): null|string
+    private function nameExample(FormInterface $form, null|array $preview, string $locale): string
     {
         if ($preview !== null && $preview !== []) {
             return $preview[0]['name'];

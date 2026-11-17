@@ -109,6 +109,22 @@ export function formatDate(ms, precision = 'day', locale = 'en') {
 }
 
 /**
+ * The round's start - date and time in the page's locale ("Nov 14, 2026, 10:00 AM"), in the viewer's zone unless one is
+ * given; unknown → ''.
+ */
+export function formatStartsAt(ms, locale = 'en', timeZone = undefined) {
+    if (!isNumber(ms)) {
+        return '';
+    }
+
+    try {
+        return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(new Date(ms));
+    } catch {
+        return new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
+    }
+}
+
+/**
  * A label with its `%name%` placeholders filled. Values are plain text - the renderer sets textContent only.
  */
 export function interpolate(template, params = {}) {

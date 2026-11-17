@@ -16,6 +16,7 @@ import {
     activeSlot,
     availableFilters,
     availableSorts,
+    clockPhase,
     compareTable,
     entrantRows,
     officialRanking,
@@ -33,6 +34,7 @@ import {
     formatDelta,
     formatDuration,
     formatRange,
+    formatStartsAt,
     interpolate,
 } from './format.js';
 import { KEYMAP } from './keys.js';
@@ -307,9 +309,16 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
     function drawClock(nowMs) {
         const stopwatch = current?.state?.round?.stopwatch ?? null;
         const view = stopwatchView(stopwatch, nowMs);
-        clock.className = `as-clock as-clock--${view.phase}`;
+        const startsAtMs = current?.state?.round?.startsAtMs ?? null;
+        const phase = clockPhase(view.phase, startsAtMs, nowMs);
+        clock.className = `as-clock as-clock--${phase}`;
 
-        if (view.phase === 'scheduled') {
+        if (phase === 'past') {
+            // The stopwatch was never used and the round's start has passed: its start, not "Not started"
+            clockStatus.textContent = formatStartsAt(startsAtMs, locale);
+            clockTime.textContent = '';
+            clockLeft.textContent = '';
+        } else if (view.phase === 'scheduled') {
             clockStatus.textContent = t('clock.scheduled', { time: formatClock(view.countdownMs + 999) });
             clockTime.textContent = '';
             clockLeft.textContent = '';

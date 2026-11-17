@@ -36,6 +36,14 @@ function own(object, key) {
 // ---- slots
 
 /**
+ * The top bar's clock phase: stopwatchView()'s (round_stopwatch_clock.js), except that an idle stopwatch of a round whose
+ * start has passed is 'past' - the stopwatch was never used, "Not started" would be wrong; the bar shows the start.
+ */
+export function clockPhase(phase, startsAtMs, nowMs) {
+    return phase === 'idle' && isNumber(startsAtMs) && isNumber(nowMs) && startsAtMs <= nowMs ? 'past' : phase;
+}
+
+/**
  * The round's slots in order: `{label, key, revealsAtMs, puzzle, visible}` - a hidden slot has `key` and `puzzle` null
  * and carries nothing but its label and the reveal moment (§5).
  */

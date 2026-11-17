@@ -15,6 +15,7 @@ import {
     applyAction,
     availableFilters,
     availableSorts,
+    clockPhase,
     compareTable,
     DEFAULT_SORT,
     entrantRows,
@@ -43,7 +44,7 @@ import {
     revealDelay,
 } from '../assets/analytics-studio/refresh.js';
 import {
-    flagOf, formatClock, formatCount, formatDate, formatDelta, formatDuration, formatRange, interpolate,
+    flagOf, formatClock, formatCount, formatDate, formatDelta, formatDuration, formatRange, formatStartsAt, interpolate,
 } from '../assets/analytics-studio/format.js';
 import { createAnalyticsStudioRenderer, LABEL_NAMES, safeImageUrl, safePath } from '../assets/analytics-studio/render.js';
 
@@ -1028,6 +1029,36 @@ function renderModel(overrides = {}, labels = ENGLISH) {
 }
 
 const text = (node) => (node === null ? '' : node.textContent);
+
+scenario('clock: an idle stopwatch says "Not started" only before the round\'s start, after it the start itself', () => {
+    // Pure
+    assert.equal(clockPhase('idle', NOW + 60_000, NOW), 'idle');
+    assert.equal(clockPhase('idle', NOW, NOW), 'past');
+    assert.equal(clockPhase('idle', NOW - 86_400_000, NOW), 'past');
+    assert.equal(clockPhase('idle', null, NOW), 'idle');
+    assert.equal(clockPhase('running', NOW - 60_000, NOW), 'running');
+    assert.equal(clockPhase('stopped', NOW - 60_000, NOW), 'stopped');
+    assert.equal(formatStartsAt(Date.UTC(2026, 10, 14, 9, 30), 'en', 'UTC'), 'Nov 14, 2026, 9:30 AM');
+    assert.equal(formatStartsAt(Date.UTC(2026, 10, 14, 9, 30), 'cs', 'UTC'), '14. 11. 2026 9:30');
+    assert.equal(formatStartsAt(null), '');
+
+    // Rendered: a past round whose stopwatch was never used
+    const past = clone(STATE);
+    past.round.stopwatch = stopwatch(null, { startedAtMs: null });
+    past.round.startsAtMs = NOW - 86_400_000;
+    const { root, renderer } = renderModel({ state: past });
+    assert.equal(text(root.querySelector('.as-clock__status')), formatStartsAt(NOW - 86_400_000, 'en'));
+    assert.notEqual(text(root.querySelector('.as-clock__status')), 'Not started');
+    assert.ok(root.querySelector('.as-clock').classList.contains('as-clock--past'));
+    assert.equal(text(root.querySelector('.as-clock__time')), '');
+
+    // Before the start: "Not started"
+    const ahead = clone(past);
+    ahead.round.startsAtMs = NOW + 3_600_000;
+    renderer.render({ state: ahead, analytics: ANALYTICS, entrant: null, predictions: null, nowMs: NOW, view: initialView({}) });
+    assert.equal(text(root.querySelector('.as-clock__status')), 'Not started');
+    assert.ok(root.querySelector('.as-clock').classList.contains('as-clock--idle'));
+});
 
 scenario('render: a solo row stays one line (name + flag), a pair/team row keeps its members line', () => {
     const { root } = renderModel();

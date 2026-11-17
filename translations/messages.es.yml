@@ -15749,3 +15749,13 @@ event_wizard_more:
         last: "Último %weekday% del mes"
         at_time: "%when% a las %time%"
         picked_at_time: "A las %time% en cada fecha"
+shared_round:
+    link_to_round: "Este es mi tiempo: vincularlo a %round%"
+    not_identified: "Ronda: sin identificar; elige la ronda en la que lo resolviste"
+    change: "Ronda: %round%. ¿No es tu ronda? Elige la tuya"
+    choose: "Elegir"
+    unfinished_not_identified: "Este puzzle está en varias rondas de este evento: añade tu resultado desde los resultados oficiales de la ronda en la que participaste (Añadir a mi perfil)."
+    flash:
+        linked: "Tu tiempo ya está en la ronda."
+        not_a_candidate: "Este tiempo no puede ir en esa ronda: la ronda no tiene este puzzle en individual, parejas o equipos como tu tiempo."
+        try_again: "No ha funcionado; inténtalo de nuevo."

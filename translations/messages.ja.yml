@@ -15710,3 +15710,13 @@ event_wizard_more:
         last: "毎月最終%weekday%"
         at_time: "%when% %time%"
         picked_at_time: "各日程とも%time%"
+shared_round:
+    link_to_round: "これは自分のタイムです - %round% に紐付ける"
+    not_identified: "ラウンド: 特定できません - 解いたラウンドを選んでください"
+    change: "ラウンド: %round% - このラウンドではありませんか？ご自身のラウンドを選んでください"
+    choose: "選択"
+    unfinished_not_identified: "このパズルはこのイベントの複数のラウンドで使われています。参加したラウンドの公式結果から記録を追加してください（プロフィールに追加）。"
+    flash:
+        linked: "タイムがラウンドに紐付けられました。"
+        not_a_candidate: "このタイムはそのラウンドに入れられません。そのラウンドには、あなたのタイムと同じ個人・ペア・チームの部門でこのパズルがありません。"
+        try_again: "うまくいきませんでした。もう一度お試しください。"

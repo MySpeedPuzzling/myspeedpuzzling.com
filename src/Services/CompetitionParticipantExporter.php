@@ -22,8 +22,19 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  */
 readonly final class CompetitionParticipantExporter
 {
-    /** The columns of the downloadable template - an event-less sheet for new participants. */
-    private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'team_name'];
+    /**
+     * The columns of the downloadable template - an event-less sheet for new participants. A player is named by their
+     * #code (what organisers collect at registration - participant-linking.md §7.3); the import reads ids and profile
+     * links in the same column.
+     */
+    private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'msp_code', 'status', 'round_names', 'team_name'];
+
+    /**
+     * The export's: `msp_player_id` is the round-trip key, `msp_code` is there to read (and to name a player on a row
+     * added by hand - the import reads it where the id is empty). Written for public profiles only: the file leaves the
+     * site, like a printed name tag.
+     */
+    private const array EXPORT_HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'msp_code', 'status', 'round_names', 'team_name'];
 
     /**
      * Only in the export of an event that manages registration, after every other column
@@ -57,8 +68,9 @@ readonly final class CompetitionParticipantExporter
         }
 
         $teamNames = $this->fetchTeamNames($competitionId);
+        $publicCodes = $this->fetchPublicCodes($competitionId);
 
-        $headers = self::TEMPLATE_HEADERS;
+        $headers = self::EXPORT_HEADERS;
         foreach ($teamRounds as $roundName) {
             $headers[] = CompetitionParticipantImporter::TEAM_COLUMN_PREFIX . ' ' . $roundName;
         }
@@ -96,6 +108,7 @@ readonly final class CompetitionParticipantExporter
                 $participant->participantCountry?->name,
                 $participant->externalId,
                 $participant->playerId,
+                isset($publicCodes[$participant->participantId]) ? '#' . strtoupper($publicCodes[$participant->participantId]) : null,
                 'active',
                 implode(', ', $assignedRoundNames),
                 null, // team_name: one team for every pair/team round of the row - never written, the per-round columns are
@@ -163,6 +176,29 @@ SQL;
         foreach ($rows as $row) {
             /** @var array{participant_id: string, round_id: string, team_name: string} $row */
             $result[$row['participant_id']][$row['round_id']] = $row['team_name'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, string> participant_id => the linked player's code, public profiles only
+     */
+    private function fetchPublicCodes(string $competitionId): array
+    {
+        $query = <<<SQL
+SELECT cp.id AS participant_id, p.code
+FROM competition_participant cp
+INNER JOIN player p ON p.id = cp.player_id
+WHERE cp.competition_id = :competitionId
+    AND cp.deleted_at IS NULL
+    AND p.is_private = false
+SQL;
+
+        $result = [];
+        foreach ($this->database->fetchAllAssociative($query, ['competitionId' => $competitionId]) as $row) {
+            /** @var array{participant_id: string, code: string} $row */
+            $result[$row['participant_id']] = $row['code'];
         }
 
         return $result;

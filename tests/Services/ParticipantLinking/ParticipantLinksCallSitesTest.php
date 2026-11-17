@@ -202,6 +202,26 @@ final class ParticipantLinksCallSitesTest extends KernelTestCase
         ], $this->log($participantId));
     }
 
+    public function testAnImportedCodeIsAnImportLink(): void
+    {
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getActiveSheet()->fromArray([
+            ['name', 'code'],
+            ['Jane Unconnected', '#ADMIN'],
+        ]);
+        $file = tempnam(sys_get_temp_dir(), 'test_import_');
+        assert(is_string($file));
+        (new Xlsx($spreadsheet))->save($file);
+
+        $this->messageBus->dispatch(new ImportCompetitionParticipants(CompetitionFixture::COMPETITION_WJPC_2024, $file));
+        unlink($file);
+
+        self::assertSame('import', $this->connectedVia(Wjpc::PARTICIPANT_UNCONNECTED));
+        self::assertSame([
+            ['action' => 'linked', 'method' => 'import', 'player_id' => PlayerFixture::PLAYER_ADMIN, 'by_player_id' => null],
+        ], $this->log(Wjpc::PARTICIPANT_UNCONNECTED));
+    }
+
     public function testTheSheetsLinksAreTheOrganisersAndNameWhoMadeThem(): void
     {
         $this->applySheetChanges([

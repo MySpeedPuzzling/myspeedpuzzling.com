@@ -40,6 +40,8 @@ readonly final class ParticipantImportRow
         public null|\DateTimeImmutable $removedAt = null,
         public array $roundsRestored = [],
         public array $teamsBefore = [],
+        /** The MySpeedPuzzling profile line - when the file names a player or the import links one */
+        public null|ParticipantImportRowProfile $profile = null,
     ) {
     }
 

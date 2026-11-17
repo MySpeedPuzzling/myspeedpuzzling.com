@@ -25,4 +25,15 @@ enum ParticipantLinkMethod: string
     case Organiser = 'organiser';
     // The organiser's import file named the player
     case Import = 'import';
+
+    /**
+     * The player linked the row themselves - the import says so when it keeps the link (participant-linking.md §7.3)
+     */
+    public function isThePlayersOwn(): bool
+    {
+        return match ($this) {
+            self::SelfJoin, self::Claim, self::ClaimApproved, self::ClaimLink, self::OnlineLink => true,
+            self::Organiser, self::Import => false,
+        };
+    }
 }

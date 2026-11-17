@@ -23,6 +23,9 @@ final class PlanPerson
 
     public bool $markAsImported = false;
 
+    /** The file's player cell that linked them in this import (shown for a profile the organiser may not see) */
+    public null|string $linkedByReference = null;
+
     /** `status = deleted` on one of their rows */
     public bool $deletedByFile = false;
 
@@ -47,6 +50,11 @@ final class PlanPerson
         public readonly null|DateTimeImmutable $deletedAt = null,
         public readonly bool $selfJoined = false,
         public readonly null|string $playerName = null,
+        /** How the participant's player (before the import) got linked - ParticipantLinkMethod value, null = unknown */
+        public readonly null|string $connectedVia = null,
+        public readonly null|string $playerCode = null,
+        /** The viewer may not see who the participant's player (before the import) is */
+        public readonly bool $playerMasked = false,
     ) {
     }
 

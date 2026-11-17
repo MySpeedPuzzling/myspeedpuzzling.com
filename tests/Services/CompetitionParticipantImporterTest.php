@@ -201,7 +201,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(1, $result->added);
         self::assertCount(1, $result->errors);
-        self::assertStringContainsString('does not exist', $this->texts($result->errors)[0]);
+        self::assertStringContainsString('no MySpeedPuzzling player', $this->texts($result->errors)[0]);
     }
 
     public function testImportIsIdempotent(): void
@@ -600,8 +600,8 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(0, $result->added);
         self::assertSame([
-            'Row 2: msp_player_id "00000000-0000-0000-0000-000000000099" does not exist.',
-            'Row 3: msp_player_id "not-a-uuid" is not a valid UUID.',
+            'Row 2: no MySpeedPuzzling player 00000000-0000-0000-0000-000000000099 - the row is imported without a profile.',
+            'Row 3: "not-a-uuid" is not a MySpeedPuzzling #code, player id or profile link - the row is imported without a profile.',
         ], $this->texts($result->errors));
 
         /** @var list<array{name: string, player_id: null|string}> $rows */

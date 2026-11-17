@@ -82,6 +82,38 @@ final class ColumnMappingTest extends TestCase
         ];
     }
 
+    /**
+     * participant-linking.md §7.3: a player reference by many names, `player` stays the name
+     */
+    public function testPlayerReferenceHeaders(): void
+    {
+        foreach (['MSP', 'msp player', 'MSP profile', 'MySpeedPuzzling', 'player code', 'Code', 'profile'] as $header) {
+            self::assertEquals([0 => ParticipantImportField::Name, 1 => ParticipantImportField::PlayerId], ColumnMapping::detect(['Player', $header], [])->fields, $header);
+        }
+
+        self::assertEquals(
+            [0 => ParticipantImportField::Name, 1 => ParticipantImportField::PlayerId, 2 => ParticipantImportField::PlayerCode],
+            ColumnMapping::detect(['name', 'msp_player_id', 'msp_code'], [])->fields,
+        );
+    }
+
+    public function testTheExportsCodeColumnNamesThePlayerWhereTheIdIsEmpty(): void
+    {
+        $sheet = new ParticipantSheet(headers: ['name', 'msp_player_id', 'msp_code'], rows: [
+            2 => ['Linked', '018d0000-0000-0000-0000-000000000001', '#PLAYER1'],
+            3 => ['Added by hand', '', '#admin'],
+            4 => ['Nobody', '', ''],
+        ]);
+
+        $rows = ColumnMapping::detect($sheet->headers, [])->toRows($sheet)->rows;
+
+        self::assertSame(['018d0000-0000-0000-0000-000000000001', '#admin', ''], array_map(static fn ($row): null|string => $row->playerId, $rows));
+
+        // The template has the code column only
+        $template = new ParticipantSheet(headers: ['name', 'msp_code'], rows: [2 => ['Casey', '#admin']]);
+        self::assertSame('#admin', ColumnMapping::detect($template->headers, [])->toRows($template)->rows[0]->playerId);
+    }
+
     public function testDetectsTeamColumnsOfPairAndTeamRounds(): void
     {
         $mapping = ColumnMapping::detect(

@@ -57,6 +57,8 @@ readonly final class ParticipantImportPlanner
             $built->resultsGuard,
             // The file's msp_player_ids that exist - a player deleted meanwhile is not connected
             $existingPlayers,
+            // Who each #code / id / profile link of the file names - a code that changed hands meanwhile links nobody else
+            $site->references,
         ], JSON_THROW_ON_ERROR));
 
         return new ParticipantImportPlan(
@@ -74,10 +76,11 @@ readonly final class ParticipantImportPlanner
 
     private function snapshot(string $competitionId, ParticipantImportRows $rows): SiteSnapshot
     {
-        $playerIds = [];
+        // The player cells as written - ids, #codes, profile links (PlayerReference), resolved by the reader
+        $playerReferences = [];
         foreach ($rows->rows as $row) {
-            if ($row->playerId !== null) {
-                $playerIds[] = $row->playerId;
+            if ($row->playerId !== null && trim($row->playerId) !== '') {
+                $playerReferences[] = $row->playerId;
             }
         }
 
@@ -85,6 +88,6 @@ readonly final class ParticipantImportPlanner
         // instead of a plan nobody saw carrying the newer version
         $stateVersion = $this->getStateVersion->ofCompetition($competitionId);
 
-        return $this->siteSnapshotReader->read($competitionId, $playerIds, $stateVersion);
+        return $this->siteSnapshotReader->read($competitionId, $playerReferences, $stateVersion);
     }
 }

@@ -46,6 +46,15 @@ readonly final class ColumnMapping
         'team' => ParticipantImportField::Team,
         'msp player id' => ParticipantImportField::PlayerId,
         'msp id' => ParticipantImportField::PlayerId,
+        // A player reference - id, #code or profile link (participant-linking.md §7.3); `player` stays the name
+        'msp' => ParticipantImportField::PlayerId,
+        'msp player' => ParticipantImportField::PlayerId,
+        'msp profile' => ParticipantImportField::PlayerId,
+        'myspeedpuzzling' => ParticipantImportField::PlayerId,
+        'player code' => ParticipantImportField::PlayerId,
+        'code' => ParticipantImportField::PlayerId,
+        'profile' => ParticipantImportField::PlayerId,
+        'msp code' => ParticipantImportField::PlayerCode,
         'participant id' => ParticipantImportField::ParticipantId,
         'external id' => ParticipantImportField::ExternalId,
         'status' => ParticipantImportField::Status,
@@ -233,7 +242,7 @@ readonly final class ColumnMapping
                 name: $name,
                 country: $cell($row, $this->column(ParticipantImportField::Country)),
                 externalId: $cell($row, $this->column(ParticipantImportField::ExternalId)),
-                playerId: $cell($row, $this->column(ParticipantImportField::PlayerId)),
+                playerId: $this->playerCell($row),
                 participantId: $cell($row, $this->column(ParticipantImportField::ParticipantId)),
                 status: $cell($row, $this->column(ParticipantImportField::Status)),
                 roundNames: $cell($row, $this->column(ParticipantImportField::Rounds)),
@@ -264,6 +273,23 @@ readonly final class ColumnMapping
             unmappedHeaders: $unmappedHeaders,
             roundsMapped: $this->column(ParticipantImportField::Rounds) !== null || $this->column(ParticipantImportField::Round) !== null,
         );
+    }
+
+    /**
+     * The row's player reference: the player column, or the `msp_code` column where that is empty (or not mapped)
+     *
+     * @param array<int, string> $row
+     */
+    private function playerCell(array $row): null|string
+    {
+        $player = self::cell($row, $this->column(ParticipantImportField::PlayerId));
+        $code = self::cell($row, $this->column(ParticipantImportField::PlayerCode));
+
+        if ($player !== null && $player !== '') {
+            return $player;
+        }
+
+        return $code ?? $player;
     }
 
     /**

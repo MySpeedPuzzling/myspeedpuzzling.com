@@ -8,7 +8,8 @@ use Doctrine\DBAL\Connection;
 
 /**
  * Everything a participant import plan depends on, as one hash (docs/features/competitions-management/participant-import-preview.md D8):
- * the event's participants (id, name, country, external id, player, active, source), round entries (id, participant,
+ * the event's participants (id, name, country, external id, player, active, source, how the player was linked - the
+ * preview says "linked by themselves"), round entries (id, participant,
  * round, team), teams (id, round, name) and rounds (id, name, category, start - the order rounds are listed and
  * matched in), each in id order. Results are not in it -
  * they arrive all day on event day; the plan's results guard covers them.
@@ -25,7 +26,7 @@ readonly final class GetParticipantImportStateVersion
         $query = <<<SQL
 SELECT encode(sha256(convert_to(concat_ws(E'\n',
     (
-        SELECT string_agg(json_build_array(cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at IS NULL, cp.source)::text, E'\n' ORDER BY cp.id)
+        SELECT string_agg(json_build_array(cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at IS NULL, cp.source, cp.connected_via)::text, E'\n' ORDER BY cp.id)
         FROM competition_participant cp
         WHERE cp.competition_id = :competitionId
     ),

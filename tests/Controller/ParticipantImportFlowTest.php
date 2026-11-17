@@ -424,6 +424,38 @@ final class ParticipantImportFlowTest extends WebTestCase
         self::assertCount(1, $team->filter('strong'));
     }
 
+    /**
+     * participant-linking.md §7.3: the Profile line names the profile ("→ #CODE · Name"), a kept link says who made it
+     */
+    public function testThePreviewNamesTheProfilesOfTheFile(): void
+    {
+        $csv = "Name,Code\nJane Unconnected,#admin\nJohn Regular,player1\nCasey Typo,#nobody7\nRobin One,#player4\nRobin Two,#player4\n";
+        $token = $this->stash(self::COMPETITION, $csv);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $this->browser->request('GET', $this->previewUrl($token));
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('msp_player_id', $this->selected($crawler, 'map[1]'));
+        self::assertStringNotContainsString('competition.participants.', $crawler->filter('main')->text(), 'Untranslated key');
+
+        $jane = $crawler->filter('tr[data-row="2"]');
+        self::assertSame('Profile: → #ADMIN · Admin User', self::squash($jane->filter('[data-import-profile="linked"]')->text()));
+        // The msp_player_id change is the Profile line, not a UUID
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_ADMIN, $jane->text());
+        self::assertStringContainsString('whose profile is called "Admin User"', $jane->text());
+
+        self::assertSame('Profile: #PLAYER1 · John Doe', self::squash($crawler->filter('tr[data-row="3"] [data-import-profile="kept"]')->text()));
+        self::assertStringContainsString('no MySpeedPuzzling player #nobody7', $crawler->filter('#participant-import-warnings')->text());
+        self::assertStringContainsString('is in the file for different people (rows 5, 6)', $crawler->filter('#participant-import-warnings')->text());
+        self::assertCount(0, $crawler->filter('tr[data-row="5"] [data-import-profile], tr[data-row="6"] [data-import-profile]'));
+    }
+
+    private static function squash(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
     private function stash(string $competitionId, string $content = self::CSV): string
     {
         $path = tempnam(sys_get_temp_dir(), 'participant_import_test_');

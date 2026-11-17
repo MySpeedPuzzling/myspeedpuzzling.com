@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\PlayerReference;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
@@ -24,6 +26,8 @@ readonly final class SiteSnapshotReader
     public function __construct(
         private Connection $database,
         private OfficialResultsGuard $officialResultsGuard,
+        private PrivateProfileAccess $privateProfileAccess,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -52,12 +56,14 @@ readonly final class SiteSnapshotReader
     }
 
     /**
-     * @param list<string> $playerIds player ids the caller asks about (a file's msp_player_ids, a sheet's links) - those
-     *                                that exist end up in SiteSnapshot::$existingPlayers
+     * @param list<string> $playerReferences players the caller asks about - a sheet's player ids, a file's player cells
+     *                                       (id, #code or profile link, PlayerReference). The players they name end up in
+     *                                       SiteSnapshot::$existingPlayers / $players, what each one resolved to in
+     *                                       SiteSnapshot::$references
      * @param string $stateVersion read by the caller BEFORE calling this: a change committed between the reads then makes
      *                             the plan stale, instead of a plan nobody saw carrying the newer version
      */
-    public function read(string $competitionId, array $playerIds, string $stateVersion): SiteSnapshot
+    public function read(string $competitionId, array $playerReferences, string $stateVersion): SiteSnapshot
     {
         $parameters = ['competitionId' => $competitionId];
 
@@ -65,7 +71,7 @@ readonly final class SiteSnapshotReader
         $participantRows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, cp.source, cp.organizer_note, cp.registration_status,
-    p.name AS player_name
+    cp.connected_via, p.name AS player_name, p.code AS player_code, {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private
 FROM competition_participant cp
 LEFT JOIN player p ON p.id = cp.player_id
 WHERE cp.competition_id = :competitionId
@@ -75,7 +81,7 @@ SQL,
             $parameters,
         );
         foreach ($participantRows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, registration_status: null|string, player_name: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, registration_status: null|string, connected_via: null|string, player_name: null|string, player_code: null|string, player_is_private: null|bool} $row */
             $participants[] = [
                 'id' => $row['id'],
                 'name' => $row['name'],
@@ -87,6 +93,9 @@ SQL,
                 'selfJoined' => $row['source'] === 'self_joined',
                 'organizerNote' => $row['organizer_note'],
                 'registrationStatus' => $row['registration_status'],
+                'connectedVia' => $row['player_id'] !== null ? $row['connected_via'] : null,
+                'playerCode' => $row['player_code'],
+                'playerMasked' => $row['player_id'] !== null && $this->masked($row['player_id'], $row['player_is_private'] === true),
             ];
         }
 
@@ -154,26 +163,7 @@ SQL,
             $results[$row['player_id']][$row['round_id']] = true;
         }
 
-        $askedPlayers = [];
-        foreach ($playerIds as $playerId) {
-            if (Uuid::isValid($playerId)) {
-                $askedPlayers[strtolower($playerId)] = true;
-            }
-        }
-
-        $existingPlayers = [];
-        if ($askedPlayers !== []) {
-            /** @var list<string> $found */
-            $found = $this->database->fetchFirstColumn(
-                'SELECT id FROM player WHERE id IN (:ids)',
-                ['ids' => array_keys($askedPlayers)],
-                ['ids' => ArrayParameterType::STRING],
-            );
-
-            foreach ($found as $id) {
-                $existingPlayers[strtolower($id)] = true;
-            }
-        }
+        [$players, $references] = $this->resolvePlayers($playerReferences);
 
         return new SiteSnapshot(
             competitionId: $competitionId,
@@ -182,10 +172,104 @@ SQL,
             entries: $entries,
             teams: $teams,
             results: $results,
-            existingPlayers: $existingPlayers,
+            existingPlayers: array_fill_keys(array_keys($players), true),
             stateVersion: $stateVersion,
             officialResults: $this->officialResultsGuard->officialDataByParticipant($competitionId),
             officialTeams: $this->officialResultsGuard->teamsWithOfficialData($competitionId),
+            players: $players,
+            references: $references,
         );
+    }
+
+    /**
+     * Ids and codes in one statement (participant-linking.md §7.3). A code is the player's who holds it, or held it
+     * before (`player_code_change`) - as long as only ONE player ever had it: a code that changed owner is never
+     * guessed (R5, `code_changed_owner`), the organiser may have collected it from the earlier holder. A player's own
+     * former code (changed since, nobody else took it) is theirs.
+     *
+     * @param list<string> $playerReferences
+     * @return array{array<string, array{code: string, name: null|string, masked: bool}>, array<string, array{status: string, playerId: null|string}>}
+     */
+    private function resolvePlayers(array $playerReferences): array
+    {
+        $ids = [];
+        $codes = [];
+        foreach ($playerReferences as $cell) {
+            $reference = PlayerReference::parse($cell);
+
+            if ($reference?->playerId !== null) {
+                $ids[$reference->playerId] = true;
+            } elseif ($reference?->code !== null) {
+                $codes[$reference->code] = true;
+            }
+        }
+
+        if ($ids === [] && $codes === []) {
+            return [[], []];
+        }
+
+        $isPrivate = $this->privateProfileAccess->sqlIsPrivate('p');
+        $rows = $this->database->fetchAllAssociative(
+            <<<SQL
+SELECT p.id, p.code, p.name, {$isPrivate} AS is_private, NULL AS former_code
+FROM player p
+WHERE p.id IN (:ids) OR LOWER(p.code) IN (:codes)
+UNION ALL
+SELECT p.id, p.code, p.name, {$isPrivate} AS is_private, LOWER(pcc.previous_code) AS former_code
+FROM player_code_change pcc
+INNER JOIN player p ON p.id = pcc.player_id
+WHERE LOWER(pcc.previous_code) IN (:codes)
+SQL,
+            ['ids' => array_keys($ids), 'codes' => array_map('strval', array_keys($codes))],
+            ['ids' => ArrayParameterType::STRING, 'codes' => ArrayParameterType::STRING],
+        );
+
+        $players = [];
+        /** @var array<string, array<string, true>> $holders code => player ids who hold or held it */
+        $holders = [];
+        foreach ($rows as $row) {
+            /** @var array{id: string, code: string, name: null|string, is_private: bool, former_code: null|string} $row */
+            $id = strtolower($row['id']);
+            $players[$id] = ['code' => $row['code'], 'name' => $row['name'], 'masked' => $this->masked($id, $row['is_private'])];
+            $holders[$row['former_code'] ?? strtolower($row['code'])][$id] = true;
+        }
+
+        $references = [];
+        foreach (array_keys($ids) as $id) {
+            $id = (string) $id;
+            $references['id:' . $id] = isset($players[$id])
+                ? ['status' => SiteSnapshot::REFERENCE_FOUND, 'playerId' => $id]
+                : ['status' => SiteSnapshot::REFERENCE_UNKNOWN, 'playerId' => null];
+        }
+        foreach (array_keys($codes) as $code) {
+            $code = (string) $code;
+            $codeHolders = array_keys($holders[$code] ?? []);
+            $references['code:' . $code] = match (count($codeHolders)) {
+                0 => ['status' => SiteSnapshot::REFERENCE_UNKNOWN, 'playerId' => null],
+                1 => ['status' => SiteSnapshot::REFERENCE_FOUND, 'playerId' => (string) $codeHolders[0]],
+                default => ['status' => SiteSnapshot::REFERENCE_CODE_CHANGED_OWNER, 'playerId' => null],
+            };
+        }
+        ksort($references);
+
+        // Only the players a reference resolved to - a former holder of a code that changed owner is nobody's business
+        $resolved = [];
+        foreach ($references as $resolution) {
+            if ($resolution['playerId'] !== null) {
+                $resolved[$resolution['playerId']] = $players[$resolution['playerId']];
+            }
+        }
+        ksort($resolved);
+
+        return [$resolved, $references];
+    }
+
+    /**
+     * The organiser's view of a profile, like the participants sheet's (O9): private to them (PrivateProfileAccess, in
+     * the SQL) or blocked by them (HiddenPlayers) - shown as "the profile from your file", never named.
+     */
+    private function masked(string $playerId, bool $privateToViewer): bool
+    {
+        return $privateToViewer || $this->hiddenPlayers->isHidden($playerId);
     }
 }

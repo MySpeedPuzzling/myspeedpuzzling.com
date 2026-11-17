@@ -19,7 +19,11 @@ enum ParticipantImportField: string
     case Round = 'round_name';
     case Team = 'team_name';
     case TeamInRound = 'team_in_round';
+    // A MySpeedPuzzling player: id, #code or profile link (PlayerReference)
     case PlayerId = 'msp_player_id';
+    // The export's `msp_code` column next to `msp_player_id`: read for a row whose player column is empty (a person
+    // the organiser added to an export by hand) - the id wins where both are filled
+    case PlayerCode = 'msp_code';
     case ParticipantId = 'participant_id';
     case ExternalId = 'external_id';
     case Status = 'status';

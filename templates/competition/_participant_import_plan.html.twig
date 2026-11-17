@@ -98,13 +98,32 @@
                                 {% if row.removedAt is not null %}
                                     <div class="text-muted">{{ (prefix ~ 'removed_on')|trans({'%date%': row.removedAt|format_date('medium')}) }}</div>
                                 {% endif %}
-                                {% for change in row.changes %}
+                                {% for change in row.changes|filter(change => row.profile is null or change.field != 'msp_player_id') %}
                                     <div>
                                         <span class="text-muted">{{ ('competition.participants.import.field.' ~ change.field)|trans }}:</span>
                                         {% if change.before is not empty %}<del>{{ change.before }}</del> →{% endif %}
                                         <strong>{{ change.after is empty ? '–' : change.after }}</strong>
                                     </div>
                                 {% endfor %}
+                                {% if row.profile is not null %}
+                                    {% set profile = row.profile %}
+                                    <div data-import-profile="{{ profile.linkedNow ? 'linked' : 'kept' }}">
+                                        <span class="text-muted">{{ 'competition.participants.import.linking.profile'|trans }}:</span>
+                                        {% if profile.linkedNow %}→{% endif %}
+                                        {% if profile.masked %}
+                                            {% if profile.fileReference is not null %}
+                                                {{ 'competition.participants.import.linking.profile_from_your_file'|trans({'%reference%': profile.fileReference}) }}
+                                            {% else %}
+                                                {{ 'competition.participants.import.linking.profile_not_shown'|trans }}
+                                            {% endif %}
+                                        {% else %}
+                                            <strong>#{{ profile.code }}</strong>{% if profile.name is not empty %} · {{ profile.name }}{% endif %}
+                                        {% endif %}
+                                        {% if profile.linkedByThemselves %}
+                                            <span class="text-muted">({{ 'competition.participants.import.linking.linked_by_themselves'|trans }})</span>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
                                 {% if row.roundsAdded is not empty or row.roundsRemoved is not empty %}
                                     <div>
                                         {% for round in row.roundsAdded %}

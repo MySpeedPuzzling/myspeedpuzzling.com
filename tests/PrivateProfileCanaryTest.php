@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Tests;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * A private player is shown to the players on their allow list and to NOBODY else
@@ -668,6 +671,47 @@ final class PrivateProfileCanaryTest extends WebTestCase
         self::assertStringContainsString($profileLink, $content, 'The allowed friend does not see her profile link - the page is no canary.');
         self::assertStringContainsString($bestTime, $content);
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The participant import's preview (participant-linking.md §7.3): a file naming her by #code links her, and the
+     * organiser sees who that is only when on her allow list - otherwise "the profile #player2 from your file"
+     */
+    public function testTheImportPreviewNamesHerLinkedProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        // The uploaded file lives in this kernel's in-memory object storage
+        $browser->disableReboot();
+
+        $competitionId = CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024;
+        $connection = self::getContainer()->get(Connection::class);
+        foreach ([self::STRANGERS['member'], self::FRIEND] as $organiser) {
+            $connection->insert('competition_maintainer', ['competition_id' => $competitionId, 'player_id' => $organiser]);
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'participant_import_canary_');
+        assert(is_string($path));
+        file_put_contents($path, "Name,Code\nMystery Guest,#player2\n");
+        $stashed = self::getContainer()->get(ParticipantImportStash::class)->keep(
+            new UploadedFile($path, 'participants.csv', 'text/csv', null, true),
+            $competitionId,
+            self::FRIEND,
+        );
+        unlink($path);
+        self::assertNotNull($stashed);
+        $url = '/en/import-event-participants/' . $competitionId . '/' . $stashed->token;
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $html = $this->get($browser, $url);
+            self::assertStringNotContainsString(self::OWNER_NAME, $html, "An organiser who is a stranger ({$who}) is shown a private player.");
+            self::assertStringContainsString('the profile #player2 from your file', $html);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $html = $this->get($browser, $url);
+        self::assertStringContainsString(self::OWNER_NAME, $html, 'The allowed friend does not see the private player here - the page is no canary.');
+        self::assertStringContainsString('#PLAYER2', $html);
     }
 
     private function get(KernelBrowser $browser, string $url): string

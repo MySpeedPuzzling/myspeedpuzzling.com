@@ -8,12 +8,15 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Results\ParticipantImportRemovals;
 use SpeedPuzzling\Web\Results\ParticipantImportRow;
+use SpeedPuzzling\Web\Results\ParticipantImportRowProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\ParticipantImportRowAction;
 use SpeedPuzzling\Web\Value\ParticipantImportRowData;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
+use SpeedPuzzling\Web\Value\PlayerReference;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Translation\TranslatableMessage;
 
@@ -39,6 +42,9 @@ use Symfony\Component\Translation\TranslatableMessage;
 final class PlanBuilder
 {
     public const string MESSAGE_PREFIX = 'competition.participants.import.';
+
+    /** A filled player cell that is no id, #code or profile link (PlayerReference) */
+    private const string REFERENCE_INVALID = 'invalid';
 
     /** @var array<string, ParticipantImportRound> */
     private array $roundsById = [];
@@ -139,6 +145,16 @@ final class PlanBuilder
     /** @var list<array{teamId: string, roundName: string, teamName: null|string, activeMembers: int}> */
     private array $deletedTeams = [];
 
+    /**
+     * Rows with a filled player cell: the cell as written and the player it names (participant-linking.md §7.3, D7)
+     *
+     * @var array<int, array{cell: string, status: string, playerId: null|string}>
+     */
+    private array $playerReferences = [];
+
+    /** @var array<int, list<int>> row number => every row naming the same player for another person (D7: none links) */
+    private array $playerInFileTwice = [];
+
     public function __construct(
         private readonly SiteSnapshot $site,
         private readonly ParticipantImportRows $file,
@@ -176,6 +192,9 @@ final class PlanBuilder
                 deletedAt: $participant['deletedAt'],
                 selfJoined: $participant['selfJoined'],
                 playerName: $participant['playerName'],
+                connectedVia: $participant['connectedVia'] ?? null,
+                playerCode: $participant['playerCode'] ?? null,
+                playerMasked: $participant['playerMasked'] ?? false,
             );
             $person->before = $person->state();
             $this->people[$person->key] = $person;
@@ -205,6 +224,8 @@ final class PlanBuilder
 
     public function build(): BuiltPlan
     {
+        $this->resolvePlayerReferences();
+
         foreach ($this->file->rows as $row) {
             $this->planRow($row);
         }
@@ -237,7 +258,6 @@ final class PlanBuilder
 
         $country = $data->country ?? '';
         $externalId = $data->externalId ?? '';
-        $playerId = $data->playerId ?? '';
         $status = strtolower($data->status ?? '');
         $participantIdCell = $data->participantId ?? '';
 
@@ -250,13 +270,22 @@ final class PlanBuilder
         }
 
         $validPlayerId = null;
-        if ($playerId !== '') {
-            if (!Uuid::isValid($playerId)) {
-                $row->messages[] = self::message('invalid_player_id', ['%row%' => $rowNum, '%id%' => $playerId]);
-            } elseif (!isset($this->site->existingPlayers[strtolower($playerId)])) {
-                $row->messages[] = self::message('unknown_player_id', ['%row%' => $rowNum, '%id%' => $playerId]);
+        $reference = $this->playerReferences[$rowNum] ?? null;
+        if ($reference !== null) {
+            $parameters = ['%row%' => $rowNum, '%reference%' => $reference['cell']];
+
+            if ($reference['status'] === self::REFERENCE_INVALID) {
+                $row->messages[] = self::message('linking.invalid_player_reference', $parameters);
+            } elseif ($reference['status'] === SiteSnapshot::REFERENCE_UNKNOWN) {
+                $row->messages[] = self::message('linking.unknown_player_reference', $parameters);
+            } elseif ($reference['status'] === SiteSnapshot::REFERENCE_CODE_CHANGED_OWNER) {
+                $row->messages[] = self::message('linking.code_changed_owner', $parameters);
+            } elseif (isset($this->playerInFileTwice[$rowNum])) {
+                $row->messages[] = self::message('linking.player_in_file_twice', $parameters + [
+                    '%rows%' => implode(', ', $this->playerInFileTwice[$rowNum]),
+                ]);
             } else {
-                $validPlayerId = strtolower($playerId);
+                $validPlayerId = $reference['playerId'];
             }
         }
 
@@ -340,24 +369,39 @@ final class PlanBuilder
                 }
             }
             if ($validPlayerId !== null && $validPlayerId !== $person->playerId) {
+                $cell = $reference['cell'];
+
                 if ($person->playerId !== null) {
-                    $row->messages[] = self::message('player_id_kept', ['%row%' => $rowNum, '%name%' => $name, '%id%' => $validPlayerId]);
-                } elseif ($this->canConnect($validPlayerId, $person->key, $row, $name)) {
+                    // The player's own link (self-join, a claim, a personal link) - the file says otherwise, the
+                    // organiser should know who made the link they cannot replace
+                    $linkedByThemselves = $person->playerId === ($person->before['playerId'] ?? null)
+                        && ParticipantLinkMethod::tryFrom((string) $person->connectedVia)?->isThePlayersOwn() === true;
+
+                    $row->messages[] = self::message($linkedByThemselves ? 'linking.player_id_kept_self' : 'player_id_kept', ['%row%' => $rowNum, '%name%' => $name, '%id%' => $cell]);
+                } elseif ($this->canConnect($validPlayerId, $person->key, $row, $name, $cell)) {
                     $person->playerId = $validPlayerId;
+                    $person->linkedByReference = $cell;
+                    $this->warnAboutProfileName($row, $name, $validPlayerId, $cell);
                 }
             }
             $person->deleted = false;
         } else {
+            $cell = $reference !== null ? $reference['cell'] : (string) $validPlayerId;
             $person = new PlanPerson(
                 key: 'new:' . $rowNum,
                 id: null,
                 name: $name,
                 country: $countryCode?->name,
                 externalId: $externalId !== '' ? $externalId : null,
-                playerId: $validPlayerId !== null && $this->canConnect($validPlayerId, 'new:' . $rowNum, $row, $name) ? $validPlayerId : null,
+                playerId: $validPlayerId !== null && $this->canConnect($validPlayerId, 'new:' . $rowNum, $row, $name, $cell) ? $validPlayerId : null,
                 deleted: false,
             );
             $this->people[$person->key] = $person;
+
+            if ($person->playerId !== null) {
+                $person->linkedByReference = $cell;
+                $this->warnAboutProfileName($row, $name, $person->playerId, $cell);
+            }
         }
 
         $person->inFile = true;
@@ -1046,6 +1090,7 @@ final class PlanBuilder
                 messages: $row->messages,
                 removedAt: $first && $person->isRestored() ? $person->deletedAt : null,
                 roundsRestored: $first && $person->isRestored() ? $this->roundsRestoredOf($person) : [],
+                profile: $this->profileOf($rowNumber, $person, $first),
             );
         }
 
@@ -1393,9 +1438,133 @@ final class PlanBuilder
     }
 
     /**
+     * Every row's player cell, resolved through the snapshot (participant-linking.md §7.3). D7: the same player on
+     * rows of different people links none of them - never a guess by order. Rows of ONE person (one row per round)
+     * add up as always: the same name key, and no two different participant ids.
+     */
+    private function resolvePlayerReferences(): void
+    {
+        /** @var array<string, list<ParticipantImportRowData>> $rowsByPlayer */
+        $rowsByPlayer = [];
+
+        foreach ($this->file->rows as $data) {
+            $cell = trim($data->playerId ?? '');
+
+            if ($cell === '') {
+                continue;
+            }
+
+            $reference = PlayerReference::parse($cell);
+            $resolution = $reference !== null
+                ? $this->site->resolve($reference)
+                : ['status' => self::REFERENCE_INVALID, 'playerId' => null];
+
+            $this->playerReferences[$data->rowNumber] = ['cell' => $cell] + $resolution;
+
+            if ($resolution['playerId'] !== null && $data->name !== '') {
+                $rowsByPlayer[$resolution['playerId']][] = $data;
+            }
+        }
+
+        foreach ($rowsByPlayer as $rows) {
+            if (count($rows) < 2) {
+                continue;
+            }
+
+            $nameKeys = [];
+            $participantIds = [];
+            foreach ($rows as $data) {
+                $nameKeys[ParticipantNameKey::of($data->name)] = true;
+
+                $participantId = $data->participantId ?? '';
+                if ($participantId !== '') {
+                    $participantIds[strtolower($participantId)] = true;
+                }
+            }
+
+            if (count($nameKeys) === 1 && count($participantIds) <= 1) {
+                continue;
+            }
+
+            $rowNumbers = array_map(static fn (ParticipantImportRowData $data): int => $data->rowNumber, $rows);
+            foreach ($rowNumbers as $rowNumber) {
+                $this->playerInFileTwice[$rowNumber] = $rowNumbers;
+            }
+        }
+    }
+
+    /**
+     * R5: the file's name and the profile's name are not the same name key - linked anyway (the organiser decides),
+     * but said. Never for a profile the organiser may not see: the warning would tell them whether a guessed name is
+     * the private player's.
+     */
+    private function warnAboutProfileName(PlanRow $row, string $name, string $playerId, string $cell): void
+    {
+        $player = $this->site->players[$playerId] ?? null;
+
+        if ($player === null || $player['masked'] || $player['name'] === null || trim($player['name']) === '') {
+            return;
+        }
+
+        if (ParticipantNameKey::of($name) !== ParticipantNameKey::of($player['name'])) {
+            $row->messages[] = self::message('linking.name_differs', [
+                '%row%' => $row->rowNumber,
+                '%name%' => $name,
+                '%profile%' => $player['name'],
+                '%reference%' => $cell,
+            ]);
+        }
+    }
+
+    /**
+     * The "Profile" line of a row (§7.3): shown when the row has a player cell or its person gets linked by the import.
+     */
+    private function profileOf(int $rowNumber, PlanPerson $person, bool $first): null|ParticipantImportRowProfile
+    {
+        $playerId = $person->playerId;
+
+        if ($playerId === null || $person->deleted) {
+            return null;
+        }
+
+        $before = $person->before['playerId'] ?? null;
+        $linkedNow = $playerId !== $before;
+        $cell = $this->playerReferences[$rowNumber]['cell'] ?? null;
+
+        if ($cell === null && !($linkedNow && $first)) {
+            return null;
+        }
+
+        if ($linkedNow) {
+            $player = $this->site->players[$playerId] ?? null;
+            $masked = $player === null || $player['masked'];
+
+            return new ParticipantImportRowProfile(
+                linkedNow: true,
+                code: $masked ? null : strtoupper($player['code']),
+                name: $masked ? null : $player['name'],
+                masked: $masked,
+                fileReference: $person->linkedByReference,
+            );
+        }
+
+        $masked = $person->playerMasked || $person->playerCode === null;
+        $rowNamesThem = ($this->playerReferences[$rowNumber]['playerId'] ?? null) === $playerId;
+
+        return new ParticipantImportRowProfile(
+            linkedNow: false,
+            code: $masked ? null : strtoupper((string) $person->playerCode),
+            name: $masked ? null : $person->playerName,
+            masked: $masked,
+            fileReference: $masked && $rowNamesThem ? $cell : null,
+            linkedByThemselves: ParticipantLinkMethod::tryFrom((string) $person->connectedVia)?->isThePlayersOwn() === true,
+        );
+    }
+
+    /**
      * A player is connected to one active participant of the event at most.
      */
-    private function canConnect(string $playerId, string $personKey, PlanRow $row, string $name): bool
+    private function canConnect(string $playerId, string $personKey, PlanRow $row, string $name, string $cell): bool
     {
         $otherKey = ParticipantRules::playerLinkedTo($playerId, $personKey, $this->links());
 
@@ -1403,7 +1572,7 @@ final class PlanBuilder
             $row->messages[] = self::message('player_linked_elsewhere', [
                 '%row%' => $row->rowNumber,
                 '%name%' => $name,
-                '%id%' => $playerId,
+                '%id%' => $cell,
                 '%other%' => $this->people[$otherKey]->name,
             ]);
 

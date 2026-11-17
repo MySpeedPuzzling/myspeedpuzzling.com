@@ -34,7 +34,10 @@ use Symfony\Component\Process\Process;
  *   gzip, which leaves F1 (account check before sending, monotonic clock, snapshot max wait) its room. 2026-11-17
  *   (reliability hardening F1): +2.7 KB / +0.8 KB gzip (measured before T2) - the outbox never sends under another
  *   player's session (viewer check, `expectedPlayerId`, 409 `another_account`), the server clock on the monotonic clock
- *   with sleep / clock-change detection, the snapshot's max wait + first state at once, the banner below an open card;
+ *   with sleep / clock-change detection, the snapshot's max wait + first state at once, the banner below an open card.
+ *   2026-11-17 (reliability hardening T6): 199.8 → 202.6 KB / 54.9 → 55.6 KB gzip - a finished time with pieces
+ *   missing (official_results_finished_missing.js, shared with the desk and the sheet; "+ Pieces missing" on the
+ *   confirm step); budget stays 205 KB / 56 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase

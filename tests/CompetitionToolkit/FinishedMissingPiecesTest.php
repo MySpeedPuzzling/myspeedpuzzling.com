@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
-use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Services\RoundResultChangesParser;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -161,7 +160,6 @@ final class FinishedMissingPiecesTest extends KernelTestCase
     {
         $entries = [];
         foreach (self::getContainer()->get(GetRoundResultEntries::class)->forRound(OfficialResultsFixture::ROUND_GROUP_A) as $entry) {
-            assert($entry instanceof RoundResultEntry);
             $entries[$entry->ref->toString()] = $entry->jsonSerialize();
         }
 

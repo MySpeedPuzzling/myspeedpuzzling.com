@@ -7,6 +7,7 @@
 
 import { entryOfParticipant } from './official_results_live.js';
 import { entryOfTag } from './live_entry_tag.js';
+import { parseLiveEntryRoute } from './live_entry_route.js';
 
 export const UUID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
 export const COMPETITION_PLACEHOLDER = '11111111-1111-1111-1111-111111111111';
@@ -193,7 +194,8 @@ export function urlWithoutLanding(href) {
  * anywhere is a full page load:
  * - 'stay' - this page stays: a new tab or window, a download, a modifier key or another mouse button, a link to a
  *   place on this same page (`#`), a link the browser cannot follow;
- * - 'within' - another live entry page (any round): it sends this device's unsent changes too, never asked about;
+ * - 'within' - another live entry page (any round, the event page, a printed or frozen `/live/…` tag URL): it sends
+ *   this device's unsent changes too, never asked about;
  * - 'leave' - out of the tool: asked about first while something is unsent.
  *
  * @param {{href: string, target?: string, download?: boolean, button?: number, modifier?: boolean}} link
@@ -225,7 +227,13 @@ export function linkNavigation({ href, target = '', download = false, button = 0
         return 'stay';
     }
 
+    if (url.origin !== current.origin) {
+        return 'leave';
+    }
+
+    // Any live entry URL stays in the tool: a round of this locale's route, and every path parseLiveEntryRoute() knows
+    // (the event page, the printed name tag, the frozen /live/… tags a scanned tag's "Open their round" links to - H1)
     const livePrefix = new URL(String(liveUrlTemplate).replace(UUID_PLACEHOLDER, ''), current).pathname;
 
-    return url.origin === current.origin && livePrefix !== '/' && url.pathname.startsWith(livePrefix) ? 'within' : 'leave';
+    return (livePrefix !== '/' && url.pathname.startsWith(livePrefix)) || parseLiveEntryRoute(url.pathname) !== null ? 'within' : 'leave';
 }

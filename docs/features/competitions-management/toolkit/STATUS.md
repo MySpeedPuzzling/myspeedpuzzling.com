@@ -43,7 +43,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | B3 | C | merged | d47b59b52, 5a682c9e7 | kinds people/lineups/tables/entries × tags/tents (separate template, default byte-identical). H: name_tags.hint text after B4; docs |
 | D3 | C | merged | 1a3937522, 20d528728 | GetCompetitionDisplayState + CompetitionDisplayPayload, /display/{token}/state|design (stateless), per-type results gating, opaque keys, forDisplay() Mercure. Decision: live rows keep rank (organiser opted in) |
 | D4 | C | merged | 46f059110, ec2255210 | /display/{token} standalone, render.js (15 types, XSS-safe), runtime.js (signals, polling, reload rules, leak check), server QR modules, self-hosted fonts; 7 presets walked + transparent overlay. Not tried: OBS, soak |
-| D6 | C | started | | |
+| D6 | C | merged | b40f91d85, 11887a63a | editor page `edit_competition_display` (lazy Stimulus), geometry/editor_state/sample_data pure modules, upload picker, 409/live confirm flows; browser-walked |
+| D6F | C | started | | | polish: sticky toolbar under site header, truncated layer names, add → editor |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |
 
 ## Hardening list (H) - collected

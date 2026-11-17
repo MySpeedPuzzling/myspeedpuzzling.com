@@ -97,6 +97,79 @@ final class GoogleSheetReaderTest extends TestCase
         self::assertSame([], $requests);
     }
 
+    public function testATabGoogleRefusesOnceIsAskedForAgain(): void
+    {
+        // A sheet of 40 tabs: Google sometimes refuses one request (429 / 5xx) - asked once more, it answers
+        $requests = [];
+        $reader = $this->reader([
+            $this->tabsPage(2),
+            new MockResponse("Name\nA\n", ['response_headers' => ['content-type' => 'text/csv']]),
+            new MockResponse('Too many requests', ['http_code' => 429, 'response_headers' => ['content-type' => 'text/html']]),
+            new MockResponse("Name\nB\n", ['response_headers' => ['content-type' => 'text/csv']]),
+        ], $requests);
+
+        $snapshot = $reader->snapshot(self::SPREADSHEET_ID);
+
+        self::assertSame([], $snapshot->unreadableTabs);
+        self::assertSame(["Name\nA\n", "Name\nB\n"], array_map(static fn ($tab) => $tab->csv, $snapshot->tabs));
+        self::assertCount(4, $requests);
+    }
+
+    public function testATabRefusedTwiceIsUnreadableAndTheOthersAreRead(): void
+    {
+        $reader = $this->reader([
+            $this->tabsPage(2),
+            new MockResponse('Server error', ['http_code' => 503, 'response_headers' => ['content-type' => 'text/html']]),
+            new MockResponse("Name\nB\n", ['response_headers' => ['content-type' => 'text/csv']]),
+            new MockResponse('Server error', ['http_code' => 503, 'response_headers' => ['content-type' => 'text/html']]),
+        ]);
+
+        $snapshot = $reader->snapshot(self::SPREADSHEET_ID);
+
+        self::assertCount(1, $snapshot->unreadableTabs);
+        self::assertSame('0', $snapshot->unreadableTabs[0]->gid);
+        self::assertCount(1, $snapshot->tabs);
+    }
+
+    public function testAtMostEightTabsAreAskedForAtOnce(): void
+    {
+        $inFlight = 0;
+        $mostInFlight = 0;
+        $page = $this->tabsPage(20);
+
+        $client = new MockHttpClient(static function (string $method, string $url) use ($page, &$inFlight, &$mostInFlight): MockResponse {
+            if (str_ends_with($url, '/htmlview')) {
+                return $page;
+            }
+
+            $inFlight++;
+            $mostInFlight = max($mostInFlight, $inFlight);
+
+            // The body is produced when the reader reads it - the request is done then
+            return new MockResponse((static function () use (&$inFlight): \Generator {
+                $inFlight--;
+
+                yield "Name\nA\n";
+            })(), ['response_headers' => ['content-type' => 'text/csv']]);
+        });
+
+        $snapshot = (new GoogleSheetReader($client))->snapshot(self::SPREADSHEET_ID);
+
+        self::assertCount(20, $snapshot->tabs);
+        self::assertLessThanOrEqual(GoogleSheetReader::TABS_AT_ONCE, $mostInFlight);
+    }
+
+    private function tabsPage(int $count): MockResponse
+    {
+        $page = '<html><script>var items = [];';
+
+        for ($gid = 0; $gid < $count; $gid++) {
+            $page .= 'items.push({name: "Tab ' . $gid . '", pageUrl: "x", gid: "' . $gid . '",initialSheet: false});';
+        }
+
+        return new MockResponse($page . '</script></html>', ['response_headers' => ['content-type' => 'text/html']]);
+    }
+
     /**
      * @param list<MockResponse> $responses
      * @param list<string> $requests

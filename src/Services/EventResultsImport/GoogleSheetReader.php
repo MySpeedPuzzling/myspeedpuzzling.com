@@ -21,6 +21,8 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 readonly final class GoogleSheetReader
 {
+    public const int TABS_AT_ONCE = 8;
+
     private const string BASE_URL = 'https://docs.google.com/spreadsheets/d/';
 
     // One items.push() per tab; the name is a JavaScript string
@@ -40,31 +42,40 @@ readonly final class GoogleSheetReader
     {
         $tabs = [];
         $unreadable = [];
-        $sheetTabs = $this->tabs($spreadsheetId);
 
-        // Every tab's CSV is asked for at once - the check waits for the slowest tab, not for the sum of them all
-        // (the organizer watches the button meanwhile)
-        $responses = [];
+        // The tabs' CSVs are asked for TABS_AT_ONCE at a time - the check waits for the slowest of each batch, not for
+        // the sum of them all (the organizer watches the button meanwhile), and Google is never asked for 40 at once
+        // (it refused one of an organizer's 40 tabs, 2026-11-17). A tab Google refuses is asked for once more.
+        foreach (array_chunk($this->tabs($spreadsheetId), self::TABS_AT_ONCE) as $batch) {
+            $responses = [];
 
-        foreach ($sheetTabs as $index => $tab) {
-            try {
-                $responses[$index] = $this->send($this->csvUrl($spreadsheetId, $tab->gid));
-            } catch (GoogleSheetUnreadable $e) {
-                $responses[$index] = $e;
-            }
-        }
-
-        foreach ($sheetTabs as $index => $tab) {
-            try {
-                $response = $responses[$index];
-
-                if ($response instanceof GoogleSheetUnreadable) {
-                    throw $response;
+            foreach ($batch as $index => $tab) {
+                try {
+                    $responses[$index] = $this->send($this->csvUrl($spreadsheetId, $tab->gid));
+                } catch (GoogleSheetUnreadable $e) {
+                    $responses[$index] = $e;
                 }
+            }
 
-                $tabs[] = new SheetSnapshotTab($tab->gid, $tab->title, $this->read($response, $this->csvUrl($spreadsheetId, $tab->gid), 'text/csv'));
-            } catch (GoogleSheetUnreadable $e) {
-                $unreadable[] = new UnreadableSheetTab($tab->gid, $tab->title, $e->getMessage());
+            foreach ($batch as $index => $tab) {
+                try {
+                    $url = $this->csvUrl($spreadsheetId, $tab->gid);
+                    $response = $responses[$index];
+
+                    try {
+                        if ($response instanceof GoogleSheetUnreadable) {
+                            throw $response;
+                        }
+
+                        $csv = $this->read($response, $url, 'text/csv');
+                    } catch (GoogleSheetUnreadable) {
+                        $csv = $this->get($url, 'text/csv');
+                    }
+
+                    $tabs[] = new SheetSnapshotTab($tab->gid, $tab->title, $csv);
+                } catch (GoogleSheetUnreadable $e) {
+                    $unreadable[] = new UnreadableSheetTab($tab->gid, $tab->title, $e->getMessage());
+                }
             }
         }
 

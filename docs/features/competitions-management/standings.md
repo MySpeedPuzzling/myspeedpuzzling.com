@@ -137,6 +137,7 @@ Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (n
 - Tests: `tests/CompetitionToolkit/PublicStandingsTest.php` (publish/unpublish, organiser buttons, provisional, ranks =
   preview, drafts/unapproved 404, links, sitemap, edition URL), canaries `BlocklistCanaryTest`,
   `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…InAPublicStanding`, `…StandingOfADraft…`), `DetailPagesQueryBudgetTest`.
+- **Challenge times (real events W4):** a pick round of K ≥ 2 with splits shows each puzzle's own time by label on a line of the round's cell (organiser + public, `StandingRoundScore::$challengeTimes`, `challengeTimes` in the JSON only when present) - display only, the total stays the round's ([world-series-rules.md](world-series-rules.md) "As built: W4").
 
 ## Guest snapshot + public standing JSON (competition toolkit v2 S1)
 

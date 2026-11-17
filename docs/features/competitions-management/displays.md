@@ -385,6 +385,9 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 202
 - v2 (R §3): live control (spotlight/message elements and page), copy from another event, ticker marquee,
   multi-select/align/distribute, sibling snapping, the bracket overlay element, scenes, animations, 4:3 and portrait
   (the standings element is built - v2 S2 above).
+- v2 (real events W4): the results element's "rank by challenge" (a solve-all block's puzzle ranked by its own time,
+  [world-series-rules.md](world-series-rules.md) "As built: W4") - needs a results option in the sanitizer + `schema.js`
+  + `display-design-cases.json`, the per-puzzle records in the results statement and payload, and the renderer's ranks.
 
 ## Tests
 

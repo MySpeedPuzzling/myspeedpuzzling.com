@@ -78,7 +78,8 @@ readonly final class GetStandingResults
             $counted = StandingCalculator::anyRecorded($entries);
 
             $columns[] = self::column($round, $counted, array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
-            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries);
+            // as_zero_pieces: an entrant without a result is a no-show once the round's results are published
+            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries, final: $round['published'], noShowPiecesCount: self::noShowPiecesCount($round));
         }
 
         return new StandingTable(
@@ -164,7 +165,7 @@ readonly final class GetStandingResults
             }
 
             $columns[] = self::column($round, $counted, array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
-            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries);
+            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries, noShowPiecesCount: self::noShowPiecesCount($round));
         }
 
         $rows = StandingCalculator::sum($standing->rules, $inputs);
@@ -282,6 +283,21 @@ SQL, ['competitionId' => $competitionId]) as $row
         return $entry->puzzles !== null && count($entry->puzzles->items) === $round['puzzles_to_solve']
             ? $entry->puzzles->piecesCount($pieces)
             : RoundEntryPuzzles::roundPiecesBound($round['puzzles_to_solve'], $pieces);
+    }
+
+    /**
+     * The pieces of a no-show (as_zero_pieces, world-series-rules.md §4.2): the round's pieces; a `pick` round's K largest
+     * puzzles - a no-show is never better off than anybody who sat down. null = unknown (no penalty part).
+     *
+     * @param RoundRow $round
+     */
+    private static function noShowPiecesCount(array $round): null|int
+    {
+        if ($round['puzzle_format'] !== RoundPuzzleFormat::Pick->value || $round['puzzles_to_solve'] === null || $round['pieces_by_round_puzzle'] === []) {
+            return $round['pieces_total'];
+        }
+
+        return RoundEntryPuzzles::roundPiecesBound($round['puzzles_to_solve'], $round['pieces_by_round_puzzle']);
     }
 
     /**

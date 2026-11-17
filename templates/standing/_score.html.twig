@@ -7,6 +7,9 @@
 {%- elseif score.status.value == 'unfinished' -%}
     <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.timeSeconds|puzzlingTime }}*</span>
     {%- if score.missingPieces > 0 %} <span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif -%}
+{%- elseif score.status.value == 'no_show' -%}
+    {#- as_zero_pieces (World Series): the time limit, the penalty for all pieces is in the total -#}
+    <span class="text-danger" data-standing-no-show>{{ 'competition_toolkit.standings.no_show'|trans }}</span> {{ score.timeSeconds|puzzlingTime }}
 {%- elseif score.status.value == 'not_counted' -%}
     <span title="{{ 'public_standing.not_published_round'|trans }}">–</span>
 {%- elseif score.status.value == 'unfinished_without_limit' -%}

@@ -65,7 +65,16 @@
                 {{ form_row(form.penaltySecondsPerPiece, {row_attr: {class: 'mb-3'}, attr: {style: 'max-width: 8rem;'}}) }}
                 {{ form_row(form.penaliseFinishedMissing, {row_attr: {class: 'mb-3'}}) }}
 
-                <p class="small text-muted">{{ 'competition_standing.form.missing_rule'|trans }}</p>
+                <fieldset class="mb-3" data-standing-missing-rule>
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.missingRule)|striptags }}</legend>
+                    {{ form_errors(form.missingRule) }}
+                    {% for choice in form.missingRule %}
+                        <div class="form-check mb-1">
+                            {{ form_widget(choice) }}{{ form_label(choice) }}
+                            <div class="form-text mt-0">{{ ('competition_toolkit.standings.missing_rule.' ~ choice.vars.value ~ '_help')|trans }}</div>
+                        </div>
+                    {% endfor %}
+                </fieldset>
 
                 <button type="submit" class="btn btn-primary" data-standing-save>{{ 'competition_standing.form.save'|trans }}</button>
             {{ form_end(form) }}

@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use SpeedPuzzling\Web\Value\StandingScoreStatus;
@@ -216,7 +217,7 @@ final class CompetitionStandingsTest extends KernelTestCase
 
     public function testDuplicatingTheEventCopiesItsStandingsUnpublishedWithTheCopiedRounds(): void
     {
-        $solo = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(5, StandingOrder::TotalOnly, penaliseFinishedMissing: true));
+        $solo = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces, penaliseFinishedMissing: true));
         $this->database->executeStatement('UPDATE competition_standing SET published_at = :at WHERE id = :id', ['id' => $solo, 'at' => '2026-01-01 00:00:00']);
         $this->create('World Series - Pairs', RoundCategory::Duo, $this->pairRounds);
 
@@ -234,6 +235,9 @@ final class CompetitionStandingsTest extends KernelTestCase
         self::assertSame(5, $copies[0]->rules->penaltySecondsPerPiece);
         self::assertSame(StandingOrder::TotalOnly, $copies[0]->rules->order);
         self::assertTrue($copies[0]->rules->penaliseFinishedMissing);
+        // The World Series no-show rule comes along (world-series-rules.md §4.5)
+        self::assertSame(StandingMissing::AsZeroPieces, $copies[0]->rules->missing);
+        self::assertSame(StandingMissing::Incomplete, $copies[1]->rules->missing);
         self::assertFalse($copies[1]->rules->penaliseFinishedMissing);
         self::assertSame(RoundCategory::Duo, $copies[1]->category);
 

@@ -1,3 +1,5 @@
 {#- A standing's rule line (competition toolkit A6/T6). Variables: rules (StandingRules). -#}
 {{ ('competition_standing.order.' ~ rules.order.value)|trans }}
 {%- if rules.penaltySecondsPerPiece > 0 %} · {{ 'competition_standing.penalty_short'|trans({'%seconds%': rules.penaltySecondsPerPiece}) }}; {{ (rules.penaliseFinishedMissing ? 'finished_missing.standing.finished_penalised' : 'finished_missing.standing.finished_not_penalised')|trans }}{% endif -%}
+{#- The World Series no-show (world-series-rules.md §4.4) - absent with the default rule, so those lines stay as they were -#}
+{%- if rules.missing.value == 'as_zero_pieces' %} · <span data-standing-rule-no-show>{{ (rules.penaltySecondsPerPiece > 0 ? 'competition_toolkit.standings.rule_no_show' : 'competition_toolkit.standings.rule_no_show_no_penalty')|trans({'%seconds%': rules.penaltySecondsPerPiece}) }}</span>{% endif -%}

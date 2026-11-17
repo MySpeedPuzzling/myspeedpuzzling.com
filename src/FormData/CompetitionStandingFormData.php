@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\FormData;
 use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * A standing's settings (competition toolkit A6): name, category, rounds, penalty per missing piece, order. Whether the
+ * A standing's settings (competition toolkit A6): name, category, rounds, penalty per missing piece, order, what a
+ * round without a result does. Whether the
  * rounds fit the event and the category is the handler's check (InvalidCompetitionStanding → a form error).
  */
 final class CompetitionStandingFormData
@@ -38,6 +40,10 @@ final class CompetitionStandingFormData
     // Competition toolkit T6 - the penalty also for pieces a finished puzzle lacked
     public bool $penaliseFinishedMissing = false;
 
+    // A round without a result: listed after everybody (default) or a no-show scored as nothing placed (World Series)
+    #[Assert\NotNull]
+    public null|StandingMissing $missingRule = StandingMissing::Incomplete;
+
     public static function fromStanding(CompetitionStandingOverview $standing): self
     {
         $data = new self();
@@ -47,6 +53,7 @@ final class CompetitionStandingFormData
         $data->penaltySecondsPerPiece = $standing->rules->penaltySecondsPerPiece;
         $data->orderRule = $standing->rules->order;
         $data->penaliseFinishedMissing = $standing->rules->penaliseFinishedMissing;
+        $data->missingRule = $standing->rules->missing;
 
         return $data;
     }
@@ -56,6 +63,7 @@ final class CompetitionStandingFormData
         return new StandingRules(
             $this->penaltySecondsPerPiece ?? 0,
             $this->orderRule ?? StandingOrder::FinishedRoundsFirst,
+            $this->missingRule ?? StandingMissing::Incomplete,
             penaliseFinishedMissing: $this->penaliseFinishedMissing,
         );
     }

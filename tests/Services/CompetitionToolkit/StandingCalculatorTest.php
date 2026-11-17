@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\StandingEntrant;
 use SpeedPuzzling\Web\Value\StandingEntryInput;
+use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRoundInput;
 use SpeedPuzzling\Web\Value\StandingRules;
@@ -327,6 +328,107 @@ final class StandingCalculatorTest extends TestCase
         self::assertSame(['anna' => [1, 1010], 'ben' => [1, 1010]], self::ranks($rows));
     }
 
+    public function testAsZeroPiecesScoresANoShowAsTheLimitPlusThePenaltyForAllPiecesAndRanksIt(): void
+    {
+        $rules = new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces);
+        $rows = StandingCalculator::sum($rules, [
+            self::round('r1', [
+                self::entry('anna', RoundEntryResult::finished(3000)),
+                self::entry('dns', RoundEntryResult::finished(2000)),
+                self::entry('pending', RoundEntryResult::finished(2500)),
+                self::entry('absent', RoundEntryResult::finished(1500)),
+            ], noShowPieces: 500),
+            self::round('r2', [
+                self::entry('anna', RoundEntryResult::finished(3000)),
+                self::entry('dns', RoundEntryResult::didNotStart()),
+                self::entry('pending', RoundEntryResult::none()),
+            ], noShowPieces: 1000),
+        ]);
+
+        // 90 min + 5 s × 1000 pieces = 5400 + 5000 for each kind of no-show; everybody complete and ranked
+        self::assertSame(['anna' => [1, 6000], 'absent' => [2, 11900], 'dns' => [3, 12400], 'pending' => [4, 12900]], self::ranks($rows));
+        $absent = self::byKey($rows)['absent'];
+        self::assertTrue($absent->complete);
+        self::assertSame(2, $absent->roundsScored);
+        self::assertSame(1, $absent->roundsFinished);
+        $noShow = $absent->perRound['r2'];
+        self::assertSame(StandingScoreStatus::NoShow, $noShow->status);
+        self::assertSame([10400, 5400, 1000, 5000], [$noShow->scoreSeconds, $noShow->timeSeconds, $noShow->missingPieces, $noShow->penaltySeconds]);
+        self::assertNull($noShow->result);
+        self::assertSame('no_show', $noShow->toArray()['status']);
+        self::assertSame(StandingScoreStatus::NoShow, self::byKey($rows)['dns']->perRound['r2']->status);
+        self::assertSame([6900, 1000, 5000], [$absent->totalTimeSeconds, $absent->totalMissingPieces, $absent->totalPenaltySeconds]);
+    }
+
+    public function testAsZeroPiecesWaitsForAFinalRoundExceptForAnExplicitDidNotStart(): void
+    {
+        $rules = new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces);
+        $rows = StandingCalculator::sum($rules, [
+            self::round('r1', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('dns', RoundEntryResult::finished(2000)), self::entry('pending', RoundEntryResult::finished(1000)), self::entry('absent', RoundEntryResult::finished(1500))]),
+            // Still being recorded (organiser preview of an unpublished round): no result = not yet, did not start = no-show
+            self::round('r2', [
+                self::entry('anna', RoundEntryResult::finished(3000)),
+                self::entry('dns', RoundEntryResult::didNotStart()),
+                self::entry('pending', RoundEntryResult::none()),
+            ], final: false, noShowPieces: 500),
+        ]);
+
+        self::assertSame(['anna' => [1, 6000], 'dns' => [2, 9900], 'pending' => [null, 1000], 'absent' => [null, 1500]], self::ranks($rows));
+        $byKey = self::byKey($rows);
+        self::assertSame(StandingScoreStatus::NoResult, $byKey['pending']->perRound['r2']->status);
+        self::assertSame(StandingScoreStatus::NotInRound, $byKey['absent']->perRound['r2']->status);
+        self::assertSame(StandingScoreStatus::NoShow, $byKey['dns']->perRound['r2']->status);
+    }
+
+    public function testAsZeroPiecesNeedsATimeLimitAndNeverScoresAPairOrTeamWithoutPeople(): void
+    {
+        $rules = new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces);
+        $rows = StandingCalculator::sum($rules, [
+            self::round('r1', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('ben', RoundEntryResult::finished(2000)), self::entry('t:team', RoundEntryResult::finished(1000))]),
+            self::round('r2', [self::entry('anna', RoundEntryResult::finished(3000))], minutesLimit: null, noShowPieces: 500),
+            self::round('r3', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('ben', RoundEntryResult::finished(2000))], noShowPieces: 500),
+        ]);
+
+        $byKey = self::byKey($rows);
+        // No limit in r2: Ben stays missing there; the team without people is missing in r2 and r3
+        self::assertSame(StandingScoreStatus::NotInRound, $byKey['ben']->perRound['r2']->status);
+        self::assertFalse($byKey['ben']->complete);
+        self::assertSame(StandingScoreStatus::NotInRound, $byKey['t:team']->perRound['r3']->status);
+        self::assertSame(1, $byKey['t:team']->roundsScored);
+        self::assertSame(['anna' => [1, 9000], 'ben' => [null, 4000], 't:team' => [null, 1000]], self::ranks($rows));
+    }
+
+    public function testAsZeroPiecesLeavesOutAnEntrantWhoseEveryScoreIsANoShow(): void
+    {
+        $rules = new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces);
+        $rows = StandingCalculator::sum($rules, [
+            self::round('r1', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('ghost', RoundEntryResult::didNotStart())]),
+            self::round('r2', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('ghost', RoundEntryResult::none())]),
+        ]);
+
+        self::assertSame(['anna'], array_keys(self::byKey($rows)));
+    }
+
+    public function testAsZeroPiecesWithUnknownPiecesScoresJustTheLimit(): void
+    {
+        $rows = StandingCalculator::sum(new StandingRules(5, StandingOrder::TotalOnly, StandingMissing::AsZeroPieces), [
+            self::round('r1', [self::entry('anna', RoundEntryResult::finished(3000)), self::entry('ben', RoundEntryResult::finished(2000))]),
+            self::round('r2', [self::entry('anna', RoundEntryResult::finished(3000))], minutesLimit: 60, noShowPieces: null),
+        ]);
+
+        self::assertSame(['ben' => [1, 5600], 'anna' => [2, 6000]], self::ranks($rows));
+    }
+
+    public function testFinishedRoundsFirstPutsANoShowBehindEveryFinisher(): void
+    {
+        $rows = StandingCalculator::sum(new StandingRules(0, StandingOrder::FinishedRoundsFirst, StandingMissing::AsZeroPieces), [
+            self::round('r1', [self::entry('anna', RoundEntryResult::finished(5000)), self::entry('ben', RoundEntryResult::finished(100))]),
+            self::round('r2', [self::entry('anna', RoundEntryResult::finished(5000))], minutesLimit: 1),
+        ]);
+
+        self::assertSame(['anna' => [1, 10000], 'ben' => [2, 160]], self::ranks($rows));
+    }
+
     public function testTheRulesRefuseAPenaltyOutOfRange(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -336,9 +438,9 @@ final class StandingCalculatorTest extends TestCase
     /**
      * @param list<StandingEntryInput> $entries
      */
-    private static function round(string $id, array $entries, null|int $minutesLimit = 90, bool $counted = true): StandingRoundInput
+    private static function round(string $id, array $entries, null|int $minutesLimit = 90, bool $counted = true, bool $final = true, null|int $noShowPieces = null): StandingRoundInput
     {
-        return new StandingRoundInput($id, $minutesLimit, $counted, $entries);
+        return new StandingRoundInput($id, $minutesLimit, $counted, $entries, $final, $noShowPieces);
     }
 
     private static function entry(string $key, RoundEntryResult $result, null|int $pieces = 500, null|int $rank = null, null|string $name = null): StandingEntryInput

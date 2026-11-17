@@ -13797,7 +13797,7 @@ results_import:
     differences:
         heading: "Qué cambia"
         claimed: "Reclamado"
-        added: "Equipo nuevo"
+        added: "Resultado nuevo"
         removed: "Ya no está en la hoja: se elimina (nadie lo reclamó)"
         kept_claimed: "Ya no está en la hoja: se mantiene, reclamado"
         renamed: "Antes escrito como «%name%»"

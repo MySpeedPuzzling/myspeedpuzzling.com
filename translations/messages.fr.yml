@@ -13792,7 +13792,7 @@ results_import:
     differences:
         heading: "Ce qui change"
         claimed: "Réclamée"
-        added: "Nouvelle équipe"
+        added: "Nouveau résultat"
         removed: "N'est plus dans la feuille - supprimée (personne ne l'a réclamée)"
         kept_claimed: "N'est plus dans la feuille - conservée, réclamée"
         renamed: "Écrite « %name% » auparavant"

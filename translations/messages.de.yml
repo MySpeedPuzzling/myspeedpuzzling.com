@@ -13796,7 +13796,7 @@ results_import:
     differences:
         heading: "Was sich ändert"
         claimed: "Beansprucht"
-        added: "Neues Team"
+        added: "Neues Ergebnis"
         removed: "Nicht mehr in der Tabelle - wird entfernt (niemand hat es beansprucht)"
         kept_claimed: "Nicht mehr in der Tabelle - bleibt, beansprucht"
         renamed: "Vorher geschrieben als „%name%“"

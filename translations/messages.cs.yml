@@ -13799,7 +13799,7 @@ results_import:
     differences:
         heading: "Co se změní"
         claimed: "Přihlášený"
-        added: "Nový tým"
+        added: "Nový výsledek"
         removed: "Už není v tabulce - odstraní se (nikdo se nepřihlásil)"
         kept_claimed: "Už není v tabulce - zůstává, přihlášený"
         renamed: "Dřív zapsaný jako „%name%“"

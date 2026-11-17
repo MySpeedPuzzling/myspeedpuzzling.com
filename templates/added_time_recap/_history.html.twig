@@ -69,7 +69,8 @@
                                     {% endif %}
                                     <i class="bi bi-stopwatch text-muted me-1"></i>
                                     <span class="tabular-nums">{{ result.time|puzzlingTime }}</span>
-                                    {{ include('_edit_time_button.html.twig', {timeId: result.timeId, context: 'time-recap'}) }}
+                                    {#- A claimed imported event result is the event's - no edit (event-results-import README "Gates") -#}
+                                    {% if not result.importedFromEvent %}{{ include('_edit_time_button.html.twig', {timeId: result.timeId, context: 'time-recap'}) }}{% endif %}
                                 </span>
                             </div>
 

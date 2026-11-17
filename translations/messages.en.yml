@@ -14043,7 +14043,7 @@ results_import:
     differences:
         heading: "What changes"
         claimed: "Claimed"
-        added: "New team"
+        added: "New result"
         removed: "No longer in the sheet - removed (nobody claimed it)"
         kept_claimed: "No longer in the sheet - kept, claimed"
         renamed: "Written as “%name%” before"

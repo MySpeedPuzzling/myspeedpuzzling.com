@@ -13786,7 +13786,7 @@ results_import:
     differences:
         heading: "変更内容"
         claimed: "申告済み"
-        added: "新しいチーム"
+        added: "新しい結果"
         removed: "シートにありません - 削除されます（誰も申告していません）"
         kept_claimed: "シートにありません - 申告済みのため残ります"
         renamed: "以前の表記：「%name%」"

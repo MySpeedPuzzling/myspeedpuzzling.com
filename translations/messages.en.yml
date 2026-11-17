@@ -15444,3 +15444,4 @@ relay_result:
     import_hint: "A relay: every team solved both puzzles at the same time - its Time is the total."
     format_guide: "A relay (every team solves two puzzles at the same time): duplicate any tab, keep the columns, and on row 2 add the second puzzle's MySpeedPuzzling link in a new column Link to MySpeedPuzzling 2. Put each team's total time in Time. The total is shown on the event, never on the puzzles' pages."
     template_tabs: "A tab whose name starts with Template (Template, Template Relay, Template Solo…) is your blank copy - it is never imported."
+    open_round: "Results of the event"

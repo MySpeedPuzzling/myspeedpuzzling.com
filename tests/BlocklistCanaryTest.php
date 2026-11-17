@@ -36,6 +36,7 @@ final class BlocklistCanaryTest extends WebTestCase
     use AnalyticsStudioTesting;
     use InteractsWithLiveComponents;
     use UnfinishedResultSeeding;
+    use TrackerlessTimeSeeding;
 
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string BLOCKER_NAME = PlayerFixture::PLAYER_WITH_FAVORITES_NAME;
@@ -75,6 +76,37 @@ final class BlocklistCanaryTest extends WebTestCase
      * the blocked player's own and a team they are in, on a puzzle they have no time of - the bystander sees both, the
      * blocker neither.
      */
+    /**
+     * A relay team's row on its round page (docs/features/event-results-import/solo-and-relays.md §2) - read by the
+     * round's own statement, a new listing of people: the blocked claimer's relay team is gone for the blocker.
+     */
+    public function testABlockedPlayersRelayTeamIsNowhereOnTheRoundPage(): void
+    {
+        $browser = self::createClient();
+        $round = $this->seedTrackerlessEvent(PuzzleFixture::PUZZLE_1500_01, secondPuzzleId: PuzzleFixture::PUZZLE_1500_02);
+        [$first] = $this->seedTrackerlessRelay($round, [PuzzleFixture::PUZZLE_1500_01, PuzzleFixture::PUZZLE_1500_02], 'Relay Rockets', 5025, size: 3);
+        self::getContainer()->get(\Symfony\Component\Messenger\MessageBusInterface::class)->dispatch(new \SpeedPuzzling\Web\Message\ClaimEventResultSlot($first->id->toString(), self::BLOCKED));
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $url = '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG;
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED_NAME, $content, 'No canary: the bystander does not see the relay team.');
+        self::assertStringContainsString('01:23:45', $content);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('01:23:45', $content, 'The blocked player\'s relay team is gone, not just their name.');
+    }
+
     public function testBlockedPlayersUnfinishedResultsAreNowhereOnThePuzzlePage(): void
     {
         $browser = self::createClient();

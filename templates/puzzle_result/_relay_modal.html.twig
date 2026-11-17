@@ -1,0 +1,19 @@
+{#
+    A relay team's result opened in the modal (docs/features/event-results-import/solo-and-relays.md §2): it is no result
+    of one puzzle - the team solved all the relay's puzzles at the same time - so it points to its event's round, where
+    it is ranked by the total. A full-page visit is redirected there instead.
+#}
+<turbo-frame id="modal-frame">
+    <div data-modal-history>
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'relay_result.badge'|trans }} · {{ relay.competitionName }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'puzzle_result.close'|trans }}"></button>
+        </div>
+        <div class="modal-body" data-testid="relay-result-modal">
+            <p class="mb-1">{{ 'relay_result.claim_total'|trans({'%count%': relay.puzzleNames|length, '%time%': relay.totalSeconds|puzzlingTime}) }}</p>
+            <p class="small text-muted">{{ relay.puzzleNames|join(' + ') }}</p>
+            <p class="small mb-3">{{ 'relay_result.round_hint'|trans }}</p>
+            <a href="{{ round_url }}" class="btn btn-primary btn-sm" data-turbo-frame="_top">{{ 'relay_result.open_round'|trans }}</a>
+        </div>
+    </div>
+</turbo-frame>

@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Query\GetFastestGroups;
 use SpeedPuzzling\Web\Query\GetFastestPairs;
 use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
+use SpeedPuzzling\Web\Query\GetPlayerStatistics;
 use SpeedPuzzling\Web\Query\GetPlayersWithPendingPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -681,10 +682,15 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
                 self::assertStringNotContainsString(self::RELAY, $teams->render()->toString());
             }
 
-            $this->browser->catchExceptions(true);
+            // The result detail is the puzzle's: every link reaching a relay result leads to its round instead
+            $roundUrl = '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG;
             $this->browser->request('GET', '/en/result/' . $first->id->toString());
-            self::assertResponseStatusCodeSame(404);
-            $this->browser->catchExceptions(false);
+            self::assertResponseRedirects($roundUrl);
+            $this->browser->request('GET', '/en/result/' . $first->id->toString(), server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+            self::assertResponseIsSuccessful();
+            $modal = (string) $this->browser->getResponse()->getContent();
+            self::assertStringContainsString('data-testid="relay-result-modal"', $modal);
+            self::assertStringContainsString($roundUrl, $modal);
         }
 
         self::assertEquals($statisticsBefore, [
@@ -726,8 +732,31 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
         self::assertStringContainsString('total 01:23:45', $claim);
         self::assertStringNotContainsString('name="first_try"', $claim, 'No first try of a relay');
 
-        $bus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        $statisticsBefore = self::getContainer()->get(GetPlayerStatistics::class)->team(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        // The form's full-page POST (no modal): the success leads to the result detail, which leads to the round
+        // Stateless CSRF: the double-submit token and a same-origin request (EventResultClaimControllersTest)
+        $this->browser->request('POST', '/en/event-result/' . $second->id->toString() . '/claim', ['_token' => 'csrf-token'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        self::assertResponseRedirects('/en/result/' . $firstId);
+        $this->browser->followRedirect();
+        self::assertResponseRedirects('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+        // The round page shows the flash ("You are on the team Relay Rockets now")
+        self::assertStringContainsString(self::RELAY, (string) $this->browser->followRedirect()->html());
         self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        // The claimer's statistics: both puzzles and their pieces, the total once
+        $statisticsAfter = self::getContainer()->get(GetPlayerStatistics::class)->team(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame($statisticsBefore->solvedPuzzlesCount + 2, $statisticsAfter->solvedPuzzlesCount);
+        self::assertSame($statisticsBefore->totalPieces + 2000, $statisticsAfter->totalPieces);
+        self::assertSame($statisticsBefore->totalSeconds + 5025, $statisticsAfter->totalSeconds);
+
+        // Claimed, still off the puzzles' pages - for the claimer too
+        foreach ([self::PUZZLE, self::RELAY_SECOND_PUZZLE] as $puzzleId) {
+            $teams = $this->createLiveComponent('PuzzleTimes', ['puzzleId' => $puzzleId, 'piecesCount' => 1000, 'category' => 'group'], $this->browser);
+            $teams->setRouteLocale('en');
+            self::assertStringNotContainsString(self::RELAY, $teams->render()->toString());
+            self::assertStringNotContainsString(self::RELAY, $this->page('/en/puzzle/' . $puzzleId));
+        }
 
         $profile = $this->createLiveComponent('PlayerSolvedPuzzles', ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'category' => 'group'], $this->browser);
         $profile->setRouteLocale('en');

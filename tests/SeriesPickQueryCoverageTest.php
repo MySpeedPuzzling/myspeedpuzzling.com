@@ -25,6 +25,7 @@ final class SeriesPickQueryCoverageTest extends TestCase
 
     /** Files reading puzzle_solving_time with competition_id that do not need to know about series picks */
     private const array NOT_SERIES_AWARE = [
+        'Query/GetRelayResultRound.php' => 'An imported relay result is always linked to its one-time event and round explicitly - never a series pick (solo-and-relays.md §2).',
         'MessageHandler/DeleteCompetitionHandler.php' => self::RELEASES_ON_DELETE,
         'Query/CountCompetitionResults.php' => self::PER_COMPETITION,
         'Query/GetCompetitionParticipants.php' => self::PARTICIPANTS,

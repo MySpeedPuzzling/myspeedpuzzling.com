@@ -321,6 +321,48 @@ final class ApplyEventResultsTabRelayTest extends KernelTestCase
     }
 
     /**
+     * Every spot claimed by two people who already are a pair (their pair's result of another event): both relay
+     * results join that pair, and a release gives both one team of their own again - the other result keeps its pair.
+     */
+    public function testARelayClaimedByAnExistingPairJoinsItAndLeavesItTogether(): void
+    {
+        $pairsHeader = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Brand,Puzzle Title,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Puzzle Link- manufacturer';
+        $pairs = new SarahDoesPuzzlesFormat()->parseTab(new SheetSnapshotTab('838383', 'Pairs night', implode("\n", [
+            $pairsHeader,
+            sprintf('Two of Us,45:00,2,,Maple Street Pairs Night,Maple Street Taproom,"Springfield, MN",Some Brand,Some Puzzle,10/6/26,7:00 PM,120,Pairs,https://myspeedpuzzling.com/en/puzzle/%s,', PuzzleFixture::PUZZLE_500_03),
+        ])));
+        $this->messageBus->dispatch(new ApplyEventResultsTab($this->sheetId, $pairs));
+        $this->entityManager->clear();
+
+        $pairResultId = $this->database->fetchOne("SELECT solving_time_id FROM event_imported_result WHERE name = 'Two of Us'");
+        self::assertIsString($pairResultId);
+        $this->messageBus->dispatch(new ClaimEventResultSlot($pairResultId, PlayerFixture::PLAYER_REGULAR));
+        $this->messageBus->dispatch(new ClaimEventResultSlot($pairResultId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->entityManager->clear();
+        $pairTeamId = $this->database->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $pairResultId]);
+
+        $this->apply($this->eventRow('Duo Relay', '1:23:45', '2'));
+        $firstId = $this->firstId('Duo Relay');
+
+        $this->messageBus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_REGULAR));
+        $this->messageBus->dispatch(new ClaimEventResultSlot($firstId, PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->entityManager->clear();
+
+        $legs = $this->legs('Duo Relay');
+        self::assertSame([$pairTeamId, $pairTeamId], array_column($legs, 'puzzling_team_id'), 'Both results joined the pair');
+        self::assertSame($legs[0]['team'], $legs[1]['team']);
+
+        $this->messageBus->dispatch(new ReleaseEventResultSlot($firstId, PlayerFixture::PLAYER_REGULAR));
+        $this->entityManager->clear();
+
+        $legs = $this->legs('Duo Relay');
+        self::assertNotSame($pairTeamId, $legs[0]['puzzling_team_id'], 'A team of their own again');
+        self::assertSame($legs[0]['puzzling_team_id'], $legs[1]['puzzling_team_id'], 'Still one team for both');
+        self::assertSame($legs[0]['team'], $legs[1]['team']);
+        self::assertSame($pairTeamId, $this->database->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $pairResultId]), 'The pair\'s other result kept its pair');
+    }
+
+    /**
      * The relay's first result (the lowest id) - claims go through it.
      */
     private function firstId(string $teamName): string

@@ -130,6 +130,7 @@ final class SolvingTimeReadersAreClassifiedTest extends TestCase
         'Query/GetPuzzleSpeedPercentiles.php' => self::PERFORMANCE,
         'Query/GetRanking.php' => self::PERFORMANCE,
         'Query/GetRecentActivity.php' => self::HISTORY,
+        'Query/GetRelayResultRound.php' => 'neutral: the round a relay team\'s result links to, by its id - no figure (solo-and-relays.md §2).',
         'Query/GetRecentIdenticalSolvingTime.php' => 'neutral: the add handler\'s resend guard, by seconds - never matches a result without a time.',
         'Query/GetResultReviewEmailCandidates.php' => self::NEUTRAL,
         'Query/GetResultReviewEmails.php' => self::NEUTRAL,

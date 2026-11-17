@@ -85,6 +85,8 @@ final class ImportWritePathParityTest extends KernelTestCase
         'finished_later_seconds',
         // Time spent on an unfinished result - neither path writes one yet (unfinished-results-plan.md)
         'seconds_spent',
+        // A relay team's result - only the event results import writes one (solo-and-relays.md §2), never a form or a file
+        'relay_result_id',
     ];
 
     /** Differ only because the twins are two people: compared after the twin's own id is taken out */

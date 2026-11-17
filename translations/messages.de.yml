@@ -15197,3 +15197,4 @@ relay_result:
     import_hint: "Eine Staffel: Jedes Team hat beide Puzzles gleichzeitig gelegt - seine Time ist die Gesamtzeit."
     format_guide: "Eine Staffel (jedes Team legt zwei Puzzles gleichzeitig): Kopiere einen beliebigen Tab, behalte die Spalten und füge in Zeile 2 in einer neuen Spalte Link to MySpeedPuzzling 2 den MySpeedPuzzling-Link des zweiten Puzzles ein. Trage die Gesamtzeit jedes Teams in Time ein. Die Gesamtzeit steht bei der Veranstaltung, nie auf den Seiten der Puzzles."
     template_tabs: "Ein Tab, dessen Name mit Template beginnt (Template, Template Relay, Template Solo…), ist deine leere Vorlage - er wird nie importiert."
+    open_round: "Ergebnisse der Veranstaltung"

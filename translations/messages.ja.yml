@@ -15187,3 +15187,4 @@ relay_result:
     import_hint: "リレー：各チームは2つのパズルを同時に組みました。Time は合計タイムです。"
     format_guide: "リレー（各チームが2つのパズルを同時に組む）：任意のタブを複製し、列はそのままで、2行目の新しい列 Link to MySpeedPuzzling 2 に2つ目のパズルの MySpeedPuzzling リンクを追加します。各チームの合計タイムを Time に入力してください。合計タイムはイベントに表示され、パズルのページには表示されません。"
     template_tabs: "名前が Template で始まるタブ（Template、Template Relay、Template Solo…）は空のコピーとして扱われ、インポートされません。"
+    open_round: "イベントの結果"

@@ -24,6 +24,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
 
     /** Files reading puzzle_solving_time without a word about suspicious results */
     private const array NOT_FILTERED = [
+        'Query/GetRelayResultRound.php' => 'The round one relay result links to, by its id (solo-and-relays.md §2) - nothing counted or ranked; the round page leaves a suspicious one out.',
         'ConsoleCommands/RecalculatePuzzleStatisticsConsoleCommand.php' => 'Picks the puzzles to recompute - PuzzleStatisticsCalculator leaves suspicious results out.',
         'ConsoleCommands/WarmupImgproxyCacheConsoleCommand.php' => self::BACKGROUND,
         'MessageHandler/BackfillPuzzlingTeamsHandler.php' => self::WRITE,

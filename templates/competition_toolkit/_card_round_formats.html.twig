@@ -34,7 +34,7 @@
                                         {%- else -%}
                                             {{ ('competition_toolkit.round_format.reveal.' ~ round.secretRevealModes|first)|trans({'%count%': round.revealDelayMinutes}) }}
                                         {%- endif -%}
-                                    </span>
+                                    </span>{% if round.unboxed %} · <span data-toolkit-round-unboxed>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% endif %}
                                 </div>
                             </div>
                             <a href="{{ path('manage_round_puzzles', {roundId: round.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary ms-auto">

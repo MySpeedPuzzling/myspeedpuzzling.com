@@ -4772,6 +4772,16 @@ competition:
         logo_replaces_current: "Your new logo is still here, no need to choose it again. It replaces the current logo when you save."
         maintainers: "Maintainers"
         maintainers_help: "Start typing a player name to search. Selected users will be able to manage this event."
+    round_puzzles:
+        unboxed:
+            label: "Unboxed – no box pictures until the results are published"
+            help: "Competitors solve without seeing the box. The pictures of this round's puzzles stay hidden on your event's pages, screens and phones until you publish the round's results; the names follow the reveal settings below. A puzzle already in our database keeps its picture on its own page – use a new (secret) puzzle for a truly unboxed challenge."
+            published: "The round's results are published, so its pictures are shown."
+            save: "Save"
+            saved_on: "This round is unboxed now – its pictures stay hidden until you publish its results."
+            saved_off: "This round is not unboxed any more."
+            confirm_off: "The pictures of this round's puzzles will be shown at their normal reveal – right away if it has passed. Continue?"
+            badge: "Unboxed"
     round_puzzle:
         form:
             hide_until_round_starts: "Keep this puzzle secret until it is revealed"

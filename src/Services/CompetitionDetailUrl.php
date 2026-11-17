@@ -23,18 +23,21 @@ readonly final class CompetitionDetailUrl
     }
 
     /**
+     * In the current request's language, or in the given one (a link without a language - the printed tags' routes).
+     *
      * @throws CompetitionNotFound
      */
-    public function of(string $competitionId): string
+    public function of(string $competitionId, null|string $locale = null): string
     {
         $competition = $this->getCompetitionEvents->referenceById($competitionId);
         $routeName = $competition->routeName();
+        $language = $locale !== null ? ['_locale' => $locale] : [];
 
         if ($routeName === null) {
-            return $this->urlGenerator->generate('events');
+            return $this->urlGenerator->generate('events', $language);
         }
 
-        return $this->urlGenerator->generate($routeName, $competition->routeParameters());
+        return $this->urlGenerator->generate($routeName, [...$competition->routeParameters(), ...$language]);
     }
 
     /**

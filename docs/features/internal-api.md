@@ -413,7 +413,8 @@ bulk until the participants sheet has its Division column. Drafts work.
 - **`GET …/divisions`**: `{"competitionId", "divisions": [{"id", "name", "shortName", "position", "roundIds",
   "entriesCount"}]}` in the event's order; `entriesCount` = round entries carrying it (removed participants left out).
 - **`PUT …/divisions`** (`SetCompetitionDivisions`, under `CompetitionParticipantsLock`): **the whole list** - an `id` of
-  the event's division keeps it (renamed / re-labelled / re-ordered as sent), no `id` = a new division, a division left
+  the event's division keeps it (renamed / re-labelled / re-ordered as sent), no `id` - or an id that is not one of the
+  event's divisions - = a new division with the server's own id, a division left
   out is deleted; `roundIds` = the rounds using it (left out = none, so every round's subset is replaced too). Answers
   like the GET. Refusals, all before anything changes: `422` with `code` = `too_many`, `invalid_name` (empty or > 60),
   `invalid_short_name` (> 12), `duplicate_name` (case does not matter), `duplicate_id`, `unknown_division` (an id of
@@ -423,7 +424,8 @@ bulk until the participants sheet has its Division column. Drafts work.
 - **`PUT …/entry-divisions`** (`SetRoundEntryDivisions`, under the lock): a solo round's entry by `participantId`, a
   pair/team by `teamId` or by one of its members' `participantId` (the pair/team carries the division, never its
   members); `division` = the division's id, name or short label (case does not matter) - one the round uses - or `null`
-  to clear. All or nothing: `422` `unknown_entry` / `not_in_round` / `unknown_division` (the item in `error`). Entries
+  to clear. All or nothing: `422` `unknown_entry` (also a removed participant's) / `duplicate_entry` (one entry twice, e.g. a pair
+  by its team and by a member) / `not_in_round` / `unknown_division` (the item in `error`). Entries
   left out keep theirs. Answers `{"roundId", "changed", "entries": [{"ref", "participantId", "teamId", "name",
   "division", "divisionRank"}]}` - every entry of the round after the change. The round's open desks are refreshed.
 

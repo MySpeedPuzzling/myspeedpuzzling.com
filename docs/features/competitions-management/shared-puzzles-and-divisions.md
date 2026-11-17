@@ -617,8 +617,9 @@ in, otherwise divisions are set in the sheet or through the internal API.
   to them after the commit). **Deviation:** no `actingPlayerId` on the message - the voter in the controller authorises,
   as for standings. `SetRoundEntryDivisions(competitionId, roundId, list<EntryDivisionInput{participantId|teamId,
   division}>)` - the internal API's bulk path (A10): solo entries by participant, pairs/teams by team or a member; the
-  division by id, name or short label (case-insensitive), null clears; all or nothing (`unknown_entry`, `not_in_round`,
-  `unknown_division`).
+  division by id, name or short label (case-insensitive), null clears; all or nothing (`unknown_entry` - also a removed
+  participant's entry -, `duplicate_entry`, `not_in_round`, `unknown_division`). The internal API never takes over a
+  client's id for a new division (server `uuid7`).
 - **Organiser page** `competition_divisions` (`/{_locale}/manage-event-toolkit/{id}/divisions`,
   `CompetitionDivisionsController`, `templates/competition_toolkit/divisions.html.twig`, `COMPETITION_TOOLKIT_MANAGE`):
   one plain form (CSRF `competition-divisions-<id>`) - rows name / short label / order (saved ones + 3 empty, up to 12;

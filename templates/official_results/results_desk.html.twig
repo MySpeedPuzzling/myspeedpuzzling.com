@@ -375,7 +375,8 @@
 
         {% if round.overview.divisions is not empty %}
             {# Divisions of the round (shared-puzzles-and-divisions.md D2): chips All / each / No division, filled by the controller #}
-            <div class="d-flex flex-wrap gap-1 mb-2" role="group" aria-label="{{ 'results_desk.divisions.filter_label'|trans }}" data-results-desk-target="divisionFilter"></div>
+            {# `hidden` on the wrapper only - the chips' row (d-flex) is the controller's inner element #}
+            <div role="group" aria-label="{{ 'results_desk.divisions.filter_label'|trans }}" data-results-desk-target="divisionFilter"></div>
         {% endif %}
 
         {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -

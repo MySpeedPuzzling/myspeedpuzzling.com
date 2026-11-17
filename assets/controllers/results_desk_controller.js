@@ -527,10 +527,11 @@ export default class extends Controller {
 
             return `<button type="button" class="btn btn-sm ${active ? 'btn-primary' : 'btn-outline-primary'} rounded-pill" data-action="results-desk#chooseDivision" data-division="${escapeHtml(chip.value)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(chip.label)}</button>`;
         }).join('');
+        const row = `<div class="d-flex flex-wrap gap-1 mb-2">${html}</div>`;
 
-        if (this.divisionFilterTarget.dataset.html !== html) {
-            this.divisionFilterTarget.innerHTML = html;
-            this.divisionFilterTarget.dataset.html = html;
+        if (this.divisionFilterTarget.dataset.html !== row) {
+            this.divisionFilterTarget.innerHTML = row;
+            this.divisionFilterTarget.dataset.html = row;
         }
     }
 

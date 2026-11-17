@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
 use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
+use SpeedPuzzling\Web\Repository\CompetitionDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Value\DivisionInput;
@@ -24,7 +25,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * docs/features/internal-api.md "Divisions", shared-puzzles-and-divisions.md A10).
  *
  * Body: `divisions` (required, in their order, ≤ 12): `[{"id"?, "name", "shortName"?, "roundIds"?: [...]}]` - an `id` of
- * the event's division keeps it (renamed as sent), no id = a new one; a division left out is deleted. `roundIds` = the
+ * the event's division keeps it (renamed as sent); no id, or an id that is not one of the event's divisions, = a new
+ * one with the server's own id; a division left out is deleted. `roundIds` = the
  * rounds that use it (left out = none). `confirmClearing` (bool): take the division from the entries that would lose it
  * - without it such a save answers 409 `divisions_in_use`. Refusals 422 with `code` = InvalidCompetitionDivisions'
  * reason, nothing changed. Answers the list as GET does.
@@ -33,6 +35,7 @@ final class PutCompetitionDivisionsController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionRepository $competitionRepository,
+        private readonly CompetitionDivisionRepository $divisionRepository,
         private readonly GetCompetitionDivisions $getCompetitionDivisions,
         private readonly MessageBusInterface $messageBus,
         private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
@@ -46,7 +49,13 @@ final class PutCompetitionDivisionsController extends AbstractController
     )]
     public function __invoke(string $competitionId, Request $request): JsonResponse
     {
-        $competitionId = $this->competitionRepository->get($competitionId)->id->toString();
+        $competition = $this->competitionRepository->get($competitionId);
+        $competitionId = $competition->id->toString();
+        // Ids the client may keep - a new division always gets the server's own id
+        $ownIds = [];
+        foreach ($this->divisionRepository->ofCompetition($competition) as $division) {
+            $ownIds[strtolower($division->id->toString())] = true;
+        }
         $body = InternalApiJsonBody::parse($request);
         $errors = [];
 
@@ -105,7 +114,7 @@ final class PutCompetitionDivisionsController extends AbstractController
                 continue;
             }
 
-            $divisionId = strtolower($id ?? Uuid::uuid7()->toString());
+            $divisionId = is_string($id) && isset($ownIds[strtolower($id)]) ? strtolower($id) : Uuid::uuid7()->toString();
             $divisions[] = new DivisionInput($divisionId, $name, $shortName);
 
             /** @var list<string> $roundIds */

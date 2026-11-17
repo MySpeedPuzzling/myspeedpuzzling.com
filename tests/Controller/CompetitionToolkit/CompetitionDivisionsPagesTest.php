@@ -70,8 +70,10 @@ final class CompetitionDivisionsPagesTest extends WebTestCase
         self::assertSame(['Regular', 'Senior 55+'], $page->filter('[data-divisions-grid] thead th')->slice(1)->each(static fn (Crawler $th): string => trim($th->text())));
 
         $form = $page->filter('[data-divisions-save]')->form();
-        $regular = (string) $this->database->fetchOne("SELECT id FROM competition_division WHERE name = 'Regular'");
-        $senior = (string) $this->database->fetchOne("SELECT id FROM competition_division WHERE name = 'Senior 55+'");
+        $regular = $this->database->fetchOne("SELECT id FROM competition_division WHERE name = 'Regular'");
+        $senior = $this->database->fetchOne("SELECT id FROM competition_division WHERE name = 'Senior 55+'");
+        self::assertIsString($regular);
+        self::assertIsString($senior);
         /** @var \Symfony\Component\DomCrawler\Field\ChoiceFormField[] $groupA */
         $groupA = $form['rounds[' . OfficialResultsFixture::ROUND_GROUP_A . ']'];
         foreach ($groupA as $checkbox) {
@@ -96,7 +98,7 @@ final class CompetitionDivisionsPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('senior', $page->filter('[data-divisions-error]')->text());
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_division'));
+        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division'));
     }
 
     public function testTakingADivisionFromEntriesAsksFirst(): void
@@ -111,12 +113,12 @@ final class CompetitionDivisionsPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('3 entries would lose their division', $page->filter('[data-divisions-in-use]')->text());
-        self::assertSame(3, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_division'));
+        self::assertSame(3, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_division'));
 
         $this->browser->submit($page->filter('[data-divisions-confirm]')->form());
         self::assertResponseStatusCodeSame(303);
         self::assertSame(['Regular', 'Junior U16'], $this->database->fetchFirstColumn('SELECT name FROM competition_division ORDER BY position'));
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL AND division_id NOT IN (SELECT id FROM competition_division)'));
+        self::assertSame(0, self::countOf($this->database, 'SELECT COUNT(*) FROM competition_participant_round WHERE division_id IS NOT NULL AND division_id NOT IN (SELECT id FROM competition_division)'));
     }
 
     public function testARoundWithDivisionsCarriesThemInTheStateTheDeskAndTheExport(): void

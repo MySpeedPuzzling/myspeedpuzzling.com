@@ -92,12 +92,28 @@ final class DivisionsInternalApiTest extends WebTestCase
         self::assertSame('not_in_round', $notInRound['code']);
 
         $database = self::getContainer()->get(Connection::class);
-        self::assertSame(2, (int) $database->fetchOne('SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [OfficialResultsFixture::COMPETITION_RESULTS_CUP]));
+        self::assertEquals(2, $database->fetchOne('SELECT COUNT(*) FROM competition_division WHERE competition_id = ?', [OfficialResultsFixture::COMPETITION_RESULTS_CUP]));
         self::assertNotNull($database->fetchOne('SELECT division_id FROM competition_participant_round WHERE id = ?', [OfficialResultsFixture::ENTRY_A_BEN]));
 
         // ... and confirmed
         self::callInternalApi($browser, 'PUT', self::LIST, ['divisions' => [['name' => 'Regular']], 'confirmClearing' => true]);
         self::assertResponseIsSuccessful();
         self::assertNull($database->fetchOne('SELECT division_id FROM competition_participant_round WHERE id = ?', [OfficialResultsFixture::ENTRY_A_BEN]));
+    }
+
+    public function testAnIdTheEventDoesNotHaveIsNeverTakenOver(): void
+    {
+        $browser = self::createClient();
+        $foreign = '018d0020-0000-0000-0000-00000000dead';
+
+        $answer = self::callInternalApi($browser, 'PUT', self::LIST, ['divisions' => [['id' => $foreign, 'name' => 'Masters']]]);
+
+        self::assertResponseIsSuccessful();
+        /** @var list<array{id: string, name: string}> $divisions */
+        $divisions = $answer['divisions'];
+        self::assertCount(1, $divisions);
+        self::assertSame('Masters', $divisions[0]['name']);
+        // The new division got the server's own id
+        self::assertNotSame($foreign, $divisions[0]['id']);
     }
 }

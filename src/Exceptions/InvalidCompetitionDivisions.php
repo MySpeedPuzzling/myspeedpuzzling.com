@@ -11,7 +11,8 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * `too_many` (CompetitionDivision::MAX_PER_COMPETITION), `invalid_name` (empty or too long), `invalid_short_name` (too
  * long), `duplicate_name` (two divisions of the event with one name, case does not matter), `duplicate_id`,
  * `unknown_division` (an id of another event's division, or a round naming a division not in the list),
- * `unknown_round` (not a round of the event), `unknown_entry` (no such entry in the round), `not_in_round` (a division
+ * `unknown_round` (not a round of the event), `unknown_entry` (no such entry in the round, or one of a removed participant), `duplicate_entry` (one entry listed
+ * twice), `not_in_round` (a division
  * the round does not use). `subject` names what it is about (a name, an id) when known.
  */
 final class InvalidCompetitionDivisions extends UnprocessableEntityHttpException implements InternalApiErrorCode

@@ -24,7 +24,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 /**
  * Sets the division of the given entries of one round (shared-puzzles-and-divisions.md A10): a solo entry carries its
  * own, a pair/team entry the team's (members' rows keep none - §3.1). Every item is resolved and checked first - an
- * unknown entry or a division the round does not use refuses the whole request, nothing changes.
+ * unknown entry (a removed participant's too), an entry listed twice or a division the round does not use refuses the
+ * whole request, nothing changes.
  */
 #[AsMessageHandler]
 readonly final class SetRoundEntryDivisionsHandler
@@ -59,12 +60,19 @@ readonly final class SetRoundEntryDivisionsHandler
 
         /** @var list<array{CompetitionParticipantRound|CompetitionTeam, null|CompetitionDivision}> $changes */
         $changes = [];
+        $seen = [];
         foreach ($message->entries as $index => $input) {
             $subject = sprintf('entries[%d]', $index);
-            $changes[] = [
-                $this->entry($round->id->toString(), $round->category === RoundCategory::Solo, $input, $subject),
-                $this->division($input->division, $usable, $round->competition, $subject),
-            ];
+            $entry = $this->entry($round->id->toString(), $round->category === RoundCategory::Solo, $input, $subject);
+
+            // One entry twice (a pair by its team and by a member, or a typo) - which one would win is a guess
+            $ref = $entry->entryRef()->toString();
+            if (isset($seen[$ref])) {
+                throw new InvalidCompetitionDivisions('duplicate_entry', $subject);
+            }
+
+            $seen[$ref] = true;
+            $changes[] = [$entry, $this->division($input->division, $usable, $round->competition, $subject)];
         }
 
         $changed = 0;
@@ -90,6 +98,12 @@ readonly final class SetRoundEntryDivisionsHandler
         }
 
         $participantRound = $input->participantId !== null ? $this->participantRoundRepository->findOfParticipantInRound($input->participantId, $roundId) : null;
+
+        // A removed participant's entry is not an entry any more (the pages hide it)
+        if ($participantRound !== null && $participantRound->participant->isDeleted()) {
+            $participantRound = null;
+        }
+
         $entry = $solo ? $participantRound : $participantRound?->team;
 
         return $entry ?? throw new InvalidCompetitionDivisions('unknown_entry', $subject);

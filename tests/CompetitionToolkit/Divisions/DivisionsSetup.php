@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\CompetitionToolkit\Divisions;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
 use SpeedPuzzling\Web\Message\SetRoundEntryDivisions;
@@ -20,9 +21,9 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  */
 trait DivisionsSetup
 {
-    private string $regular;
-    private string $senior;
-    private string $junior;
+    private string $regular = '';
+    private string $senior = '';
+    private string $junior = '';
 
     private function setUpStPaulDivisions(MessageBusInterface $messageBus, bool $withEntries = true): void
     {
@@ -59,6 +60,33 @@ trait DivisionsSetup
                 new EntryDivisionInput(OfficialResultsFixture::PARTICIPANT_EVA, null, 'Junior U16'),
             ],
         ));
+    }
+
+    /**
+     * The one number a COUNT(*) statement answers.
+     *
+     * @param list<mixed> $params
+     */
+    private static function countOf(Connection $database, string $sql, array $params = []): int
+    {
+        $count = $database->fetchOne($sql, $params);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
+    }
+
+    /**
+     * The exception the write throws - it must throw one.
+     */
+    private static function refusalOf(callable $write): \Throwable
+    {
+        try {
+            $write();
+        } catch (\Throwable $refusal) {
+            return $refusal;
+        }
+
+        self::fail('A refusal was expected');
     }
 
     private static function handled(MessageBusInterface $messageBus, object $message): mixed

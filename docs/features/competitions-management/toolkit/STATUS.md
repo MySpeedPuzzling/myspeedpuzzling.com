@@ -113,3 +113,23 @@ Open items:
 - CI red after W2 (PluralMessagesTest: `{1}…|]1,Inf[…` has no count 0) - fixed on the branch. Agents: plural keys need every count.
 - W3: publish publishes every draft date of a draft series; "When it happens" text not filled from the rule; draft series "Continue setting up" (W2 covers events only) → W6 follow-up.
 - W4: a duplicate of a source without `dateFrom` now counts days from its first round (internal API too).
+
+## Analytics Studio (2026-11-17, orchestrator: sub-session; design `../analytics-studio.md`)
+Jan: a per-round page for commentators of a live stream - every entrant against the round's puzzle(s), compare,
+puzzle statistics, difficulty, predictions; no membership gate. Shipped straight to main, no flag, on for every public
+event with slugged rounds. Architect design → independent design review (1 blocker: a hidden puzzle leaking by
+exclusion; 19 findings → §0a amendments R1-R20) → packages in worktrees `.claude/worktrees/st-<pkg>`, branches `st/<pkg>`.
+
+| Pkg | State | Commit(s) on main | Notes |
+|---|---|---|---|
+| design | merged | af4bd0f5f, d1723d5f6 | §0a binding: no async prediction warm (predictions only for the selected + compared entrants), swap test for secrets, state cache keyed by stopwatch hash, no limiter on `state`, live results never a leaderboard |
+| S2 | merged | 2a66108d3, 7fd39fbc7 | pure modules `assets/analytics-studio/` + harness (51 scenarios) |
+| S1 | merged, code-reviewed (no blocker; 4 fixes applied) | bbf344209..bbe61ca41 | 4 stateless JSON answers, budgets pinned (state 2 warm; analytics 3 warm / 10 cold; entrant 4 / 17; predictions ×4 19); 300 entrants × 3 puzzles: 214 ms first cold, ~40 ms after; opt-out help text in 6 locales |
+| CI fix | merged | 08c21fe63 | wizard's `GetEventWizardStructureLock` classified (red CI not from the studio) |
+| S3 | merged | c3641ead4..786d25e2d | page + lean layout, plain Encore entry 63.5 KB / 21.2 KB gzip, organiser links via `analytics_studio_round`, 143 keys × 6 locales; walked 18 steps (laptop + phone, live reveal, live results) |
+| S4 + S3F | merged | a6455e549..06444a96e | public links (round page, event/edition timeline; goldens unchanged, budgets unchanged); prod-walk fixes: right column scroll, one-line rows, past round shows its start |
+
+Production: walked on WJPC 2026 Individual D (209 entrants) - puzzle stats, histogram, top 10 with "in this round"
+marks, an entrant's rating/skill/prediction/similar history/recent form; no console errors, no new Sentry issues.
+Open for Jan: §11 (public predictions of others - opt-out text updated; pair/team prediction none; organiser opt-out
+none; blocklist exemption broader than displays) and R8 (unpublished confirmed results never sorted as a list).

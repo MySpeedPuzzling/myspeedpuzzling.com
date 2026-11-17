@@ -37,14 +37,12 @@ not needed - the page works in the browser tab.
 | 1 | Signed in as the linked person, open your own page before the start | Stop button appears when the round runs |
 | 2 | Screen stays on during the round | the page holds a wake lock (if the OS allows) |
 | 3 | Airplane mode, tap Stop, confirm | "Saved on this phone", the time of the tap kept |
-| 4 | Back online after 30-60 s | sent; the judge card shows the tap time as the default with a neutral "sent after reconnecting" note |
+| 4 | Back online after 30-60 s | sent; the judge card shows the time of the tap (never the moment it arrived) |
 | 5 | Reload the page while the tap is still unsent | the tap is still there and is sent with its original time |
 
 ## iOS specifics to know
-- **7-day storage eviction:** Safari deletes a site's script-written storage (IndexedDB, localStorage, service-worker
-  caches) after 7 days without the user visiting the site in Safari. For a judge this means: **open the live entry
-  online within the last days before the event** (step 1 above always fixes it). Unsent results are never at risk in
-  practice - they exist only minutes to hours.
+- 7-day storage eviction (Safari clears a site's storage after 7 days unused) is a non-issue: the page is used
+  heavily during a competition and step 1 above stores everything again.
 - **Home-screen web app = a separate browser:** an icon added with "Add to Home Screen" has its own cookies and storage,
   separate from Safari - the judge is signed out there, its offline copy and outbox are separate, and our manifest's
   `start_url` is `/` (the home page, not the live entry). Home-screen apps are exempt from the 7-day eviction.

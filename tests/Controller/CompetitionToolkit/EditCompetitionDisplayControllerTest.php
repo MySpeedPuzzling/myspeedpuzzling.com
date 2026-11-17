@@ -8,7 +8,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\DisplayPreset;
@@ -23,22 +22,12 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class EditCompetitionDisplayControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
 
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testAnAdminOpensTheEditorWithTheStoredDesign(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay(DisplayPreset::ClassicTimer);
 
         $page = $browser->request('GET', '/en/display-editor/' . $displayId);
@@ -84,7 +73,7 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
     public function testTheEditorScriptIsLoadedOnlyByItsLazyController(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay(DisplayPreset::Blank);
 
         $browser->request('GET', '/en/display-editor/' . $displayId);
@@ -109,7 +98,7 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
     public function testAnOverlayEditor(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = Uuid::uuid7();
         self::getContainer()->get(MessageBusInterface::class)->dispatch(
             new AddCompetitionDisplay($displayId, self::EVENT, DisplayKind::Overlay, 'OBS', 'de', null, DisplayPreset::ObsCornerTimer),
@@ -128,7 +117,7 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
     public function testThePreviewStateIsWhatTheDisplayItselfGets(): void
     {
         // Secret puzzles and unpublished results follow the display's own (public) rules - R §1.5
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay(DisplayPreset::TimerWithLiveBoard);
 
         $page = $browser->request('GET', '/en/display-editor/' . $displayId);
@@ -146,18 +135,9 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
         }
     }
 
-    public function testTheOrganiserNeedsTheFlag(): void
+    public function testTheOrganiserOpensIt(): void
     {
-        $browser = $this->browser(flag: false, player: self::ORGANISER);
-        $displayId = $this->addDisplay(DisplayPreset::Blank);
-
-        $browser->request('GET', '/en/display-editor/' . $displayId);
-        self::assertResponseStatusCodeSame(403);
-    }
-
-    public function testTheOrganiserWithTheFlagOpensIt(): void
-    {
-        $browser = $this->browser(flag: true, player: self::ORGANISER);
+        $browser = $this->browser(self::ORGANISER);
         $displayId = $this->addDisplay(DisplayPreset::Blank);
 
         $browser->request('GET', '/en/display-editor/' . $displayId);
@@ -166,7 +146,7 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
     public function testAnotherPlayerIsRefused(): void
     {
-        $browser = $this->browser(flag: true, player: PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->browser(PlayerFixture::PLAYER_REGULAR);
         $displayId = $this->addDisplay(DisplayPreset::Blank);
 
         $browser->request('GET', '/en/display-editor/' . $displayId);
@@ -175,7 +155,6 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
     public function testAGuestIsSentToSignIn(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
         $browser = self::createClient();
         $displayId = $this->addDisplay(DisplayPreset::Blank);
 
@@ -186,7 +165,7 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
     public function testAnUnknownDisplayIs404(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/en/display-editor/' . Uuid::uuid7()->toString());
         self::assertResponseStatusCodeSame(404);
@@ -203,11 +182,8 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
         return $displayId->toString();
     }
 
-    private function browser(bool $flag, string $player): KernelBrowser
+    private function browser(string $player): KernelBrowser
     {
-        // Before the kernel boots - the flag is a container parameter
-        $this->overrideFeatureFlagEnv(self::FLAG, $flag);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

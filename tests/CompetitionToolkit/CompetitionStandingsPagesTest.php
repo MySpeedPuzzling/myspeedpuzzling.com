@@ -9,7 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingRules;
@@ -19,33 +18,22 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * The organiser's standings pages (competition toolkit A6): behind COMPETITION_TOOLKIT_MANAGE (admins; organisers while
- * COMPETITION_TOOLKIT_FOR_ORGANISERS is on), the hub card, the live preview labelled provisional, the forms, delete,
+ * The organiser's standings pages (competition toolkit A6): behind COMPETITION_TOOLKIT_MANAGE (= COMPETITION_EDIT: the
+ * event's organisers and admins), the hub card, the live preview labelled provisional, the forms, delete,
  * "one per category" and the organiser JSON (COMPETITION_RESULTS_ENTRY).
  */
 final class CompetitionStandingsPagesTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use WorldSeriesSetup;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
 
     private KernelBrowser $browser;
     private Connection $database;
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->browser = self::createClient();
         $this->database = self::getContainer()->get(Connection::class);
         $this->createWorldSeries(self::getContainer()->get(EntityManagerInterface::class));
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testThePageIsBehindTheToolkitVoter(): void
@@ -55,12 +43,8 @@ final class CompetitionStandingsPagesTest extends WebTestCase
         $this->browser->request('GET', $url);
         self::assertResponseRedirects();
 
-        // The organiser while the flag is off: no toolkit; another player never
+        // The organiser gets the page; another player never
         TestingLogin::asPlayer($this->browser, self::WS_ORGANISER);
-        $this->browser->request('GET', $url);
-        self::assertResponseStatusCodeSame(403);
-
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
         $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();
 
@@ -70,7 +54,6 @@ final class CompetitionStandingsPagesTest extends WebTestCase
         $this->browser->request('GET', $url . '/new');
         self::assertResponseStatusCodeSame(403);
 
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();
@@ -195,7 +178,7 @@ final class CompetitionStandingsPagesTest extends WebTestCase
         $this->browser->request('GET', $url);
         self::assertResponseStatusCodeSame(403);
 
-        // Use is not gated by the toolkit flag - the organiser reads it with the flag off
+        // The organiser reads it too
         TestingLogin::asPlayer($this->browser, self::WS_ORGANISER);
         $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();

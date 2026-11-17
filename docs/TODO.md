@@ -8,12 +8,12 @@ that would otherwise be forgotten. Newest section on top.
 
 Ops steps of the rollout:
 - [ ] After merging to main: `docker compose restart js-watch` on every dev checkout - new Encore entries `live_entry`, `live_entry_native`, `display` (the watcher does not pick up new entries)
-- [ ] Deploy: the reveal mode `stopwatch` is read by the new release only - nobody may choose it before the release is fully out (blue-green; the option is admin-only behind `COMPETITION_TOOLKIT_FOR_ORGANISERS`)
+- [x] Deploy: the reveal mode `stopwatch` is read by the new release only - nobody may choose it before the release is fully out (#406 is out; every organiser is offered it since 2026-11-17)
 - [ ] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals")
 - [ ] Real-device walks: the native apps on the live entry page (C3 Turbo bootstrap `live_entry_native`), iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
 - [ ] Browser walk of display live signals (D5) - the dev hub's origin blocked it
 - [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
-- [ ] Set `COMPETITION_TOOLKIT_FOR_ORGANISERS=1` in production once Jan says go; remove the flag later (`feature_flags.md`)
+- [x] Open the toolkit to every organiser - the organiser flag was retired on 2026-11-17 (`feature_flags.md` "Retired")
 
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy

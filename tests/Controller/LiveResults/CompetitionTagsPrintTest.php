@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionTagSheet;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
@@ -22,35 +21,30 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * The competition toolkit's print page of tags (B-qr-competitor-page.md §3.4, package B3): `?kind=people|lineups|
  * tables|entries` × `?layout=tags|tents` on competition_name_tags, offered once the competition has a QR mode or
- * competitor pages, or to an admin who asks for it; each kind's QR is its frozen tag path (R §1.3); one statement per
+ * competitor pages, or to an organiser who asks for it; each kind's QR is its frozen tag path (R §1.3); one statement per
  * kind; #CODE only for public profiles. Without any of that the page is the name tags page of before
  * (CompetitionNameTagsGoldenTest).
  */
 final class CompetitionTagsPrintTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use QueryCountAssertions;
 
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string PAGE = '/en/name-tags/' . self::EVENT;
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
 
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
-    public function testWithoutAQrModeAnOrganiserAskingForAKindGetsTheNameTagsOfBefore(): void
+    public function testWithoutAQrModeTheOrganiserGetsTheNameTagsOfBeforeUntilAskingForAKind(): void
     {
         $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $page = $browser->request('GET', self::PAGE . '?kind=tables&layout=tents');
+        $page = $browser->request('GET', self::PAGE);
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $page->filter('[data-tag-controls]'));
         self::assertCount(9, $page->filter('.tag'));
+
+        $page = $browser->request('GET', self::PAGE . '?kind=tables&layout=tents');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $page->filter('[data-tag-controls]'));
     }
 
     public function testAnAdminSeesTheKindsOnlyWhenAskingForThem(): void
@@ -335,8 +329,6 @@ final class CompetitionTagsPrintTest extends WebTestCase
 
     private function browser(string $player): KernelBrowser
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

@@ -30,9 +30,8 @@ Four `competition` columns, all defaulting to the behaviour before the toolkit; 
   and, indented below it, live results + time proposals. Saved = flash + redirect, refused = hub with 422. An online
   event gets "in-person only" instead of the form. Below it "Print tags": one link per print kind, the saved mode's
   kind first (`CompetitionTagPrintKind::defaultFor()`).
-- **Who:** the hub is behind `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` (`COMPETITION_EDIT` and admin, or
-  any organiser while the env flag `COMPETITION_TOOLKIT_FOR_ORGANISERS=1`). **Using** what was switched on (pages, tags,
-  proposals) is never gated by the flag.
+- **Who:** the hub is behind `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` (= `COMPETITION_EDIT`: every
+  organiser of the event, admins). **Using** what was switched on (pages, tags, proposals) needs no organiser rights.
 - **Duplicate:** `DuplicateCompetitionHandler` copies all four settings to the copy (event settings, like registration;
   `DuplicateCompetitionHandlerTest::testDisplaysAndCompetitorPageSettingsAreCopiedOntoTheCopysRounds`).
 - Tests: `CompetitorPageSettingsTest` (normalisation), `ChangeCompetitorPageSettingsHandlerTest`,

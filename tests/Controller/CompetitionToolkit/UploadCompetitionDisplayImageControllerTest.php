@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -28,9 +27,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
 
@@ -39,8 +35,6 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $this->restoreFeatureFlagEnv();
-
         foreach ($this->temporaryFiles as $file) {
             if (is_file($file)) {
                 unlink($file);
@@ -52,7 +46,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testAnAdminUploadsATransparentPngTheDesignAccepts(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         $response = $this->upload($browser, $displayId, $this->image('png', 'logo.png'));
@@ -79,7 +73,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testEveryFormatADisplayShowsIsTaken(): void
     {
-        $browser = $this->browser(flag: true, player: self::ORGANISER);
+        $browser = $this->browser(self::ORGANISER);
         $displayId = $this->addDisplay();
 
         foreach (['jpeg' => 'jpg', 'webp' => 'webp', 'gif' => 'gif'] as $format => $extension) {
@@ -94,7 +88,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testOtherFilesAreRefusedAsUnsupported(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         $svg = $this->file('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect width="10" height="10"/></svg>');
@@ -110,7 +104,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testAPictureOverFiveMegabytesIsTooLarge(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         $large = $this->file('large.jpg', str_repeat('x', 5 * 1024 * 1024 + 1));
@@ -123,7 +117,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testAnUploadWithoutAFileOrWithABrokenPicture(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         $response = $this->upload($browser, $displayId, null);
@@ -139,7 +133,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testUploadsAreRateLimitedPerPlayer(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         // The test environment's limiters live on disk: the budget used up here is given back at the end
@@ -159,20 +153,15 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
         }
     }
 
-    public function testTheOrganiserUploadsWithTheFlagButNotWithoutIt(): void
+    public function testTheOrganiserUploads(): void
     {
-        $this->upload($this->browser(flag: true, player: self::ORGANISER), $this->addDisplay(), $this->image('png', 'logo.png'));
+        $this->upload($this->browser(self::ORGANISER), $this->addDisplay(), $this->image('png', 'logo.png'));
         self::assertResponseIsSuccessful();
-
-        self::ensureKernelShutdown();
-        $response = $this->upload($this->browser(flag: false, player: self::ORGANISER), $this->addDisplay(), $this->image('png', 'logo.png'));
-        self::assertResponseStatusCodeSame(403);
-        self::assertSame(['error' => 'forbidden'], $response);
     }
 
-    public function testAnotherPlayerCannotUploadEvenWithTheFlag(): void
+    public function testAnotherPlayerCannotUpload(): void
     {
-        $response = $this->upload($this->browser(flag: true, player: PlayerFixture::PLAYER_REGULAR), $this->addDisplay(), $this->image('png', 'logo.png'));
+        $response = $this->upload($this->browser(PlayerFixture::PLAYER_REGULAR), $this->addDisplay(), $this->image('png', 'logo.png'));
 
         self::assertResponseStatusCodeSame(403);
         self::assertSame(['error' => 'forbidden'], $response);
@@ -180,7 +169,6 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
 
     public function testSignedOutMissingTokenAndUnknownDisplay(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $browser = self::createClient();
         $displayId = $this->addDisplay();
 
@@ -259,11 +247,8 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
         return $displayId->toString();
     }
 
-    private function browser(bool $flag, string $player): KernelBrowser
+    private function browser(string $player): KernelBrowser
     {
-        // Before the kernel boots - the flag is a container parameter
-        $this->overrideFeatureFlagEnv(self::FLAG, $flag);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

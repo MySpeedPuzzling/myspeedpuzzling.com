@@ -141,7 +141,7 @@ rounds page. Form: QR mode (4 radios with a one-line example each), "Public comp
 "Show confirmed results before publishing" and "Let competitors propose their time" (disabled while pages are off).
 Message `ChangeCompetitorPageSettings(competitionId, actingPlayerId, settings)` - touches only `Competition`, so no
 participants lock is needed (`Competition` is not in the guard's entity list). Shown only to admins while
-`COMPETITION_TOOLKIT_FOR_ORGANISERS=0` (rule 2) - the page 404s for others, the Tools menu link is hidden. If A or C
+the organiser flag=0 (retired 2026-11-17) (rule 2) - the page 404s for others, the Tools menu link is hidden. If A or C
 introduce a common "competition toolkit settings" hub, this form becomes one card of it (orchestrator to merge).
 
 ---

@@ -178,35 +178,24 @@ final class StopwatchRevealPagesTest extends WebTestCase
      * The option is the competition toolkit's (COMPETITION_TOOLKIT_MANAGE: admins, organisers while the flag is on) - a
      * row using it keeps working for every organiser
      */
-    public function testTheOptionIsOfferedToTheToolkitOnly(): void
+    public function testTheOptionIsOfferedToEveryOrganiser(): void
     {
         $roundPuzzleId = $this->secret();
         $this->addMaintainer();
 
-        $page = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
-        self::assertCount(1, $page->filter('#reveal-stopwatch-' . $roundPuzzleId));
-
+        // An organiser (not an admin) chooses it, and gets the checkbox at the start
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $page = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
         self::assertResponseIsSuccessful();
-        self::assertCount(0, $page->filter('#reveal-stopwatch-' . $roundPuzzleId));
+        self::assertCount(1, $page->filter('#reveal-stopwatch-' . $roundPuzzleId));
 
-        $this->post('/en/round-puzzle-reveal/' . $roundPuzzleId, $this->revealForm($page, $roundPuzzleId, 'stopwatch'));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('automatic', $this->revealMode($roundPuzzleId));
-
-        // An admin chose it: the organiser keeps it, and gets the checkbox at the start
-        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
-        $page = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
         $this->post('/en/round-puzzle-reveal/' . $roundPuzzleId, $this->revealForm($page, $roundPuzzleId, 'stopwatch'));
         self::assertResponseRedirects('/en/manage-round-puzzles/' . self::ROUND);
         self::assertSame('stopwatch', $this->revealMode($roundPuzzleId));
         // The reveal push of a reveal setting saved
         self::assertCount(1, self::hub()->getPublishedUpdates());
 
-        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $page = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
-        self::assertCount(1, $page->filter('#reveal-stopwatch-' . $roundPuzzleId));
         self::assertNotNull($page->filter('#reveal-stopwatch-' . $roundPuzzleId)->attr('checked'));
         self::assertStringContainsString('until the stopwatch starts', $page->filter('#round-puzzle-' . $roundPuzzleId . ' [data-reveal-status]')->text());
         $stopwatchPage = $this->browser->request('GET', '/en/manage-round-stopwatch/' . self::ROUND);

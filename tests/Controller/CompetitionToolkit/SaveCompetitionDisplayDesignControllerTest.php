@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\DisplayPreset;
@@ -25,22 +24,12 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
 
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testAnAdminSavesADesignAndGetsItNormalised(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
 
         $response = $this->save($browser, $displayId, [
@@ -71,7 +60,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testAStaleVersionIsAConflict(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
         $this->save($browser, $displayId, self::design('first001'), baseVersion: 1);
         self::assertResponseIsSuccessful();
@@ -91,7 +80,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testSavingTheSameDesignAgainKeepsTheVersion(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
         $this->save($browser, $displayId, self::design('same0001'), baseVersion: 1);
 
@@ -104,7 +93,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testAnInvalidDesignIsRefusedWithReadableErrorsAndNothingChanges(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
         $before = $this->row($displayId);
 
@@ -127,7 +116,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testLiveResultsNeedTheOrganisersConfirmationOnce(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
         $live = [
             'schema' => 1,
@@ -169,7 +158,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testALivePresetNeedsNoConfirmationToBeSavedAgain(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay(DisplayPreset::TimerWithLiveBoard);
         self::assertTrue($this->row($displayId)['uses_live_results']);
 
@@ -181,9 +170,9 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
         self::assertTrue($response['usesLiveResults']);
     }
 
-    public function testTheFlagLetsTheOrganiserSave(): void
+    public function testTheOrganiserSaves(): void
     {
-        $browser = $this->browser(flag: true, player: self::ORGANISER);
+        $browser = $this->browser(self::ORGANISER);
         $displayId = $this->addDisplay();
 
         $this->save($browser, $displayId, self::design('organise'), baseVersion: 1);
@@ -191,19 +180,13 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
-    public function testTheOrganiserCannotSaveWhileTheFlagIsOff(): void
+    public function testAnotherPlayerCannotSave(): void
     {
-        $this->assertForbidden(flag: false, player: self::ORGANISER);
-    }
-
-    public function testAnotherPlayerCannotSaveEvenWithTheFlag(): void
-    {
-        $this->assertForbidden(flag: true, player: PlayerFixture::PLAYER_REGULAR);
+        $this->assertForbidden(PlayerFixture::PLAYER_REGULAR);
     }
 
     public function testSignedOutIsAskedToSignInNotRedirected(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $browser = self::createClient();
         $displayId = $this->addDisplay();
 
@@ -215,7 +198,7 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
 
     public function testRequestsThatAreNotAProperSave(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay();
         $url = '/en/display-editor/' . $displayId . '/save';
 
@@ -246,9 +229,9 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
         self::assertSame(1, $this->row($displayId)['design_version'], 'The empty design of a blank screen is what it had');
     }
 
-    private function assertForbidden(bool $flag, string $player): void
+    private function assertForbidden(string $player): void
     {
-        $browser = $this->browser(flag: $flag, player: $player);
+        $browser = $this->browser($player);
         $displayId = $this->addDisplay();
 
         $response = $this->save($browser, $displayId, self::design('intruder'), baseVersion: 1);
@@ -322,11 +305,8 @@ final class SaveCompetitionDisplayDesignControllerTest extends WebTestCase
         return $row;
     }
 
-    private function browser(bool $flag, string $player): KernelBrowser
+    private function browser(string $player): KernelBrowser
     {
-        // Before the kernel boots - the flag is a container parameter
-        $this->overrideFeatureFlagEnv(self::FLAG, $flag);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

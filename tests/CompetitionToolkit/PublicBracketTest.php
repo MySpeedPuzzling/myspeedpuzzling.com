@@ -9,7 +9,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -28,7 +27,6 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class PublicBracketTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use QueryCountAssertions;
 
     private const string CUP = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
@@ -39,16 +37,8 @@ final class PublicBracketTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv('COMPETITION_TOOLKIT_FOR_ORGANISERS', false);
         $this->browser = self::createClient();
         $this->database = self::getContainer()->get(Connection::class);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testStagesRoundsAndQualifiedOfPublishedRoundsOnly(): void

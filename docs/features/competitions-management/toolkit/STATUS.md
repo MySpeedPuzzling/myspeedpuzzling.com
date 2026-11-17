@@ -9,7 +9,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 ## How it is delivered
 - Integration branch `competition-toolkit` (worktree `.claude/worktrees/ct-integrate`), not main, until hardening (H)
   is done and Jan says go. Every new behaviour is opt-in per competition; organiser-facing settings behind
-  `COMPETITION_TOOLKIT_FOR_ORGANISERS` (admins always).
+  an organiser flag (admins always) - retired 2026-11-17, every organiser gets them.
 - One agent per package in its own worktree (`.claude/worktrees/ct-<pkg>`), own DB `speedpuzzling_ct<pkg>_test` via
   `.claude/worktrees/cm-delivery/run.sh` / `heavy.sh`; at most 3 at once (lanes A, B, C of R §4.3).
 - Orchestrator reviews each diff (+ a review agent on big packages), cherry-picks onto the branch, runs gates.

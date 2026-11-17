@@ -11,7 +11,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
 | Participants spreadsheet: people, pairs/teams per round, results / table / qualified columns, registration columns, paste, undo, phone lists | Always available - "Participants" on the event's edit page (replaced the participants page and the round teams page) | [participants-spreadsheet.md](participants-spreadsheet.md) |
 | Participant model, self-join ("I'm going"), import/export, pairing | Always available | [participants.md](participants.md) |
-| Competition toolkit: pick-K-of-N rounds, reveal at the stopwatch start, standings and bracket, QR tags + competitor pages + time proposals, offline judge page, timer screens and stream overlays | Per event / per round on the toolkit hub (`competition_toolkit`) - admins, organisers once `COMPETITION_TOOLKIT_FOR_ORGANISERS` is on | "Competition toolkit" below |
+| Competition toolkit: pick-K-of-N rounds, reveal at the stopwatch start, standings and bracket, QR tags + competitor pages + time proposals, offline judge page, timer screens and stream overlays | Per event / per round on the toolkit hub (`competition_toolkit`) - every organiser of the event | "Competition toolkit" below |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
@@ -587,9 +587,8 @@ Organiser tools for formats beyond "one puzzle, one result per round", built fro
 [toolkit/R-review-and-plan.md](toolkit/R-review-and-plan.md)). **Nothing is a new default:** every part is chosen per
 event or per round, and an untouched competition behaves and renders as before (golden and statement pins). The
 settings live on one hub page, `competition_toolkit` (`/en/manage-event-toolkit/{competitionId}`, cs `/nastroje-udalosti/…`, the "Competition
-toolkit" button on the event's edit page), behind `COMPETITION_TOOLKIT_MANAGE` (`CompetitionToolkitVoter`: an organiser
-of the event for whom `CompetitionToolkitFeature` is on - admins always, organisers while
-`COMPETITION_TOOLKIT_FOR_ORGANISERS` is on, [feature_flags.md](../feature_flags.md)). What was switched on works for
+toolkit" button on the event's edit page), behind `COMPETITION_TOOLKIT_MANAGE` (`CompetitionToolkitVoter` = exactly
+`COMPETITION_EDIT`: every organiser of the event, admins; no feature flag since 2026-11-17). What was switched on works for
 everybody (public pages, displays by link, the judge page).
 
 | Part | What the organiser gets | As built |

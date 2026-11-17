@@ -96,7 +96,7 @@ results-desk.md, seating.md, round-results.md, registration.md, public-page.md) 
 1. **Opt-in, never a new default.** Every new behaviour is chosen by the organiser per competition (or per round). An
    untouched competition renders and behaves byte-identically (existing byte-identity / statement-count tests must stay
    green unchanged unless a test pins something we intentionally only *add* behind a setting).
-2. **Feature flag for the rollout**: one env flag `COMPETITION_TOOLKIT_FOR_ORGANISERS` (default 0 = only admins see
+2. **Feature flag for the rollout**: one env flag (the organiser flag, retired 2026-11-17) (default 0 = only admins see
    the new organiser settings/editors; documented in `docs/features/feature_flags.md`). Public surfaces of a
    competition that an admin switched on work for everybody (so Jan can run a real event before the flag is on).
 3. Architecture: CQRS (messages + handlers, controllers only dispatch), repositories never flush, raw SQL queries in

@@ -33,7 +33,6 @@ final class GetReadyChecklistTest extends WebTestCase
     use QueryCountAssertions;
 
     private const string FLAG = 'EVENT_CREATION_WIZARD';
-    private const string TOOLKIT_FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = CompetitionFixture::COMPETITION_UNAPPROVED;
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
     private const string DRAFT = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
@@ -44,7 +43,6 @@ final class GetReadyChecklistTest extends WebTestCase
     protected function setUp(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, true);
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
     }
 
     protected function tearDown(): void
@@ -90,7 +88,6 @@ final class GetReadyChecklistTest extends WebTestCase
 
     public function testEveryRowOfAnEventInFullPreparation(): void
     {
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, true);
         $this->client = self::createClient();
         [$secretRound, $laterRound] = $this->prepareFullEvent();
 
@@ -116,12 +113,6 @@ final class GetReadyChecklistTest extends WebTestCase
         self::assertSelectorTextContains('[data-get-ready-row="tables"]', '1 of 2 entries have a table');
         self::assertStringContainsString('/en/round-seating/' . $secretRound, (string) $crawler->filter('[data-get-ready-row="tables"] a')->attr('href'));
         self::assertStringContainsString('/en/manage-round-stopwatch/' . $secretRound, (string) $crawler->filter('[data-get-ready-row="stopwatch_test"] a')->attr('href'));
-
-        // Without the toolkit: its tips are gone, nothing else changes
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
-        self::ensureKernelShutdown();
-        $crawler = $this->editPage(self::EVENT, self::ORGANISER);
-        self::assertSame(['details', 'rounds', 'judges', 'registration', 'tables', 'name_tags'], array_keys(self::rows($crawler)));
     }
 
     public function testTheChecklistIsGoneOnceTheLastRoundFinished(): void
@@ -144,7 +135,6 @@ final class GetReadyChecklistTest extends WebTestCase
 
     public function testTheChecklistCostsTwoStatementsWhateverTheNumberOfRounds(): void
     {
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, true);
         $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->client = self::createClient();
         $this->prepareFullEvent();

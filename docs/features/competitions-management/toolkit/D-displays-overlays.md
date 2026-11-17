@@ -3,7 +3,7 @@
 Architect D, 2026-11-17. Scope: organiser-designed **timer screens** (projector / TV in the hall) and **stream overlays**
 (OBS browser source), both made of elements placed in an editor, each with its own unguessable URL. Design only -
 grounded in the code as of `main` 0ad091b37. Cross-cutting rules: `context.md` (opt-in, flag
-`COMPETITION_TOOLKIT_FOR_ORGANISERS`, CQRS, secret puzzles, unpublished results).
+the organiser flag (retired 2026-11-17), CQRS, secret puzzles, unpublished results).
 
 ---
 
@@ -640,8 +640,8 @@ Writes go through `SetCompetitionDisplaySpotlight` / `SetCompetitionDisplayMessa
 ### 9.5 Permissions and flag
 
 - New `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` (subject = competition id) = `COMPETITION_EDIT` +
-  `CompetitionToolkitFeature::isAvailableTo()` (admins always, organisers while
-  `COMPETITION_TOOLKIT_FOR_ORGANISERS=1`). This copies `OnlineRoundsFeature` / `OnlineRoundsVoter`.
+  the toolkit feature service (retired 2026-11-17) (admins always, organisers while
+  the organiser flag=1 (retired 2026-11-17)). This copies `OnlineRoundsFeature` / `OnlineRoundsVoter`.
   **Shared with the other toolkit areas - whichever work package lands first creates it.** It is documented in
   `docs/features/feature_flags.md`.
 - Every organiser action checks the voter on the competition **of the display loaded from the database**, never on an

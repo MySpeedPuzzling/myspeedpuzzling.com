@@ -18,7 +18,6 @@ use SpeedPuzzling\Web\Results\StandingRow;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -36,7 +35,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class PublicStandingsTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use WorldSeriesSetup;
 
     private const string SOLO_URL = '/en/events/world-series-test/standings/';
@@ -47,18 +45,10 @@ final class PublicStandingsTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv('COMPETITION_TOOLKIT_FOR_ORGANISERS', false);
         $this->browser = self::createClient();
         $this->database = self::getContainer()->get(Connection::class);
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
         $this->createWorldSeries(self::getContainer()->get(EntityManagerInterface::class));
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testPublishAndUnpublish(): void

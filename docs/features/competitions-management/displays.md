@@ -31,7 +31,7 @@ the 7 fonts and the standings overlay to v2). Delivery: the D rows of `toolkit/S
 ## Who may manage it
 
 - Every organiser route needs `IS_AUTHENTICATED_REMEMBERED` + `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE`
-  (= `COMPETITION_EDIT` and, for non-admins, `COMPETITION_TOOLKIT_FOR_ORGANISERS=1`; `docs/features/feature_flags.md`).
+  (= `COMPETITION_EDIT`: every organiser of the event, admins).
   The voter is always asked on **the display's own event, loaded from the database** (`GetCompetitionDisplays::byId()`),
   never on an id from the request.
 - The public display routes need no flag and no login. A display exists only if an admin or a flagged organiser made

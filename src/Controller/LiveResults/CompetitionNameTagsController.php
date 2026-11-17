@@ -28,8 +28,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * (the waitlist too - somebody may get a place at the door). A standalone print page like the table layout's.
  *
  * The competition toolkit's tags (B-qr-competitor-page.md §3.4, CompetitionTagSheet): `?kind=people|lineups|tables|
- * entries` and `?layout=tags|tents` - offered once the competition has a QR mode or competitor pages (the organiser
- * uses what an admin switched on), or to whom COMPETITION_TOOLKIT_MANAGE grants when they ask for a kind or layout.
+ * entries` and `?layout=tags|tents` - offered once the competition has a QR mode or competitor pages, or to whom
+ * COMPETITION_TOOLKIT_MANAGE grants when they ask for a kind or layout.
  * Otherwise the page is the name tags page of before, byte for byte (CompetitionNameTagsGoldenTest).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]

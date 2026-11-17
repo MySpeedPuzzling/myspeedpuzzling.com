@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\Query\GetCompetitorPageSettings;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\QrTagMode;
@@ -24,24 +23,14 @@ use Symfony\Component\DomCrawler\Form;
  */
 final class CompetitorPageSettingsCardTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string HUB = '/en/manage-event-toolkit/' . self::EVENT;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string FORM = 'competitor_page_settings_form';
 
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testAnUntouchedCompetitionShowsTheDefaults(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $page = $browser->request('GET', self::HUB);
 
@@ -57,7 +46,7 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
 
     public function testAnAdminSavesTheSettings(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::HUB . '?return=/en/events');
 
         $form = $page->filter('[data-competitor-pages-save]')->form();
@@ -81,7 +70,7 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
 
     public function testProposalsWithoutPagesAreSavedOff(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::HUB);
 
         $form = $page->filter('[data-competitor-pages-save]')->form();
@@ -94,7 +83,7 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
 
     public function testAnUnknownModeIsRefusedWith422(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::HUB);
 
         $form = $page->filter('[data-competitor-pages-save]')->form();
@@ -108,9 +97,9 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
         self::assertEquals(CompetitorPageSettings::defaults(), self::getContainer()->get(GetCompetitorPageSettings::class)->of(self::EVENT));
     }
 
-    public function testAnOrganiserCannotPostWhileTheFlagIsOff(): void
+    public function testNobodyElseCanPost(): void
     {
-        $browser = $this->browser(flag: false, player: self::ORGANISER);
+        $browser = $this->browser(PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('POST', self::HUB, [self::FORM => ['competitorPages' => '1']]);
 
@@ -118,19 +107,9 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
         self::assertEquals(CompetitorPageSettings::defaults(), self::getContainer()->get(GetCompetitorPageSettings::class)->of(self::EVENT));
     }
 
-    public function testNobodyElseCanPostEvenWithTheFlag(): void
+    public function testTheOrganiserSaves(): void
     {
-        $browser = $this->browser(flag: true, player: PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('POST', self::HUB, [self::FORM => ['competitorPages' => '1']]);
-
-        self::assertResponseStatusCodeSame(403);
-        self::assertEquals(CompetitorPageSettings::defaults(), self::getContainer()->get(GetCompetitorPageSettings::class)->of(self::EVENT));
-    }
-
-    public function testTheFlagLetsTheOrganiserSave(): void
-    {
-        $browser = $this->browser(flag: true, player: self::ORGANISER);
+        $browser = $this->browser(self::ORGANISER);
         $page = $browser->request('GET', self::HUB);
 
         $form = $page->filter('[data-competitor-pages-save]')->form();
@@ -143,7 +122,7 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
 
     public function testAnOnlineEventGetsNoForm(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $page = $browser->request('GET', '/en/manage-event-toolkit/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
 
@@ -162,7 +141,7 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
 
     public function testThePrintTagsLinksLeadToTheKindsWithTheQrModesFirst(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $page = $browser->request('GET', self::HUB);
         self::assertSame(['people', 'lineups', 'tables', 'entries'], $page->filter('[data-print-tags-kind]')->each(static fn ($link): string => (string) $link->attr('data-print-tags-kind')));
@@ -174,11 +153,8 @@ final class CompetitorPageSettingsCardTest extends WebTestCase
         self::assertStringContainsString('btn-primary', (string) $page->filter('[data-print-tags-kind="tables"]')->attr('class'));
     }
 
-    private function browser(bool $flag, string $player): KernelBrowser
+    private function browser(string $player): KernelBrowser
     {
-        // Before the kernel boots - the flag is a container parameter
-        $this->overrideFeatureFlagEnv(self::FLAG, $flag);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

@@ -27,7 +27,6 @@ final class EventWizardTest extends WebTestCase
     use OverridesFeatureFlagEnv;
 
     private const string FLAG = 'EVENT_CREATION_WIZARD';
-    private const string TOOLKIT_FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string ORGANISER = PlayerFixture::PLAYER_REGULAR;
 
     private KernelBrowser $browser;
@@ -35,7 +34,6 @@ final class EventWizardTest extends WebTestCase
     protected function setUp(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, true);
-        $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
         $this->browser = self::createClient();
     }
 
@@ -358,7 +356,7 @@ final class EventWizardTest extends WebTestCase
         self::assertSelectorTextContains('[data-event-wizard-review-round]', 'Czechia Time');
     }
 
-    public function testTheStopwatchRevealIsAToolkitOption(): void
+    public function testEveryOrganiserIsOfferedTheStopwatchReveal(): void
     {
         $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -367,7 +365,7 @@ final class EventWizardTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('input[name="event_wizard_puzzle_form[revealMode]"][value="stopwatch"]');
+        self::assertSelectorExists('input[name="event_wizard_puzzle_form[revealMode]"][value="stopwatch"]');
         self::assertSelectorExists('input[name="event_wizard_puzzle_form[revealMode]"][value="manual"]');
 
         // A secret puzzle with the automatic reveal - the round's own moment
@@ -471,7 +469,7 @@ final class EventWizardTest extends WebTestCase
         self::assertSame(['puzzle_format' => 'pick', 'puzzles_to_solve' => 1], $round);
     }
 
-    public function testThePuzzleFormatIsAToolkitSetting(): void
+    public function testEveryOrganiserIsOfferedThePuzzleFormat(): void
     {
         $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -481,7 +479,7 @@ final class EventWizardTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
         $this->submitPuzzle($crawler, ['another' => true]);
         $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzle');
-        self::assertSelectorNotExists('[data-event-wizard-format]');
+        self::assertSelectorExists('[data-event-wizard-format]');
     }
 
     public function testAnotherPlayerCannotOpenTheDraftsSteps(): void

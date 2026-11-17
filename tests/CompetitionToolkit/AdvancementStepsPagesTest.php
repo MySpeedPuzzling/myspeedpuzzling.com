@@ -8,7 +8,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SpeedPuzzling\Web\Value\AdvancementQualifyScope;
@@ -31,9 +30,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class AdvancementStepsPagesTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string COMPETITION = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string STEPS = '/en/manage-event-advancement/' . self::COMPETITION;
@@ -46,15 +42,7 @@ final class AdvancementStepsPagesTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->browser = self::createClient();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testThePagesAreBehindTheToolkitVoter(): void
@@ -63,12 +51,6 @@ final class AdvancementStepsPagesTest extends WebTestCase
         self::assertResponseRedirects();
 
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $this->browser->request('GET', self::STEPS);
-        self::assertResponseStatusCodeSame(403);
-        $this->browser->request('GET', self::STEPS . '/new');
-        self::assertResponseStatusCodeSame(403);
-
-        $this->overrideFeatureFlagEnv(self::FLAG, true);
         $this->browser->request('GET', self::STEPS);
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-advancement-steps-empty]');

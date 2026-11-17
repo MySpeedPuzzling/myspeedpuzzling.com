@@ -701,7 +701,7 @@ players, and no hidden players.
 ## 9. Feature flag and permissions
 
 - One voter, `CompetitionToolkitVoter::TOOLKIT_SETTINGS` (subject = competition id), shared by A/B/C/D. It is granted to
-  admins always, and to `COMPETITION_EDIT` holders while `COMPETITION_TOOLKIT_FOR_ORGANISERS` = 1. Pattern:
+  admins always, and to `COMPETITION_EDIT` holders while the organiser flag (retired 2026-11-17) = 1. Pattern:
   `OnlineRoundsVoter` + a `config/services.php` parameter. Whichever WP lands first creates it.
 - It gates **settings**: puzzle format, labels, the stopwatch reveal mode, standings and steps. **Use** is never gated:
   recording `puzzles`, the start checkbox and public standings work for anyone with the usual rights once the round or

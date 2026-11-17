@@ -14,7 +14,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DisplayFollowMode;
 use SpeedPuzzling\Web\Value\DisplayKind;
@@ -30,9 +29,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class CompetitionDisplaysPagesTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
-
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string HUB = '/en/manage-event-toolkit/' . self::EVENT;
     private const string LIST = '/en/manage-displays/' . self::EVENT;
@@ -40,16 +36,9 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
     private const string ADD_FORM = 'add_competition_display_form';
     private const string SETTINGS_FORM = 'competition_display_settings_form';
 
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
-    }
-
     public function testTheHubCardOfAnEventWithoutDisplays(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $page = $browser->request('GET', self::HUB);
 
@@ -64,7 +53,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testAnAdminAddsADisplayFromTheHub(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::HUB);
 
         $form = $page->filter('[data-display-add]')->form([
@@ -97,7 +86,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testTheAddFormDefaultsToTheRequestLanguage(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $page = $browser->request('GET', '/de/manage-displays/' . self::EVENT);
 
@@ -108,7 +97,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testAnAddWithoutANameIsRefusedWith422(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::LIST);
 
         $form = $page->filter('[data-display-add]')->form([self::ADD_FORM . '[name]' => '   ']);
@@ -121,7 +110,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testTheTwentiethDisplayHidesTheFormAndAnotherAddIsRefused(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::LIST);
         $form = $page->filter('[data-display-add]')->form([self::ADD_FORM . '[name]' => 'One too many']);
 
@@ -141,7 +130,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testTheRowButtonsDuplicateRegenerateAndDelete(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay('Hall A');
         $oldToken = $this->displays()[0]->token;
 
@@ -164,7 +153,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testARowButtonWithoutItsTokenIsRefused(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay('Hall A');
 
         $browser->request('POST', '/en/display-editor/' . $displayId . '/delete', ['_token' => 'nope']);
@@ -175,7 +164,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testTheSettingsPinARoundAndComeBack(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay('Hall A');
 
         $page = $browser->request('GET', '/en/display-editor/' . $displayId . '/settings?return=' . rawurlencode(self::HUB));
@@ -203,7 +192,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testTheSettingsFollowASubsetOfRounds(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay('Hall A');
 
         $page = $browser->request('GET', '/en/display-editor/' . $displayId . '/settings');
@@ -226,7 +215,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testPinnedWithoutARoundOrWithAForeignRoundIsRefusedWith422(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $displayId = $this->addDisplay('Hall A');
         $page = $browser->request('GET', '/en/display-editor/' . $displayId . '/settings');
 
@@ -244,33 +233,9 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
         self::assertSame(DisplayFollowMode::Current, $this->displays()[0]->followMode);
     }
 
-    public function testAnOrganiserGetsNothingWhileTheFlagIsOff(): void
+    public function testNobodyElseGetsIn(): void
     {
-        $browser = $this->browser(flag: false, player: self::ORGANISER);
-        $displayId = $this->addDisplay('Hall A');
-
-        foreach (
-            [
-            ['GET', self::LIST, []],
-            ['POST', self::LIST . '/add', [self::ADD_FORM => ['kind' => 'screen', 'name' => 'X', 'locale' => 'en']]],
-            ['GET', '/en/display-editor/' . $displayId . '/settings', []],
-            ['POST', '/en/display-editor/' . $displayId . '/settings', [self::SETTINGS_FORM => ['name' => 'X']]],
-            ['POST', '/en/display-editor/' . $displayId . '/duplicate', []],
-            ['POST', '/en/display-editor/' . $displayId . '/new-link', []],
-            ['POST', '/en/display-editor/' . $displayId . '/delete', []],
-            ] as [$method, $url, $parameters]
-        ) {
-            $browser->request($method, $url, $parameters);
-            self::assertResponseStatusCodeSame(403, $method . ' ' . $url);
-        }
-
-        self::assertCount(1, $this->displays());
-        self::assertSame('Hall A', $this->displays()[0]->name);
-    }
-
-    public function testNobodyElseGetsInEvenWithTheFlag(): void
-    {
-        $browser = $this->browser(flag: true, player: PlayerFixture::PLAYER_REGULAR);
+        $browser = $this->browser(PlayerFixture::PLAYER_REGULAR);
         $displayId = $this->addDisplay('Hall A');
 
         $browser->request('GET', self::LIST);
@@ -283,9 +248,9 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
         self::assertCount(1, $this->displays());
     }
 
-    public function testTheFlagLetsTheOrganiserAdd(): void
+    public function testTheOrganiserAdds(): void
     {
-        $browser = $this->browser(flag: true, player: self::ORGANISER);
+        $browser = $this->browser(self::ORGANISER);
         $page = $browser->request('GET', self::LIST);
 
         $browser->submit($page->filter('[data-display-add]')->form([self::ADD_FORM . '[name]' => 'Projector']));
@@ -298,7 +263,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testANewDisplayStartsFromTheChosenPreset(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::LIST);
 
         // Grouped by the kind each preset is for, Blank first
@@ -321,7 +286,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testAPresetForTheOtherKindIsRefused(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $page = $browser->request('GET', self::LIST);
 
         $page = $browser->submit($page->filter('[data-display-add]')->form([
@@ -337,7 +302,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testAnUnknownDisplayIsNotFound(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/en/display-editor/' . Uuid::uuid7()->toString() . '/settings');
 
@@ -346,7 +311,7 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
 
     public function testAnotherEventIsUntouched(): void
     {
-        $browser = $this->browser(flag: false, player: PlayerFixture::PLAYER_ADMIN);
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $this->addDisplay('Hall A');
 
         $page = $browser->request('GET', '/en/manage-event-toolkit/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
@@ -375,11 +340,8 @@ final class CompetitionDisplaysPagesTest extends WebTestCase
         return self::getContainer()->get(GetCompetitionDisplays::class)->ofCompetition(self::EVENT);
     }
 
-    private function browser(bool $flag, string $player): KernelBrowser
+    private function browser(string $player): KernelBrowser
     {
-        // Before the kernel boots - the flag is a container parameter
-        $this->overrideFeatureFlagEnv(self::FLAG, $flag);
-
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, $player);
 

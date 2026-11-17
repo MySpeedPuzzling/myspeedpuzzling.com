@@ -133,8 +133,8 @@ Also important:
 
 ### 1.4 One voter, one flag, one settings hub
 
-- `CompetitionToolkitFeature` + `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` (D's name; A's
-  `TOOLKIT_SETTINGS` is dropped). It is `COMPETITION_EDIT` and (admin, or `COMPETITION_TOOLKIT_FOR_ORGANISERS=1`), a
+- the toolkit feature service (retired 2026-11-17) + `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` (D's name; A's
+  `TOOLKIT_SETTINGS` is dropped). It is `COMPETITION_EDIT` and (admin, or the organiser flag=1 (retired 2026-11-17)), a
   copy of `OnlineRoundsVoter::ONLINE_ROUNDS_MANAGE` (verified pattern). It is built in **F0** and nobody else creates
   it.
 - **One "Competition toolkit" hub page:** `competition_toolkit`, `/{_locale}/manage-event-toolkit/{competitionId}`,
@@ -419,7 +419,7 @@ Sizes are in agent-days. "Read" points at the design sections each agent must re
 
 | Id | Scope | Depends on | Size | Key tests | Read |
 |---|---|---|---|---|---|
-| **F0 Foundation** | `CompetitionToolkitFeature` + `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` + env flag + `config/services.php` + `feature_flags.md`; hub page `competition_toolkit` skeleton (cards with placeholders) + link; `RoundPuzzlesVisibleNow` extracted from `GetEditionRounds`; baseline pins (§2.9) | - | 1.5 | voter matrix (admin / organiser × flag); `GetEditionRounds` tests unchanged; new pins green on main | R §1.4, §1.5, §2.9; D §9.3, §9.5 |
+| **F0 Foundation** | the toolkit feature service (retired 2026-11-17) + `CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE` + env flag + `config/services.php` + `feature_flags.md`; hub page `competition_toolkit` skeleton (cards with placeholders) + link; `RoundPuzzlesVisibleNow` extracted from `GetEditionRounds`; baseline pins (§2.9) | - | 1.5 | voter matrix (admin / organiser × flag); `GetEditionRounds` tests unchanged; new pins green on main | R §1.4, §1.5, §2.9; D §9.3, §9.5 |
 | **A1 Reveal on stopwatch start** | A §4 entirely + **§2.1 fixes** (reschedule withdraw, hash covers the moment) + reveal push (§1.5) + round puzzles page option + manage-stopwatch and control-room checkbox (unticked) | F0 | 2 | A §10 reveal parts; reschedule matrix; public stopwatch JSON key assertion; `SecretPuzzleRouteCanaryTest` scheduled−1 s | A §1.4, §4; R §2.1 |
 | **A2 Round format model** | `puzzle_format total\|pick`, K 1..N, round puzzle `position`/`label`, round form (flag-gated), guards, online-round refusal, round JSON `puzzleFormat` via `RoundPuzzlesVisibleNow` (public rule), internal API read-only output | A1 | 1.5 | `puzzleFormat` absent on `total` (golden unchanged); hidden names null for organiser and referee; guards | A §2.1, §2.5, §2.6 (round form + puzzles page), §6.1; R §1.1 |
 | **A3 Results protocol** | `RoundEntryPuzzles`, `result_puzzles` jsonb, `RoundResultField::Puzzles`, rules 1-7 + group pass + locks, `hasOfficialData`, entry JSON, removal/format guards, `official_results_puzzles.js` + parity test, seeding bound | A2 | 2 | A §10 handler list; statement pin unchanged without `puzzles`; group atomicity | A §2.2-2.5, §6.2-6.3 |

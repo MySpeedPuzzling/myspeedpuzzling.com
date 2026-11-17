@@ -10,7 +10,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -22,12 +21,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class RoundPuzzleFormatPagesTest extends WebTestCase
 {
-    use OverridesFeatureFlagEnv;
     use RoundPuzzleFormatSetup;
 
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string REFEREE = PlayerFixture::PLAYER_WITH_FAVORITES;
-    private const string FLAG = 'COMPETITION_TOOLKIT_FOR_ORGANISERS';
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -35,7 +32,6 @@ final class RoundPuzzleFormatPagesTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->overrideFeatureFlagEnv(self::FLAG, false);
         $this->browser = self::createClient();
         $this->database = self::getContainer()->get(Connection::class);
         $this->fixtureRow = self::addRoundPuzzles($this->database);
@@ -46,13 +42,6 @@ final class RoundPuzzleFormatPagesTest extends WebTestCase
             'added_by_id' => self::ORGANISER,
             'added_at' => '2026-10-01 10:00:00',
         ]);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreFeatureFlagEnv();
-
-        parent::tearDown();
     }
 
     public function testATotalRoundHasNoPuzzleFormat(): void
@@ -135,26 +124,23 @@ final class RoundPuzzleFormatPagesTest extends WebTestCase
         self::assertSame(3, $groupBFormat['toSolve']);
     }
 
-    public function testTheFormatFieldIsAToolkitSetting(): void
+    public function testTheFormatFieldIsOfferedToEveryOrganiser(): void
     {
         $url = '/en/edit-event-round/' . self::ROUND;
 
-        // An organiser without the flag: the form as it always was
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('[data-round-puzzle-format]');
+        self::assertSelectorExists('[data-round-puzzle-format] input[name="competition_round_form[puzzleFormat]"][value="pick"]');
 
-        // An admin: the toolkit's field
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $this->browser->request('GET', $url);
         self::assertSelectorExists('[data-round-puzzle-format] input[name="competition_round_form[puzzleFormat]"][value="pick"]');
 
-        // A round using `pick` keeps the field for every organiser, so it can be switched back
-        self::makePick($this->database, 2);
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        // A stranger gets no round form at all
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
         $this->browser->request('GET', $url);
-        self::assertSelectorExists('[data-round-puzzle-format] input[name="competition_round_form[puzzlesToSolve]"][value="2"]');
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testTheRoundFormSavesTheFormatAndRefusesMoreThanTheRoundHas(): void
@@ -197,7 +183,7 @@ final class RoundPuzzleFormatPagesTest extends WebTestCase
         self::assertStringContainsString('No secret puzzles', $groupA->text());
     }
 
-    public function testOrderAndLabelsAreForTheToolkitOnly(): void
+    public function testOrderAndLabelsAreForTheEventsOrganisers(): void
     {
         $page = '/en/manage-round-puzzles/' . self::ROUND;
         $arrange = '/en/arrange-round-puzzles/' . self::ROUND;
@@ -205,9 +191,9 @@ final class RoundPuzzleFormatPagesTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $this->browser->request('GET', $page);
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('[data-arrange-round-puzzles]');
-        self::assertSelectorNotExists('[data-round-puzzle-format]');
+        self::assertSelectorExists('[data-arrange-round-puzzles]');
 
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
         $this->browser->request('POST', $arrange, ['label' => [self::PUBLIC => 'Blue box']]);
         self::assertResponseStatusCodeSame(403);
 

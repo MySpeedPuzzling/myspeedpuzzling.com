@@ -11,7 +11,7 @@ Jan's two ways of deciding a competition over several rounds, both opt-in per ev
   results desk turns a step into presets for the organiser's own qualification, and the event gets a *bracket* page.
 
 Both are managed from the toolkit hub's "Standings & bracket" card (`competition_toolkit`), behind
-`COMPETITION_TOOLKIT_MANAGE` (admins; organisers while `COMPETITION_TOOLKIT_FOR_ORGANISERS` is on). Public pages work for
+`COMPETITION_TOOLKIT_MANAGE` (= `COMPETITION_EDIT`: every organiser of the event, admins). Public pages work for
 everybody once published / declared. Public surfaces read official entries **only** through `OfficialEntrantsView`
 (published rounds, ranked results, hidden players dropped without renumbering, private players masked - see
 [round-formats.md](round-formats.md) "Public round page of `pick` rounds + the entrants view"); a "Did not start" is

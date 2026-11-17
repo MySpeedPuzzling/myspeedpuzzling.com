@@ -32,7 +32,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The competition toolkit's one settings hub of an event (docs/features/competitions-management/toolkit/
  * R-review-and-plan.md §1.4): a card per area - competitor pages & QR, displays & overlays, standings, round formats &
  * reveals, judges. Each toolkit package fills its own card partial (templates/competition_toolkit/_card_*.html.twig).
- * Only for whom COMPETITION_TOOLKIT_MANAGE grants (admins; organisers while COMPETITION_TOOLKIT_FOR_ORGANISERS is on).
+ * Only for whom COMPETITION_TOOLKIT_MANAGE grants (= COMPETITION_EDIT: every organiser of the event, admins).
  *
  * The cards' settings forms post back here (each form under its own name): saved = redirect back, refused = the hub
  * again with 422 (Turbo drops a 200 answer to a full-page POST).

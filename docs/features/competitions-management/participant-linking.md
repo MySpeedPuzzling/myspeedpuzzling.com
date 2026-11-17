@@ -857,3 +857,29 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
    themselves) would avoid both; recommended to build both, invitations last (L4).
 4. The scan-matrix golden changes for signed-in players on events with competitor pages off (§6.4) - a deliberate
    change of a frozen golden (paths stay frozen).
+
+---
+
+## As built
+
+### L1a - foundation (2026-11-17)
+
+- `ParticipantLinkMethod` / `ParticipantLinkAction` (`src/Value/`), `competition_participant.connected_via`,
+  append-only `participant_link_log` (`ParticipantLinkLog`, no FKs, `ParticipantLinkLogRepository` persist only).
+- `ParticipantLinks` (`src/Services/ParticipantLinking/`): `link()` (no-op when already linked to the player - moment and
+  method kept; a row linked to somebody else is unlinked first and both are logged), `rejoin()` (a left self-joined row
+  revived by "I'm going" = a new link, moment now), `unlink()`. Seam for L2's §4 steps 3-4 marked in `link()`.
+- Call sites: `CompetitionSelfJoin` (`self_join`, release = `unlinked`), `JoinCompetitionHandler` pick (`claim` until
+  L2's `ParticipantClaims`), `LeaveCompetitionHandler` (`unlinked` - not `not_me`: leaving is no refused pair),
+  `ConnectCompetitionParticipantHandler` (`online_link`, its release of the player's other row = `unlinked`),
+  `ParticipantImportApplier` (`import` for imports with `by` = null, `organiser` + the acting organiser for the sheet).
+  Guard `ParticipantLinkCoverageTest` (token scan of `src/` + SQL writers of the link columns).
+- `connect()` keeps a default method `organiser` for tests/fixtures (R12): the method that keeps what a link may do
+  today under R3. `disconnect()` clears `connected_via` (R6: L4a reads the method before clearing the token).
+- Account deletion (§11): `ParticipantLinksOfDeletedAccount::release()` called by `DeletePlayerHandler` - log names
+  erased, one `account_deleted` row per row of the account (`gen_uuid_v7()`), self-joined rows without official data
+  soft-deleted (`OfficialResultsGuard::sqlParticipantHoldsOfficialData()`), link columns cleared on every row.
+- Sheet: `linkedVia` in the person state (same statement), grey suffix in the People grid's profile cell and the person
+  editor ("· by themselves" for `self_join`/`claim`, "· import", "· personal link"; nothing for `organiser`/NULL).
+- §5.8: join / leave / compete_connect call `ParticipantsSheetLiveUpdates::changedAfterResponse()` (AfterResponse, the
+  version read after the commit).

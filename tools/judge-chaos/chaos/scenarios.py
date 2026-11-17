@@ -263,7 +263,7 @@ def s03b_snapshot_timing(context):
     stream_ms = int(time.time() * 1000) - stream_started_ms
     during = sorted(w for w in writes if w > stream_started_ms)
     gaps = [b - a for a, b in zip([stream_started_ms] + during, during + [int(time.time() * 1000)])]
-    context['evidence']['starvation'] = {'stream_ms': stream_ms, 'snapshot_writes_during': len(during),
+    context['evidence']['starvation'] = {'visibility': browser.js('return document.visibilityState'), 'stream_ms': stream_ms, 'snapshot_writes_during': len(during),
                                          'longest_gap_ms': max(gaps) if gaps else None}
     other.wait_saved(30)
     problems = []
@@ -335,10 +335,11 @@ def s04_two_judges(context):
     row = db.entries([47])[47]
     context['evidence']['live_race'] = {'db': row, 'b_pill': after['pillText'], 'b_problems': after['problems']}
     a_value = typed(seconds_for(47))
-    saw_a = a_value in (shown['confirmNote'] or '') or a_value in (shown['entryNow'] or '')
+    saw_a = a_value in (shown['confirmNote'] or '')
     if row['seconds'] == seconds_for(47) + 600:
-        check(saw_a, 'SILENT OVERWRITE: B saved %s over A\'s %s - B\'s confirm step said %r (before A: %r)'
-              % (typed(seconds_for(47) + 600), a_value, shown['confirmNote'], before['confirmNote']))
+        check(saw_a, 'OVERWRITE WITHOUT "REPLACES": B saved %s over A\'s %s (no conflict) - A\'s value reached B\'s card '
+              '(%r) but the confirm step\'s note still said %r' % (typed(seconds_for(47) + 600), a_value,
+                                                                   shown['entryNow'], shown['confirmNote']))
         context['notes'].append('47: B replaced A\'s value having seen it ("%s")' % shown['confirmNote'])
     else:
         check(after['pillState'] == 'problem', 'B\'s save of 47 vanished: DB %s, B pill %r' % (row, after['pillText']))
@@ -407,6 +408,7 @@ def s05_worker_update(context):
 def sign_in_in_new_tab(browser, who):
     main = browser.driver.current_window_handle
     browser.driver.switch_to.new_window('tab')
+    browser.go('/site.webmanifest')  # cookies can only be deleted on the site's own origin, not on about:blank
     for name in ('PHPSESSID', 'REMEMBERME'):
         browser.driver.delete_cookie(name)
     browser.login(who)

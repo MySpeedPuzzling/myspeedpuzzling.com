@@ -136,6 +136,7 @@ up() {
     -e SERVER_NAME=:80 \
     -e MERCURE_PUBLISHER_JWT_KEY="$MERCURE_SECRET" \
     -e MERCURE_SUBSCRIBER_JWT_KEY="$MERCURE_SECRET" \
+    -e MERCURE_TRUSTED_ISSUERS="https://myspeedpuzzling.com" \
     -e MERCURE_EXTRA_DIRECTIVES=$'cors_origins *\nanonymous' \
     "$MERCURE_IMAGE" > /dev/null
 

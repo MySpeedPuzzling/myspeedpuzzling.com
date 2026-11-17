@@ -257,7 +257,12 @@ class Browser:
         options = webdriver.ChromeOptions()
         for arg in ('--unsafely-treat-insecure-origin-as-secure=%s' % SITE, '--force-prefers-reduced-motion',
                     '--disable-features=Translate,OptimizationHints', '--no-first-run', '--lang=en-US',
-                    '--window-size=430,932', *extra_args):
+                    '--window-size=430,932',
+                    # Every browser is a phone in someone's hand: its page is in front. Several Chrome windows share
+                    # Selenium's one display, and Chrome would treat the covered ones as background tabs (throttled
+                    # timers, paused work) - the background case is emulated on purpose instead (s12c)
+                    '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
+                    '--disable-background-timer-throttling', *extra_args):
             options.add_argument(arg)
         if video is not None:
             options.add_argument('--use-fake-ui-for-media-stream')

@@ -75,6 +75,15 @@ def main(argv):
         print('%s %-28s %6.1fs %s' % (status, name, seconds, error or '; '.join(context['notes'])[:300]), flush=True)
         lib.save_evidence('results-%s' % stamp, results)
 
+    # The live stream must have worked, or the live-update scenarios measured only the polling fallback
+    streams = {}
+    for entry in proxy.log():
+        if entry['path'].startswith('/.well-known/mercure') and entry['method'] == 'GET':
+            streams[str(entry['status'])] = streams.get(str(entry['status']), 0) + 1
+    results['mercure_streams_by_status'] = streams
+    lib.save_evidence('results-%s' % stamp, results)
+    print('Mercure streams by status: %s%s' % (streams, '  WARNING: refused streams - check the hub/JWT setup' if any(k in ('401', '403') for k in streams) else ''))
+
     passed = sum(1 for s in results['scenarios'] if s['status'] == 'PASS')
     print('%d/%d passed - %s/results-%s.json' % (passed, len(results['scenarios']), lib.OUT, stamp))
     return 0 if passed == len(results['scenarios']) else 1

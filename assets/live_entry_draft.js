@@ -47,7 +47,7 @@ export function normaliseDraft(raw) {
         return null;
     }
 
-    const { playerId, roundId, ref, view, mode, typed, pieces, pending, finishedNow, savedAt } = raw;
+    const { playerId, roundId, ref, view, mode, typed, pieces, choice, pending, finishedNow, savedAt } = raw;
 
     if (typeof playerId !== 'string' || typeof roundId !== 'string' || typeof ref !== 'string' || ref === '' || typeof savedAt !== 'number') {
         return null;
@@ -66,6 +66,8 @@ export function normaliseDraft(raw) {
         mode: mode === 'pieces' ? 'pieces' : 'time',
         typed: typeof typed === 'string' ? typed.slice(0, 40) : '',
         pieces: typeof pieces === 'string' ? pieces.slice(0, 10) : '',
+        // A pick round's puzzle choice (round puzzle ids, solving order - toolkit C10), null elsewhere
+        choice: Array.isArray(choice) ? choice.filter((id) => typeof id === 'string').slice(0, 20).map((id) => id.slice(0, 36)) : null,
         pending: null,
         finishedNow: null,
         savedAt,

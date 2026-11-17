@@ -192,7 +192,8 @@ final class StopwatchRevealRemovalTest extends WebTestCase
             'remove' => 20,
             'set' => 16,
             'delete round' => 20,
-            'delete event' => 16,
+            // 16 + the read of its displays' uploaded pictures, deleted after the commit (D7)
+            'delete event' => 17,
         ], $counts);
     }
 

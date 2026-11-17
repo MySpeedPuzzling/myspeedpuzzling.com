@@ -11,6 +11,10 @@ use Doctrine\DBAL\Connection;
  * Which object-storage keys the database still points at. Every column that holds
  * a storage key is checked, so a file is only ever called unreferenced when
  * nothing at all uses it - the safety net for deleting files after the fact.
+ *
+ * Competition displays (D-displays-overlays.md §3.2): the design's background picture, every element's `props.path`
+ * (image elements - any type, so nothing a display shows is ever called unreferenced) and the rotators' `props.images`.
+ * Every display row counts, so a duplicated display keeps the files its source shares with it.
  */
 readonly final class GetStoredFileReferences
 {
@@ -44,6 +48,9 @@ UNION SELECT logo_path FROM oauth2_client_request WHERE logo_path IN (:paths)
 UNION SELECT reference_image FROM online_round WHERE reference_image IN (:paths)
 UNION SELECT image->>'path' FROM competition_page_section, jsonb_array_elements(CASE WHEN jsonb_typeof(content->'images') = 'array' THEN content->'images' ELSE '[]'::jsonb END) AS image WHERE image->>'path' IN (:paths)
 UNION SELECT sponsor->>'logoPath' FROM competition_page_section, jsonb_array_elements(CASE WHEN jsonb_typeof(content->'sponsors') = 'array' THEN content->'sponsors' ELSE '[]'::jsonb END) AS sponsor WHERE sponsor->>'logoPath' IN (:paths)
+UNION SELECT design->'canvas'->'background'->'image'->>'path' FROM competition_display WHERE design->'canvas'->'background'->'image'->>'path' IN (:paths)
+UNION SELECT element->'props'->>'path' FROM competition_display, jsonb_array_elements(CASE WHEN jsonb_typeof(design->'elements') = 'array' THEN design->'elements' ELSE '[]'::jsonb END) AS element WHERE element->'props'->>'path' IN (:paths)
+UNION SELECT image->>'path' FROM competition_display, jsonb_array_elements(CASE WHEN jsonb_typeof(design->'elements') = 'array' THEN design->'elements' ELSE '[]'::jsonb END) AS element, jsonb_array_elements(CASE WHEN jsonb_typeof(element->'props'->'images') = 'array' THEN element->'props'->'images' ELSE '[]'::jsonb END) AS image WHERE image->>'path' IN (:paths)
 SQL;
 
             /** @var list<string> $rows */

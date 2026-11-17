@@ -6,12 +6,16 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\DeleteCompetitionDisplayImages;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
+use SpeedPuzzling\Web\Query\GetCompetitionDisplayImagePaths;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 readonly final class DeleteCompetitionSeriesHandler
@@ -23,6 +27,8 @@ readonly final class DeleteCompetitionSeriesHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private RoundStopwatchReveal $roundStopwatchReveal,
         private ClockInterface $clock,
+        private GetCompetitionDisplayImagePaths $getCompetitionDisplayImagePaths,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -117,6 +123,9 @@ readonly final class DeleteCompetitionSeriesHandler
              WHERE competition_id IN (SELECT id FROM competition WHERE series_id = :id)',
             $params,
         );
+        // The editions' displays cascade with them - their uploaded pictures are deleted once the deletion committed
+        $displayImages = $this->getCompetitionDisplayImagePaths->ofSeries($seriesId);
+
         $this->database->executeStatement(
             'DELETE FROM competition WHERE series_id = :id',
             $params,
@@ -126,5 +135,9 @@ readonly final class DeleteCompetitionSeriesHandler
         $this->seriesRepository->delete($series);
 
         $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);
+
+        if ($displayImages !== []) {
+            $this->messageBus->dispatch(new DeleteCompetitionDisplayImages($displayImages), [new DispatchAfterCurrentBusStamp()]);
+        }
     }
 }

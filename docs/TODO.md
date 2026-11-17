@@ -868,8 +868,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 
 ## Event page content sections (`docs/features/competitions-management/public-page.md`)
 
-- [ ] Prune unreferenced `competition-pages/<owner>/` objects: uploads of a section form that was never saved, and the
-      pictures of a deleted competition/series (its sections cascade, the files stay). `GetStoredFileReferences` already
+- [ ] Prune unreferenced `competition-pages/<owner>/` and `competition-displays/<competitionId>/` objects: uploads of a
+      section form / display editor that was never saved, and the pictures of a deleted competition/series (its
+      sections cascade, the files stay; display pictures of a deleted event are deleted already - D7). `GetStoredFileReferences` already
       knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold - needs a cron
       row on lily. Until then the per-player upload limit (60/h) and the 40-picture cap per section bound the leftovers.
 - [ ] A gallery photo also embedded by URL in a rich-text `<img>` is not seen by `GetStoredFileReferences`: removing it

@@ -92,7 +92,9 @@ readonly final class AnalyticsStudioRoundPredictionsBuilder
     }
 
     /**
-     * After the warm was sent: no other one for the same round and visible puzzles for a minute.
+     * After the warm was sent, and again by each turn of it that queues the next one: no other warm for the same round
+     * and visible puzzles while this chain runs (a turn ends within WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN,
+     * far inside the minute).
      */
     public function markWarming(WarmAnalyticsStudioPredictions $warm): void
     {
@@ -100,6 +102,15 @@ readonly final class AnalyticsStudioRoundPredictionsBuilder
         $item->set(1);
         $item->expiresAfter(self::WARMING_MARKER_SECONDS);
         $this->analyticsStudioPool->save($item);
+    }
+
+    /**
+     * The warm's chain has ended (everything computed, nothing to do, or its last turn): the next answer that misses
+     * somebody may send a new one at once.
+     */
+    public function warmingEnded(WarmAnalyticsStudioPredictions $warm): void
+    {
+        $this->analyticsStudioPool->deleteItem(self::warmingKey($warm->roundId, $warm->visibleHash));
     }
 
     /**

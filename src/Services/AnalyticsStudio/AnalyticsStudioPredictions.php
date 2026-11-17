@@ -113,6 +113,7 @@ final class AnalyticsStudioPredictions implements ResetInterface
             return $answers;
         }
 
+        // PSR-6 types getItems() as a bare iterable - its keys and items are checked, not assumed
         foreach ($this->analyticsStudioPool->getItems(array_keys($keys)) as $key => $item) {
             if (is_string($key) === false || isset($keys[$key]) === false || $item instanceof CacheItemInterface === false || $item->isHit() === false) {
                 continue;
@@ -133,6 +134,27 @@ final class AnalyticsStudioPredictions implements ResetInterface
         }
 
         return $answers;
+    }
+
+    /**
+     * "No prediction" for a member whose computation failed, kept like a computed one (TTL_SECONDS): the round's warm
+     * goes on with the others and does not try that player again until the entry expires - the column shows them
+     * without a value, the detail likewise.
+     *
+     * @param array<string, VisibleRoundPuzzle> $visible
+     */
+    public function rememberNoPrediction(AnalyticsStudioMember $member, array $visible): void
+    {
+        $playerId = $member->analysablePlayerId();
+
+        if ($playerId === null || $visible === []) {
+            return;
+        }
+
+        $item = $this->analyticsStudioPool->getItem(self::cacheKey($playerId, self::puzzleIdsOf($visible), $this->shownModel));
+        $item->set([]);
+        $item->expiresAfter(self::TTL_SECONDS);
+        $this->analyticsStudioPool->save($item);
     }
 
     /**

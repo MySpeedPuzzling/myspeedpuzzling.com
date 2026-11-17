@@ -859,7 +859,10 @@ Amendments of record (design note `design-v2/studio.md` §2.2, decisions R28-R34
   puzzles); another `visibleHash` than the message's, no visible slot or a pair/team round → nothing; the entrants (1)
   → public members who did not opt out, by player id; those already cached skipped (one multi-get), the rest through
   `AnalyticsStudioPredictions::forMember()` (the entrant answer's callback and key - the same numbers); memos cleared
-  every 25 computed members. Not found → info; any other failure → warning, end of the warm.
+  every 25 computed members. One member failing = one warning + "no prediction" kept for them 15 min
+  (`rememberNoPrediction()`), the others go on; more than 3 in a turn end the warm. Not found → info; any other
+  failure → warning, end of the warm (the warming marker is left to expire - a failing round is not re-warmed for a
+  minute however often its page asks).
 - **R30 No round aggregate**: `AnalyticsStudioPredictions::cachedForMembers()` reads the per-player entries in one
   PSR-6 `getItems()` (0 statements, never computes); the key is `AnalyticsStudioPredictions::cacheKey()` (shared with
   the computation, unchanged format).
@@ -870,7 +873,9 @@ Amendments of record (design note `design-v2/studio.md` §2.2, decisions R28-R34
   `predictions?entries=` (`{}` private/unlinked, `{predictionsOptedOut: true, prediction: null}`, or the values); a member
   not cached yet is **absent** (the page reads `pending`). `none` = pair/team round or nothing visible (2 statements,
   nothing sent); otherwise 3 statements whatever is cached. `warming` → the controller sends the warm unless the marker
-  `roundpredictions.warming.{round}.{visibleHash}` (60 s, set after the send) exists.
+  `roundpredictions.warming.{round}.{visibleHash}` (60 s, set after the send) exists. **Every re-queued turn renews
+  the marker** and a chain that ends (done, nothing to do, its last turn) deletes it - one chain per round and visible
+  set at a time.
 - **R33** no LockFactory: two workers racing may both send a warm (the second finds everything cached).
 - **Secrets**: nothing is sent, computed or keyed before a slot is visible; keys only over visible puzzle ids
   (`WarmAnalyticsStudioPredictionsHandlerTest`, `AnalyticsStudioSecretPuzzleTest` round-predictions X vs Y).

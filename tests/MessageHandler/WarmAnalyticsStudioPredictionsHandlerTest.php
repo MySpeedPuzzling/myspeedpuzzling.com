@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetAnalyticsStudioEntrants;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioContextLoader;
 use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioPredictions;
+use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioRoundPredictionsBuilder;
 use SpeedPuzzling\Web\Tests\AnalyticsStudioTesting;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture as F;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -26,6 +27,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Mime\Email;
+use Symfony\Contracts\Cache\CacheInterface;
 
 /**
  * The round-wide prediction warm of an analytics studio round (analytics-studio.md R28-R33) on Group B of the
@@ -134,18 +136,78 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends KernelTestCase
         $next = $sent[0]->getMessage();
         self::assertInstanceOf(WarmAnalyticsStudioPredictions::class, $next);
         self::assertSame([F::ROUND_GROUP_B, $message->visibleHash, $message->requestedAtMs, 1], [$next->roundId, $next->visibleHash, $next->requestedAtMs, $next->turn]);
+        // The chain renewed the round's warming marker: an answer meanwhile starts no second chain
+        self::assertNull($this->builder()->build(F::ROUND_GROUP_B)->warm);
 
         // The next turn finds the first cached and finishes
         $this->transport()->reset();
         $this->handler(membersPerTurn: 1)($next);
         self::assertTrue($this->isCached($players[1], [$puzzle]));
         self::assertSame([], $this->sent());
+        self::assertSame('ready', self::dig($this->builder()->build(F::ROUND_GROUP_B)->json, 'status'));
 
         // The last turn allowed stops with a warning instead of queueing another
         $this->clearAnalyticsStudioCache();
         $this->handler(membersPerTurn: 1)(new WarmAnalyticsStudioPredictions(F::ROUND_GROUP_B, $message->visibleHash, $message->requestedAtMs, WarmAnalyticsStudioPredictionsHandler::MAX_TURNS));
         self::assertSame([], $this->sent());
         self::assertTrue($this->logger->hasRecord('warning', 'stopped after its last turn'));
+        // The ended chain took its marker away: the next answer that misses somebody sends a new warm at once
+        $this->clearAnalyticsStudioCache();
+        $this->builder()->markWarming($message);
+        $this->handler(membersPerTurn: 1)(new WarmAnalyticsStudioPredictions(F::ROUND_GROUP_B, $message->visibleHash, $message->requestedAtMs, WarmAnalyticsStudioPredictionsHandler::MAX_TURNS));
+        self::assertNotNull($this->builder()->build(F::ROUND_GROUP_B)->warm);
+    }
+
+    public function testOneMemberFailingDoesNotStopTheOthers(): void
+    {
+        // Ivan linked to a second public player; Hugo's computation fails
+        $this->studioDatabase()->executeStatement('UPDATE competition_participant SET player_id = :player WHERE id = :id', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'id' => F::PARTICIPANT_IVAN]);
+        $puzzle = $this->puzzleOf(F::ROUND_GROUP_B);
+        $container = self::getContainer();
+        $realCache = $container->get('analytics_studio_cache');
+        self::assertInstanceOf(CacheInterface::class, $realCache);
+        $failingForHugo = new class ($realCache, strtolower(self::HUGO)) implements CacheInterface {
+            public function __construct(
+                private readonly CacheInterface $cache,
+                private readonly string $failingPlayerId,
+            ) {
+            }
+
+            /**
+             * @param callable(\Symfony\Contracts\Cache\ItemInterface, bool): mixed $callback
+             * @param null|array<mixed> $metadata
+             */
+            public function get(string $key, callable $callback, null|float $beta = null, null|array &$metadata = null): mixed
+            {
+                if (str_contains($key, $this->failingPlayerId)) {
+                    throw new \RuntimeException('The prediction of this player fails');
+                }
+
+                return $this->cache->get($key, $callback, $beta, $metadata);
+            }
+
+            public function delete(string $key): bool
+            {
+                return $this->cache->delete($key);
+            }
+        };
+        $predictions = new AnalyticsStudioPredictions($container->get(GetPlayerPredictions::class), $failingForHugo, $this->pool(), $this->shownModel());
+        $message = $this->message(F::ROUND_GROUP_B);
+
+        $this->handler(predictions: $predictions)($message);
+
+        self::assertCount(1, $this->logger->records, 'one warning for the one player');
+        self::assertTrue($this->logger->hasRecord('warning', 'Could not compute a time prediction'));
+        $context = $this->logger->records[0]['context'];
+        self::assertInstanceOf(\RuntimeException::class, $context['exception'] ?? null);
+        self::assertTrue($this->isCached(PlayerFixture::PLAYER_WITH_FAVORITES, [$puzzle]), 'the others are computed');
+        self::assertSame([], $this->cached(self::HUGO, [$puzzle]), '"no prediction" is kept for the failing player - not tried again');
+
+        // The next warm finds everybody cached: nothing computed, nothing logged
+        $this->logger->records = [];
+        $this->handler(predictions: $predictions)($message);
+        self::assertSame([], $this->logger->records);
+        self::assertSame('ready', self::dig($this->builder()->build(F::ROUND_GROUP_B)->json, 'status'));
     }
 
     public function testAHiddenPuzzleIsNeverInAnyKeyAndNothingIsWarmedBeforeAReveal(): void
@@ -186,20 +248,26 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends KernelTestCase
         self::assertSame([SendEmailMessage::class], array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, array_values([...$async->getSent()])));
     }
 
-    private function handler(int $membersPerTurn = PHP_INT_MAX): WarmAnalyticsStudioPredictionsHandler
+    private function handler(int $membersPerTurn = PHP_INT_MAX, null|AnalyticsStudioPredictions $predictions = null): WarmAnalyticsStudioPredictionsHandler
     {
         $container = self::getContainer();
 
         return new WarmAnalyticsStudioPredictionsHandler(
             $container->get(AnalyticsStudioContextLoader::class),
             $container->get(GetAnalyticsStudioEntrants::class),
-            $container->get(AnalyticsStudioPredictions::class),
+            $predictions ?? $container->get(AnalyticsStudioPredictions::class),
+            $this->builder(),
             $container->get(GetPlayerPredictions::class),
             $container->get(MessageBusInterface::class),
             $container->get(ClockInterface::class),
             $this->logger,
             membersPerTurn: $membersPerTurn,
         );
+    }
+
+    private function builder(): AnalyticsStudioRoundPredictionsBuilder
+    {
+        return self::getContainer()->get(AnalyticsStudioRoundPredictionsBuilder::class);
     }
 
     /**

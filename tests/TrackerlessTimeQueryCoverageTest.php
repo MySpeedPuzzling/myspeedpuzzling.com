@@ -53,6 +53,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/CountCompetitionResults.php' => self::COUNTS,
         'Query/FindSimilarSpeedPuzzler.php' => self::SOLO,
         'Query/GetAccountDeletionSummary.php' => self::OWN,
+        'Query/GetAnalyticsStudioLineupHistory.php' => 'Analytics studio line-up history (analytics-studio.md §2.7): reads a group\'s results through puzzling_team_id, never the tracker - an imported result without one belongs to the group and counts (TrackerlessTimeCanaryTest).',
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetAllPlayerIdsWithSolveTimes.php' => 'Background: every player with a result - `id IS NOT NULL` leaves a time without a tracker out.',

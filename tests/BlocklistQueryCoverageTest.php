@@ -113,6 +113,11 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetReports' => self::ADMIN,
         'GetResultReviewContactsOverview' => self::ADMIN,
         'GetResultReviewEmailCandidates' => self::BACKGROUND,
+        // The analytics studio (docs/features/competitions-management/analytics-studio.md D3, R20): its JSON is on the stateless
+        // firewall - no viewer, so the same entrants and record holders go on air for everybody; BlocklistCanaryTest pins it
+        'GetAnalyticsStudioEntrants' => 'Analytics studio (D3): no viewer by construction (stateless firewall) - a documented exemption like displays; one broadcast shows the same entrants to everybody. Organiser names, a private player masked (PrivateProfileAccess).',
+        'GetAnalyticsStudioPlayerFacts' => 'Analytics studio (D3): the entrants\' own numbers (analysable = public members only); the rating place is GetPlayerRatingRanking::sqlRankOf() - its HiddenPlayers part is empty without a viewer.',
+        'GetAnalyticsStudioPuzzleStats' => 'Analytics studio (D3): the top ten of a round puzzle with no viewer (stateless firewall) - the same for everybody, private record holders masked (PrivateProfileAccess).',
         'GetCompetitionDisplayState' => 'Competition displays (timer screens, stream overlays - D-displays-overlays.md §9.4) have no viewer: an anonymous capability URL on a hall screen or a stream, like the public projector page and published results to a guest. Organiser names only, no identity.',
         'GetRoundResultEntries' => self::ORGANISER,
         'GetTimeProposals' => self::ORGANISER . ' Competition toolkit P1: the judges\' proposals list (and the competitor\'s own proposal) - the participant as the organiser recorded them and the deciding judge, nothing of a proposer\'s profile.',

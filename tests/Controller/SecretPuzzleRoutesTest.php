@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -254,6 +255,48 @@ final class SecretPuzzleRoutesTest extends WebTestCase
 
         $container->get(ClockInterface::class)->sleep(1);
         $assertSecret(true, 'at the start');
+    }
+
+    /**
+     * The analytics studio's JSON (docs/features/competitions-management/analytics-studio.md §5, the public rule of
+     * R-review-and-plan.md §1.5): before the reveal not one answer carries the secret - not its name, id or EAN, for
+     * anybody (no viewer); the full swap test is AnalyticsStudioSecretPuzzleTest. After the reveal it is there.
+     */
+    public function testTheAnalyticsStudioNeverCarriesTheSecretBeforeTheReveal(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement("UPDATE competition_round SET slug = 'future-round' WHERE id = :id", ['id' => CompetitionApiFixture::ROUND_FUTURE]);
+        $base = '/analytics-studio/' . CompetitionApiFixture::ROUND_FUTURE;
+        $read = function (string $answer) use ($browser, $base): string {
+            $cache = self::getContainer()->get('analytics_studio_cache');
+            self::assertInstanceOf(AdapterInterface::class, $cache);
+            $cache->clear();
+            $browser->request('GET', $base . '/' . $answer);
+            self::assertResponseIsSuccessful($answer);
+
+            return (string) $browser->getResponse()->getContent();
+        };
+
+        foreach ([[null, 'a guest'], [PlayerFixture::PLAYER_WITH_FAVORITES, 'a maintainer of the event'], [PlayerFixture::PLAYER_ADMIN, 'an admin']] as [$playerId, $who]) {
+            $browser->restart();
+            if ($playerId !== null) {
+                TestingLogin::asPlayer($browser, $playerId);
+            }
+
+            self::assertStringContainsString('API Visible', $read('state'), 'No canary: the studio shows no puzzle at all.');
+            foreach (['state', 'analytics', 'predictions'] as $answer) {
+                $content = $read($answer);
+                foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN] as $secret) {
+                    self::assertStringNotContainsString($secret, $content, "{$who} {$answer}");
+                }
+            }
+        }
+
+        $connection->executeStatement('UPDATE competition_round_puzzle SET hide_until_round_starts = false WHERE puzzle_id = :puzzle', ['puzzle' => $puzzleId]);
+        $connection->executeStatement('UPDATE puzzle SET hide_until = NULL, hide_image_until = NULL WHERE id = :puzzle', ['puzzle' => $puzzleId]);
+        self::assertStringContainsString(self::SECRET_NAME, $read('state'), 'revealed');
     }
 
     public function testAdminPagesOfASecretPuzzleAreForAdminsOnly(): void

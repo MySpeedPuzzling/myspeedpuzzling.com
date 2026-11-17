@@ -33,6 +33,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
  */
 final class BlocklistCanaryTest extends WebTestCase
 {
+    use AnalyticsStudioTesting;
     use InteractsWithLiveComponents;
     use UnfinishedResultSeeding;
 
@@ -607,6 +608,44 @@ final class BlocklistCanaryTest extends WebTestCase
         self::assertStringContainsString('Ben Steady', $content, 'A display shows every row, whoever opened its link.');
         self::assertStringNotContainsString(self::BLOCKED, $content, 'A display never carries a player id.');
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'A display never carries a profile name.');
+    }
+
+    /**
+     * **Documented exemption: the analytics studio** (docs/features/competitions-management/analytics-studio.md D3,
+     * R20). Its JSON is on the stateless firewall - no viewer by construction, so a commentator's blocklist cannot
+     * apply: one broadcast shows the same entrants to everybody. Broader than displays (a public URL, not an
+     * organiser's token) - accepted for on-air consistency. The blocker gets exactly the guest's answers, the blocked
+     * player (Ben Steady of Group A, linked to a public profile) analysable in them.
+     */
+    public function testTheAnalyticsStudioHasNoViewerAndSoNoBlocklist(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $base = '/analytics-studio/' . OfficialResultsFixture::ROUND_GROUP_A;
+        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_A_BEN, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_A_BEN];
+        $read = function (string $url) use ($browser): string {
+            $this->clearAnalyticsStudioCache();
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful($url);
+
+            return (string) preg_replace('/"serverNowMs":\d+,/', '', (string) $browser->getResponse()->getContent());
+        };
+
+        $asGuest = array_map($read, $urls);
+        self::assertStringContainsString('Ben Steady', $asGuest[0], 'No canary: the studio does not list him.');
+        self::assertStringContainsString(self::BLOCKED, $asGuest[0], 'No canary: he is not analysable (his public profile).');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/en/');
+        self::assertSame($asGuest, array_map($read, $urls), 'The studio answers a blocker differently - it has a viewer.');
     }
 
     /**

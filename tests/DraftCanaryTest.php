@@ -478,6 +478,48 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
+     * The analytics studio's JSON (docs/features/competitions-management/analytics-studio.md §4): every answer of a round
+     * of a draft - or of an edition of a draft series - is a 404 for everybody (the JSON has no viewer, so its team gets
+     * one too), and an answer once published. Draft Night's "Main round"; Quiet Pines #1 gets a slugged round by SQL.
+     */
+    public function testTheAnalyticsStudioOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $pinesRound = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category, slug) SELECT :id, c.id, 'Pines round', 60, c.date_from, 'solo', 'pines-round' FROM competition c WHERE c.id = :competition",
+            ['id' => $pinesRound, 'competition' => OrganizationFixture::EDITION_QUIET_PINES_1],
+        );
+        $answers = ['state', 'analytics', 'predictions'];
+        $items = [
+            [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::ROUND_DRAFT_NIGHT],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $pinesRound],
+        ];
+
+        foreach ($items as [$table, $id, $roundId]) {
+            foreach ([null, PlayerFixture::PLAYER_WITH_STRIPE] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $this->setDraft($table, $id, false);
+                foreach ($answers as $answer) {
+                    $browser->request('GET', '/analytics-studio/' . $roundId . '/' . $answer);
+                    self::assertResponseIsSuccessful('No canary: the studio ' . $answer . ' of ' . $roundId . ' is not there once published');
+                }
+
+                $this->setDraft($table, $id, true);
+                foreach ($answers as $answer) {
+                    $browser->request('GET', '/analytics-studio/' . $roundId . '/' . $answer);
+                    self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s analytics studio answers: ' . $answer . ' of ' . $roundId);
+                }
+            }
+        }
+    }
+
+    /**
      * The public standings (competition toolkit A7): a published standing of Draft Night (its round's results published,
      * a ranked entry) is a page and a sitemap entry once the event is published - and a 404, out of the sitemap and not
      * linked while it is a draft, for a guest and a player off its team.

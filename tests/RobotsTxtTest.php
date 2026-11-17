@@ -63,6 +63,22 @@ final class RobotsTxtTest extends KernelTestCase
         }
     }
 
+    /**
+     * The analytics studio's JSON (docs/features/competitions-management/analytics-studio.md §1.2): data, never content.
+     */
+    public function testTheAnalyticsStudioJsonIsDisallowed(): void
+    {
+        $router = $this->router();
+
+        foreach (['analytics_studio_state', 'analytics_studio_analytics', 'analytics_studio_predictions'] as $routeName) {
+            $path = $router->generate($routeName, ['roundId' => self::SAMPLE_ID]);
+            self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
+        }
+
+        $path = $router->generate('analytics_studio_entrant', ['roundId' => self::SAMPLE_ID, 'entryId' => self::SAMPLE_ID]);
+        self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
+    }
+
     public function testQrCodeImageIsDisallowed(): void
     {
         $path = $this->router()->generate('puzzle_qr_code_image', ['puzzleId' => self::SAMPLE_ID]);

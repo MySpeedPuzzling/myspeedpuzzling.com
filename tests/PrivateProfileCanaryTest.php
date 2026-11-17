@@ -28,6 +28,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class PrivateProfileCanaryTest extends WebTestCase
 {
+    use AnalyticsStudioTesting;
     use UnfinishedResultSeeding;
 
     private const string OWNER = PlayerFixture::PLAYER_PRIVATE;
@@ -574,6 +575,42 @@ final class PrivateProfileCanaryTest extends WebTestCase
                 self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display names a private player ({$who}, {$url}).");
                 self::assertStringNotContainsString(self::OWNER, $content, "A display carries a private player's id ({$who}, {$url}).");
                 self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+            }
+        }
+    }
+
+    /**
+     * The analytics studio (docs/features/competitions-management/analytics-studio.md D3, R16): she is an entrant of
+     * Group B ("Gina Quick") and the fastest solver of its puzzle - by the organiser's name, never analysable, and a
+     * nameless record holder; nothing of her profile, her id or her history in any answer, for everybody, the friend
+     * included (no viewer - no allow list unmasks).
+     */
+    public function testTheAnalyticsStudioNeverNamesHer(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt, puzzling_type, puzzlers_count)
+             VALUES (:id, :player, :puzzle, 1234, TIMESTAMP '2026-09-01 10:00:00', TIMESTAMP '2026-09-01 10:00:00', true, true, 'solo', 1)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => self::OWNER, 'puzzle' => PuzzleFixture::PUZZLE_5000],
+        );
+        $base = '/analytics-studio/' . OfficialResultsFixture::ROUND_GROUP_B;
+        $urls = [$base . '/state', $base . '/analytics', $base . '/entrant/' . OfficialResultsFixture::ENTRY_B_GINA, $base . '/predictions?entries=' . OfficialResultsFixture::ENTRY_B_GINA];
+
+        foreach ([null, ...array_values(self::STRANGERS), self::FRIEND] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+            $this->clearAnalyticsStudioCache();
+
+            $state = $this->get($browser, $urls[0]);
+            self::assertStringContainsString('Gina Quick', $state, 'No canary: the studio does not list her.');
+            self::assertStringContainsString('"seconds":1234', $this->get($browser, $urls[1]), 'No canary: she is not among the record holders.');
+
+            foreach ($urls as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, ($viewer ?? 'guest') . ' ' . $url);
+                self::assertStringNotContainsString(self::OWNER, $content, ($viewer ?? 'guest') . ' ' . $url);
             }
         }
     }

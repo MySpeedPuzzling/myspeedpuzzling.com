@@ -33,6 +33,8 @@ use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeClassifier;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\TeamComposition;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -40,6 +42,7 @@ use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
@@ -225,6 +228,49 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
 
         $row = self::getContainer()->get(Connection::class)->fetchAssociative('SELECT player_id, seconds_to_solve, pieces_placed, seconds_spent FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
         self::assertSame(['player_id' => null, 'seconds_to_solve' => null, 'pieces_placed' => 412, 'seconds_spent' => 5400], $row);
+    }
+
+    /**
+     * The analytics studio (docs/features/competitions-management/analytics-studio.md §2.6-2.7): a pair's result without a
+     * tracker (an imported event result, its people claimed into the pair) is the line-up's history and each member's
+     * pair history - the group's result, read through puzzling_team_id, never through the tracker. The Puzzle Sharks of
+     * the "Results Cup" (Anna = PLAYER_ADMIN, Ben linked to PLAYER_WITH_FAVORITES here) on PUZZLE_2000.
+     */
+    public function testTheAnalyticsStudioCountsAPairsResultWithoutATracker(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $members = [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_FAVORITES];
+        $database->executeStatement('UPDATE competition_participant SET player_id = :player WHERE id = :id', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'id' => OfficialResultsFixture::PARTICIPANT_BEN]);
+        $teamId = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            'INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, 2, ' . TestClock::SQL_NOW . ')',
+            ['id' => $teamId, 'key' => TeamComposition::keyFromMemberKeys(array_map('strtolower', $members))],
+        );
+        foreach ($members as $position => $playerId) {
+            $database->executeStatement(
+                'INSERT INTO puzzling_team_member (id, team_id, member_key, player_id, position) VALUES (:id, :team, :key, :player, :position)',
+                ['id' => Uuid::uuid7()->toString(), 'team' => $teamId, 'key' => strtolower($playerId), 'player' => $playerId, 'position' => $position],
+            );
+        }
+        $database->executeStatement(
+            "INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt, suspicious, puzzling_team_id, puzzling_type, puzzlers_count, created_via)
+             VALUES (:id, NULL, :puzzle, 7777, TIMESTAMP '2026-09-01 10:00:00', TIMESTAMP '2026-09-01 10:00:00', true, false, false, :team, 'duo', 2, 'event_import')",
+            ['id' => Uuid::uuid7()->toString(), 'puzzle' => PuzzleFixture::PUZZLE_2000, 'team' => $teamId],
+        );
+        $cache = self::getContainer()->get('analytics_studio_cache');
+        self::assertInstanceOf(AdapterInterface::class, $cache);
+        $cache->clear();
+        $slot = strtolower((string) $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_PAIRS]));
+
+        $this->browser->request('GET', '/analytics-studio/' . OfficialResultsFixture::ROUND_PAIRS . '/analytics');
+        self::assertResponseIsSuccessful();
+        /** @var array{entrants: array<string, array{lineup: array{perPuzzle: array<string, array{solves: int, bestSeconds: null|int}>}, members: list<array{perPuzzle: array<string, array{asGroup: null|array{solves: int, bestSeconds: null|int}}>}>}>} $analytics */
+        $analytics = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        $sharks = $analytics['entrants'][OfficialResultsFixture::TEAM_SHARKS];
+
+        self::assertSame(['solves' => 1, 'bestSeconds' => 7777], array_intersect_key($sharks['lineup']['perPuzzle'][$slot], ['solves' => 1, 'bestSeconds' => 1]));
+        self::assertSame(['solves' => 1, 'bestSeconds' => 7777], $sharks['members'][0]['perPuzzle'][$slot]['asGroup']);
+        self::assertSame(['solves' => 1, 'bestSeconds' => 7777], $sharks['members'][1]['perPuzzle'][$slot]['asGroup']);
     }
 
     public function testThePuzzleLeaderboardKeepsTwoAnonymousTeamsApart(): void

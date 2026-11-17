@@ -86,6 +86,7 @@ final class SystemClockCoverageTest extends TestCase
      * @var array<string, array{0: list<string>, 1: string}>
      */
     private const array ALLOWED_IN_TESTS = [
+        'Controller/AnalyticsStudio/AnalyticsStudioQueryBudgetTest.php' => [['hrtime('], self::DURATION],
         'Controller/LiveResults/CompetitionNameTagsTest.php' => [['hrtime('], self::DURATION],
         'EventSubscriber/BotTrustCookieSubscriberTest.php' => [['microtime('], 'The bot-blocker cookie\'s issued-at - the sidecar validates it on its own clock.'],
         'MessageHandler/SyncPlanSwitchPortalConfigurationHandlerTest.php' => [['\'now\''], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],

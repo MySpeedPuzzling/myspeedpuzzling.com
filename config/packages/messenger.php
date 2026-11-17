@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Message\DeleteCompetitionDisplayImages;
 use SpeedPuzzling\Web\Message\DeletePageSectionImages;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
-use SpeedPuzzling\Web\Message\EnableSavingPaymentMethodOnSubscription;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
@@ -150,9 +149,6 @@ return App::config([
                 // not routed: handled at once); a busy worker is asked again by a delayed message of the handler's own
                 // (Phase 3)
                 CheckOnlineFinishPhoto::class => 'async',
-                // One Stripe call per subscription (docs/features/stripe.md "Cards") - never in the Stripe webhook's request;
-                // a Stripe error is tried again by the transport
-                EnableSavingPaymentMethodOnSubscription::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
                 // Reading an uploaded spreadsheet into the import's tables: downloads and parses the file outside a
                 // transaction (HandledOutsideTransaction), writes through small messages of its own - not routed:

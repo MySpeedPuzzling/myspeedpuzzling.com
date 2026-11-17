@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Services;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
-use SpeedPuzzling\Web\Message\EnableSavingPaymentMethodOnSubscription;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
 use SpeedPuzzling\Web\Message\TerminateMembershipDueToDispute;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
@@ -117,8 +116,6 @@ readonly final class StripeWebhookHandler
     private function handleSubscriptionCreated(Subscription $stripeSubscription): void
     {
         $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscription->id));
-        // Async, after the membership: a new card paying a later invoice becomes the subscription's default
-        $this->messageBus->dispatch(new EnableSavingPaymentMethodOnSubscription($stripeSubscription->id));
     }
 
     private function handleSubscriptionUpdated(Subscription $stripeSubscription): void

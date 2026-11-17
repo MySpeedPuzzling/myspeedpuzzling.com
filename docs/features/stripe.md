@@ -69,20 +69,13 @@ The player has an active membership if **either** the subscription date or the g
 
 Added 2026-11-17 after an early adopter whose card change failed the renewal was offered a new subscription at 150 CZK. On that day every ended row on prod (158) pointed to a `canceled` subscription, so the guard only adds one read for them.
 
-### Cards
-
-Stripe manages the cards, we never store or pick one. A subscription created by Checkout carries its own `default_payment_method`, which wins over the customer's default, so a player who paid an open invoice with a **new card** (hosted invoice page, retry period) would still be charged on the old card at the next renewal. Every living subscription therefore has `payment_settings.save_default_payment_method = on_subscription`: Stripe makes the card that paid a subscription invoice the subscription's default.
-
-- New subscriptions: `customer.subscription.created` → `EnableSavingPaymentMethodOnSubscription` (async, outside a transaction; Checkout cannot set it). The update changes only that setting; the `customer.subscription.updated` it causes re-runs `UpdateMembershipSubscription`, which is idempotent (no event for an active subscription, a cancellation is announced once).
-- Subscriptions from before 2026-11-17: `bin/console myspeedpuzzling:stripe:enable-saving-payment-methods [--dry-run]` queues one message per living subscription that still has it off (1,074 on prod that day, all `off`).
-
 ## Stripe Webhook Flow
 
 ### Handled Events
 
 | Stripe Event | Handler | `isPaymentConfirmed` |
 |-------------|---------|---------------------|
-| `customer.subscription.created` | `UpdateMembershipSubscription` + `EnableSavingPaymentMethodOnSubscription` (async, see [Cards](#cards)) | false |
+| `customer.subscription.created` | `UpdateMembershipSubscription` | false |
 | `customer.subscription.updated` | `UpdateMembershipSubscription` | false |
 | `customer.subscription.deleted` | `CancelMembershipSubscription` | — |
 | `invoice.payment_succeeded` | `UpdateMembershipSubscription` | **true** |

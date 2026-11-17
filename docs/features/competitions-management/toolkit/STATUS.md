@@ -52,7 +52,7 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | A7 | A | merged | 1dfc4ce79, 480ef17b6, 690c8b447 | publish/unpublish, event_standing/edition_standing (tabs per category, provisional until all published), OfficialEntrantsView keepHidden + participantIds, links (event parts +0 statements, round page, overview, sitemap) |
 | D8 | A | merged | 4cd3219a1, 7c20537d1, 8b2f40873 | duplicate copies displays (new tokens, images into the copy's prefix, rounds remapped) + competitor-page settings; convert-to-series refuses displays; Displays links on stopwatch page + control room |
 | A8 | B | merged | 96b5d75c7..dfed7f715 | competition_advancement_step + graph check, management pages, desk banner (Mark top N preset incl. ties as checkboxes, Advance prefilled), top-N-overall preset endpoint, duplicate copyAdvancementSteps(); merge resolved with D8 by hand |
-| D5 | C | started | | |
+| D5 | C | merged | 315569b21, 47dfa5531 | CompetitionDisplayLiveUpdates (display.signal results/puzzles/round/design after commit), CompetitionDisplaysPresence (cached, 0 statements once cached), hooks in controllers; browser walk pending (dev hub origin) → H |
 | A9 | B | started | | |
 | C10 | B | merged | 3698eb8b3..3916fe168 | puzzle chips (labels before reveal, order taps), grouped result+puzzles saves, Puzzle missing list, Save puzzle choice; bundle 180 KB/50 KB gzip (now 47.6). Not tried: reveal while card open, offline group save |
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |

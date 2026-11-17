@@ -90,7 +90,9 @@ QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
    later), fitted to the result shown. Find shows **"Puzzle missing (N)"** (entries with a time or pieces and no
    record) as a filter in place of the recent list. Undo takes back every change of the Save; a refused group shows
    both changes with the server's reasons (`puzzles_mismatch`, `group_refused`, …), Fix reopens with them. Taps:
-   table → chip → Finished now → Save. Split times entered by the judge are deferred (R §3).
+   table → chip → Finished now → Save. **Finished now per puzzle** (K ≥ 2, real events W5 - round-formats.md "Judge split
+   times"): a row per puzzle on the card; a tap records that puzzle's split at the tap (the record alone, Undo), the
+   K-th tap opens the confirm step with the result - Save sends both with the last split = the time.
 5. **Quick add** - "Not on the list? Add an entrant": a name (solo round) or a pair/team name + members, optional table
    (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
    entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, asked

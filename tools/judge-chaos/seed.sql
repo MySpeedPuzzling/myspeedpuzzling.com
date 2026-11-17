@@ -8,15 +8,22 @@
 --   competitor pages + time proposals on; entrant 300 linked to PLAYER_REGULAR "John Doe", 299 to PLAYER_PRIVATE
 --   "Jane Smith", 298 to PLAYER_ADMIN "Admin User" (linked a day ago - before the stopwatch's first start, so they may propose)
 --   every fixture account gets the password `judge-chaos-1` (argon2id)
+--   round "Chaos Solve All" (real events W5): pick K = N = 2 ("Challenge 1" PUZZLE_6000, "Challenge 2" PUZZLE_5000), the
+--   same running stopwatch, Chaos Testers 241..245 at tables 241..245 (s14_puzzle_splits)
 -- Idempotent: running it again resets the round (results, receipts, proposals) and the stopwatch.
 
 \set ON_ERROR_STOP on
 \set competition '018d0020-0000-0000-0000-000000000001'
 \set round '018d0099-0000-0000-0000-000000000001'
+\set splits '018d0099-0000-0000-0000-000000000011'
 
 BEGIN;
 
-DELETE FROM competition_time_proposal WHERE round_id = :'round';
+DELETE FROM competition_time_proposal WHERE round_id IN (:'round', :'splits');
+DELETE FROM round_result_change_receipt WHERE round_id = :'splits';
+DELETE FROM competition_participant_round WHERE round_id = :'splits';
+DELETE FROM competition_round_puzzle WHERE round_id = :'splits';
+DELETE FROM competition_round WHERE id = :'splits';
 DELETE FROM round_result_change_receipt WHERE round_id = :'round';
 DELETE FROM competition_participant_round WHERE round_id = :'round';
 DELETE FROM competition_round_puzzle WHERE round_id = :'round';
@@ -35,6 +42,18 @@ VALUES (:'round', :'competition', 'Chaos Round', 'chaos-round', 'solo', 'total',
 INSERT INTO competition_round_puzzle (id, round_id, puzzle_id, position, hide_until_round_starts, reveal_mode, hides_everywhere)
 VALUES ('018d0099-0000-0000-0000-000000000002', :'round', '018d0003-0000-0000-0000-000000000018', 1, false, 'automatic', false);
 
+INSERT INTO competition_round (id, competition_id, name, slug, category, puzzle_format, puzzles_to_solve, minutes_limit, starts_at,
+                               timezone, stopwatch_status, stopwatch_started_at, stopwatch_first_started_at, table_numbers_off,
+                               reveal_delay_minutes, start_time_known)
+VALUES (:'splits', :'competition', 'Chaos Solve All', 'chaos-solve-all', 'solo', 'pick', 2, 600,
+        (now() AT TIME ZONE 'UTC') - interval '10 minutes', 'Europe/Prague',
+        'running', (now() AT TIME ZONE 'UTC') - interval '10 minutes', (now() AT TIME ZONE 'UTC') - interval '10 minutes',
+        false, 10, true);
+
+INSERT INTO competition_round_puzzle (id, round_id, puzzle_id, position, label, hide_until_round_starts, reveal_mode, hides_everywhere)
+VALUES ('018d0099-0000-0000-0000-000000000012', :'splits', '018d0003-0000-0000-0000-000000000018', 1, 'Challenge 1', false, 'automatic', false),
+       ('018d0099-0000-0000-0000-000000000013', :'splits', '018d0003-0000-0000-0000-000000000017', 2, 'Challenge 2', false, 'automatic', false);
+
 INSERT INTO competition_participant (id, competition_id, name, country, source)
 SELECT ('018d0099-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid, :'competition',
        'Chaos Tester ' || lpad(i::text, 3, '0'), (ARRAY['cz', 'de', 'sk', 'us', 'pl'])[1 + i % 5], 'manual'
@@ -44,6 +63,11 @@ INSERT INTO competition_participant_round (id, participant_id, round_id, table_n
 SELECT ('018d0099-0000-0000-0002-' || lpad(i::text, 12, '0'))::uuid,
        ('018d0099-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid, :'round', i, false
 FROM generate_series(1, 300) AS i;
+
+INSERT INTO competition_participant_round (id, participant_id, round_id, table_number, result_did_not_start)
+SELECT ('018d0099-0000-0000-0004-' || lpad(i::text, 12, '0'))::uuid,
+       ('018d0099-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid, :'splits', i, false
+FROM generate_series(241, 245) AS i;
 
 -- The competitors (linked a day ago, before the round's first start)
 UPDATE competition_participant SET player_id = '018d0000-0000-0000-0000-000000000001',
@@ -64,7 +88,7 @@ UPDATE competition SET competitor_pages = true, time_proposals = true WHERE id =
 
 -- No other round of the event runs (the current round is the chaos one)
 UPDATE competition_round SET stopwatch_status = CASE WHEN stopwatch_status = 'running' THEN 'finished' ELSE stopwatch_status END
-WHERE competition_id = :'competition' AND id <> :'round';
+WHERE competition_id = :'competition' AND id NOT IN (:'round', :'splits');
 
 UPDATE user_account SET password = '$argon2id$v=19$m=65536,t=4,p=1$NFdSanlXbzA3WFczeUZicw$aq9ev+yasQV4FGQiJtFhrj56gHOpGAnjPP7GIHGsy2g',
        email_verified_at = COALESCE(email_verified_at, now());

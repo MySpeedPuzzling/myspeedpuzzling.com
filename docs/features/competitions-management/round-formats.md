@@ -113,7 +113,41 @@ As built in [live-results.md](live-results.md) step 4 "Pick rounds" (`assets/liv
 puzzle (label always, name and picture only once `hidden: false` - a name that came for a hidden slot is not shown),
 the known choice preselected, one tap picks (K = 1) or taps in solving order (K ≥ 2); Save sends `result` + `puzzles` as
 one outbox group (`enqueueGroup()`, never split - rule 7); "Save puzzle choice" records the choice alone; Find's
-"Puzzle missing (N)" filter. Split times entered by the judge are v2 (R §3) - the desk can enter `atSeconds`.
+"Puzzle missing (N)" filter. Split times: "Judge split times" below (real events W5); the desk can enter `atSeconds` too.
+
+## Judge split times - "Finished now" per puzzle (real events W5)
+
+Design: `world-series-rules.md` "Review amendments" (a back-to-back block = ONE "Solve all 2 (order recorded)" round,
+challenge 2's own time = split₂ − split₁). Pure logic `assets/live_entry_splits.js` (harness
+`tests/live-entry-splits-harness.mjs` via `LiveEntrySplitsScriptsTest`), small hooks in `live_results_controller.js`.
+
+- **Where:** the entry card of a `pick` round with K ≥ 2 (`splitFormat()`; K = 1 and `total` rounds: nothing changes),
+  "Finish time per puzzle" under the chips (`splits` target, an entry step - hidden on the confirm step). Shown once a
+  split is recorded, or while the stopwatch runs and the entry has no result; otherwise the card is as it was.
+- **Rows** (`splitRows()`): the puzzles finished so far in solving order - ✓ split, "own" time from the 2nd on
+  (`duration()`), ✎ typed correction; then, only while the entry has **no result**, the puzzles that may still be
+  finished (`candidates()`: once K are chosen on the card or in the record only those, else every puzzle not finished,
+  the chosen first) - "Finished now" while the stopwatch runs, ✎ a typed time (noted on paper).
+- **A tap** freezes `serverNow()` at the tap (the round's Finished now rule - the D2 monotonic clock, works offline,
+  `stopwatchTrusted()` re-check after; the tap moment is kept, never the receipt). Not the K-th puzzle
+  (`splitStep()`): the record alone is saved at once (`puzzles`: finished items with `atSeconds`, then the other chosen
+  puzzles not done), toast "Saved: Anna · Challenge 1 finished at 0:41:10" + Undo, the card stays open (the card's
+  `shownFrom.puzzles` = the saved record, so the next change's `from` is what it shows; while the first change waits
+  the outbox chains from it). A tap within 350 ms of a split save is ignored (double tap). **The K-th puzzle** goes to
+  the card's confirm step with the elapsed time as the result (Finished now note, "+ pieces missing", 350 ms guard,
+  draft restore after a reload); Save = `puzzles` + `result` as one outbox group (rule 7, `enqueueGroup()`).
+- **The last split = the result** (`withFinishSplit()` / `finishFields()` on the card's Save): a finished time whose
+  record has every earlier puzzle's split gets the last split = the time (rule 6). Records without splits (the judge
+  never tapped per puzzle) are saved exactly as before. The round's own "Finished now" on a card with K − 1 puzzles
+  finished (each with a split) and one left finishes that one (`finishChoice()`).
+- **Typed correction:** ✎ on a finished puzzle replaces its split (the record alone, `splits_out_of_order` checked on the
+  device first: "That time does not fit the order …"); never the last split of a finished entry - that is the result,
+  the time field changes both (the last split follows by `withFinishSplit()`).
+- Not here: the competitor page / proposals (a proposal still proposes the round's end); the desk's per-puzzle editor
+  is unchanged. Server: nothing new - a `puzzles` change of finished items with splits and no result was always valid
+  (rule 6 "no result yet = anything"); `RoundEntryPuzzlesRecordingTest::testPuzzlesFinishedOneByOneThenTheResultWithTheLastSplit`.
+- Chaos suite `s14_puzzle_splits` (seed round "Chaos Solve All"): offline tap on puzzle 1, offline reload, online tap
+  on puzzle 2 - both splits = the taps, 3 applied receipts.
 
 ## Missing pieces and time's up (reliability hardening T1)
 
@@ -168,5 +202,5 @@ time runs out we count missing pieces to show how many pieces were placed".
   record") and enter it again.
 - Never started with the tick = hidden like a manual reveal; "Reveal now" on the round puzzles page fixes it, the desk
   says so and its publish dialog offers the reveal (G3, above).
-- Deferred to v2 (R §3): `every` as its own mode (= pick K = N), judge split times, internal API writes of format and
-  labels, the sheet's per-puzzle popover.
+- Deferred to v2 (R §3): `every` as its own mode (= pick K = N), internal API writes of format and labels, the sheet's
+  per-puzzle popover. (Judge split times: built, real events W5 above.)

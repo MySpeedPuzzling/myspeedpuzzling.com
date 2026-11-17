@@ -309,6 +309,44 @@ final class ResultsImportComparisonTest extends KernelTestCase
         self::assertSame(ResultsImportStatus::Unchanged, $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('301')?->status);
     }
 
+    /**
+     * solo-and-relays.md §1: a single person at a teams event, skipped before, is Changed + added by the next check; a team
+     * that turns into one person is a size change of the same row; once applied the page says Unchanged - the page and the
+     * import agree.
+     */
+    public function testASinglePersonIsAddedAndATeamTurningIntoOnePersonIsChanged(): void
+    {
+        $container = self::getContainer();
+        $link = 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_500_01;
+        $rows = [
+            "First Team,0:40:00,4,,Solo Night,Hall,\"Springfield, MN\",10/1/26,7:00 PM,90,Teams,$link",
+            'Second Team,0:45:00,3,,,,,,,,,',
+        ];
+        self::applyTab($container, $this->source, '302', 'Solo Night', self::sheetCsv($rows));
+
+        $changed = self::sheetCsv([$rows[0], 'Second Team,0:45:00,1,,,,,,,,,', 'Jane Doe,0:41:00,1,,,,,,,,,']);
+        $check = $this->check(new SheetSnapshot([new SheetSnapshotTab('302', 'Solo Night', $changed)]));
+        $event = $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('302');
+
+        self::assertNotNull($event);
+        self::assertSame(ResultsImportStatus::Changed, $event->status);
+        $changes = [];
+        foreach ($event->teamChanges as $change) {
+            $changes[$change->teamName] = [$change->kind, $change->sizeBefore, $change->sizeAfter];
+        }
+        ksort($changes);
+        self::assertSame(['Jane Doe' => [TeamChange::ADDED, null, 1], 'Second Team' => [TeamChange::CHANGED, 3, 1]], $changes);
+
+        self::applyTab($container, $this->source, '302', 'Solo Night', $changed);
+
+        $connection = $container->get(Connection::class);
+        self::assertSame(
+            [['name' => 'Jane Doe', 'puzzling_type' => 'solo'], ['name' => 'Second Team', 'puzzling_type' => 'solo']],
+            $connection->fetchAllAssociative("SELECT eir.name, pst.puzzling_type FROM event_imported_result eir JOIN puzzle_solving_time pst ON pst.id = eir.solving_time_id WHERE pst.puzzling_type = 'solo' ORDER BY eir.name"),
+        );
+        self::assertSame(ResultsImportStatus::Unchanged, $container->get(ResultsImportComparison::class)->compare($this->source, $check)->event('302')?->status);
+    }
+
     private function check(SheetSnapshot $snapshot): ResultsImportCheck
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

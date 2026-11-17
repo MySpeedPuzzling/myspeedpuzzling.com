@@ -145,6 +145,7 @@ final class PlayerSkillCalculator implements ResetInterface
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE p.pieces_count = :piecesCount
                     AND pst.puzzling_type = 'solo'
+                    AND pst.player_id IS NOT NULL
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
             ) sub

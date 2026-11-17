@@ -13674,9 +13674,9 @@ results_import:
     format_guide:
         sarah_does_puzzles:
             intro: "Cada pestaña de tu hoja es un evento. La fila 1 contiene los nombres de las columnas, la fila 2 el evento y su primer equipo, y cada fila siguiente un equipo más."
-            event_columns: "El evento, en la fila 2: Contest Name, Location, City and State, Date y Competition Type (Pairs o Teams), y la página del puzzle en MySpeedPuzzling en Link to MySpeedPuzzling. Start time y Time limit son opcionales."
+            event_columns: "El evento, en la fila 2: Contest Name, Location, City and State, Date y Competition Type (Pairs, Teams o Solo), y la página del puzzle en MySpeedPuzzling en Link to MySpeedPuzzling. Start time y Time limit son opcionales."
             team_columns: "Cada equipo: Name, Team Size y Time (h:mm:ss). Un equipo que no terminó dentro del tiempo límite lleva sus Pieces placed en lugar de un tiempo; la pestaña necesita entonces un Time limit."
-            smaller_teams: "Una pareja (Team Size 2) en un evento Teams está bien: se clasifica con todos los equipos por su tiempo y cuenta como resultado de una pareja. Todavía no se puede importar a una sola persona."
+            smaller_teams: "Una pareja (Team Size 2) o una sola persona (Team Size 1) en un evento Teams está bien, y una sola persona en un evento Pairs también: se clasifican con todos por su tiempo y cuentan como resultado de una pareja o como resultado propio de la persona. En un evento Solo cada fila es una persona (Team Size 1). El resultado de una sola persona muestra el nombre de la hoja hasta que la persona lo añade a su perfil."
             example: "Ejemplo"
     title: "Importar resultados"
     meta_title: "Importar resultados - %organization%"
@@ -13766,7 +13766,7 @@ results_import:
         team_name_too_long: "El nombre de equipo «%detail%» tiene más de 50 caracteres; se omite la fila."
         team_named_twice: "El equipo «%detail%» aparece dos veces en la hoja; no se importa ninguna de las dos filas."
         unreadable_team_size: "No podemos leer el tamaño del equipo «%detail%»; se omite la fila."
-        team_size_does_not_fit_category: "«%detail%» no se puede importar en este evento: un evento Pairs solo admite parejas y todavía no se puede importar a una sola persona. Se omite la fila."
+        team_size_does_not_fit_category: "«%detail%» no se puede importar en este evento: un evento Pairs admite parejas y personas solas, un evento Solo solo personas solas. Se omite la fila."
         unreadable_time: "No podemos leer el tiempo: %detail%; se omite la fila."
         row_without_result: "«%detail%» no tiene ni tiempo ni piezas colocadas; se omite la fila."
         time_and_pieces_placed: "«%detail%» tiene tiempo y piezas colocadas a la vez; se omite la fila."
@@ -15169,3 +15169,18 @@ finished_missing:
         none: "no falta ninguna pieza"
     desk:
         label: "piezas que faltan:"
+
+event_result_solo:
+    button: "Era yo"
+    title: "Era yo"
+    intro: "El resultado aparece en tu perfil y cuenta en tus estadísticas. Sigue siendo del evento: solo la hoja de resultados del organizador lo cambia."
+    submit: "Sí, era yo"
+    already_yours: "Este resultado ya es tuyo."
+    taken: "Alguien ya ha reclamado este resultado."
+    nobody_claimed: "Nadie ha reclamado este resultado todavía."
+    flash_claimed: "El resultado ya está en tu perfil."
+    claim_removed: "Se ha retirado tu reclamación de un resultado en %event%"
+    remove_title: "No era esta persona"
+    remove_button: "No era esta persona: %player%"
+    remove_intro: "%player% dejará de aparecer con este resultado. Se le avisa de que su reclamación se retiró, nunca de quién lo hizo."
+    remove_submit: "Retirar la reclamación"

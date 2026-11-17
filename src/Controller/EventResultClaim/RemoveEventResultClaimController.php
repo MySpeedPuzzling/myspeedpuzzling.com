@@ -81,7 +81,7 @@ final class RemoveEventResultClaimController extends AbstractEventResultClaimCon
 
         return $this->renderConfirmation(
             $request,
-            $this->translator->trans('event_result_claim.remove.title'),
+            $this->translator->trans($context->isSolo ? 'event_result_solo.remove_title' : 'event_result_claim.remove.title'),
             'event_result_claim/_remove_body.html.twig',
             ['context' => $context, 'claimer' => $claimer, 'error' => $error],
             $error !== null ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK,

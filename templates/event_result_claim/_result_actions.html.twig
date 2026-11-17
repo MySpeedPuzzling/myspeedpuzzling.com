@@ -30,7 +30,7 @@
                data-turbo-frame="modal-frame"
                data-testid="event-result-remove-link"
                rel="nofollow"
-            >{{ 'event_result_claim.remove.button'|trans({'%player%': (claimer.isPrivate and claimer.playerId != viewer_id) ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) }}</a>
+            >{{ (players|length == 1 ? 'event_result_solo.remove_button' : 'event_result_claim.remove.button')|trans({'%player%': (claimer.isPrivate and claimer.playerId != viewer_id) ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) }}</a>
         {%- endfor -%}
     {%- endif -%}
 </div>

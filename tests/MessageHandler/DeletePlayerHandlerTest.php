@@ -425,6 +425,30 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         );
     }
 
+    /**
+     * A single person's imported result the deleted player claimed (solo-and-relays.md §1) has no team to find them in -
+     * it is found by its tracker, released and stays the event's, nobody's again. Never deleted with the player.
+     */
+    public function testAClaimedSinglePersonsResultGoesBackToTheEvent(): void
+    {
+        $round = $this->seedTrackerlessEvent(PuzzleFixture::PUZZLE_1000_04);
+        $janeId = $this->seedTrackerlessSoloTime($round, PuzzleFixture::PUZZLE_1000_04, 'Jane Doe', 3300)->id->toString();
+
+        $this->messageBus->dispatch(new ClaimEventResultSlot($janeId, PlayerFixture::PLAYER_PRIVATE, firstTry: true));
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_PRIVATE));
+        $this->entityManager->clear();
+        $connection = $this->entityManager->getConnection();
+
+        self::assertSame(
+            ['player_id' => null, 'first_attempt' => false, 'puzzling_type' => 'solo'],
+            $connection->fetchAssociative('SELECT player_id, first_attempt, puzzling_type FROM puzzle_solving_time WHERE id = :id', ['id' => $janeId]),
+        );
+        self::assertSame(
+            [['action' => 'account_deleted', 'slot_key' => 's:' . $janeId, 'player_name' => '']],
+            $connection->fetchAllAssociative("SELECT action, slot_key, player_name FROM result_claim_log WHERE solving_time_id = :id AND action <> 'claimed'", ['id' => $janeId]),
+        );
+    }
+
     public function testAnApproverOfAnOrganizationCanBeDeleted(): void
     {
         // PLAYER_ADMIN approved Riverbend and the Harbor Puzzle Club

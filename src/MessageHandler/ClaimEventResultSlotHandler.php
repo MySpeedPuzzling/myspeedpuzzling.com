@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventResultClaimRefusal;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnclaimedSolo;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -108,9 +109,13 @@ readonly final class ClaimEventResultSlotHandler
             $this->solvingTimeRepository->delete($sameResult, SolvingTimeDeletedVia::EventResultClaim);
         }
 
-        $this->puzzlingTeamMemberConversion->anonymousSlotToPlayer($time->id->toString(), $slot, $playerId);
-        // The people and the pair/team changed in SQL - the entity reads them again before its own change
-        $this->solvingTimeRepository->reload($time);
+        // A single person's result has no people to convert - the claimer simply tracks it (solo-and-relays.md §1)
+        if ($time->team !== null) {
+            $this->puzzlingTeamMemberConversion->anonymousSlotToPlayer($time->id->toString(), $slot, $playerId);
+            // The people and the pair/team changed in SQL - the entity reads them again before its own change
+            $this->solvingTimeRepository->reload($time);
+        }
+
         $time->slotClaimedBy($player, $message->firstTry);
 
         $this->resultClaimLogRepository->save(new ResultClaimLog(
@@ -181,11 +186,16 @@ readonly final class ClaimEventResultSlotHandler
     }
 
     /**
-     * The spots are claimed in the order of the result's people.
+     * The spots are claimed in the order of the result's people. A single person's result (no team snapshot) has one
+     * spot while nobody tracks it, logged as `s:<time id>` (UnclaimedSolo).
      */
     private static function firstAnonymousSlot(PuzzleSolvingTime $time): null|string
     {
-        foreach ($time->team->puzzlers ?? [] as $puzzler) {
+        if ($time->team === null) {
+            return $time->player === null ? UnclaimedSolo::slotOf($time->id->toString()) : null;
+        }
+
+        foreach ($time->team->puzzlers as $puzzler) {
             if ($puzzler->anonymousSlot !== null) {
                 return $puzzler->anonymousSlot;
             }

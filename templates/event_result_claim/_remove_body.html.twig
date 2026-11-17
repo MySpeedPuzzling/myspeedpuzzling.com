@@ -11,7 +11,7 @@
 {{ include('event_result_claim/_error.html.twig') }}
 
 <p class="fs-sm">
-    {{ 'event_result_claim.remove.intro'|trans({'%player%': claimer.isPrivate ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) }}
+    {{ (context.isSolo ? 'event_result_solo.remove_intro' : 'event_result_claim.remove.intro')|trans({'%player%': claimer.isPrivate ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) }}
 </p>
 
 <form method="post" action="{{ path('event_result_claim_remove', {timeId: context.timeId, playerId: claimer.playerId}) }}" data-testid="event-result-remove-form"{% if in_modal %} data-turbo-frame="modal-frame"{% endif %}>
@@ -26,6 +26,6 @@
         {% if in_modal %}
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ 'event_result_claim.cancel'|trans }}</button>
         {% endif %}
-        <button type="submit" class="btn btn-danger btn-sm">{{ 'event_result_claim.remove.submit'|trans }}</button>
+        <button type="submit" class="btn btn-danger btn-sm">{{ (context.isSolo ? 'event_result_solo.remove_submit' : 'event_result_claim.remove.submit')|trans }}</button>
     </div>
 </form>

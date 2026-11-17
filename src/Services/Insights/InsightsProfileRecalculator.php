@@ -148,7 +148,7 @@ readonly final class InsightsProfileRecalculator
         return $this->connection->fetchFirstColumn("
             SELECT DISTINCT player_id::text
             FROM puzzle_solving_time
-            WHERE puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve > 0
+            WHERE puzzling_type = 'solo' AND puzzle_solving_time.player_id IS NOT NULL AND suspicious = false AND seconds_to_solve > 0
             ORDER BY 1
         ");
     }

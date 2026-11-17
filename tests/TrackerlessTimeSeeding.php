@@ -9,12 +9,20 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\EventImportedResult;
+use SpeedPuzzling\Web\Entity\EventResultsSheet;
+use SpeedPuzzling\Web\Entity\EventResultsSheetTab;
+use SpeedPuzzling\Web\Entity\Organization;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\SearchText;
 use SpeedPuzzling\Web\Value\TeamComposition;
 use SpeedPuzzling\Web\Value\UnfinishedResult;
 
@@ -62,7 +70,11 @@ trait TrackerlessTimeSeeding
         $round = new CompetitionRound(
             id: Uuid::uuid7(),
             competition: $competition,
-            name: $category === RoundCategory::Team ? 'Teams' : 'Pairs',
+            name: match ($category) {
+                RoundCategory::Team => 'Teams',
+                RoundCategory::Duo => 'Pairs',
+                RoundCategory::Solo => 'Individual',
+            },
             minutesLimit: 90,
             startsAt: $now->modify('-20 days')->setTime(19, 0),
             category: $category,
@@ -124,5 +136,67 @@ trait TrackerlessTimeSeeding
         $entityManager->flush();
 
         return $time;
+    }
+
+    /**
+     * A single person's result nobody has claimed yet (docs/features/event-results-import/solo-and-relays.md §1): a solo
+     * result without its player, the sheet's name on its imported row - in any round (a single person at a team event is
+     * linked to the event's teams round, D10). $piecesPlaced: unfinished instead, like seedTrackerlessTime().
+     */
+    protected function seedTrackerlessSoloTime(CompetitionRound $round, string $puzzleId, string $name, int $seconds, null|int $piecesPlaced = null): PuzzleSolvingTime
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
+        self::assertNotNull($puzzle);
+
+        $time = PuzzleSolvingTime::importedSoloFromEvent(
+            id: Uuid::uuid7(),
+            puzzle: $puzzle,
+            competition: $round->competition,
+            competitionRound: $round,
+            secondsToSolve: $piecesPlaced === null ? $seconds : null,
+            solvedAt: $round->startsAt,
+            unfinished: $piecesPlaced === null ? null : UnfinishedResult::fromInput($piecesPlaced, null, $puzzle->piecesCount, $round->minutesLimit),
+        );
+        $entityManager->persist($time);
+        $entityManager->persist(new EventImportedResult(Uuid::uuid7(), $this->trackerlessSheetTab(), SearchText::fold($name), $time, $name));
+        $entityManager->flush();
+
+        return $time;
+    }
+
+    /**
+     * The results sheet tab the seeded single people were imported from - one per test, made on first use.
+     */
+    private function trackerlessSheetTab(): EventResultsSheetTab
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $existing = $entityManager->getRepository(EventResultsSheetTab::class)->findOneBy(['gid' => 'seeded-solo']);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $organization = $entityManager->find(Organization::class, OrganizationFixture::ORGANIZATION_RIVERBEND);
+        $actingPlayer = $entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNotNull($organization);
+        self::assertNotNull($actingPlayer);
+
+        $sheet = new EventResultsSheet(
+            id: Uuid::uuid7(),
+            spreadsheetId: 'seeded-single-people-' . Uuid::uuid7()->toString(),
+            organization: $organization,
+            actingPlayer: $actingPlayer,
+            timezone: 'America/Chicago',
+            countryCode: 'us',
+            addedAt: TestClock::now(),
+        );
+        $entityManager->persist($sheet);
+
+        $tab = new EventResultsSheetTab(Uuid::uuid7(), $sheet, 'seeded-solo', 'Seeded single people');
+        $entityManager->persist($tab);
+
+        return $tab;
     }
 }

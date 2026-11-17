@@ -102,6 +102,7 @@ readonly final class SnapshotPlayerInsightsHandler
             SELECT player_id::text
             FROM puzzle_solving_time
             WHERE puzzling_type = 'solo'
+                AND puzzle_solving_time.player_id IS NOT NULL
                 AND suspicious = false
                 AND seconds_to_solve > 0
                 AND COALESCE(finished_at, tracked_at) >= :from

@@ -13673,9 +13673,9 @@ results_import:
     format_guide:
         sarah_does_puzzles:
             intro: "Jeder Tab deiner Tabelle ist ein Event. Zeile 1 enthält die Spaltennamen, Zeile 2 das Event und sein erstes Team, jede weitere Zeile ein weiteres Team."
-            event_columns: "Das Event, in Zeile 2: Contest Name, Location, City and State, Date und Competition Type (Pairs oder Teams) sowie die Seite des Puzzles auf MySpeedPuzzling in Link to MySpeedPuzzling. Start time und Time limit sind optional."
+            event_columns: "Das Event, in Zeile 2: Contest Name, Location, City and State, Date und Competition Type (Pairs, Teams oder Solo) sowie die Seite des Puzzles auf MySpeedPuzzling in Link to MySpeedPuzzling. Start time und Time limit sind optional."
             team_columns: "Jedes Team: Name, Team Size und Time (h:mm:ss). Ein Team, das innerhalb des Zeitlimits nicht fertig wurde, bekommt statt einer Zeit seine Pieces placed - der Tab braucht dann ein Time limit."
-            smaller_teams: "Ein Paar (Team Size 2) bei einem Teams-Event ist in Ordnung: Es wird mit allen Teams nach seiner Zeit gereiht und zählt als Ergebnis eines Paares. Eine einzelne Person kann noch nicht importiert werden."
+            smaller_teams: "Ein Paar (Team Size 2) oder eine Einzelperson (Team Size 1) bei einem Teams-Event ist in Ordnung, eine Einzelperson bei einem Pairs-Event auch: Sie werden mit allen nach der Zeit gereiht und zählen als Ergebnis eines Paares bzw. als eigenes Ergebnis der Person. Bei einem Solo-Event ist jede Zeile eine Person (Team Size 1). Das Ergebnis einer Einzelperson zeigt den Namen aus der Tabelle, bis die Person es zu ihrem Profil hinzufügt."
             example: "Beispiel"
     title: "Ergebnisimport"
     meta_title: "Ergebnisimport - %organization%"
@@ -13765,7 +13765,7 @@ results_import:
         team_name_too_long: "Der Teamname „%detail%“ ist länger als 50 Zeichen - die Zeile wird übersprungen."
         team_named_twice: "Das Team „%detail%“ steht zweimal in der Tabelle - keine der beiden Zeilen wird importiert."
         unreadable_team_size: "Wir können die Teamgröße von „%detail%“ nicht lesen - die Zeile wird übersprungen."
-        team_size_does_not_fit_category: "„%detail%“ kann bei diesem Event nicht importiert werden - ein Pairs-Event nimmt nur Paare, und eine einzelne Person kann noch nicht importiert werden. Die Zeile wird übersprungen."
+        team_size_does_not_fit_category: "„%detail%“ kann bei diesem Event nicht importiert werden - ein Pairs-Event nimmt Paare und Einzelpersonen, ein Solo-Event nur Einzelpersonen. Die Zeile wird übersprungen."
         unreadable_time: "Wir können die Zeit nicht lesen: %detail% - die Zeile wird übersprungen."
         row_without_result: "„%detail%“ hat weder eine Zeit noch gelegte Teile - die Zeile wird übersprungen."
         time_and_pieces_placed: "„%detail%“ hat eine Zeit und gelegte Teile - die Zeile wird übersprungen."
@@ -15168,3 +15168,18 @@ finished_missing:
         none: "keine fehlenden Teile"
     desk:
         label: "fehlende Teile:"
+
+event_result_solo:
+    button: "Das war ich"
+    title: "Das war ich"
+    intro: "Das Ergebnis erscheint in deinem Profil und zählt in deinen Statistiken. Es bleibt das Ergebnis der Veranstaltung: Nur die Ergebnistabelle des Veranstalters ändert es."
+    submit: "Ja, das war ich"
+    already_yours: "Dieses Ergebnis gehört bereits dir."
+    taken: "Dieses Ergebnis wurde bereits beansprucht."
+    nobody_claimed: "Dieses Ergebnis hat noch niemand beansprucht."
+    flash_claimed: "Das Ergebnis ist jetzt in deinem Profil."
+    claim_removed: "Dein Anspruch auf ein Ergebnis bei %event% wurde entfernt"
+    remove_title: "Nicht diese Person"
+    remove_button: "Nicht diese Person: %player%"
+    remove_intro: "%player% wird bei diesem Ergebnis nicht mehr angezeigt. Die Person erfährt, dass ihr Anspruch entfernt wurde, aber nie von wem."
+    remove_submit: "Anspruch entfernen"

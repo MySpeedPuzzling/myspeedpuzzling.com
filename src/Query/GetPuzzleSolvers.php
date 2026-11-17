@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Nette\Utils\Json;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Component\PlayerHeader;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -13,6 +14,7 @@ use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\UnfinishedPuzzleResult;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnclaimedSolo;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
@@ -49,8 +51,12 @@ SQL;
     }
 
     /**
+     * The solo tab. An imported single person nobody has claimed yet (solo-and-relays.md §1) is listed like an
+     * imported team nobody has claimed on the Pairs/Teams tabs: a PuzzleSolversGroup of one anonymous spot
+     * (UnclaimedSolo) named by the sheet, with "This was me". Every other row is its player's PuzzleSolver.
+     *
      * @throws PuzzleNotFound
-     * @return array<PuzzleSolver>
+     * @return array<PuzzleSolver|PuzzleSolversGroup>
      */
     public function soloByPuzzleId(string $puzzleId): array
     {
@@ -59,6 +65,7 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        $unclaimedName = UnclaimedSolo::sqlName('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -84,9 +91,12 @@ SELECT
     cs.shortcut AS competition_series_shortcut,
     cs.slug AS competition_series_slug,
     ps.skill_tier,
-    player.ranking_opted_out
+    player.ranking_opted_out,
+    (puzzle_solving_time.created_via = 'event_import') AS imported_from_event,
+    {$unclaimedName} AS unclaimed_name
 FROM puzzle_solving_time
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
+-- No player on an imported single person nobody has claimed (solo-and-relays.md §1) - kept, every other solo row has one
+LEFT JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
@@ -94,6 +104,7 @@ WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.seconds_to_solve IS NOT NULL
     AND puzzle_solving_time.suspicious = false
+    AND (player.id IS NOT NULL OR puzzle_solving_time.created_via = 'event_import')
     {$notHidden}
 ORDER BY seconds_to_solve ASC
 SQL;
@@ -104,7 +115,12 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleSolver {
+        return array_map(static function (array $row): PuzzleSolver|PuzzleSolversGroup {
+            if ($row['player_id'] === null) {
+                /** @var array{time_id: string, puzzle_id: string, time: int, finished_at: null|string, finished_at_precision: null|string, tracked_at: string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_shortcut: null|string, competition_name: null|string, competition_slug: null|string, competition_series_name: null|string, competition_series_shortcut: null|string, competition_series_slug: null|string, unclaimed_name: null|string} $row */
+                return self::unclaimedSolo($row);
+            }
+
             /**
              * @var array{
              *     time_id: string,
@@ -139,6 +155,43 @@ SQL;
 
             return PuzzleSolver::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * @param array{time_id: string, puzzle_id: string, time: int, finished_at: null|string, finished_at_precision: null|string, tracked_at: string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_shortcut: null|string, competition_name: null|string, competition_slug: null|string, competition_series_name: null|string, competition_series_shortcut: null|string, competition_series_slug: null|string, unclaimed_name: null|string} $row
+     */
+    private static function unclaimedSolo(array $row): PuzzleSolversGroup
+    {
+        return PuzzleSolversGroup::fromDatabaseRow([
+            'time_id' => $row['time_id'],
+            'player_id' => null,
+            'puzzle_id' => $row['puzzle_id'],
+            'time' => $row['time'],
+            'comment' => null,
+            'team_id' => null,
+            'players' => Json::encode([[
+                'player_id' => null,
+                'player_name' => null,
+                'player_code' => null,
+                'player_country' => null,
+                'is_private' => false,
+                'anonymous_slot' => UnclaimedSolo::slotOf($row['time_id']),
+            ]]),
+            'finished_at' => $row['finished_at'],
+            'finished_at_precision' => $row['finished_at_precision'],
+            'tracked_at' => $row['tracked_at'],
+            'first_attempt' => $row['first_attempt'],
+            'unboxed' => $row['unboxed'],
+            'competition_id' => $row['competition_id'],
+            'competition_shortcut' => $row['competition_shortcut'],
+            'competition_name' => $row['competition_name'],
+            'competition_slug' => $row['competition_slug'],
+            'competition_series_name' => $row['competition_series_name'],
+            'competition_series_shortcut' => $row['competition_series_shortcut'],
+            'competition_series_slug' => $row['competition_series_slug'],
+            'team_name' => $row['unclaimed_name'],
+            'imported_from_event' => true,
+        ]);
     }
 
     /**
@@ -426,6 +479,8 @@ SQL;
         $groupNotHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
         $groupMembers = self::GROUP_MEMBERS;
         $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
+        $unclaimedSlot = UnclaimedSolo::sqlSlot('pst');
+        $unclaimedName = UnclaimedSolo::sqlName('pst');
 
         $query = <<<SQL
 SELECT
@@ -436,7 +491,7 @@ SELECT
     pst.pieces_placed,
     pst.finished_later_seconds,
     pst.puzzling_team_id::varchar AS team_id,
-    (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    COALESCE((SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id), {$unclaimedName}) AS team_name,
     (pst.created_via = 'event_import') AS imported_from_event,
     pst.finished_at,
     pst.finished_at_precision,
@@ -460,7 +515,7 @@ SELECT
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('tracker')},
             'skill_tier', (SELECT ps.skill_tier FROM player_skill ps WHERE ps.player_id = tracker.id AND ps.pieces_count = {$tierPieces}),
             'ranking_opted_out', COALESCE(tracker.ranking_opted_out, false),
-            'anonymous_slot', NULL
+            'anonymous_slot', {$unclaimedSlot}
         )
     ) ELSE members.players END AS players
 FROM puzzle_solving_time pst
@@ -489,8 +544,9 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.pieces_placed IS NOT NULL
     AND pst.seconds_to_solve IS NULL
     AND pst.suspicious = false
-    -- A solo result is its tracker's; a pair/team result has its people in the snapshot (an imported one no tracker)
-    AND (pst.team IS NOT NULL OR tracker.id IS NOT NULL)
+    -- A solo result is its tracker's - or an imported single person's nobody has claimed (solo-and-relays.md §1); a
+    -- pair/team result has its people in the snapshot (an imported one no tracker)
+    AND (pst.team IS NOT NULL OR tracker.id IS NOT NULL OR pst.created_via = 'event_import')
     AND (pst.team IS NOT NULL OR (TRUE{$soloNotHidden}))
     {$groupNotHidden}
 ORDER BY pst.pieces_placed DESC, pst.tracked_at ASC, pst.id ASC

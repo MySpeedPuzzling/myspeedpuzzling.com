@@ -40,6 +40,25 @@ class EventImportedResult
         #[OneToOne]
         #[JoinColumn(nullable: false, unique: true, onDelete: 'CASCADE')]
         public PuzzleSolvingTime $solvingTime,
+        // The row's name as the sheet writes it (≤ 50, like puzzling_team.name) - a single person's display name while
+        // nobody has claimed the result (solo-and-relays.md §1); written for every row, null for rows imported before
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 50, nullable: true)]
+        public null|string $name = null,
     ) {
+    }
+
+    /**
+     * @return bool whether it changed
+     */
+    public function nameFromSheet(string $name): bool
+    {
+        if ($this->name === $name) {
+            return false;
+        }
+
+        $this->name = $name;
+
+        return true;
     }
 }

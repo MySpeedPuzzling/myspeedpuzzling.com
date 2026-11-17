@@ -35,6 +35,9 @@ readonly final class PuzzleSolver
         public null|string $playerAvatar = null,
         // How exactly the solve day is known (date-precision.md): a day, or only its month or year
         public DatePrecision $datePrecision = DatePrecision::Day,
+        // A single person's result imported from an event and claimed by this player (solo-and-relays.md §1): the
+        // event's - released, never edited (PuzzleSolvingTime::canBeModifiedBy())
+        public bool $importedFromEvent = false,
     ) {
     }
 
@@ -63,6 +66,7 @@ readonly final class PuzzleSolver
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
      *     player_avatar?: null|string,
+     *     imported_from_event?: null|bool,
      *     ...
      * } $row
      */
@@ -92,11 +96,12 @@ readonly final class PuzzleSolver
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
             playerAvatar: $row['player_avatar'] ?? null,
             datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
+            importedFromEvent: ($row['imported_from_event'] ?? false) === true,
         );
     }
 
     public function isEditableBy(null|string $playerId): bool
     {
-        return $playerId !== null && $playerId === $this->playerId;
+        return $playerId !== null && $this->importedFromEvent === false && $playerId === $this->playerId;
     }
 }

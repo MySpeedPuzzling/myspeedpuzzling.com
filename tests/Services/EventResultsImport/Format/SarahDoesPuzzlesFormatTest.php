@@ -199,7 +199,6 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
         yield 'unreadable time' => ['Puzzle Pals', 'about an hour', '4', EventTabProblemCode::UnreadableTime];
         yield 'no time, no pieces' => ['Puzzle Pals', '', '4', EventTabProblemCode::RowWithoutResult];
         yield 'no team size' => ['Puzzle Pals', '1:00:00', '', EventTabProblemCode::UnreadableTeamSize];
-        yield 'a single person at a teams event' => ['Puzzle Pals', '1:00:00', '1', EventTabProblemCode::TeamSizeDoesNotFitCategory];
         yield 'an absurd team size' => ['Puzzle Pals', '1:00:00', '40', EventTabProblemCode::UnreadableTeamSize];
         yield 'a name too long for a team' => [str_repeat('Long name ', 6), '1:00:00', '4', EventTabProblemCode::TeamNameTooLong];
         yield 'no name' => ['', '1:00:00', '4', EventTabProblemCode::RowWithoutTeamName];
@@ -375,6 +374,85 @@ final class SarahDoesPuzzlesFormatTest extends TestCase
 
         self::assertSame($one->contentHash, $same->contentHash);
         self::assertNotSame($one->contentHash, $changed->contentHash);
+    }
+
+    public function testASinglePersonAtATeamsEventIsImported(): void
+    {
+        // solo-and-relays.md §1: a solo result, ranked in the event's teams round (D10)
+        $tab = $this->parse(self::HEADER, $this->eventRow('Fine Team', '0:59:00', '4'), '"Jane Doe",1:02:00,1,,,,,,,,,,,,');
+
+        self::assertSame([], $tab->problems);
+        self::assertCount(2, $tab->rows);
+        self::assertSame('Jane Doe', $tab->rows[1]->teamName);
+        self::assertSame(1, $tab->rows[1]->teamSize);
+    }
+
+    public function testASinglePersonAtAPairsEventIsImportedButNeverThreePeople(): void
+    {
+        $tab = $this->parse(
+            self::HEADER,
+            'Two of Us,24:48,2,,Corner Cafe Pairs,Corner Cafe,"Springfield, MN",,,2026-10-07,19:00,90,Pairs,' . self::PUZZLE_URL . ',',
+            'Jane Doe,25:10,1,,,,,,,,,,,,',
+            'Three Friends,26:00,3,,,,,,,,,,,,',
+        );
+
+        self::assertSame([EventTabProblemCode::TeamSizeDoesNotFitCategory], $this->codes($tab));
+        self::assertSame(4, $tab->problems[0]->line);
+        self::assertSame(['Two of Us', 'Jane Doe'], array_map(static fn ($row) => $row->teamName, $tab->rows));
+    }
+
+    public function testASoloTabIsASoloRoundOfSinglePeople(): void
+    {
+        $tab = $this->parse(
+            self::HEADER,
+            'Jane Doe,45:10,1,,Corner Cafe Solo,Corner Cafe,"Springfield, MN",,,2026-10-07,19:00,90,Solo,' . self::PUZZLE_URL . ',',
+            'John Roe,,1,312,,,,,,,,,,,',
+            'Two of Us,40:00,2,,,,,,,,,,,,',
+        );
+
+        self::assertSame(RoundCategory::Solo, $tab->category);
+        self::assertTrue($tab->isImportable());
+        // A pair has no place in an individual event
+        self::assertSame([EventTabProblemCode::TeamSizeDoesNotFitCategory], $this->codes($tab));
+        self::assertSame(['Jane Doe', 'John Roe'], array_map(static fn ($row) => $row->teamName, $tab->rows));
+        self::assertSame(312, $tab->rows[1]->piecesPlaced);
+    }
+
+    /**
+     * @return iterable<array{string}>
+     */
+    public static function soloTypes(): iterable
+    {
+        yield ['Solo'];
+        yield ['solo'];
+        yield ['Individual'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('soloTypes')]
+    public function testTheSoloCompetitionTypeIsRead(string $type): void
+    {
+        $tab = $this->parse(self::HEADER, 'Jane Doe,45:10,1,,Corner Cafe Solo,Corner Cafe,"Springfield, MN",,,2026-10-07,19:00,90,' . $type . ',' . self::PUZZLE_URL . ',');
+
+        self::assertSame(RoundCategory::Solo, $tab->category);
+    }
+
+    public function testATabWithoutASinglePersonHashesAsBefore(): void
+    {
+        // The hash of the parsed content, written out - a tab without size-1 rows must never change it (no needless re-apply)
+        $tab = $this->parse(self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4'), '"Edge Lords",1:05:00,3,,,,,,,,,,,,');
+
+        self::assertSame(sha1(\Nette\Utils\Json::encode([
+            'Maple Street Puzzle Night',
+            'Maple Street Taproom',
+            'Springfield, MN',
+            '2026-10-05 19:00',
+            true,
+            120,
+            'team',
+            '018d0003-0000-0000-0000-000000000001',
+            [[2, 'Puzzle Pals', 4, 3600], [3, 'Edge Lords', 3, 3900]],
+            [],
+        ])), $tab->contentHash);
     }
 
     private function eventRow(string $name, string $time, string $size): string

@@ -237,6 +237,8 @@ SELECT
     puzzle_solving_time.seconds_spent,
     puzzle_solving_time.finished_later_seconds,
     puzzle_solving_time.player_id AS player_id,
+    -- A single person's result imported from an event and claimed (solo-and-relays.md §1): released, never edited
+    (puzzle_solving_time.created_via = 'event_import') AS imported_from_event,
     pieces_count,
     player.name AS player_name,
     player.code AS player_code,
@@ -390,6 +392,8 @@ SELECT
     puzzle_solving_time.seconds_spent,
     puzzle_solving_time.finished_later_seconds,
     puzzle_solving_time.player_id AS player_id,
+    -- A single person's result imported from an event and claimed (solo-and-relays.md §1): released, never edited
+    (puzzle_solving_time.created_via = 'event_import') AS imported_from_event,
     pieces_count,
     player.name AS player_name,
     player.code AS player_code,

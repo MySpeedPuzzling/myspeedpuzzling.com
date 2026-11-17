@@ -63,10 +63,18 @@ SQL;
     public function claimabilityOf(string $playerId): array
     {
         $query = <<<SQL
-SELECT DISTINCT 'competition' AS kind, pst.competition_id::varchar AS id
+SELECT 'competition' AS kind, pst.competition_id::varchar AS id
 FROM puzzling_team_member member
 INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = member.team_id
 WHERE member.player_id = :playerId
+    AND pst.created_via = :source
+    AND pst.competition_id IS NOT NULL
+UNION
+-- A single person's result the player claimed has no team (solo-and-relays.md §1)
+SELECT 'competition', pst.competition_id::varchar
+FROM puzzle_solving_time pst
+WHERE pst.player_id = :playerId
+    AND pst.team IS NULL
     AND pst.created_via = :source
     AND pst.competition_id IS NOT NULL
 UNION
@@ -112,13 +120,14 @@ SELECT
     pst.first_attempt,
     pst.competition_id::varchar AS competition_id,
     competition.name AS competition_name,
-    puzzling_team.name AS team_name,
+    COALESCE(puzzling_team.name, imported.name) AS team_name,
     pst.puzzlers_count,
-    (
+    (pst.team IS NULL) AS is_solo,
+    CASE WHEN pst.team IS NULL THEN (CASE WHEN pst.player_id IS NULL THEN 1 ELSE 0 END) ELSE (
         SELECT COUNT(*)
         FROM json_array_elements(pst.team -> 'puzzlers') AS slot(puzzler)
         WHERE slot.puzzler ->> 'anonymous_slot' IS NOT NULL
-    ) AS anonymous_count,
+    ) END AS anonymous_count,
     (
         SELECT JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -130,7 +139,8 @@ SELECT
                 'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')}
             ) ORDER BY member.ordinality
         )
-        FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS member(puzzler, ordinality)
+        -- A single person's result: its claimer is its tracker (solo-and-relays.md §1)
+        FROM json_array_elements(COALESCE(pst.team -> 'puzzlers', JSON_BUILD_ARRAY(JSON_BUILD_OBJECT('player_id', pst.player_id)))) WITH ORDINALITY AS member(puzzler, ordinality)
             INNER JOIN player p ON p.id = (member.puzzler ->> 'player_id')::uuid
         WHERE true {$claimersNotHidden}
     ) AS claimers,
@@ -142,6 +152,8 @@ FROM puzzle_solving_time pst
     LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON competition.id = pst.competition_id
     LEFT JOIN puzzling_team ON puzzling_team.id = pst.puzzling_team_id
+    -- The sheet's name of a single person (solo-and-relays.md §1)
+    LEFT JOIN event_imported_result imported ON imported.solving_time_id = pst.id AND pst.team IS NULL
 WHERE pst.id = :timeId
 SQL;
 
@@ -158,6 +170,7 @@ SQL;
          *     competition_name: null|string,
          *     team_name: null|string,
          *     puzzlers_count: int,
+         *     is_solo: bool,
          *     anonymous_count: int,
          *     claimers: null|string,
          *     puzzle_name: string,
@@ -194,6 +207,7 @@ SQL;
             claimers: $row['claimers'] !== null ? array_values(Puzzler::createPuzzlersFromJson($row['claimers'])) : [],
             sameResultCandidates: $viewerId !== null ? $this->sameResultCandidates($viewerId, $row['puzzle_id'], $timeId, $solvedAt) : [],
             piecesPlaced: $row['pieces_placed'],
+            isSolo: $row['is_solo'],
         );
     }
 

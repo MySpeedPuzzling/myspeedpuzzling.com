@@ -67,7 +67,9 @@ final class ClaimEventResultSlotController extends AbstractEventResultClaimContr
 
                     return $this->done(
                         $request,
-                        $this->translator->trans('event_result_claim.flash.claimed', ['%team%' => $context->teamName ?? '']),
+                        $context->isSolo
+                            ? $this->translator->trans('event_result_solo.flash_claimed')
+                            : $this->translator->trans('event_result_claim.flash.claimed', ['%team%' => $context->teamName ?? '']),
                         $this->generateUrl('puzzle_result_detail', ['timeId' => $context->timeId]),
                     );
                 } catch (EventResultClaimRefused $refused) {
@@ -80,7 +82,7 @@ final class ClaimEventResultSlotController extends AbstractEventResultClaimContr
 
         return $this->renderConfirmation(
             $request,
-            $this->translator->trans('event_result_claim.claim.title'),
+            $this->translator->trans($context->isSolo ? 'event_result_solo.title' : 'event_result_claim.claim.title'),
             'event_result_claim/_claim_body.html.twig',
             [
                 'context' => $context,

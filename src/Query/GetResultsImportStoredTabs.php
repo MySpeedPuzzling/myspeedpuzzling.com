@@ -52,7 +52,8 @@ SQL;
         // The team's result: claimed once somebody holds a spot - its tracker or a registered member of its people
         // (PuzzleSolvingTime::isClaimedByAnybody())
         $resultsQuery = <<<SQL
-SELECT eir.tab_id, eir.team_key, pt.name AS team_name, pst.seconds_to_solve, pst.pieces_placed, pst.puzzlers_count,
+-- A single person (no pair/team) is named by the sheet on the imported row (solo-and-relays.md section 1)
+SELECT eir.tab_id, eir.team_key, COALESCE(pt.name, eir.name) AS team_name, pst.seconds_to_solve, pst.pieces_placed, pst.puzzlers_count,
     (pst.player_id IS NOT NULL OR EXISTS (
         SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS member(player) WHERE member.player ->> 'player_id' IS NOT NULL
     )) AS claimed

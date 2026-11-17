@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\PuzzleResultStanding;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\DatePrecision;
+use SpeedPuzzling\Web\Value\EventResultsImport\UnclaimedSolo;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
@@ -48,6 +49,8 @@ readonly final class GetPuzzleResultDetail
             . $this->hiddenPlayers->sqlExcludeTeam('pst.team');
 
         $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
+        $unclaimedSlot = UnclaimedSolo::sqlSlot('focus_time');
+        $unclaimedName = UnclaimedSolo::sqlName('focus_time');
 
         // The subject is the opened time's solo player, or its exact pair/team (`puzzling_team_id`) - never the URL.
         // Everything about the opened time - puzzle, brand, player, skill tier, team name, members - is read once in
@@ -62,7 +65,10 @@ WITH focus AS MATERIALIZED (
         focus_time.puzzling_type,
         focus_time.puzzling_team_id,
         focus_time.team,
-        (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = focus_time.puzzling_team_id) AS team_name,
+        COALESCE(
+            (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = focus_time.puzzling_team_id),
+            {$unclaimedName}
+        ) AS team_name,
         puzzle.name AS puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
@@ -93,7 +99,16 @@ WITH focus AS MATERIALIZED (
             FROM json_array_elements(focus_time.team -> 'puzzlers') WITH ORDINALITY AS member(player, ordinality)
                 LEFT JOIN player p ON p.id = (member.player ->> 'player_id')::UUID
                 LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = {$tierPieces}
-        ) END AS players
+        )
+        -- An imported single person nobody has claimed (solo-and-relays.md §1): one anonymous spot, named by the sheet
+        WHEN {$unclaimedSlot} IS NOT NULL THEN JSON_BUILD_ARRAY(JSON_BUILD_OBJECT(
+            'player_id', NULL,
+            'player_name', NULL,
+            'player_code', NULL,
+            'player_country', NULL,
+            'is_private', false,
+            'anonymous_slot', {$unclaimedSlot}
+        )) END AS players
     FROM puzzle_solving_time focus_time
         INNER JOIN puzzle ON puzzle.id = focus_time.puzzle_id
         -- No tracker on an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
@@ -315,7 +330,12 @@ SQL;
             return $detail;
         }
 
-        $subjectId = $players === null ? $player->playerId : $focusRow['team_id'];
+        // An imported single person nobody has claimed stands on the solo board as their own result (UnclaimedSolo)
+        $subjectId = match (true) {
+            $players === null => $player->playerId,
+            $focusRow['puzzling_type'] === 'solo' => $players[0]->anonymousSlot ?? null,
+            default => $focusRow['team_id'],
+        };
 
         if ($subjectId === null) {
             return $detail;
@@ -339,10 +359,11 @@ SQL;
     {
         if ($puzzlingType === 'solo') {
             $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+            $unclaimedSlot = UnclaimedSolo::sqlSlot('pst');
 
             $query = <<<SQL
 WITH best AS (
-    SELECT pst.player_id AS subject_id, MIN(pst.seconds_to_solve) AS best_time
+    SELECT pst.player_id::text AS subject_id, MIN(pst.seconds_to_solve) AS best_time
     FROM puzzle_solving_time pst
         INNER JOIN player ON player.id = pst.player_id
     WHERE pst.puzzle_id = :puzzleId
@@ -352,6 +373,17 @@ WITH best AS (
         AND ({$this->privateProfileAccess->sqlIsPrivate('player')} = false OR player.id = :viewerId)
         {$notHidden}
     GROUP BY pst.player_id
+    UNION ALL
+    -- An imported single person nobody has claimed is their own row on the solo tab (UnclaimedSolo, solo-and-relays.md
+    -- §1) - a branch of its own, so the players' branch above keeps its plan
+    SELECT {$unclaimedSlot}, pst.seconds_to_solve
+    FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = :puzzleId
+        AND pst.puzzling_type = 'solo'
+        AND pst.player_id IS NULL
+        AND pst.created_via = 'event_import'
+        AND pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
 ),
 subject AS (
     SELECT best_time FROM best WHERE subject_id = :subjectId

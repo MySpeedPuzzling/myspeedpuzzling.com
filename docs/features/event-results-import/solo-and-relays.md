@@ -11,6 +11,16 @@ Not built, by decision:
 
 ## 1. A single person (Team Size 1) - shape A
 
+**Built 2026-11-17** - the as-built summary is README "A single person (Team Size 1) and Solo events". What the build
+decided beyond this plan:
+- The unclaimed single person on the puzzle's solo tab is shown like an imported team nobody claimed (name + "This
+  was me", ranked) - one anonymous spot `s:<time id>` (`UnclaimedSolo`) in every read model, also the claim log's key.
+  The result detail's standing counts them on the solo board like the tab; a player's rank on the puzzle
+  (`GetRanking`, profiles) does not (D4) - the two can differ by the unclaimed single people faster than the player.
+- A Solo event takes Team Size 1 only (2+ = `team_size_does_not_fit_category`); `Individual` / `Single` read as Solo.
+- The batch readers of every solo time (baselines, skill, improvement ratios, derived metrics, prediction
+  reconstruction, pending predictions, insights profiles, snapshots, close calls) gained `player_id IS NOT NULL`.
+
 The spike (2026-11-17) compared the two possible shapes:
 
 - **Shape A (chosen): an ordinary solo row without its player.**

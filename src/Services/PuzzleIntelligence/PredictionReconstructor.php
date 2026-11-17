@@ -1001,6 +1001,7 @@ final class PredictionReconstructor implements ResetInterface
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE pst.puzzle_id IN (:puzzleIds)
                     AND pst.puzzling_type = 'solo'
+                    AND pst.player_id IS NOT NULL
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
                     AND pst.unboxed = false

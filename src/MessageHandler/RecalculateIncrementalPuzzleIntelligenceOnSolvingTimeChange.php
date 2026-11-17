@@ -59,12 +59,12 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
                 return;
             }
 
-            // Only solo solves affect intelligence metrics
-            if ($row['puzzling_type'] !== PuzzlingType::Solo->value) {
+            // Only solo solves affect intelligence metrics - and only somebody's: an imported single person nobody has
+            // claimed is nobody's (docs/features/event-results-import/solo-and-relays.md §1)
+            if ($row['puzzling_type'] !== PuzzlingType::Solo->value || !is_string($row['player_id'])) {
                 return;
             }
 
-            /** @var string $playerId */
             $playerId = $row['player_id'];
             /** @var int|string $rawPiecesCount */
             $rawPiecesCount = $row['pieces_count'];

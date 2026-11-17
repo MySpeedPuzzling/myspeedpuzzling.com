@@ -101,6 +101,8 @@ LEFT JOIN LATERAL (
                 AND o.suspicious = false
                 AND o.seconds_to_solve > 0
                 AND o.seconds_to_solve < ob.best_time
+                -- An imported single person nobody has claimed is nobody's place (solo-and-relays.md §1, D4)
+                AND o.player_id IS NOT NULL
                 AND o.player_id NOT IN (SELECT id FROM left_out)
             GROUP BY o.player_id
         ) x

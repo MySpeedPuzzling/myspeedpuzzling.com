@@ -94,6 +94,7 @@ readonly final class GetPlayersWithPendingPredictions
             SELECT DISTINCT pst.player_id
             FROM puzzle_solving_time pst
             WHERE pst.puzzling_type = 'solo'
+                AND pst.player_id IS NOT NULL
                 AND pst.seconds_to_solve IS NOT NULL
                 AND (
                     pst.predictable IS NULL

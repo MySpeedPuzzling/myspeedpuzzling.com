@@ -7,8 +7,9 @@ namespace SpeedPuzzling\Web\Tests;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A solving time may have no tracker: an imported event result nobody has claimed yet (`player_id` NULL - always a
- * pair's or team's, with anonymous slots, docs/features/event-results-import/README.md, trackerless-audit.md). Raw SQL
+ * A solving time may have no tracker: an imported event result nobody has claimed yet (`player_id` NULL - a pair's or
+ * team's with anonymous slots, or a single person's solo result without a team, solo-and-relays.md §1;
+ * docs/features/event-results-import/README.md, trackerless-audit.md). Raw SQL
  * is invisible to PHPStan, so every file whose code (comments aside) reads puzzle_solving_time either shows in its SQL
  * what it does with such a row, or is listed here with the reason it does not need to - or fails this test until its
  * author has made that decision.
@@ -23,7 +24,8 @@ use PHPUnit\Framework\TestCase;
 final class TrackerlessTimeQueryCoverageTest extends TestCase
 {
     private const string OWN = 'Reads a given player\'s results (tracked by them or as a registered member) - an imported result nobody has claimed has neither.';
-    private const string SOLO = 'Reads solo results only - an imported result is always a pair\'s or a team\'s.';
+    private const string SOLO = 'Reads solo results of a given player (`player_id = :playerId` / `IN (...)`), or inner-joins the player - an imported single person nobody has claimed (solo-and-relays.md §1) is nobody\'s and never read; claimed, it is the claimer\'s ordinary solo result.';
+    private const string SOLO_NEEDS_UNFLAGGED = 'Reads solo results without a player filter, but only rows a single person nobody has claimed never has (unboxed = true, a stored personal prediction, a first try) - the import writes unboxed = false and first_attempt = false, and a time without a tracker has no stored prediction (never predicted; a release forgets the claimer\'s - PuzzleSolvingTime::slotReleasedBy()).';
     private const string COUNTS = 'Counts or lists results by puzzle, event, round or team, never through the tracker - an imported result counts like any other, which is right.';
     private const string MEMBERS = 'Reads a pair\'s/team\'s people from the team snapshot or puzzling_team_member - an anonymous slot is a person without an account, handled like a guest.';
     private const string PER_PLAYER = 'A per-player surface (profiles, rankings, insights, XP, notifications): an inner join on the player leaves an imported result nobody has claimed out - it is nobody\'s.';
@@ -31,7 +33,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
     private const string WRITE = 'Write side or integrity - moves, deletes, links or keeps track of every result, with a tracker or not.';
     private const string ADMIN = 'Admin / moderation tooling - counts or shows results to a moderator; an imported result is never in the time verification (the scan skips it).';
     private const string BACKGROUND = 'Background job or sitemap - picks puzzles, files or players, shows no person.';
-    private const string PREDICTIONS = 'Reads stored predictions - an imported result nobody has claimed is never predicted (GetSolvingTimePrediction, the backfill reads a player\'s times).';
+    private const string PREDICTIONS = 'Reads stored predictions - an imported result nobody has claimed is never predicted (GetSolvingTimePrediction, the backfill reads a player\'s times); the side-by-side rows of a single person\'s result predicted while claimed stay after a release - a prediction of a real solve, compared with its time, no player read.';
     private const string PHOTOS = 'Players\' finished-puzzle photos - an imported result has none.';
 
     /** Files reading puzzle_solving_time without a marker */
@@ -47,8 +49,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'MessageHandler/DeleteCompetitionRoundHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeletePlayerHandler.php' => self::OWN,
-        'MessageHandler/RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange.php' => self::SOLO,
-        'MessageHandler/SnapshotPlayerInsightsHandler.php' => self::SOLO,
+        'MessageHandler/RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange.php' => 'A solo time\'s player\'s metrics: a time without a tracker (an imported single person nobody has claimed, solo-and-relays.md §1) returns before anything - nobody\'s metrics.',
         'Query/AchievementSqlRules.php' => self::OWN,
         'Query/CountCompetitionResults.php' => self::COUNTS,
         'Query/FindSimilarSpeedPuzzler.php' => self::SOLO,
@@ -64,7 +65,6 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetBrandHub.php' => self::COUNTS,
         'Query/GetCandidatePrediction.php' => self::SOLO,
         'Query/GetCatalogueNumbers.php' => self::COUNTS,
-        'Query/GetCloseCalls.php' => self::SOLO,
         'Query/GetComparisonPeople.php' => self::OWN,
         'Query/GetComparisonResults.php' => 'Compares chosen players (solo) and pairs/teams - a team gets into a line-up only through its registered members (SearchComparisonTeams), which an imported result nobody has claimed has none of.',
         'Query/GetCompetitionParticipants.php' => self::OWN,
@@ -74,21 +74,21 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetCoPuzzlers.php' => self::OWN,
         'Query/GetDuplicateCandidates.php' => self::OWN,
         'Query/GetDuplicatePuzzleSignalCandidates.php' => 'Admin: the same person\'s results on two puzzles - a time without a tracker or member is nobody\'s, NULL never pairs with NULL.',
-        'Query/GetEventResultClaims.php' => 'Claims of imported event results (docs/features/event-results-import/README.md "Claiming a spot"): who holds a spot - a time without a tracker is exactly what it reads, the tracker is never joined.',
+        'Query/GetEventResultClaims.php' => 'Claims of imported event results (docs/features/event-results-import/README.md "Claiming a spot", solo-and-relays.md §1): who holds a spot - a time without a tracker is exactly what it reads, a single person\'s claimer is its tracker (`pst.player_id = :playerId`); the tracker is never joined.',
         'Query/GetEventWizardStructureLock.php' => 'The creation wizard\'s Structure step: whether any result is linked to one of the event\'s rounds at all (then it is read-only) - every result counts, nothing is shown.',
         'Query/GetExportablePuzzleSolveSummary.php' => self::OWN,
         'Query/GetExportableSolvingTimes.php' => self::OWN,
         'Query/GetFastestGroups.php' => self::D4,
         'Query/GetFastestPairs.php' => self::D4,
-        'Query/GetFastestPlayers.php' => self::SOLO,
+        'Query/GetFastestPlayers.php' => self::D4,
         'Query/GetFinishedPhotoAnalyses.php' => self::PHOTOS,
         'Query/GetFinishedPhotosForAnalysis.php' => self::PHOTOS,
         'Query/GetFirstTryTimes.php' => self::OWN,
         'Query/GetGettingStartedProgress.php' => self::OWN,
         'Query/GetGroupPredictionResults.php' => self::MEMBERS,
-        'Query/GetGroupPuzzleFirstAttempts.php' => self::SOLO,
+        'Query/GetGroupPuzzleFirstAttempts.php' => 'Reads PlayerBaselineCalculator::qualifyingFirstAttemptsQuery() - which leaves a time without a tracker out at the source (`pst.player_id IS NOT NULL`).',
         'Query/GetGuestLinkRequests.php' => self::OWN,
-        'Query/GetImageEstimateEvaluationRows.php' => self::SOLO,
+        'Query/GetImageEstimateEvaluationRows.php' => self::PREDICTIONS,
         'Query/GetImportPuzzleCandidates.php' => 'The data import\'s pairing: whether the importing player solved a catalogue puzzle (`player_id = :playerId`) - a result nobody claimed is nobody\'s.',
         'Query/GetImportPuzzleScreen.php' => 'The data import\'s Puzzles summary: the result a row of the player\'s own import was paired with, by its id (the pairing reads only results tracked by the importing player, or made by their earlier import) - its tracker is never joined.',
         'Query/GetImportRowsOnProfile.php' => 'The data import\'s pairing: results tracked by the importing player (`player_id = :playerId`), and the result a row of an earlier import of theirs made, by its id - a result nobody claimed is neither.',
@@ -110,7 +110,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetPersonalEstimates.php' => self::OWN,
         'Query/GetPiecesHub.php' => self::COUNTS,
         'Query/GetPlayerActivityCalendar.php' => self::OWN,
-        'Query/GetPlayerBaselineProgress.php' => self::SOLO,
+        'Query/GetPlayerBaselineProgress.php' => self::SOLO_NEEDS_UNFLAGGED,
         'Query/GetPlayerBestSoloTimes.php' => self::SOLO,
         'Query/GetPlayerChartData.php' => self::OWN,
         'Query/GetPlayerDuplicateCases.php' => self::OWN,
@@ -126,7 +126,6 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetPlayerStatistics.php' => self::OWN,
         'Query/GetPlayerStatsSnapshot.php' => self::OWN,
         'Query/GetPlayerSuspiciousTimes.php' => self::OWN,
-        'Query/GetPlayersWithPendingPredictions.php' => self::SOLO,
         'Query/GetPredictionCalibration.php' => self::PREDICTIONS,
         'Query/GetPredictionPairRows.php' => self::PREDICTIONS,
         'Query/GetProgressionDrift.php' => self::PER_PLAYER,
@@ -134,16 +133,16 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetPuzzleIdsForSitemap.php' => self::BACKGROUND,
         'Query/GetPuzzleMergeReviewQueue.php' => self::ADMIN,
         'Query/GetPuzzlePickerSuggestions.php' => self::OWN,
-        'Query/GetPuzzleSpeedPercentiles.php' => self::SOLO,
+        'Query/GetPuzzleSpeedPercentiles.php' => 'Puzzle-level percentiles of every solo time - an imported single person nobody has claimed is a real time of the puzzle and their own solver (`COUNT(DISTINCT COALESCE(player_id, id))`, solo-and-relays.md §1).',
         'Query/GetPuzzlingTeamDetail.php' => self::COUNTS,
-        'Query/GetRanking.php' => self::SOLO,
+        'Query/GetRanking.php' => 'Ranks a given player (`player_id = :playerId`), counts rankings by `COUNT(DISTINCT player_id)` (NULL not counted) or inner-joins the player - an imported single person nobody has claimed is left out until claimed (D4, solo-and-relays.md §1).',
         'Query/GetRecentActivity.php' => self::D4,
         'Query/GetRecentIdenticalSolvingTime.php' => self::OWN,
         'Query/GetResultReviewEmailCandidates.php' => self::OWN,
         'Query/GetResultReviewEmails.php' => self::OWN,
         'Query/GetSandboxSimulationData.php' => self::OWN,
         'Query/GetSeatingSeedTimes.php' => self::OWN,
-        'Query/GetSolveTimeDistribution.php' => 'Counts solvers per kind: a pair/team by puzzling_team_id, which an imported result always has - each anonymous team is one solver.',
+        'Query/GetSolveTimeDistribution.php' => 'Counts solvers per kind: a pair/team by puzzling_team_id, which an imported team always has, a solo row by COALESCE(player_id, id) - each anonymous team and each single person nobody has claimed (solo-and-relays.md §1) is one solver.',
         'Query/GetSolveXpDisplayInfo.php' => self::OWN,
         'Query/GetSolvingTimePrediction.php' => 'A given time\'s tracker - none on an imported result nobody has claimed, then no prediction (resultForTime()).',
         'Query/GetSolvingTimesLookup.php' => self::OWN,
@@ -178,17 +177,10 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Services/Digest/PlayerPeriodActivityReader.php' => self::OWN,
         'Services/Drafts/UnpublishBlockers.php' => self::COUNTS,
         'Services/Insights/GroupCoordinationFitter.php' => self::MEMBERS,
-        'Services/Insights/InsightsProfileRecalculator.php' => self::SOLO,
-        'Services/PuzzleIntelligence/DerivedMetricsCalculator.php' => self::SOLO,
-        'Services/PuzzleIntelligence/ImprovementRatioCalculator.php' => self::SOLO,
         'Services/PuzzleIntelligence/Model/AttemptFlags.php' => self::OWN,
-        'Services/PuzzleIntelligence/Model/RepeatHistory.php' => self::SOLO,
-        'Services/PuzzleIntelligence/Model/UnboxedFirstTries.php' => self::SOLO,
+        'Services/PuzzleIntelligence/Model/UnboxedFirstTries.php' => self::SOLO_NEEDS_UNFLAGGED,
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::SOLO,
-        'Services/PuzzleIntelligence/PlayerBaselineCalculator.php' => self::SOLO,
-        'Services/PuzzleIntelligence/PlayerPaceHistoryWriter.php' => self::SOLO,
-        'Services/PuzzleIntelligence/PlayerSkillCalculator.php' => self::SOLO,
-        'Services/PuzzleIntelligence/PredictionReconstructor.php' => self::SOLO,
+        'Services/PuzzleIntelligence/PlayerPaceHistoryWriter.php' => 'Reads PlayerBaselineCalculator::qualifyingFirstAttemptsQuery() (which leaves a time without a tracker out at the source) and players after a given id (`player_id > :after` - never NULL).',
         'Services/PuzzleIntelligence/RepeatResiduals.php' => self::SOLO,
         'Services/PuzzleIntelligence/StatisticalInputsSql.php' => self::SOLO,
         'Services/PuzzleStatisticsCalculator.php' => 'Puzzle statistics count every result; best times are per solver, and an imported result nobody has claimed is its own team (COALESCE(player_id, puzzling_team_id, id)).',

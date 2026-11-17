@@ -472,6 +472,9 @@
                 <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
                 {% if notification.notificationType.value == 'EventResultClaimed' %}
                     {{ 'event_result_claim.notification.claimed'|trans({'%player%': notification.targetPlayerName, '%team%': notification.teamName ?? '', '%event%': notification.roundCompetitionName ?? ''}) }}
+                {% elseif notification.teamName is null %}
+                    {#- A single person's result has no team (solo-and-relays.md §1) -#}
+                    {{ 'event_result_solo.claim_removed'|trans({'%event%': notification.roundCompetitionName ?? ''}) }}
                 {% else %}
                     {{ 'event_result_claim.notification.claim_removed'|trans({'%team%': notification.teamName ?? '', '%event%': notification.roundCompetitionName ?? ''}) }}
                 {% endif %}

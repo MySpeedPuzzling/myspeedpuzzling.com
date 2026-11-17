@@ -11,14 +11,14 @@
 {{ include('event_result_claim/_error.html.twig') }}
 
 {% if context.isClaimer(viewer_id) %}
-    <p class="fs-sm mb-0" data-testid="event-result-already-yours">{{ 'event_result_claim.claim.already_yours'|trans }}</p>
+    <p class="fs-sm mb-0" data-testid="event-result-already-yours">{{ (context.isSolo ? 'event_result_solo.already_yours' : 'event_result_claim.claim.already_yours')|trans }}</p>
 {% elseif not context.hasSpotLeft %}
-    <p class="fs-sm mb-0" data-testid="event-result-team-full">{{ 'event_result_claim.refused.team_full'|trans }}</p>
+    <p class="fs-sm mb-0" data-testid="event-result-team-full">{{ (context.isSolo ? 'event_result_solo.taken' : 'event_result_claim.refused.team_full')|trans }}</p>
 {% else %}
     <form method="post" action="{{ path('event_result_claim', {timeId: context.timeId}) }}" data-testid="event-result-claim-form"{% if in_modal %} data-turbo-frame="modal-frame"{% endif %}>
         <input type="hidden" name="_token" value="{{ csrf_token('event_result_claim') }}">
 
-        <p class="fs-sm">{{ 'event_result_claim.claim.intro'|trans }}</p>
+        <p class="fs-sm">{{ (context.isSolo ? 'event_result_solo.intro' : 'event_result_claim.claim.intro')|trans }}</p>
 
         {% if context.asksFirstTry %}
             <div class="form-check form-switch mb-3">
@@ -52,7 +52,7 @@
             {% if in_modal %}
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ 'event_result_claim.cancel'|trans }}</button>
             {% endif %}
-            <button type="submit" class="btn btn-primary btn-sm">{{ 'event_result_claim.claim.submit'|trans }}</button>
+            <button type="submit" class="btn btn-primary btn-sm">{{ (context.isSolo ? 'event_result_solo.submit' : 'event_result_claim.claim.submit')|trans }}</button>
         </div>
     </form>
 {% endif %}

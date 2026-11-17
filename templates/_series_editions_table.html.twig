@@ -65,6 +65,12 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-1">
+                        {# One round without a puzzle: straight to its add-puzzle form, back here (event creation wizard, W3) #}
+                        {% if quick_add_puzzle|default(false) and edition.singleRoundId is not null and edition.puzzleCount == 0 %}
+                            <a href="{{ path('add_puzzle_to_round', {roundId: edition.singleRoundId, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-sm btn-primary" data-quick-add-puzzle>
+                                <i class="bi bi-plus-lg me-1"></i>{{ 'event_wizard_series.quick_add_puzzle'|trans }}
+                            </a>
+                        {% endif %}
                         <a href="{{ path('manage_competition_rounds', {'competitionId': edition.competitionId, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                         </a>

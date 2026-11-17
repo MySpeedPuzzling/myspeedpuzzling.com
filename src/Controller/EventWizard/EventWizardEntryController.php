@@ -65,12 +65,16 @@ final class EventWizardEntryController extends AbstractController
     }
 
     /**
-     * Where an answer leads: a path with wizard steps opens its first one, any other answer the classic form (a series
-     * with "Recurring" ticked) - W3 and W5 give the series and several rounds their steps, then they open here too.
+     * Where an answer leads: a path with wizard steps opens its first one (the series path its own Basics, W3), any
+     * other answer the classic form - W5 gives several rounds their steps, then they open here too.
      */
     private function target(EventWizardEntryChoice $choice, null|string $organizationId): string
     {
         $path = $choice->path();
+
+        if ($path === EventWizardPath::Series) {
+            return $this->generateUrl('event_wizard_series_basics', array_filter(['organization' => $organizationId]));
+        }
 
         if ($path !== null && $this->eventWizardSteps->forNewEvent($path)->steps !== []) {
             return $this->generateUrl('event_wizard_basics', array_filter([

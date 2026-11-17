@@ -21,13 +21,13 @@
         {% for item in progress.steps %}
             {%- set current = item == step -%}
             {%- set done = progress.isDone(item) -%}
-            {%- set linked = progress.competitionId is not null and not current and (done or progress.position(item) < position) -%}
+            {%- set linked = progress.routeParameters is not empty and not current and (done or progress.position(item) < position) -%}
             <li class="d-flex align-items-center py-2{{ current ? ' fw-semibold' : '' }}"{% if current %} aria-current="step"{% endif %}>
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 flex-shrink-0 {{ current ? 'bg-primary text-white' : (done ? 'bg-success text-white' : 'border text-muted') }}" style="width: 1.75rem; height: 1.75rem; font-size: .8rem;">
                     {%- if done and not current %}<i class="ci-check"></i>{% else %}{{ loop.index }}{% endif -%}
                 </span>
                 {% if linked %}
-                    <a href="{{ path(item.route, {competitionId: progress.competitionId}) }}" class="text-decoration-none">{{ item.labelKey|trans }}</a>
+                    <a href="{{ path(item.route, progress.routeParameters) }}" class="text-decoration-none">{{ item.labelKey|trans }}</a>
                 {% else %}
                     <span class="{{ current ? '' : 'text-muted' }}">{{ item.labelKey|trans }}</span>
                 {% endif %}

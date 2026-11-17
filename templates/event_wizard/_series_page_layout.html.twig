@@ -1,0 +1,29 @@
+{#
+    "Add the next dates" of a series (W3) outside the wizard: the Dates step's content without the step rail, under the
+    series' management page. Blocks: wizard_title, wizard_content. Required: series (CompetitionSeriesOverview).
+#}
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {%- set manage_url = path('manage_competition_series', {seriesId: series.id}) -%}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name, url: manage_url},
+        {label: 'event_wizard_series.next_dates.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: manage_url, fallbackTitle: 'series.manage'|trans}) }}
+
+    <div class="pb-5">
+        <div class="row">
+            <div class="col-lg-9 col-xl-8">
+                <h1 class="h3 mb-1">{% block wizard_title %}{% endblock %}</h1>
+                <p class="text-muted mb-3">{{ series.name }}</p>
+                {% block wizard_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

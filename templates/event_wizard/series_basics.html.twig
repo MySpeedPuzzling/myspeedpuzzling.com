@@ -1,0 +1,77 @@
+{#
+    The series path's Basics (W3) - templates/event_wizard/basics.html.twig without the date and time (the next step's
+    rule says when). Variables: form (EventWizardSeriesBasicsFormType), progress, step, organization_name, current_logo,
+    kept_photos.
+#}
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.basics'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard_series.basics.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {% if organization_name is not null %}
+        <p class="text-muted small mb-3" data-event-wizard-organization><i class="ci-users me-1"></i>{{ 'event_wizard.basics.under'|trans({'%organization%': organization_name}) }}</p>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {{ form_start(form) }}
+            <div data-controller="organizer-form" data-action="change->organizer-form#update">
+                {{ form_errors(form) }}
+                <div class="required">{{ form_row(form.name) }}</div>
+
+                <div class="mb-3">
+                    {{ form_label(form.isOnline, 'event_wizard.basics.where'|trans, {label_attr: {class: 'form-label required'}}) }}
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for child in form.isOnline %}
+                            <div class="form-check">
+                                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {{ form_errors(form.isOnline) }}
+                </div>
+
+                {# The place - of a series in person only, optional: every date gets it (its own can differ) #}
+                <div data-organizer-form-target="part" data-show-field="isOnline" data-show-values="0">
+                    {{ form_row(form.location, {help: 'event_wizard_series.basics.location_help'}) }}
+                </div>
+                <div data-controller="country-autocomplete">
+                    {{ form_row(form.locationCountryCode, {help: 'event_wizard_series.basics.country_help'}) }}
+                </div>
+
+                {#- Rarely needed when an event is created - closed unless something in it was refused -#}
+                {%- set details_open = form.description.vars.errors|length > 0 or form.link.vars.errors|length > 0 or form.logo.vars.errors|length > 0 or form.shortcut.vars.errors|length > 0 or form.eligibility.vars.errors|length > 0 -%}
+                <details class="mb-3 border rounded p-3"{% if details_open %} open{% endif %} data-event-wizard-details>
+                    <summary class="fw-semibold">{{ 'event_wizard.basics.more_details'|trans }}</summary>
+                    <div class="mt-3">
+                        {{ form_row(form.description) }}
+                        {{ form_row(form.link) }}
+                        {{ include('_competition_logo_field.html.twig', {
+                            field: form.logo,
+                            current_logo: current_logo,
+                            kept_photo: (kept_photos|default({})).logo ?? null,
+                        }, with_context = false) }}
+                        {{ form_row(form.shortcut) }}
+                        <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                            {{ form_row(form.maintainers) }}
+                        </div>
+                        {{ form_row(form.eligibility) }}
+                        {{ form_row(form.eventTypes) }}
+                    </div>
+                </details>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.save_continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                    {% if progress.seriesId is null %}
+                        <a href="{{ path('event_wizard') }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+                    {% endif %}
+                    {{ form_widget(form.later, {attr: {class: 'btn btn-link text-muted ms-auto'}}) }}
+                </div>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

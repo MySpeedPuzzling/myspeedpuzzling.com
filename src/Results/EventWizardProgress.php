@@ -24,7 +24,23 @@ readonly final class EventWizardProgress
         public array $doneSteps,
         // What it was derived from - null before the draft exists
         public null|EventWizardState $state = null,
+        // The series path's draft (W3) - a series, not an event: competitionId is null then
+        public null|string $seriesId = null,
     ) {
+    }
+
+    /**
+     * The parameters of the steps' routes (EventWizardStep::route()) - empty before the draft exists
+     *
+     * @return array<string, string>
+     */
+    public function routeParameters(): array
+    {
+        return match (true) {
+            $this->competitionId !== null => ['competitionId' => $this->competitionId],
+            $this->seriesId !== null => ['seriesId' => $this->seriesId],
+            default => [],
+        };
     }
 
     public function isDone(EventWizardStep $step): bool

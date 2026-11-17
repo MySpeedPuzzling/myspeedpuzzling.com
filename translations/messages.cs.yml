@@ -183,6 +183,19 @@ live_refresh:
     meta_description: "Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžící, s časy a položenými dílky.|Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžící, s časy a položenými dílky.|Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžících, s časy a položenými dílky."
     connect: "Je tu vaše jméno?"
     connect_link: "Propojte ho se svým profilem"
+  challenge:
+    nav_label: "Pořadí"
+    overall: "Celé kolo"
+    heading: "%challenge% - podle vlastního času"
+    source: "Vlastní čas každého puzzle je jeho mezičas minus mezičas předchozího puzzle. Soutěžící bez něj jsou uvedeni na konci, bez pořadí."
+    caption: "Pořadí %challenge% v kole %round%"
+    column_time: "Vlastní čas"
+    own_time: "vlastní %time%"
+    own_time_help: "Vlastní čas - mezičas minus mezičas předchozího puzzle"
+    not_finished: "Nedokončeno"
+    no_split: "Dokončeno, čas nezaznamenán"
+    not_recorded: "Nezaznamenáno"
+    round_result: "Kolo: %rank%. · %result%"
 "badge":
   "relax": "Relax"
   "suspicious": "Vyžaduje ověření"
@@ -14098,6 +14111,8 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% dokončeno v"
         export_time: "Puzzle %position% vlastní čas"
         export_pieces: "Puzzle %position% položené dílky"
+        own_time: "vlastní %time%"
+        preview_own_times: "Vlastní časy: %times%"
     standings:
         missing_rule:
             label: "Kola bez výsledku"
@@ -14610,6 +14625,7 @@ time_proposal:
         already_proposed: "Na rozhodčího už čeká jeden čas."
         proposal_not_found: "Tento návrh času neexistuje."
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}Žádná kola|{1}%count% kolo|[2,4]%count% kola|[5,Inf[%count% kol"
     per_category_name: "Celkově - %category%"
     penalty_short: "+%seconds% s za každý chybějící dílek"

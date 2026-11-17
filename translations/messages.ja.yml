@@ -164,6 +164,19 @@
     meta_description: "%event%の%round%の公式結果：主催者による%count%組の出場者の順位を、タイムとはめたピース数とともに掲載しています。"
     connect: "あなたのお名前はありますか？"
     connect_link: "プロフィールに紐付ける"
+  challenge:
+    nav_label: "順位"
+    overall: "ラウンド全体"
+    heading: "%challenge% - 個別タイム順"
+    source: "各パズルの個別タイムは、そのスプリットから前のパズルのスプリットを引いたものです。個別タイムのない出場者は順位なしで後に表示されます。"
+    caption: "%round%の%challenge%の順位"
+    column_time: "個別タイム"
+    own_time: "個別 %time%"
+    own_time_help: "個別タイム - スプリットから前のパズルのスプリットを引いたもの"
+    not_finished: "未完成"
+    no_split: "完成、タイム未記録"
+    not_recorded: "未記録"
+    round_result: "ラウンド: %rank%位 · %result%"
 "badge":
   "relax": "リラックス"
   "suspicious": "確認が必要"
@@ -14085,6 +14098,8 @@ competition_toolkit:
         export_finished_at: "パズル%position% 完成時刻"
         export_time: "パズル%position% 個別タイム"
         export_pieces: "パズル%position% はめたピース"
+        own_time: "個別 %time%"
+        preview_own_times: "個別タイム: %times%"
     standings:
         missing_rule:
             label: "結果のないラウンド"
@@ -14597,6 +14612,7 @@ time_proposal:
         already_proposed: "すでにタイムが審判の確認待ちです。"
         proposal_not_found: "このタイム申告は存在しません。"
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}ラウンドなし|{1}%count%ラウンド|]1,Inf[%count%ラウンド"
     per_category_name: "総合 - %category%"
     penalty_short: "欠けたピース1個につき+%seconds%秒"

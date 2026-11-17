@@ -8,16 +8,21 @@ import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STU
 import { OfficialResultsEvents } from '../official_results_events.js';
 import {
     buildSearchIndex,
+    confirmTapAllowed,
     describeResult,
+    entriesWithWaitingTables,
     entryForEnter,
     entryOfParticipant,
     entryValue,
+    findRows,
+    outboxByEntry,
+    rowsOf,
     keepWithheldPlayers,
     preferredRound,
-    recentEntries,
     sameValue,
     searchEntries,
     shownValue,
+    uniqueTable,
 } from '../official_results_live.js';
 import { nativeReadsQr, parseNameTagUrl, startQrScan } from '../official_results_scan.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
@@ -110,7 +115,7 @@ export default class extends Controller {
         'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
-        'confirmView', 'confirmTable', 'confirmName', 'confirmResult', 'confirmNote', 'saveButton',
+        'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
         'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
     ];
@@ -200,6 +205,9 @@ export default class extends Controller {
         this.setKeyboard('text');
 
         this.onOnline = () => {
+            // What waited only for the connection goes now, not after the rest of its offline pause
+            this.connectionBack();
+
             // The offline copy without a round to ask for (signed out, an event nobody opened here): the URL itself
             // again - the network answers it now (or the copy comes back)
             if (this.shellValue && !this.ready && this.roundIdValue === '') {
@@ -212,8 +220,6 @@ export default class extends Controller {
             if (!this.ready || this.offlineCopyAt !== null) {
                 this.loadNow();
             }
-
-            this.flushSoon();
         };
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
@@ -910,7 +916,7 @@ export default class extends Controller {
         }
 
         this.refreshSettings();
-        this.indexDirty = true;
+        this.entriesChanged();
     }
 
     refreshSettings() {
@@ -994,7 +1000,7 @@ export default class extends Controller {
             this.localEntries.delete(entry.ref);
         }
 
-        this.indexDirty = true;
+        this.entriesChanged();
         this.scheduleRender();
         this.rememberState();
 
@@ -1011,10 +1017,37 @@ export default class extends Controller {
     }
 
     /**
+     * The entries or this device's changes changed: the search index and the entries view are built again when next
+     * asked for.
+     */
+    entriesChanged() {
+        this.indexDirty = true;
+        this.entriesCache = null;
+    }
+
+    /**
+     * allEntries() as a list and by ref - built once per change of the entries or the outbox (competition toolkit C7:
+     * an entry's lookup is O(1), not a pass over every entry with every change).
+     *
+     * @returns {{list: object[], byRef: Map<string, object>}}
+     */
+    entriesView() {
+        if (!this.entriesCache) {
+            this.entriesCache = this.buildEntries();
+        }
+
+        return this.entriesCache;
+    }
+
+    /**
      * The server's entries, entrants added on this device and not on the server yet (from the outbox, or just typed
      * in), each with this device's unsent table number on top.
      */
     allEntries() {
+        return this.entriesView().list;
+    }
+
+    buildEntries() {
         const entries = [...this.serverEntries.values()];
         const known = new Set(this.serverEntries.keys());
         const items = this.outbox ? this.outbox.all() : [];
@@ -1034,13 +1067,7 @@ export default class extends Controller {
         }
 
         // A refused table number (taken meanwhile) is not shown as the entry's table - its problem is
-        const waitingTables = items.filter((item) => item.field === 'table_number' && item.state === 'pending');
-
-        return entries.map((entry) => {
-            const table = shownValue(entry, 'table_number', waitingTables);
-
-            return table.item !== null ? { ...entry, tableNumber: table.value } : entry;
-        });
+        return entriesWithWaitingTables(entries, items);
     }
 
     localEntry(newEntry) {
@@ -1076,7 +1103,7 @@ export default class extends Controller {
     }
 
     entry(ref) {
-        return this.allEntries().find((entry) => entry.ref === ref) ?? null;
+        return this.entriesView().byRef.get(ref) ?? null;
     }
 
     searchIndex() {
@@ -1119,6 +1146,7 @@ export default class extends Controller {
 
             if (answer.kind === 'ok') {
                 this.stateBlocked = null;
+                this.connectionBack();
                 this.serverClock.observe({ sentAtMs: sentAt, receivedAtMs: answeredAt, serverNowMs: serverTimeOf(answer.data) });
                 this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
@@ -1242,7 +1270,7 @@ export default class extends Controller {
                 }
             },
             onChange: () => {
-                this.indexDirty = true;
+                this.entriesChanged();
                 this.scheduleRender();
             },
         });
@@ -1268,6 +1296,18 @@ export default class extends Controller {
         } finally {
             clearTimeout(timer);
         }
+    }
+
+    /**
+     * The network answered (the `online` event, a state fetched): the outbox's changes that failed only for being
+     * offline go at once (competition toolkit C7) - those set apart for rights or refusals stay apart.
+     */
+    connectionBack() {
+        if (!this.outbox || !this.outbox.hasUnsent()) {
+            return;
+        }
+
+        this.outbox.connectionBack().then(() => this.broadcast());
     }
 
     flushSoon() {
@@ -1514,23 +1554,21 @@ export default class extends Controller {
 
         this.recentBlockTarget.hidden = typed;
 
+        const { rows } = findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
+
         if (typed) {
-            const found = searchEntries(index, this.query, { tableNumbersOff });
-            this.matchesTarget.innerHTML = found.matches.length > 0
-                ? found.matches.map((entry) => this.rowHtml(entry, items, entry === found.exactTable)).join('')
+            this.matchesTarget.innerHTML = rows.length > 0
+                ? rows.map((row) => this.rowHtml(row)).join('')
                 : `<p class="text-muted text-center my-3 mb-0">${escapeHtml(this.t('matchesNone'))}</p>`;
         } else {
             this.matchesTarget.innerHTML = '';
-            const recent = recentEntries(this.allEntries(), items.filter((item) => item.roundId === this.roundIdValue));
-            this.recentTarget.innerHTML = recent.length > 0
-                ? recent.map(({ entry }) => this.rowHtml(entry, items, false)).join('')
+            this.recentTarget.innerHTML = rows.length > 0
+                ? rows.map((row) => this.rowHtml(row)).join('')
                 : `<p class="text-muted small mb-0">${escapeHtml(this.t('recentEmpty'))}</p>`;
         }
     }
 
-    rowHtml(entry, items, exact) {
-        const result = shownValue(entry, 'result', items);
-        const own = items.filter((item) => item.entryRef === entry.ref);
+    rowHtml({ entry, exact, result, sync: mark }) {
         const sub = [];
 
         if (entry.kind === 'team' && entry.name !== null && Array.isArray(entry.members)) {
@@ -1549,11 +1587,11 @@ export default class extends Controller {
 
         let sync = '';
 
-        if (own.some((item) => item.state === 'conflict' || item.state === 'rejected')) {
+        if (mark === 'problem') {
             sync = `<i class="bi bi-exclamation-triangle-fill text-danger" title="${escapeHtml(this.t('rowProblem'))}"></i><span class="visually-hidden">${escapeHtml(this.t('rowProblem'))}</span>`;
-        } else if (own.length > 0) {
+        } else if (mark === 'waiting') {
             sync = `<i class="bi bi-clock-history text-warning" title="${escapeHtml(this.t('rowWaiting'))}"></i><span class="visually-hidden">${escapeHtml(this.t('rowWaiting'))}</span>`;
-        } else if (entry.result !== null && entry.result !== undefined) {
+        } else if (mark === 'saved') {
             sync = `<i class="bi bi-check2 text-success" title="${escapeHtml(this.t('rowSaved'))}"></i><span class="visually-hidden">${escapeHtml(this.t('rowSaved'))}</span>`;
         }
 
@@ -1853,6 +1891,19 @@ export default class extends Controller {
     search() {
         this.query = this.findInputTarget.value;
         this.clearNotice();
+
+        // A table number nothing else starts with opens at once - no Enter (iOS's number pad has none), no row tap
+        // (competition toolkit C7; a per-phone preference, on by default)
+        if (this.prefs().autoOpenTable !== false) {
+            const unique = uniqueTable(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables() });
+
+            if (unique !== null) {
+                this.openEntry(unique.ref);
+
+                return;
+            }
+        }
+
         this.renderFind();
     }
 
@@ -1875,6 +1926,10 @@ export default class extends Controller {
         if (ref) {
             this.openEntry(ref);
         }
+    }
+
+    toggleAutoOpen(event) {
+        writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { autoOpenTable: event.currentTarget.checked });
     }
 
     toggleKeyboard() {
@@ -1948,9 +2003,12 @@ export default class extends Controller {
     // ---- Views ----
 
     showView(view) {
+        const inPlace = (this.view === 'entry' && view === 'confirm') || (this.view === 'confirm' && view === 'entry');
         this.view = view;
         this.findViewTarget.hidden = view !== 'find';
-        this.entryViewTarget.hidden = view !== 'entry';
+        // The confirm step is on the entry's card (competition toolkit C7): Save shows up where "Finished now" was
+        this.entryViewTarget.hidden = view !== 'entry' && view !== 'confirm';
+        this.entryViewTarget.classList.toggle('lr-confirming', view === 'confirm');
         this.confirmViewTarget.hidden = view !== 'confirm';
         this.addViewTarget.hidden = view !== 'add';
 
@@ -1958,7 +2016,9 @@ export default class extends Controller {
             this.claimHistory();
         }
 
-        window.scrollTo(0, 0);
+        if (!inPlace) {
+            window.scrollTo(0, 0);
+        }
     }
 
     openEntry(ref) {
@@ -2225,10 +2285,7 @@ export default class extends Controller {
         this.pendingFinishedNow = finishedNow;
         this.pendingTappedAt = finishedNow ? tappedAt : null;
         const shown = shownValue(entry, 'result', this.outbox.all());
-        const table = this.usesTables() && typeof entry.tableNumber === 'number' ? this.t('table', { '%number%': entry.tableNumber }) : '';
 
-        this.confirmTableTarget.textContent = table;
-        this.confirmNameTarget.textContent = entry.displayName ?? entry.name ?? '';
         this.confirmResultTarget.textContent = value === null ? this.t('clearResult') : this.describe(value);
         this.confirmResultTarget.classList.toggle('text-danger', value === null);
 
@@ -2251,7 +2308,10 @@ export default class extends Controller {
         this.confirmNoteTarget.textContent = note;
         this.confirmNoteTarget.className = `small mb-3 ${shown.value !== null && shown.value !== undefined && !sameValue(shown.value, value) ? 'text-warning-emphasis fw-medium' : 'text-muted'}`;
         this.showView('confirm');
-        this.saveButtonTarget.focus();
+        // A tap that started before this moment + 350 ms is not a Save (confirmTapAllowed())
+        this.confirmShownAt = performance.now();
+        this.savePointerAt = null;
+        this.saveButtonTarget.focus({ preventScroll: true });
         this.rememberDraft();
     }
 
@@ -2276,7 +2336,20 @@ export default class extends Controller {
         }
     }
 
-    save() {
+    savePointerDown(event) {
+        this.savePointerAt = typeof event?.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : performance.now();
+    }
+
+    save(event) {
+        // The second tap of a double tap on "Finished now" lands here - it saves nothing (the value was not seen yet).
+        // A tap counts from its pointerdown; Enter or a click without one from now
+        const tappedAt = event?.detail > 0 && this.savePointerAt !== null ? this.savePointerAt : performance.now();
+        this.savePointerAt = null;
+
+        if (this.view !== 'confirm' || !confirmTapAllowed(this.confirmShownAt, tappedAt)) {
+            return;
+        }
+
         const entry = this.entry(this.openRef);
 
         if (entry === null) {
@@ -2401,6 +2474,11 @@ export default class extends Controller {
     openSheet() {
         if (!this.ready) {
             return;
+        }
+
+        if (this.hasAutoOpenToggleTarget) {
+            this.autoOpenToggleTarget.checked = this.prefs().autoOpenTable !== false;
+            this.autoOpenToggleTarget.closest('[data-live-results-prefs]').hidden = !this.usesTables();
         }
 
         this.renderSheet();
@@ -2639,7 +2717,7 @@ export default class extends Controller {
         }
 
         const items = this.outbox ? this.outbox.all() : [];
-        this.addSuggestionListTarget.innerHTML = suggestions.map((entry) => this.rowHtml(entry, items, false)).join('');
+        this.addSuggestionListTarget.innerHTML = rowsOf(suggestions.map((entry) => ({ entry })), outboxByEntry(items)).map((row) => this.rowHtml(row)).join('');
         this.addSuggestionsTarget.hidden = suggestions.length === 0;
 
         this.addPeopleListTarget.innerHTML = people.map((person) => this.personHtml(person)).join('');
@@ -2715,7 +2793,7 @@ export default class extends Controller {
         const newEntry = { clientEntryId: newClientId(), kind: 'person', participantId: person.participantId, name: person.name };
         const entry = { ...this.localEntry(newEntry), country: person.country ?? null, playerCode: person.playerCode ?? null };
         this.localEntries.set(entry.ref, entry);
-        this.indexDirty = true;
+        this.entriesChanged();
 
         if (table !== null) {
             this.enqueue(entry, 'table_number', table);
@@ -2786,7 +2864,7 @@ export default class extends Controller {
             : { clientEntryId, kind: 'team', name: name === '' ? null : name, members };
         const entry = this.localEntry(newEntry);
         this.localEntries.set(entry.ref, entry);
-        this.indexDirty = true;
+        this.entriesChanged();
 
         if (table !== null) {
             this.enqueue(entry, 'table_number', table);

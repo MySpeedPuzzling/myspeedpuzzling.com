@@ -220,6 +220,150 @@ export function entryForEnter(found) {
 }
 
 /**
+ * The table that opens without Enter (competition toolkit C7, C-judge-page.md §2.1): the typed digits are a table
+ * number of exactly one entry and no other table number of the round starts with them - with tables 1-20, `3` opens
+ * table 3, `1` waits for `1x`, `12` opens 12, `2` waits, `20` opens. Deterministic, no timer. Null otherwise (names,
+ * `#codes`, table numbers off, nobody or two entries at that table).
+ */
+export function uniqueTable(index, query, { tableNumbersOff = false } = {}) {
+    const text = String(query ?? '').trim();
+
+    if (tableNumbersOff || !/^[1-9]\d*$/.test(text)) {
+        return null;
+    }
+
+    const number = parseInt(text, 10);
+    let found = null;
+
+    for (const item of index) {
+        if (item.table === null) {
+            continue;
+        }
+
+        if (item.table === number) {
+            if (found !== null) {
+                return null;
+            }
+
+            found = item.entry;
+        } else if (String(item.table).startsWith(text)) {
+            return null;
+        }
+    }
+
+    return found;
+}
+
+/**
+ * The confirm step's guard (C-judge-page.md §4.2): Save ignores a tap that started within this long after the
+ * confirm step appeared - a nervous double tap on "Finished now" (Save shows up under the same thumb) never saves a
+ * value nobody saw.
+ */
+export const CONFIRM_GUARD_MS = 350;
+
+export function confirmTapAllowed(shownAt, tappedAt, guardMs = CONFIRM_GUARD_MS) {
+    if (typeof shownAt !== 'number' || typeof tappedAt !== 'number') {
+        return true;
+    }
+
+    return tappedAt - shownAt >= guardMs;
+}
+
+/**
+ * The outbox's changes per entry (saving order kept) - grouped once per render instead of a scan of every change
+ * for every row.
+ *
+ * @returns {Map<string, object[]>}
+ */
+export function outboxByEntry(outboxItems) {
+    const byEntry = new Map();
+
+    for (const item of outboxItems) {
+        const list = byEntry.get(item.entryRef);
+
+        if (list === undefined) {
+            byEntry.set(item.entryRef, [item]);
+        } else {
+            list.push(item);
+        }
+    }
+
+    return byEntry;
+}
+
+/**
+ * The entries with this device's waiting table numbers on top (a refused one is the entry's problem, not its table),
+ * and a map by ref - one lookup per entry, whatever the number of entries and changes.
+ *
+ * @returns {{list: object[], byRef: Map<string, object>}}
+ */
+export function entriesWithWaitingTables(entries, outboxItems) {
+    const tables = new Map();
+
+    for (const item of outboxItems) {
+        if (item.field === 'table_number' && item.state === 'pending') {
+            const known = tables.get(item.entryRef);
+
+            if (known === undefined || item.seq > known.seq) {
+                tables.set(item.entryRef, item);
+            }
+        }
+    }
+
+    const list = tables.size === 0
+        ? entries
+        : entries.map((entry) => (tables.has(entry.ref) ? { ...entry, tableNumber: tables.get(entry.ref).to } : entry));
+
+    return { list, byRef: new Map(list.map((entry) => [entry.ref, entry])) };
+}
+
+/**
+ * The data of the find view's rows (what the referee typed, else the recent entries): each row's entry, whether it
+ * is the exact table, the result this device shows and its sync mark - `problem` (conflict/refused), `waiting`
+ * (unsent), `saved`, or ''. No HTML: the page renders it, the node harness times it (300 entries + 300 changes).
+ *
+ * @returns {{typed: boolean, rows: {entry: object, exact: boolean, result: {value: *, item: object|null}, sync: string}[]}}
+ */
+export function findRows(index, query, outboxItems, { tableNumbersOff = false, entries = [], roundId = null } = {}) {
+    const byEntry = outboxByEntry(outboxItems);
+    const typed = String(query ?? '').trim() !== '';
+    let picked;
+
+    if (typed) {
+        const found = searchEntries(index, query, { tableNumbersOff });
+        picked = found.matches.map((entry) => ({ entry, exact: entry === found.exactTable }));
+    } else {
+        const ofRound = roundId === null ? outboxItems : outboxItems.filter((item) => item.roundId === roundId);
+        picked = recentEntries(entries, ofRound).map(({ entry }) => ({ entry, exact: false }));
+    }
+
+    return { typed, rows: rowsOf(picked, byEntry) };
+}
+
+/**
+ * Rows of the given entries: the result this device shows and the sync mark (see findRows()).
+ *
+ * @param {{entry: object, exact?: boolean}[]} picked
+ * @param {Map<string, object[]>} byEntry  outboxByEntry()
+ */
+export function rowsOf(picked, byEntry) {
+    return picked.map(({ entry, exact = false }) => {
+        const own = byEntry.get(entry.ref) ?? [];
+        let sync = '';
+
+        if (own.some((item) => item.state === 'conflict' || item.state === 'rejected')) {
+            sync = 'problem';
+        } else if (own.length > 0) {
+            sync = 'waiting';
+        } else if (entry.result !== null && entry.result !== undefined) {
+            sync = 'saved';
+        }
+
+        return { entry, exact, result: shownValue(entry, 'result', own), sync };
+    });
+}
+
+/**
  * The value a field shows on this device: the latest of the device's own changes still in the outbox (waiting,
  * in conflict or refused), else the server's.
  *

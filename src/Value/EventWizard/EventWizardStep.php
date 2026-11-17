@@ -25,6 +25,11 @@ enum EventWizardStep: string
     case SeriesBasics = 'series_basics';
     case Dates = 'dates';
     case SeriesReview = 'series_review';
+    // The backfill path (creation-wizard.md "Backfill") - after PastEvent its pages take `competitionId`
+    case PastEvent = 'past_event';
+    case PastPuzzles = 'past_puzzles';
+    case LinkResults = 'link_results';
+    case PastDone = 'past_done';
 
     /**
      * The step's route - every one but a new event's Basics takes `competitionId`, the series path's `seriesId`
@@ -42,6 +47,10 @@ enum EventWizardStep: string
             self::SeriesBasics => 'event_wizard_series_basics_edit',
             self::Dates => 'event_wizard_series_dates',
             self::SeriesReview => 'event_wizard_series_review',
+            self::PastEvent => 'event_wizard_past',
+            self::PastPuzzles => 'event_wizard_past_puzzles',
+            self::LinkResults => 'event_wizard_link_results',
+            self::PastDone => 'event_wizard_past_done',
         };
     }
 
@@ -52,6 +61,7 @@ enum EventWizardStep: string
             self::SeriesBasics => 'event_wizard.step.basics',
             self::SeriesReview => 'event_wizard.step.review',
             self::Dates => 'event_wizard_series.step.dates',
+            self::PastEvent, self::PastPuzzles, self::LinkResults, self::PastDone => 'event_wizard_backfill.step.' . $this->value,
             default => 'event_wizard.step.' . $this->value,
         };
     }

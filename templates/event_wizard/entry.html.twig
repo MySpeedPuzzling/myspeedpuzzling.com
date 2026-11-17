@@ -13,17 +13,24 @@
     <div class="pb-5">
         <div class="row">
             <div class="col-lg-8 col-xl-7">
-                <h1 class="h3 mb-3">{{ 'event_wizard.entry.question'|trans }}</h1>
+                <h1 class="h3 mb-3">{{ 'event_wizard_backfill.entry.question'|trans }}</h1>
 
                 {#- A GET form: the answer comes back as ?kind= and is sent on (EventWizardEntryController) -#}
                 <form method="get" action="{{ path('event_wizard') }}" data-event-wizard-entry data-controller="organizer-form" data-action="change->organizer-form#update">
                     <div class="d-grid gap-2 mb-3">
                         {% for choice in choices %}
-                            <label class="card card-body flex-row align-items-start gap-3 py-3" for="event-wizard-kind-{{ choice.value }}" style="cursor: pointer;">
-                                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="kind" value="{{ choice.value }}" id="event-wizard-kind-{{ choice.value }}"{% if loop.first %} checked{% endif %} required>
+                            {#- An event that already happened (the backfill path) - its own group above the organising answers;
+                                the organiser's first answer stays the preselected one -#}
+                            {%- set past = choice.value == 'past' -%}
+                            {%- set text_key = past ? 'event_wizard_backfill.entry.past' : 'event_wizard.entry.' ~ choice.value -%}
+                            {% if loop.index == 2 and choices[0].value == 'past' %}
+                                <div class="small fw-semibold text-muted mt-2">{{ 'event_wizard_backfill.entry.organising'|trans }}</div>
+                            {% endif %}
+                            <label class="card card-body flex-row align-items-start gap-3 py-3{{ past ? ' border-primary' : '' }}" for="event-wizard-kind-{{ choice.value }}" style="cursor: pointer;"{% if past %} data-event-wizard-past-choice{% endif %}>
+                                <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="kind" value="{{ choice.value }}" id="event-wizard-kind-{{ choice.value }}"{% if choice.value == 'one_round' %} checked{% endif %} required>
                                 <span>
-                                    <span class="d-block fw-semibold">{{ ('event_wizard.entry.' ~ choice.value)|trans }}</span>
-                                    <span class="d-block small text-muted">{{ ('event_wizard.entry.' ~ choice.value ~ '_help')|trans }}</span>
+                                    <span class="d-block fw-semibold">{{ text_key|trans }}</span>
+                                    <span class="d-block small text-muted">{{ (text_key ~ '_help')|trans }}</span>
                                 </span>
                             </label>
                             {#- Several rounds: the follow-up question (W5) - its answer picks the Structure step's template -#}

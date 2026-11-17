@@ -1,0 +1,66 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard_backfill.step.link_results'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard_backfill.link.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {%- set target_name = competition is not null ? ((competition.series is not null ? competition.series.name ~ ' · ' : '') ~ competition.name) : series.name -%}
+    <p class="mb-1" data-event-wizard-link-target>
+        <span class="fw-semibold">{{ target_name }}</span>
+        {% if day_from is not null %}<span class="text-muted small ms-1">{{ events_date_range(day_from, day_to, 'yMMMd') }}</span>{% endif %}
+    </p>
+    <p class="small text-muted">{{ (series is not null ? 'event_wizard_backfill.link.help_series' : 'event_wizard_backfill.link.help')|trans }}</p>
+
+    {% if waits %}
+        <div class="alert alert-info small" data-event-wizard-link-waits>
+            <i class="ci-time me-1"></i>{{ 'event_wizard_backfill.link.waits'|trans }}
+        </div>
+    {% endif %}
+
+    {{ form_start(form) }}
+    {{ form_errors(form) }}
+    {% if times is empty %}
+        <div class="alert alert-light border" data-event-wizard-link-empty>
+            {{ 'event_wizard_backfill.link.none'|trans }}
+            <a href="{{ path('puzzle_add') }}">{{ 'event_wizard_backfill.link.add_result'|trans }}</a>
+        </div>
+    {% else %}
+        <ul class="list-group mb-3" data-event-wizard-link-times>
+            {% for time in times %}
+                <li class="list-group-item d-flex align-items-start gap-2 py-2" data-time-id="{{ time.timeId }}">
+                    {% if time.isLinkedHere %}
+                        <i class="ci-check-circle text-success mt-1" aria-hidden="true"></i>
+                    {% else %}
+                        {%- set choice = form.times[time.timeId] -%}
+                        {{ form_widget(choice, {attr: {class: 'form-check-input mt-1 flex-shrink-0'}}) }}
+                    {% endif %}
+                    <label class="flex-grow-1" style="min-width: 0;"{% if not time.isLinkedHere %} for="{{ form.times[time.timeId].vars.id }}"{% endif %}>
+                        <span class="d-block text-truncate fw-semibold">{{ time.puzzleName }}</span>
+                        <span class="d-block small text-muted">
+                            {{ time.brandName }}{{ time.brandName is not null ? ' · ' : '' }}{{ time.piecesCount }} · {{ time.solvedAt|events_date('yMMMd') }}
+                            · {{ (time.puzzlingType.value == 'solo' ? 'competition.round.category.solo' : (time.puzzlingType.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans }}
+                            {% if time.seconds is not null %}· <span class="fw-semibold text-body">{{ time.seconds|puzzlingTime }}</span>{% endif %}
+                        </span>
+                        {% if time.isLinkedHere %}
+                            <span class="d-block small text-success">{{ 'event_wizard_backfill.link.linked_here'|trans }}</span>
+                        {% elseif waiting[time.timeId] is defined %}
+                            <span class="d-block small text-muted" data-waiting><i class="ci-time me-1"></i>{{ 'event_wizard_backfill.link.waiting_for'|trans({'%event%': waiting[time.timeId]}) }}</span>
+                        {% elseif time.currentEventName is not null %}
+                            <span class="d-block small text-warning-emphasis" data-linked-elsewhere>{{ 'event_wizard_backfill.link.linked_elsewhere'|trans({'%event%': time.currentEventName}) }}</span>
+                        {% endif %}
+                    </label>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% do form.times.setRendered %}
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+        <button type="submit" class="btn btn-primary" data-event-wizard-link-submit>{{ 'event_wizard_backfill.link.submit'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+        {% if progress is not null %}
+            <a href="{{ path('event_wizard_past_puzzles', {competitionId: competition.id.toString}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+        {% endif %}
+    </div>
+    {{ form_end(form) }}
+{% endblock %}

@@ -43,6 +43,23 @@ readonly final class EventWizardSteps
         );
     }
 
+    /**
+     * The backfill path (creation-wizard.md "Backfill"): its event is no draft, so nothing is derived - every step before
+     * the shown one is done (the event exists from the second step on: competitionId).
+     */
+    public function forBackfill(null|string $competitionId, EventWizardStep $current): EventWizardProgress
+    {
+        $steps = EventWizardPath::Backfill->steps();
+        $position = array_search($current, $steps, true);
+
+        return new EventWizardProgress(
+            competitionId: $competitionId,
+            path: EventWizardPath::Backfill,
+            steps: $steps,
+            doneSteps: $position === false ? [] : array_slice($steps, 0, $position),
+        );
+    }
+
     public function of(EventWizardState $state): EventWizardProgress
     {
         $path = EventWizardPath::of($state->isEdition, $state->roundsCount);
@@ -86,6 +103,8 @@ readonly final class EventWizardSteps
             EventWizardStep::Review => false,
             // The series path's steps are never an event's (ofSeries())
             EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview => false,
+            // The backfill path is never a draft's (forBackfill())
+            EventWizardStep::PastEvent, EventWizardStep::PastPuzzles, EventWizardStep::LinkResults, EventWizardStep::PastDone => false,
         };
     }
 }

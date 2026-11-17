@@ -17,6 +17,10 @@ enum EventWizardPath: string
     case OneRound = 'one_round';
     case SeveralRounds = 'several_rounds';
     case Series = 'series';
+    // An event that already happened, added to link results to it (creation-wizard.md "Backfill"). Never derived from a
+    // draft (of()): the backfill event is submitted at once, not a draft - its later steps work on any event the player
+    // may edit (Puzzles) or link to (Link my results), reached from the step before
+    case Backfill = 'backfill';
 
     /**
      * An edition belongs to a series; two rounds or more are "several rounds" - and so is a draft without any round: the
@@ -50,6 +54,7 @@ enum EventWizardPath: string
             // feature it switches (registration, links, judges, the toolkit's settings and displays) belongs to one
             // date (an edition), not to the series - each date's edit page and "Get ready" checklist have them
             self::Series => [EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview],
+            self::Backfill => [EventWizardStep::PastEvent, EventWizardStep::PastPuzzles, EventWizardStep::LinkResults, EventWizardStep::PastDone],
         };
     }
 }

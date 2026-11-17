@@ -1,0 +1,68 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard_backfill.step.past_puzzles'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard_backfill.puzzles.title'|trans }}{% endblock %}
+
+{% macro row(row, competition_id) %}
+    {#- Category + W1's picker (time_form_autocomplete) - empty = no round -#}
+    <div class="border rounded p-2 mb-2" data-event-wizard-past-row>
+        <div class="row g-2">
+            <div class="col-12 col-sm-4">{{ form_row(row.category) }}</div>
+            <div class="col-12 col-sm-8"
+                 data-controller="time-form-autocomplete"
+                 data-time-form-autocomplete-optional-value="true"
+                 data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+                 data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
+                 data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}">
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">{{ form_row(row.slot.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}, help: false}) }}</div>
+                    <div class="col-12 col-md-6">{{ form_row(row.slot.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}, help: false}) }}</div>
+                </div>
+                <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
+                    <div class="col-6 col-sm-5">{{ form_row(row.slot.piecesCount) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% block wizard_content %}
+    <p class="text-muted">{{ 'event_wizard_backfill.puzzles.help'|trans }}</p>
+
+    {% if rounds is not empty %}
+        <div class="alert alert-light border small" data-event-wizard-past-existing-rounds>
+            <div class="fw-semibold mb-1">{{ 'event_wizard_backfill.puzzles.existing'|trans }}</div>
+            <ul class="mb-0 ps-3">
+                {% for round in rounds %}
+                    <li>{{ round.name }}{% for round_puzzle in round.roundPuzzles %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div data-controller="event-wizard-puzzles" data-event-wizard-puzzles-brands-value="{{ brand_choices|json_encode }}">
+        {{ form_start(form) }}
+        {{ form_errors(form) }}
+        <div data-event-wizard-puzzles-row>
+            {% for index, row in form.rows %}
+                {%- set filled = row.slot.vars.value.puzzle is not empty or row.slot.vars.value.brand is not empty or not row.vars.valid -%}
+                {% if index == 0 or filled %}
+                    {{ _self.row(row, competition_id) }}
+                {% else %}
+                    <template data-event-wizard-puzzles-slot>{{ _self.row(row, competition_id) }}</template>
+                {% endif %}
+            {% endfor %}
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-3" data-action="event-wizard-puzzles#another" data-event-wizard-past-another>
+                <i class="ci-plus me-1"></i>{{ 'event_wizard_backfill.puzzles.another'|trans }}
+            </button>
+        </div>
+        <p class="form-text">{{ 'event_wizard_backfill.puzzles.rounds_note'|trans }}</p>
+
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+            <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.save_continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+            <a href="{{ path('event_wizard_link_results', {competitionId: competition_id}) }}" class="btn btn-link text-muted ms-auto" data-event-wizard-past-skip>{{ 'event_wizard_backfill.puzzles.skip'|trans }}</a>
+        </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

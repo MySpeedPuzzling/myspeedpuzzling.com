@@ -1,0 +1,44 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard_backfill.step.past_done'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard_backfill.done.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    <div class="card shadow-sm mb-3" data-event-wizard-past-done>
+        <div class="card-body">
+            <h2 class="h5 mb-1">{% if competition.series is not null %}{{ competition.series.name }} · {% endif %}{{ competition.name }}</h2>
+            <p class="small text-muted mb-2">
+                {% if competition.dateFrom is not null %}{{ competition.dateFrom|events_date('yMMMd') }}{% endif %}
+                {% if competition.isOnline %} · {{ 'competition.form.event_type_online'|trans }}{% elseif competition.location is not null %} · {{ competition.location }}{% endif %}
+            </p>
+            {% if not is_public %}
+                <div class="alert alert-info small mb-2" data-event-wizard-past-pending>
+                    <i class="ci-time me-1"></i>{{ 'event_wizard_backfill.done.pending'|trans }}
+                </div>
+            {% endif %}
+
+            <dl class="row small mb-0">
+                <dt class="col-sm-4">{{ 'event_wizard_backfill.done.rounds'|trans }}</dt>
+                <dd class="col-sm-8" data-event-wizard-past-rounds>
+                    {% for round in rounds %}
+                        <div>{{ round.name }}{% for round_puzzle in round.roundPuzzles %}{{ loop.first ? ': ' : ', ' }}{{ round_puzzle.puzzle.name }}{% endfor %}</div>
+                    {% else %}
+                        <span class="text-muted">{{ 'event_wizard_backfill.done.no_rounds'|trans }}</span>
+                    {% endfor %}
+                </dd>
+                <dt class="col-sm-4">{{ 'event_wizard_backfill.done.results'|trans }}</dt>
+                <dd class="col-sm-8" data-event-wizard-past-results>
+                    {{ 'event_wizard_backfill.done.linked'|trans({'%count%': linked_count}) }}
+                    {% if waiting_count > 0 %}<div class="text-muted" data-event-wizard-past-waiting>{{ 'event_wizard_backfill.done.waiting'|trans({'%count%': waiting_count}) }}</div>{% endif %}
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <a class="btn btn-primary" href="{{ event_url }}" data-event-wizard-past-open>{{ 'event_wizard_backfill.done.open_event'|trans }}</a>
+        <a class="btn btn-outline-secondary" href="{{ path('event_wizard_link_results', {competitionId: competition.id.toString}) }}">{{ 'event_wizard_backfill.done.link_more'|trans }}</a>
+        <a class="btn btn-link" href="{{ path('edit_competition', {competitionId: competition.id.toString}) }}">{{ 'event_wizard_backfill.done.edit'|trans }}</a>
+    </div>
+{% endblock %}

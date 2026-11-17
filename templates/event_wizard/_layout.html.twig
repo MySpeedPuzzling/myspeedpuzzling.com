@@ -1,6 +1,6 @@
 {#
     The frame of every wizard step: breadcrumb, the step rail (left from 992 px, a bar on phones), the step's content.
-    Blocks: wizard_title, wizard_content.
+    Blocks: wizard_title, wizard_content. `progress` may be null (no rail).
 #}
 {% extends 'base.html.twig' %}
 
@@ -14,9 +14,12 @@
 
     <div class="pb-5">
         <div class="row gy-3">
-            <div class="col-lg-3 order-lg-1">
-                {{ include('event_wizard/_rail.html.twig', {progress: progress, step: step}, with_context = false) }}
-            </div>
+            {#- No rail without a path (progress null: "Link my results" for somebody else's event - one page) -#}
+            {% if progress is not null %}
+                <div class="col-lg-3 order-lg-1">
+                    {{ include('event_wizard/_rail.html.twig', {progress: progress, step: step}, with_context = false) }}
+                </div>
+            {% endif %}
             <div class="col-lg-8 col-xl-7 order-lg-2">
                 <h1 class="h3 mb-3">{% block wizard_title %}{% endblock %}</h1>
 

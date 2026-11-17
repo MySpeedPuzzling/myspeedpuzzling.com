@@ -1,0 +1,112 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard_backfill.step.past_event'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard_backfill.event.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {{ form_start(form) }}
+
+    {#- "Is it one of these?" - before anything is created (EventWizardPastEventController) -#}
+    {% if cards is not empty %}
+        <div class="card border-warning shadow-sm mb-4" data-event-wizard-past-matches>
+            <div class="card-body">
+                <h2 class="h5 mb-1">{{ 'event_wizard_backfill.matches.title'|trans }}</h2>
+                <p class="small text-muted mb-3">{{ 'event_wizard_backfill.matches.help'|trans }}</p>
+                <ul class="list-unstyled mb-3">
+                    {% for card in cards %}
+                        {%- set match = card.match -%}
+                        <li class="border rounded p-2 mb-2 d-flex flex-wrap align-items-center gap-2" data-event-wizard-past-match="{{ match.kind }}" data-match-id="{{ match.id }}">
+                            <div class="me-auto" style="min-width: 0;">
+                                <div class="fw-semibold text-break">
+                                    {% if match.kind == 'event' and match.seriesName is not null %}{{ match.seriesName }} · {% endif %}{{ match.name }}
+                                    {% if not match.isPublic %}<span class="badge bg-secondary ms-1">{{ 'event_wizard_backfill.matches.not_public'|trans }}</span>{% endif %}
+                                </div>
+                                <div class="small text-muted">
+                                    {{ ('event_wizard_backfill.matches.kind_' ~ match.kind)|trans }}
+                                    {% if match.dateFrom is not null %} · {{ match.dateFrom|events_date('yMMMd') }}{% endif %}
+                                    {% if match.isOnline %} · {{ 'competition.form.event_type_online'|trans }}{% elseif match.countryCode is not null or match.location is not null %} · {% if match.countryCode is not null %}<span class="fi fi-{{ match.countryCode.name }} me-1"></span>{% endif %}{{ match.location }}{% endif %}
+                                </div>
+                            </div>
+                            {% if card.action == 'puzzles' %}
+                                <a class="btn btn-sm btn-primary" href="{{ card.url }}" data-match-action="puzzles">{{ 'event_wizard_backfill.matches.use_event'|trans }}</a>
+                            {% elseif card.action == 'link' %}
+                                <a class="btn btn-sm btn-primary" href="{{ card.url }}" data-match-action="link">{{ 'event_wizard_backfill.matches.link_results'|trans }}</a>
+                            {% elseif card.action == 'link_series' %}
+                                <a class="btn btn-sm btn-primary" href="{{ card.url }}" data-match-action="link_series">{{ 'event_wizard_backfill.matches.link_results'|trans }}</a>
+                            {% elseif card.action == 'add_date' %}
+                                <button type="submit" class="btn btn-sm btn-primary" name="into_series" value="{{ match.id }}" data-match-action="add_date">{{ 'event_wizard_backfill.matches.add_date'|trans }}</button>
+                            {% elseif card.action == 'organization' %}
+                                <button type="submit" class="btn btn-sm btn-primary" name="into_organization" value="{{ match.id }}" data-match-action="organization">{{ 'event_wizard_backfill.matches.under_organization'|trans }}</button>
+                            {% else %}
+                                <div class="small text-muted w-100">{{ 'event_wizard_backfill.matches.organization_not_yours'|trans }} <a href="{{ card.url }}" target="_blank" rel="noopener">{{ 'event_wizard_backfill.matches.open_page'|trans }}</a></div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <button type="submit" class="btn btn-outline-primary" name="create_anyway" value="1" data-event-wizard-create-anyway>{{ 'event_wizard_backfill.matches.none'|trans }}</button>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body" data-controller="organizer-form" data-action="change->organizer-form#update">
+            <p class="small text-muted">{{ 'event_wizard_backfill.event.help'|trans }}</p>
+            {{ form_errors(form) }}
+            <div class="required">{{ form_row(form.name) }}</div>
+
+            <div class="col-12 col-sm-7 mb-3">
+                {{ form_label(form.date, null, {label_attr: {class: 'form-label required'}}) }}
+                <div class="input-group">
+                    {{ form_widget(form.date, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                    <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                </div>
+                {{ form_errors(form.date) }}
+            </div>
+
+            <div class="mb-3">
+                {{ form_label(form.isOnline, null, {label_attr: {class: 'form-label required'}}) }}
+                <div class="d-flex flex-wrap gap-3">
+                    {% for child in form.isOnline %}
+                        <div class="form-check">
+                            {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                            {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {{ form_errors(form.isOnline) }}
+            </div>
+
+            <div data-organizer-form-target="part" data-show-field="isOnline" data-show-values="0">
+                {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                {{ form_widget(form.location) }}
+                {{ form_errors(form.location) }}
+                <div class="mb-3"></div>
+                <div data-controller="country-autocomplete">
+                    {{ form_row(form.locationCountryCode) }}
+                </div>
+            </div>
+
+            {#- Only when the player says so (smart forms) -#}
+            {{ form_row(form.partOf) }}
+            <div class="ms-4" data-organizer-form-target="part" data-show-field="partOf" data-show-values="1" data-event-wizard-past-part-of>
+                {{ form_row(form.series) }}
+                <div data-organizer-form-target="part" data-show-field="series" data-show-values="new">
+                    {{ form_row(form.newSeriesName) }}
+                </div>
+                {{ form_row(form.organization, {help: 'event_wizard_backfill.event.organization_help'}) }}
+                <div data-organizer-form-target="part" data-show-field="organization" data-show-values="new">
+                    {{ form_row(form.newOrganizationName) }}
+                </div>
+            </div>
+
+            <p class="form-text">{{ 'event_wizard_backfill.event.approval_note'|trans }}</p>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                <a href="{{ path('event_wizard') }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+            </div>
+        </div>
+    </div>
+    {{ form_end(form) }}
+{% endblock %}

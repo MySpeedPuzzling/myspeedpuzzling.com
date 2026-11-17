@@ -75,6 +75,10 @@ final class EventWizardEntryController extends AbstractController
     {
         $path = $choice->path();
 
+        if ($path === EventWizardPath::Backfill) {
+            return $this->generateUrl('event_wizard_past', array_filter(['organization' => $organizationId]));
+        }
+
         if ($path === EventWizardPath::Series) {
             return $this->generateUrl('event_wizard_series_basics', array_filter(['organization' => $organizationId]));
         }

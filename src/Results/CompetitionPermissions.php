@@ -50,6 +50,16 @@ readonly final class CompetitionPermissions
     }
 
     /**
+     * Every series canEditSeries() says yes to (the creation wizard's backfill path: "Is it one of these?", "Part of a series")
+     *
+     * @return list<string>
+     */
+    public function editableSeriesIds(): array
+    {
+        return array_map(strval(...), array_keys($this->editableSeriesIds));
+    }
+
+    /**
      * Organiser (see canEditCompetition()) or referee of the competition - the live result entry
      * (docs/features/competitions-management/live-results.md "Referees").
      */

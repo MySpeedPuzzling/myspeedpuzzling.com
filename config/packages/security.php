@@ -82,7 +82,10 @@ return App::config([
                 // /display/{token}/state, /display/{token}/design (+ the page /display/{token}, D4): a competition display's
                 // token in the path is the access right (D-displays-overlays.md §9.1) - no viewer, so nothing in the answer depends
                 // on who opened the link (no blocklist, no allow list), and it never starts a session or sets a cookie.
-                'pattern' => '^(/(en|es|ja|fr|de)/live-results-shell$|/display/[1-9A-HJ-NP-Za-km-z]{22}(/state|/design)?$|/zadavani-vysledku-shell$|/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/competitor-heartbeat$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                // /analytics-studio/{roundId}/state|analytics|predictions|entrant/{entryId}: the analytics studio's JSON
+                // (docs/features/competitions-management/analytics-studio.md §1.3) - no viewer by construction, so every
+                // answer is the same for everybody and can be cached per round (no blocklist, no allow list).
+                'pattern' => '^(/(en|es|ja|fr|de)/live-results-shell$|/analytics-studio/[0-9a-fA-F-]{36}/(state|analytics|predictions|entrant/[0-9a-fA-F-]{36})$|/display/[1-9A-HJ-NP-Za-km-z]{22}(/state|/design)?$|/zadavani-vysledku-shell$|/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/competitor-heartbeat$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

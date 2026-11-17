@@ -204,6 +204,10 @@ Disallow: /ja/プレイヤー統計
 Disallow: /fr/statistiques-joueur
 Disallow: /de/spieler-statistiken
 
+# The analytics studio's JSON (/analytics-studio/{roundId}/state|analytics|entrant|predictions): data for the
+# commentators' page, noindex, nofollow - never content.
+Disallow: /analytics-studio/
+
 # Sign-in (noindex, nofollow): every protected URL a crawler follows redirects
 # to its own /login?return=... Also covers /login-link and /login/social.
 Disallow: /login

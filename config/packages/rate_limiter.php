@@ -200,6 +200,15 @@ return App::config([
                 'limit' => 120,
                 'interval' => '1 hour',
             ],
+            // The analytics studio's heavy JSON (analytics, entrant, predictions - AnalyticsStudioRateLimit,
+            // docs/features/competitions-management/analytics-studio.md R6) per client IP: a commentator's tabs stay far
+            // below, a scraper walking every round of every event is held to a walk. `state` has none (micro-cached, a
+            // venue's screens share one address). 429 with Retry-After
+            'analytics_studio_heavy' => [
+                'policy' => 'sliding_window',
+                'limit' => 600,
+                'interval' => '1 minute',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

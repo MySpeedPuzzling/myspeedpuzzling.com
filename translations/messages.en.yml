@@ -1635,7 +1635,7 @@ edit_profile:
     hide_ranking: "Hide my ranking & skill"
     hide_ranking_help: "Your skill tier and Rating ranking will be hidden. You won't appear on the MSP Rating ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
     hide_time_predictions: "Hide time predictions"
-    hide_time_predictions_help: "Your personal time predictions will be hidden on puzzle pages and time recaps. Turn them off if you just want to enjoy puzzling, without the pressure or disappointment of a predicted time — these are just our magic calculations, we don't want to stress you out!"
+    hide_time_predictions_help: "Your personal time predictions will be hidden on puzzle pages and time recaps, and nobody sees them on event analytics studios. Turn them off if you just want to enjoy puzzling, without the pressure or disappointment of a predicted time — these are just our magic calculations, we don't want to stress you out!"
     change_password: "Password"
     change_password_native_description: "Set a new password with your current one. Your password manager will save it under myspeedpuzzling.com."
     change_password_native_button: "Change password"

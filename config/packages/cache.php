@@ -133,6 +133,14 @@ return App::config([
                     'adapters' => ['cache.app'],
                     'tags' => true,
                 ],
+                // The analytics studio's answers (docs/features/competitions-management/analytics-studio.md §2.9, R2, R3):
+                // the state 2 s, the analytics and puzzle statistics 10 minutes, an entrant 5 minutes, predictions per player
+                // 15 minutes - each keyed by what it depends on (round, stopwatch state, visible puzzles, entrants), so a
+                // reveal or a new entrant is a new key. Disposable: a miss is one recompute
+                'analytics_studio_cache' => [
+                    'adapters' => ['cache.app'],
+                    'default_lifetime' => 600,
+                ],
             ],
         ],
     ],

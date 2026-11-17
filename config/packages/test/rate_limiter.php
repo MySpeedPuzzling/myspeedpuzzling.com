@@ -90,6 +90,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // Every test comes from one IP - a test of the 429 uses a key of its own
+            'analytics_studio_heavy' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+            ],
             // Fixture players start photo uploads in many tests and runs
             'photo_upload' => [
                 'policy' => 'sliding_window',

@@ -494,6 +494,7 @@ SELECT
     cpr.result_seconds,
     cpr.result_pieces_placed,
     cpr.result_did_not_start,
+    cpr.result_missing_pieces,
     cpr.qualified_at,
     cpr.result_entered_at,
     cpr.result_puzzles,
@@ -510,7 +511,7 @@ SQL,
 
         $places = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
+            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
             $roundId = strtolower($row['round_id']);
             // The official record of a pair/team round lives on the team
             $solo = isset($soloRounds[$roundId]);
@@ -527,6 +528,7 @@ SQL,
                 enteredBy: $solo ? self::enteredBy($row['entered_by_name'], $row['entered_by_code']) : null,
                 puzzlesUsed: $solo && isset($pickRounds[$roundId]),
                 puzzles: $solo && isset($pickRounds[$roundId]) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
+                missingPieces: $solo ? $row['result_missing_pieces'] : null,
             );
         }
 
@@ -549,6 +551,7 @@ SELECT
     ct.result_seconds,
     ct.result_pieces_placed,
     ct.result_did_not_start,
+    ct.result_missing_pieces,
     ct.qualified_at,
     ct.result_entered_at,
     ct.result_puzzles,
@@ -566,7 +569,7 @@ SQL,
 
         $teams = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, round_id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
+            /** @var array{id: string, round_id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
             $roundId = strtolower($row['round_id']);
             $teams[] = new ParticipantsSheetTeam(
                 id: strtolower($row['id']),
@@ -579,6 +582,7 @@ SQL,
                 enteredBy: self::enteredBy($row['entered_by_name'], $row['entered_by_code']),
                 puzzlesUsed: isset($pickRounds[$roundId]),
                 puzzles: isset($pickRounds[$roundId]) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
+                missingPieces: $row['result_missing_pieces'],
             );
         }
 

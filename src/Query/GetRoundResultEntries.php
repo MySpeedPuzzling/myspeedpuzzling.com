@@ -116,6 +116,7 @@ SQL, [
             puzzlesUsed: $puzzlesUsed ?? $entry->puzzlesUsed,
             piecesCount: $piecesCount ?? $entry->piecesCount,
             lineupId: $entry->lineupId,
+            missingPieces: $entry->missingPieces,
         );
     }
 
@@ -177,6 +178,7 @@ SELECT
     cpr.result_seconds,
     cpr.result_pieces_placed,
     cpr.result_did_not_start,
+    cpr.result_missing_pieces,
     cpr.result_entered_at,
     cpr.result_entered_by_id,
     entered_by.name AS entered_by_name,
@@ -201,7 +203,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
             $entries[] = new RoundResultEntry(
                 ref: RoundEntryRef::participantRound($row['id']),
                 kind: RoundResultEntry::KIND_PERSON,
@@ -223,6 +225,7 @@ SQL,
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
                 playerIsPrivate: $row['player_is_private'] === true,
                 puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
+                missingPieces: $row['result_missing_pieces'],
             );
         }
 
@@ -244,6 +247,7 @@ SELECT
     ct.result_seconds,
     ct.result_pieces_placed,
     ct.result_did_not_start,
+    ct.result_missing_pieces,
     ct.result_entered_at,
     ct.result_entered_by_id,
     entered_by.name AS entered_by_name,
@@ -310,7 +314,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string} $row */
+            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string} $row */
             $teamMembers = $members[$row['id']] ?? [];
             $countries = [];
             foreach ($teamMembers as $member) {
@@ -340,6 +344,7 @@ SQL,
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
                 puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 lineupId: $lineupsOf !== null && isset($lineupMembers[$row['id']]) ? CompetitionLineupId::of($lineupsOf, $lineupMembers[$row['id']]) : null,
+                missingPieces: $row['result_missing_pieces'],
             );
         }
 

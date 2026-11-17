@@ -40,7 +40,7 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * At most two statements for any number of rounds - one for the solo rounds, one for the pair/team rounds (bringing
  * their members along as JSON); a single round runs one.
  *
- * @phpstan-type Row array{round_id: string, ref: RoundEntryRef, result: RoundEntryResult, puzzles: null|RoundEntryPuzzles, qualified: bool, team_name: null|string, entrants: list<PublishedRoundEntrant>, participant_ids: list<string>, round_puzzles_count: int, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string}
+ * @phpstan-type Row array{round_id: string, ref: RoundEntryRef, result: RoundEntryResult, missing_pieces: null|int, puzzles: null|RoundEntryPuzzles, qualified: bool, team_name: null|string, entrants: list<PublishedRoundEntrant>, participant_ids: list<string>, round_puzzles_count: int, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string}
  */
 readonly final class OfficialEntrantsView
 {
@@ -137,6 +137,7 @@ readonly final class OfficialEntrantsView
                 puzzles: $row['puzzles'],
                 participantIds: $row['participant_ids'],
                 hiddenFromViewer: $hidden,
+                missingPieces: $row['missing_pieces'],
             );
         }
 
@@ -172,6 +173,7 @@ SELECT
     cpr.id,
     cpr.result_seconds,
     cpr.result_pieces_placed,
+    cpr.result_missing_pieces,
     cpr.result_puzzles,
     cpr.qualified_at IS NOT NULL AS qualified,
     cp.id AS participant_id,
@@ -198,11 +200,12 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_id: string, id: string, result_seconds: null|int, result_pieces_placed: null|int, result_puzzles: null|string, qualified: bool, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, round_puzzles_count: int|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
+            /** @var array{round_id: string, id: string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, round_puzzles_count: int|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
             $entries[] = [
                 'round_id' => strtolower($row['round_id']),
                 'ref' => RoundEntryRef::participantRound($row['id']),
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], false),
+                'missing_pieces' => $row['result_seconds'] !== null ? $row['result_missing_pieces'] : null,
                 'puzzles' => RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 'qualified' => $row['qualified'],
                 'team_name' => null,
@@ -236,6 +239,7 @@ SELECT
     ct.name,
     ct.result_seconds,
     ct.result_pieces_placed,
+    ct.result_missing_pieces,
     ct.result_puzzles,
     ct.qualified_at IS NOT NULL AS qualified,
     (SELECT COUNT(*) FROM competition_round_puzzle crp WHERE crp.round_id = ct.round_id) AS round_puzzles_count,
@@ -268,7 +272,7 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_id: string, id: string, name: null|string, result_seconds: null|int, result_pieces_placed: null|int, result_puzzles: null|string, qualified: bool, round_puzzles_count: int|string, members: null|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
+            /** @var array{round_id: string, id: string, name: null|string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, round_puzzles_count: int|string, members: null|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
             /** @var list<array{participant_id: string, name: string, country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool}> $members */
             $members = $row['members'] !== null ? json_decode($row['members'], true, flags: JSON_THROW_ON_ERROR) : [];
 
@@ -276,6 +280,7 @@ SQL,
                 'round_id' => strtolower($row['round_id']),
                 'ref' => RoundEntryRef::team($row['id']),
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], false),
+                'missing_pieces' => $row['result_seconds'] !== null ? $row['result_missing_pieces'] : null,
                 'puzzles' => RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 'qualified' => $row['qualified'],
                 'team_name' => $row['name'],

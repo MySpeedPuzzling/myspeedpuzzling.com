@@ -20,7 +20,7 @@ use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
  * Reads the `changes` of an official results change set (RecordRoundResultsController) into RoundResultChange values:
  *
  *     {"clientChangeId": "<uuid>", "entry": "participant_round:<uuid>" | "team:<uuid>",
- *      "field": "result" | "table_number" | "qualified" | "puzzles", "from": <value>, "to": <value>}
+ *      "field": "result" | "table_number" | "qualified" | "puzzles" | "missing_pieces", "from": <value>, "to": <value>}
  *
  * or, for an entrant added at the venue, `newEntry` instead of `entry` - typed in, or a participant of the event who
  * is not in the round yet (`participantId`):
@@ -144,6 +144,7 @@ final readonly class RoundResultChangesParser
         return match ($field) {
             RoundResultField::Result => RoundEntryResult::fromWire($value),
             RoundResultField::TableNumber => $value === null || is_int($value) ? $value : throw new \InvalidArgumentException('A table number is an integer or null.'),
+            RoundResultField::MissingPieces => $value === null || is_int($value) ? $value : throw new \InvalidArgumentException('Missing pieces are an integer or null.'),
             RoundResultField::Qualified => is_bool($value) ? $value : throw new \InvalidArgumentException('Qualified is true or false.'),
             RoundResultField::Puzzles => RoundEntryPuzzles::fromWire($value),
             RoundResultField::Proposal => throw new \InvalidArgumentException('A proposal change is read by proposalChange().'),

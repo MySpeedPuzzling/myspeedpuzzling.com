@@ -36,6 +36,12 @@ trait HasOfficialResult
     #[Column(options: ['default' => false])]
     public bool $resultDidNotStart = false;
 
+    // Finished with pieces missing (competition toolkit T6 - e.g. a piece missing from the factory): how many, 1..; only
+    // next to a finished result (recordResult() clears it with any other), null = the puzzle was complete
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, nullable: true)]
+    public null|int $resultMissingPieces = null;
+
     // When the result was last changed - also when it was cleared
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -78,8 +84,18 @@ trait HasOfficialResult
         $this->resultSeconds = $result->seconds;
         $this->resultPiecesPlaced = $result->piecesPlaced;
         $this->resultDidNotStart = $result->didNotStart;
+        // Pieces missing belong to a finished result only - another kind of result drops them (official-results.md T6)
+        $this->resultMissingPieces = $result->isFinished() ? $this->resultMissingPieces : null;
         $this->resultEnteredBy = $enteredBy;
         $this->resultEnteredAt = $enteredAt;
+    }
+
+    /**
+     * Checked by RecordRoundResultsHandler (1.., the entry finished as the set leaves it) - never here.
+     */
+    public function recordMissingPieces(null|int $missingPieces): void
+    {
+        $this->resultMissingPieces = $missingPieces;
     }
 
     public function officialPuzzles(): null|RoundEntryPuzzles

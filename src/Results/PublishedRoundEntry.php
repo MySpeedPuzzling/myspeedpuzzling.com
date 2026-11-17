@@ -42,6 +42,8 @@ readonly final class PublishedRoundEntry
         public array $participantIds = [],
         // Only with OfficialEntrantsView::forRounds(keepHidden: true) - the standings drop such rows after their ranking
         public bool $hiddenFromViewer = false,
+        // Finished with pieces missing (competition toolkit T6): a note next to the time - the round's order stays by time
+        public null|int $missingPieces = null,
     ) {
     }
 
@@ -72,6 +74,7 @@ readonly final class PublishedRoundEntry
             puzzleChips: $this->puzzleChips,
             participantIds: $this->participantIds,
             hiddenFromViewer: $this->hiddenFromViewer,
+            missingPieces: $this->missingPieces,
         );
     }
 
@@ -94,6 +97,7 @@ readonly final class PublishedRoundEntry
             puzzleChips: $puzzleChips,
             participantIds: $this->participantIds,
             hiddenFromViewer: $this->hiddenFromViewer,
+            missingPieces: $this->missingPieces,
         );
     }
 

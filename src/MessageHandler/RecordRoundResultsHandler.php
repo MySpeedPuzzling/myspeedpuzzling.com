@@ -62,7 +62,14 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * resolves the entry's pending proposal; all of it after the write, in the same transaction. With proposals off a
  * `proposal` change is refused (`proposals_off`) and nothing else differs.
  *
- * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, puzzles: null|RoundEntryPuzzles, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
+ * Finished with pieces missing (competition toolkit T6, official-results.md "Finished with pieces missing"): a
+ * `missing_pieces` change sets how many pieces a finished puzzle lacked (a piece missing from the factory) - only on an
+ * entry finished at that point of the set (`missing_pieces_not_finished`), 1..9999 and below the round's piece count
+ * (`invalid_missing_pieces`). A `result` change to anything but a finished time drops the count; a finished time
+ * corrected keeps it - so a device that never heard of the field cannot wipe it. A `result` + `missing_pieces` (or
+ * `puzzles` + `missing_pieces`) change of one entry in one set are a group like `result` + `puzzles`.
+ *
+ * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, puzzles: null|RoundEntryPuzzles, missing_pieces: null|int, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
  * @phpstan-type Plan array{outcomes: list<RoundResultChangeOutcome>, applied: list<int>, tableChanges: array<string, list<int>>, newEntries: array<string, NewRoundEntry>, state: array<string, EntryState>}
  * @phpstan-type Format null|array{toSolve: int, pieces: array<string, int>}
  * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>, format: Format, proposals: null|array<string, CompetitionTimeProposal>}
@@ -75,6 +82,8 @@ readonly final class RecordRoundResultsHandler
     public const int MAX_TABLE_NUMBER = 9999;
     // A round without exactly one puzzle has no piece count to check against - this only stops a typo of a different kind
     public const int MAX_PIECES_PLACED = 100000;
+    // Pieces missing from a finished puzzle (T6) - a factory gap is 1-3, this only keeps the number in its column
+    public const int MAX_MISSING_PIECES = 9999;
 
     public function __construct(
         private CompetitionRoundRepository $roundRepository,
@@ -161,6 +170,7 @@ readonly final class RecordRoundResultsHandler
                 RoundResultField::TableNumber => $entry->assignTableNumber(self::tableNumber($change->to)),
                 RoundResultField::Qualified => $change->to === true ? $entry->markQualified($now) : $entry->unmarkQualified(),
                 RoundResultField::Puzzles => $entry->recordPuzzles(self::puzzles($change->to)),
+                RoundResultField::MissingPieces => $entry->recordMissingPieces(self::missingPieces($change->to)),
                 // A proposal change writes no entry field - TimeProposalResolver decides the proposal below
                 RoundResultField::Proposal, null => throw new \LogicException('An applied change has a field of the entry.'),
             };
@@ -266,6 +276,7 @@ readonly final class RecordRoundResultsHandler
                 'table_number' => $entry->tableNumber,
                 'qualified' => $entry->isQualified(),
                 'puzzles' => $entry->officialPuzzles(),
+                'missing_pieces' => $entry->resultMissingPieces,
                 'enteredAt' => $entry->resultEnteredAt,
                 'enteredById' => $entry->resultEnteredBy?->id->toString(),
                 'enteredByName' => $entry->resultEnteredBy !== null ? ($entry->resultEnteredBy->name ?? '#' . strtoupper($entry->resultEnteredBy->code)) : null,
@@ -325,6 +336,7 @@ readonly final class RecordRoundResultsHandler
                     'table_number' => null,
                     'qualified' => false,
                     'puzzles' => null,
+                    'missing_pieces' => null,
                     'enteredAt' => null,
                     'enteredById' => null,
                     'enteredByName' => null,
@@ -347,8 +359,13 @@ readonly final class RecordRoundResultsHandler
             $refusal = $excluded[$index] ?? (
                 // The puzzle choice is part of the result - a referee records both (A-round-formats.md §2.4), and decides
                 // a competitor's time proposal (competition toolkit P1)
-                $message->resultsOnly && !in_array($change->field, [RoundResultField::Result, RoundResultField::Puzzles, RoundResultField::Proposal], true) ? 'results_only' : null
-            ) ?? self::valueRefusal($change, $round, $context['format']);
+                $message->resultsOnly && !in_array($change->field, [RoundResultField::Result, RoundResultField::Puzzles, RoundResultField::Proposal, RoundResultField::MissingPieces], true) ? 'results_only' : null
+            ) ?? self::valueRefusal($change, $round, $context['format']) ?? (
+                // Pieces missing of a finished puzzle - the entry must be finished at this point of the set (T6)
+                $change->field === RoundResultField::MissingPieces && $change->to !== null && self::same($change->field, $current, $change->to) === false && $state[$refString]['result']->isFinished() === false
+                    ? 'missing_pieces_not_finished'
+                    : null
+            );
 
             if ($refusal !== null) {
                 $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, $refusal, $current, $state[$refString]);
@@ -487,9 +504,9 @@ readonly final class RecordRoundResultsHandler
     }
 
     /**
-     * Rule 7: the `result` and `puzzles` changes of one entry in one set apply together or not at all - when one of
-     * them is refused or a conflict, the applied ones are refused as `group_refused`. An entry without both kinds in
-     * the set has no group (a set of `result` changes only behaves as it always did).
+     * Rule 7: the `result`, `puzzles` and `missing_pieces` (T6) changes of one entry in one set apply together or not at
+     * all - when one of them is refused or a conflict, the applied ones are refused as `group_refused`. An entry with
+     * only one of these kinds in the set has no group (a set of `result` changes only behaves as it always did).
      *
      * @param Plan $plan
      * @param array<int, string> $excluded
@@ -497,23 +514,24 @@ readonly final class RecordRoundResultsHandler
      */
     private static function groupRefusals(RecordRoundResults $message, array $plan, array $excluded): array
     {
-        /** @var array<string, array{result: bool, puzzles: bool, indexes: list<int>}> $groups */
+        /** @var array<string, array{kinds: array<string, true>, indexes: list<int>}> $groups */
         $groups = [];
         foreach ($message->changes as $index => $change) {
             $ref = $change->entryRef()?->toString();
+            $grouped = [RoundResultField::Result, RoundResultField::Puzzles, RoundResultField::MissingPieces];
 
-            if ($ref === null || ($change->field !== RoundResultField::Result && $change->field !== RoundResultField::Puzzles)) {
+            if ($ref === null || $change->field === null || !in_array($change->field, $grouped, true)) {
                 continue;
             }
 
-            $groups[$ref] ??= ['result' => false, 'puzzles' => false, 'indexes' => []];
-            $groups[$ref][$change->field === RoundResultField::Result ? 'result' : 'puzzles'] = true;
+            $groups[$ref] ??= ['kinds' => [], 'indexes' => []];
+            $groups[$ref]['kinds'][$change->field->value] = true;
             $groups[$ref]['indexes'][] = $index;
         }
 
         $refused = [];
         foreach ($groups as $group) {
-            if ($group['result'] === false || $group['puzzles'] === false) {
+            if (count($group['kinds']) < 2) {
                 continue;
             }
 
@@ -646,6 +664,15 @@ readonly final class RecordRoundResultsHandler
             return self::puzzles($change->to)?->itemsRefusal($format['toSolve'], $format['pieces']);
         }
 
+        if ($change->field === RoundResultField::MissingPieces) {
+            $missingPieces = self::missingPieces($change->to);
+            // Below the puzzle's pieces when the round has one puzzle - a "finished" puzzle has most of its pieces
+            $piecesCount = $missingPieces !== null && $format === null ? $round->singlePuzzlePiecesCount() : null;
+            $maximum = $piecesCount !== null ? min($piecesCount - 1, self::MAX_MISSING_PIECES) : self::MAX_MISSING_PIECES;
+
+            return $missingPieces !== null && ($missingPieces < 1 || $missingPieces > $maximum) ? 'invalid_missing_pieces' : null;
+        }
+
         if ($change->field === RoundResultField::TableNumber) {
             $tableNumber = self::tableNumber($change->to);
 
@@ -750,6 +777,7 @@ readonly final class RecordRoundResultsHandler
             RoundResultField::TableNumber => $entryState['table_number'],
             RoundResultField::Qualified => $entryState['qualified'],
             RoundResultField::Puzzles => $entryState['puzzles'],
+            RoundResultField::MissingPieces => $entryState['missing_pieces'],
             RoundResultField::Proposal => null,
         };
     }
@@ -762,6 +790,8 @@ readonly final class RecordRoundResultsHandler
     {
         if ($field === RoundResultField::Result) {
             $entryState['result'] = self::result($value);
+            // HasOfficialResult::recordResult()'s rule: pieces missing stay only next to a finished time
+            $entryState['missing_pieces'] = $entryState['result']->isFinished() ? $entryState['missing_pieces'] : null;
             $entryState['enteredAt'] = $now;
             $entryState['enteredById'] = $actor->id->toString();
             $entryState['enteredByName'] = $actor->name ?? '#' . strtoupper($actor->code);
@@ -769,6 +799,8 @@ readonly final class RecordRoundResultsHandler
             $entryState['table_number'] = self::tableNumber($value);
         } elseif ($field === RoundResultField::Puzzles) {
             $entryState['puzzles'] = self::puzzles($value);
+        } elseif ($field === RoundResultField::MissingPieces) {
+            $entryState['missing_pieces'] = self::missingPieces($value);
         } else {
             $entryState['qualified'] = $value === true;
         }
@@ -780,7 +812,7 @@ readonly final class RecordRoundResultsHandler
     {
         return match ($field) {
             RoundResultField::Result => self::result($a)->equals(self::result($b)),
-            RoundResultField::TableNumber => self::tableNumber($a) === self::tableNumber($b),
+            RoundResultField::TableNumber, RoundResultField::MissingPieces => self::tableNumber($a) === self::tableNumber($b),
             RoundResultField::Qualified => ($a === true) === ($b === true),
             RoundResultField::Puzzles => RoundEntryPuzzles::same(self::puzzles($a), self::puzzles($b)),
             RoundResultField::Proposal => false,
@@ -793,6 +825,11 @@ readonly final class RecordRoundResultsHandler
     }
 
     private static function tableNumber(null|RoundEntryResult|RoundEntryPuzzles|int|bool $value): null|int
+    {
+        return is_int($value) ? $value : null;
+    }
+
+    private static function missingPieces(null|RoundEntryResult|RoundEntryPuzzles|int|bool $value): null|int
     {
         return is_int($value) ? $value : null;
     }

@@ -62,6 +62,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
         // A pair/team's line-up for the whole competition (CompetitionLineupId) - only while the competition has competitor
         // pages or a QR tag mode (competition toolkit R §1.8), so the judge's scanner resolves a line-up tag; else null
         public null|string $lineupId = null,
+        // Finished with pieces missing (competition toolkit T6): how many - null = complete, or not finished
+        public null|int $missingPieces = null,
     ) {
     }
 
@@ -106,6 +108,7 @@ readonly final class RoundResultEntry implements \JsonSerializable
             puzzlesUsed: $this->puzzlesUsed,
             piecesCount: $this->piecesCount,
             lineupId: $this->lineupId,
+            missingPieces: $this->missingPieces,
         );
     }
 
@@ -165,6 +168,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
             ...($this->playerWithheld ? ['playerWithheld' => true] : []),
             'tableNumber' => $this->tableNumber,
             'result' => $this->result->toWire(),
+            // Only when a finished puzzle missed pieces (T6) - every other entry keeps its shape
+            ...($this->missingPieces !== null ? ['missingPieces' => $this->missingPieces] : []),
             // Only for an entry of a `pick` round - every other entry's JSON stays as it was (R-review-and-plan.md §1.8)
             ...($this->puzzlesUsed ? ['puzzles' => $this->puzzles?->toWire()] : []),
             'rank' => $this->rank,

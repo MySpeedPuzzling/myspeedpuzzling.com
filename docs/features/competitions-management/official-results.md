@@ -49,6 +49,40 @@ these columns empty.
 - Table numbers are unique per round **in the write path, under the participants lock** - not by an index, so a swap
   or a renumbering in one change set works.
 
+## Finished with pieces missing (competition toolkit T6)
+
+Jan (2026-11-17): "sometimes even the puzzle might have a missing piece from the factory so there will be 499 or 498
+pieces ... we give penalty vs we count missing pieces". Two different things: (a) pieces **not placed** when the time ran
+out = an unfinished result (`result_pieces_placed`, the judge's Missing/Placed counter of T1); (b) a **finished** puzzle
+that still lacks pieces = this.
+
+- **Column** `result_missing_pieces` smallint null (both entry tables, `HasOfficialResult`): 1..9999 and below the round's
+  piece count when it has one puzzle; null = complete. Only next to a finished result: `recordResult()` drops it with any
+  other result (didn't finish, did not start, cleared); a finished time corrected keeps it.
+- **Write path - its own field**, `RecordRoundResults` change `field: "missing_pieces"`, `from`/`to` null or an integer,
+  three-way like a table number. Decided over a key inside the result value (`{"seconds": 5025, "missingPieces": 1}`):
+  a page loaded before this existed compares results by their seconds only and sends the value it got back as `from`, so
+  its time correction would have passed the three-way check and wiped the count. As a field of its own, a device that
+  never heard of it never touches it. Refusals `invalid_missing_pieces`, `missing_pieces_not_finished` (the entry is not
+  finished at that point of the set - send the `result` first); referees may send it (`resultsOnly`). `result` +
+  `missing_pieces` (or `puzzles` + `missing_pieces`) of one entry in one set are a group like `result` + `puzzles`
+  (`group_refused`). A set without the field runs exactly the statements it did (`RecordRoundResultsStatementPinTest`).
+- **Read side**: the entry JSON (`RoundResultEntry`, Mercure, referee view) carries `missingPieces` **only when set** -
+  every other entry keeps its shape (`RoundResultsStateGoldenTest`); `PublishedRoundEntry::$missingPieces` (via
+  `OfficialEntrantsView`), the participants sheet's place/team JSON likewise.
+- **Pick rounds**: per entry, not per puzzle - the per-puzzle record (`result_puzzles`, the twin
+  `official_results_puzzles.js`) is untouched; a factory gap is a fact of the entry's finished result.
+- **Ranking**: unchanged - the round's order (desk, public round page, advancement) stays by time; the count is a note
+  ("1:23:45 · 1 piece missing"). Where it costs time is the standings' choice (standings.md "Missing pieces and the
+  penalty").
+- **Surfaces**: judge card - on the confirm step after a finished time (typed or "Finished now") a "+ Pieces missing"
+  link opens a small number field (closed by default; open and prefilled when the entry has a count), the confirm text
+  and the entry rows read "1:23:45 · 1 piece missing", Save sends `result` then `missing_pieces` in one outbox group
+  (`assets/official_results_finished_missing.js`, pure, harness-tested). Results desk - the time editor has an optional
+  "pieces missing" input (time mode only), the row shows the note. Participants sheet - shown in the result cell, read
+  only (recorded on the judge page or the desk; a time typed in the sheet keeps the count). Export - a last column
+  "Pieces missing (finished)" only when some entry has one. Public round page - a note under the time.
+
 ## Ranking (computed, never stored)
 
 `OfficialResultsRanking` is the one implementation (organiser tools and the public page): finished by seconds, then

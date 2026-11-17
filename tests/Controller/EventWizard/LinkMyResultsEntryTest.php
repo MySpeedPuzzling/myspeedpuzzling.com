@@ -188,6 +188,8 @@ SQL);
         $owner->request('GET', '/en/my-data');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-row-id="' . PuzzleSolvingTimeFixture::TIME_08 . '"] [data-testid="my-data-waiting-link"]', $note);
+        // The table (desktop) and the list (phone) both say it
+        self::assertSelectorCount(2, '[data-row-id="' . PuzzleSolvingTimeFixture::TIME_08 . '"] [data-testid="my-data-waiting-link"]');
 
         $other = $this->client(PlayerFixture::PLAYER_WITH_FAVORITES);
         $other->request('GET', '/en/result/' . PuzzleSolvingTimeFixture::TIME_08);

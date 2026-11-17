@@ -133,6 +133,7 @@
                         {% endif %}
                     {% endfor %}
                     {% if own_line is not empty %}<span class="d-block fs-xs text-muted text-truncate" data-own-field>{{ own_line|join(' · ') }}</span>{% endif %}
+                    {% if row.waitingEventName is not null %}<span class="d-block fs-xs text-muted" data-testid="my-data-waiting-link"><i class="ci-time me-1" aria-hidden="true"></i>{{ 'event_wizard_backfill.link.waiting_for'|trans({'%event%': row.waitingEventName}) }}</span>{% endif %}
                 </span>
                 <span class="my-data-item-side">
                     <span class="d-block fw-medium">{% if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% elseif row.piecesPlaced is not null %}{{ include('_unfinished_result_badge.html.twig', {placed: row.piecesPlaced, total: row.puzzle.piecesCount}) }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif %}</span>

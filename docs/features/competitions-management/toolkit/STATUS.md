@@ -54,7 +54,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | merged | 4809c8704, 00d8e47bc, 114c81d9c | competitor_page p/g/t/e + competitor_state, 404 rules, published/live/own results, guest 4 statements, canaries, B2 goldens regenerated; docs competitor-pages.md |
 | P1F | A (extra slot) | merged | 48360480f, 19db0c38c | stopwatch_first_started_at (stopwatchOriginalStartAt()), taps before Stop accepted (too_late from the round's end), re-pick keeps connectedAt |
-| B5 | C | started | | |
+| B5 | C | merged | 6248122d2, ad14ea84a | competitor_page_live.js (phases, offset, jittered refetch, wake lock, tapNowMs), token-less public stream mode; walked via refetch path (dev hub refuses anonymous) |
+| B8 | C | started | | |
 | A4 | B (swap) | merged | 973884dc5, 41725625e, 89d05d343 | desk per-puzzle editor (grouped saves), sheet recompute/clear+undo + Puzzles column, export Puzzle N columns (total pinned) |
 | C9 | B | merged | 870b6023b | proposal panel (Confirm focused / Replace / Change / Not right + reason), Proposals waiting list opens the card, outbox proposalId + `proposal` reject (offline ok), late → receipt default; bundle 190 KB/52 KB gzip (50.8) |
 | A8 | B | started | | |

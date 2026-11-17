@@ -139,6 +139,7 @@ final class EditionDetailController extends AbstractController
             now: $now,
             zone: RoundTimezone::resolve(null, $competitionEvent->locationCountryCode?->name, $seriesOverview->locationCountryCode?->name),
             standings: $competitionEvent->publishedStandings,
+            hasBracket: $competitionEvent->hasBracket(),
         );
 
         $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);

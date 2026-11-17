@@ -44,6 +44,7 @@ use SpeedPuzzling\Web\Value\EventTypes;
  *     has_page_sections?: bool|string,
  *     has_published_official_results?: bool|string,
  *     published_standings?: null|string,
+ *     bracket_round_ids?: null|string,
  *     organization_id?: null|string,
  *     is_draft?: bool|string,
  *     eligibility?: null|string,
@@ -63,6 +64,7 @@ readonly final class CompetitionEvent
 
     /**
      * @param list<PublishedStandingRef> $publishedStandings
+     * @param list<string> $bracketRoundIds
      */
     public function __construct(
         public string $id,
@@ -112,6 +114,9 @@ readonly final class CompetitionEvent
         // Its published standings (competition toolkit A7), by position - only GetCompetitionEvents::byId() reads them, in
         // its own statement: the event, edition and round pages link them at no statement of their own
         public array $publishedStandings = [],
+        // The rounds of its declared advancement steps (competition toolkit A9), lower case - only GetCompetitionEvents::byId()
+        // reads them, in its own statement: the event, edition and round pages link the bracket at no statement of their own
+        public array $bracketRoundIds = [],
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -168,6 +173,7 @@ readonly final class CompetitionEvent
             isDraft: self::parseBool($row['is_draft'] ?? false),
             eventTypes: EventTypes::fromJson($row['event_types'] ?? null),
             publishedStandings: PublishedStandingRef::listFromJson($row['published_standings'] ?? null),
+            bracketRoundIds: self::bracketRoundIds($row['bracket_round_ids'] ?? null),
         );
     }
 
@@ -198,6 +204,36 @@ readonly final class CompetitionEvent
         }
 
         return $this->dateFrom->format('Y-m-d') === $this->dateTo->format('Y-m-d') ? $this->dateFrom : null;
+    }
+
+    /**
+     * The event has declared advancement steps (competition toolkit A9) - its bracket page exists.
+     */
+    public function hasBracket(): bool
+    {
+        return $this->bracketRoundIds !== [];
+    }
+
+    /**
+     * The round takes part in a declared advancement step - its results page links the bracket.
+     */
+    public function bracketIncludesRound(string $roundId): bool
+    {
+        return in_array(strtolower($roundId), $this->bracketRoundIds, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function bracketRoundIds(null|string $json): array
+    {
+        if ($json === null || $json === '') {
+            return [];
+        }
+
+        $ids = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        return is_array($ids) ? array_values(array_filter($ids, is_string(...))) : [];
     }
 
     private static function parseBool(bool|string $value): bool

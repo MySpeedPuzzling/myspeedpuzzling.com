@@ -192,6 +192,9 @@ rounds (`copyAdvancementSteps()`).
 - A round that feeds no step - and every event without steps - renders the desk byte-identically (the banner loop and
   the dialog's `data-action` emit nothing; checked by a before/after diff of the rendered desk and overview).
 
+The steps page also draws the bracket of the working steps with every round's progress, and the public bracket page
+shows it to everybody (competition toolkit A9, README.md "Bracket").
+
 Tests: `AdvancementStepGraphTest`, `AdvancementStepsTest` (handlers, refusals, prune on delete/move, duplicate, event
 delete), `AdvancementStepsPagesTest` (voter, forms, hub card, desk banner/prefill payload, overall preset),
 `AdvancementSeedingTest::testTopOverall*`, node: `OfficialResultsDeskHelpersTest` (`prefillFromStep`, `overallForRound`).

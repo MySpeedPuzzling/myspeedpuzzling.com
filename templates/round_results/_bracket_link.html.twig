@@ -1,0 +1,9 @@
+{#
+    "Bracket →": the round takes part in the event's declared advancement steps (competition toolkit A9) - read with the
+    event (CompetitionEvent::$bracketRoundIds). Expects the round page's context (round_route, round_route_params).
+#}
+<p class="small mb-3" data-round-bracket>
+    <a href="{{ path(round_route == 'event_round_results' ? 'event_bracket' : 'edition_bracket', round_route_params) }}" class="text-nowrap" data-round-bracket-link>
+        <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ 'bracket.round_link'|trans }} <span aria-hidden="true">→</span>
+    </a>
+</p>

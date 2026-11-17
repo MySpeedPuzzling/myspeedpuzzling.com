@@ -39,6 +39,8 @@ readonly final class RoundsTimeline
         // the rounds name more than one zone - the side column's single zone note would be wrong
         public bool $mixedZones = false,
         public array $standings = [],
+        // The public bracket of the declared advancement steps (competition toolkit A9) - a public page only
+        public null|string $bracketUrl = null,
     ) {
     }
 

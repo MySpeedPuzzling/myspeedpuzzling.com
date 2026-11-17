@@ -2,7 +2,8 @@
 
 {#
     The advancement steps of an event (competition toolkit A8, competition_advancement_steps_manage).
-    Variables: competition, rounds, view (AdvancementStepsView).
+    Variables: competition, rounds, view (AdvancementStepsView), brackets (list<Bracket>, competition toolkit A9),
+    public_bracket_url (null|string).
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -35,16 +36,23 @@
             <p class="text-muted">{{ 'advancement_step.list.no_rounds'|trans }}</p>
         {% endif %}
 
-        {% if view.stages is not empty %}
-            <div class="d-flex flex-wrap align-items-stretch gap-2 mb-4" data-advancement-stages>
-                {% for roundNames in view.stages %}
-                    {% if not loop.first %}<div class="align-self-center text-muted" aria-hidden="true"><i class="bi bi-arrow-right"></i></div>{% endif %}
-                    <div class="card card-body py-2 px-3 bg-body-tertiary" data-advancement-stage="{{ loop.index }}">
-                        <div class="small text-muted">{{ 'advancement_step.list.stage'|trans({'%stage%': loop.index}) }}</div>
-                        {% for roundName in roundNames %}<div class="fw-semibold">{{ roundName }}</div>{% endfor %}
-                    </div>
+        {% if brackets is not empty %}
+            {# The bracket of the working steps (competition toolkit A9): every round with its results progress #}
+            <section class="mb-4" data-advancement-stages data-organiser-bracket>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 class="h5 mb-0">{{ 'bracket.organiser.title'|trans }}</h2>
+                    {% if public_bracket_url is not null %}
+                        <a href="{{ public_bracket_url }}" class="btn btn-sm btn-outline-secondary ms-auto" data-public-bracket-link>
+                            <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{{ 'bracket.organiser.public_page'|trans }}
+                        </a>
+                    {% endif %}
+                </div>
+                {% for bracket in brackets %}
+                    {% if brackets|length > 1 %}<h3 class="h6 mt-3 mb-2">{{ ('competition.round.category.' ~ bracket.category.value)|trans }}</h3>{% endif %}
+                    {{ include('bracket/_bracket.html.twig', {bracket: bracket, organiser: true}) }}
                 {% endfor %}
-            </div>
+                <p class="small text-muted mb-0">{{ 'bracket.organiser.note'|trans }}</p>
+            </section>
         {% endif %}
 
         {% for item in view.items %}

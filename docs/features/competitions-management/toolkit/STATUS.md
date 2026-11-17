@@ -47,7 +47,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | D6F | C | merged | 306fcbfe1, 028e5debf, 86adaded1 | toolbar below header (--header-height), viewport-sized work surface, two-line layer labels, add → editor, placeFrame() avoids overlaps; stage 16:9 verified at 5 sizes |
 | B1 | C | merged | 9e3a38019, 2cd22d3ca | 4 competition columns, hub card form in CompetitionToolkitController (GET/POST). Open: copy on duplicate? (H) |
 | A3 | A | merged, reviewed (no data-loss; total rounds unaffected) | b035ed2b5..e4e333f72 | RoundEntryPuzzles + result_puzzles jsonb, field `puzzles` (group pass, group_refused), locks only on puzzle requests, guards, official_results_puzzles.js + parity; referees may send puzzles |
-| P1 | A | started | | |
+| P1 | A | merged (review running) | 25ca1e978..8c869401e | competition_time_proposal, ProposeRoundTime/Withdraw (event lock), TimeProposalOwnership (linked before start, id/sender bound), late flag, proposalId confirm + `proposal` field reject, resolver off = 0 statements, reset supersedes, `proposals` in state, lineupId when toolkit on, official_results.proposals push |
+| A6 | A | started | | |
 | C10 | B | merged | 3698eb8b3..3916fe168 | puzzle chips (labels before reveal, order taps), grouped result+puzzles saves, Puzzle missing list, Save puzzle choice; bundle 180 KB/50 KB gzip (now 47.6). Not tried: reveal while card open, offline group save |
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | started | | |
@@ -63,3 +64,4 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - Translations of every new key (5 locales).
 - A3 review: translate official_results.reason.* toolkit reasons + loop testEveryNewReasonIsTranslated over 6 locales; JS twin lacks shape rules (doc or add); live puzzle.pieces_count changes can block a stored record (doc + a clear path).
 - **A4 scope add:** the participants SHEET (not only the desk) must handle pick rounds - send/clear `puzzles` with results, else result edits on entries with a record are refused `puzzles_mismatch`.
+- P1 load: 40 simultaneous proposals p95 ≈ 0.8 s on Docker-on-Mac (≈19 ms each under the event lock) → 100 ≈ 1.9 s vs 500 ms goal. Accepted for v1 (finishes spread, outbox); measure on prod-like HW; per-round lock key needs Jan's OK.

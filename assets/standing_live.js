@@ -11,8 +11,9 @@
 //   signal during a fetch asks once more after it.
 // - A signal on a hidden page: nothing fetched - marked dirty, fetched (0-1 s) once the page is shown again.
 // - No live stream (the hub refused anonymous subscribers, it is down, the stream is still opening): the table every
-//   60 s (±20 %) while the page is visible; a hidden page marks itself dirty instead. The stream opening again after a
-//   drop asks once (0-4 s) - whatever was published meanwhile.
+//   60 s (±20 %) while the page is visible; a hidden page marks itself dirty instead. With a live stream a slow safety
+//   poll every 5 minutes (±20 %, visible only) - a lost signal (a hub hiccup on publish) heals by then. The stream
+//   opening again after a drop asks once (0-4 s) - whatever was published meanwhile.
 // - 404 (the standing was unpublished, the event is no longer public): everything stops; the page keeps what it shows.
 
 import { OfficialResultsEvents } from './official_results_events.js';
@@ -21,13 +22,14 @@ export const SIGNAL_TYPE = 'standing.signal';
 export const JITTER_MS = 4000;
 export const VISIBLE_JITTER_MS = 1000;
 export const POLL_MS = 60 * 1000;
+export const LIVE_POLL_MS = 5 * 60 * 1000;
 export const POLL_SPREAD = 0.2;
 
 /**
- * The next poll: 60 s spread ±20 %.
+ * The next poll: 60 s without a live stream, 5 minutes with one (a lost signal), spread ±20 %.
  */
-export function pollDelay(random = Math.random) {
-    return Math.round(POLL_MS * (1 - POLL_SPREAD + random() * 2 * POLL_SPREAD));
+export function pollDelay(random = Math.random, live = false) {
+    return Math.round((live ? LIVE_POLL_MS : POLL_MS) * (1 - POLL_SPREAD + random() * 2 * POLL_SPREAD));
 }
 
 export function isSignal(message) {
@@ -83,6 +85,9 @@ export class StandingLive {
         this.gone = false;
         this.closed = false;
         this.fetches = 0;
+        // The page came with its table: as good as a fetch at the start
+        this.lastFetchAt = now();
+        this.liveGapMs = pollDelay(random, true);
     }
 
     subscription() {
@@ -195,6 +200,8 @@ export class StandingLive {
 
         this.dirty = false;
         this.fetches += 1;
+        this.lastFetchAt = this.now();
+        this.liveGapMs = pollDelay(this.random, true);
         this.inFlight = Promise.resolve()
             .then(() => this.fetchTableFn())
             .catch(() => ({ status: 'error' }))
@@ -244,12 +251,13 @@ export class StandingLive {
             return;
         }
 
+        // Ticks every 60 s (±20 %) whatever the stream does - a stream that drops is polled within a minute
         this.cancelFn(this.pollTimer);
         this.pollTimer = this.scheduleFn(() => {
             this.pollTimer = null;
 
-            // A live stream tells about every change - no poll
-            if (!this.isLive()) {
+            // Live: a safety fetch only once the last one is 5 minutes (±20 %) old - a lost signal heals by then
+            if (!this.isLive() || this.now() - this.lastFetchAt >= this.liveGapMs) {
                 this.request(0);
             }
 

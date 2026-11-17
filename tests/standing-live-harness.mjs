@@ -3,7 +3,7 @@
 // tests/StandingLiveScriptTest.php asserts every one is "ok".
 
 import assert from 'node:assert/strict';
-import { isSignal, JITTER_MS, POLL_MS, POLL_SPREAD, pollDelay, SIGNAL_TYPE, StandingLive, VISIBLE_JITTER_MS } from '../assets/standing_live.js';
+import { isSignal, JITTER_MS, LIVE_POLL_MS, POLL_MS, POLL_SPREAD, pollDelay, SIGNAL_TYPE, StandingLive, VISIBLE_JITTER_MS } from '../assets/standing_live.js';
 
 const HUB = 'https://myspeedpuzzling.test/.well-known/mercure';
 const TOPIC = '/competition-standings/018d0020-0000-0000-0000-000000000001';
@@ -226,12 +226,53 @@ const scenarios = {
         assert.equal(state.fetched, 1);
     },
 
-    async 'a live stream: no poll'() {
-        const { standing, clock, state } = page({ live: true });
+    async 'a live stream: only a safety fetch every 5 minutes'() {
+        const { standing, clock, state } = page({ live: true, random: () => 0.5 });
         standing.start();
 
-        await clock.advance(POLL_MS * 5);
+        await clock.advance(LIVE_POLL_MS - 1);
+        assert.equal(state.fetched, 0, 'no minute poll while live');
+        await clock.advance(1);
+        assert.equal(state.fetched, 1, 'a lost signal heals within 5 minutes');
+        await clock.advance(LIVE_POLL_MS);
+        assert.equal(state.fetched, 2);
+    },
+
+    async 'a live stream: a signal fetch postpones the safety fetch'() {
+        const { standing, clock, state, push } = page({ live: true, random: () => 0.5 });
+        standing.start();
+
+        await clock.advance(LIVE_POLL_MS - 2 * POLL_MS);
+        push(SIGNAL);
+        await clock.advance(JITTER_MS);
+        assert.equal(state.fetched, 1);
+        await clock.advance(LIVE_POLL_MS - JITTER_MS - POLL_MS);
+        assert.equal(state.fetched, 1, 'the signal\'s fetch counts as the last one');
+        await clock.advance(2 * POLL_MS);
+        assert.equal(state.fetched, 2);
+    },
+
+    async 'a live stream: the safety fetch is visible only'() {
+        const { standing, clock, state } = page({ live: true, random: () => 0.5, visible: false });
+        standing.start();
+
+        await clock.advance(LIVE_POLL_MS * 3);
         assert.equal(state.fetched, 0);
+        state.visible = true;
+        standing.onVisible();
+        await clock.advance(VISIBLE_JITTER_MS);
+        assert.equal(state.fetched, 1);
+    },
+
+    async 'the stream dropping is polled within a minute'() {
+        const { standing, clock, state } = page({ live: true, random: () => 0.5 });
+        standing.start();
+
+        await clock.advance(POLL_MS * 2);
+        assert.equal(state.fetched, 0);
+        state.live = false;
+        await clock.advance(POLL_MS);
+        assert.equal(state.fetched, 1);
     },
 
     async 'stream refused or down: the table every 60 s while visible'() {
@@ -259,6 +300,8 @@ const scenarios = {
         assert.equal(pollDelay(() => 0), Math.round(POLL_MS * (1 - POLL_SPREAD)));
         assert.equal(pollDelay(() => 1), Math.round(POLL_MS * (1 + POLL_SPREAD)));
         assert.equal(pollDelay(() => 0.5), POLL_MS);
+        assert.equal(pollDelay(() => 0, true), Math.round(LIVE_POLL_MS * (1 - POLL_SPREAD)));
+        assert.equal(pollDelay(() => 1, true), Math.round(LIVE_POLL_MS * (1 + POLL_SPREAD)));
     },
 
     async 'no hub: no stream, polling only'() {

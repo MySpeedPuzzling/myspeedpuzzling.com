@@ -13,7 +13,7 @@ use Symfony\Component\Process\Process;
  * docs/features/competitions-management/standings.md "Live push") run under node by tests/standing-live-harness.mjs
  * with a fake clock, timers, fragment fetch and stream: the anonymous subscription, the 0-4 s jitter, signals coalescing
  * (one fetch at a time, one more after it), a hidden page fetching on being shown again, the 60 s poll while the stream
- * is refused or down, 404 stopping everything. Every scenario must report "ok".
+ * is refused or down, the 5-minute safety poll while it is live, 404 stopping everything. Every scenario must report "ok".
  */
 final class StandingLiveScriptTest extends TestCase
 {

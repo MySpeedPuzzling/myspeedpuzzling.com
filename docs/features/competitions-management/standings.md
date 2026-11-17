@@ -187,7 +187,8 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §4.2. As built 202
   unpublished round sends nothing). Sent once the answer went out (`AfterResponse`, like the other pushes; the bump itself
   is before the response, so a fetch the signal starts reads the new data), at most one per event and request
   (`$pending`, `ResetInterface`). A hub failure = `warning`, never fails the write. Deferred work outside an HTTP request
-  (none today) would never be sent - the pages' 60 s poll covers a lost signal.
+  (none today) would never be sent. A lost signal reaches an open page on its next poll: within 5 minutes (±20 %) with a
+  live stream, within ~60 s without one.
 - **Fragment `public_standing_table`:** `GET /{_locale}/standing-table/{standingId}` (main firewall,
   `PublicStandingTableController`) = `standing/table_fragment.html.twig`: `<turbo-frame id="standing-table" target="_top">`
   around `standing/_public_table.html.twig` - the page's table part (state line, rules, table, legend) extracted from
@@ -198,13 +199,16 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §4.2. As built 202
   every request. **Guests** (nobody signed in): the HTML cached per generation and locale
   (`PublicStandingSnapshots::guestHtml()`, `html_v1_{standingId}_{locale}_{gen}`, 60 s) - warm 1 statement; **signed in**:
   rendered for the viewer (blocklist, allow list, own row) every time. `Cache-Control: private, no-cache`, `noindex`.
+  Unsignalled edits (a participant renamed, a player turning private, the results import) can stay up to 60 s in the
+  guests' HTML - the same window as the snapshot behind the JSON; signed-in viewers see them at once.
 - **Client:** the page wraps the table part in `<div data-controller="standing-live">` (url, topic, hub) + an
   `aria-live="polite"` "Updated at …" line (`public_standing.live.updated`). Lazy `standing_live_controller.js` (fetch,
   `DOMParser`, swaps the frame's content only when it differs - no scroll jump) over the pure `assets/standing_live.js`
   (harness `tests/standing-live-harness.mjs`, `StandingLiveScriptTest`): anonymous stream via `OfficialResultsEvents`
   `{url, topics, public: true}`; signal on a visible page → fetch after a random 0-4 s, signals meanwhile coalesce, one
   fetch at a time (+ one more after it); hidden → dirty, fetched 0-1 s after `visibilitychange`; no live stream
-  (refused, down, still opening) → the fragment every 60 s ±20 % while visible; stream re-opened → one fetch 0-4 s;
+  (refused, down, still opening) → the fragment every 60 s ±20 % while visible; live stream → a safety fetch once the
+  last fetch is 5 minutes ±20 % old (visible only - a lost signal heals); stream re-opened → one fetch 0-4 s;
   404 → everything stops.
 - **Herd:** 500 open pages × one signal ≈ 125 fetches/s over 4 s, each warm = 1 statement + cache reads + a cached
   string; one render per generation and locale. **Not measured** (S4 was built without Docker: the planned

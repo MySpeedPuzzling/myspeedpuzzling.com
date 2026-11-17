@@ -33,8 +33,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * once the answer went out (AfterResponse, like the other pushes - the generation is new before the response, so a
  * fetch the signal starts reads the new data); one per event and request however many writes bumped it.
  *
- * A failure never fails the write: logged (warning); the snapshots heal within their lifetime, the pages within their
- * 60 s poll when the push is lost.
+ * A failure never fails the write: logged (warning); the snapshots heal within their lifetime. A lost push reaches an open
+ * page with a live stream on its safety poll (every 5 minutes ±20 %, visible pages only - assets/standing_live.js), a page
+ * without a stream on its 60 s poll.
  */
 final class CompetitionStandingsLiveUpdates implements ResetInterface
 {

@@ -1,6 +1,6 @@
 /**
- * The live entry page's own bundle (competition toolkit C2, docs/features/competitions-management/live-results.md
- * "The page"): templates/live_results/_layout.html.twig loads this instead of the site's `app` entry - no Turbo, no Live
+ * The live entry page's own bundle (competition toolkit C2, docs/features/competitions-management/judge-offline.md
+ * "Lean layout + bundle (C2)"): templates/live_results/_layout.html.twig loads this instead of the site's `app` entry - no Turbo, no Live
  * Components, no Bootstrap JS, no other controllers. Only the live results controller, registered eagerly, so the page
  * is interactive as soon as this file runs (no lazy chunk after `app.js`).
  *

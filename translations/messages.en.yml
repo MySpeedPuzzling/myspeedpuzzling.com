@@ -5588,6 +5588,7 @@ live_results:
             confirmed: "Confirmed as %time% (proposed %proposed%)"
             rejected: "Rejected"
             superseded: "Replaced by a recorded result"
+            undone: "Confirmation undone - the result was cleared"
             withdrawn: "Withdrawn by the competitor"
         reason:
             not_finished: "Not finished"
@@ -14256,6 +14257,7 @@ competitor_page:
         changed: "Confirmed by the judge as %time% - you proposed %proposed%"
         rejected: "The judge did not accept %time%."
         superseded: "The judge recorded your result."
+        cleared: "The judge took back the confirmed time %time%."
         reset: "The round's clock was reset - your time %time% was set aside."
         reason:
             not_finished: "The puzzle was not finished."

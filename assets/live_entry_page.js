@@ -1,6 +1,6 @@
 /**
  * The live entry page filled from the round state (competition toolkit C1, docs/features/competitions-management/
- * live-results.md "The page"): the template renders no data of the round, the event or the person reading it, so
+ * judge-offline.md "Data-free page + state parameters (C1)"): the template renders no data of the round, the event or the person reading it, so
  * everything that differs per round or per reader is decided here from `official_results_round_state?viewer=1`.
  * Pure functions - run by tests/live-results-harness.mjs.
  */

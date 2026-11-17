@@ -8,7 +8,10 @@ namespace SpeedPuzzling\Web\Value;
  * Why a time proposal was decided the way it was, when it was not a plain confirmation:
  * - rejected by a judge (`field: "proposal"` change): not_finished, wrong_entry, other - not_finished also when the
  *   judge confirmed it with a result that is no finished time (pieces placed, did not start)
- * - superseded: result_recorded (a result recorded without it), stopwatch_reset (the round's stopwatch was reset)
+ * - superseded: result_recorded (a result recorded without it), stopwatch_reset (the round's stopwatch was reset),
+ *   result_cleared / result_changed (a confirmed proposal whose result a judge then cleared - an Undo - or changed to
+ *   something else: it no longer describes the official result, and the competitor may propose again while the round
+ *   runs once no result stands)
  */
 enum TimeProposalDecisionReason: string
 {
@@ -17,6 +20,8 @@ enum TimeProposalDecisionReason: string
     case Other = 'other';
     case ResultRecorded = 'result_recorded';
     case StopwatchReset = 'stopwatch_reset';
+    case ResultCleared = 'result_cleared';
+    case ResultChanged = 'result_changed';
 
     /**
      * The reasons a judge may give for a rejection

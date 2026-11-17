@@ -1757,6 +1757,8 @@ const scenarios = {
         assert.equal(applyOutcome(proposals, { id: PROP_1, status: 'not_pending' }).stale, true);
         assert.equal(applyOutcome(proposals, { id: PROP_9, status: 'unknown' }).stale, true);
         assert.equal(applyOutcome(proposals, { id: PROP_1, status: 'pending' }).proposals.get(PROP_1).status, 'pending');
+        // A confirmation undone afterwards (toolkit H3): the state says why
+        assert.equal(applyOutcome(confirmed.proposals, { id: PROP_1, status: 'superseded' }).stale, true);
     },
 
     'the card panel: confirm, differs, matches, sending, decided - late defaults to the receipt'() {

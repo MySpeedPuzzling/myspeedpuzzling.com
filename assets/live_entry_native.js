@@ -1,6 +1,6 @@
 /**
  * Turbo for the live entry page inside the native apps only (competition toolkit C3,
- * docs/features/competitions-management/live-results.md "The page").
+ * docs/features/competitions-management/judge-offline.md "Shell route, device cookie, native apps (C3)").
  *
  * The iOS/Android apps are Hotwire Native wrappers: their WebView finishes a visit only when the page runs Turbo - the
  * script the apps inject registers its adapter on `window.Turbo` and reports "page loaded"; on a page without Turbo it

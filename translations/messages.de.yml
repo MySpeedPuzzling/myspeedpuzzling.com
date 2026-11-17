@@ -5023,6 +5023,7 @@ live_results:
       confirmed: "Bestätigt als %time% (vorgeschlagen %proposed%)"
       rejected: "Abgelehnt"
       superseded: "Durch ein erfasstes Ergebnis ersetzt"
+      undone: "Bestätigung rückgängig gemacht - das Ergebnis wurde gelöscht"
       withdrawn: "Vom Teilnehmer zurückgezogen"
     reason:
       not_finished: "Nicht fertig"
@@ -14009,6 +14010,7 @@ competitor_page:
         changed: "Vom Schiedsrichter als %time% bestätigt – Sie haben %proposed% vorgeschlagen"
         rejected: "Der Schiedsrichter hat %time% nicht akzeptiert."
         superseded: "Der Schiedsrichter hat Ihr Ergebnis erfasst."
+        cleared: "Der Schiedsrichter hat die bestätigte Zeit %time% zurückgenommen."
         reset: "Die Uhr der Runde wurde zurückgesetzt – Ihre Zeit %time% wurde beiseitegelegt."
         reason:
             not_finished: "Das Puzzle war nicht fertig."

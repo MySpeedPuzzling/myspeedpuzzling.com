@@ -10,7 +10,8 @@ namespace SpeedPuzzling\Web\Value;
  * - pending: waiting for a judge - one per round entry at most
  * - confirmed: a judge recorded the official result through it (the seconds may differ - the judge's verdict)
  * - rejected: a judge said no (not finished, wrong entry, other) - the competitor may propose again while the round runs
- * - superseded: a result recorded another way while it waited, or the round's stopwatch was reset
+ * - superseded: a result recorded another way while it waited, or the round's stopwatch was reset - or, once
+ *   confirmed, its result was cleared or changed by a judge afterwards (the one way out of `confirmed`)
  * - withdrawn: "Undo" by a linked member of the entry while it waited
  */
 enum TimeProposalStatus: string

@@ -326,7 +326,11 @@ Only for a competition with `time_proposals` on (Competitor pages & QR card; des
   judge's "Not right" is `{"field": "proposal", "entry", "from": {"id"}, "to": {"status": "rejected", "reason":
   "not_finished|wrong_entry|other"}}` (applied = rejected now, unchanged = no longer pending, referees may send it);
   any other applied result on an entry with a pending proposal confirms it (same seconds) or supersedes it
-  (`result_recorded`). Outcomes then carry `proposal: {id, status}`. A replay touches nothing. With proposals off the
+  (`result_recorded`). Every applied result after that which is no longer a confirmed proposal's seconds - cleared (the
+  judge's Undo) or changed to another value - takes the confirmation away: the proposal turns `superseded`
+  (`result_cleared` / `result_changed`, `supersedeConfirmation()`; `decided_seconds` keeps what it was confirmed as),
+  in the same transaction, pushed like any decision (toolkit H3). The resolver's one read therefore loads the round's
+  pending **and confirmed** proposals. Outcomes then carry `proposal: {id, status}`. A replay touches nothing. With proposals off the
   resolver runs no statement (`RecordRoundResultsStatementPinTest`), a `proposal` change is `proposals_off`.
 - A stopwatch **reset** supersedes the round's pending proposals (`stopwatch_reset`).
 - **Reads**: the round state carries `proposals` (pending + decided in the last 10 minutes, `TimeProposalView`) only

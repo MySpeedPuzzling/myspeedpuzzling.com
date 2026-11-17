@@ -119,6 +119,11 @@ export function proposalPanel({ round, nowMs, item = null, blocked = null, answe
                 return panel('reset', { button: open, status: { label: 'reset', time: proposed } });
             }
 
+            // The judge undid the confirmation (the result was cleared): the competitor may propose again while it runs
+            if (proposal.decided?.reason === 'result_cleared' && !hasResult(round)) {
+                return round.published ? NONE : panel('cleared', { button: open, status: { label: 'cleared', time: decided ?? proposed } });
+            }
+
             return round.published ? NONE : panel('superseded', { status: { label: 'superseded' } });
         default:
             return open ? panel('stop', { button: true }) : NONE;

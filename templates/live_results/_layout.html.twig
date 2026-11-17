@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-{# The live entry page's own layout (competition toolkit C2, docs/features/competitions-management/live-results.md
-   "The page") - deliberately not base.html.twig: every pixel of a referee's 375 px screen goes to the page, so no site
+{# The live entry page's own layout (competition toolkit C2, docs/features/competitions-management/judge-offline.md
+   "Lean layout + bundle (C2)") - deliberately not base.html.twig: every pixel of a referee's 375 px screen goes to the page, so no site
    header, footer, flashes, e-mail banners, modals, global search, comparison launcher or analytics, and no Turbo or
    site bundle - its own Encore entry `live_entry` (assets/live_entry.js) with the site's CSS (cached by every other page).
    Renders nothing of the person reading it (the page's data comes from the round state - C1), so the same layout can

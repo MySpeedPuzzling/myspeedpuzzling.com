@@ -163,8 +163,11 @@ longer lists unless it came after the state was read). Server side: `official-re
   puzzle choice is required first); a rejection is `field: "proposal"` (`from: {id}`, never chained, no Undo once sent).
   Offline both wait like any change; the outcome's `proposal: {id, status}` updates the page at once (`not_pending` /
   `unknown` fetch the state).
-- **Undoing a confirmation** (the result's Undo, or clearing it later) clears the result only: the proposal stays
-  `confirmed` and is not offered again - by design in v1. The judge enters the time again by hand.
+- **Undoing a confirmation** (the result's Undo, or clearing it later) clears the result and the server takes the
+  confirmation away in the same transaction: the proposal turns `superseded` (`result_cleared`; changing the result to
+  another value afterwards: `result_changed`) - the card says "Confirmation undone - the result was cleared", the
+  competitor gets the Stop button back while the round runs and may propose again (toolkit H3). An outcome
+  `superseded` for a proposal this page shows as confirmed fetches the state.
 
 ## Reliability (`assets/official_results_outbox.js`)
 

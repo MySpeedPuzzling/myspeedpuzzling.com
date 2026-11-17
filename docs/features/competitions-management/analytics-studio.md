@@ -702,3 +702,34 @@ Acceptance: links visible on every slugged round's public page, 0 extra statemen
    the 10 s poll; it touches existing write paths. Default: v2.
 5. **Blocklist exemption** (D3) - a signed-in commentator sees players they blocked. Default: accepted (on-air
    consistency), documented like displays.
+
+---
+
+## As built: S1 (data + JSON endpoints, 2026-11-17)
+
+Where it differs from the sections above (§0a applied throughout):
+
+- **Four JSON routes** (`AnalyticsStudio{State,Analytics,Entrant,Predictions}Controller`), the fourth = R3's
+  `analytics_studio_predictions` (`?entries=` ≤ 4, unknown ignored). Stateless firewall pattern covers all four;
+  404 = `AnalyticsStudioNotFound` bubbling (Symfony's JSON error body, not `{}`).
+- **No async warm** (R3): no message, no handler, no lock, no messenger routing. `AnalyticsStudioPredictions` computes per
+  member on request, cached per player × visible puzzle set × shown model × `MODEL_VERSION` (15 min).
+- **Statements** (pinned in `AnalyticsStudioQueryBudgetTest`): every answer reads the round (`GetAnalyticsStudioRound`,
+  event's slugged rounds as JSON) and its visible puzzles (2); analytics/entrant/predictions also the entrants (3).
+  state 3 cold unpublished / 4 published / **2 within 2 s** (R2's key needs the two reads); analytics 10 cold (puzzle
+  statistics are 4 - the distributions, top tens, `GetPuzzleStatistics` and `GetPuzzleDifficulty` reused, not folded) /
+  11 pairs with an all-public line-up / 3 warm; entrant 17 cold solo incl. the member's prediction / 3 warm; predictions
+  7 cold for 1 entry / 19 for 4 / 3 warm.
+- **State cache key**: round + `stateHash()` + visible hash + published moment + live-results switch; not cached at all
+  when the next reveal is < 2 s away. Extra fields beyond §3.1: `event`, `cutOffMs`, slot `key`/`position`, member `code`.
+- **Puzzle statistics cache**: one entry per visible puzzle set and round category (one computation for all of them).
+- **JSON shapes follow S2's fixtures** (`tests/fixtures/analytics-studio-*.json`): `profile` = the English
+  `player_profile` path (`AnalyticsStudioProfile`), analytics members `rankingOptedOut`, skill/difficulty tiers as API
+  tokens, `lastSolvedAtPrecision` / `solvedAtPrecision`, attempt `kind` solo|pair|team, prediction `method`
+  personal|general, entrant `{visibleHash, cutOffMs, key, analytics, members[{predictionsOptedOut, prediction, attempts,
+  recentSimilar, recentForm{<pieces>: {medianSeconds, seconds[]}}}], earlierRounds, lineupAttempts?}`, a member without
+  public history = `{}` everywhere. Skill before any reveal = `{"500": tier}`, after = per visible slot.
+- **Similar history** excludes the visible round puzzles only (R1), puzzles under `hide_until` and this round's own
+  times; `recentForm` keeps every puzzle at that piece count (visible round puzzles included) before the cut-off.
+- **Measured** (test DB, Docker on a Mac): cold analytics of a fixture round 16-19 ms; a 300-entrant × 3-puzzle round with
+  12,000 times: first cold 214 ms (incl. process warm-up), cold recompute ~43 ms, warm ~30-40 ms, 439 KB JSON.

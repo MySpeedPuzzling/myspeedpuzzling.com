@@ -15,6 +15,10 @@ Ops steps of the rollout:
 - [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
 - [x] Open the toolkit to every organiser - the organiser flag was retired on 2026-11-17 (`feature_flags.md` "Retired")
 
+Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11):
+- [ ] A prediction column / sort in the entrant list (round-wide predictions need an async warm - cut from v1)
+- [ ] A public data-free signal on results and "Reveal now" instead of the 10 s poll (§11 Q4)
+
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy
 - [ ] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner)

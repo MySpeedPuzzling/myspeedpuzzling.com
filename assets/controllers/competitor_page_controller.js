@@ -132,6 +132,8 @@ export default class extends Controller {
         this.onOnline = () => {
             this.outbox?.connectionBack();
             this.heartbeat?.nudge();
+            // Back online: the state at once (0-1 s) - the polls backed off while offline, a judge's decision waits
+            this.live?.requestRefresh(1000);
         };
         this.onBeforeUnload = (event) => {
             if (this.outbox?.hasUnsent()) {

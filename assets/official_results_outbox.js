@@ -19,6 +19,8 @@
  * under node with an in-memory store.
  */
 
+import { uuidv7 } from './uuid_v7.js';
+
 export const OUTBOX_DATABASE = 'msp-official-results';
 const OUTBOX_STORE = 'outbox';
 
@@ -214,7 +216,7 @@ export class Outbox {
         this.send = send;
         this.userId = userId;
         this.now = now;
-        this.newId = newId ?? (() => globalThis.crypto.randomUUID());
+        this.newId = newId ?? (() => uuidv7());
         this.lock = lock ?? (async (task) => { await task(); return true; });
         this.onEntries = onEntries;
         this.onChange = onChange;

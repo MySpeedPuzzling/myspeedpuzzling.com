@@ -5,6 +5,8 @@ paths:
   - "src/Services/Doctrine/**"
   - "src/Entity/**"
   - "docs/database-indexes.md"
+  - "assets/uuid_v7.js"
+  - "tests/SqlCreatedIdsCoverageTest.php"
   - ".claude/postgres-puzzle-query-optimization.md"
 ---
 
@@ -62,6 +64,17 @@ web container has migrated. The same goes for any later change of it.
   to the built-in function and a migration drop this one.
 - Mirrored in `tests/bootstrap.php` (`createPostgresExtensions()`), word for word - `GenUuidV7FunctionTest` compares
   the two. A change of the function is a new migration plus the mirror.
+- **Ids created in the browser are version 7 too**: `uuidv7()` of `assets/uuid_v7.js` (48 bits of Unix ms, version 7,
+  RFC variant, 74 bits from `crypto.getRandomValues` - no secure context needed), behind `newClientId()` of
+  `official_results_api.js` (client change ids, sheet change sets, participants / participant rounds / teams typed in
+  at the venue - all primary keys on the server) and the participant phone's event ids. Never `crypto.randomUUID()`
+  (always version 4). The server reads client ids with `Uuid::isValid()`, any version: version 4 ids from before
+  2026-11-17 (rows, and a tab still running the old script) stay valid. Admin SQL snippets in `docs/` use
+  `gen_uuid_v7()` as well.
+- Guard: `SqlCreatedIdsCoverageTest` fails on `gen_random_uuid()` / `uuid_generate_v*()` / `uuidv4()` and on
+  `Uuid::uuid4()` / `Uuid::v4()` / `UuidV4` in `src/`, and on `randomUUID` in `assets/`. `Uuid::uuid5()` is allowed on
+  purpose: a name-based id is the point where it is used (advisory lock keys, the API's `Idempotency-Key` retry
+  detection in `CreateSolvingTimeProcessor`).
 
 ## `custom_` is reserved for unmanaged objects
 `CustomIndexFilteringSchemaManagerFactory` hides every `custom_*` index from Doctrine, so never name a table or

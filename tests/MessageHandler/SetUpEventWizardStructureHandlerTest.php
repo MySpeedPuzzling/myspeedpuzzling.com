@@ -7,16 +7,20 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\EventWizardStructureLocked;
 use SpeedPuzzling\Web\Exceptions\InvalidAdvancementStep;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
+use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
+use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\SetUpEventWizardStructure;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SpeedPuzzling\Web\Value\AdvancementStepSettings;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -61,6 +65,65 @@ final class SetUpEventWizardStructureHandlerTest extends KernelTestCase
 
         self::assertSame(2, self::rows('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', $competitionId));
         self::assertSame(1, self::rows('SELECT COUNT(*) FROM competition_advancement_step WHERE competition_id = :id', $competitionId));
+    }
+
+    /**
+     * The page's "nothing has begun" is checked again under the lock: a stopwatch run (or an entry, a result) since then
+     * refuses deleting or editing the rounds, and nothing changes.
+     */
+    public function testARoundThatBegunMeanwhileRefusesChangesToTheRounds(): void
+    {
+        self::bootKernel();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $competitionId = Uuid::uuid7()->toString();
+        $bus->dispatch(self::competition($competitionId));
+        $group = self::round($competitionId, 'Group A', RoundCategory::Solo, '08:00');
+        $final = self::round($competitionId, 'Final', RoundCategory::Solo, '10:00');
+        $bus->dispatch(new SetUpEventWizardStructure(competitionId: $competitionId, adds: [$group, $final]));
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round SET stopwatch_status = 'stopped' WHERE id = :id",
+            ['id' => $group->roundId->toString()],
+        );
+
+        try {
+            $bus->dispatch(new SetUpEventWizardStructure(
+                competitionId: $competitionId,
+                deletes: [new DeleteCompetitionRound($final->roundId->toString(), $competitionId, refuseWhenItHasResults: true, refuseToReveal: true)],
+            ));
+            self::fail('A round that has begun must stop the structure from changing');
+        } catch (\Throwable $failure) {
+            self::assertNotNull(EventWizardRefusal::find($failure, EventWizardStructureLocked::class), (string) $failure);
+        }
+
+        self::assertSame(2, self::rows('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', $competitionId));
+    }
+
+    /**
+     * "Start again from a template": the standings are read under the lock and removed with the rounds they count.
+     */
+    public function testReplacingTheStandingsRemovesTheEventsStandings(): void
+    {
+        self::bootKernel();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $competitionId = Uuid::uuid7()->toString();
+        $bus->dispatch(self::competition($competitionId));
+        $solo = self::round($competitionId, 'Solo 1', RoundCategory::Solo, '08:00');
+        $bus->dispatch(new SetUpEventWizardStructure(
+            competitionId: $competitionId,
+            adds: [$solo, self::round($competitionId, 'Solo 2', RoundCategory::Solo, '10:00')],
+            standings: [new CreateCompetitionStanding(Uuid::uuid7(), $competitionId, 'Overall - Solo', RoundCategory::Solo, [$solo->roundId->toString()], new StandingRules())],
+        ));
+        self::assertSame(1, self::rows('SELECT COUNT(*) FROM competition_standing WHERE competition_id = :id', $competitionId));
+
+        $bus->dispatch(new SetUpEventWizardStructure(
+            competitionId: $competitionId,
+            replaceStandings: true,
+            deletes: [new DeleteCompetitionRound($solo->roundId->toString(), $competitionId, refuseWhenItHasResults: true, refuseToReveal: true)],
+        ));
+
+        self::assertSame(0, self::rows('SELECT COUNT(*) FROM competition_standing WHERE competition_id = :id', $competitionId));
+        self::assertSame(1, self::rows('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', $competitionId));
     }
 
     public function testEveryChangeMustBelongToTheEventLocked(): void

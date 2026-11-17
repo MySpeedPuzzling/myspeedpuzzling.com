@@ -15068,7 +15068,7 @@ event_wizard:
         replace: "Replace all rounds"
         use_template: "Use a template instead"
         start_again: "Start again from a template"
-        start_again_help: "Deletes every round of this event (and its puzzles) and creates the template's rounds."
+        start_again_help: "Deletes every round of this event with its puzzles, and its standings and advancement steps too, then creates the template's rounds."
         one_by_one: "Or add the rounds one by one"
         locked: "Competitors are already entered in the rounds or results exist, so the structure is not changed here any more. Change a round on its own page."
         rounds_page: "Rounds page"
@@ -15095,6 +15095,8 @@ event_wizard:
         no_stage: "Add at least one stage."
         no_rounds: "Add at least one round."
         start_invalid: "Choose the day and type the time, for example 10:00."
+        does_not_fit: "{1}The rounds don't fit into the event's day - start earlier, shorten the gap, plan fewer rounds or let the event last more days (Basics).|[0,Inf[The rounds don't fit into the event's %count% days - start earlier, shorten the gap, plan fewer rounds or let the event last more days (Basics)."
+        start_outside_event: "The event takes place from %from% to %to% - choose a day within it, or change the event's dates in Basics."
         flash:
             created: "{1}1 round created - check the names and times below.|[0,Inf[%count% rounds created - check the names and times below."
     puzzles:

@@ -146,8 +146,14 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft('every_round_counts');
 
+        // 18 rounds every 2 hours do not fit into the one day: refused, nothing created
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
-        $this->buildTemplate($crawler, ['template' => 'every_round_counts']);
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString("The rounds don't fit into the event's day", $crawler->filter('[data-event-wizard-template]')->text());
+        self::assertSame(0, $this->roundsCount($competitionId));
+
+        $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '30']);
         self::assertResponseRedirects();
 
         $rounds = $this->rounds($competitionId);
@@ -198,6 +204,16 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertStringStartsWith('2027-06-15 16:15', $rounds[1]['starts_at']);
         self::assertSame('duo', $rounds[2]['category']);
         self::assertSame(90, $rounds[2]['minutes_limit']);
+
+        // A new round outside the event's day: refused on its row
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
+        $form = $crawler->filter('form[name="event_wizard_schedule"]')->form();
+        $form['event_wizard_schedule[rows][new0][name]'] = 'Late round';
+        $form['event_wizard_schedule[rows][new0][start]'] = '2027-06-16T10:00';
+        $crawler = $this->browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The event takes place from 2027-06-15 to 2027-06-15', $crawler->filter('[data-event-wizard-schedule-row="new"]')->first()->text());
+        self::assertSame(3, $this->roundsCount($competitionId));
 
         // Down to one round: refused, nothing changed
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
@@ -402,7 +418,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     /**
      * @param array<string, string> $values field => value of the template form
      */
-    private function buildTemplate(Crawler $crawler, array $values): void
+    private function buildTemplate(Crawler $crawler, array $values): Crawler
     {
         $form = $crawler->filter('form[name="event_wizard_structure"]')->form();
         $prefixed = [];
@@ -411,7 +427,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
             $prefixed['event_wizard_structure[' . $field . ']'] = $value;
         }
 
-        $this->browser->submit($form, $prefixed);
+        return $this->browser->submit($form, $prefixed);
     }
 
     /**

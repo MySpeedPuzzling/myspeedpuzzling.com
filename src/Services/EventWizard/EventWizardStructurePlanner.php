@@ -20,7 +20,9 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  *   category.
  * - **Schedule** (the one rule, W-creation-wizard-research.md §3.5 "As built (W5)"): the rounds are
  *   spread evenly over the event's days - ceil(rounds / days) a day, in order - each day's first round at the start time,
- *   the next ones every $everyMinutes after it. Every name and start stays editable in the schedule table.
+ *   the next ones every $everyMinutes after it - every start within its own day: when a day's rounds would run past
+ *   midnight the template does not fit (null - the form says so; start earlier, add a day, fewer rounds or a shorter
+ *   gap). Every name and start stays editable in the schedule table.
  */
 readonly final class EventWizardStructurePlanner
 {
@@ -32,9 +34,9 @@ readonly final class EventWizardStructurePlanner
     /**
      * @param DateTimeImmutable $firstDay the event's first day (its date only is read)
      * @param int $days how many days the event lasts (1 = one day)
-     * @return list<EventWizardPlannedRound>
+     * @return null|list<EventWizardPlannedRound> null = the rounds do not fit into the event's days
      */
-    public function plan(EventWizardStructureFormData $data, DateTimeImmutable $firstDay, int $days): array
+    public function plan(EventWizardStructureFormData $data, DateTimeImmutable $firstDay, int $days): null|array
     {
         $unscheduled = match ($data->template) {
             EventWizardStructureTemplate::Qualification => $this->qualification($data),
@@ -50,13 +52,20 @@ readonly final class EventWizardStructurePlanner
 
         $perDay = (int) ceil($count / max(1, $days));
         [$hours, $minutes] = array_map(intval(...), explode(':', trim((string) $data->startTime)));
+        $every = $data->everyMinutes ?? 0;
+
+        // A day's last round starts before its midnight
+        if ($hours * 60 + $minutes + ($perDay - 1) * $every > 24 * 60 - 1) {
+            return null;
+        }
+
         $dayStart = $firstDay->setTime($hours, $minutes);
         $rounds = [];
 
         foreach ($unscheduled as $index => [$name, $category, $teamSize, $minutesLimit, $stage]) {
             $day = intdiv($index, $perDay);
             $slot = $index % $perDay;
-            $start = $dayStart->modify(sprintf('+%d days +%d minutes', $day, $slot * ($data->everyMinutes ?? 0)));
+            $start = $dayStart->modify(sprintf('+%d days +%d minutes', $day, $slot * $every));
 
             $rounds[] = new EventWizardPlannedRound(
                 name: $name,

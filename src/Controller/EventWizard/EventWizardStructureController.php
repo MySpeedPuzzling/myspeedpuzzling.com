@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
+use SpeedPuzzling\Web\Exceptions\EventWizardStructureLocked;
 use SpeedPuzzling\Web\Exceptions\InvalidAdvancementStep;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
@@ -28,7 +29,6 @@ use SpeedPuzzling\Web\FormType\EventWizardStructureFormType;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\CreateCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
-use SpeedPuzzling\Web\Message\DeleteCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\SetUpEventWizardStructure;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
@@ -36,7 +36,6 @@ use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetEventWizardStructureLock;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
-use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Results\EventWizardPlannedRound;
 use SpeedPuzzling\Web\Results\EventWizardProgress;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
@@ -95,7 +94,6 @@ final class EventWizardStructureController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly CompetitionRepository $competitionRepository,
         private readonly CompetitionRoundRepository $competitionRoundRepository,
-        private readonly CompetitionStandingRepository $competitionStandingRepository,
         private readonly GetEventWizardStructureLock $structureLock,
         private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
         private readonly GetCompetitionStandings $getCompetitionStandings,
@@ -147,15 +145,20 @@ final class EventWizardStructureController extends AbstractController
         $templateForm->handleRequest($request);
         $scheduleForm->handleRequest($request);
 
-        if ($templateForm->isSubmitted() && $templateForm->isValid()) {
-            $saved = $this->saveTemplate($templateForm, $competition, $rounds, $toolkit);
-
-            if ($saved) {
+        try {
+            if ($templateForm->isSubmitted() && $templateForm->isValid() && $this->saveTemplate($templateForm, $competition, $rounds, $toolkit)) {
                 return $this->redirectToRoute('event_wizard_structure', ['competitionId' => $competitionId, '_fragment' => 'schedule'], Response::HTTP_SEE_OTHER);
             }
+
+            $scheduleSaved = $scheduleForm->isSubmitted() && $scheduleForm->isValid() && $this->saveSchedule($scheduleForm, $competition, $rounds);
+        } catch (EventWizardStructureLocked) {
+            // An entry, a result or a stopwatch run came meanwhile (checked again under the lock): the read-only page
+            $competition = $this->competitionRepository->get($competitionId);
+
+            return $this->page($progress, $competition, $this->competitionRoundRepository->ofCompetition($competition), $toolkit, null, null, locked: true, refused: true);
         }
 
-        if ($scheduleForm->isSubmitted() && $scheduleForm->isValid() && $this->saveSchedule($scheduleForm, $competition, $rounds)) {
+        if ($scheduleSaved) {
             if (self::clicked($scheduleForm, 'later')) {
                 $this->addFlash('success', $this->translator->trans('event_wizard.flash.saved_for_later'));
 
@@ -176,6 +179,7 @@ final class EventWizardStructureController extends AbstractController
     /**
      * @param FormInterface<EventWizardStructureFormData> $form
      * @param list<CompetitionRound> $rounds
+     * @throws EventWizardStructureLocked
      */
     private function saveTemplate(FormInterface $form, Competition $competition, array $rounds, bool $toolkit): bool
     {
@@ -185,6 +189,12 @@ final class EventWizardStructureController extends AbstractController
         $lastDay = $competition->dateTo ?? $firstDay;
         $days = max(1, (int) $firstDay->setTime(0, 0)->diff($lastDay->setTime(0, 0))->days + 1);
         $planned = $this->planner->plan($data, $firstDay, $days);
+
+        if ($planned === null) {
+            $form->addError(new FormError($this->translator->trans('event_wizard.structure.does_not_fit', ['%count%' => $days])));
+
+            return false;
+        }
 
         if (count($planned) === 1) {
             $form->addError(new FormError($this->translator->trans('event_wizard.structure.one_round')));
@@ -235,11 +245,9 @@ final class EventWizardStructureController extends AbstractController
 
         $message = new SetUpEventWizardStructure(
             competitionId: $competitionId,
-            // Replacing every round: the old standings would be left without rounds (their steps go with their rounds)
-            standingsToDelete: $rounds === [] ? [] : array_map(
-                static fn ($standing): DeleteCompetitionStanding => new DeleteCompetitionStanding($standing->id->toString(), $competitionId),
-                $this->competitionStandingRepository->ofCompetition($competition),
-            ),
+            // Replacing every round: the standings would be left without rounds (read under the lock; the advancement
+            // steps go with their rounds)
+            replaceStandings: $rounds !== [],
             deletes: array_map(static fn (CompetitionRound $round): DeleteCompetitionRound => self::deleteRound($round, $competitionId), $rounds),
             adds: $adds,
             advancementSteps: $steps,
@@ -309,6 +317,7 @@ final class EventWizardStructureController extends AbstractController
     /**
      * @param FormInterface<EventWizardScheduleFormData> $form
      * @param list<CompetitionRound> $rounds
+     * @throws EventWizardStructureLocked
      */
     private function saveSchedule(FormInterface $form, Competition $competition, array $rounds): bool
     {
@@ -331,6 +340,8 @@ final class EventWizardStructureController extends AbstractController
         $adds = [];
         $newZone = RoundTimezone::resolve(null, $competition->locationCountryCode);
         $rowsForm = $form->get('rows');
+        $firstDay = $competition->dateFrom?->format('Y-m-d');
+        $lastDay = ($competition->dateTo ?? $competition->dateFrom)?->format('Y-m-d');
 
         foreach ($data->rows as $key => $row) {
             $round = $row->roundId !== null ? ($byId[$row->roundId] ?? null) : null;
@@ -361,6 +372,17 @@ final class EventWizardStructureController extends AbstractController
 
             $name = trim((string) $row->name);
             $teamSize = $row->category === RoundCategory::Team ? $row->teamSize : null;
+            $moved = $round === null || $round->startsAt->getTimestamp() !== $startsAt->getTimestamp();
+
+            // A new or moved round starts on one of the event's days
+            if ($moved && $firstDay !== null && (substr($localStart, 0, 10) < $firstDay || substr($localStart, 0, 10) > $lastDay)) {
+                $rowsForm->get((string) $key)->get('start')->addError(new FormError($this->translator->trans('event_wizard.structure.start_outside_event', [
+                    '%from%' => $firstDay,
+                    '%to%' => $lastDay,
+                ])));
+
+                return false;
+            }
 
             if ($round === null) {
                 $adds[] = new AddCompetitionRound(
@@ -423,12 +445,19 @@ final class EventWizardStructureController extends AbstractController
 
     /**
      * @param FormInterface<EventWizardStructureFormData>|FormInterface<EventWizardScheduleFormData> $form
+     * @throws EventWizardStructureLocked
      */
     private function dispatch(SetUpEventWizardStructure $message, FormInterface $form): bool
     {
         try {
             $this->messageBus->dispatch($message);
         } catch (HandlerFailedException | HttpExceptionInterface $failure) {
+            $locked = EventWizardRefusal::find($failure, EventWizardStructureLocked::class);
+
+            if ($locked !== null) {
+                throw $locked;
+            }
+
             $explained = $this->explanation($failure);
 
             if ($explained === null) {

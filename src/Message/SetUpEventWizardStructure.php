@@ -11,8 +11,11 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * The event creation wizard's "Structure" step on the several-rounds path (W-creation-wizard-research.md §3.5, §4) in
  * one transaction, as an orchestration of the existing messages in this order:
  *
- * 1. $standingsToDelete - DeleteCompetitionStanding (a template replacing every round: the old standings would be left
- *    without rounds);
+ * 0. the event's rounds are checked again under the lock when anything existing changes ($replaceStandings, $deletes,
+ *    $edits): an entry, a linked result or a stopwatch run since the page was loaded refuses everything
+ *    (EventWizardStructureLocked);
+ * 1. $replaceStandings - DeleteCompetitionStanding for every standing the event has now, read under the lock (a
+ *    template replacing every round: they would be left without rounds);
  * 2. $deletes - DeleteCompetitionRound (refusing a round with results and a delete that would reveal a secret puzzle);
  * 3. $edits - EditCompetitionRound (name, start, who competes, time limit from the schedule table);
  * 4. $adds - AddCompetitionRound (a template's rounds, the table's new rows);
@@ -27,7 +30,6 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 readonly final class SetUpEventWizardStructure implements SerializedByLock
 {
     /**
-     * @param list<DeleteCompetitionStanding> $standingsToDelete
      * @param list<DeleteCompetitionRound> $deletes
      * @param list<EditCompetitionRound> $edits
      * @param list<AddCompetitionRound> $adds
@@ -36,7 +38,7 @@ readonly final class SetUpEventWizardStructure implements SerializedByLock
      */
     public function __construct(
         public string $competitionId,
-        public array $standingsToDelete = [],
+        public bool $replaceStandings = false,
         public array $deletes = [],
         public array $edits = [],
         public array $adds = [],
@@ -45,7 +47,7 @@ readonly final class SetUpEventWizardStructure implements SerializedByLock
     ) {
         $competitionId = strtolower($competitionId);
 
-        foreach ([...$standingsToDelete, ...$deletes, ...$edits, ...$adds, ...$advancementSteps, ...$standings] as $message) {
+        foreach ([...$deletes, ...$edits, ...$adds, ...$advancementSteps, ...$standings] as $message) {
             if (strtolower($message->competitionId) !== $competitionId) {
                 throw new \InvalidArgumentException('Every change must belong to the event locked.');
             }

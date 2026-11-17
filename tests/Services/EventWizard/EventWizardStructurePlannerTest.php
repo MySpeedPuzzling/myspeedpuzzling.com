@@ -30,7 +30,7 @@ final class EventWizardStructurePlannerTest extends TestCase
         // A spare row without a name is not used
         $data->stages[3] = new EventWizardStageFormData('', 3);
 
-        $rounds = self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1);
+        $rounds = self::plan($data, new DateTimeImmutable('2027-06-15'), 1);
 
         self::assertSame(['Group A', 'Group B', 'Group C', 'Group D', 'Semifinal 1', 'Semifinal 2', 'Final'], self::names($rounds));
         self::assertSame([0, 0, 0, 0, 1, 1, 2], array_map(static fn (EventWizardPlannedRound $round): null|int => $round->stage, $rounds));
@@ -53,7 +53,7 @@ final class EventWizardStructurePlannerTest extends TestCase
         // 7 rounds over 2 days: 4 on the first day, 3 on the second, each day from 09:30
         $starts = array_map(
             static fn (EventWizardPlannedRound $round): string => $round->startsLocal,
-            self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 2),
+            self::plan($data, new DateTimeImmutable('2027-06-15'), 2),
         );
 
         self::assertSame([
@@ -72,7 +72,7 @@ final class EventWizardStructurePlannerTest extends TestCase
         $data->teamSize = 4;
         $data->teamsMinutes = 45;
 
-        $interleaved = self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1);
+        $interleaved = self::plan($data, new DateTimeImmutable('2027-06-15'), 1);
         self::assertSame(['Solo 1', 'Pairs 1', 'Teams 1', 'Solo 2', 'Teams 2'], self::names($interleaved));
         self::assertSame(RoundCategory::Team, $interleaved[2]->category);
         self::assertSame(4, $interleaved[2]->teamSize);
@@ -81,7 +81,25 @@ final class EventWizardStructurePlannerTest extends TestCase
         self::assertNull($interleaved[0]->stage);
 
         $data->interleaved = false;
-        self::assertSame(['Solo 1', 'Solo 2', 'Pairs 1', 'Teams 1', 'Teams 2'], self::names(self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1)));
+        self::assertSame(['Solo 1', 'Solo 2', 'Pairs 1', 'Teams 1', 'Teams 2'], self::names(self::plan($data, new DateTimeImmutable('2027-06-15'), 1)));
+    }
+
+    public function testRoundsThatWouldRunPastMidnightDoNotFit(): void
+    {
+        $data = new EventWizardStructureFormData();
+        $data->template = EventWizardStructureTemplate::EveryRoundCounts;
+        $data->soloRounds = 12;
+        $data->pairsRounds = 0;
+        $data->teamsRounds = 0;
+        $data->startTime = '10:00';
+
+        // 12 rounds every 2 hours from 10:00: the last one would start at 08:00 the next day
+        self::assertNull(self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1));
+
+        // Over two days: 6 a day, the last at 20:00
+        $rounds = self::plan($data, new DateTimeImmutable('2027-06-15'), 2);
+        self::assertSame('2027-06-15 20:00', $rounds[5]->startsLocal);
+        self::assertSame('2027-06-16 10:00', $rounds[6]->startsLocal);
     }
 
     public function testNotSureYetGeneratesNoRound(): void
@@ -89,7 +107,7 @@ final class EventWizardStructurePlannerTest extends TestCase
         $data = new EventWizardStructureFormData();
         $data->template = EventWizardStructureTemplate::Empty;
 
-        self::assertSame([], self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1));
+        self::assertSame([], self::plan($data, new DateTimeImmutable('2027-06-15'), 1));
     }
 
     /**
@@ -99,6 +117,17 @@ final class EventWizardStructurePlannerTest extends TestCase
     private static function names(array $rounds): array
     {
         return array_map(static fn (EventWizardPlannedRound $round): string => $round->name, $rounds);
+    }
+
+    /**
+     * @return list<EventWizardPlannedRound>
+     */
+    private static function plan(EventWizardStructureFormData $data, DateTimeImmutable $firstDay, int $days): array
+    {
+        $rounds = self::planner()->plan($data, $firstDay, $days);
+        self::assertNotNull($rounds);
+
+        return $rounds;
     }
 
     private static function planner(): EventWizardStructurePlanner

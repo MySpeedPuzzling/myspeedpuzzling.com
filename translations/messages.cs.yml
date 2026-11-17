@@ -5094,6 +5094,16 @@ live_results:
     hidden: "Zatím neodhaleno"
     missing_filter: "Chybí puzzle (%count%)"
     field: "Puzzle"
+  puzzle_split:
+    title: "Čas dokončení po puzzlích"
+    finished_now: "Dokončeno teď"
+    own: "(%time% za toto puzzle)"
+    type: "Zadat čas"
+    save: "Uložit čas"
+    toast: "%label% dokončeno v %time%"
+    out_of_order: "Tento čas neodpovídá pořadí - každé puzzle se dokončuje po tom předchozím."
+    pick_remaining: "Které puzzle bylo dokončeno jako poslední? Nejdřív klepněte na jeho štítek, pak uložte čas."
+    whole_round: "Tím se dokončí celé kolo - pro jedno puzzle použijte jeho vlastní „Dokončeno právě teď“."
   proposals:
     title: "Navrženo %time%"
     from: "z telefonu soutěžícího v %time%"

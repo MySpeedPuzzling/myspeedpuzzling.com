@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionStandings;
+use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayPayload;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
@@ -37,6 +39,7 @@ final class EditCompetitionDisplayController extends AbstractController
         private readonly CompetitionDisplayPayload $competitionDisplayPayload,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly GetCompetitionStandings $getCompetitionStandings,
     ) {
     }
 
@@ -73,6 +76,13 @@ final class EditCompetitionDisplayController extends AbstractController
                 'designVersion' => $display->designVersion,
                 'state' => $state,
                 'labels' => $this->labels($request->getLocale()),
+                // The standings element's picker (v2 S2) - an unpublished one is marked, the display shows nothing for it
+                'standings' => array_map(static fn (CompetitionStandingOverview $standing): array => [
+                    'id' => strtolower($standing->id),
+                    'name' => $standing->name,
+                    'published' => $standing->publishedAt !== null,
+                ], $this->getCompetitionStandings->ofCompetition($display->competitionId)),
+                'standingTexts' => $this->competitionDisplayPayload->sampleStandingTexts($page['locale']),
                 'saveUrl' => $this->generateUrl('save_competition_display', ['displayId' => $display->id]),
                 'uploadUrl' => $this->generateUrl('upload_competition_display_image', ['displayId' => $display->id]),
                 'designUrl' => $this->generateUrl('competition_display_design', ['token' => $display->token]),

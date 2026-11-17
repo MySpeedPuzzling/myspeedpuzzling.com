@@ -425,6 +425,25 @@ check('sample data: results only for designs with results elements, published fl
     equal(hidden.round.name, 'Round 1', 'sample round');
 });
 
+check('sample data: every standings element gets the 12-row sample standing with the texts for its numbers', () => {
+    const now = 1_763_380_000_000;
+    const design = { elements: [{ id: 'stand001', type: 'standings' }, { id: 'stand002', type: 'standings' }] };
+    const texts = { standingProvisional: 'Průběžné', standingMissing: { 12: 'chybí 12 dílků' }, standingFinal: { 6: 'Konečné' } };
+    const { state } = previewState(BASE, { mode: 'sample', phase: 'running', published: true, revealed: false, nowMs: now, design, labels: { standing: 'Mistrovství' }, standingTexts: texts });
+    equal(Object.keys(state.standings), ['stand001', 'stand002'], 'one per element');
+    const standing = state.standings.stand001;
+    equal(standing.name, 'Mistrovství', 'label');
+    equal(standing.rows.length, 12, '12 rows');
+    equal([standing.roundsCounted, standing.roundsTotal, standing.rounds.length], [4, 6, 6], 'after 4 of 6');
+    equal(standing.rows.filter((row) => row.totalMissingPieces > 0).map((row) => row.totalMissingPieces), [12], 'one row with missing pieces');
+    equal(standing.rows.filter((row) => !row.complete).map((row) => row.rank), [null], 'one incomplete row without a rank');
+    assert(standing.rows.every((row) => row.perRound.length === 6), 'a score per round');
+    equal(state.texts.standingMissing, { 12: 'chybí 12 dílků' }, 'texts of the display language');
+    equal(state.results, null, 'a standing needs no round results');
+    equal(previewState(BASE, { mode: 'sample', phase: 'running', published: true, revealed: false, nowMs: now, design: { elements: [] } }).state.standings, undefined, 'none without an element');
+    assert(CATALOGUE.find((group) => group.group === 'results').types.includes('standings'), 'in the results group');
+});
+
 check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, display mode keeps the real state', () => {
     const design = { elements: [{ id: 'qr000001', type: 'qr' }] };
     const extra = { 'competition-displays/x.png': 'https://img.example/x.png' };

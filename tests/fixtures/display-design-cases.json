@@ -4519,7 +4519,7 @@
           },
           {
             "id": "type0004",
-            "type": "standings",
+            "type": "bracket",
             "frame": {
               "x": 10,
               "y": 10,
@@ -5176,6 +5176,453 @@
           "code": "missing_frame"
         }
       ]
+    },
+    {
+      "name": "standings: defaults, ids lowercased, anything else is auto, values clamped",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "stand001",
+            "type": "standings",
+            "frame": {}
+          },
+          {
+            "id": "stand002",
+            "type": "standings",
+            "frame": {},
+            "props": {
+              "standingId": "018D0004-0000-0000-0000-00000000ABCD",
+              "rows": 99,
+              "columns": [
+                "stage",
+                "total",
+                "rounds",
+                "missing",
+                "members",
+                "name",
+                "result",
+                "total"
+              ],
+              "title": false,
+              "rowStyle": {
+                "background": "#FF000080",
+                "gap": 100
+              },
+              "whenEmpty": "text",
+              "emptyText": "  <b>Standings</b> come\nlater\u0007  ",
+              "source": "live",
+              "x": 1
+            }
+          },
+          {
+            "id": "stand003",
+            "type": "standings",
+            "frame": {},
+            "props": {
+              "standingId": "latest",
+              "rows": 0,
+              "columns": "rank",
+              "title": "yes",
+              "whenEmpty": "html"
+            }
+          },
+          {
+            "id": "stand004",
+            "type": "standings",
+            "frame": {},
+            "props": {
+              "standingId": "018d0004-0000-0000-0000-00000000abc",
+              "rows": 2.5,
+              "columns": []
+            }
+          },
+          {
+            "id": "stand005",
+            "type": "standings",
+            "frame": {},
+            "props": {
+              "standingId": [
+                "018d0004-0000-0000-0000-00000000abcd"
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "stand001",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "total"
+              ],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "stand002",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "018d0004-0000-0000-0000-00000000abcd",
+              "rows": 30,
+              "columns": [
+                "name",
+                "members",
+                "total",
+                "rounds",
+                "missing",
+                "stage"
+              ],
+              "title": false,
+              "rowStyle": {
+                "background": "#ff000080",
+                "altBackground": null,
+                "gap": 40
+              },
+              "whenEmpty": "text",
+              "emptyText": "<b>Standings</b> come later"
+            }
+          },
+          {
+            "id": "stand003",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 1,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "total"
+              ],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "stand004",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 3,
+              "columns": [],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "stand005",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "total"
+              ],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "standings: a hidden or never shown standings element asks for nothing",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "stand011",
+            "type": "standings",
+            "frame": {},
+            "hidden": true
+          },
+          {
+            "id": "stand012",
+            "type": "standings",
+            "frame": {},
+            "when": {
+              "phases": []
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "stand011",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": true,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "total"
+              ],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "stand012",
+            "type": "standings",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "standingId": "auto",
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "total"
+              ],
+              "title": true,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": false,
+        "live": false
+      }
     }
   ]
 }

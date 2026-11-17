@@ -13,7 +13,7 @@ export const CATALOGUE = [
     { group: 'clock', types: ['timer', 'status', 'progress', 'clock'] },
     { group: 'text', types: ['text', 'field', 'round_badge'] },
     { group: 'pictures', types: ['image', 'rotator', 'qr', 'box'] },
-    { group: 'results', types: ['leaderboard', 'finished_count', 'ticker'] },
+    { group: 'results', types: ['leaderboard', 'finished_count', 'ticker', 'standings'] },
     { group: 'other', types: ['puzzle'] },
 ];
 
@@ -34,6 +34,7 @@ const DEFAULT_FRAMES = {
     finished_count: { x: 35, y: 80, w: 30, h: 8 },
     leaderboard: { x: 60, y: 10, w: 35, h: 80 },
     ticker: { x: 5, y: 80, w: 60, h: 15 },
+    standings: { x: 58, y: 6, w: 38, h: 88 },
 };
 
 const ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';

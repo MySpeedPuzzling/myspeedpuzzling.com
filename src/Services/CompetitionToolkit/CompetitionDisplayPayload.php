@@ -80,6 +80,10 @@ final readonly class CompetitionDisplayPayload
             'invalid' => $this->translator->trans('competition_display.texts.invalid', locale: $locale),
         ];
 
+        if ($state->standings !== null) {
+            $texts = [...$texts, ...$this->standingTexts($state->standings, $locale)];
+        }
+
         $serverNow = $this->clock->now();
 
         return [
@@ -89,6 +93,62 @@ final readonly class CompetitionDisplayPayload
             'rendererBuild' => $this->displayRendererBuild->current(),
             'mercure' => $this->officialResultsSubscription->forDisplay($state->competitionId, $state->followedRoundIds),
             'serverNowMs' => RoundClock::milliseconds($serverNow),
+        ];
+    }
+
+    /**
+     * The standings element's texts for the editor's sample standing (assets/displays/sample_data.js sampleStanding():
+     * 6 rounds, 12 pieces missing) in the display's language.
+     *
+     * @return array<string, mixed>
+     */
+    public function sampleStandingTexts(string $locale): array
+    {
+        return $this->standingTexts([
+            'sample' => ['roundsTotal' => 6, 'rows' => [['totalMissingPieces' => 12]]],
+        ], $locale);
+    }
+
+    /**
+     * The standings element's texts (v2 S2) - the public standing page's own texts in the display's language, no new
+     * translation. Plural texts are given per number the standings show (`standingFinal` per round count,
+     * `standingMissing` per count of missing pieces): every locale has its own plural rules.
+     *
+     * @param array<string, null|array<string, mixed>> $standings
+     * @return array<string, mixed>
+     */
+    private function standingTexts(array $standings, string $locale): array
+    {
+        $final = [];
+        $missing = [];
+
+        foreach ($standings as $standing) {
+            if ($standing === null) {
+                continue;
+            }
+
+            $roundsTotal = $standing['roundsTotal'] ?? null;
+
+            if (is_int($roundsTotal)) {
+                $final[(string) $roundsTotal] = $this->translator->trans('public_standing.final', ['%count%' => $roundsTotal], locale: $locale);
+            }
+
+            foreach (is_array($standing['rows'] ?? null) ? $standing['rows'] : [] as $row) {
+                $count = is_array($row) ? ($row['totalMissingPieces'] ?? null) : null;
+
+                if (is_int($count) && $count > 0) {
+                    $missing[(string) $count] = $this->translator->trans('finished_missing.missing_short', ['%count%' => $count], locale: $locale);
+                }
+            }
+        }
+
+        return [
+            'standingProvisional' => $this->translator->trans('public_standing.provisional', locale: $locale),
+            'standingRoundsOf' => $this->translator->trans('public_standing.rounds_of', ['%scored%' => '%scored%', '%count%' => '%count%'], locale: $locale),
+            'standingRoundShort' => $this->translator->trans('public_standing.round_short', ['%number%' => '%number%'], locale: $locale),
+            'standingTotal' => $this->translator->trans('public_standing.total', locale: $locale),
+            'standingFinal' => (object) $final,
+            'standingMissing' => (object) $missing,
         ];
     }
 }

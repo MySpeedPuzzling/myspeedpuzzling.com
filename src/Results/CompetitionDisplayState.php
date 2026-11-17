@@ -27,6 +27,9 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      *                                     QR codes read it
      * @param null|CompetitionReference $event the event's address (QR codes to its page) - not part of the state answer
      * @param null|string $roundSlug the shown round's address (QR codes to its results) - not part of the state answer
+     * @param null|array<string, null|array<string, mixed>> $standings element id => the published standing it shows
+     *                                                                 (DisplayStandings); null = no shown standings
+     *                                                                 element - the key is left out of the answer then
      */
     public function __construct(
         public string $displayId,
@@ -46,6 +49,7 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         public array $design = [],
         public null|CompetitionReference $event = null,
         public null|string $roundSlug = null,
+        public null|array $standings = null,
     ) {
     }
 
@@ -54,7 +58,7 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $answer = [
             'displayId' => $this->displayId,
             'kind' => $this->kind->value,
             'locale' => $this->locale,
@@ -69,5 +73,12 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
             'images' => $this->images === [] ? new \stdClass() : $this->images,
             'followedRoundIds' => $this->followedRoundIds,
         ];
+
+        // Only a design with a standings element has the key - every other design's answer stays as it was
+        if ($this->standings !== null) {
+            $answer['standings'] = $this->standings === [] ? new \stdClass() : $this->standings;
+        }
+
+        return $answer;
     }
 }

@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayStandings;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
 use SpeedPuzzling\Web\Services\UploaderHelper;
@@ -50,6 +51,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * - **Drafts**: a display works for a draft event (a rehearsal before publishing - the token is the organiser's), it is
  *   never listed anywhere (DraftVisibilityCoverageTest).
  *
+ * - **Standings** (v2 S2): for a shown `standings` element the published standing as a guest sees it (DisplayStandings,
+ *   cached per generation of the event's standings - 0 statements warm).
+ *
  * Three statements (display + event, rounds, visible puzzles), a fourth for the results entries only when the design
  * shows results that may be shown now.
  *
@@ -67,6 +71,7 @@ readonly final class GetCompetitionDisplayState
         private DisplayImages $displayImages,
         private ClockInterface $clock,
         private string $nginxProxyBaseUrl,
+        private DisplayStandings $displayStandings,
     ) {
     }
 
@@ -112,6 +117,15 @@ readonly final class GetCompetitionDisplayState
         if ($round !== null && $display['uses_results']) {
             $results = $this->results($round, $design, $display['uses_live_results'], $display['token']);
         }
+
+        // Published standings (v2 S2) - guest snapshots, cached per generation; a failure is an empty element, never a
+        // failed state (DisplayStandings catches everything)
+        $standings = $this->displayStandings->forDisplay(
+            $design,
+            $display['competition_id'],
+            $round === null ? null : ['id' => $round['id'], 'category' => $round['category']],
+            $display['token'],
+        );
 
         // The design's own uploads by the display preset (original until lily's imgproxy has it - DisplayImages)
         $images = [];
@@ -168,6 +182,7 @@ readonly final class GetCompetitionDisplayState
                 seriesSlug: $display['series_slug'],
             ),
             roundSlug: $round['slug'] ?? null,
+            standings: $standings,
         );
     }
 

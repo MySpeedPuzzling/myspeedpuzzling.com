@@ -99,6 +99,31 @@ final class DisplayDesignSanitizerTest extends TestCase
         self::assertSame(['shown001' => 0, 'hidden01' => 2], DisplayDesignSanitizer::liveElementIds($design));
     }
 
+    /**
+     * Competition toolkit v2 S2: every shown standings element asks for its standing; it is no results type (no live
+     * results, nothing for resultsDemand()), but a display with one hears the results signals (usesResults).
+     */
+    public function testStandingsDemandListsTheShownStandingsElements(): void
+    {
+        $design = new DisplayDesignSanitizer()->normaliseArray([
+            'schema' => 1,
+            'elements' => [
+                ['id' => 'stand001', 'type' => 'standings', 'frame' => []],
+                ['id' => 'stand002', 'type' => 'standings', 'frame' => [], 'props' => ['standingId' => '018D0004-0000-0000-0000-00000000ABCD', 'rows' => 5]],
+                ['id' => 'stand003', 'type' => 'standings', 'frame' => [], 'hidden' => true],
+                ['id' => 'stand004', 'type' => 'standings', 'frame' => [], 'when' => ['phases' => []]],
+            ],
+        ], '018d0004-0000-0000-0000-00000000c0de');
+
+        self::assertSame([
+            'stand001' => ['standingId' => 'auto', 'rows' => 10],
+            'stand002' => ['standingId' => '018d0004-0000-0000-0000-00000000abcd', 'rows' => 5],
+        ], DisplayDesignSanitizer::standingsDemand($design));
+        self::assertSame([], DisplayDesignSanitizer::resultsDemand($design));
+        self::assertTrue(DisplayDesignSanitizer::usesResults($design));
+        self::assertFalse(DisplayDesignSanitizer::usesLiveResults($design));
+    }
+
     private static function input(object $case): mixed
     {
         assert($case instanceof stdClass);

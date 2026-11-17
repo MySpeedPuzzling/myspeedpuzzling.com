@@ -64,6 +64,48 @@ final class RoundTimezone
         return self::resolve($storedTimezone) === self::FALLBACK;
     }
 
+    /**
+     * resolve() as an SQL expression (the IANA zone name) over SQL expressions of the stored zone and the country codes,
+     * in the same order - exact, so SQL reads a round's local day the way PHP does (SolvingTimeRoundMatch). Built from
+     * the PHP zone list and CountryCode::defaultTimezone(), once per process: neither changes at runtime, so sharing it
+     * in FrankenPHP worker mode is safe.
+     */
+    public static function sqlResolve(string $storedTimezone, string ...$countryCodes): string
+    {
+        /** @var null|array{zones: string, countries: list<array{codes: string, zone: string}>} $parts */
+        static $parts = null;
+
+        if ($parts === null) {
+            $quote = static fn (string $value): string => "'" . str_replace("'", "''", $value) . "'";
+            $byZone = [];
+
+            foreach (CountryCode::cases() as $country) {
+                $byZone[$country->defaultTimezone()][] = $quote($country->name);
+            }
+
+            $countries = [];
+
+            foreach ($byZone as $zone => $codes) {
+                $countries[] = ['codes' => implode(', ', $codes), 'zone' => $quote($zone)];
+            }
+
+            $parts = [
+                'zones' => implode(', ', array_map($quote, DateTimeZone::listIdentifiers())),
+                'countries' => $countries,
+            ];
+        }
+
+        $branches = ["WHEN {$storedTimezone} IN ({$parts['zones']}) THEN {$storedTimezone}"];
+
+        foreach ($countryCodes as $countryCode) {
+            foreach ($parts['countries'] as $country) {
+                $branches[] = "WHEN LOWER({$countryCode}) IN ({$country['codes']}) THEN {$country['zone']}";
+            }
+        }
+
+        return 'CASE ' . implode(' ', $branches) . " ELSE '" . self::FALLBACK . "' END";
+    }
+
     public static function isValid(string $timezone): bool
     {
         return in_array($timezone, DateTimeZone::listIdentifiers(), true);

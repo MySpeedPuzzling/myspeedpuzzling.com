@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Services\RoundResults;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Query\SolvingTimeRoundMatch;
 
 /**
- * Brings puzzle_solving_time.competition_round_id in line with the rule in SolvingTimeRoundResolver, for one
- * competition, for the editions of one series or for all of them. Two idempotent set-based updates: link or re-link
- * every time that matches a round, unlink every time that no longer does. An imported event result with a round is
- * left alone (SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED).
+ * Brings puzzle_solving_time.competition_round_id (+ round_chosen) in line with the one rule SolvingTimeRoundMatch,
+ * for one competition, for the editions of one series or for all of them. Two set-based updates: every time with a
+ * candidate round gets the rule's answer (a round, or none when the evidence does not single one out - only times
+ * whose puzzle is in several rounds of their category), every time without a candidate is unlinked. An imported event
+ * result with a round is left alone (SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED).
  *
  * Must only run after the changes it reacts to are flushed - from a postFlush domain event handler or a
  * console command, never from the handler that persists the change.
@@ -70,31 +72,54 @@ readonly final class RoundResultsReconciler
     {
         // An imported event result keeps the round its import gave it - neither re-linked nor unlinked (README D10)
         $derived = SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED;
-
-        $linked = $this->database->executeStatement(
-            <<<SQL
-UPDATE puzzle_solving_time AS target
-SET competition_round_id = matched.round_id
-FROM (
-    SELECT DISTINCT ON (pst.id) pst.id AS time_id, cr.id AS round_id
+        $candidates = SolvingTimeRoundMatch::sqlCandidates(<<<SQL
+    SELECT pst.id AS time_id,
+        pst.competition_id,
+        pst.puzzle_id,
+        pst.puzzling_type AS category,
+        pst.competition_round_id AS current_round_id,
+        pst.round_chosen AS chosen,
+        pst.player_id AS owner_id,
+        pst.team AS team_json,
+        pst.seconds_to_solve AS seconds,
+        pst.pieces_placed,
+        CASE WHEN pst.finished_at_precision IS NULL THEN CAST(pst.finished_at AS DATE) END AS solve_day,
+        pst.tracked_at
     FROM puzzle_solving_time pst
-    INNER JOIN competition_round cr ON cr.competition_id = pst.competition_id AND cr.category = pst.puzzling_type
-    INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id AND crp.puzzle_id = pst.puzzle_id
     WHERE pst.competition_id IS NOT NULL
         AND {$derived}
         {$linkScope}
-    ORDER BY pst.id, cr.starts_at
-) AS matched
-WHERE target.id = matched.time_id
-    AND target.competition_round_id IS DISTINCT FROM matched.round_id
+SQL);
+        $answer = SolvingTimeRoundMatch::sqlAnswer();
+
+        // Every time with a candidate round gets the rule's answer - a round, or none when the evidence does not single
+        // one out; a round the player named stays chosen while it is a candidate, else the flag goes with it
+        /** @var array{linked: int|string, unlinked: int|string} $changed */
+        $changed = $this->database->fetchAssociative(
+            <<<SQL
+WITH {$candidates},
+changed AS (
+    UPDATE puzzle_solving_time AS target
+    SET competition_round_id = answer.round_id,
+        round_chosen = answer.chosen
+    FROM ({$answer}) AS answer
+    WHERE target.id = answer.time_id
+        AND (target.competition_round_id IS DISTINCT FROM answer.round_id OR target.round_chosen IS DISTINCT FROM answer.chosen)
+    RETURNING target.competition_round_id
+)
+SELECT COUNT(*) FILTER (WHERE competition_round_id IS NOT NULL) AS linked,
+    COUNT(*) FILTER (WHERE competition_round_id IS NULL) AS unlinked
+FROM changed
 SQL,
             $parameters,
         );
 
+        // A time without any candidate any more (its competition, puzzle or category changed, the round lost the puzzle)
         $unlinked = $this->database->executeStatement(
             <<<SQL
 UPDATE puzzle_solving_time AS pst
-SET competition_round_id = NULL
+SET competition_round_id = NULL,
+    round_chosen = false
 WHERE pst.competition_round_id IS NOT NULL
     AND {$derived}
     {$unlinkScope}
@@ -111,6 +136,6 @@ SQL,
             $parameters,
         );
 
-        return ['linked' => (int) $linked, 'unlinked' => (int) $unlinked];
+        return ['linked' => (int) $changed['linked'], 'unlinked' => (int) $changed['unlinked'] + (int) $unlinked];
     }
 }

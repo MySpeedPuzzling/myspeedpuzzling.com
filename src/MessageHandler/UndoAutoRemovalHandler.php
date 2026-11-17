@@ -10,12 +10,14 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalCanNotBeUndone;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -62,6 +64,7 @@ readonly final class UndoAutoRemovalHandler
         private SeriesEditionResolver $seriesEditionResolver,
         private MessageBusInterface $messageBus,
         private SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
+        private CompetitionRoundRepository $competitionRoundRepository,
     ) {
     }
 
@@ -132,7 +135,19 @@ readonly final class UndoAutoRemovalHandler
             );
         }
 
-        $time->changeCompetitionRound($this->roundResolver->resolve($time));
+        // A round the player had named comes back named - kept while it is still a candidate (shared-puzzles A5)
+        $namedRound = null;
+
+        if ($snapshot->roundChosen && $snapshot->competitionRoundId !== null) {
+            try {
+                $namedRound = $this->competitionRoundRepository->get($snapshot->competitionRoundId);
+            } catch (CompetitionRoundNotFound) {
+                // Deleted meanwhile - the rule decides
+            }
+        }
+
+        $roundResolution = $this->roundResolver->resolve($time, $namedRound);
+        $time->roundResolved($roundResolution->round, $roundResolution->chosen);
 
         $this->puzzleSolvingTimeRepository->save($time);
         // Not deleted after all - API clients must not be told it was (its grave stays, a history)

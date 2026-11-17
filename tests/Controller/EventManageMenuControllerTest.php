@@ -199,7 +199,8 @@ final class EventManageMenuControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Draft', $crawler->filter('.ev-menu-kind')->text());
-        self::assertSame(['Publish', 'Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Duplicate', 'Delete'], $this->itemLabels($crawler));
+        // A draft the wizard can resume offers "Continue setting up" (creation wizard, no flag since WF)
+        self::assertSame(['Publish', 'Continue setting up', 'Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Duplicate', 'Delete'], $this->itemLabels($crawler));
 
         $publish = $crawler->filter('button[data-publish]')->closest('form');
         self::assertNotNull($publish);

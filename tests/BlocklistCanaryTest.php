@@ -369,6 +369,55 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * A `pick` round's published official results (competition toolkit A5): the blocked player's row with its chosen
+     * puzzles is not there either - the chips ride on the row the blocklist drops (OfficialEntrantsView).
+     */
+    public function testBlockedPlayerIsNowhereInAPickRoundsPublishedOfficialResults(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b';
+        $database = self::getContainer()->get(Connection::class);
+        $roundPuzzleId = $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_GROUP_B]);
+
+        // "Hugo Slow", second in Group B - a pick-one round where everybody chose its one puzzle - is the blocked player
+        $database->executeStatement(
+            "UPDATE competition_round SET puzzle_format = 'pick', puzzles_to_solve = 1, results_published_at = " . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['id' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant_round SET result_puzzles = :puzzles WHERE round_id = :round',
+            ['puzzles' => json_encode([['roundPuzzleId' => $roundPuzzleId, 'done' => true]], JSON_THROW_ON_ERROR), 'round' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_HUGO],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the official results do not link the player.');
+        self::assertStringContainsString('Hugo Slow', $content);
+        self::assertCount(3, $crawler->filter('[data-official-results] [data-official-entry-puzzles]'), 'No canary: the rows show no chosen puzzles.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Hugo Slow', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['1', '3'], $crawler->filter('[data-official-results] tbody tr')->each(
+            static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
+        ));
+        self::assertCount(2, $crawler->filter('[data-official-results] [data-official-entry-puzzles]'));
+    }
+
+    /**
      * **Documented exemption: competition displays** (timer screens and stream overlays, toolkit
      * D-displays-overlays.md §9.4, R-review-and-plan.md §2.3). A display has no viewer - an anonymous capability URL
      * on a hall screen or a stream, read by the stateless firewall - so a viewer's blocklist cannot apply: the blocker

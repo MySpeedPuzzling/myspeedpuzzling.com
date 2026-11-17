@@ -380,6 +380,43 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The same on a `pick` round's page (competition toolkit A5): her row with its chosen puzzles names her by the
+     * organiser's name only (OfficialEntrantsView), except for the friend.
+     */
+    public function testAPickRoundsPublishedOfficialResultsLinkHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b';
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $database = self::getContainer()->get(Connection::class);
+        $roundPuzzleId = $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_GROUP_B]);
+        $database->executeStatement(
+            "UPDATE competition_round SET puzzle_format = 'pick', puzzles_to_solve = 1, results_published_at = " . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['id' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant_round SET result_puzzles = :puzzles WHERE round_id = :round',
+            ['puzzles' => json_encode([['roundPuzzleId' => $roundPuzzleId, 'done' => true]], JSON_THROW_ON_ERROR), 'round' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the official results do not list her.');
+        self::assertStringContainsString('data-official-entry-puzzles', $content, 'No canary: the rows show no chosen puzzles.');
+        self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+    }
+
+    /**
      * A competition display (timer screen / stream overlay, toolkit D-displays-overlays.md §9.4) with live results of
      * Group B lists her by the organiser's name ("Gina Quick") and nothing of her profile - for everybody, the friend
      * included: a display has no viewer (an anonymous capability URL, the stateless firewall), so no allow list unmasks.

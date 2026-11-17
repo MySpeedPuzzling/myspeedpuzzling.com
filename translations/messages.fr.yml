@@ -5090,6 +5090,7 @@ live_results:
       confirmed: "Confirmé à %time% (proposé %proposed%)"
       rejected: "Refusée"
       superseded: "Remplacée par un résultat enregistré"
+      undone: "Confirmation annulée - le résultat a été effacé"
       withdrawn: "Retirée par le concurrent"
     reason:
       not_finished: "Pas terminé"
@@ -14005,6 +14006,7 @@ competitor_page:
         changed: "Confirmé par l'arbitre à %time% - vous aviez proposé %proposed%"
         rejected: "L'arbitre n'a pas accepté %time%."
         superseded: "L'arbitre a enregistré votre résultat."
+        cleared: "L'arbitre a retiré le temps confirmé %time%."
         reset: "Le chronomètre de la manche a été réinitialisé - votre temps %time% a été mis de côté."
         reason:
             not_finished: "Le puzzle n'était pas terminé."

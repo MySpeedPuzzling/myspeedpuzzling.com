@@ -95,6 +95,34 @@ final class CompetitorPageProposalsTest extends WebTestCase
         self::assertStringNotContainsString(PlayerFixture::PLAYER_WITH_STRIPE, $content);
     }
 
+    /**
+     * Toolkit H3: the judge's Undo of a confirmation leaves the phone a proposal that lost its confirmation, the entry
+     * without a result and the Stop button back (canPropose) - and a new proposal goes through
+     */
+    public function testAnUndoneConfirmationGivesTheCompetitorTheButtonBack(): void
+    {
+        self::runningRounds();
+        $proposalId = self::newProposalId(-3000);
+        self::propose(self::ANNA_FINAL, proposalId: $proposalId, tappedAgoMs: 3000);
+        self::record([self::resultChange(self::ANNA_FINAL, null, ['seconds' => 597], $proposalId)]);
+        self::record([self::resultChange(self::ANNA_FINAL, ['seconds' => 597], null)]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->browser->request('GET', self::ANNA_STATE);
+        $round = $this->stateRound($this->json(), F::ROUND_FINAL);
+        self::assertTrue($round['canPropose']);
+        self::assertIsArray($round['entry']);
+        self::assertNull($round['entry']['result'] ?? null);
+        $proposal = $round['proposal'] ?? null;
+        self::assertIsArray($proposal);
+        self::assertSame($proposalId, $proposal['id']);
+        self::assertSame('superseded', $proposal['status']);
+        self::assertIsArray($proposal['decided']);
+        self::assertSame('result_cleared', $proposal['decided']['reason']);
+
+        self::assertSame('proposed', self::propose(self::ANNA_FINAL, tappedAgoMs: 1000)->status);
+    }
+
     public function testAPairMemberProposesForTheirPair(): void
     {
         self::runningRounds();

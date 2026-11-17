@@ -234,7 +234,9 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
   refusals drop it and show why; one tab sends - Web Locks; `beforeunload` warns while something is unsent).
 - **States in the card's slot:** Stop / "Propose?" sheet / sending / saved on this phone (offline) / sign in again /
   reload / waiting for the judge (+ Undo) / taking back / confirmed / "Confirmed as X - you proposed Y" / not accepted
-  (+ reason, Stop again while it runs) / withdrawn (Stop again) / clock reset / recorded otherwise. Undo = withdraw:
+  (+ reason, Stop again while it runs) / withdrawn (Stop again) / clock reset / recorded otherwise / confirmation taken
+  back by the judge (`result_cleared` without a result: "The judge took back the confirmed time X", Stop again while it
+  runs). Undo = withdraw:
   a tap still on the phone is dropped (the server never hears of it), one on its way is withdrawn after its answer, a
   sent one gets a withdraw item. The answer's proposal and the state's are merged (`currentProposal()`: a decided
   answer beats a stale pending state, a later tap beats an older one).
@@ -266,9 +268,13 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
    Y", "Not accepted" (+ reason), clock reset; the result itself follows the B4 rules.
 
 Decided behaviours, edges:
-- **Undo of a confirmation** on the live entry clears the result only - the resolver leaves a cleared result's proposal
-  alone, so the proposal **stays `confirmed`**. The competitor page then still shows "Confirmed" (no result, no Stop
-  button: `proposalPanel()` returns the confirmed panel before checking for a result) until the round is published.
+- **Undo of a confirmation** on the live entry (toolkit H3): the result is cleared and the proposal turns `superseded`
+  (`result_cleared`) in the same transaction - the judge page, the competitor page and `official_results.proposals`
+  agree. The competitor page shows "The judge took back the confirmed time X" with the Stop button again while the round
+  runs (the text alone after it), and a new proposal goes through (`ProposeRoundTime` refuses only a pending one or a
+  standing result). **Decided:** a confirmed result the judge later changes to another value supersedes the proposal too
+  (`result_changed`) - "Confirmed as X" would no longer be the official result; the page shows "The judge recorded your
+  result." The page learns of it with its next ordinary poll (5 s polling is only while something waits for the judge).
 - **Load (P1)**: `tools/time-proposals-load/run.php` - 40 simultaneous proposals p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms
   each under the event lock; 100 ≈ 1.9 s vs the 500 ms goal of R §2.4). Accepted for v1 (finishes spread, the phone's
   outbox retries); to be measured on prod-like hardware; a per-round lock key needs Jan's OK.

@@ -1813,7 +1813,7 @@ export default class extends Controller {
 
             if (state === 'decided') {
                 const seconds = proposal.decided?.seconds;
-                status = this.t(`proposalStatus_${proposal.status}`, { '%time%': Number.isInteger(seconds) ? formatResultTime(seconds) : time, '%proposed%': formatResultTime(proposal.proposedSeconds) })
+                status = this.t(proposal.status === 'superseded' && proposal.decided?.reason === 'result_cleared' ? 'proposalStatus_undone' : `proposalStatus_${proposal.status}`, { '%time%': Number.isInteger(seconds) ? formatResultTime(seconds) : time, '%proposed%': formatResultTime(proposal.proposedSeconds) })
                     + (proposal.decided?.byName ? ` · ${proposal.decided.byName}` : '');
             } else if (state === 'sending') {
                 status = this.t(panel.rejecting ? 'proposalRejectWaiting' : 'proposalConfirmWaiting');

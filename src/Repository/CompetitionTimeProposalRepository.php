@@ -50,8 +50,9 @@ readonly final class CompetitionTimeProposalRepository
     }
 
     /**
-     * What a change set of RecordRoundResults may resolve (TimeProposalResolver): the round's pending proposals and the
-     * proposals the set names by id (of any status - "no longer pending" is an answer too). One statement.
+     * What a change set of RecordRoundResults may resolve (TimeProposalResolver): the round's pending and confirmed
+     * proposals (a confirmed one loses its confirmation when its result is cleared or changed) and the proposals the set
+     * names by id (of any status - "no longer pending" is an answer too). One statement.
      *
      * @param list<string> $proposalIds
      * @return array<string, CompetitionTimeProposal> lower-cased id => proposal
@@ -65,14 +66,14 @@ readonly final class CompetitionTimeProposalRepository
             ->from(CompetitionTimeProposal::class, 'proposal')
             ->where('proposal.round = :round')
             ->setParameter('round', $round->id->toString())
-            ->setParameter('pending', TimeProposalStatus::Pending->value)
+            ->setParameter('open', [TimeProposalStatus::Pending->value, TimeProposalStatus::Confirmed->value])
             ->orderBy('proposal.tappedAtMs')
             ->addOrderBy('proposal.id');
 
         if ($proposalIds === []) {
-            $query->andWhere('proposal.status = :pending');
+            $query->andWhere('proposal.status IN (:open)');
         } else {
-            $query->andWhere('proposal.status = :pending OR proposal.id IN (:ids)')->setParameter('ids', $proposalIds);
+            $query->andWhere('proposal.status IN (:open) OR proposal.id IN (:ids)')->setParameter('ids', $proposalIds);
         }
 
         /** @var list<CompetitionTimeProposal> $proposals */

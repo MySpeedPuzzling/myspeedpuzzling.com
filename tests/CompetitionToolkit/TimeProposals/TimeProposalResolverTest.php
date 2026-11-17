@@ -126,6 +126,55 @@ final class TimeProposalResolverTest extends KernelTestCase
         self::assertSame('result_recorded', $row['decision_reason']);
     }
 
+    /**
+     * Toolkit H3: the judge's Undo of a confirmation clears the result - the proposal loses its confirmation in the same
+     * transaction, and the competitor may propose again while the round runs
+     */
+    public function testUndoingAConfirmationSupersedesTheProposalAndAllowsANewOne(): void
+    {
+        self::record([self::resultChange(self::ANNA_FINAL, null, ['seconds' => 601], $this->proposalId)]);
+
+        $undo = self::record([self::resultChange(self::ANNA_FINAL, ['seconds' => 601], null)]);
+
+        self::assertSame('applied', $undo->outcomes[0]->status->value);
+        self::assertSame(['id' => $this->proposalId, 'status' => 'superseded'], $undo->outcomes[0]->proposal);
+        self::assertSame([$this->proposalId], $undo->changedProposalIds);
+        $row = self::proposalRow($this->proposalId);
+        self::assertSame('superseded', $row['status']);
+        self::assertSame('result_cleared', $row['decision_reason']);
+        self::assertSame(601, $row['decided_seconds'], 'what it was confirmed as stays');
+
+        $again = self::propose(self::ANNA_FINAL, tappedAgoMs: 1000);
+        self::assertSame('proposed', $again->status, (string) $again->reason);
+    }
+
+    /**
+     * Decided: a confirmation whose result a judge then changes to another value is superseded too (`result_changed`) -
+     * "Confirmed as X" would no longer be the official result; the competitor page shows the result is recorded
+     */
+    public function testChangingAConfirmedResultToAnotherValueSupersedesTheProposal(): void
+    {
+        self::record([self::resultChange(self::ANNA_FINAL, null, ['seconds' => 598], $this->proposalId)]);
+
+        $changed = self::record([self::resultChange(self::ANNA_FINAL, ['seconds' => 598], ['piecesPlaced' => 900])]);
+
+        self::assertSame(['id' => $this->proposalId, 'status' => 'superseded'], $changed->outcomes[0]->proposal);
+        $row = self::proposalRow($this->proposalId);
+        self::assertSame('superseded', $row['status']);
+        self::assertSame('result_changed', $row['decision_reason']);
+    }
+
+    public function testTheSameResultSentAgainKeepsTheConfirmation(): void
+    {
+        self::record([self::resultChange(self::ANNA_FINAL, null, ['seconds' => 598], $this->proposalId)]);
+
+        $same = self::record([self::resultChange(self::ANNA_FINAL, ['seconds' => 598], ['seconds' => 598])]);
+
+        self::assertSame('unchanged', $same->outcomes[0]->status->value);
+        self::assertSame([], $same->changedProposalIds);
+        self::assertSame('confirmed', self::proposalRow($this->proposalId)['status']);
+    }
+
     public function testAJudgeRejectsAProposalThroughTheChangeSet(): void
     {
         $recorded = self::record([self::rejectChange(self::ANNA_FINAL, $this->proposalId, 'wrong_entry')], resultsOnly: true, actingPlayerId: PlayerFixture::PLAYER_REGULAR);

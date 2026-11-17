@@ -15,13 +15,14 @@ use SpeedPuzzling\Web\Value\RoundResultChange;
 use SpeedPuzzling\Web\Value\RoundResultChangeStatus;
 use SpeedPuzzling\Web\Value\RoundResultField;
 use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
+use SpeedPuzzling\Web\Value\TimeProposalStatus;
 
 /**
  * Time proposals inside the official results write path (competition toolkit P1, toolkit/B-qr-competitor-page.md §5.5
  * with R-review-and-plan.md §1.2) - called by RecordRoundResultsHandler in the same transaction and lock, **only when
  * the round's competition has time proposals on** (a competition without them runs no statement of this).
  *
- * - load(): one statement - the round's pending proposals and the ones the set names by id.
+ * - load(): one statement - the round's pending and confirmed proposals and the ones the set names by id.
  * - rejectionStatus(): plans a `field: "proposal"` change (a judge's "Not right", R §1.2): applied (rejected now),
  *   unchanged (no longer pending) or refused (`proposal_not_found` - unknown, or of another entry).
  * - resolve(): after the set was written, per change in order -
@@ -30,6 +31,10 @@ use SpeedPuzzling\Web\Value\TimeProposalDecisionReason;
  *   wrote no finished time; a proposal no longer pending leaves the result standing (`not_pending`);
  *   any other applied `result` change on an entry with a pending proposal: the same seconds confirm it, another result
  *   supersedes it (`result_recorded`), a cleared result leaves it alone;
+ *   every applied `result` change (with or without `proposalId`) after that: a confirmed proposal of the entry whose
+ *   confirmed seconds the result no longer is - cleared (the judge's Undo) or changed to another value - is superseded
+ *   (`result_cleared` / `result_changed`), so the judge page, the competitor page and `official_results.proposals`
+ *   agree and the competitor may propose again once no result stands (toolkit H3);
  *   an applied `proposal` change rejects it with the judge's reason.
  *   A replay (the change's receipt existed before the set) touches nothing - the proposal was resolved the first time.
  *
@@ -133,49 +138,53 @@ final readonly class TimeProposalResolver
 
                 if ($proposal === null) {
                     $outcomes[$index] = $outcome->withProposal($change->proposalId, 'unknown');
-
-                    continue;
-                }
-
-                if ($through && $replay === false && $proposal->isPending()) {
+                } elseif ($through && $replay === false && $proposal->isPending()) {
                     self::confirmWith($proposal, $result, $actor, $now);
                     $changed[] = $proposal->id->toString();
                     $outcomes[$index] = $outcome->withProposal($proposal->id->toString(), $proposal->status->value);
-
-                    continue;
+                } else {
+                    // A replay reports what its first sending did; a proposal another change decided is `not_pending`
+                    $outcomes[$index] = $outcome->withProposal($proposal->id->toString(), $through && $replay === false ? self::stateOf($proposal) : $proposal->status->value);
                 }
 
-                // A replay reports what its first sending did; a proposal another change decided is `not_pending`
-                $outcomes[$index] = $outcome->withProposal($proposal->id->toString(), $through && $replay === false ? self::stateOf($proposal) : $proposal->status->value);
+                if ($outcome->status === RoundResultChangeStatus::Applied && $replay === false) {
+                    $changed = [...$changed, ...self::unconfirmStale($change, $result, $proposals, $actor, $now)];
+                }
 
                 continue;
             }
 
-            // A result recorded another way while a proposal waited - only one that was written now
-            if ($outcome->status !== RoundResultChangeStatus::Applied || $replay || $result->isNone()) {
+            // Only a result that was written now
+            if ($outcome->status !== RoundResultChangeStatus::Applied || $replay) {
                 continue;
             }
 
+            // A result recorded another way while a proposal waited
             $ref = $change->entryRef()?->toString();
             $pending = null;
             foreach ($proposals as $proposal) {
-                if ($proposal->isPending() && $proposal->entryRef()->toString() === $ref) {
+                if ($result->isNone() === false && $proposal->isPending() && $proposal->entryRef()->toString() === $ref) {
                     $pending = $proposal;
                 }
             }
 
-            if ($pending === null) {
-                continue;
+            if ($pending !== null) {
+                if ($result->isFinished() && $result->seconds === $pending->proposedSeconds) {
+                    $pending->confirm($result->seconds, $actor, $now);
+                } else {
+                    $pending->supersede(TimeProposalDecisionReason::ResultRecorded, $actor, $now);
+                }
+
+                $changed[] = $pending->id->toString();
+                $outcomes[$index] = $outcome->withProposal($pending->id->toString(), $pending->status->value);
             }
 
-            if ($result->isFinished() && $result->seconds === $pending->proposedSeconds) {
-                $pending->confirm($result->seconds, $actor, $now);
-            } else {
-                $pending->supersede(TimeProposalDecisionReason::ResultRecorded, $actor, $now);
-            }
+            $unconfirmed = self::unconfirmStale($change, $result, $proposals, $actor, $now);
 
-            $changed[] = $pending->id->toString();
-            $outcomes[$index] = $outcome->withProposal($pending->id->toString(), $pending->status->value);
+            if ($unconfirmed !== []) {
+                $changed = [...$changed, ...$unconfirmed];
+                $outcomes[$index] = $outcomes[$index]->proposal === null ? $outcome->withProposal($unconfirmed[0], TimeProposalStatus::Superseded->value) : $outcomes[$index];
+            }
         }
 
         return ['outcomes' => array_values($outcomes), 'changedProposalIds' => array_values(array_unique($changed))];
@@ -187,6 +196,34 @@ final readonly class TimeProposalResolver
     private static function stateOf(CompetitionTimeProposal $proposal): string
     {
         return $proposal->isPending() ? 'pending' : 'not_pending';
+    }
+
+    /**
+     * The entry's confirmed proposals the written result no longer is (cleared - the judge's Undo - or another value):
+     * superseded, so the competitor is not left with "Confirmed" and no result, and may propose again (toolkit H3)
+     *
+     * @param array<string, CompetitionTimeProposal> $proposals
+     * @return list<string> the ids it changed
+     */
+    private static function unconfirmStale(RoundResultChange $change, RoundEntryResult $result, array $proposals, Player $actor, DateTimeImmutable $now): array
+    {
+        $ref = $change->entryRef()?->toString();
+        $changed = [];
+
+        foreach ($proposals as $proposal) {
+            if ($proposal->status !== TimeProposalStatus::Confirmed || $proposal->entryRef()->toString() !== $ref) {
+                continue;
+            }
+
+            if ($result->isFinished() && $result->seconds === $proposal->decidedSeconds) {
+                continue;
+            }
+
+            $proposal->supersedeConfirmation($result->isNone() ? TimeProposalDecisionReason::ResultCleared : TimeProposalDecisionReason::ResultChanged, $actor, $now);
+            $changed[] = $proposal->id->toString();
+        }
+
+        return $changed;
     }
 
     private static function confirmWith(CompetitionTimeProposal $proposal, RoundEntryResult $result, Player $actor, DateTimeImmutable $now): void

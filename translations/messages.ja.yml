@@ -5013,6 +5013,7 @@ live_results:
       confirmed: "%time%で確定（申告 %proposed%）"
       rejected: "却下"
       superseded: "記録された結果に置き換え"
+      undone: "確認を取り消しました - 結果は削除されました"
       withdrawn: "出場者が取り消し"
     reason:
       not_finished: "未完成"
@@ -13999,6 +14000,7 @@ competitor_page:
         changed: "審判が%time%で確定しました - あなたの申告は%proposed%"
         rejected: "審判は%time%を認めませんでした。"
         superseded: "審判があなたの結果を記録しました。"
+        cleared: "審判が確認済みのタイム %time% を取り消しました。"
         reset: "ラウンドの時計がリセットされたため、あなたのタイム%time%は保留になりました。"
         reason:
             not_finished: "パズルが完成していませんでした。"

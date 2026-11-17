@@ -182,6 +182,22 @@ class CompetitionTimeProposal
         $this->decide(TimeProposalStatus::Superseded, $reason, $by, $at);
     }
 
+    /**
+     * A judge cleared (an Undo) or changed the result that confirmed it - the proposal no longer describes the official
+     * result. `decidedSeconds` keeps what it was confirmed as; the decision moves to `$by` and `$at`.
+     */
+    public function supersedeConfirmation(TimeProposalDecisionReason $reason, Player $by, DateTimeImmutable $at): void
+    {
+        if ($this->status !== TimeProposalStatus::Confirmed) {
+            throw new \LogicException('Only a confirmed time proposal can lose its confirmation.');
+        }
+
+        $this->status = TimeProposalStatus::Superseded;
+        $this->decisionReason = $reason;
+        $this->decidedByPlayer = $by;
+        $this->decidedAt = $at;
+    }
+
     public function withdraw(DateTimeImmutable $at): void
     {
         $this->decide(TimeProposalStatus::Withdrawn, null, null, $at);

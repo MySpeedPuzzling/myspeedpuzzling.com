@@ -81,7 +81,8 @@ export function mergeProposals(current, incoming, { stateAtMs = null } = {}) {
 
 /**
  * The server's word on a proposal after a change (`proposal: {id, status}`): a decision is kept on the page at once.
- * `not_pending` / `unknown` say the page's copy is old - the caller asks for the state.
+ * `not_pending` / `unknown` (and `superseded` of a proposal shown as confirmed) say the page's copy is old - the
+ * caller asks for the state.
  *
  * @returns {{proposals: Map<string, object>, stale: boolean}}
  */
@@ -90,7 +91,8 @@ export function applyOutcome(current, annotation, decidedAt = new Date().toISOSt
     const status = annotation?.status;
     const before = current.get(id);
 
-    if (status === 'not_pending' || status === 'unknown') {
+    // A confirmation undone (the result cleared or changed afterwards) - the state says why
+    if (status === 'not_pending' || status === 'unknown' || (status === 'superseded' && before?.status === 'confirmed')) {
         return { proposals: current, stale: true };
     }
 

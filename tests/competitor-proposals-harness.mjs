@@ -396,6 +396,14 @@ const scenarios = {
         const superseded = proposalPanel({ round: round({ proposal: proposal({ status: 'superseded', decided: { seconds: null, reason: 'result_recorded' } }), entry: { ...round().entry, result: { seconds: 3000 } } }), nowMs: NOW });
         assert.deepEqual([superseded.mode, superseded.button], ['superseded', false]);
 
+        // Toolkit H3: the judge undid the confirmation (result cleared) - Stop again while the round runs, a text otherwise
+        const cleared = proposalPanel({ round: round({ proposal: proposal({ status: 'superseded', decided: { seconds: 2952, reason: 'result_cleared' } }) }), nowMs: NOW });
+        assert.deepEqual([cleared.mode, cleared.status.time, cleared.button], ['cleared', 2952, true]);
+        const clearedAfter = proposalPanel({ round: round({ proposal: proposal({ status: 'superseded', decided: { seconds: 2952, reason: 'result_cleared' } }) }), nowMs: NOW + 3 * 3600 * 1000 });
+        assert.deepEqual([clearedAfter.mode, clearedAfter.button], ['cleared', false], 'past the time limit: the text, no Stop');
+        const changedAway = proposalPanel({ round: round({ proposal: proposal({ status: 'superseded', decided: { seconds: 2952, reason: 'result_changed' } }), entry: { ...round().entry, result: { seconds: 3000 } } }), nowMs: NOW });
+        assert.deepEqual([changedAway.mode, changedAway.button], ['superseded', false]);
+
         // Published: the official result says it all
         assert.equal(proposalPanel({ round: round({ published: true, proposal: proposal({ status: 'confirmed', decided: { seconds: 2952 } }) }), nowMs: NOW }).mode, 'none');
     },

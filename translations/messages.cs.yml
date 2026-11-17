@@ -5098,6 +5098,7 @@ live_results:
       confirmed: "Potvrzeno jako %time% (navrženo %proposed%)"
       rejected: "Zamítnuto"
       superseded: "Nahrazeno zapsaným výsledkem"
+      undone: "Potvrzení vráceno zpět - výsledek byl smazán"
       withdrawn: "Staženo soutěžícím"
     reason:
       not_finished: "Nedokončeno"
@@ -14012,6 +14013,7 @@ competitor_page:
         changed: "Rozhodčí potvrdil jako %time% - navrhli jste %proposed%"
         rejected: "Rozhodčí nepřijal %time%."
         superseded: "Rozhodčí zapsal váš výsledek."
+        cleared: "Rozhodčí vzal potvrzený čas %time% zpět."
         reset: "Stopky kola byly resetovány - váš čas %time% byl odložen stranou."
         reason:
             not_finished: "Puzzle nebylo dokončeno."

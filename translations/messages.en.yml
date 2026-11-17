@@ -5392,6 +5392,7 @@ page_sections:
         hidden: "The section is hidden. It stays here until you show it again or delete it."
 
 live_results:
+    finished_missing_help: "Only pieces that cost a penalty under your rules."
     title: "Live result entry"
     round: "Round"
     back: "Back"
@@ -14272,6 +14273,19 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% finished at"
         export_time: "Puzzle %position% own time"
         export_pieces: "Puzzle %position% pieces placed"
+    standings:
+        missing_rule:
+            label: "Rounds without a result"
+            incomplete: "List after the complete entrants, without a rank"
+            incomplete_help: "Somebody without a result in one of the rounds (did not start, not entered) is listed after everybody else, without a rank."
+            as_zero_pieces: "Count as nothing placed: time limit + penalty × all pieces"
+            as_zero_pieces_help: "A no-show stays ranked: a round without a result counts as its time limit plus the penalty for every piece (World Series rule). Once a round's results are published, everybody without a result there is a no-show. Needs a time limit in every round."
+        rule_no_show: "a round without a result counts as the time limit + %seconds% s × all pieces"
+        rule_no_show_no_penalty: "a round without a result counts as the time limit"
+        no_show: "No-show"
+        no_shows_wait: "No-shows count once a round's results are published - until then, entrants without a result there are not counted yet."
+        substitutes_warning: "{1}1 pair or team appears in only some rounds - check substitutes: a changed line-up is a separate entrant and gets a no-show in the rounds it did not play.|]1,Inf[%count% pairs or teams appear in only some rounds - check substitutes: a changed line-up is a separate entrant and gets a no-show in the rounds it did not play."
+        publish_no_shows: "{1}1 entry without a result will count as a no-show in %standing%.|]1,Inf[%count% entries without a result will count as no-shows in %standing%."
 competitor_page:
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."

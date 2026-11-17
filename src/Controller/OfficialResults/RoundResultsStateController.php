@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
+use SpeedPuzzling\Web\Query\GetRoundStandingRules;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -43,6 +44,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * RoundPuzzleFormats) - absent on every other round.
  * A competition with time proposals on (competition toolkit P1, R §1.8) adds `proposals`: the round's pending proposals
  * and those decided in the last 10 minutes (GetTimeProposals, TimeProposalView) - absent otherwise.
+ * A round counted by a standing that penalises pieces missing from a finished puzzle carries `round.penalisedMissing:
+ * true` (world-series-rules.md W1-c) - absent otherwise.
  * docs/features/competitions-management/official-results.md - the JSON shape is documented there.
  */
 final class RoundResultsStateController extends AbstractController
@@ -56,6 +59,7 @@ final class RoundResultsStateController extends AbstractController
         private readonly OfficialResultsSubscription $subscription,
         private readonly RefereeEntriesView $refereeEntriesView,
         private readonly GetTimeProposals $getTimeProposals,
+        private readonly GetRoundStandingRules $getRoundStandingRules,
     ) {
     }
 
@@ -89,6 +93,10 @@ final class RoundResultsStateController extends AbstractController
             }
         }
 
+        // A standing of the round penalises pieces missing from a finished puzzle (world-series-rules.md W1-c): the judge
+        // card's "+ Pieces missing" says only penalised pieces count - `round.penalisedMissing`, absent otherwise
+        $standingKeys = $this->getRoundStandingRules->forRound($round->id->toString())->roundKeys(withNoShows: false);
+
         // As late as possible - the clock offset of the live entry's "Finished now" (milliseconds: the ATOM form has
         // whole seconds only)
         $serverNow = $this->clock->now();
@@ -102,7 +110,7 @@ final class RoundResultsStateController extends AbstractController
                 'name' => $competition->name,
                 'isOnline' => $competition->isOnline,
             ],
-            'round' => $thisRound,
+            'round' => $thisRound !== null && $standingKeys !== [] ? [...$thisRound->jsonSerialize(), ...$standingKeys] : $thisRound,
             'rounds' => $rounds,
         ];
 

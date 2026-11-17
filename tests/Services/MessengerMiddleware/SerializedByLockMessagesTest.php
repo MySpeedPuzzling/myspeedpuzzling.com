@@ -48,12 +48,15 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
+use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
+use SpeedPuzzling\Web\Message\DeleteCompetitionStanding;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
+use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
@@ -104,7 +107,9 @@ use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\StandingRules;
 use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -229,6 +234,21 @@ final class SerializedByLockMessagesTest extends TestCase
         // result exists" are checked under the same lock as the judges' result writes
         self::assertSame($key, (new ProposeRoundTime($competitionId, 'round', 'team:' . $participantId, 'proposal', 'player', 1, 1))->lockKey());
         self::assertSame($key, (new WithdrawTimeProposal(strtolower($competitionId), 'proposal', 'player'))->lockKey());
+    }
+
+    /**
+     * The standings' writes (competition toolkit A6) take turns with round deletes and moves, which prune standings - a
+     * round going away is never saved into a standing meanwhile.
+     */
+    public function testStandingWritesLockTheEventLikeRoundDeletes(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+
+        self::assertSame($key, (new DeleteCompetitionRound('round', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new CreateCompetitionStanding(Uuid::uuid7(), $competitionId, 'Overall', RoundCategory::Solo, ['round'], new StandingRules()))->lockKey());
+        self::assertSame($key, (new EditCompetitionStanding('standing', $competitionId, 'Overall', RoundCategory::Duo, ['round'], new StandingRules()))->lockKey());
+        self::assertSame($key, (new DeleteCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
     }
 
     /**

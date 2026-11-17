@@ -24,7 +24,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * and "Recurring" (the entry question). New here, for the one round the wizard creates with the event:
  *
  * - `startTime` ("HH:MM", the round's start on the first day, in the zone of the event's country);
- *   (option `start_time` false: left out - several rounds with their rounds, W5);
+ *   (option `start_time` false: left out - several rounds, whose starts are typed per round on Structure, W5);
  * - `multiDay` ("It lasts more days") - unticked, the event ends the day it starts (dateTo = dateFrom).
  *
  * The date is required for an online event too: its round needs a start.
@@ -107,7 +107,7 @@ final class EventWizardBasicsFormType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        // false: no start time - a several-rounds draft whose rounds exist has their times on the Structure step (W5)
+        // false: no start time - several rounds have their starts typed per round on the Structure step (W5)
         $resolver->setDefaults(['start_time' => true]);
         $resolver->setAllowedTypes('start_time', 'bool');
     }

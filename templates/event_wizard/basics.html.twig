@@ -55,8 +55,8 @@
                             {{ form_widget(form.startTime, {type: 'time'}) }}
                             {{ form_errors(form.startTime) }}
                         </div>
-                        <div class="col-12 form-text mt-n2 mb-2">{{ (progress.path.value == 'several_rounds' ? 'event_wizard.basics.start_time_help_several' : 'event_wizard.basics.start_time_help')|trans }}</div>
-                    {% else %}
+                        <div class="col-12 form-text mt-n2 mb-2">{{ 'event_wizard.basics.start_time_help'|trans }}</div>
+                    {% elseif (progress.state.roundsCount ?? 0) > 0 %}
                         <div class="col-12 form-text mt-n2 mb-2" data-event-wizard-rounds-move>{{ 'event_wizard.basics.rounds_move_help'|trans }}</div>
                     {% endif %}
                 </div>

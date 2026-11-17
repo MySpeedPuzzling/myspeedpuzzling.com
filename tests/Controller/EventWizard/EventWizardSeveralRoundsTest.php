@@ -20,7 +20,8 @@ use Symfony\Component\DomCrawler\Form;
 /**
  * The event creation wizard's several-rounds path (W5 + W7, docs/features/competitions-management/toolkit/
  * W-creation-wizard-research.md §3.1, §3.5, §3.6, §3.9): the entry's follow-up question, Basics without a round,
- * Structure (templates, schedule table, read-only once entries exist, the toolkit's advancement steps and standings),
+ * Structure (templates whose rounds the organiser schedules, schedule table, read-only once entries exist, the toolkit's
+ * advancement steps and standings),
  * the Puzzles grid (secret switch, the one-puzzle-per-category invariant, pick K) and Review.
  */
 final class EventWizardSeveralRoundsTest extends WebTestCase
@@ -59,8 +60,12 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
-        $competitionId = $this->startDraft('every_round_counts', '09:30');
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?structure=every_round_counts&start=09:30', 303);
+        // No start time on this path: every round's start is typed on Structure
+        $this->browser->request('GET', '/en/new-event/basics?path=several_rounds&structure=every_round_counts');
+        self::assertSelectorNotExists('input[name="event_wizard_basics_form[startTime]"]');
+
+        $competitionId = $this->startDraft('every_round_counts');
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?structure=every_round_counts', 303);
         self::assertSame(0, $this->roundsCount($competitionId));
         self::assertTrue($this->database()->fetchOne('SELECT is_draft FROM competition WHERE id = :id', ['id' => $competitionId]));
 
@@ -68,28 +73,43 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         $this->browser->request('GET', '/en/new-event/' . $competitionId);
         self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure');
 
-        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts&start=09:30');
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
         self::assertResponseIsSuccessful();
-        self::assertSame('09:30', $crawler->filter('input[name="event_wizard_structure[startTime]"]')->attr('value'));
         self::assertSame('every_round_counts', $crawler->filter('input[name="event_wizard_structure[template]"][checked]')->attr('value'));
+        // No first start, no gap: nothing is computed
+        self::assertSelectorNotExists('input[name="event_wizard_structure[startTime]"]');
+        self::assertSelectorNotExists('input[name="event_wizard_structure[everyMinutes]"]');
+        self::assertSelectorNotExists('[data-event-wizard-starts]');
     }
 
-    public function testQualificationCreatesTheStagesRoundsAndForTheToolkitTheirAdvancementSteps(): void
+    public function testQualificationCreatesTheStagesRoundsAtTheTypedStartsAndForTheToolkitTheirAdvancementSteps(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft('qualification');
 
-        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=qualification&start=10:00');
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=qualification');
         self::assertSelectorExists('input[name="event_wizard_structure[stages][0][advance]"]');
-        $this->buildTemplate($crawler, []);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure#schedule', 303);
+        $crawler = $this->buildTemplate($crawler, []);
+        self::assertResponseIsSuccessful();
+
+        // The template's rounds, each with its own start: the day prefilled (a one-day event), the time empty
+        $rows = $crawler->filter('[data-event-wizard-starts-row]');
+        self::assertCount(7, $rows);
+        self::assertSame('Group A', $crawler->filter('input[name="event_wizard_starts[rows][0][name]"]')->attr('value'));
+        self::assertSame('2027-06-15', $crawler->filter('input[name="event_wizard_starts[rows][0][date]"]')->attr('value'));
+        self::assertNull($crawler->filter('input[name="event_wizard_starts[rows][0][time]"]')->attr('value'));
+        self::assertSame(0, $this->roundsCount($competitionId), 'Nothing is written before the starts are sent');
+
+        $this->createRounds($crawler, ['09:00', '09:00', '11:30', '11:30', '14:00', '14:00', '17:45'], names: [6 => 'Grand final']);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzles', 303);
 
         $rounds = $this->rounds($competitionId);
-        self::assertSame(['Group A', 'Group B', 'Group C', 'Group D', 'Semifinal 1', 'Semifinal 2', 'Final'], array_column($rounds, 'name'));
+        self::assertSame(['Group A', 'Group B', 'Group C', 'Group D', 'Semifinal 1', 'Semifinal 2', 'Grand final'], array_column($rounds, 'name'));
         self::assertSame(array_fill(0, 7, 'solo'), array_column($rounds, 'category'));
-        // From 10:00 in Prague (08:00 UTC in June), every 2 hours
-        self::assertStringStartsWith('2027-06-15 08:00', $rounds[0]['starts_at']);
-        self::assertStringStartsWith('2027-06-15 10:00', $rounds[1]['starts_at']);
+        // Exactly as typed, in Prague (UTC+2 in June)
+        self::assertStringStartsWith('2027-06-15 07:00', $rounds[0]['starts_at']);
+        self::assertStringStartsWith('2027-06-15 09:30', $rounds[2]['starts_at']);
+        self::assertStringStartsWith('2027-06-15 15:45', $rounds[6]['starts_at']);
         self::assertSame(120, $rounds[6]['minutes_limit']);
         self::assertSame('Europe/Prague', $rounds[0]['timezone']);
 
@@ -104,11 +124,59 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertSame(AdvanceDistribution::Single, $steps[1]->settings->distribution);
         self::assertSame(15, $steps[1]->settings->qualifyCount);
 
-        // The schedule table is next, the template behind "Start again"
+        // Back on Structure: the schedule table, the template behind "Start again"
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
         self::assertCount(7, $crawler->filter('[data-event-wizard-schedule-row]:not([data-event-wizard-schedule-row="new"])'));
         self::assertSelectorExists('[data-event-wizard-template-again]');
         self::assertStringContainsString('the best 10 of each round go on', $crawler->filter('[data-event-wizard-toolkit-summary]')->text());
+    }
+
+    public function testEveryRoundNeedsItsOwnStartWithinTheEventsDaysBeforeAnythingIsWritten(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        // Two days: the day is not prefilled - it is a choice
+        $competitionId = $this->startDraft('every_round_counts', lastDay: '16.06.2027');
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'soloRounds' => '2', 'pairsRounds' => '1', 'teamsRounds' => '1']);
+        self::assertCount(4, $crawler->filter('[data-event-wizard-starts-row]'));
+        self::assertNull($crawler->filter('input[name="event_wizard_starts[rows][0][date]"]')->attr('value'));
+        self::assertSame('2027-06-15', $crawler->filter('input[name="event_wizard_starts[rows][0][date]"]')->attr('min'));
+        self::assertSame('2027-06-16', $crawler->filter('input[name="event_wizard_starts[rows][0][date]"]')->attr('max'));
+
+        // Nothing typed: every row says so, nothing is created
+        $form = $crawler->filter('form[name="event_wizard_starts"]')->form();
+        $crawler = $this->browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(4, $crawler->filter('[data-event-wizard-starts-error]'));
+        self::assertStringContainsString('Choose the day and type the time', $crawler->filter('[data-event-wizard-starts-row="0"]')->text());
+        self::assertSame(0, $this->roundsCount($competitionId));
+
+        // One row's day outside the event, one without its time: said on those rows, still nothing created
+        $form = $crawler->filter('form[name="event_wizard_starts"]')->form();
+        self::fillStarts($form, [['2027-06-15', '10:00'], ['2027-06-17', '10:00'], ['2027-06-16', ''], ['2027-06-16', '12:00']]);
+        $crawler = $this->browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Choose the day and type the time', $crawler->filter('[data-event-wizard-starts-row="2"]')->text());
+        self::assertCount(1, $crawler->filter('[data-event-wizard-starts-error]'));
+        self::assertSame(0, $this->roundsCount($competitionId));
+
+        $form = $crawler->filter('form[name="event_wizard_starts"]')->form();
+        self::fillStarts($form, [['2027-06-15', '10:00'], ['2027-06-17', '10:00'], ['2027-06-16', '09:00'], ['2027-06-16', '12:00']]);
+        $crawler = $this->browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The event takes place from 2027-06-15 to 2027-06-16', $crawler->filter('[data-event-wizard-starts-row="1"]')->text());
+        self::assertSame(0, $this->roundsCount($competitionId));
+
+        $form = $crawler->filter('form[name="event_wizard_starts"]')->form();
+        self::fillStarts($form, [['2027-06-15', '10:00'], ['2027-06-15', '13:00'], ['2027-06-16', '09:00'], ['2027-06-16', '12:00']]);
+        $this->browser->submit($form);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzles', 303);
+
+        $rounds = $this->rounds($competitionId);
+        self::assertSame(['Solo 1', 'Pairs 1', 'Teams 1', 'Solo 2'], array_column($rounds, 'name'));
+        self::assertStringStartsWith('2027-06-16 07:00', $rounds[2]['starts_at']);
+        self::assertSame(4, $rounds[2]['team_size']);
     }
 
     public function testEveryRoundCountsAddsUpTheTimesPerCategoryForTheToolkit(): void
@@ -116,21 +184,17 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft('every_round_counts');
 
-        // 18 rounds every typed 2 hours do not fit into the one day: refused, nothing created
+        // 18 rounds on one day: no "does not fit" any more - the organiser schedules them
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
-        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '120']);
-        self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString("The rounds don't fit into the event's day", $crawler->filter('[data-event-wizard-template]')->text());
-        self::assertSame(0, $this->roundsCount($competitionId));
-
-        // The gap left automatic: closer, so they fit - from 10:00 every 45 minutes
-        $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '']);
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts']);
+        $times = array_map(static fn (int $index): string => sprintf('%02d:%02d', 8 + intdiv($index * 40, 60), ($index * 40) % 60), range(0, 17));
+        $this->createRounds($crawler, $times);
         self::assertResponseRedirects();
 
         $rounds = $this->rounds($competitionId);
         self::assertCount(18, $rounds);
-        // 10:00 Prague, then every 45 minutes
-        self::assertStringStartsWith('2027-06-15 08:45', $rounds[1]['starts_at']);
+        // 08:40 Prague
+        self::assertStringStartsWith('2027-06-15 06:40', $rounds[1]['starts_at']);
         self::assertSame(['Solo 1', 'Pairs 1', 'Teams 1', 'Solo 2'], array_slice(array_column($rounds, 'name'), 0, 4));
         self::assertSame(4, $rounds[2]['team_size']);
 
@@ -152,7 +216,24 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
         $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'soloRounds' => '1', 'pairsRounds' => '0', 'teamsRounds' => '0']);
         self::assertResponseStatusCodeSame(422);
+        self::assertSelectorNotExists('[data-event-wizard-starts]');
         self::assertSame(0, $this->roundsCount($competitionId));
+    }
+
+    public function testStartingAgainFromATemplateReplacesTheRounds(): void
+    {
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraftWithRounds([]);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'soloRounds' => '2', 'pairsRounds' => '0', 'teamsRounds' => '0']);
+        self::assertSelectorExists('[data-event-wizard-replace-warning]');
+        self::assertSame('Replace all rounds', $crawler->filter('[data-event-wizard-create]')->text());
+        self::assertSame(7, $this->roundsCount($competitionId));
+
+        $this->createRounds($crawler, ['10:00', '15:00']);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzles', 303);
+        self::assertSame(['Solo 1', 'Solo 2'], array_column($this->rounds($competitionId), 'name'));
     }
 
     public function testTheScheduleTableRenamesMovesRemovesAndAddsRounds(): void
@@ -343,21 +424,27 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     }
 
     /**
-     * Basics of a new several-rounds event, submitted - the new event's id.
+     * Basics of a new several-rounds event (no start time on this path), submitted - the new event's id.
      */
-    private function startDraft(string $structure, string $start = '10:00'): string
+    private function startDraft(string $structure, null|string $lastDay = null): string
     {
         $before = $this->competitionIds();
         $crawler = $this->browser->request('GET', '/en/new-event/basics?path=several_rounds&structure=' . $structure);
         self::assertResponseIsSuccessful();
 
-        $this->browser->submit($crawler->filter('form[name="event_wizard_basics_form"]')->form(), [
+        $values = [
             'event_wizard_basics_form[name]' => 'Wizard Championship',
             'event_wizard_basics_form[isOnline]' => '0',
             'event_wizard_basics_form[location]' => 'Hall, Brno',
             'event_wizard_basics_form[dateFrom]' => '15.06.2027',
-            'event_wizard_basics_form[startTime]' => $start,
-        ]);
+        ];
+
+        if ($lastDay !== null) {
+            $values['event_wizard_basics_form[multiDay]'] = '1';
+            $values['event_wizard_basics_form[dateTo]'] = $lastDay;
+        }
+
+        $this->browser->submit($crawler->filter('form[name="event_wizard_basics_form"]')->form(), $values);
 
         $created = array_values(array_diff($this->competitionIds(), $before));
         self::assertCount(1, $created);
@@ -366,7 +453,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     }
 
     /**
-     * A draft with the template's rounds (the qualification template's 7 rounds by default)
+     * A draft with the template's rounds (the qualification template's 7 rounds by default), started an hour apart
      *
      * @param array<string, string> $template
      */
@@ -374,13 +461,17 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     {
         $competitionId = $this->startDraft('qualification');
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
-        $this->buildTemplate($crawler, $template);
+        $crawler = $this->buildTemplate($crawler, $template);
+        $count = $crawler->filter('[data-event-wizard-starts-row]')->count();
+        $this->createRounds($crawler, array_map(static fn (int $index): string => sprintf('%02d:00', 9 + $index), range(0, $count - 1)));
         self::assertResponseRedirects();
 
         return $competitionId;
     }
 
     /**
+     * The template form (a GET form) sent - the page listing its rounds for their starts
+     *
      * @param array<string, string> $values field => value of the template form
      */
     private function buildTemplate(Crawler $crawler, array $values): Crawler
@@ -393,6 +484,38 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         }
 
         return $this->browser->submit($form, $prefixed);
+    }
+
+    /**
+     * The start times' form sent with each row's time (the prefilled day kept) and renamed rows
+     *
+     * @param list<string> $times
+     * @param array<int, string> $names
+     */
+    private function createRounds(Crawler $crawler, array $times, array $names = []): Crawler
+    {
+        $form = $crawler->filter('form[name="event_wizard_starts"]')->form();
+
+        foreach ($times as $index => $time) {
+            $form['event_wizard_starts[rows][' . $index . '][time]'] = $time;
+        }
+
+        foreach ($names as $index => $name) {
+            $form['event_wizard_starts[rows][' . $index . '][name]'] = $name;
+        }
+
+        return $this->browser->submit($form);
+    }
+
+    /**
+     * @param list<array{string, string}> $starts [day, time] per row
+     */
+    private static function fillStarts(Form $form, array $starts): void
+    {
+        foreach ($starts as $index => [$date, $time]) {
+            $form['event_wizard_starts[rows][' . $index . '][date]'] = $date;
+            $form['event_wizard_starts[rows][' . $index . '][time]'] = $time;
+        }
     }
 
     /**

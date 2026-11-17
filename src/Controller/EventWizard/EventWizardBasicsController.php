@@ -68,7 +68,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *   time (SaveEventWizardBasics) - a draft without a round gets it now. Only for a draft on a path with wizard steps -
  *   a published event (or an edition, or several rounds until W3/W5) goes to its edit page.
  *
- * - Several rounds (W5, saveSeveralRounds()): the draft only - no round; the start time goes on to the Structure step.
+ * - Several rounds (W5, saveSeveralRounds()): the draft only - no round and no start time (every round's start is typed
+ *   on the Structure step).
  *
  * A full-page form: a saved step answers 303 (to the next step, or the draft's page for "Finish later"), a refused one
  * 422.
@@ -139,14 +140,13 @@ final class EventWizardBasicsController extends AbstractController
             $formData->locationCountryCode = CountryCode::fromCode($organizationCountry)->name ?? CountryCode::fromCode($player->country)?->name;
         }
 
-        // Several rounds (W5): no round is created here - the start time is the first round's start the Structure step
-        // schedules from; once the rounds exist their times are the Structure step's, and a new date moves them along
+        // Several rounds (W5): no round is created here and no start time asked - the organiser types every round's start
+        // on the Structure step; once the rounds exist a new date moves them along
         $severalRounds = $progress->path === EventWizardPath::SeveralRounds;
-        $hasRounds = ($progress->state->roundsCount ?? 0) > 0;
 
         $form = $this->createForm(EventWizardBasicsFormType::class, $formData, [
             'action' => $request->getRequestUri(),
-            'start_time' => $severalRounds === false || $hasRounds === false,
+            'start_time' => $severalRounds === false,
         ]);
 
         // A new event's id travels with the page (kept on a refused submit): a second submit of it creates nothing twice
@@ -262,8 +262,8 @@ final class EventWizardBasicsController extends AbstractController
     }
 
     /**
-     * Several rounds (W5): the draft alone (AddCompetition) - its rounds come from the Structure step, which gets the
-     * typed start time as `start` (the first round's start; nothing stores it until the rounds exist). Saved again, the
+     * Several rounds (W5): the draft alone (AddCompetition) - its rounds and their starts come from the Structure step.
+     * Saved again, the
      * event's details change and, once it has rounds, a new first day moves them along (EditCompetition
      * `moveRoundsWithDate` - only while none has begun, EventDateShift).
      *
@@ -273,12 +273,6 @@ final class EventWizardBasicsController extends AbstractController
     private function saveSeveralRounds(Request $request, FormInterface $form, EventWizardProgress $progress, null|Competition $competition, string $playerId, array $restoredPhotos, null|string $organizationName): Response
     {
         $data = $form->getData();
-        $start = null;
-
-        if ($form->has('startTime')) {
-            $typedStartTime = $form->get('startTime')->getData();
-            $start = is_string($typedStartTime) ? EventWizardBasicsFormType::startTime($typedStartTime) : null;
-        }
 
         try {
             if ($competition === null) {
@@ -307,7 +301,6 @@ final class EventWizardBasicsController extends AbstractController
                 return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
                     'competitionId' => $competitionId,
                     'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
-                    'start' => $start,
                 ]), Response::HTTP_SEE_OTHER);
             }
 
@@ -333,7 +326,6 @@ final class EventWizardBasicsController extends AbstractController
         return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
             'competitionId' => $competitionId,
             'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
-            'start' => $start,
         ]), Response::HTTP_SEE_OTHER);
     }
 

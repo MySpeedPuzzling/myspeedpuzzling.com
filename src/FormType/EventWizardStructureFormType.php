@@ -13,13 +13,13 @@ use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * The creation wizard's Structure templates (W-creation-wizard-research.md §3.5) - "Create the rounds" writes what
- * EventWizardStructurePlanner generates from it. Options (both for whom COMPETITION_TOOLKIT_MANAGE grants, W7):
+ * The creation wizard's Structure templates (W-creation-wizard-research.md §3.5) - a GET form: "Next: start times" lists
+ * the rounds EventWizardStructurePlanner generates from it, each with its own day and time to type
+ * (EventWizardRoundStartsFormType); nothing is written before those are sent. Options (both for whom COMPETITION_TOOLKIT_MANAGE grants, W7):
  * - `advancement`: each stage's "top N of each go on" (advancement steps);
  * - `standings`: "add up the times per category" (a standing per category).
  *
@@ -81,21 +81,9 @@ final class EventWizardStructureFormType extends AbstractType
             'expanded' => true,
         ]);
 
-        $builder->add('startTime', TextType::class, [
-            'label' => 'event_wizard.structure.first_start',
-            // Rendered as <input type="time">
-            'attr' => ['placeholder' => '10:00', 'autocomplete' => 'off'],
-        ]);
-
-        $builder->add('everyMinutes', IntegerType::class, [
-            'label' => 'event_wizard.structure.every_minutes',
-            'required' => false,
-            // Empty = automatic (EventWizardStructurePlanner)
-            'attr' => ['min' => 0, 'step' => 5, 'inputmode' => 'numeric', 'placeholder' => 'event_wizard.structure.every_minutes_automatic'],
-        ]);
-
+        // A GET form: the generated rounds are listed for their start times next (nothing is written yet)
         $builder->add('build', SubmitType::class, [
-            'label' => $options['replace'] === true ? 'event_wizard.structure.replace' : 'event_wizard.structure.build',
+            'label' => 'event_wizard.structure.build',
         ]);
     }
 
@@ -105,11 +93,8 @@ final class EventWizardStructureFormType extends AbstractType
             'data_class' => EventWizardStructureFormData::class,
             'advancement' => false,
             'standings' => false,
-            // The event has rounds: the template replaces them
-            'replace' => false,
         ]);
         $resolver->setAllowedTypes('advancement', 'bool');
         $resolver->setAllowedTypes('standings', 'bool');
-        $resolver->setAllowedTypes('replace', 'bool');
     }
 }

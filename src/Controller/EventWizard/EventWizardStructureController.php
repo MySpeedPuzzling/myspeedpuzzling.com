@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\EventWizard;
 
 use DateTimeImmutable;
-use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -19,11 +18,13 @@ use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\FormData\EventWizardRoundStartFormData;
+use SpeedPuzzling\Web\FormData\EventWizardRoundStartsFormData;
 use SpeedPuzzling\Web\FormData\EventWizardScheduleFormData;
 use SpeedPuzzling\Web\FormData\EventWizardScheduleRowFormData;
 use SpeedPuzzling\Web\FormData\EventWizardStageFormData;
 use SpeedPuzzling\Web\FormData\EventWizardStructureFormData;
-use SpeedPuzzling\Web\FormType\EventWizardBasicsFormType;
+use SpeedPuzzling\Web\FormType\EventWizardRoundStartsFormType;
 use SpeedPuzzling\Web\FormType\EventWizardScheduleFormType;
 use SpeedPuzzling\Web\FormType\EventWizardStructureFormType;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
@@ -67,14 +68,20 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The event creation wizard's "Structure" on the several-rounds path (W-creation-wizard-research.md §3.5). Two forms on
- * one page, each written in one transaction (SetUpEventWizardStructure):
+ * The event creation wizard's "Structure" on the several-rounds path (W-creation-wizard-research.md §3.5):
  *
- * - **Template** ("Create the rounds"): Qualification (stages) or Every round counts (solo/pairs/teams counts) -
- *   EventWizardStructurePlanner generates the rounds, their names and the schedule; with the competition toolkit
- *   (COMPETITION_TOOLKIT_MANAGE, W7) also an advancement step per stage arrow ("top N of each go on") and a standing per
- *   category ("add up the times"), never published. Shown open while the event has no round, then behind "Start again
- *   from a template" - which replaces every round (and the standings left without them).
+ * - **Template** (a GET form, "Next: start times"): Qualification (stages) or Every round counts (solo/pairs/teams
+ *   counts) - EventWizardStructurePlanner generates the rounds and their names, never their starts (Jan 2026-11-17: "the
+ *   rounds should always be scheduled by the organizer"). Shown open while the event has no round, then behind "Start
+ *   again from a template".
+ * - **Start times** (a POST form under the template's answer, which stays in the query string and is worked out again):
+ *   every generated round's name, day and time - required, empty (the day prefilled only for a one-day event). Sent
+ *   complete, the rounds are written with their starts in one transaction (SetUpEventWizardStructure) - with the
+ *   competition toolkit (COMPETITION_TOOLKIT_MANAGE, W7) also an advancement step per stage arrow ("top N of each go
+ *   on") and a standing per category ("add up the times"), never published - replacing every existing round (and the
+ *   standings left without them). Nothing is written before every row has its start: a missing one, or one outside the
+ *   event's days, is a row error (422). Chosen over "create the rounds, then fill in the table" - the same clicks, and no
+ *   rounds with made-up starts in between.
  * - **Schedule table** (then "Save & continue"): every round's name, start, who competes and time limit, "remove", spare
  *   rows for new rounds ("Not sure yet" starts here, empty).
  *
@@ -87,6 +94,7 @@ final class EventWizardStructureController extends AbstractController
 {
     public const string TEMPLATE_FORM = 'event_wizard_structure';
     public const string SCHEDULE_FORM = 'event_wizard_schedule';
+    public const string STARTS_FORM = 'event_wizard_starts';
 
     public function __construct(
         private readonly EventWizardAccess $access,
@@ -100,7 +108,6 @@ final class EventWizardStructureController extends AbstractController
         private readonly EventWizardStructurePlanner $planner,
         private readonly StandingsPerCategory $standingsPerCategory,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
-        private readonly ClockInterface $clock,
         private readonly FormFactoryInterface $formFactory,
     ) {
     }
@@ -130,11 +137,13 @@ final class EventWizardStructureController extends AbstractController
         }
 
         $requested = EventWizardStructureTemplate::tryFrom($request->query->getString('structure'));
-        $templateForm = $this->formFactory->createNamed(self::TEMPLATE_FORM, EventWizardStructureFormType::class, $this->templateDefaults($request, $rounds, $requested), [
-            'action' => $request->getRequestUri(),
+        $templateForm = $this->formFactory->createNamed(self::TEMPLATE_FORM, EventWizardStructureFormType::class, $this->templateDefaults($requested), [
+            // A GET form (the query string carries the answer to the start times' form): the fragment shows them
+            'action' => $this->generateUrl('event_wizard_structure', ['competitionId' => $competitionId]) . '#starts',
+            'method' => 'GET',
+            'csrf_protection' => false,
             'advancement' => $toolkit,
             'standings' => $toolkit,
-            'replace' => $rounds !== [],
         ]);
         $scheduleData = $this->scheduleData($rounds);
         $scheduleForm = $this->formFactory->createNamed(self::SCHEDULE_FORM, EventWizardScheduleFormType::class, $scheduleData, [
@@ -142,12 +151,49 @@ final class EventWizardStructureController extends AbstractController
             'row_keys' => array_map(static fn (EventWizardScheduleRowFormData $row): bool => $row->isNew() === false, $scheduleData->rows),
         ]);
 
-        $templateForm->handleRequest($request);
+        if ($request->isMethod('POST') && $request->request->has(self::STARTS_FORM)) {
+            // The start times' form: the template's answer comes again from the query string, the rounds are generated again
+            $templateForm->submit($request->query->all(self::TEMPLATE_FORM));
+        } else {
+            $templateForm->handleRequest($request);
+        }
+
         $scheduleForm->handleRequest($request);
 
+        $planned = null;
+        $startsForm = null;
+
+        if ($templateForm->isSubmitted() && $templateForm->isValid()) {
+            $planned = $this->planner->plan($templateForm->getData());
+
+            if (count($planned) === 1) {
+                $templateForm->addError(new FormError($this->translator->trans('event_wizard.structure.one_round')));
+                $planned = null;
+            } elseif ($toolkit && $this->mixedCategories($templateForm)) {
+                // Said before any start is typed
+                $planned = null;
+            }
+        }
+
+        // "Not sure yet" with no round yet: nothing to schedule - the empty table
+        if ($planned !== null && ($planned !== [] || $rounds !== [])) {
+            $startsForm = $this->formFactory->createNamed(self::STARTS_FORM, EventWizardRoundStartsFormType::class, $this->startsData($competition, $planned), [
+                'action' => $request->getRequestUri(),
+                'rows' => count($planned),
+                'replace' => $rounds !== [],
+            ]);
+            $startsForm->handleRequest($request);
+        }
+
         try {
-            if ($templateForm->isSubmitted() && $templateForm->isValid() && $this->saveTemplate($templateForm, $competition, $rounds, $toolkit)) {
-                return $this->redirectToRoute('event_wizard_structure', ['competitionId' => $competitionId, '_fragment' => 'schedule'], Response::HTTP_SEE_OTHER);
+            if ($planned !== null && $startsForm?->isSubmitted() === true && $startsForm->isValid() && $this->saveTemplate($templateForm, $startsForm, $planned, $competition, $rounds, $toolkit)) {
+                if ($planned === []) {
+                    return $this->redirectToRoute('event_wizard_structure', ['competitionId' => $competitionId, '_fragment' => 'schedule'], Response::HTTP_SEE_OTHER);
+                }
+
+                $next = $progress->next(EventWizardStep::Structure) ?? EventWizardStep::Review;
+
+                return $this->redirectToRoute($next->route(), ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
             }
 
             $scheduleSaved = $scheduleForm->isSubmitted() && $scheduleForm->isValid() && $this->saveSchedule($scheduleForm, $competition, $rounds);
@@ -171,54 +217,77 @@ final class EventWizardStructureController extends AbstractController
         }
 
         // A template chosen on the entry screen as "not sure yet" starts with the (empty) table
-        $templateOpen = $rounds === [] && ($templateForm->isSubmitted() || $requested !== EventWizardStructureTemplate::Empty);
+        $chosen = $templateForm->isSubmitted() ? $templateForm->getData()->template : $requested;
+        $templateOpen = $rounds === [] && $chosen !== EventWizardStructureTemplate::Empty;
 
-        return $this->page($progress, $competition, $rounds, $toolkit, $templateForm, $scheduleForm, templateOpen: $templateOpen);
+        return $this->page(
+            $progress,
+            $competition,
+            $rounds,
+            $toolkit,
+            $templateForm,
+            $scheduleForm,
+            startsForm: $startsForm,
+            planned: $planned ?? [],
+            templateOpen: $templateOpen,
+            // A refused POST never answers 200 (Turbo)
+            refused: $request->isMethod('POST'),
+        );
     }
 
     /**
+     * The template's rounds with the organiser's starts, in one transaction - false with the reason on the form (a row's
+     * start outside the event's days or skipped by a clock change, a refusal of the messages).
+     *
      * @param FormInterface<EventWizardStructureFormData> $form
+     * @param FormInterface<EventWizardRoundStartsFormData> $startsForm
+     * @param list<EventWizardPlannedRound> $planned
      * @param list<CompetitionRound> $rounds
      * @throws EventWizardStructureLocked
      */
-    private function saveTemplate(FormInterface $form, Competition $competition, array $rounds, bool $toolkit): bool
+    private function saveTemplate(FormInterface $form, FormInterface $startsForm, array $planned, Competition $competition, array $rounds, bool $toolkit): bool
     {
         $data = $form->getData();
+        $starts = $startsForm->getData();
+        $rowsForm = $startsForm->get('rows');
         $competitionId = $competition->id->toString();
-        $firstDay = $competition->dateFrom ?? $this->clock->now();
-        $lastDay = $competition->dateTo ?? $firstDay;
-        $days = max(1, (int) $firstDay->setTime(0, 0)->diff($lastDay->setTime(0, 0))->days + 1);
-        $planned = $this->planner->plan($data, $firstDay, $days);
-
-        if ($planned === null) {
-            $form->addError(new FormError($this->translator->trans('event_wizard.structure.does_not_fit', ['%count%' => $days])));
-
-            return false;
-        }
-
-        if (count($planned) === 1) {
-            $form->addError(new FormError($this->translator->trans('event_wizard.structure.one_round')));
-
-            return false;
-        }
-
         $timezone = RoundTimezone::resolve(null, $competition->locationCountryCode);
+        $firstDay = $competition->dateFrom?->format('Y-m-d');
+        $lastDay = ($competition->dateTo ?? $competition->dateFrom)?->format('Y-m-d');
         $adds = [];
+        $refused = false;
         /** @var array<int, list<string>> $stageRoundIds */
         $stageRoundIds = [];
         /** @var array<string, list<string>> $roundIdsByCategory */
         $roundIdsByCategory = [];
 
-        foreach ($planned as $round) {
-            try {
-                $startsAt = RoundTimezone::toInstant($round->startsLocal, $timezone);
-            } catch (InvalidLocalTime) {
-                $form->get('startTime')->addError(new FormError($this->translator->trans('competition.round.form.invalid_local_time')));
+        foreach ($planned as $index => $round) {
+            $row = $starts->rows[$index] ?? null;
+            $localStart = $row?->localStart();
+            assert($row !== null && $localStart !== null);
+            $rowForm = $rowsForm->get((string) $index);
 
-                return false;
+            // Every round starts on one of the event's days
+            if ($firstDay !== null && (substr($localStart, 0, 10) < $firstDay || substr($localStart, 0, 10) > $lastDay)) {
+                $rowForm->addError(new FormError($this->translator->trans('event_wizard.structure.start_outside_event', [
+                    '%from%' => $firstDay,
+                    '%to%' => $lastDay,
+                ])));
+                $refused = true;
+
+                continue;
             }
 
-            $add = $this->newRound($competitionId, $round, $startsAt, $timezone);
+            try {
+                $startsAt = RoundTimezone::toInstant($localStart, $timezone);
+            } catch (InvalidLocalTime) {
+                $rowForm->addError(new FormError($this->translator->trans('competition.round.form.invalid_local_time')));
+                $refused = true;
+
+                continue;
+            }
+
+            $add = $this->newRound($competitionId, $round, trim((string) $row->name), $startsAt, $timezone);
             $adds[] = $add;
             $roundId = $add->roundId->toString();
             $roundIdsByCategory[$round->category->value][] = $roundId;
@@ -228,6 +297,10 @@ final class EventWizardStructureController extends AbstractController
             }
         }
 
+        if ($refused) {
+            return false;
+        }
+
         $steps = [];
         $standings = [];
 
@@ -235,6 +308,9 @@ final class EventWizardStructureController extends AbstractController
             $steps = $this->advancementSteps($form, $competitionId, $data->usedStages(), $stageRoundIds);
 
             if ($steps === null) {
+                // Said on the template's stage field - the start times' form is refused with it
+                $startsForm->addError(new FormError($this->translator->trans('event_wizard.structure.advance_mixed_categories')));
+
                 return false;
             }
         }
@@ -254,7 +330,7 @@ final class EventWizardStructureController extends AbstractController
             standings: $standings,
         );
 
-        if ($this->dispatch($message, $form) === false) {
+        if ($this->dispatch($message, $startsForm) === false) {
             return false;
         }
 
@@ -263,6 +339,39 @@ final class EventWizardStructureController extends AbstractController
         }
 
         return true;
+    }
+
+    /**
+     * Qualification with "top N go on" (toolkit, W7) from a stage to one of another category - AdvancementStepGraph
+     * refuses mixed categories: said on the stage's field.
+     *
+     * @param FormInterface<EventWizardStructureFormData> $form
+     */
+    private function mixedCategories(FormInterface $form): bool
+    {
+        $data = $form->getData();
+
+        if ($data->template !== EventWizardStructureTemplate::Qualification) {
+            return false;
+        }
+
+        $stages = $data->usedStages();
+        $stageFields = array_values(array_filter(
+            iterator_to_array($form->get('stages')),
+            static fn (FormInterface $field): bool => $field->getData() instanceof EventWizardStageFormData && $field->getData()->isUsed(),
+        ));
+
+        foreach ($stages as $index => $stage) {
+            $next = $stages[$index + 1] ?? null;
+
+            if ($stage->advance !== null && $next !== null && $stage->category !== $next->category) {
+                $stageFields[$index]->get('advance')->addError(new FormError($this->translator->trans('event_wizard.structure.advance_mixed_categories')));
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -444,7 +553,7 @@ final class EventWizardStructureController extends AbstractController
     }
 
     /**
-     * @param FormInterface<EventWizardStructureFormData>|FormInterface<EventWizardScheduleFormData> $form
+     * @param FormInterface<EventWizardRoundStartsFormData>|FormInterface<EventWizardScheduleFormData> $form
      * @throws EventWizardStructureLocked
      */
     private function dispatch(SetUpEventWizardStructure $message, FormInterface $form): bool
@@ -514,12 +623,12 @@ final class EventWizardStructureController extends AbstractController
         return null;
     }
 
-    private function newRound(string $competitionId, EventWizardPlannedRound $round, DateTimeImmutable $startsAt, string $timezone): AddCompetitionRound
+    private function newRound(string $competitionId, EventWizardPlannedRound $round, string $name, DateTimeImmutable $startsAt, string $timezone): AddCompetitionRound
     {
         return new AddCompetitionRound(
             roundId: Uuid::uuid7(),
             competitionId: $competitionId,
-            name: $round->name,
+            name: $name,
             minutesLimit: $round->minutesLimit,
             startsAt: $startsAt,
             timezone: $timezone,
@@ -544,12 +653,10 @@ final class EventWizardStructureController extends AbstractController
 
     /**
      * The template's starting values: the template the entry screen's answer chose; three stages (groups → semifinals →
-     * final, the WJPC shape) and 6 solo / 6 pairs / 6 teams of 4 (the World Series shape); the first start from Basics
-     * (`?start=`), else the first round's, else 10:00; a round every 2 hours.
-     *
-     * @param list<CompetitionRound> $rounds
+     * final, the WJPC shape) and 6 solo / 6 pairs / 6 teams of 4 (the World Series shape). No start time - the
+     * organiser types every round's.
      */
-    private function templateDefaults(Request $request, array $rounds, null|EventWizardStructureTemplate $requested): EventWizardStructureFormData
+    private function templateDefaults(null|EventWizardStructureTemplate $requested): EventWizardStructureFormData
     {
         $data = new EventWizardStructureFormData();
         $data->template = $requested ?? EventWizardStructureTemplate::Qualification;
@@ -565,16 +672,25 @@ final class EventWizardStructureController extends AbstractController
         $data->pairsRounds = 6;
         $data->teamsRounds = 6;
 
-        $start = EventWizardBasicsFormType::startTime($request->query->getString('start'));
-
-        if ($start === null && $rounds !== []) {
-            $first = $rounds[0];
-            $start = RoundTimezone::toLocal($first->startsAt, $first->displayTimezone())->format('H:i');
-        }
-
-        $data->startTime = $start ?? '10:00';
-
         return $data;
+    }
+
+    /**
+     * A row per generated round: its name, and its day only when the event lasts one day (the day is then no choice) -
+     * the time is always typed.
+     *
+     * @param list<EventWizardPlannedRound> $planned
+     */
+    private function startsData(Competition $competition, array $planned): EventWizardRoundStartsFormData
+    {
+        $firstDay = $competition->dateFrom?->format('Y-m-d');
+        $lastDay = ($competition->dateTo ?? $competition->dateFrom)?->format('Y-m-d');
+        $day = $firstDay !== null && $firstDay === $lastDay ? $firstDay : null;
+
+        return new EventWizardRoundStartsFormData(array_map(
+            static fn (EventWizardPlannedRound $round): EventWizardRoundStartFormData => new EventWizardRoundStartFormData(name: $round->name, date: $day),
+            $planned,
+        ));
     }
 
     /**
@@ -596,7 +712,7 @@ final class EventWizardStructureController extends AbstractController
             );
         }
 
-        // Spare rows: a new round's start defaults to two hours after the last one (or nothing - typed)
+        // Spare rows: a new round's start is typed (nothing computed)
         for ($index = 0; $index < EventWizardScheduleFormData::NEW_ROWS; $index++) {
             $rows['new' . $index] = new EventWizardScheduleRowFormData(minutesLimit: 90);
         }
@@ -608,6 +724,8 @@ final class EventWizardStructureController extends AbstractController
      * @param list<CompetitionRound> $rounds
      * @param null|FormInterface<EventWizardStructureFormData> $templateForm
      * @param null|FormInterface<EventWizardScheduleFormData> $scheduleForm
+     * @param null|FormInterface<EventWizardRoundStartsFormData> $startsForm
+     * @param list<EventWizardPlannedRound> $planned
      */
     private function page(
         EventWizardProgress $progress,
@@ -616,6 +734,8 @@ final class EventWizardStructureController extends AbstractController
         bool $toolkit,
         null|FormInterface $templateForm,
         null|FormInterface $scheduleForm,
+        null|FormInterface $startsForm = null,
+        array $planned = [],
         bool $locked = false,
         bool $templateOpen = false,
         bool $refused = false,
@@ -633,6 +753,9 @@ final class EventWizardStructureController extends AbstractController
             'toolkit' => $toolkit,
             'template_form' => $templateForm?->createView(),
             'schedule_form' => $scheduleForm?->createView(),
+            'starts_form' => $startsForm?->createView(),
+            'planned' => $planned,
+            'event_days' => [$competition->dateFrom?->format('Y-m-d'), ($competition->dateTo ?? $competition->dateFrom)?->format('Y-m-d')],
             'template_open' => $templateOpen,
             'advancement_steps' => $toolkit && $rounds !== [] ? $this->getCompetitionAdvancementSteps->ofCompetition($competitionId) : [],
             'standings' => $toolkit && $rounds !== [] ? $this->getCompetitionStandings->ofCompetition($competitionId) : [],

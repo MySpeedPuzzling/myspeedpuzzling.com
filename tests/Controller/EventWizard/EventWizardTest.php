@@ -211,15 +211,16 @@ final class EventWizardTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/basics');
         $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
-        $form['event_wizard_basics_form[startTime]'] = '10:00';
+        // No start time on the several-rounds path: every round's start is typed on Structure
+        self::assertFalse($form->has('event_wizard_basics_form[startTime]'));
 
         // Since W5 a draft without any round is on the several-rounds path (EventWizardPath::of()): Basics creates no
         // round and goes on to Structure - sent twice, still none (the one-round path's "the round exists once" stays
         // checked under the lock in SaveEventWizardBasicsHandler)
         $this->browser->submit($form);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?start=10:00', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure', 303);
         $this->browser->submit($form);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?start=10:00', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure', 303);
 
         self::assertSame(0, $this->dbInt('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
     }

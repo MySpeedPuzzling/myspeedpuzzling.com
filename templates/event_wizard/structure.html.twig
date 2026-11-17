@@ -31,7 +31,12 @@
             <a class="btn btn-outline-secondary" href="{{ path('manage_competition_rounds', {competitionId: competition_id}) }}">{{ 'event_wizard.structure.rounds_page'|trans }}</a>
         </div>
     {% else %}
-        {% if rounds is not empty or not template_open %}
+        {% if starts_form %}
+            {#- The template's rounds, each with its start typed by the organiser - nothing is written before they are sent -#}
+            {% if rounds is not empty %}<div class="alert alert-warning small" data-event-wizard-replace-warning>{{ 'event_wizard.structure.start_again_help'|trans }}</div>{% endif %}
+            {{ block('template_section') }}
+            {{ block('starts_section') }}
+        {% elseif rounds is not empty or not template_open %}
             {{ block('schedule_section') }}
             <details class="mt-4 border rounded p-3"{% if template_form.vars.submitted and not template_form.vars.valid %} open{% endif %} data-event-wizard-template-again>
                 <summary class="fw-semibold">{{ (rounds is empty ? 'event_wizard.structure.use_template' : 'event_wizard.structure.start_again')|trans }}</summary>
@@ -116,23 +121,61 @@
                     </div>
                 </div>
 
-                <div data-organizer-form-target="part" data-show-field="template" data-show-values="qualification every_round_counts">
-                    <div class="row g-2">
-                        <div class="col-6 col-sm-4 mb-2">
-                            {{ form_label(form.startTime) }}
-                            {{ form_widget(form.startTime, {type: 'time'}) }}
-                            {{ form_errors(form.startTime) }}
-                        </div>
-                        <div class="col-6 col-sm-4 mb-2">{{ form_row(form.everyMinutes) }}</div>
-                    </div>
-                    <p class="form-text mt-0">{{ 'event_wizard.structure.schedule_rule'|trans }}</p>
-                </div>
+                <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="qualification every_round_counts">{{ 'event_wizard.structure.schedule_rule'|trans }}</p>
                 <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="empty">{{ 'event_wizard.structure.empty_help'|trans }}</p>
 
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                    {{ form_widget(form.build, {attr: {class: rounds is empty ? 'btn btn-primary' : 'btn btn-outline-danger', 'data-event-wizard-build': ''}}) }}
-                    {% if rounds is empty %}<a href="{{ path('event_wizard_basics_edit', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>{% endif %}
+                    {{ form_widget(form.build, {attr: {class: starts_form ? 'btn btn-outline-primary' : 'btn btn-primary', 'data-event-wizard-build': ''}}) }}
+                    {% if rounds is empty and not starts_form %}<a href="{{ path('event_wizard_basics_edit', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>{% endif %}
                 </div>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}
+
+{% block starts_section %}
+    {%- set form = starts_form -%}
+    <div class="card shadow-sm mt-3" id="starts" data-event-wizard-starts>
+        <div class="card-body">
+            <h2 class="h6 mb-1">{{ 'event_wizard.structure.starts_title'|trans }}</h2>
+            <p class="small text-muted">{{ 'event_wizard.structure.starts_help'|trans }}</p>
+            {{ form_start(form) }}
+            {{ form_errors(form) }}
+            {% if planned is not empty %}
+                <div class="d-none d-md-flex row g-2 small text-muted mb-1">
+                    <div class="col-md-5">{{ 'event_wizard.structure.round_name'|trans }}</div>
+                    <div class="col-md-4">{{ 'event_wizard.structure.start_date'|trans }}</div>
+                    <div class="col-md-3">{{ 'event_wizard.structure.start_time'|trans }}</div>
+                </div>
+            {% endif %}
+            {% for index, row in form.rows %}
+                {%- set round = planned[index] -%}
+                <div class="border-bottom py-2" data-event-wizard-starts-row="{{ index }}">
+                    {#- One line from 768 px (name, day, time), stacked on phones -#}
+                    <div class="row g-2 align-items-start">
+                        <div class="col-12 col-md-5">
+                            {{ form_label(row.name, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                            {{ form_widget(row.name, {attr: {'aria-describedby': 'starts-meta-' ~ index}}) }}
+                            {{ form_errors(row.name) }}
+                            <div class="small text-muted mt-1" id="starts-meta-{{ index }}">{{ _self.category_label(round.category) }}{% if round.teamSize is not null %} ({{ round.teamSize }}){% endif %} · {{ 'event_wizard.structure.minutes'|trans({'%count%': round.minutesLimit}) }}</div>
+                        </div>
+                        <div class="col-7 col-md-4">
+                            {{ form_label(row.date, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                            {{ form_widget(row.date, {type: 'date', attr: {min: event_days[0], max: event_days[1]}}) }}
+                        </div>
+                        <div class="col-5 col-md-3">
+                            {{ form_label(row.time, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                            {{ form_widget(row.time, {type: 'time'}) }}
+                        </div>
+                        {% if not row.vars.valid %}<div class="col-12" data-event-wizard-starts-error>{{ form_errors(row) }}</div>{% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+                {{ form_widget(form.create, {attr: {class: rounds is empty ? 'btn btn-primary' : 'btn btn-danger', 'data-event-wizard-create': ''}}) }}
+                {% if rounds is empty %}<a href="{{ path('event_wizard_basics_edit', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>{% endif %}
             </div>
             {{ form_end(form) }}
         </div>

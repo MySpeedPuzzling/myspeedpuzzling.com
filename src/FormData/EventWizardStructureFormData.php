@@ -17,15 +17,13 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * - Qualification: the stages (spare rows without a name are not used);
  * - Every round counts: how many solo / pair / team rounds, each category's time limit, the team size, the order and
  *   "add up the times per category" (a standing per category - toolkit only, W7);
- * - both: the first round's start time and the gap between starts (the schedule's rule).
+ *
+ * No start time: every generated round's day and time are typed by the organiser (EventWizardRoundStartsFormData).
  */
 final class EventWizardStructureFormData
 {
     public const int STAGE_ROWS = 5;
     public const int CATEGORY_ROUNDS_MAX = 26;
-    public const int DEFAULT_EVERY_MINUTES = 120;
-    // The automatic gap never gets shorter than this - the template does not fit then
-    public const int MIN_AUTOMATIC_EVERY_MINUTES = 30;
 
     public EventWizardStructureTemplate $template = EventWizardStructureTemplate::Qualification;
 
@@ -43,13 +41,6 @@ final class EventWizardStructureFormData
     public bool $sumPerCategory = true;
     // Solo 1, Pairs 1, Teams 1, Solo 2… - or every solo round first ("by_category")
     public bool $interleaved = true;
-
-    public null|string $startTime = '10:00';
-
-    // The gap between starts; null = automatic: every DEFAULT_EVERY_MINUTES, closer when that would not fit into the
-    // event's days (EventWizardStructurePlanner) - a typed gap is kept as typed
-    #[Assert\Range(min: 0, max: 1440)]
-    public null|int $everyMinutes = null;
 
     public function __construct()
     {
@@ -90,10 +81,6 @@ final class EventWizardStructureFormData
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {
-        if ($this->startTime === null || preg_match('/^([01]?\d|2[0-3]):[0-5]\d$/', trim($this->startTime)) !== 1) {
-            $context->buildViolation('event_wizard.basics.start_time_invalid')->setTranslationDomain('messages')->atPath('startTime')->addViolation();
-        }
-
         if ($this->template === EventWizardStructureTemplate::Qualification && $this->usedStages() === []) {
             $context->buildViolation('event_wizard.structure.no_stage')->setTranslationDomain('messages')->atPath('stages')->addViolation();
         }

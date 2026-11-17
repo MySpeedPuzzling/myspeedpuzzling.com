@@ -14,7 +14,9 @@ signed-in player's "Add event"; the classic forms stay reachable from it until J
   organize").
 - **Ask only what cannot be inferred** (smart forms): the round's start = the event's date + start time in the zone of
   its country (`RoundTimezone`), a one-round event's round is named after its category, reveal delay and badge colour
-  default, the gap between generated rounds is automatic until typed. Review shows every inferred value with "edit".
+  default. Review shows every inferred value with "edit". **Never a round's start**: the organiser schedules every round
+  (Jan 2026-11-17) - the one-round path's start is Basics' date + time, the series' rounds start at the typed time, the
+  several-rounds templates ask each generated round's day and time.
 - **Composites for atomicity, no new domain concepts**: `StartEventWizardDraft`, `SaveEventWizardBasics`,
   `SetUpEventWizardRound`, `SetUpEventWizardStructure`, `SetUpEventWizardPuzzles`, `AddEventWizardEditions`,
   `PublishEventWizardSeries` dispatch the existing messages inside one transaction. `LockUntilCommittedMiddleware` is
@@ -28,7 +30,7 @@ signed-in player's "Add event"; the classic forms stay reachable from it until J
 |---|---|---|
 | Entry `event_wizard` (`/{_locale}/new-event`) | "What are you organizing?" one round / several rounds (+ "do competitors qualify?") / a regular series / something else (→ classic form); organization picker for team members; "Copy one of your events" → Duplicate form | - |
 | One round | Basics → Puzzle & format → Extras → Review | Basics creates the draft **and its round** (hidden `draftId` makes a double submit idempotent); Puzzle: category, limit, puzzle(s) (catalogue or new), secret + reveal (automatic / when I start the stopwatch / manual), pick K of N |
-| Several rounds | Basics → Structure → Puzzles → Extras → Review | Structure templates "Qualification" (stages, top N go on) / "Every round counts" (solo/pairs/teams counts, add up per category), schedule spread over the event's days, editable table; read-only once any entry, result or stopwatch run exists (re-checked under the lock). Stages → advancement steps, "add up" → one standing per category (`StandingsPerCategory`, never published). Puzzles grid: one row per round, one secret switch, row errors for the one-puzzle-per-category rule |
+| Several rounds | Basics → Structure → Puzzles → Extras → Review | Basics without a start time. Structure templates "Qualification" (stages, top N go on) / "Every round counts" (solo/pairs/teams counts, add up per category) - a GET form listing the generated rounds, each with its name, day (prefilled only for a one-day event) and time (empty, required); "Create the rounds" (POST, the template's answer re-read from the query string) writes rounds + starts + steps/standings in one transaction and goes on to Puzzles - a missing start or one outside the event's days is a row error (422), nothing written before (no rounds with made-up starts in between); then the editable table; read-only once any entry, result or stopwatch run exists (re-checked under the lock). Stages → advancement steps, "add up" → one standing per category (`StandingsPerCategory`, never published). Puzzles grid: one row per round, one secret switch, row errors for the one-puzzle-per-category rule |
 | Series | Series Basics → Dates + each date's round → Review | rule (weekly / Nth weekday / picked days, `EditionsPreview` shared with "Add several dates"), start time, a round per date or none; re-sending creates nothing twice; Publish publishes the series and its draft dates. Series page: "Add the next dates" (prefilled from the last dates) and a quick "Add puzzle" per date |
 
 Path rule: an edition → series; a draft with no round that is not an edition → several rounds (the one-round path always
@@ -55,7 +57,9 @@ OBS overlay / stopwatch test run tips. Collapse remembered per event in localSto
   prefilled one series gap later), POST copies with the `dateFrom` override (`DuplicateCompetition`): rounds and the
   registration window move by whole days, times of day kept in each round's zone (`EventDateShift` +
   `DuplicateDateShift`).
-- Edit event: "Move the rounds too" (ticked, shown when the start date changes; end date follows in the browser) →
+- Edit event: "Also move the rounds by the same number of days" (ticked, shown when the start date changes, with the
+  concrete effect under it - "The start moves from 15.06.2027 to 22.06.2027, so every round moves …"; end date follows in
+  the browser) →
   `EditCompetition::$moveRoundsWithDate`; not offered once a round has stopwatch state, an official result or a secret
   puzzle (a moved start would move its reveal).
 

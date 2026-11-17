@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\EventWizard;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\EventWizardStructureFormData;
 use SpeedPuzzling\Web\Results\EventWizardPlannedRound;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStructureTemplate;
@@ -18,13 +17,8 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  *   ("Semifinal 1"); Every round counts names them "Solo 1", "Pairs 1", "Teams 1" (EventWizardDefaults::roundName()).
  * - **Order**: stage by stage; Every round counts interleaved (Solo 1, Pairs 1, Teams 1, Solo 2 …) or category by
  *   category.
- * - **Schedule** (the one rule, W-creation-wizard-research.md §3.5 "As built (W5)"): the rounds are
- *   spread evenly over the event's days - ceil(rounds / days) a day, in order - each day's first round at the start time,
- *   the next ones every $everyMinutes after it - every start within its own day. A gap left empty is automatic: 2 hours,
- *   or the largest gap in whole 5 minutes that still ends the day's last start before midnight (at least 30 minutes);
- *   a typed gap is kept. When a day's rounds would still run past midnight the template does not fit (null - the form
- *   says so; start earlier, add a day, fewer rounds or a shorter gap). Every name and start stays editable in the
- *   schedule table.
+ * - **No start times**: every round's day and time are the organiser's (Jan 2026-11-17: "the rounds should always be
+ *   scheduled by the organizer") - the Structure step asks for them next to each generated round.
  */
 readonly final class EventWizardStructurePlanner
 {
@@ -34,61 +28,26 @@ readonly final class EventWizardStructurePlanner
     }
 
     /**
-     * @param DateTimeImmutable $firstDay the event's first day (its date only is read)
-     * @param int $days how many days the event lasts (1 = one day)
-     * @return null|list<EventWizardPlannedRound> null = the rounds do not fit into the event's days
+     * @return list<EventWizardPlannedRound> in order - empty for "Not sure yet"
      */
-    public function plan(EventWizardStructureFormData $data, DateTimeImmutable $firstDay, int $days): null|array
+    public function plan(EventWizardStructureFormData $data): array
     {
-        $unscheduled = match ($data->template) {
+        $rounds = match ($data->template) {
             EventWizardStructureTemplate::Qualification => $this->qualification($data),
             EventWizardStructureTemplate::EveryRoundCounts => $this->everyRoundCounts($data),
             EventWizardStructureTemplate::Empty => [],
         };
 
-        $count = count($unscheduled);
-
-        if ($count === 0) {
-            return [];
-        }
-
-        $perDay = (int) ceil($count / max(1, $days));
-        [$hours, $minutes] = array_map(intval(...), explode(':', trim((string) $data->startTime)));
-        $dayMinutesLeft = 24 * 60 - 1 - ($hours * 60 + $minutes);
-        $every = $data->everyMinutes ?? EventWizardStructureFormData::DEFAULT_EVERY_MINUTES;
-
-        if ($data->everyMinutes === null && $perDay > 1 && ($perDay - 1) * $every > $dayMinutesLeft) {
-            $every = intdiv(intdiv($dayMinutesLeft, $perDay - 1), 5) * 5;
-
-            if ($every < EventWizardStructureFormData::MIN_AUTOMATIC_EVERY_MINUTES) {
-                return null;
-            }
-        }
-
-        // A day's last round starts before its midnight
-        if (($perDay - 1) * $every > $dayMinutesLeft) {
-            return null;
-        }
-
-        $dayStart = $firstDay->setTime($hours, $minutes);
-        $rounds = [];
-
-        foreach ($unscheduled as $index => [$name, $category, $teamSize, $minutesLimit, $stage]) {
-            $day = intdiv($index, $perDay);
-            $slot = $index % $perDay;
-            $start = $dayStart->modify(sprintf('+%d days +%d minutes', $day, $slot * $every));
-
-            $rounds[] = new EventWizardPlannedRound(
-                name: $name,
-                category: $category,
-                teamSize: $teamSize,
-                minutesLimit: $minutesLimit,
-                startsLocal: $start->format('Y-m-d H:i'),
-                stage: $stage,
-            );
-        }
-
-        return $rounds;
+        return array_map(
+            static fn (array $round): EventWizardPlannedRound => new EventWizardPlannedRound(
+                name: $round[0],
+                category: $round[1],
+                teamSize: $round[2],
+                minutesLimit: $round[3],
+                stage: $round[4],
+            ),
+            $rounds,
+        );
     }
 
     /**

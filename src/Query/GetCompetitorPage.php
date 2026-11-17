@@ -315,12 +315,15 @@ readonly final class GetCompetitorPage
                 $rank = $publishedEntry->rank;
                 $qualified = $publishedEntry->qualified;
                 $record = $publishedEntry->puzzles;
-            } elseif ($ownResult->didNotStart) {
-                // Not ranked, so not among the round page's rows - but as official as the rest
+            } elseif ($ownResult->didNotStart && $isViewers) {
+                // Not ranked, so not among the round page's rows - official, but "Did not start" is never shown
+                // publicly (H1): only the competitor themself sees it, everybody else sees no result like on the round page
                 $result = $ownResult;
                 $state = CompetitorResultState::Official;
             }
-        } elseif ($ownResult->isNone() === false && ($liveResults || $isViewers)) {
+        } elseif ($ownResult->isNone() === false && ($isViewers || ($liveResults && $ownResult->didNotStart === false))) {
+            // The live results setting shows times to everybody - never a "Did not start" (H1), that one is the
+            // competitor's own
             $result = $ownResult;
             $state = $liveResults ? CompetitorResultState::Live : CompetitorResultState::Own;
             $record = $row['puzzles'];

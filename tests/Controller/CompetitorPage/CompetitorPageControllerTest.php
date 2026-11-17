@@ -96,11 +96,31 @@ final class CompetitorPageControllerTest extends WebTestCase
             self::assertSame($official['participant_round:' . $entry], $this->round($crawler, F::ROUND_GROUP_A)->filter('[data-competitor-rank]')->text(), $participant);
         }
 
-        // Did not start: official, without a place
-        $crawler = $browser->request('GET', '/en/competitor/' . self::CUP . '/p/' . F::PARTICIPANT_EVA);
+        // Did not start is never shown publicly (H1): to everybody else no result, like the round page
+        $url = '/en/competitor/' . self::CUP . '/p/' . F::PARTICIPANT_EVA;
+        $crawler = $browser->request('GET', $url);
         $groupA = $this->round($crawler, F::ROUND_GROUP_A);
+        self::assertCount(0, $groupA->filter('[data-competitor-result]'));
+        self::assertCount(1, $groupA->filter('[data-competitor-no-result]'));
+        self::assertStringNotContainsString('Did not start', (string) $browser->getResponse()->getContent());
+        $browser->request('GET', '/competitor-state/' . self::CUP . '/p/' . F::PARTICIPANT_EVA);
+        self::assertStringNotContainsString('"didNotStart":true', (string) $browser->getResponse()->getContent());
+
+        // ... also with the live results setting on
+        $this->turnOn($browser, liveResults: true);
+        $browser->request('GET', $url);
+        self::assertStringNotContainsString('Did not start', (string) $browser->getResponse()->getContent());
+
+        // Eva herself: official, without a place
+        $this->link($browser, F::PARTICIPANT_EVA, PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $url);
+        $groupA = $this->round($crawler, F::ROUND_GROUP_A);
+        self::assertSame('official', $groupA->filter('[data-competitor-result]')->attr('data-competitor-result'));
         self::assertStringContainsString('Did not start', $groupA->filter('[data-competitor-result]')->text());
         self::assertCount(0, $groupA->filter('[data-competitor-rank]'));
+        $browser->request('GET', '/competitor-state/' . self::CUP . '/p/' . F::PARTICIPANT_EVA);
+        self::assertStringContainsString('"didNotStart":true', (string) $browser->getResponse()->getContent());
     }
 
     public function testBeforePublishingTheResultShowsOnlyWithTheLiveResultsSettingAndNeverWithAPlace(): void

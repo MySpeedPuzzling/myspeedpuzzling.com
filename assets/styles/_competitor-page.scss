@@ -266,9 +266,10 @@
     font-weight: 500;
     text-align: center;
 
+    // waiting for the judge is neutral information, not an error: info blue, never the pinkish $primary
     &.is-pending,
     &.is-sending {
-        background: rgba($primary, .1);
+        background: rgba($info, .14);
     }
 
     &.is-offline,

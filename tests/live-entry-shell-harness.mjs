@@ -361,6 +361,13 @@ const scenarios = {
         assert.equal(entryOfTag(entries, tag('lineup', pairId.toUpperCase()))?.ref, `team:${TEAM}`);
         assert.equal(entryOfTag(entries, tag('lineup', lineupIdOf(COMPETITION, [PARTNER_A]))), null, 'one member is another line-up');
         assert.equal(entryOfTag(entries, tag('lineup', lineupIdOf(OTHER_COMPETITION, [PARTNER_A, PARTNER_B]))), null, 'the pair at another event');
+        // A member on the waitlist: the round state lists only the going one, its `lineupId` (the server's, over every
+        // member not removed - the tag route's rule) still matches the printed tag; the listed members alone do not
+        const WAITING = '018d0020-0000-0000-0000-0000000002ff';
+        const withWaiting = lineupIdOf(COMPETITION, [PARTNER_A, PARTNER_B, WAITING]);
+        const waitlisted = [{ ...entries.find((entry) => entry.ref === `team:${TEAM}`), lineupId: withWaiting.toUpperCase() }];
+        assert.equal(entryOfTag(waitlisted, tag('lineup', withWaiting))?.ref, `team:${TEAM}`, 'the state\'s lineupId');
+        assert.equal(entryOfTag(waitlisted, tag('lineup', pairId)), null, 'the going members alone are another line-up');
         assert.equal(entryOfTag(entries, tag('table', 7))?.ref, `team:${TEAM}`);
         assert.equal(entryOfTag(entries, tag('table', 8)), null);
         assert.equal(entryOfTag(entries, tag('entry', TEAM))?.ref, `team:${TEAM}`);

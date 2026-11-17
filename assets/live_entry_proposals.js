@@ -122,6 +122,20 @@ export function proposalValue(proposal) {
 }
 
 /**
+ * Who proposed, shown on the card ("by <name>") only for a pair/team entry: on a solo entry the proposer is the card's
+ * own person, so the name would only repeat the card's title (toolkit H1). Null = say nothing.
+ */
+export function proposerName(proposal, entry) {
+    if (proposal === null || entry === null || entry.kind !== 'team') {
+        return null;
+    }
+
+    const name = proposal.proposedBy?.name;
+
+    return typeof name === 'string' && name !== '' ? name : null;
+}
+
+/**
  * The entry's proposal to show on its card: the pending one, else the one decided last.
  */
 export function proposalOfEntry(proposals, ref) {

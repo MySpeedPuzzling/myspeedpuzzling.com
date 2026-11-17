@@ -86,8 +86,13 @@ export function entryOfTag(entries, tag) {
         case 'entry':
             return list.find((entry) => String(entry.id ?? String(entry.ref ?? '').split(':')[1]).toLowerCase() === id) ?? null;
         case 'lineup':
-            return list.find((entry) => Array.isArray(entry.members) && entry.members.length > 0
-                && lineupIdOf(tag.competitionId, entry.members.map((member) => member.participantId)) === id) ?? null;
+            // The round state's own `lineupId` first: the server hashes every member not removed - the waitlist too,
+            // like the tag route - while `members` lists only the going ones (toolkit H1). Hashed here only when the
+            // state has none (an older snapshot)
+            return list.find((entry) => typeof entry.lineupId === 'string'
+                ? entry.lineupId.toLowerCase() === id
+                : Array.isArray(entry.members) && entry.members.length > 0
+                    && lineupIdOf(tag.competitionId, entry.members.map((member) => member.participantId)) === id) ?? null;
         default:
             return null;
     }

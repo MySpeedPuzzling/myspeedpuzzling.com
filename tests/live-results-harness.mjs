@@ -41,7 +41,7 @@ import {
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick, unfinishedResult } from '../assets/live_entry_puzzles.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
-import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, rejectionChange, waitingProposals } from '../assets/live_entry_proposals.js';
+import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
@@ -995,6 +995,15 @@ const scenarios = {
         // Czech: the route has no locale prefix
         assert.equal(linkNavigation({ href: '/zadavani-vysledku/' + ROUND_B }, 'https://x.test/zadavani-vysledku/' + ROUND_A, '/zadavani-vysledku/' + UUID_PLACEHOLDER), 'within');
         assert.equal(linkNavigation({ href: '/zadavani-vysledku-udalosti/x' }, 'https://x.test/zadavani-vysledku/' + ROUND_A, '/zadavani-vysledku/' + UUID_PLACEHOLDER), 'leave');
+        // A scanned tag's "Open their round": the frozen tag URLs (no locale, or with one) and the name tag are the tool too
+        const competition = '0198a2b4-1c3d-7e5f-8a9b-0c1d2e3f4a5b';
+        assert.equal(linkNavigation({ href: '/live/' + competition + '/t/12' }, here, template), 'within', 'table tag');
+        assert.equal(linkNavigation({ href: 'https://x.test/live/' + competition + '/g/' + ROUND_B }, here, template), 'within', 'line-up tag');
+        assert.equal(linkNavigation({ href: '/en/live/' + competition + '/e/' + ROUND_B }, here, template), 'within', 'entry tag with a locale');
+        assert.equal(linkNavigation({ href: '/en/live/' + competition + '/p/' + ROUND_B }, here, template), 'within', 'name tag');
+        assert.equal(linkNavigation({ href: '/zadavani-vysledku-udalosti/' + competition }, 'https://x.test/zadavani-vysledku/' + ROUND_A, '/zadavani-vysledku/' + UUID_PLACEHOLDER), 'within', 'the Czech event page');
+        assert.equal(linkNavigation({ href: 'https://other.test/live/' + competition + '/t/12' }, here, template), 'leave', 'a tag URL of another site');
+        assert.equal(linkNavigation({ href: '/live/' + competition + '/t/0' }, here, template), 'leave', 'not a tag path');
     },
 
     async 'a link that does not load another page here is left alone'() {
@@ -1769,6 +1778,14 @@ const scenarios = {
         assert.deepEqual(proposalPanel(pending, anna, [{ entryRef: ANNA, field: 'proposal', seq: 1, state: 'pending', from: { id: PROP_1 }, to: {} }]), { state: 'sending', value: { seconds: 2712 }, rejecting: true });
         assert.equal(proposalPanel(pending, anna, [{ entryRef: ANNA, field: 'result', seq: 1, state: 'conflict', proposalId: PROP_1, to: { seconds: 2712 } }]), null);
         assert.equal(proposalPanel(null, anna, []), null);
+    },
+
+    'the proposer is named only on a pair/team card - a solo card would repeat its own name'() {
+        const pending = mergeProposals(new Map(), [proposalOf(PROP_1, ANNA)]).get(PROP_1);
+        assert.equal(proposerName(pending, entry(ANNA, 'Anna', 12)), null, 'solo: no "by Anna" under Anna');
+        assert.equal(proposerName(pending, entry(ANNA, 'Team A', 12, { kind: 'team' })), 'Jana Nováková');
+        assert.equal(proposerName({ ...pending, proposedBy: null }, entry(ANNA, 'Team A', 12, { kind: 'team' })), null);
+        assert.equal(proposerName(null, entry(ANNA, 'Team A', 12, { kind: 'team' })), null);
     },
 
     'a proposal superseded or withdrawn while its card is open changes the panel in place'() {

@@ -65,6 +65,16 @@
                 "019a7c3e-11bb-7c00-b999-0123456789ac"
             ],
             "lineupId": "39b148b5-9e77-5d77-a7b9-837791cf9e7f"
+        },
+        {
+            "case": "the pair with a third member on the waitlist - every member not removed counts (GetRoundResultEntries' lineupId, the tag route), not only the going ones the round state lists",
+            "competitionId": "018d0020-0000-0000-0000-000000000001",
+            "members": [
+                "018d0020-0000-0000-0000-000000000201",
+                "018d0020-0000-0000-0000-000000000202",
+                "018d0020-0000-0000-0000-0000000002ff"
+            ],
+            "lineupId": "3d33c848-036e-5511-82b6-cae19ad980fa"
         }
     ]
 }

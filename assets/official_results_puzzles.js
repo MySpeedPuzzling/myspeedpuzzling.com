@@ -7,6 +7,10 @@
  * record. `round` is the round state's `puzzleFormat`: {mode: "pick", toSolve: K, puzzles: [{roundPuzzleId,
  * piecesCount}, …]}. A result is RoundEntryResult's wire format: null | {seconds} | {piecesPlaced} | {didNotStart: true}.
  * Refusals are the official_results.reason.* keys the server answers with.
+ *
+ * Not mirrored here - checked server-side only (RoundEntryPuzzles' shape rules, which the browser's own forms never
+ * break): unknown keys on an item, `atSeconds` on an item that is not done, more than 50 items. A record failing one of
+ * them passes here and is refused by the server.
  */
 
 export const MAX_SECONDS = 86399;

@@ -35,7 +35,7 @@ import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick, unfinishedResult } from '../live_entry_puzzles.js';
-import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
+import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -1787,7 +1787,7 @@ export default class extends Controller {
 
         if (panel !== null) {
             const time = formatResultTime(panel.value.seconds);
-            const name = proposal.proposedBy?.name;
+            const name = proposerName(proposal, entry);
             const lines = [`${this.t('proposalFrom', { '%time%': this.clockTime(proposal.tappedAtMs) })}${name ? ` · ${this.t('proposalBy', { '%name%': name })}` : ''} · ${this.t('proposalTapped', { '%age%': this.age(proposal.tappedAtMs, this.serverNow()) })}`];
 
             if (proposal.late) {

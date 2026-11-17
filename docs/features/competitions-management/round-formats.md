@@ -97,6 +97,43 @@ the known choice preselected, one tap picks (K = 1) or taps in solving order (K 
 one outbox group (`enqueueGroup()`, never split - rule 7); "Save puzzle choice" records the choice alone; Find's
 "Puzzle missing (N)" filter. Split times entered by the judge are v2 (R §3) - the desk can enter `atSeconds`.
 
+## Missing pieces and time's up (reliability hardening T1)
+
+Jan: "if they do not finish in time we know which puzzle did not finish in time and how many pieces were left ... when
+time runs out we count missing pieces to show how many pieces were placed".
+
+- **Format names** (`competition_toolkit.round_format.name.*`): "One result for the round" / "Solve all N (order
+  recorded)" / "Pick K of N" on the round form, the hub card and the round puzzles page (`_round_format_summary`). The
+  round form offers three choices: "Solve all" is `pick` with K = N set on save (`CompetitionRoundFormType` SUBMIT
+  listener, `CompetitionRoundFormData::$puzzleFormatChoice` - no column), read back as "Solve all" whenever K = N; K is
+  typed only for "Pick". The competitor page keeps its own wording ("Solve all 3 puzzles", "Pick 1 of 2 puzzles");
+  the creation wizard keeps its "Competitors solve" field (another lane's files).
+- **Order**: the record's order is the solving order (2 → 3 → 1 is `[B, C, A]`); a puzzle not finished comes after the
+  finished ones (rule 5). **Several puzzles not finished** ("abandoned one, started another") are allowed by rule 6 and
+  taken by the write path, the desk, the export and the public chips (`SolveAllMissingPiecesTest`); one with nothing
+  placed has no `piecesPlaced`.
+- **Missing | Placed** (`assets/official_results_missing.js`, shared by the judge page and the desk; pure, harness
+  `tests/live-results-harness.mjs`): the judge types what is missing, the page shows "missing 37 → placed 963 of
+  1000" and saves `piecesPlaced` (no server change). Missing needs the piece count (unknown → only Placed). One-puzzle
+  rounds: 1..pieces − 1. Pick rounds: a row per chosen puzzle with a finished / not finished switch (default: the last
+  chosen not finished; it follows the last chip tapped until the judge switches a row), a count per one not finished
+  (0 placed allowed there as long as the entry placed something); placed = Σ finished puzzles' pieces + Σ the others'
+  placed; `recordFor(…, notDone)` builds the record. The choice is kept per phone (`msp.liveResults.prefs`
+  `piecesMode`, default Missing); drafts keep the mode, the rows not finished and each count. Switching converts what
+  was typed (37 missing ↔ 963 placed).
+- **Time's up** (`timesUp()`, `opensUnfinished()`): the round has a limit and the stopwatch ran past it (running, or
+  stopped after it) - an entry without a result, without a time proposal waiting and without a refused value opens
+  straight in Didn't finish / Missing with the focus in the count (a pick round without a choice: the chips first;
+  after the K-th chip the first empty count). **A default, never a restriction**: "Back to the time" is one tap (a time
+  written down during the round). Taps after time's up: table (unique) → type missing → Review/Enter → Save = 2 taps
+  (before: + the "Didn't finish" tap and the subtraction in the head = 3); a finished time: table → Back to the time
+  → type → Review → Save = 3 taps (before: the focus was on "Finished now", so a tap into the time field = 3).
+- **Results desk**: "Didn't finish (missing pieces)" in the result editor (rounds with a piece count) and the
+  per-puzzle editor (per puzzle; the preview lists both numbers per puzzle); switching between the two Didn't-finish
+  modes converts the counts. **Participants sheet**: unchanged - its result cell keeps pieces *placed* (`480p`,
+  `480/500`); "-" already means did not start, so no missing syntax was added. Its recompute of a record
+  (`consistentRecord()` → `recordFor()`) keeps every puzzle not finished open and gives the change to the last of them.
+
 ## Known edges and open items
 
 - A round duplicated with its event is `total` (`DuplicateCompetition` copies no round puzzles).

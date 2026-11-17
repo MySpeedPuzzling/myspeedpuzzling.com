@@ -43,7 +43,7 @@ import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzl
 import { normaliseDraft } from '../assets/live_entry_draft.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
-import { convertTyped, count, MISSING, openFor, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
+import { convertTyped, count, MISSING, openAfterPick, openFor, opensUnfinished, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
 const ROUND_B = '018d0020-0000-0000-0000-000000000102';
@@ -1651,6 +1651,14 @@ const scenarios = {
         assert.equal(timesUp(null, null, 60), false);
         assert.equal(timesUp('running', 99999, null), false, 'no limit, no time\'s up');
         assert.equal(timesUp('running', 99999, 0), false);
+
+        // How the card opens: a default only - a result shown, a proposal waiting or a refused value keep the time form
+        const open = { timeIsUp: true, hasResult: false, proposalWaiting: false, refused: false };
+        assert.equal(opensUnfinished(open), true);
+        assert.equal(opensUnfinished({ ...open, timeIsUp: false }), false, 'never before the limit');
+        assert.equal(opensUnfinished({ ...open, hasResult: true }), false, 'a result already there: the card as always');
+        assert.equal(opensUnfinished({ ...open, proposalWaiting: true }), false, "the competitor's own time first");
+        assert.equal(opensUnfinished({ ...open, refused: true }), false, 'a refused value to fix');
     },
 
     'solve all 3 in the order 2 → 3 → 1, time ran out on 1: its missing pieces make the total (T1)'() {
@@ -1658,6 +1666,12 @@ const scenarios = {
         const choice = [P_B, P_C, P_A];
         const open = openFor(choice, []);
         assert.deepEqual(open, [P_A], 'the last chosen is the one not finished');
+        // Tapped B, C, A one after another: the default follows the last chosen; a set the judge chose stays
+        assert.deepEqual(openAfterPick([], [P_B], []), [P_B]);
+        assert.deepEqual(openAfterPick([P_B], [P_B, P_C], [P_B]), [P_C]);
+        assert.deepEqual(openAfterPick([P_B, P_C], [P_B, P_C, P_A], [P_C]), [P_A]);
+        assert.deepEqual(openAfterPick([P_B, P_C], [P_B, P_C, P_A], [P_B, P_C]), [P_B, P_C]);
+        assert.deepEqual(openAfterPick([P_B, P_C, P_A], [P_B, P_C], [P_A]), [P_C], 'the last one taken away');
 
         const typing = pickUnfinished(format, choice, open, {}, MISSING);
         assert.equal(typing.firstEmpty, P_A);

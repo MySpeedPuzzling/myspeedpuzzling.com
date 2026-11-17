@@ -59,8 +59,10 @@ QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
    fetches the state first (a stop or pause meanwhile never over-counts - a stopped stopwatch says "type the time";
    a failed fetch keeps what is known). Then
    the time field (`inputmode="numeric"`, the shared `parseResultTime()`, the parsed value always shown under it,
-   "longer than the 90 min limit" as a note), **Didn't finish** → pieces placed (1..pieces−1 for a single-puzzle round),
-   **Did not start**, **Clear**.
+   "longer than the 90 min limit" as a note), **Didn't finish** → counted as **Missing** or **Placed** (reliability
+   hardening T1, round-formats.md "Missing pieces and time's up": "missing 37 → placed 963 of 1000", 1..pieces−1;
+   saved as `piecesPlaced`), **Did not start**, **Clear**. Once the round's time is up an entry without a result opens
+   straight in Didn't finish with the focus in the count - a default only, "Back to the time" is one tap.
 3. **Confirm** - on the same entry card (competition toolkit C7): the inputs give way to the result in large type, what it
    replaces ("Replaces 1:24:00 (Eva, 10:42)") and Save (focused - Enter saves; the time and pieces fields'
    `enterkeyhint="done"` goes here) with Change under it. Save ignores a tap that started within 350 ms of the step
@@ -77,8 +79,9 @@ QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
    one) is preselected. One of N: a tap picks (again: none); K of N: taps in solving order (order badges), tap again
    removes, a tap when K are chosen replaces the last. Save sends the result **and** the record that fits it as one
    outbox group (`enqueueGroup()`, A rule 7 - never split): finished = all K done (the desk's earlier splits kept when
-   they still fit); Didn't finish = the pieces typed are the **last** chosen puzzle's (limit its count − 1), the ones
-   before count in full, the result is the sum (`total()` of `official_results_puzzles.js`; nothing chosen: K × the
+   they still fit); Didn't finish = a row per chosen puzzle, finished or not (by default only the last chosen is not;
+   a tap switches - several may be not finished, T1), a count per one not finished, the others count in full, the
+   result is the sum (`total()` of `official_results_puzzles.js`; nothing chosen: K × the
    biggest − 1, `unfinishedMaximum()`); Did not start = no record. A finished result without all K chosen is saved
    alone (the confirm step warns, Save stays enabled). "Save puzzle choice" records the choice alone (at the table, or
    later), fitted to the result shown. Find shows **"Puzzle missing (N)"** (entries with a time or pieces and no

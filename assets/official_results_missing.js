@@ -84,6 +84,13 @@ export function openFor(choice, open) {
     return kept.length > 0 || choice.length === 0 ? kept : [choice[choice.length - 1]];
 }
 
+/** After a chip tap: the default (only the last chosen open) follows the new last; a set the judge chose stays. */
+export function openAfterPick(before, choice, open) {
+    const kept = openFor(before, open);
+
+    return openFor(choice, kept.length === 1 && kept[0] === before[before.length - 1] ? [] : kept);
+}
+
 /** A tap on a chosen puzzle's finished / not finished switch - the last open one stays open (rule 6: at least one). */
 export function toggleOpen(choice, open, id) {
     const current = openFor(choice, open);
@@ -164,4 +171,13 @@ export function timesUp(status, elapsedSeconds, minutesLimit) {
     const limit = (minutesLimit ?? 0) * 60;
 
     return limit > 0 && (status === 'running' || status === 'stopped') && Number.isInteger(elapsedSeconds) && elapsedSeconds >= limit;
+}
+
+/**
+ * How an entry's card opens - a default, never a restriction: once the time is up an entry without a result (no time
+ * proposal waiting, no refused value to fix) opens in "Didn't finish"; "Back to the time" is one tap away for a time
+ * the judge wrote down during the round.
+ */
+export function opensUnfinished({ timeIsUp, hasResult, proposalWaiting, refused }) {
+    return timeIsUp === true && !hasResult && !proposalWaiting && !refused;
 }

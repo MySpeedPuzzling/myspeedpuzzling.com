@@ -16,7 +16,7 @@ import {
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
-import { MISSING, typedPieces } from '../official_results_missing.js';
+import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 
 const RESULT = 'result';
 const TABLE = 'table_number';
@@ -1122,6 +1122,30 @@ export default class extends Controller {
         return { value: { seconds: parsed.seconds }, preview: this.t('preview_time', { time: formatResultTime(parsed.seconds) }) };
     }
 
+    /**
+     * Didn't finish ↔ Didn't finish (missing pieces): the counts typed or prefilled keep what they meant - 4900 placed of
+     * 5000 becomes 100 missing (reliability hardening T1).
+     */
+    convertCounts(form) {
+        const select = form.querySelector('[data-editor-mode]');
+        const was = form.dataset.counts ?? select?.querySelector('[selected]')?.value;
+        const mode = select?.value;
+        form.dataset.counts = mode ?? '';
+
+        if (select === null || was === mode || ![was, mode].every((one) => one === 'pieces' || one === 'missing')) {
+            return;
+        }
+
+        const piecesOf = new Map((this.pickFormat()?.puzzles ?? []).map((puzzle) => [String(puzzle.roundPuzzleId).toLowerCase(), puzzle.piecesCount ?? null]));
+        const fields = form.dataset.editor === 'puzzles'
+            ? [...form.querySelectorAll('[data-puzzle-row]')].map((row) => [row.querySelector('[data-row-pieces]'), piecesOf.get(row.querySelector('[data-row-puzzle]').value.toLowerCase()) ?? null])
+            : [[form.querySelector('[data-editor-input]'), this.round.piecesCount ?? null]];
+
+        for (const [input, pieces] of fields) {
+            input.value = convertTyped(input.value, was === 'missing' ? MISSING : PLACED, mode === 'missing' ? MISSING : PLACED, pieces);
+        }
+    }
+
     editorPreview() {
         const form = this.editorForm();
 
@@ -1129,6 +1153,7 @@ export default class extends Controller {
             return;
         }
 
+        this.convertCounts(form);
         const outcome = this.editorValue();
         const preview = form.querySelector('[data-editor-preview]');
         const input = form.querySelector('[data-editor-input]');

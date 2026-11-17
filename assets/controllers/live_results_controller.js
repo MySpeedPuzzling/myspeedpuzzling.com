@@ -35,7 +35,7 @@ import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
-import { convertTyped, MISSING, openFor, openOfRecord, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
+import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -780,6 +780,7 @@ export default class extends Controller {
             this.piecesPref = draft.piecesMode ?? this.piecesPref;
             this.openPuzzles = openFor(this.choice, draft.open ?? this.openPuzzles);
             this.pieceTexts = { ...draft.texts };
+            this.piecesRowsTarget.dataset.shape = '';
             this.piecesInputTarget.value = draft.pieces;
             this.piecesTyped();
         } else {
@@ -2421,6 +2422,7 @@ export default class extends Controller {
             const items = Array.isArray(refused?.to) ? refused.to : (Array.isArray(record) ? record : []);
             this.openPuzzles = openOfRecord(this.choice, items);
             this.pieceTexts = Object.fromEntries(items.filter((item) => item.done !== true).map((item) => [String(item.roundPuzzleId).toLowerCase(), String(item.piecesPlaced ?? 0)]));
+            this.piecesRowsTarget.dataset.shape = '';
             this.piecesInputTarget.value = String(rejected.to.piecesPlaced);
             this.piecesTyped();
         }
@@ -2430,9 +2432,10 @@ export default class extends Controller {
         const proposalConfirm = this.proposalTarget.querySelector('[data-proposal-confirm]');
         const shownResult = shownValue(entry, 'result', this.outbox?.all() ?? []).value;
 
-        // The round's time is up (reliability hardening T1): an entry without a result opens in "Didn't finish" -
-        // the judge sweeps the tables counting missing pieces. Not with a time proposal waiting, never before the limit
-        if (!rejected && proposalConfirm === null && (shownResult === null || shownResult === undefined) && this.roundTimesUp()) {
+        // The round's time is up (reliability hardening T1): an entry without a result opens in "Didn't finish" - the
+        // judge sweeps the tables counting missing pieces. A default, never a restriction: "Back to the time" is one tap
+        // (a time written down during the round). Not with a time proposal waiting, never before the limit
+        if (opensUnfinished({ timeIsUp: this.roundTimesUp(), hasResult: shownResult !== null && shownResult !== undefined, proposalWaiting: proposalConfirm !== null, refused: Boolean(rejected) })) {
             this.didNotFinish();
         }
 
@@ -2792,6 +2795,11 @@ export default class extends Controller {
 
             parsed.innerHTML = html;
             input?.classList.toggle('is-invalid', row.error);
+
+            // Missing ↔ Placed converted the count - never under the judge's thumb
+            if (input && input !== document.activeElement && input.value !== row.text) {
+                input.value = row.text;
+            }
         }
     }
 
@@ -2841,8 +2849,9 @@ export default class extends Controller {
             return;
         }
 
+        const before = this.choice;
         this.choice = togglePick(this.choice, event.currentTarget.dataset.id, format.toSolve);
-        this.openPuzzles = openFor(this.choice, this.openPuzzles);
+        this.openPuzzles = openAfterPick(before, this.choice, this.openPuzzles);
         this.proposalNeedsChoice = false;
 
         // Unfinished: the total depends on the puzzles chosen

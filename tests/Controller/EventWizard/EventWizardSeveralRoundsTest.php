@@ -125,22 +125,6 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertStringContainsString('the best 10 of each round go on', $crawler->filter('[data-event-wizard-toolkit-summary]')->text());
     }
 
-    public function testWithoutTheToolkitTheStagesAreJustRounds(): void
-    {
-        TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $competitionId = $this->startDraft('qualification');
-
-        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure');
-        self::assertSelectorNotExists('input[name="event_wizard_structure[stages][0][advance]"]');
-        self::assertSelectorNotExists('input[name="event_wizard_structure[sumPerCategory]"]');
-
-        $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'pairsRounds' => '2', 'teamsRounds' => '0', 'soloRounds' => '2']);
-        self::assertResponseRedirects();
-        self::assertSame(4, $this->roundsCount($competitionId));
-        self::assertSame(0, $this->rowsOf('competition_standing', $competitionId));
-        self::assertSame(0, $this->rowsOf('competition_advancement_step', $competitionId));
-    }
-
     public function testEveryRoundCountsAddsUpTheTimesPerCategoryForTheToolkit(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
@@ -309,8 +293,8 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         $ids = $this->roundIds($competitionId);
 
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
-        // The stopwatch reveal is a toolkit option
-        self::assertSelectorNotExists('input[name="event_wizard_puzzles[revealMode]"][value="stopwatch"]');
+        // The stopwatch reveal is offered to every organiser (no toolkit flag)
+        self::assertSelectorExists('input[name="event_wizard_puzzles[revealMode]"][value="stopwatch"]');
 
         $crawler = $this->submitGrid($crawler, [], [
             $ids[0] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]],
@@ -522,13 +506,6 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         $ids = $this->database()->fetchFirstColumn('SELECT id::text FROM competition');
 
         return $ids;
-    }
-
-    private function rowsOf(string $table, string $competitionId): int
-    {
-        $count = $this->database()->fetchOne('SELECT COUNT(*) FROM ' . $table . ' WHERE competition_id = :id', ['id' => $competitionId]);
-
-        return is_numeric($count) ? (int) $count : 0;
     }
 
     private function roundsCount(string $competitionId): int

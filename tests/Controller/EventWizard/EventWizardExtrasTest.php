@@ -53,13 +53,11 @@ final class EventWizardExtrasTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', $this->url($competitionId));
         self::assertResponseIsSuccessful();
-        // Every switch off for a new event; the toolkit rows absent without the grant
-        foreach (['registration', 'elsewhere', 'judges'] as $row) {
+        // Every switch off for a new event - the toolkit rows too (every organiser has them since the toolkit flag went)
+        foreach (['registration', 'elsewhere', 'judges', 'qrTags', 'timerScreen'] as $row) {
             self::assertNull($crawler->filter('input[name="' . self::FORM . '[' . $row . ']"]')->attr('checked'), $row);
         }
-        self::assertSelectorNotExists('[data-event-wizard-toolkit-rows]');
-        self::assertSelectorNotExists('input[name="' . self::FORM . '[qrTags]"]');
-        self::assertSelectorNotExists('input[name="' . self::FORM . '[timerScreen]"]');
+        self::assertSelectorExists('[data-event-wizard-toolkit-rows]');
 
         $this->browser->submit($crawler->filter('form[name="' . self::FORM . '"]')->form());
         self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);

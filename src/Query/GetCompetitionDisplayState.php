@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\DisplayResults;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
 use SpeedPuzzling\Web\Services\UploaderHelper;
@@ -62,6 +63,7 @@ readonly final class GetCompetitionDisplayState
         private Connection $database,
         private RoundPuzzlesVisibleNow $roundPuzzlesVisibleNow,
         private UploaderHelper $uploaderHelper,
+        private DisplayImages $displayImages,
         private ClockInterface $clock,
         private string $nginxProxyBaseUrl,
     ) {
@@ -110,9 +112,10 @@ readonly final class GetCompetitionDisplayState
             $results = $this->results($round, $design, $display['uses_live_results'], $display['token']);
         }
 
+        // The design's own uploads by the display preset (original until lily's imgproxy has it - DisplayImages)
         $images = [];
         foreach (DisplayDesignSanitizer::imagePaths($design) as $path) {
-            $images[$path] = $this->uploaderHelper->getPublicPath($path);
+            $images[$path] = $this->displayImages->url($path);
         }
 
         return new CompetitionDisplayState(

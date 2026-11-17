@@ -1,0 +1,128 @@
+{
+    "visibleHash": "9c2f61d0a4b3e817",
+    "cutOffMs": 1799999400000,
+    "puzzles": {
+        "018d0040-0000-7000-8000-0000000000a1": {
+            "solvers": 5623,
+            "timesLogged": 9120,
+            "medianSeconds": 3480,
+            "percentiles": {"p10": 2310, "p25": 2790, "p50": 3480, "p75": 4420, "p90": 5730},
+            "histogram": [
+                {"fromSeconds": 1200, "count": 14},
+                {"fromSeconds": 1800, "count": 420},
+                {"fromSeconds": 2400, "count": 1350},
+                {"fromSeconds": 3000, "count": 1610},
+                {"fromSeconds": 3600, "count": 1100},
+                {"fromSeconds": 4200, "count": 640},
+                {"fromSeconds": 4800, "count": 300},
+                {"fromSeconds": 5400, "count": 189}
+            ],
+            "firstTries": {"count": 4102, "medianSeconds": 3720, "fastestSeconds": 1388},
+            "difficulty": {"score": 0.94, "tier": "hard", "confidence": "high"},
+            "top": [
+                {"place": 1, "name": "Kristin Wood", "country": "us", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f9", "seconds": 1241, "inRound": null},
+                {"place": 2, "name": null, "country": null, "profile": null, "seconds": 1302, "inRound": null},
+                {"place": 3, "name": "Šárka Nováková", "country": "cz", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f1", "seconds": 2467, "inRound": "018d0040-0000-7000-8000-0000000000e1"}
+            ]
+        },
+        "018d0040-0000-7000-8000-0000000000a2": {
+            "solvers": 0,
+            "timesLogged": 0,
+            "medianSeconds": null,
+            "percentiles": null,
+            "histogram": [],
+            "firstTries": {"count": 0, "medianSeconds": null, "fastestSeconds": null},
+            "difficulty": null,
+            "top": []
+        }
+    },
+    "entrants": {
+        "018d0040-0000-7000-8000-0000000000e1": {
+            "members": [
+                {
+                    "rating": 1834,
+                    "ratingPlace": 41,
+                    "rankingOptedOut": false,
+                    "solvedTotal": 412,
+                    "best500": 2290,
+                    "skill": {"018d0040-0000-7000-8000-0000000000a1": "expert", "018d0040-0000-7000-8000-0000000000a2": "expert"},
+                    "perPuzzle": {
+                        "018d0040-0000-7000-8000-0000000000a1": {
+                            "solves": 3, "firstSeconds": 3130, "bestSeconds": 2467, "lastSeconds": 2670, "firstTrySeconds": 3130,
+                            "unfinished": 0, "lastSolvedAtMs": 1789171200000, "lastSolvedAtPrecision": "day", "placeOnPuzzle": 3,
+                            "asGroup": {"solves": 1, "bestSeconds": 1650}
+                        }
+                    },
+                    "similar": {
+                        "018d0040-0000-7000-8000-0000000000a1": {"sizeCount": 212, "sizeMedian": 3090, "sizeBest": 2290, "brandCount": 12, "brandMedian": 2890, "brandBest": 2455},
+                        "018d0040-0000-7000-8000-0000000000a2": {"sizeCount": 212, "sizeMedian": 3090, "sizeBest": 2290, "brandCount": 30, "brandMedian": 3010, "brandBest": 2380}
+                    }
+                }
+            ],
+            "lineup": null
+        },
+        "018d0040-0000-7000-8000-0000000000e2": {
+            "members": [
+                {
+                    "rating": null,
+                    "ratingPlace": null,
+                    "rankingOptedOut": true,
+                    "solvedTotal": 57,
+                    "best500": null,
+                    "skill": null,
+                    "perPuzzle": {
+                        "018d0040-0000-7000-8000-0000000000a1": {
+                            "solves": 1, "firstSeconds": null, "bestSeconds": null, "lastSeconds": null, "firstTrySeconds": null,
+                            "unfinished": 1, "lastSolvedAtMs": 1764547200000, "lastSolvedAtPrecision": "month", "placeOnPuzzle": null,
+                            "asGroup": null
+                        }
+                    },
+                    "similar": {
+                        "018d0040-0000-7000-8000-0000000000a1": {"sizeCount": 9, "sizeMedian": 5520, "sizeBest": 4810, "brandCount": 0, "brandMedian": null, "brandBest": null}
+                    }
+                }
+            ],
+            "lineup": null
+        },
+        "018d0040-0000-7000-8000-0000000000e3": {"members": [{}], "lineup": null},
+        "018d0040-0000-7000-8000-0000000000e4": {"members": [{}], "lineup": null},
+        "018d0040-0000-7000-8000-0000000000e5": {
+            "members": [
+                {
+                    "rating": 1502,
+                    "ratingPlace": 388,
+                    "rankingOptedOut": false,
+                    "solvedTotal": 96,
+                    "best500": 3355,
+                    "skill": {"018d0040-0000-7000-8000-0000000000a1": "advanced", "018d0040-0000-7000-8000-0000000000a2": "advanced"},
+                    "perPuzzle": {},
+                    "similar": {
+                        "018d0040-0000-7000-8000-0000000000a1": {"sizeCount": 41, "sizeMedian": 4120, "sizeBest": 3355, "brandCount": 4, "brandMedian": 4300, "brandBest": 3990}
+                    }
+                }
+            ],
+            "lineup": null
+        },
+        "018d0040-0000-7000-8000-0000000000e6": {
+            "members": [
+                {
+                    "rating": 1650,
+                    "ratingPlace": 152,
+                    "rankingOptedOut": false,
+                    "solvedTotal": 230,
+                    "best500": 2805,
+                    "skill": {"018d0040-0000-7000-8000-0000000000a1": "advanced", "018d0040-0000-7000-8000-0000000000a2": "expert"},
+                    "perPuzzle": {
+                        "018d0040-0000-7000-8000-0000000000a1": {
+                            "solves": 1, "firstSeconds": 3302, "bestSeconds": 3302, "lastSeconds": 3302, "firstTrySeconds": 3302,
+                            "unfinished": 0, "lastSolvedAtMs": 1735689600000, "lastSolvedAtPrecision": "year", "placeOnPuzzle": 2310,
+                            "asGroup": null
+                        }
+                    },
+                    "similar": {}
+                }
+            ],
+            "lineup": null
+        }
+    }
+}

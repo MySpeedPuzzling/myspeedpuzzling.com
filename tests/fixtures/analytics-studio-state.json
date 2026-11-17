@@ -1,0 +1,119 @@
+{
+    "serverNowMs": 1800000000000,
+    "round": {
+        "id": "018d0040-0000-7000-8000-000000000001",
+        "name": "Individual D",
+        "category": "solo",
+        "startsAtMs": 1799999400000,
+        "minutesLimit": 90,
+        "stopwatch": {
+            "roundId": "018d0040-0000-7000-8000-000000000001",
+            "status": "running",
+            "startedAt": "2027-01-15T07:50:00+00:00",
+            "stoppedAt": null,
+            "minutesLimit": 90,
+            "startedAtMs": 1799999400000,
+            "stoppedAtMs": null,
+            "asOfMs": 1800000000000,
+            "stateHash": "4f1c0e9a2b7d3c11"
+        },
+        "published": false,
+        "liveResults": true,
+        "puzzleFormat": {"kind": "pick", "toSolve": 2}
+    },
+    "slots": [
+        {
+            "label": "A",
+            "revealsAtMs": null,
+            "puzzle": {
+                "key": "018d0040-0000-7000-8000-0000000000a1",
+                "name": "London Postcard",
+                "brand": "Trefl",
+                "pieces": 500,
+                "imageUrl": "https://img.myspeedpuzzling.com/preset-thumbnail/puzzles/london-postcard.jpg"
+            }
+        },
+        {
+            "label": "B",
+            "revealsAtMs": null,
+            "puzzle": {
+                "key": "018d0040-0000-7000-8000-0000000000a2",
+                "name": "Autumn Lake",
+                "brand": "Ravensburger",
+                "pieces": 500,
+                "imageUrl": null
+            }
+        },
+        {
+            "label": "C",
+            "revealsAtMs": 1800001800000,
+            "puzzle": null
+        }
+    ],
+    "visibleHash": "9c2f61d0a4b3e817",
+    "nextRevealAtMs": 1800000300000,
+    "entrants": [
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e1",
+            "isTeam": false,
+            "teamName": null,
+            "table": 12,
+            "members": [
+                {"name": "Šárka Nováková", "country": "cz", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f1", "analysable": true}
+            ]
+        },
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e2",
+            "isTeam": false,
+            "teamName": null,
+            "table": 3,
+            "members": [
+                {"name": "Ben Taylor", "country": "gb", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f2", "analysable": true}
+            ]
+        },
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e3",
+            "isTeam": false,
+            "teamName": null,
+            "table": 5,
+            "members": [
+                {"name": "Kim L.", "country": "kr", "profile": null, "analysable": false}
+            ]
+        },
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e4",
+            "isTeam": false,
+            "teamName": null,
+            "table": 7,
+            "members": [
+                {"name": "José Martínez", "country": "es", "profile": null, "analysable": false}
+            ]
+        },
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e5",
+            "isTeam": false,
+            "teamName": null,
+            "table": 112,
+            "members": [
+                {"name": "Anna Kowalczyk", "country": "pl", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f5", "analysable": true}
+            ]
+        },
+        {
+            "key": "018d0040-0000-7000-8000-0000000000e6",
+            "isTeam": false,
+            "teamName": null,
+            "table": null,
+            "members": [
+                {"name": "Zoë Ångström", "country": "se", "profile": "/en/player-profile/018d0040-0000-7000-8000-0000000000f6", "analysable": true}
+            ]
+        }
+    ],
+    "results": [
+        {"key": "018d0040-0000-7000-8000-0000000000e1", "state": "live", "seconds": 2475, "piecesPlaced": null, "piecesCount": null, "rank": null, "qualified": false},
+        {"key": "018d0040-0000-7000-8000-0000000000e5", "state": "live", "seconds": null, "piecesPlaced": 412, "piecesCount": 500, "rank": null, "qualified": false}
+    ],
+    "mercure": {
+        "hubUrl": "https://myspeedpuzzling.com/.well-known/mercure",
+        "topics": ["/round-stopwatch/018d0040-0000-7000-8000-000000000001"]
+    }
+}

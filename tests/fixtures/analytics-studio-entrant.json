@@ -1,0 +1,59 @@
+{
+    "visibleHash": "9c2f61d0a4b3e817",
+    "cutOffMs": 1799999400000,
+    "key": "018d0040-0000-7000-8000-0000000000e1",
+    "analytics": {
+        "members": [
+            {
+                "rating": 1834,
+                "ratingPlace": 41,
+                "rankingOptedOut": false,
+                "solvedTotal": 412,
+                "best500": 2290,
+                "skill": {"018d0040-0000-7000-8000-0000000000a1": "expert", "018d0040-0000-7000-8000-0000000000a2": "expert"},
+                "perPuzzle": {
+                    "018d0040-0000-7000-8000-0000000000a1": {
+                        "solves": 3, "firstSeconds": 3130, "bestSeconds": 2467, "lastSeconds": 2670, "firstTrySeconds": 3130,
+                        "unfinished": 0, "lastSolvedAtMs": 1789171200000, "lastSolvedAtPrecision": "day", "placeOnPuzzle": 3,
+                        "asGroup": {"solves": 1, "bestSeconds": 1650}
+                    }
+                },
+                "similar": {
+                    "018d0040-0000-7000-8000-0000000000a1": {"sizeCount": 212, "sizeMedian": 3090, "sizeBest": 2290, "brandCount": 12, "brandMedian": 2890, "brandBest": 2455},
+                    "018d0040-0000-7000-8000-0000000000a2": {"sizeCount": 212, "sizeMedian": 3090, "sizeBest": 2290, "brandCount": 30, "brandMedian": 3010, "brandBest": 2380}
+                }
+            }
+        ],
+        "lineup": null
+    },
+    "members": [
+        {
+            "predictionsOptedOut": false,
+            "prediction": {
+                "018d0040-0000-7000-8000-0000000000a1": {"seconds": 2580, "low50": 2400, "high50": 2820, "low80": 2250, "high80": 3050, "method": "personal"},
+                "018d0040-0000-7000-8000-0000000000a2": {"seconds": 2990, "low50": 2700, "high50": 3300, "low80": null, "high80": null, "method": "general"}
+            },
+            "attempts": {
+                "018d0040-0000-7000-8000-0000000000a1": [
+                    {"solvedAtMs": 1789171200000, "solvedAtPrecision": "day", "seconds": 2670, "piecesPlaced": null, "firstAttempt": false, "kind": "solo", "unboxed": false},
+                    {"solvedAtMs": 1776000000000, "solvedAtPrecision": "day", "seconds": 1650, "piecesPlaced": null, "firstAttempt": false, "kind": "pair", "unboxed": false},
+                    {"solvedAtMs": 1764547200000, "solvedAtPrecision": "month", "seconds": 2467, "piecesPlaced": null, "firstAttempt": false, "kind": "solo", "unboxed": false},
+                    {"solvedAtMs": 1735689600000, "solvedAtPrecision": "day", "seconds": 3130, "piecesPlaced": null, "firstAttempt": true, "kind": "solo", "unboxed": true}
+                ]
+            },
+            "recentSimilar": {
+                "018d0040-0000-7000-8000-0000000000a1": [
+                    {"puzzleName": "Paris Postcard", "brand": "Trefl", "pieces": 500, "seconds": 2455, "solvedAtMs": 1795000000000, "solvedAtPrecision": "day"},
+                    {"puzzleName": "Golden Gate", "brand": "Trefl", "pieces": 500, "seconds": 2980, "solvedAtMs": 1791000000000, "solvedAtPrecision": "day"}
+                ],
+                "018d0040-0000-7000-8000-0000000000a2": []
+            },
+            "recentForm": {
+                "500": {"medianSeconds": 2810, "seconds": [2455, 2980, 2790, 2600, 3120, 2810, 2700, 2930, 2501, 3010]}
+            }
+        }
+    ],
+    "earlierRounds": [
+        {"roundName": "Qualification 1", "category": "solo", "rank": 4, "seconds": 2590, "piecesPlaced": null, "piecesCount": null, "qualified": true}
+    ]
+}

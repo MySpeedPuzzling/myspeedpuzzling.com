@@ -1,0 +1,32 @@
+{
+    "visibleHash": "9c2f61d0a4b3e817",
+    "entrants": {
+        "018d0040-0000-7000-8000-0000000000e1": {
+            "members": [
+                {
+                    "predictionsOptedOut": false,
+                    "prediction": {
+                        "018d0040-0000-7000-8000-0000000000a1": {"seconds": 2580, "low50": 2400, "high50": 2820, "low80": 2250, "high80": 3050, "method": "personal"},
+                        "018d0040-0000-7000-8000-0000000000a2": {"seconds": 2990, "low50": 2700, "high50": 3300, "low80": null, "high80": null, "method": "general"}
+                    }
+                }
+            ]
+        },
+        "018d0040-0000-7000-8000-0000000000e2": {
+            "members": [{"predictionsOptedOut": true, "prediction": null}]
+        },
+        "018d0040-0000-7000-8000-0000000000e3": {
+            "members": [{}]
+        },
+        "018d0040-0000-7000-8000-0000000000e5": {
+            "members": [
+                {
+                    "predictionsOptedOut": false,
+                    "prediction": {
+                        "018d0040-0000-7000-8000-0000000000a1": {"seconds": 3810, "low50": 3500, "high50": 4150, "low80": 3300, "high80": 4500, "method": "personal"}
+                    }
+                }
+            ]
+        }
+    }
+}

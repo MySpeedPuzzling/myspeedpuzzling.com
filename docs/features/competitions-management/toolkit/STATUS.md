@@ -89,3 +89,16 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - ~~C5: ~20 s until offline-failed outbox items send after going live.~~ **Resolved** by C7 (instant send when back online).
 - ~~D7: ConvertCompetitionToSeries loses displays (blocker?).~~ **Resolved** by D8 (convert-to-series refuses an event with displays).
 - ~~D1: copy-link 404 until D4.~~ **Resolved** by D4 (`/display/{token}` exists).
+
+## Creation wizard (2026-11-17, orchestrator: sub-session; design `W-creation-wizard-research.md`)
+Jan: rework creating competitions into a wizard (toggle features, one round without extra clicks, especially series)
+and fix Duplicate (new dates). Flag `EVENT_CREATION_WIZARD` (admins always). Organiser interviews (W0) did not happen -
+the documented defaults are used. Packages in worktrees `.claude/worktrees/wz-<pkg>`, branches `wz/<pkg>`.
+
+| Pkg | State | Commit(s) | Notes |
+|---|---|---|---|
+| W4 | merged | 04210997e..545461e3d | Duplicate asks new date + name (GET form on `duplicate_competition`, edition prefill: name number +1, date + series gap); edit form "Move the rounds too" (ticked, shown when the start date changes; not offered once a round has stopwatch state, results or a secret puzzle), end date follows; `EventDateShift` shared with duplicate; `EditCompetition` now under the participants lock. Not behind a flag. Browser-walked |
+| W1 | in progress | | flag, entry, one-round path |
+
+Open items:
+- W4: a duplicate of a source without `dateFrom` now counts days from its first round (internal API too).

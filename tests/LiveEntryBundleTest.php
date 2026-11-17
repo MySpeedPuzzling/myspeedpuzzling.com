@@ -11,8 +11,8 @@ use Symfony\Component\Process\Process;
 /**
  * The live entry page's own Encore entry `live_entry` (assets/live_entry.js, competition toolkit C2 -
  * docs/features/competitions-management/toolkit/C-judge-page.md §1.1, §4.3) stays what makes it fast and offline-able:
- * - no lazy chunk: the service worker precaches only what entrypoints.json lists, so an `import()` anywhere in the
- *   entry's graph would be a file missing offline;
+ * - no lazy chunk: the service worker stores only what entrypoints.json lists with the page's offline copy, so an
+ *   `import()` anywhere in the entry's graph would be a file missing offline;
  * - no site bundle: Stimulus only - never Turbo, Live Components, Bootstrap JS or the stimulus bridge (it would pull in
  *   every controller);
  * - a size budget for its JS, measured by tests/live-entry-bundle.mjs as Encore's minifier (terser) would leave the
@@ -42,7 +42,7 @@ final class LiveEntryBundleTest extends TestCase
 
     public function testNothingInTheEntryIsLoadedLazily(): void
     {
-        self::assertSame([], $this->graph()['dynamicImports'], 'An import() in the live entry is a file the service worker never precaches - import it statically');
+        self::assertSame([], $this->graph()['dynamicImports'], 'An import() in the live entry is a file the service worker never stores for offline - import it statically');
     }
 
     public function testTheEntryCarriesNoneOfTheSiteBundle(): void

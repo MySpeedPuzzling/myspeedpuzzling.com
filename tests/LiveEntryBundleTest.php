@@ -37,13 +37,16 @@ use Symfony\Component\Process\Process;
  *   with sleep / clock-change detection, the snapshot's max wait + first state at once, the banner below an open card.
  *   2026-11-17 (reliability hardening T6): 199.8 → 202.6 KB / 54.9 → 55.6 KB gzip - a finished time with pieces
  *   missing (official_results_finished_missing.js, shared with the desk and the sheet; "+ Pieces missing" on the
- *   confirm step); budget stays 205 KB / 56 KB gzip;
+ *   confirm step); budget stays 205 KB / 56 KB gzip. 2026-11-17 (reliability hardening F2): 205.1 KB / 56.2 KB gzip - the
+ *   card's Save carries what it showed as `from` (a value saved meanwhile is a conflict or a deliberate "Replace", never
+ *   silently overwritten); budget 210 KB / 57 KB gzip - the live entry carries the judge's whole offline flow, keep
+ *   further additions in pure modules and measure;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 205_000;
-    private const int GZIP_BUDGET_BYTES = 56_000;
+    private const int MINIFIED_BUDGET_BYTES = 210_000;
+    private const int GZIP_BUDGET_BYTES = 57_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

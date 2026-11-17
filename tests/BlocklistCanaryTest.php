@@ -369,6 +369,51 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * **Documented exemption: competition displays** (timer screens and stream overlays, toolkit
+     * D-displays-overlays.md §9.4, R-review-and-plan.md §2.3). A display has no viewer - an anonymous capability URL
+     * on a hall screen or a stream, read by the stateless firewall - so a viewer's blocklist cannot apply: the blocker
+     * opening the link sees the same rows as everybody, organiser names only, no profile link or id. Pinned here so the
+     * exemption is a decision, not an oversight.
+     */
+    public function testCompetitionDisplaysHaveNoViewerAndSoNoBlocklist(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $token = 'DispBLock1111111111111';
+        $database->insert('competition_display', [
+            'id' => Uuid::uuid7()->toString(),
+            'competition_id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            'kind' => 'screen',
+            'name' => 'Hall',
+            'token' => $token,
+            'locale' => 'en',
+            'design' => '{"schema": 1, "elements": [{"id": "board001", "type": "leaderboard", "hidden": false, "when": {"phases": ["idle"]}, "props": {"rows": 10, "source": "published"}}]}',
+            'created_at' => TestClock::FROZEN_NOW,
+            'updated_at' => TestClock::FROZEN_NOW,
+            'follow_mode' => 'pinned',
+            'pinned_round_id' => OfficialResultsFixture::ROUND_GROUP_A,
+            'uses_results' => true,
+        ], ['uses_results' => 'boolean']);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/display/' . $token . '/state');
+        $browser->request('GET', '/display/' . $token . '/state');
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Ben Steady', $content, 'A display shows every row, whoever opened its link.');
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'A display never carries a player id.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'A display never carries a profile name.');
+    }
+
+    /**
      * The MSP Rating ladder (docs/features/msp-rating-history.md): its rows and "This week on the ladder" - the strip's
      * candidates are cached for everybody and the blocked player is the climber there, so the strip must drop them.
      */

@@ -112,6 +112,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetReports' => self::ADMIN,
         'GetResultReviewContactsOverview' => self::ADMIN,
         'GetResultReviewEmailCandidates' => self::BACKGROUND,
+        'GetCompetitionDisplayState' => 'Competition displays (timer screens, stream overlays - D-displays-overlays.md §9.4) have no viewer: an anonymous capability URL on a hall screen or a stream, like the public projector page and published results to a guest. Organiser names only, no identity.',
         'GetRoundResultEntries' => self::ORGANISER,
         'GetSeatingSeedTimes' => self::ORGANISER . ' Returns no identity either: only orders the organiser\'s entrants.',
         'GetSoldSwappedHistory' => self::BILATERAL,

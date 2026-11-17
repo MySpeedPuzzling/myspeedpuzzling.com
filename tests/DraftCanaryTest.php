@@ -32,6 +32,10 @@ use Symfony\Component\HttpFoundation\Response;
  * series itself), a draft organization, a past draft event; a surface that shows an item only in another place (the
  * organization page, the past) gets it there by SQL first. **Add every new event-listing surface here.**
  * DraftVisibilityCoverageTest keeps every reader of the event tables decided; DraftPagesTest covers the item pages.
+ *
+ * Documented exemption: competition displays (`/display/{token}/state|design`, toolkit D-displays-overlays.md §2) work
+ * for a draft by their token on purpose - a rehearsal before publishing, the token is the organiser's capability - and
+ * are no listing: nothing links to them (CompetitionDisplayStateControllerTest::testADraftEventsDisplayWorksByItsToken).
  */
 final class DraftCanaryTest extends WebTestCase
 {

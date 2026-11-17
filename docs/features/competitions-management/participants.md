@@ -166,7 +166,7 @@ only*, which the console command still uses.
 | `name` | Yes | Participant name |
 | `country` | No | 2-letter country code |
 | `external_id` | No | Organizer's external system reference |
-| `msp_player_id` | No | UUID of MSP player to link |
+| `msp_player_id` | No | The MSP player to link: id, `#code` / code, or a profile link (participant-linking.md §7.3; header aliases `msp`, `code`, `player code`, `profile`, `myspeedpuzzling`…). The export's `msp_code` column is read where this one is empty |
 | `status` | No | `active` (default) or `deleted` for soft-delete |
 | `round_names` | No | Rounds, separated by commas or semicolons, e.g. `Solo, Pair` - what the template and the export write. Matched ignoring upper/lower case and repeated whitespace. A round whose own name contains a comma or semicolon is recognised in the list too: the longest run of pieces that is a round's name wins |
 | `round_name` | No | One round, never split - the old column, still read; together with `round_names` both add up |
@@ -204,7 +204,7 @@ Best practice for organizers: edit an export (it carries `participant_id`), or u
 
 - `name` is required — rows without a name are skipped and reported as errors
 - `country` is validated against `CountryCode` enum — invalid codes reported as errors, row still imported without country
-- `msp_player_id` is validated: must be valid UUID format AND must exist in the `player` table. If UUID doesn't exist → reported as error, participant created without player link
+- The player cell is resolved by `PlayerReference` + `SiteSnapshotReader` (participant-linking.md §7.3): unreadable → `invalid_player_reference`, nobody → `unknown_player_reference`, a code more than one player has held → `code_changed_owner`, the same player for two people → `player_in_file_twice` (neither linked); in each case the row is imported without a profile
 - `status` must be `active` or `deleted` — invalid values default to `active`
 - Duplicate detection within the same import file (same name appearing twice) → reported as warning
 
@@ -264,6 +264,7 @@ Always contains ALL participant data (active participants by default):
 | `country` | 2-letter code | If set |
 | `external_id` | Organizer's reference | If set |
 | `msp_player_id` | UUID of linked player | If connected |
+| `msp_code` | `#CODE` of the linked player | Public profiles only |
 | `status` | `active` or `deleted` | Yes |
 
 Export is per-competition (per-edition for series). No cross-edition export. Downloadable as `.xlsx` from the management page.

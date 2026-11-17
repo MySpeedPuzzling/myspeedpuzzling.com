@@ -883,3 +883,28 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   editor ("· by themselves" for `self_join`/`claim`, "· import", "· personal link"; nothing for `organiser`/NULL).
 - §5.8: join / leave / compete_connect call `ParticipantsSheetLiveUpdates::changedAfterResponse()` (AfterResponse, the
   version read after the commit).
+
+### L1b - import with player references (2026-11-17)
+
+- `PlayerReference::parse()` (`src/Value/`): UUID; `#code` / bare code with the chooser's rule `[a-zA-Z0-9]{3,8}`
+  (`PlayerCodeFormData`), compared lower-cased (a few old codes are stored upper-case); a URL or path whose last segment
+  is a UUID (any language of `player_profile` - the route takes ids only, so a URL ending in a code is no reference).
+- `SiteSnapshotReader::read()` takes the cells as written and resolves ids + codes in one `UNION ALL` statement over
+  `player` and `player_code_change`. **Decision (R5):** a code resolves to the one player who holds or ever held it; more
+  than one player ever = `code_changed_owner`; a player's own former code (nobody else had it) is theirs. The
+  resolutions are in `SiteSnapshot::$references` and in the plan's fingerprint; the state version adds `connected_via`.
+- `PlanBuilder`: D7 `player_in_file_twice` on every row of the player when the rows are of different people (rows of
+  one person = one name key and at most one participant id - they add up as before); `linking.player_id_kept_self`
+  when the kept link is `ParticipantLinkMethod::isThePlayersOwn()`; `linking.name_differs` (R5, name keys by
+  `ParticipantNameKey::of()`) - never for a profile the organiser may not see (it would answer "is this the private
+  player's name?").
+- Preview "Profile" line (`ParticipantImportRowProfile`): "→ #CODE · Name" / "#CODE · Name (linked by themselves)";
+  masked (`PrivateProfileAccess::sqlIsPrivate()` in the reader + `HiddenPlayers`, the sheet's O9) = "the profile <cell>
+  from your file" / "a profile you cannot see". The `msp_player_id` UUID diff line is replaced by it.
+  `PrivateProfileCanaryTest::testTheImportPreviewNamesHerLinkedProfileForTheFriendOnly`.
+- Import links keep `connected_via = import` + log (L1a's applier, a `code` header test added).
+- Mapping: `msp_player_id` relabelled, aliases §7.3; new field `msp_code` (`ParticipantImportField::PlayerCode`, header
+  `msp code`) read where the player column is empty. Export: `msp_code` after `msp_player_id` (public profiles only,
+  `#CODE`); the template's player column is `msp_code`. Help: "Put a player's #code in the file only when they gave it
+  to you." Not done here: the `email` column, `link_refused_before` (L2), the D8 notification (L2).
+

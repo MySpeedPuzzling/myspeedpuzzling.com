@@ -1,0 +1,111 @@
+[
+    {
+        "case": "no rounds, no round",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [],
+        "expected": null
+    },
+    {
+        "case": "the running stopwatch wins, the latest started of several",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "A", "startsAt": "2026-10-10T09:00:00+00:00", "status": "running", "startedAt": "2026-10-10T09:02:00+00:00"},
+            {"name": "B", "startsAt": "2026-10-10T11:30:00+00:00", "status": "running", "startedAt": "2026-10-10T11:31:00+00:00"},
+            {"name": "C", "startsAt": "2026-10-10T11:55:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "B"
+    },
+    {
+        "case": "without a stopwatch the round started last within 12 hours",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Morning", "startsAt": "2026-10-10T08:00:00+00:00", "status": "stopped", "startedAt": "2026-10-10T08:01:00+00:00"},
+            {"name": "Late morning", "startsAt": "2026-10-10T10:30:00+00:00", "status": null, "startedAt": null},
+            {"name": "Afternoon", "startsAt": "2026-10-10T14:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Late morning"
+    },
+    {
+        "case": "before anything started, the next round",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Yesterday", "startsAt": "2026-10-09T09:00:00+00:00", "status": "stopped", "startedAt": "2026-10-09T09:00:00+00:00"},
+            {"name": "Final", "startsAt": "2026-10-10T16:00:00+00:00", "status": null, "startedAt": null},
+            {"name": "Semifinal", "startsAt": "2026-10-10T13:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Semifinal"
+    },
+    {
+        "case": "a countdown is not running yet",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Heat 1", "startsAt": "2026-10-10T11:00:00+00:00", "status": "running", "startedAt": "2026-10-10T11:01:00+00:00"},
+            {"name": "Heat 2", "startsAt": "2026-10-10T12:05:00+00:00", "status": "scheduled", "startedAt": "2026-10-10T12:05:00+00:00"}
+        ],
+        "expected": "Heat 1"
+    },
+    {
+        "case": "a passed scheduled start runs and started last",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Heat 1", "startsAt": "2026-10-10T11:00:00+00:00", "status": "running", "startedAt": "2026-10-10T11:01:00+00:00"},
+            {"name": "Heat 2", "startsAt": "2026-10-10T11:55:00+00:00", "status": "scheduled", "startedAt": "2026-10-10T11:58:00+00:00"}
+        ],
+        "expected": "Heat 2"
+    },
+    {
+        "case": "a scheduled start at this very second runs",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Heat 1", "startsAt": "2026-10-10T11:00:00+00:00", "status": "stopped", "startedAt": "2026-10-10T11:01:00+00:00"},
+            {"name": "Heat 2", "startsAt": "2026-10-10T12:00:00+00:00", "status": "scheduled", "startedAt": "2026-10-10T12:00:00+00:00"}
+        ],
+        "expected": "Heat 2"
+    },
+    {
+        "case": "only a countdown, before anything ran: the next round by schedule",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Final", "startsAt": "2026-10-10T15:00:00+00:00", "status": null, "startedAt": null},
+            {"name": "Semifinal", "startsAt": "2026-10-10T13:00:00+00:00", "status": "scheduled", "startedAt": "2026-10-10T12:30:00+00:00"}
+        ],
+        "expected": "Semifinal"
+    },
+    {
+        "case": "all over long ago, the last round",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Group A", "startsAt": "2026-09-01T09:00:00+00:00", "status": "stopped", "startedAt": "2026-09-01T09:00:00+00:00"},
+            {"name": "Final", "startsAt": "2026-09-01T15:00:00+00:00", "status": "stopped", "startedAt": "2026-09-01T15:00:00+00:00"},
+            {"name": "Group B", "startsAt": "2026-09-01T11:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Final"
+    },
+    {
+        "case": "parallel halls started at the same moment: the name decides",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Hall B", "startsAt": "2026-10-10T11:00:00+00:00", "status": "running", "startedAt": "2026-10-10T11:00:00+00:00"},
+            {"name": "Hall A", "startsAt": "2026-10-10T11:00:00+00:00", "status": "running", "startedAt": "2026-10-10T11:00:00+00:00"}
+        ],
+        "expected": "Hall A"
+    },
+    {
+        "case": "two upcoming rounds at the same time: the name decides",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Group D", "startsAt": "2026-10-10T14:00:00+00:00", "status": null, "startedAt": null},
+            {"name": "Group C", "startsAt": "2026-10-10T14:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Group C"
+    },
+    {
+        "case": "started 13 hours ago is no longer recent: the next round",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Night", "startsAt": "2026-10-09T23:00:00+00:00", "status": "stopped", "startedAt": "2026-10-09T23:00:00+00:00"},
+            {"name": "Evening", "startsAt": "2026-10-10T18:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Evening"
+    }
+]

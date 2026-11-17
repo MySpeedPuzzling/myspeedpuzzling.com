@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\LiveResults;
 
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
@@ -87,6 +88,36 @@ final class LiveResultsCurrentRoundTest extends TestCase
         ];
 
         self::assertSame('Final', LiveResultsCurrentRound::pick($rounds, new DateTimeImmutable(self::NOW))?->name);
+    }
+
+    /**
+     * The cases the live entry's offline copy runs too (assets/live_entry_shell.js currentRound(),
+     * tests/live-entry-shell-harness.mjs) - the JS port picks what this class picks.
+     *
+     * @param list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}> $rounds
+     */
+    #[DataProvider('provideSharedCases')]
+    public function testTheSharedCasesTheOfflineCopyRunsToo(string $now, array $rounds, null|string $expected): void
+    {
+        $overviews = array_map(
+            static fn (array $round): RoundResultsOverview => self::round($round['name'], $round['startsAt'], $round['status'], $round['startedAt']),
+            $rounds,
+        );
+
+        self::assertSame($expected, LiveResultsCurrentRound::pick($overviews, new DateTimeImmutable($now))?->name);
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}>, null|string}>
+     */
+    public static function provideSharedCases(): iterable
+    {
+        /** @var list<array{case: string, now: string, rounds: list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}>, expected: null|string}> $cases */
+        $cases = json_decode((string) file_get_contents(__DIR__ . '/../../fixtures/live-current-round-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ($cases as $case) {
+            yield $case['case'] => [$case['now'], $case['rounds'], $case['expected']];
+        }
     }
 
     private static function round(string $name, string $startsAt, null|string $status, null|string $stopwatchStartedAt): RoundResultsOverview

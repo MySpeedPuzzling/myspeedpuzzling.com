@@ -43,7 +43,7 @@ says so and is tried again by itself (2, 4 … 30 s, at once when back online, R
 
 **Offline copy and native apps** (competition toolkit C3): `live_results_shell` (`/{locale}/live-results-shell`, cs
 `/zadavani-vysledku-shell`, `LiveResultsShellController`) is the same markup with nothing of any round or person -
-`data-live-results-shell-value="true"`, no round id, sign-in link without a return, no `msp-rendered-at` meta (the
+`data-live-results-shell-value="true"`, no round id, sign-in link without a return (C5 adds it in JS), no `msp-rendered-at` meta (the
 stale-document check does nothing there), `Cache-Control: public, no-cache`, `noindex`, on the `stateless` firewall (no
 session, no cookie). The service worker will keep it per locale and answer it when the network fails for a live entry
 URL (C6), the page then rendering the device's saved rounds (C4/C5). Whose rounds: the readable cookie
@@ -54,6 +54,19 @@ credential - the server never reads it. Inside the native apps (Hotwire Native, 
 entry `live_entry_native` (Turbo with Drive off): the apps' WebView finishes loading a page only when Turbo runs on it
 (without it, the iOS app waits 30 s, the Android app 4 s, then shows its error screen). Links stay plain page loads,
 which the apps route natively. The offline copy never carries it (the apps run no service worker).
+
+**The offline copy at work** (competition toolkit C5): the controller sees `shell` and reads the URL it was answered at
+(`assets/live_entry_route.js` - `live_results`, `live_results_event`, the printed name tag `/{locale}/live/{cid}/p/{pid}`
+and the frozen tag paths `/live/{cid}/g|t|e/…` with or without a locale). `assets/live_entry_shell.js` `shellPlan()`
+picks the snapshot of the player the cookie names: the round's own; for an event the JS port of
+`LiveResultsCurrentRound::pick()` over the event's snapshots (shared cases `tests/fixtures/live-current-round-cases.json`,
+run by PHPUnit and the node harness) then the round picked by hand within 12 h; for a name tag the entrant's round (the
+entry opens), else the current one; line-up/table/entry tags open the current round (C8 resolves them). The round renders
+at once with the offline-copy strip, saves go into the outbox, and the state is asked for every 5 s (and on `online`);
+its first answer makes the page live and rewrites the address to the round's own live URL. Neutral screens instead of a
+blank page: no cookie → "You are offline - open this page again with a connection" + Retry + Sign in (back to the URL
+asked for) + the device's unsent count; no snapshot → "No offline copy of this round on this phone" + the snapshots it
+has (links). Tests: `tests/live-entry-shell-harness.mjs` (`LiveEntryShellScriptsTest`).
 
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and

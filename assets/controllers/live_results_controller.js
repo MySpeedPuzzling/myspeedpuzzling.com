@@ -26,6 +26,8 @@ import { chooseTranslation } from '../translation_choice.js';
 import { devicePlayerOf, forgetDraftsExcept, samePlayer } from '../live_entry_device.js';
 import { createIndexedDbSnapshotStorage, createMemorySnapshotStorage, PREFETCH_GAP_MS, prefetchRounds, prefetchTargets, SnapshotStore } from '../live_entry_snapshot.js';
 import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../live_entry_draft.js';
+import { parseLiveEntryRoute } from '../live_entry_route.js';
+import { liveUrlOnceLive, loginUrlWithReturn, shellPlan } from '../live_entry_shell.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -52,6 +54,8 @@ const STOPWATCH_TRUSTED_MS = 10000;
 // A page load this page started itself (a link it let go, a round switch) is not asked about again by `beforeunload`
 // for this long - the browser starts unloading right after the click
 const LEAVE_CONFIRMED_MS = 3000;
+// The page runs on its offline copy: the state is asked for this often (and at once when the device is back online)
+const OFFLINE_COPY_RETRY_MS = 5000;
 const CHANNEL = 'msp-official-results';
 const ROUND_KEY = 'msp.liveResults.round.';
 
@@ -122,6 +126,7 @@ export default class extends Controller {
         notice: String,
         messages: Object,
         plurals: Object,
+        shell: Boolean,
     };
 
     connect() {
@@ -175,11 +180,25 @@ export default class extends Controller {
         this.offlineCopyAt = null;
         this.prefetchStarted = false;
         this.pendingTappedAt = null;
+        // The offline copy (`live_results_shell`, toolkit C5): what it shows instead of a round - null, 'signedOut',
+        // 'noCopy' - and the device's other snapshots offered there
+        this.shellScreen = null;
+        this.shellOthers = [];
+        this.shellUnsent = 0;
         this.setupSnapshots();
 
         this.setKeyboard('text');
 
         this.onOnline = () => {
+            // The offline copy without a round to ask for (signed out, an event nobody opened here): the URL itself
+            // again - the network answers it now (or the copy comes back)
+            if (this.shellValue && !this.ready && this.roundIdValue === '') {
+                this.confirmLeaving();
+                window.location.reload();
+
+                return;
+            }
+
             if (!this.ready || this.offlineCopyAt !== null) {
                 this.loadNow();
             }
@@ -265,8 +284,94 @@ export default class extends Controller {
         this.render();
         this.findInputTarget.focus({ preventScroll: true });
 
+        if (this.shellValue) {
+            this.startShell();
+
+            return;
+        }
+
         // One fetch fills the page: the round, its entries, the clock, the stream's token and who reads it
         this.loadNow();
+    }
+
+    /**
+     * The offline copy (competition toolkit C5, C-judge-page.md §1.6): the service worker answered it in place of a
+     * live entry URL whose request failed. The URL tells what was asked for, the device's snapshots of the player its
+     * cookie names give the round - shown at once, then the state is asked for until it answers (the page goes live by
+     * itself). Without a player or a snapshot: a neutral screen, never a blank page.
+     */
+    async startShell() {
+        const route = parseLiveEntryRoute(window.location.href);
+        const query = new URL(window.location.href).searchParams;
+        const player = devicePlayerOf(document.cookie);
+
+        this.landing = landingOf({ entrant: query.get('entrant') ?? '', table: query.get('table') ?? '', entry: query.get('entry') ?? '' });
+
+        // Signing in comes back to the URL that was asked for (not to this copy's own address)
+        if (route !== null) {
+            this.loginUrlValue = loginUrlWithReturn(this.loginUrlValue, `${window.location.pathname}${window.location.search}`);
+        }
+
+        const snapshots = player === null || this.snapshots === null ? [] : await this.snapshots.list().catch(() => []);
+        const plan = shellPlan({
+            route,
+            player,
+            snapshots,
+            nowMs: Date.now(),
+            remembered: (competitionId) => this.readRememberedRound(competitionId),
+        });
+
+        if (!this.isConnected()) {
+            return;
+        }
+
+        if (plan.screen === 'round') {
+            this.roundIdValue = plan.snapshot.roundId;
+
+            if (this.landing === null) {
+                this.landing = plan.landing;
+            }
+
+            await this.startFromSnapshot(plan.snapshot);
+            this.loadNow();
+
+            return;
+        }
+
+        this.shellScreen = plan.screen;
+        this.shellOthers = plan.screen === 'noCopy' ? plan.others : [];
+        this.findViewTarget.hidden = true;
+
+        if (plan.screen === 'signedOut') {
+            this.shellUnsent = await this.unsentOnDevice();
+        } else if (plan.roundId) {
+            // A round nobody opened on this device: it opens as soon as its state answers
+            this.roundIdValue = plan.roundId;
+            this.loadNow();
+        }
+
+        this.scheduleRender();
+    }
+
+    /**
+     * Results on this device waiting to be sent (any player's) - only counted where the outbox's database exists.
+     */
+    async unsentOnDevice() {
+        try {
+            if (typeof indexedDB?.databases === 'function') {
+                const databases = await indexedDB.databases();
+
+                if (!databases.some((database) => database.name === 'msp-official-results')) {
+                    return 0;
+                }
+            }
+
+            const storage = await createIndexedDbStorage();
+
+            return storage === null ? 0 : (await storage.getAll()).length;
+        } catch (e) {
+            return 0;
+        }
     }
 
     /**
@@ -275,6 +380,11 @@ export default class extends Controller {
     loadNow() {
         clearTimeout(this.loadTimer);
         this.loadTimer = null;
+
+        // The offline copy with no round to ask for
+        if (this.roundIdValue === '') {
+            return Promise.resolve();
+        }
 
         return this.refreshState().then(async (kind) => {
             if ((this.ready && this.offlineCopyAt === null) || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || this.stateBlocked === 'gone') {
@@ -295,7 +405,7 @@ export default class extends Controller {
             this.loadAttempts += 1;
             this.loadFailed = true;
             this.scheduleRender();
-            this.loadTimer = setTimeout(() => this.loadNow(), Math.min(LOAD_RETRY_MAX_MS, 1000 * (2 ** this.loadAttempts)));
+            this.loadTimer = setTimeout(() => this.loadNow(), Math.min(this.offlineCopyAt !== null ? OFFLINE_COPY_RETRY_MS : LOAD_RETRY_MAX_MS, 1000 * (2 ** this.loadAttempts)));
         });
     }
 
@@ -305,6 +415,15 @@ export default class extends Controller {
     start(state) {
         this.ready = true;
         this.loadFailed = false;
+
+        if (this.shellScreen !== null) {
+            // The offline copy's screen gives way to the round (its state answered)
+            this.shellScreen = null;
+            this.shellOthers = [];
+            this.findViewTarget.hidden = false;
+            this.goneLiveUrl();
+        }
+
         clearTimeout(this.loadTimer);
         this.userId = this.settings.playerId ?? '';
 
@@ -394,12 +513,12 @@ export default class extends Controller {
     /**
      * The first state did not come: the page starts from the round's snapshot, if this device has one.
      */
-    async startFromSnapshot() {
+    async startFromSnapshot(given = null) {
         if (this.snapshots === null) {
             return false;
         }
 
-        const snapshot = await this.snapshots.read(this.roundIdValue).catch(() => null);
+        const snapshot = given ?? await this.snapshots.read(this.roundIdValue).catch(() => null);
 
         if (snapshot === null || this.ready || !this.isConnected() || !samePlayer(snapshot.state?.viewer?.playerId, snapshot.playerId)) {
             return false;
@@ -438,6 +557,7 @@ export default class extends Controller {
         this.loadFailed = false;
         this.loadAttempts = 0;
         clearTimeout(this.loadTimer);
+        this.goneLiveUrl();
         this.viewer = state.viewer;
         // The event's people from the snapshot: asked for anew when needed
         this.eventPeople = null;
@@ -445,6 +565,25 @@ export default class extends Controller {
         this.refreshSettings();
         this.scheduleRender();
         this.schedulePrefetch();
+    }
+
+    /**
+     * The offline copy went live: its address becomes the round's live entry URL (an event's or a tag's URL would pick
+     * again on a reload), and signing in comes back there.
+     */
+    goneLiveUrl() {
+        if (!this.shellValue) {
+            return;
+        }
+
+        const live = this.liveUrl(this.roundIdValue);
+        const path = liveUrlOnceLive(window.location.href, live);
+
+        if (path !== null) {
+            window.history.replaceState(window.history.state, '', path);
+        }
+
+        this.loginUrlValue = loginUrlWithReturn(this.loginUrlValue.split('?')[0], live);
     }
 
     /**
@@ -1186,7 +1325,10 @@ export default class extends Controller {
         let state = 'saved';
         let text = this.t('syncSaved');
 
-        if (!this.ready && (blocked === null || blocked === undefined)) {
+        if (!this.ready && this.shellScreen !== null) {
+            state = 'waiting';
+            text = this.t('shellOffline');
+        } else if (!this.ready && (blocked === null || blocked === undefined)) {
             // Nothing of the round yet - no claim that anything is saved
             state = 'waiting';
             text = this.t('loading');
@@ -1234,7 +1376,9 @@ export default class extends Controller {
         const reason = blocked === 'auth' || this.stateBlocked === 'auth' ? 'auth' : (this.stateBlocked ?? blocked);
         const parts = [];
 
-        if (reason === 'auth' || reason === 'forbidden') {
+        if (!this.ready && this.shellScreen !== null) {
+            parts.push(this.shellScreenHtml());
+        } else if (reason === 'auth' || reason === 'forbidden') {
             // Signed out, or no rights for THIS round's event: nothing of it can be sent
             parts.push(`<div class="alert alert-danger mb-2" role="alert">
                 <p class="mb-2">${escapeHtml(this.t(reason === 'auth' ? 'bannerAuth' : 'bannerForbidden'))}</p>
@@ -1290,6 +1434,38 @@ export default class extends Controller {
             this.bannerTarget.innerHTML = html;
             this.bannerTarget.hidden = html === '';
         }
+    }
+
+    /**
+     * The offline copy's screens - neutral words (a non-referee scanning a tag offline gets them too, R §1.3).
+     */
+    shellScreenHtml() {
+        const retry = `<button type="button" class="btn btn-outline-secondary" data-action="live-results#reload">${escapeHtml(this.t('retry'))}</button>`;
+
+        if (this.shellScreen === 'signedOut') {
+            const unsent = this.shellUnsent > 0 ? `<p class="small mb-2">${escapeHtml(this.plural('foreign', this.shellUnsent))}</p>` : '';
+
+            return `<div class="alert alert-secondary mb-2" role="status" data-live-shell-screen="signed-out">
+                <p class="mb-2">${escapeHtml(this.t('shellSignedOut'))}</p>
+                ${unsent}
+                <div class="d-flex flex-wrap gap-2">
+                    ${retry}
+                    <a class="btn btn-outline-secondary" href="${escapeHtml(this.loginUrlValue)}">${escapeHtml(this.t('signIn'))}</a>
+                </div>
+            </div>`;
+        }
+
+        const others = this.shellOthers.slice(0, 10).map((snapshot) => {
+            const round = snapshot.state?.round?.name ?? '';
+            const event = snapshot.state?.competition?.name ?? '';
+
+            return `<a class="list-group-item list-group-item-action" href="${escapeHtml(this.liveUrl(snapshot.roundId))}">${escapeHtml(round)}${event !== '' ? ` <span class="text-muted small">· ${escapeHtml(event)}</span>` : ''}</a>`;
+        }).join('');
+
+        return `<div class="alert alert-secondary mb-2" role="status" data-live-shell-screen="no-copy">
+                <p class="mb-2">${escapeHtml(this.t('shellNoCopy'))}</p>
+                <div class="d-flex flex-wrap gap-2">${retry}</div>
+            </div>${others !== '' ? `<p class="small text-muted mb-1">${escapeHtml(this.t('shellOtherCopies'))}</p><div class="list-group mb-2">${others}</div>` : ''}`;
     }
 
     renderFind() {
@@ -1693,9 +1869,9 @@ export default class extends Controller {
         return this.leaveConfirmedAt !== undefined && Date.now() - this.leaveConfirmedAt < LEAVE_CONFIRMED_MS;
     }
 
-    readRememberedRound() {
+    readRememberedRound(competitionId = this.settings.competitionId) {
         try {
-            return JSON.parse(storageGet(ROUND_KEY + (this.settings.competitionId ?? '')) ?? 'null');
+            return JSON.parse(storageGet(ROUND_KEY + (competitionId ?? '')) ?? 'null');
         } catch (e) {
             return null;
         }

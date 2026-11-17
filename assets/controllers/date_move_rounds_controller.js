@@ -7,15 +7,19 @@ import { Controller } from '@hotwired/stimulus';
  * question that changes nothing is not asked). Without JavaScript the checkbox is simply visible. The date picker
  * (flatpickr) writes the original input and fires its change event, which bubbles here.
  *
+ * Under the checkbox, the concrete effect: "The start moves from 15.06.2027 to 22.06.2027 - …" (the `effect` value,
+ * translated, with %from% and %to%) - Jan did not understand the bare checkbox.
+ *
  * The end date follows: while it still shows the saved end (or the one this controller put there), a new start moves it
  * by the same number of days - the organiser sees it and can change it. The server saves what was submitted.
  */
 export default class extends Controller {
-    static targets = ['date', 'end', 'option'];
+    static targets = ['date', 'end', 'option', 'effect'];
 
     static values = {
         original: String,
         originalEnd: String,
+        effect: String,
     };
 
     connect() {
@@ -34,7 +38,25 @@ export default class extends Controller {
             this.optionTarget.hidden = start === this.originalValue;
         }
 
+        this.showEffect(start);
         this.followEnd(start);
+    }
+
+    showEffect(start) {
+        if (!this.hasEffectTarget) {
+            return;
+        }
+
+        const days = daysBetween(this.originalValue, start);
+
+        if (days === null || days === 0 || this.effectValue === '') {
+            this.effectTarget.hidden = true;
+
+            return;
+        }
+
+        this.effectTarget.textContent = this.effectValue.replace('%from%', this.originalValue).replace('%to%', start);
+        this.effectTarget.hidden = false;
     }
 
     followEnd(start) {

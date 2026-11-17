@@ -655,7 +655,7 @@ no qualification, the winner per category has the lowest sum.
   `COMPETITION_TOOLKIT_MANAGE`. Organiser JSON `official_results_standing_state`
   (`GET /{_locale}/official-results/standings/{standingId}`, `COMPETITION_RESULTS_ENTRY`, `no-store`; referees get no
   `playerCode` of private players) - shape `StandingTable::toArray()` (A §6.4 with `includesUnpublished`, `perRound[].status`).
-- Not built yet: the bracket (A8/A9).
+- The bracket: see "Bracket (competition toolkit A9)" below.
 - Tests: `tests/Services/CompetitionToolkit/StandingCalculatorTest.php`, `tests/CompetitionToolkit/CompetitionStandingsTest.php`
   (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`.
 
@@ -697,6 +697,43 @@ Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (n
 - Tests: `tests/CompetitionToolkit/PublicStandingsTest.php` (publish/unpublish, organiser buttons, provisional, ranks =
   preview, drafts/unapproved 404, links, sitemap, edition URL), canaries `BlocklistCanaryTest`,
   `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…InAPublicStanding`, `…StandingOfADraft…`), `DetailPagesQueryBudgetTest`.
+
+### Bracket (competition toolkit A9)
+
+Design: `toolkit/A-round-formats.md` §3.5 (bracket part); R §2.2, §2.3, §3 (no final classification across stages in v1).
+Built from the declared advancement steps (A8, results-desk.md "Declared advancement steps") - nothing to switch on:
+an event with steps has a bracket.
+
+- **Layout:** `BracketLayout::of(steps, rounds)` (pure, `src/Services/CompetitionToolkit/`) → one `Bracket` per category
+  (by its earliest round): `stages` = columns by `AdvancementStepGraph::stages()` (groups 1 → semifinals 2 → final 3), the
+  rounds of a stage in schedule order, `gaps` = the lines between neighbouring stages (`BracketConnector`, y in a 0-1000
+  viewBox = (index + ½) / rounds; `balanced`/`single` = every source to every target, `by_source` = its own target), `feeds`
+  = the step feeding each round ("Top 8 of each round: Group A, Group B"). A step a later round change broke is left
+  out (the steps page marks it); steps clashing with each other give no bracket. A round feeding past a stage gets no line
+  (its target's "from" line names it).
+- **Rendering** (`templates/bracket/_bracket.html.twig`, `_round.html.twig`, `assets/styles/_bracket.scss`): CSS grid,
+  stage columns with equal slots (rows `1fr`, columns stretched), an inline SVG per gap (`preserveAspectRatio="none"`,
+  non-scaling strokes) - no JS, no library. Below md the stages stack with an arrow between them (375 px: no horizontal
+  scroll). Box: name, start (round's zone), status (`BracketRoundStatus`: upcoming / live now / results coming / results
+  via `RoundStopwatchStatus::at()`), the feed line.
+- **Public page:** `event_bracket` `/{_locale}/events/{slug}/bracket` (cs `/eventy/{slug}/pavouk`; an edition's event URL
+  redirects 301) and `edition_bracket` `/{_locale}/series/{s}/{e}/bracket`, through `BracketPageBuilder`: 404 for an event
+  that is not public (drafts, unapproved - its team too) and for an event without steps; every step broken = an empty
+  page. A box names entrants **only once its round's results are published**: its qualified (✓) - or the top 3 of a round
+  that qualified nobody (a final) - at most 32, from `OfficialEntrantsView::forRounds()` only (hidden players dropped
+  without renumbering, private players by the organiser's name), and links the round page. `noindex` until a round is
+  published. Statements: visibility, the event, the steps, the rounds (`GetBracketRounds`, no puzzles), ≤ 2 for entrants.
+- **Organiser view:** the steps page (`competition_advancement_steps_manage`) shows the bracket instead of A8's stage strip,
+  each box with "Results x / y · qualified n" (`GetRoundResultsOverview`, published or not), Results desk / public
+  results links, and a "Public page" link (not for a draft). Only with steps: an event without them asks nothing more.
+- **Links:** `GetCompetitionEvents::byId()` brings the rounds of the steps along (`CompetitionEvent::$bracketRoundIds`,
+  `hasBracket()`, `bracketIncludesRound()`) - no statement of its own (`DetailPagesQueryBudgetTest::testDeclaredAdvancement…`).
+  Event/edition page: a "Bracket" button in the standings row under the rounds heading (public pages only; untouched events
+  byte-identical); round page: "Bracket of the event →" on rounds that take part in a step; sitemap: public events with steps
+  and at least one of their rounds published (`GetCompetitionSlugsForSitemap::bracketSlugs()`).
+- Tests: `tests/Services/CompetitionToolkit/BracketLayoutTest.php`, `tests/CompetitionToolkit/PublicBracketTest.php`
+  (published-only marks, top 3, 404s, links, organiser view, sitemap, edition URL, statement budget), canaries
+  `BlocklistCanaryTest`, `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…Bracket…`), `DetailPagesQueryBudgetTest`.
 
 ## Round Stopwatch
 

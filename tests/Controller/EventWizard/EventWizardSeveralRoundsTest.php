@@ -146,18 +146,21 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft('every_round_counts');
 
-        // 18 rounds every 2 hours do not fit into the one day: refused, nothing created
+        // 18 rounds every typed 2 hours do not fit into the one day: refused, nothing created
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=every_round_counts');
-        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts']);
+        $crawler = $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '120']);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString("The rounds don't fit into the event's day", $crawler->filter('[data-event-wizard-template]')->text());
         self::assertSame(0, $this->roundsCount($competitionId));
 
-        $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '30']);
+        // The gap left automatic: closer, so they fit - from 10:00 every 45 minutes
+        $this->buildTemplate($crawler, ['template' => 'every_round_counts', 'everyMinutes' => '']);
         self::assertResponseRedirects();
 
         $rounds = $this->rounds($competitionId);
         self::assertCount(18, $rounds);
+        // 10:00 Prague, then every 45 minutes
+        self::assertStringStartsWith('2027-06-15 08:45', $rounds[1]['starts_at']);
         self::assertSame(['Solo 1', 'Pairs 1', 'Teams 1', 'Solo 2'], array_slice(array_column($rounds, 'name'), 0, 4));
         self::assertSame(4, $rounds[2]['team_size']);
 

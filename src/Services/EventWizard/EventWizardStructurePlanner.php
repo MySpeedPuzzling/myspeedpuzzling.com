@@ -20,9 +20,11 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  *   category.
  * - **Schedule** (the one rule, W-creation-wizard-research.md §3.5 "As built (W5)"): the rounds are
  *   spread evenly over the event's days - ceil(rounds / days) a day, in order - each day's first round at the start time,
- *   the next ones every $everyMinutes after it - every start within its own day: when a day's rounds would run past
- *   midnight the template does not fit (null - the form says so; start earlier, add a day, fewer rounds or a shorter
- *   gap). Every name and start stays editable in the schedule table.
+ *   the next ones every $everyMinutes after it - every start within its own day. A gap left empty is automatic: 2 hours,
+ *   or the largest gap in whole 5 minutes that still ends the day's last start before midnight (at least 30 minutes);
+ *   a typed gap is kept. When a day's rounds would still run past midnight the template does not fit (null - the form
+ *   says so; start earlier, add a day, fewer rounds or a shorter gap). Every name and start stays editable in the
+ *   schedule table.
  */
 readonly final class EventWizardStructurePlanner
 {
@@ -52,10 +54,19 @@ readonly final class EventWizardStructurePlanner
 
         $perDay = (int) ceil($count / max(1, $days));
         [$hours, $minutes] = array_map(intval(...), explode(':', trim((string) $data->startTime)));
-        $every = $data->everyMinutes ?? 0;
+        $dayMinutesLeft = 24 * 60 - 1 - ($hours * 60 + $minutes);
+        $every = $data->everyMinutes ?? EventWizardStructureFormData::DEFAULT_EVERY_MINUTES;
+
+        if ($data->everyMinutes === null && $perDay > 1 && ($perDay - 1) * $every > $dayMinutesLeft) {
+            $every = intdiv(intdiv($dayMinutesLeft, $perDay - 1), 5) * 5;
+
+            if ($every < EventWizardStructureFormData::MIN_AUTOMATIC_EVERY_MINUTES) {
+                return null;
+            }
+        }
 
         // A day's last round starts before its midnight
-        if ($hours * 60 + $minutes + ($perDay - 1) * $every > 24 * 60 - 1) {
+        if (($perDay - 1) * $every > $dayMinutesLeft) {
             return null;
         }
 

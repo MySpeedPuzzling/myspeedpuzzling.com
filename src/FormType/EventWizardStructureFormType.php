@@ -89,7 +89,9 @@ final class EventWizardStructureFormType extends AbstractType
 
         $builder->add('everyMinutes', IntegerType::class, [
             'label' => 'event_wizard.structure.every_minutes',
-            'attr' => ['min' => 0, 'step' => 5, 'inputmode' => 'numeric'],
+            'required' => false,
+            // Empty = automatic (EventWizardStructurePlanner)
+            'attr' => ['min' => 0, 'step' => 5, 'inputmode' => 'numeric', 'placeholder' => 'event_wizard.structure.every_minutes_automatic'],
         ]);
 
         $builder->add('build', SubmitType::class, [

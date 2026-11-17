@@ -38,6 +38,10 @@ final class EventWizardStageFormType extends AbstractType
         $builder->add('category', EnumType::class, [
             'class' => RoundCategory::class,
             'label' => 'event_wizard.puzzle.who_competes',
+            // Always one of them - no "required" marker, no empty choice
+            'required' => false,
+            'placeholder' => false,
+            'empty_data' => RoundCategory::Solo->value,
             'choice_label' => static fn (RoundCategory $category): string => EventWizardScheduleRowFormType::categoryLabel($category),
         ]);
         $builder->add('teamSize', IntegerType::class, [

@@ -93,8 +93,21 @@ final class EventWizardStructurePlannerTest extends TestCase
         $data->teamsRounds = 0;
         $data->startTime = '10:00';
 
-        // 12 rounds every 2 hours from 10:00: the last one would start at 08:00 the next day
+        // Left automatic: the largest gap in 5 minutes that ends the day before midnight - 75 minutes, the last at 23:45
+        $automatic = self::plan($data, new DateTimeImmutable('2027-06-15'), 1);
+        self::assertSame('2027-06-15 11:15', $automatic[1]->startsLocal);
+        self::assertSame('2027-06-15 23:45', $automatic[11]->startsLocal);
+
+        // 12 rounds every typed 2 hours from 10:00: the last one would start at 08:00 the next day
+        $data->everyMinutes = 120;
         self::assertNull(self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1));
+
+        // Automatic, but even 30 minutes is too short a gap for 40 rounds from 10:00 - no fit
+        $data->everyMinutes = null;
+        $data->soloRounds = 40;
+        self::assertNull(self::planner()->plan($data, new DateTimeImmutable('2027-06-15'), 1));
+        $data->soloRounds = 12;
+        $data->everyMinutes = 120;
 
         // Over two days: 6 a day, the last at 20:00
         $rounds = self::plan($data, new DateTimeImmutable('2027-06-15'), 2);

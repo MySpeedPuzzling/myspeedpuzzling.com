@@ -23,6 +23,9 @@ final class EventWizardStructureFormData
 {
     public const int STAGE_ROWS = 5;
     public const int CATEGORY_ROUNDS_MAX = 26;
+    public const int DEFAULT_EVERY_MINUTES = 120;
+    // The automatic gap never gets shorter than this - the template does not fit then
+    public const int MIN_AUTOMATIC_EVERY_MINUTES = 30;
 
     public EventWizardStructureTemplate $template = EventWizardStructureTemplate::Qualification;
 
@@ -43,9 +46,10 @@ final class EventWizardStructureFormData
 
     public null|string $startTime = '10:00';
 
-    #[Assert\NotNull]
+    // The gap between starts; null = automatic: every DEFAULT_EVERY_MINUTES, closer when that would not fit into the
+    // event's days (EventWizardStructurePlanner) - a typed gap is kept as typed
     #[Assert\Range(min: 0, max: 1440)]
-    public null|int $everyMinutes = 120;
+    public null|int $everyMinutes = null;
 
     public function __construct()
     {

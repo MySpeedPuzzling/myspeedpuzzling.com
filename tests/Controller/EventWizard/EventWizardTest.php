@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\EventWizard;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -14,6 +15,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * The event creation wizard's one-round path (W1, docs/features/competitions-management/toolkit/
@@ -34,6 +36,7 @@ final class EventWizardTest extends WebTestCase
     {
         $this->overrideFeatureFlagEnv(self::FLAG, true);
         $this->overrideFeatureFlagEnv(self::TOOLKIT_FLAG, false);
+        $this->browser = self::createClient();
     }
 
     protected function tearDown(): void
@@ -46,7 +49,7 @@ final class EventWizardTest extends WebTestCase
     public function testWithTheFlagOffAnOrganiserGetsTheClassicFormAndNoWizard(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $this->browser->request('GET', '/en/add-event');
@@ -65,14 +68,14 @@ final class EventWizardTest extends WebTestCase
     public function testTheClassicFormIsTheSameWithTheFlagOffAsWithClassic(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $crawler = $this->browser->request('GET', '/en/add-event');
         $flagOff = self::withoutTokens($crawler->filter('form[name="competition_form"]')->outerHtml());
 
         $this->overrideFeatureFlagEnv(self::FLAG, true);
         self::ensureKernelShutdown();
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $crawler = $this->browser->request('GET', '/en/add-event?classic=1');
         self::assertResponseIsSuccessful();
@@ -84,7 +87,7 @@ final class EventWizardTest extends WebTestCase
     public function testAnAdminHasTheWizardWithTheFlagOff(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, false);
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
         $this->browser->request('GET', '/en/add-event');
@@ -100,7 +103,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testAddEventLeadsToTheEntryKeepingTheOrganization(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $this->browser->request('GET', '/en/add-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
@@ -123,7 +126,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testAPlayerWithoutEventsHasNothingToCopyNorAnOrganizationPicker(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $this->browser->request('GET', '/en/new-event');
@@ -133,7 +136,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testEveryEntryAnswerGoesToItsPlace(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $organization = '&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND;
 
@@ -156,7 +159,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testBasicsCreatesTheDraftWithItsSingleRound(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $crawler = $this->browser->request('GET', '/en/new-event/basics');
@@ -175,8 +178,8 @@ final class EventWizardTest extends WebTestCase
         self::assertIsArray($competition);
         self::assertTrue($competition['is_draft']);
         self::assertSame('Wizard Cup', $competition['name']);
-        self::assertStringStartsWith('2027-06-15', (string) $competition['date_from']);
-        self::assertStringStartsWith('2027-06-15', (string) $competition['date_to']);
+        self::assertStringStartsWith('2027-06-15', self::text($competition['date_from']));
+        self::assertStringStartsWith('2027-06-15', self::text($competition['date_to']));
 
         $rounds = $this->database()->fetchAllAssociative('SELECT * FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
         self::assertCount(1, $rounds);
@@ -185,25 +188,111 @@ final class EventWizardTest extends WebTestCase
         self::assertSame('solo', $rounds[0]['category']);
         self::assertSame('Europe/Prague', $rounds[0]['timezone']);
         // 10:00 in Prague in June = 08:00 UTC
-        self::assertStringStartsWith('2027-06-15 08:00', (string) $rounds[0]['starts_at']);
+        self::assertStringStartsWith('2027-06-15 08:00', self::text($rounds[0]['starts_at']));
         self::assertSame(10, $rounds[0]['reveal_delay_minutes']);
         self::assertNull($rounds[0]['badge_background_color']);
     }
 
+    public function testASecondSubmitOfTheSamePageCreatesNoSecondDraft(): void
+    {
+        $this->browser = $this->newClient();
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $before = $this->dbInt('SELECT COUNT(*) FROM competition');
+
+        $crawler = $this->browser->request('GET', '/en/new-event/basics');
+        $draftId = (string) $crawler->filter('input[name="event_wizard_basics_form[draftId]"]')->attr('value');
+        self::assertTrue(Uuid::isValid($draftId));
+
+        $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
+        $values = [
+            'event_wizard_basics_form[name]' => 'Double Click Cup',
+            'event_wizard_basics_form[isOnline]' => '0',
+            'event_wizard_basics_form[location]' => 'Library, Brno',
+            'event_wizard_basics_form[dateFrom]' => '15.06.2027',
+            'event_wizard_basics_form[startTime]' => '',
+        ];
+
+        // A refused submit keeps the page's id
+        $crawler = $this->browser->submit($form, $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($draftId, $crawler->filter('input[name="event_wizard_basics_form[draftId]"]')->attr('value'));
+
+        $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
+        $values['event_wizard_basics_form[startTime]'] = '10:00';
+        $this->browser->submit($form, $values);
+        self::assertResponseRedirects('/en/new-event/' . $draftId . '/puzzle', 303);
+
+        // The same page sent again: the draft of the first submit, nothing new
+        $this->browser->submit($form, $values);
+        self::assertResponseRedirects('/en/new-event/' . $draftId . '/puzzle', 303);
+
+        self::assertSame($before + 1, $this->dbInt('SELECT COUNT(*) FROM competition'));
+        self::assertSame(1, $this->dbInt('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', ['id' => $draftId]));
+
+        // Another player sending the same id gets a draft of their own
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_PRIVATE);
+        $this->browser->submit($form, $values);
+        self::assertResponseStatusCodeSame(303);
+        self::assertStringNotContainsString($draftId, (string) $this->browser->getResponse()->headers->get('Location'));
+        self::assertSame($before + 2, $this->dbInt('SELECT COUNT(*) FROM competition'));
+    }
+
+    public function testADraftWithoutARoundGetsOneOnlyOnce(): void
+    {
+        $this->browser = $this->newClient();
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraft();
+        self::assertNotNull($competitionId);
+        $this->database()->executeStatement('DELETE FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/basics');
+        $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
+        $form['event_wizard_basics_form[startTime]'] = '10:00';
+
+        // The first save gives it the round...
+        $this->browser->submit($form);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
+        // ...the same page sent again (it showed no round) adds none
+        $this->browser->submit($form);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
+
+        self::assertSame(1, $this->dbInt('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
+    }
+
+    public function testSavingOtherFieldsLeavesARoundMovedOnTheRoundsPageWhereItIs(): void
+    {
+        $this->browser = $this->newClient();
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraft();
+        self::assertNotNull($competitionId);
+
+        // Moved to the next day on the rounds page
+        $this->database()->executeStatement("UPDATE competition_round SET starts_at = '2027-06-16 13:00:00' WHERE competition_id = :id", ['id' => $competitionId]);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/basics');
+        $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
+        $form['event_wizard_basics_form[name]'] = 'Wizard Cup Renamed';
+        $this->browser->submit($form);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
+
+        self::assertSame('Wizard Cup Renamed', $this->database()->fetchOne('SELECT name FROM competition WHERE id = :id', ['id' => $competitionId]));
+        self::assertStringStartsWith('2027-06-16 13:00', $this->dbString('SELECT starts_at FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
+    }
+
     public function testBasicsRefusesAMissingStartTimeWith422(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
-        $before = (int) $this->database()->fetchOne('SELECT COUNT(*) FROM competition');
+        $before = $this->dbInt('SELECT COUNT(*) FROM competition');
         $this->startDraft(['startTime' => '', 'location' => '']);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame($before, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM competition'));
+        self::assertSame($before, $this->dbInt('SELECT COUNT(*) FROM competition'));
     }
 
     public function testComingBackToBasicsMovesTheRoundsStart(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -215,21 +304,23 @@ final class EventWizardTest extends WebTestCase
         $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
         $form['event_wizard_basics_form[startTime]'] = '13:30';
         $form['event_wizard_basics_form[dateFrom]'] = '16.06.2027';
-        $form['event_wizard_basics_form[multiDay]']->tick();
+        $multiDay = $form['event_wizard_basics_form[multiDay]'];
+        self::assertInstanceOf(ChoiceFormField::class, $multiDay);
+        $multiDay->tick();
         $form['event_wizard_basics_form[dateTo]'] = '17.06.2027';
         $this->browser->submit($form);
         self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
 
         $round = $this->database()->fetchAssociative('SELECT * FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
         self::assertIsArray($round);
-        self::assertStringStartsWith('2027-06-16 11:30', (string) $round['starts_at']);
+        self::assertStringStartsWith('2027-06-16 11:30', self::text($round['starts_at']));
         self::assertSame('Solo', $round['name']);
-        self::assertStringStartsWith('2027-06-17', (string) $this->database()->fetchOne('SELECT date_to FROM competition WHERE id = :id', ['id' => $competitionId]));
+        self::assertStringStartsWith('2027-06-17', $this->dbString('SELECT date_to FROM competition WHERE id = :id', ['id' => $competitionId]));
     }
 
     public function testPuzzleStepAddsASecretCatalogueQuizzleRevealedAtTheStopwatchStartForTheToolkit(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -256,7 +347,7 @@ final class EventWizardTest extends WebTestCase
         self::assertTrue($roundPuzzle['hide_until_round_starts']);
         self::assertSame('stopwatch', $roundPuzzle['reveal_mode']);
         self::assertNull($roundPuzzle['reveal_at']);
-        self::assertSame(60, (int) $this->database()->fetchOne('SELECT minutes_limit FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
+        self::assertSame(60, $this->dbInt('SELECT minutes_limit FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
 
         // Review names every inferred value, the secret's reveal included
         $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
@@ -268,7 +359,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testTheStopwatchRevealIsAToolkitOption(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -289,7 +380,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testAMovedAutomaticRevealRefusesTheSecretPuzzle(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -305,7 +396,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testDecideLaterSavesTheRoundWithoutAPuzzleAndResumesThere(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -331,7 +422,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testARefusedPuzzleLeavesNoHalfWrittenRound(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -349,12 +440,12 @@ final class EventWizardTest extends WebTestCase
         self::assertSelectorTextContains('form', 'already');
 
         self::assertSame(1, $this->roundPuzzlesCount($competitionId));
-        self::assertSame(90, (int) $this->database()->fetchOne('SELECT minutes_limit FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
+        self::assertSame(90, $this->dbInt('SELECT minutes_limit FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
     }
 
     public function testPickKOfNWritesThePuzzlesFirstAndRefusesAWrongKAtomically(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -381,7 +472,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testThePuzzleFormatIsAToolkitSetting(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -394,7 +485,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testAnotherPlayerCannotOpenTheDraftsSteps(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -412,14 +503,14 @@ final class EventWizardTest extends WebTestCase
 
     public function testWithTheFlagTurnedOffTheDraftsStepsAre404(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
 
         $this->overrideFeatureFlagEnv(self::FLAG, false);
         self::ensureKernelShutdown();
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         foreach (['basics', 'puzzle', 'review'] as $step) {
@@ -430,7 +521,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testReviewPublishesAndGoesToTheEditPage(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $competitionId = $this->startDraft(organizationId: OrganizationFixture::ORGANIZATION_RIVERBEND);
         self::assertNotNull($competitionId);
@@ -453,7 +544,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testPublishingAPendingEventTellsTheAdmins(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -467,7 +558,7 @@ final class EventWizardTest extends WebTestCase
 
     public function testKeepAsDraftAndFinishLaterGoToTheDraftsPage(): void
     {
-        $this->browser = self::createClient();
+        $this->browser = $this->newClient();
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraft();
         self::assertNotNull($competitionId);
@@ -497,7 +588,7 @@ final class EventWizardTest extends WebTestCase
      */
     private function startDraft(array $overrides = [], null|string $organizationId = null): null|string
     {
-        $before = $this->database()->fetchFirstColumn('SELECT id FROM competition');
+        $before = $this->competitionIds();
 
         $crawler = $this->browser->request('GET', '/en/new-event/basics' . ($organizationId !== null ? '?organization=' . $organizationId : ''));
 
@@ -521,9 +612,9 @@ final class EventWizardTest extends WebTestCase
 
         $this->browser->submit($crawler->filter('form[name="event_wizard_basics_form"]')->form(), $values);
 
-        $created = array_values(array_diff($this->database()->fetchFirstColumn('SELECT id FROM competition'), $before));
+        $created = array_values(array_diff($this->competitionIds(), $before));
 
-        return isset($created[0]) && is_string($created[0]) ? $created[0] : null;
+        return $created[0] ?? null;
     }
 
     /**
@@ -548,7 +639,9 @@ final class EventWizardTest extends WebTestCase
             $name = 'event_wizard_puzzle_form[' . $field . ']';
 
             if (is_bool($value)) {
-                $value ? $form[$name]->tick() : $form[$name]->untick();
+                $field = $form[$name];
+                self::assertInstanceOf(ChoiceFormField::class, $field);
+                $value ? $field->tick() : $field->untick();
             } else {
                 $form[$name] = $value;
             }
@@ -559,10 +652,51 @@ final class EventWizardTest extends WebTestCase
 
     private function roundPuzzlesCount(string $competitionId): int
     {
-        return (int) $this->database()->fetchOne(
+        return $this->dbInt(
             'SELECT COUNT(*) FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id',
             ['id' => $competitionId],
         );
+    }
+
+    /**
+     * A fresh kernel - after a flag changed (OverridesFeatureFlagEnv is read when the kernel boots)
+     */
+    private function newClient(): KernelBrowser
+    {
+        self::ensureKernelShutdown();
+
+        return self::createClient();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function competitionIds(): array
+    {
+        return array_map(self::text(...), $this->database()->fetchFirstColumn('SELECT id FROM competition'));
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    private function dbInt(string $query, array $parameters = []): int
+    {
+        $value = $this->database()->fetchOne($query, $parameters);
+
+        return is_numeric($value) ? (int) $value : -1;
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    private function dbString(string $query, array $parameters = []): string
+    {
+        return self::text($this->database()->fetchOne($query, $parameters));
+    }
+
+    private static function text(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 
     private function database(): Connection

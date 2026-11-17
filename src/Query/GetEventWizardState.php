@@ -11,7 +11,8 @@ use SpeedPuzzling\Web\Results\EventWizardState;
 
 /**
  * One statement: what the event creation wizard needs to know about an event to find its path and its steps' state
- * (EventWizardSteps). Organiser tooling - the callers check COMPETITION_EDIT; a draft (`is_draft`) is what the wizard
+ * (EventWizardSteps). Plain DBAL on purpose: it also answers after a failed insert closed the entity manager (two submits
+ * of the same new page at once). Organiser tooling - the callers check COMPETITION_EDIT; a draft (`is_draft`) is what the wizard
  * works on, a published event is sent to its edit page.
  */
 readonly final class GetEventWizardState
@@ -33,6 +34,7 @@ readonly final class GetEventWizardState
         $query = <<<SQL
 SELECT
     c.is_draft,
+    c.added_by_player_id::text AS added_by_player_id,
     c.series_id IS NOT NULL AS is_edition,
     (SELECT COUNT(*) FROM competition_round cr WHERE cr.competition_id = c.id) AS rounds_count,
     (SELECT MIN(cr.id::text) FROM competition_round cr WHERE cr.competition_id = c.id) AS first_round_id,
@@ -41,7 +43,7 @@ FROM competition c
 WHERE c.id = :competitionId
 SQL;
 
-        /** @var false|array{is_draft: bool, is_edition: bool, rounds_count: int|string, first_round_id: null|string, puzzles_count: int|string} $row */
+        /** @var false|array{is_draft: bool, added_by_player_id: null|string, is_edition: bool, rounds_count: int|string, first_round_id: null|string, puzzles_count: int|string} $row */
         $row = $this->database->executeQuery($query, ['competitionId' => $competitionId])->fetchAssociative();
 
         if ($row === false) {
@@ -57,6 +59,7 @@ SQL;
             roundsCount: $roundsCount,
             singleRoundId: $roundsCount === 1 ? $row['first_round_id'] : null,
             roundPuzzlesCount: (int) $row['puzzles_count'],
+            addedByPlayerId: $row['added_by_player_id'],
         );
     }
 }

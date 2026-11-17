@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -60,6 +61,13 @@ final class EventWizardBasicsFormType extends AbstractType
             'label' => 'event_wizard.basics.multi_day',
             'mapped' => false,
             'required' => false,
+        ]);
+
+        // A new event's id, made when the page is shown: a second submit of the same page (a double click, a resend)
+        // finds the draft the first one created instead of creating another. Anything but a uuid is replaced by a fresh
+        // id (EventWizardBasicsController)
+        $builder->add('draftId', HiddenType::class, [
+            'mapped' => false,
         ]);
 
         // "Finish later": saved like "Save & continue", then the draft's page

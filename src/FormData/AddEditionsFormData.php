@@ -16,10 +16,11 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * "Add several dates" (docs/features/organizations/README.md, P15/P16): how the dates are proposed - a rule (`repeat`)
  * or picked days (`pick`) - and what every edition gets: a name from `namePattern` (`{date}` = the day written in the
  * page's language) and "Who can enter". Read from the query string (a GET preview, AddEditionsFormType); the checked
- * days of the preview are posted on their own.
+ * days of the preview are posted on their own. Extended by the event creation wizard's Dates step
+ * (EventWizardDatesFormData) - the same rule, validation and names, plus each date's round.
  */
 #[Assert\Callback('validateDates')]
-final class AddEditionsFormData
+class AddEditionsFormData
 {
     public const string HOW_REPEAT = 'repeat';
     public const string HOW_PICK = 'pick';

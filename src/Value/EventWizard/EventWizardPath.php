@@ -41,7 +41,9 @@ enum EventWizardPath: string
     {
         return match ($this) {
             self::OneRound => [EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Review],
-            self::SeveralRounds, self::Series => [],
+            // A draft series (W3) - its editions are not set up in the wizard (EventWizardSteps::of())
+            self::Series => [EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview],
+            self::SeveralRounds => [],
         };
     }
 }

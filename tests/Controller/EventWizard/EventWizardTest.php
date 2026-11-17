@@ -146,13 +146,14 @@ final class EventWizardTest extends WebTestCase
         $this->browser->request('GET', '/en/new-event?kind=several_rounds' . $organization);
         self::assertResponseRedirects('/en/add-event?classic=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
+        // The series path (W3)
         $this->browser->request('GET', '/en/new-event?kind=series' . $organization);
-        self::assertResponseRedirects('/en/add-event?classic=1&recurring=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
+        self::assertResponseRedirects('/en/new-event/series/basics?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
         $this->browser->request('GET', '/en/new-event?kind=other');
         self::assertResponseRedirects('/en/add-event?classic=1');
 
-        // "Recurring" comes ticked for a series
+        // "Recurring" still comes ticked on the classic form's ?recurring=1
         $crawler = $this->browser->request('GET', '/en/add-event?classic=1&recurring=1');
         self::assertSame('checked', $crawler->filter('input[name="competition_form[isRecurring]"]')->attr('checked'));
     }

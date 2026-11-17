@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -177,6 +178,12 @@ final class AddPuzzleToRoundController extends AbstractController
             }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));
+
+            // Opened from a page that wants the organiser back (the series page's quick "Add puzzle", W3)
+            $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+            if ($returnUrl !== null) {
+                return $this->redirect((string) $returnUrl);
+            }
 
             return $this->redirectToRoute('manage_round_puzzles', ['roundId' => $roundId]);
         }

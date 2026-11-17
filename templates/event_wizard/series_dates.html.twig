@@ -1,0 +1,166 @@
+{#
+    The series path's "Dates + each date's round" (W3, W-creation-wizard-research.md §3.7) - in the wizard (progress) or
+    as "Add the next dates" from the series' page (progress null, no rail). Step 1 - the rule and the round - is a GET
+    form like the classic "Add several dates" (add_editions.html.twig, the same fields and preview); step 2 posts the
+    checked days to the same URL. organizer_form_controller.js hides what the chosen way does not use.
+
+    Variables: form (EventWizardDatesFormType, no name), series, progress (null|EventWizardProgress), step, preview,
+    selected, selection_error, csrf_token_id, existing_count, name_example, timezone, timezone_assumed
+#}
+{% extends progress is not null ? 'event_wizard/_layout.html.twig' : 'event_wizard/_series_page_layout.html.twig' %}
+
+{% block title %}{{ (progress is not null ? 'event_wizard_series.step.dates' : 'event_wizard_series.next_dates.title')|trans }} - {{ series.name }}{% endblock %}
+
+{% block wizard_title %}{{ (progress is not null ? 'event_wizard_series.dates.title' : 'event_wizard_series.next_dates.title')|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {% if existing_count > 0 %}
+        <p class="text-muted small" data-event-wizard-existing-dates>{{ 'event_wizard_series.dates.existing'|trans({'%count%': existing_count}) }}</p>
+    {% endif %}
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            {{ form_start(form, {
+                action: app.request.pathInfo,
+                method: 'GET',
+                attr: {class: 'ev-add-editions-rule', 'data-controller': 'organizer-form', 'data-action': 'change->organizer-form#update', novalidate: 'novalidate', 'data-event-wizard-dates-form': ''},
+            }) }}
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6 fw-semibold">{{ 'event_wizard_series.dates.when'|trans }}</legend>
+                    <div class="ev-segmented">
+                        {% for choice in form.how %}
+                            {{ form_widget(choice, {attr: {class: 'btn-check'}, label_attr: {class: 'btn btn-outline-primary'}}) }}
+                        {% endfor %}
+                    </div>
+                    {% do form.how.setRendered %}
+                    {{ form_errors(form.how) }}
+                </fieldset>
+
+                <div class="ev-add-editions-repeat" data-organizer-form-target="part" data-show-field="how" data-show-values="repeat">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">{{ form_row(form.rule, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="col-12 col-sm-6" data-organizer-form-target="part" data-show-field="rule" data-show-values="nth_weekday">
+                            {{ form_row(form.nth, {row_attr: {class: 'mb-0'}}) }}
+                        </div>
+                        <div class="col-12 col-sm-6">{{ form_row(form.weekday, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="col-12 col-sm-6">
+                            {{ form_label(form.starting) }}
+                            <div class="input-group">
+                                {{ form_widget(form.starting, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                                <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                            </div>
+                            {{ form_errors(form.starting) }}
+                        </div>
+                        <div class="col-12 col-sm-6">{{ form_row(form.count, {row_attr: {class: 'mb-0'}}) }}</div>
+                    </div>
+                </div>
+
+                <div class="ev-add-editions-pick" data-organizer-form-target="part" data-show-field="how" data-show-values="pick">
+                    {{ form_label(form.dates) }}
+                    {{ form_widget(form.dates, {attr: {class: 'form-control date-picker ev-add-editions-dates', placeholder: 'organizer_tools.add_editions.dates_placeholder'|trans, autocomplete: 'off', 'data-datepicker-options': '{"mode": "multiple", "dateFormat": "d.m.Y", "conjunction": "; ", "inline": true, "altInput": true}'}}) }}
+                    {{ form_help(form.dates) }}
+                    <noscript><p class="form-text mt-0">{{ 'organizer_tools.add_editions.dates_typing'|trans }}</p></noscript>
+                    {{ form_errors(form.dates) }}
+                </div>
+
+                <div class="mt-3">
+                    {{ form_row(form.namePattern) }}
+                    {% if name_example %}
+                        <p class="form-text mt-n2" data-event-wizard-name-example>{{ 'event_wizard_series.dates.name_example'|trans({'%name%': name_example}) }}</p>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4">
+
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6 fw-semibold">{{ 'event_wizard_series.dates.rounds_label'|trans }}</legend>
+                    {% for child in form.withRounds %}
+                        <div class="form-check">
+                            {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                            {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                        </div>
+                    {% endfor %}
+                    {% do form.withRounds.setRendered %}
+                    {{ form_errors(form.withRounds) }}
+                </fieldset>
+
+                <div class="border rounded p-3 mb-3" data-organizer-form-target="part" data-show-field="withRounds" data-show-values="1" data-event-wizard-round-template>
+                    <div class="mb-3">
+                        {{ form_label(form.category, null, {label_attr: {class: 'form-label'}}) }}
+                        <div class="d-flex flex-wrap gap-3">
+                            {% for child in form.category %}
+                                <div class="form-check">
+                                    {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                    {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% do form.category.setRendered %}
+                        {{ form_errors(form.category) }}
+                    </div>
+                    <div data-organizer-form-target="part" data-show-field="category" data-show-values="team">
+                        {{ form_row(form.teamSize) }}
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-sm-6">
+                            <div class="required">{{ form_row(form.minutesLimit) }}</div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="required">
+                                {{ form_label(form.startTime) }}
+                                {{ form_widget(form.startTime, {type: 'time', attr: {class: 'form-control w-auto'}}) }}
+                                {{ form_errors(form.startTime) }}
+                            </div>
+                        </div>
+                        <div class="col-12 form-text mt-1">{{ 'event_wizard_series.dates.start_time_zone'|trans({'%zone%': timezone_name(timezone, timezone_assumed)}) }}</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" data-show-dates>{{ 'organizer_tools.add_editions.show'|trans }}</button>
+            {{ form_end(form, {render_rest: false}) }}
+        </div>
+    </div>
+
+    {% if preview is not null %}
+        <section class="ev-add-editions-preview" aria-labelledby="event-wizard-dates-title" id="event-wizard-dates-preview">
+            <h2 class="h5" id="event-wizard-dates-title">{{ 'organizer_tools.add_editions.preview_title'|trans({'%count%': preview|length}) }}</h2>
+            {%- set create_key = progress is not null ? 'event_wizard_series.dates.create' : 'event_wizard_series.dates.create_next' -%}
+            {%- set checked_count = preview|filter(item => selected is null ? not item.taken : item.value in selected)|length -%}
+            <form method="post" action="{{ app.request.requestUri }}"
+                  data-controller="checked-count" data-action="change->checked-count#update"
+                  data-checked-count-message-value="{{ browser_translation(create_key)|json_encode }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                {% if selection_error %}
+                    <div class="alert alert-danger" role="alert">{{ selection_error }}</div>
+                {% endif %}
+                {% if form.startTime.vars.errors|length > 0 %}
+                    <div class="alert alert-danger" role="alert">{% for error in form.startTime.vars.errors %}{{ error.message }}{% endfor %}</div>
+                {% endif %}
+                <ul class="ev-add-editions-dates-list">
+                    {% for item in preview %}
+                        {%- set checked = selected is null ? not item.taken : item.value in selected -%}
+                        <li>
+                            <input type="hidden" name="ids[{{ item.value }}]" value="{{ item.id }}">
+                            <label class="ev-add-editions-date{% if item.taken %} is-taken{% endif %}" data-date="{{ item.value }}">
+                                <input type="checkbox" class="form-check-input" name="selected[]" value="{{ item.value }}"{% if checked %} checked{% endif %}>
+                                <span class="ev-add-editions-date-text">
+                                    <span class="ev-add-editions-day">{{ item.date|events_date('yMMMEd') }}{% if form.vars.value.hasRounds %} · {{ form.vars.value.startTime }}{% endif %}</span>
+                                    <span class="ev-add-editions-name">{{ item.name }}</span>
+                                    {% if item.taken %}<span class="ev-add-editions-taken">{{ 'organizer_tools.add_editions.taken'|trans }}</span>{% endif %}
+                                </span>
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary" data-checked-count-target="label" data-event-wizard-dates-save>{{ create_key|trans({'%count%': checked_count}) }}</button>
+                    {% if progress is not null %}
+                        <a href="{{ path(progress.previous(step).route, progress.routeParameters) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    {% elseif progress is not null and existing_count > 0 %}
+        <a href="{{ path('event_wizard_series_review', {seriesId: series.id}) }}" class="btn btn-outline-primary" data-event-wizard-dates-skip>{{ 'event_wizard_series.dates.to_review'|trans }} <i class="ci-arrow-right ms-1"></i></a>
+    {% endif %}
+{% endblock %}

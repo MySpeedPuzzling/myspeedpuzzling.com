@@ -163,6 +163,8 @@ SELECT
     (SELECT tz_cs.location_country_code FROM competition_series tz_cs WHERE tz_cs.id = c.series_id) AS series_country_code,
     MIN(cr.minutes_limit) AS minutes_limit,
     COUNT(DISTINCT cr.id) AS round_count,
+    -- The edition's round while it has exactly one (the series page's quick "Add puzzle", W3)
+    CASE WHEN COUNT(DISTINCT cr.id) = 1 THEN MIN(cr.id::text) END AS single_round_id,
     COUNT(DISTINCT crp.id) AS puzzle_count,
     COUNT(DISTINCT cp.id) AS participant_count
 FROM competition c
@@ -199,6 +201,7 @@ SQL;
              *     series_country_code: null|string,
              *     minutes_limit: null|int|string,
              *     round_count: int|string,
+             *     single_round_id: null|string,
              *     puzzle_count: int|string,
              *     participant_count: int|string,
              *     registration_link: null|string,
@@ -220,6 +223,7 @@ SQL;
                 logo: $row['logo'],
                 dateFrom: $row['date_from'] !== null ? new DateTimeImmutable($row['date_from']) : null,
                 dateTo: $row['date_to'] !== null ? new DateTimeImmutable($row['date_to']) : null,
+                singleRoundId: $row['single_round_id'],
             );
         }, $rows);
     }

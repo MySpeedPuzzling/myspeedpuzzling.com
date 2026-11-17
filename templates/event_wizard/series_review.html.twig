@@ -1,0 +1,79 @@
+{#
+    The series path's Review (W3, W-creation-wizard-research.md §3.9): the series, its dates with their round, then
+    Publish (the series and its draft dates) or Keep as draft.
+    Variables: progress, step, series (CompetitionSeriesOverview), editions (list<EventWizardSeriesEdition>),
+    approved_at_once, error
+#}
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.review'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.review.title'|trans }}{% endblock %}
+
+{% block wizard_content %}
+    {% if error is not null %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-3" data-event-wizard-review-series>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <h2 class="h5 mb-1">{{ series.name }}</h2>
+                <a class="small flex-shrink-0" href="{{ path('event_wizard_series_basics_edit', {seriesId: series.id}) }}">{{ 'event_wizard.edit'|trans }}</a>
+            </div>
+            <p class="mb-1">
+                {{ 'event_wizard_series.review.series'|trans }}
+                · {{ series.isOnline ? 'competition.form.event_type_online'|trans : (series.location ?? '') }}{% if series.locationCountryCode is not null %} <span class="fi fi-{{ series.locationCountryCode.name }}"></span>{% endif %}
+            </p>
+            {% if series.organization is not null %}
+                <p class="small text-muted mb-0">{{ 'event_wizard.basics.under'|trans({'%organization%': series.organization.name}) }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3" data-event-wizard-review-dates>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <h2 class="h6 mb-2">{{ 'event_wizard_series.review.dates'|trans({'%count%': editions|length}) }}</h2>
+                <a class="small flex-shrink-0" href="{{ path('event_wizard_series_dates', {seriesId: series.id}) }}">{{ 'event_wizard_series.review.add_dates'|trans }}</a>
+            </div>
+            {% if editions is empty %}
+                <p class="text-muted small mb-0">{{ 'event_wizard_series.review.no_dates'|trans }}</p>
+            {% else %}
+                <ul class="list-unstyled mb-0 small">
+                    {% for edition in editions %}
+                        <li class="py-2{% if not loop.last %} border-bottom{% endif %}" data-event-wizard-review-date>
+                            <div class="fw-semibold">{{ edition.name }}</div>
+                            <div class="text-muted">
+                                {% if edition.roundStartsAt is not null %}
+                                    {{ zoned_datetime(edition.roundStartsAt, edition.roundTimezone ?? 'Europe/Prague') }}
+                                    · {{- ' ' ~ (edition.roundCategory.value == 'solo' ? 'competition.round.category.solo' : (edition.roundCategory.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans -}}
+                                    {%- if edition.roundCategory.value == 'team' and edition.roundTeamSize is not null %} ({{ 'event_wizard.review.team_of'|trans({'%count%': edition.roundTeamSize}) }}){% endif -%}
+                                    {%- if edition.roundMinutesLimit is not null %} · {{ edition.roundMinutesLimit }} min{% endif -%}
+                                    {%- if edition.roundsCount > 1 %} · {{ 'event_wizard_series.review.rounds'|trans({'%count%': edition.roundsCount}) }}{% endif -%}
+                                {% elseif edition.dateFrom is not null %}
+                                    {{ edition.dateFrom|events_date('yMMMEd') }} · {{ 'event_wizard_series.review.no_round'|trans }}
+                                {% else %}
+                                    {{ 'edition.date_not_set'|trans }}
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="form-text mb-0 mt-2">{{ 'event_wizard_series.review.puzzles_later'|trans }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="alert alert-light border d-flex align-items-start small" data-event-wizard-approval>
+        <i class="ci-announcement me-2 mt-1 text-primary"></i>
+        <span>{{ (approved_at_once ? 'event_wizard.review.public_at_once' : 'event_wizard.review.admin_checks')|trans }}</span>
+    </div>
+
+    <form method="post" action="{{ path('event_wizard_series_review', {seriesId: series.id}) }}" class="d-flex flex-wrap align-items-center gap-2 mt-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('event_wizard_series_review_' ~ series.id) }}">
+        <button type="submit" name="action" value="publish" class="btn btn-primary" data-event-wizard-publish>{{ 'event_wizard.review.publish'|trans }}</button>
+        <button type="submit" name="action" value="draft" class="btn btn-outline-secondary" data-event-wizard-keep-draft>{{ 'event_wizard.review.keep_draft'|trans }}</button>
+        <a href="{{ path(progress.previous(step).route, progress.routeParameters) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+    </form>
+{% endblock %}

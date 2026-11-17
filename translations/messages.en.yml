@@ -15016,3 +15016,42 @@ event_wizard:
             seating: "Seating"
             print: "Print"
             stopwatch: "Stopwatch"
+event_wizard_series:
+    step:
+        dates: "Dates and rounds"
+    basics:
+        title: "The basics of your series"
+        location_help: "Optional - only when every date takes place at the same venue. Each date gets it and can have its own."
+        country_help: "It also sets the time zone of the dates' start."
+    dates:
+        title: "When does it happen?"
+        when: "Dates"
+        existing: "{1}The series has 1 date already - a day it has is left unchecked.|[0,Inf[The series has %count% dates already - a day it has is left unchecked."
+        name_example: "For example: %name%"
+        rounds_label: "Each date"
+        with_rounds: "has a round"
+        no_rounds: "No rounds - just dates on the calendar"
+        start_time_help: "The same start every date."
+        start_time_zone: "In %zone%."
+        start_time_required: "Choose when each date starts."
+        minutes_limit_required: "Type the time limit in minutes."
+        team_size_range: "A team has %min% to %max% people."
+        invalid_local_time: "This time does not exist on %days% (the clocks change that night) - choose another time, or uncheck the date."
+        create: "Save 1 date & continue|Save %count% dates & continue"
+        create_next: "Add 1 date|Add %count% dates"
+        to_review: "Continue to review"
+    review:
+        series: "A regular series"
+        dates: "{0}No dates yet|{1}1 date|[2,Inf[%count% dates"
+        add_dates: "Add dates"
+        no_dates: "No dates yet - add them in the previous step, or later on the series page."
+        no_round: "no round"
+        rounds: "%count% rounds"
+        puzzles_later: "Puzzles are added per date later - each date on the series page has \"Add puzzle\"."
+    next_dates:
+        title: "Add the next dates"
+        button: "Add the next dates"
+    quick_add_puzzle: "Add puzzle"
+    flash:
+        dates_added: "{1}1 date added.|[0,Inf[%count% dates added."
+        dates_added_with_rounds: "{1}1 date added, with its round.|[0,Inf[%count% dates added, each with its round."

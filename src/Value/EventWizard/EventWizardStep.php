@@ -15,9 +15,14 @@ enum EventWizardStep: string
     case Basics = 'basics';
     case Puzzle = 'puzzle';
     case Review = 'review';
+    // The series path (W3) - its pages take `seriesId`: the draft is a series, not an event
+    case SeriesBasics = 'series_basics';
+    case Dates = 'dates';
+    case SeriesReview = 'series_review';
 
     /**
-     * The step's route - every one but a new event's Basics takes `competitionId`.
+     * The step's route - every one but a new event's Basics takes `competitionId`, the series path's `seriesId`
+     * (EventWizardProgress::routeParameters()).
      */
     public function route(): string
     {
@@ -25,11 +30,20 @@ enum EventWizardStep: string
             self::Basics => 'event_wizard_basics_edit',
             self::Puzzle => 'event_wizard_puzzle',
             self::Review => 'event_wizard_review',
+            self::SeriesBasics => 'event_wizard_series_basics_edit',
+            self::Dates => 'event_wizard_series_dates',
+            self::SeriesReview => 'event_wizard_series_review',
         };
     }
 
     public function labelKey(): string
     {
-        return 'event_wizard.step.' . $this->value;
+        return match ($this) {
+            // The same words as the event's steps
+            self::SeriesBasics => 'event_wizard.step.basics',
+            self::SeriesReview => 'event_wizard.step.review',
+            self::Dates => 'event_wizard_series.step.dates',
+            default => 'event_wizard.step.' . $this->value,
+        };
     }
 }

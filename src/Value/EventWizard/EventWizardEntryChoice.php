@@ -7,8 +7,8 @@ namespace SpeedPuzzling\Web\Value\EventWizard;
 /**
  * The answers of the wizard's first question, "What are you organizing?" (W-creation-wizard-research.md §3.1). Where each
  * one leads is decided in one place, EventWizardEntryController::target(): the one-round path opens the wizard; several
- * rounds (until W5) and a series (until W3) open the classic form - a series with "Recurring" ticked; "something else"
- * is the classic form for good.
+ * rounds (until W5) opens the classic form; a series opens the series path (W3); "something else" is the classic form for
+ * good.
  */
 enum EventWizardEntryChoice: string
 {

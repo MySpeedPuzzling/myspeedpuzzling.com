@@ -30,6 +30,8 @@ readonly final class SeriesEdition
         // The edition's own dates - shown when it has no round yet (startsAt null)
         public null|DateTimeImmutable $dateFrom = null,
         public null|DateTimeImmutable $dateTo = null,
+        // Its round while it has exactly one
+        public null|string $singleRoundId = null,
     ) {
         $this->registrationLink = $registrationLink !== null
             ? $registrationLink . (str_contains($registrationLink, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'

@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
-use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\AddEditionsFormData;
 use SpeedPuzzling\Web\FormType\AddEditionsFormType;
 use SpeedPuzzling\Web\Message\AddEditions;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
-use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
-use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
+use SpeedPuzzling\Web\Services\SeriesEditions\EditionsPreview;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\NewEdition;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
@@ -46,7 +43,7 @@ final class AddEditionsController extends AbstractController
         private readonly GetCompetitionSeries $getCompetitionSeries,
         private readonly TranslatorInterface $translator,
         private readonly FormFactoryInterface $formFactory,
-        private readonly EventsPageDates $eventsPageDates,
+        private readonly EditionsPreview $editionsPreview,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -96,7 +93,7 @@ final class AddEditionsController extends AbstractController
         // The id each day's edition gets - made with the preview, sent back with the form, so a form sent twice creates
         // nothing twice (AddEditions skips ids that exist)
         $postedIds = $isPost ? $request->request->all('ids') : [];
-        $preview = $form->isSubmitted() && $form->isValid() ? $this->preview($form->getData(), $seriesId, $request->getLocale(), $postedIds) : null;
+        $preview = $form->isSubmitted() && $form->isValid() ? $this->editionsPreview->of($form->getData(), $seriesId, $request->getLocale(), $postedIds) : null;
         $selectionError = null;
         // The days checked in a refused POST stay checked; a fresh preview checks every free day
         $selected = $isPost ? array_values(array_filter($request->request->all('selected'), is_string(...))) : null;
@@ -151,61 +148,5 @@ final class AddEditionsController extends AbstractController
         }
 
         return $response;
-    }
-
-    /**
-     * The proposed days with the name each edition gets; a day that already holds an edition of the series is marked
-     * (and left unchecked by the page)
-     *
-     * @param array<mixed> $postedIds the ids the page carried, by day - a missing or malformed one is made anew
-     * @return list<array{date: DateTimeImmutable, value: string, name: string, taken: bool, id: string}>
-     */
-    private function preview(AddEditionsFormData $data, string $seriesId, string $locale, array $postedIds): array
-    {
-        $taken = $this->takenDays($seriesId);
-        $items = [];
-
-        foreach ($data->proposedDates() as $date) {
-            $value = $date->format('Y-m-d');
-
-            $items[] = [
-                'date' => $date,
-                'value' => $value,
-                'name' => $data->nameFor($this->eventsPageDates->format($date, 'yMMMMd', $locale)),
-                'taken' => isset($taken[$value]),
-                'id' => isset($postedIds[$value]) && is_string($postedIds[$value]) && Uuid::isValid($postedIds[$value])
-                    ? strtolower($postedIds[$value])
-                    : Uuid::uuid7()->toString(),
-            ];
-        }
-
-        return $items;
-    }
-
-    /**
-     * The days of the series' editions: their own dates (a span: every day of it), else the day of their first round
-     *
-     * @return array<string, true>
-     */
-    private function takenDays(string $seriesId): array
-    {
-        $days = [];
-
-        /** @var SeriesEdition $edition */
-        foreach ([...$this->getCompetitionSeries->upcomingEditions($seriesId), ...$this->getCompetitionSeries->pastEditions($seriesId)] as $edition) {
-            if ($edition->dateFrom !== null) {
-                $to = $edition->dateTo ?? $edition->dateFrom;
-                $day = $edition->dateFrom;
-
-                for ($i = 0; $day <= $to && $i <= 31; $i++) {
-                    $days[$day->format('Y-m-d')] = true;
-                    $day = $day->modify('+1 day');
-                }
-            } elseif ($edition->startsAt !== null) {
-                $days[$edition->startsAt->setTimezone(new DateTimeZone($edition->timezone))->format('Y-m-d')] = true;
-            }
-        }
-
-        return $days;
     }
 }

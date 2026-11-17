@@ -277,7 +277,8 @@ unsent changes of that round are refused one by one (`round_not_found`).
 
 | Method + path | Message | Answer |
 |---|---|---|
-| `GET rounds/{roundId}` | - | `serverNow`, `serverNowMs` (the live entry's clock offset - the state answer with the shortest round trip wins), `topic`, `competition`, `round`, `rounds`, `entries`, `mercure` |
+| `GET rounds/{roundId}` | - | `serverNow`, `serverNowMs` (the live entry's clock offset - the state answer with the shortest round trip wins), `topic`, `competition`, `round`, `rounds`, `entries`, `mercure`; opt-in (competition toolkit C1, R §1.8): `?viewer=1` adds `viewer: {playerId, organiser}` (the live entry always asks - it renders no user data of its own), `?entries=0` leaves `entries` out (and its query). Without them the answer is byte-identical to before (`RoundResultsStateGoldenTest`) |
+| `GET rounds/{roundId}/event-people` (organisers and referees - the live entry's quick add) | - | `people`: the event's people going who are no entry of the round (`GetLiveResultsEventPeople`; a referee gets no #code of a player private to them) |
 | `GET competitions/{competitionId}` (organisers only - the results overview) | - | `rounds` (every round's progress), `mercure` |
 | `POST rounds/{roundId}/changes` | `RecordRoundResults` | `dryRun`, `outcomes`, `entries` (400 unreadable set) |
 | `POST rounds/{roundId}/publish` / `unpublish` | `PublishRoundResults` / `UnpublishRoundResults` | `round` |

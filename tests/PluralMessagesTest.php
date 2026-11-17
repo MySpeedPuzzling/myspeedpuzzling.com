@@ -117,9 +117,17 @@ final class PluralMessagesTest extends KernelTestCase
         }
     }
 
+    /**
+     * The translator without the profiler's DataCollectorTranslator in front of it: that one keeps every message
+     * rendered here (thousands of plural texts x 33 counts x 6 languages) and ran CI's 512 MB worker out of memory
+     */
     private static function translator(): TranslatorInterface
     {
-        return self::getContainer()->get(TranslatorInterface::class);
+        $container = self::getContainer();
+        $translator = $container->has('translator.default') ? $container->get('translator.default') : $container->get(TranslatorInterface::class);
+        self::assertInstanceOf(TranslatorInterface::class, $translator);
+
+        return $translator;
     }
 
     /**

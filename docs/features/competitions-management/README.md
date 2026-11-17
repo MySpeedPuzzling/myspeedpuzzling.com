@@ -592,6 +592,13 @@ Design: `toolkit/A-round-formats.md` §2.7-2.8, §3.4 (extraction); binding `too
 - **Unchanged for `total` rounds, byte for byte:** `OfficialRoundResultsGoldenTest` (published guest / entrant with an offer / published pairs / unpublished) - the chips are included at the end of an existing template line.
 - Tests: `tests/CompetitionToolkit/PickRoundPublicPageTest.php`, `tests/Controller/OfficialRoundResultsGoldenTest.php`, the pick-round cases in `BlocklistCanaryTest` / `PrivateProfileCanaryTest`.
 
+### Public competitor pages (competition toolkit B4)
+
+Design: `toolkit/B-qr-competitor-page.md` §4, §7; binding `toolkit/R-review-and-plan.md` §2.3, §2.6. As built: `competitor-pages.md`.
+
+- `competitor_page` (`/en/competitor/{competitionId}/{p|g|t|e}/{id}`, `CompetitorPageUrl`'s contract with the scan landing) + `competitor_state` JSON - only while the event has competitor pages on (else 404, organisers too); drafts 404 off the team; a person / line-up / entry hidden from the viewer 404, a table masks them; `private, no-store`, never indexed.
+- `GetCompetitorPage`: tag → entries (B2's rules, with names masked by `OfficialEntrantsView::entrant()`), current round by `LiveResultsCurrentRound`, puzzles by `RoundPuzzlesVisibleNow` (public rule for everybody), official result + place from `OfficialEntrantsView::forRounds()` (published rounds only); before publishing the confirmed result only with `competitor_pages_live_results` or for the competitor themself - never a place. Guest ≤ 4 statements (`CompetitorPageQueryBudgetTest`).
+
 ## Round Stopwatch
 
 A real-time countdown/count-up timer for running competition rounds live.

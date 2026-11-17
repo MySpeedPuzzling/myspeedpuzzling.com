@@ -36,9 +36,8 @@ final class LiveResultsScanRedirectMatrixTest extends WebTestCase
 
     /**
      * Competitor pages on (toolkit B2, B-qr-competitor-page.md §3.3): only the public branch may change - organisers
-     * and referees land where they did. TODO(B4): once the `competitor_page` route exists (CompetitorPageUrl), the public
-     * rows of known participants lead to `/en/competitor/{cid}/p/{id}` - regenerate with UPDATE_GOLDEN=1 and check by
-     * eye; until then they fall back to the event page, so this golden equals the one above.
+     * and referees land where they did; signed out and puzzlers open a known participant's competitor page
+     * (`/en/competitor/{cid}/p/{id}`, CompetitorPageController), anything else the event page as before.
      */
     public function testWithCompetitorPagesOnOnlyThePublicBranchChanges(): void
     {

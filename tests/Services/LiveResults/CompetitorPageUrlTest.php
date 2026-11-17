@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * The contract with package B4 (CompetitorPageUrl): route `competitor_page` with competitionId, kind (p|g|t|e), id.
+ * The contract between the scan landing and the competitor page (CompetitorPageUrl): route `competitor_page` with competitionId, kind (p|g|t|e), id.
  */
 final class CompetitorPageUrlTest extends TestCase
 {
@@ -27,12 +27,5 @@ final class CompetitorPageUrlTest extends TestCase
 
         self::assertSame('/ja/competitor/' . self::EVENT . '/t/7', $url->of(strtoupper(self::EVENT), CompetitionTag::table(7), 'ja'));
         self::assertSame('/en/competitor/' . self::EVENT . '/g/' . self::EVENT, $url->of(self::EVENT, CompetitionTag::lineup(strtoupper(self::EVENT)), 'en'));
-    }
-
-    public function testWithoutTheRouteThereIsNoPage(): void
-    {
-        $url = new CompetitorPageUrl(new UrlGenerator(new RouteCollection(), new RequestContext()));
-
-        self::assertNull($url->of(self::EVENT, CompetitionTag::table(7), 'en'));
     }
 }

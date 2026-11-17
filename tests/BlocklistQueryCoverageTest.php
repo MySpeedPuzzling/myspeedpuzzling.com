@@ -28,6 +28,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetBorrowCandidates' => 'Who the asker may ask to borrow from - shared by the wishlist page and the AskToBorrowPuzzles handler, so it filters on user_block itself, in both directions, for the asker id it is given (docs/features/wishlist-availability.md).',
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',
         'GetImportPeople' => 'Who a person of an import\'s file may be - shared by the "People in your file" page and the DecideImportPerson handler, so it filters on user_block itself, in both directions, for the importing player\'s id it is given (docs/features/data-import/people.md).',
+        'GetCompetitorPage' => 'Competitor pages (toolkit B4): the blocklist\'s group rule is OfficialEntrantsView::isHiddenFromViewer() (HiddenPlayers inside) - a person, line-up or entry hidden from the viewer is a 404, a table page masks the occupant; published results come from OfficialEntrantsView itself. BlocklistCanaryTest pins it.',
         'GetAchievementPoints' => self::OWN_DATA,
         'GetAllowedPartnerCoMembers' => 'Write-side check of a partner finder listing\'s co-members: filters on user_block itself, in both directions, for the lister id the handler gives it.',
         'GetAchievementRarity' => self::AGGREGATE,

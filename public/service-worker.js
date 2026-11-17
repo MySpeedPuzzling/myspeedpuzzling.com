@@ -74,8 +74,10 @@ const ICON_FONT_KEY_PREFIXES = [
 // by every visitor: `display` (the competition timer screens and stream overlays, competition toolkit D4),
 // `live_entry` (the referees' live result entry: their devices store the page's offline copy and its files on purpose,
 // `live-shell:prepare`, toolkit C6) and `live_entry_native` (Turbo for that page inside the native apps, which run no
-// service worker at all).
-const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native'];
+// service worker at all), and the online competitions' style entries `compete`, `online_rounds`, `online_watch`
+// (participants and organisers of an online round only - the install precache was a silent no-op before toolkit C2
+// fixed it, so this keeps everyday visitors downloading only `app`).
+const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch'];
 
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [

@@ -41,7 +41,6 @@ final class ServiceWorkerInstallTest extends TestCase
             '/build/app.3.js',
             '/build/9045.4.css',
             '/build/app.5.css',
-            '/build/compete.7.css',
         ], $result['added']);
     }
 
@@ -62,11 +61,18 @@ final class ServiceWorkerInstallTest extends TestCase
         self::assertNotContains('/build/live_entry_native.10.js', $added);
     }
 
+    public function testTheOnlineCompetitionStylesAreNeverPrecachedForEveryVisitor(): void
+    {
+        $added = array_merge(...$this->install(self::ENTRYPOINTS)['added']);
+
+        self::assertNotContains('/build/compete.7.css', $added);
+    }
+
     public function testTheSkipListNamesTheVenueAndRefereeEntries(): void
     {
         $serviceWorker = (string) file_get_contents(__DIR__ . '/../public/service-worker.js');
 
-        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native'\\];$/m", $serviceWorker));
+        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch'\\];$/m", $serviceWorker));
     }
 
     /**

@@ -20,7 +20,11 @@ use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioSignals;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
+use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
+use Symfony\Component\Mercure\Update;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
@@ -304,6 +308,39 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $connection->executeStatement('UPDATE competition_round_puzzle SET hide_until_round_starts = false WHERE puzzle_id = :puzzle', ['puzzle' => $puzzleId]);
         $connection->executeStatement('UPDATE puzzle SET hide_until = NULL, hide_image_until = NULL WHERE id = :puzzle', ['puzzle' => $puzzleId]);
         self::assertStringContainsString(self::SECRET_NAME, $read('state'), 'revealed');
+    }
+
+    /**
+     * The studio's public signal (analytics-studio.md R21): the reveal push of a watched round with a secret carries only
+     * its type and round - never the puzzle, before or at its reveal.
+     */
+    public function testTheAnalyticsStudioSignalCarriesOnlyItsTypeAndRound(): void
+    {
+        $browser = self::createClient();
+        // The studio's watch marker lives in this kernel (per kernel in tests)
+        $browser->disableReboot();
+        $puzzleId = $this->secretPuzzle();
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement("UPDATE competition_round SET slug = 'future-round' WHERE id = :id", ['id' => CompetitionApiFixture::ROUND_FUTURE]);
+        self::getContainer()->get('analytics_studio_cache')->clear();
+        $browser->request('GET', '/analytics-studio/' . CompetitionApiFixture::ROUND_FUTURE . '/state');
+        self::assertResponseIsSuccessful();
+
+        $hub = self::getContainer()->get(NullMercureHub::class); // @phpstan-ignore symfonyContainer.serviceNotFound
+        assert($hub instanceof NullMercureHub);
+        $hub->reset();
+        self::getContainer()->get(OfficialResultsLiveUpdates::class)->puzzlesRevealed(CompetitionApiFixture::ROUND_FUTURE);
+
+        $signals = array_values(array_filter(
+            $hub->getPublishedUpdates(),
+            static fn (Update $update): bool => $update->getTopics() === [AnalyticsStudioSignals::topic(CompetitionApiFixture::ROUND_FUTURE)],
+        ));
+        self::assertCount(1, $signals);
+        self::assertFalse($signals[0]->isPrivate());
+        self::assertSame(json_encode(AnalyticsStudioSignals::payload(CompetitionApiFixture::ROUND_FUTURE), JSON_THROW_ON_ERROR), $signals[0]->getData());
+        foreach ([self::SECRET_NAME, $puzzleId, self::SECRET_EAN] as $secret) {
+            self::assertStringNotContainsString($secret, $signals[0]->getData());
+        }
     }
 
     public function testAdminPagesOfASecretPuzzleAreForAdminsOnly(): void

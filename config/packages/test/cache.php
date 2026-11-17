@@ -96,6 +96,11 @@ return App::config([
                     'adapters' => ['cache.adapter.array'],
                     'tags' => true,
                 ],
+                // A studio marker (AnalyticsStudioWatch) one test set must never make another test's results write publish
+                // a studio signal - per kernel (a test marking a round and writing in it keeps its kernel: disableReboot())
+                'analytics_studio_watch_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 // Read from the displays a test seeds and DAMA rolls back - never what an earlier test saw
                 'competition_displays_presence_cache' => [
                     'adapters' => ['cache.adapter.array'],

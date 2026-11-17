@@ -40,8 +40,14 @@ import {
     MAX_POLL_MS,
     pollDelay,
     PUSH_JITTER_MS,
+    RECONNECT_JITTER_MS,
     REVEAL_GRACE_MS,
     revealDelay,
+    SIGNAL_JITTER_MS,
+    SIGNAL_MIN_GAP_MS,
+    SIGNAL_SETTLE_MS,
+    SIGNAL_TYPE,
+    STREAMED_LIVE_POLL_MS,
 } from '../assets/analytics-studio/refresh.js';
 import {
     flagOf, formatClock, formatCount, formatDate, formatDelta, formatDuration, formatRange, formatStartsAt, interpolate,
@@ -646,7 +652,7 @@ function setup({ state = clone(STATE), skew = 0, random = () => 0.5 } = {}) {
     const timers = [];
     const server = { state, status: 'ok', analyticsStatus: 'ok', fetches: [], analytics: [], entrants: [], predictions: [], rttMs: 0, delayEntrant: 0 };
     const seen = { states: [], analytics: [], entrants: [], predictions: [], gone: 0 };
-    const events = { options: null, updates: [], started: false, suspended: false, closed: false };
+    const events = { options: null, updates: [], started: false, suspended: false, closed: false, live: false };
     const pending = [];
 
     const refresh = new AnalyticsStudioRefresh({
@@ -709,6 +715,7 @@ function setup({ state = clone(STATE), skew = 0, random = () => 0.5 } = {}) {
                 update(subscription) { events.updates.push(subscription); },
                 suspend() { events.suspended = true; },
                 close() { events.closed = true; },
+                isLive() { return events.live; },
             };
         },
     });
@@ -1001,6 +1008,128 @@ scenario('refresh: gone (404) - stream suspended, a look every 5 minutes; close(
     refresh.close();
     assert.equal(timers.length, 0);
     assert.equal(events.closed, true);
+});
+
+scenario('refresh: studio signal - constants, pure poll plan with the stream live (30 s live, 60 s idle unchanged)', () => {
+    assert.equal(SIGNAL_TYPE, 'analytics_studio.signal');
+    assert.equal(SIGNAL_SETTLE_MS, 2300);
+    assert.equal(SIGNAL_JITTER_MS, 1000);
+    assert.equal(SIGNAL_MIN_GAP_MS, 5000);
+    assert.equal(STREAMED_LIVE_POLL_MS, 30_000);
+    assert.equal(pollDelay({ live: true, streamed: true, random: () => 0.5 }), 30_000);
+    assert.equal(pollDelay({ live: true, streamed: true, random: () => 0 }), 24_000);
+    assert.equal(pollDelay({ live: true, streamed: false, random: () => 0.5 }), LIVE_POLL_MS);
+    assert.equal(pollDelay({ live: false, streamed: true, random: () => 0.5 }), IDLE_POLL_MS);
+    assert.equal(pollDelay({ live: true, streamed: true, errors: 1, random: () => 0.5 }), 60_000);
+});
+
+scenario('refresh: a studio signal asks for the state after 2.3 s + 0-1 s; an uppercase id counts; analytics follow only a new hash', async () => {
+    for (const [random, expected] of [[0, 2300], [0.5, 2800], [0.999, 3299]]) {
+        const state = clone(STATE);
+        state.nextRevealAtMs = null;
+        const { refresh, server, events, advance, sinceStart } = setup({ state, random: () => random });
+        refresh.start();
+        await settle();
+        await advance(1000);
+        events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND.toUpperCase() });
+        await advance(expected - 1);
+        assert.equal(server.fetches.length, 1, `random ${random}: not before ${expected} ms`);
+        await advance(1);
+        assert.deepEqual(sinceStart(), [0, 1000 + expected], `random ${random}`);
+        assert.equal(server.analytics.length, 1, 'same hash: analytics not asked again');
+    }
+});
+
+scenario('refresh: studio signals close together are one fetch; a stopwatch push is not held back by a planned signal', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, server, events, advance, sinceStart } = setup({ state, random: () => 0.5 });
+    refresh.start();
+    await settle();
+    await advance(1000);
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    await advance(500);
+    // planned for 3800 - a signal at 1500 needs ≥ 3800: served by it
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    await advance(9000);
+    assert.deepEqual(sinceStart(), [0, 3800]);
+
+    // A push while a signal fetch is planned: the push's own 0-1 s, then the signal's fetch still comes
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    const signalledAt = server.fetches.length;
+    await advance(100);
+    events.options.onMessage(stopwatch('stopped', { stoppedAtMs: NOW + 9000, asOfMs: NOW + 9000 }));
+    await advance(500);
+    assert.equal(server.fetches.length, signalledAt + 1, 'the push fetched within 0-1 s');
+    assert.equal(sinceStart().at(-1), 11_100);
+    await advance(5000);
+    // the signal at 10 500: more than 5 s after the last signal fetch (3800), so the 2.8 s settle → 13 300
+    assert.deepEqual(sinceStart(), [0, 3800, 11_100, 13_300]);
+});
+
+scenario('refresh: a finish rush - signal fetches at least 5 s apart, the last one settled after the last signal', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, events, advance, sinceStart } = setup({ state, random: () => 0.5 });
+    refresh.start();
+    await settle();
+    await advance(1000);
+    let last = 0;
+
+    for (let at = 1000; at <= 11_000; at += 200) {
+        events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+        last = at;
+        await advance(200);
+    }
+
+    await advance(20_000 - 11_200);
+    const fetched = sinceStart();
+    assert.deepEqual(fetched, [0, 3800, 8800, 13_800]);
+    for (let i = 2; i < fetched.length; i++) {
+        assert.ok(fetched[i] - fetched[i - 1] >= SIGNAL_MIN_GAP_MS);
+    }
+    assert.ok(fetched.at(-1) >= last + SIGNAL_SETTLE_MS, 'the last signal is served by a settled fetch');
+});
+
+scenario('refresh: a signal of another round, another typed message or one before the first state is ignored', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, server, seen, events, advance, timers } = setup({ state });
+    refresh.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    assert.equal(timers.length, 0, 'no state yet: nothing planned');
+    refresh.start();
+    await settle();
+    const states = seen.states.length;
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: '018d0040-0000-7000-8000-0000000000ff' });
+    events.options.onMessage({ type: SIGNAL_TYPE });
+    events.options.onMessage({ type: 'analytics_studio.other', roundId: ROUND });
+    // A typed message shaped like a stopwatch is not one
+    events.options.onMessage({ ...stopwatch('stopped', { asOfMs: NOW + 9999 }), type: 'official_results.refresh' });
+    events.options.onMessage(null);
+    assert.equal(seen.states.length, states);
+    await advance(9000);
+    assert.equal(server.fetches.length, 1);
+});
+
+scenario('refresh: polls every 30 s while the stream is live, back to 10 s when it is not; reconnect asks within 0-3 s', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, events, advance, sinceStart } = setup({ state });
+    refresh.start();
+    await settle();
+    // The first state opened the stream - not live yet: 10 s
+    events.live = true;
+    await advance(41_000);
+    assert.deepEqual(sinceStart(), [0, 10_000, 40_000]);
+    events.live = false;
+    await advance(41_000);
+    assert.deepEqual(sinceStart(), [0, 10_000, 40_000, 70_000, 80_000]);
+
+    // The stream opened again: the state spread over RECONNECT_JITTER_MS (0.5 → 1.5 s), as before
+    events.options.refresh();
+    await advance(RECONNECT_JITTER_MS / 2);
+    assert.equal(sinceStart().at(-1), 82_000 + RECONNECT_JITTER_MS / 2);
 });
 
 // ---- render

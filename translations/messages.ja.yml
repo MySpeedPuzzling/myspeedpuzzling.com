@@ -1045,6 +1045,10 @@ competition_referees:
     empty: "審判はまだいません。"
     player: "プレイヤー"
     added: "追加日"
+    activity: "アクティビティ"
+    activity_value: "{0}結果%count%件・最終 %time%（%round%）|]0,Inf[結果%count%件・最終 %time%（%round%）"
+    activity_none: "まだ結果はありません"
+    activity_help: "アクティビティは、最後の変更をこの審判が行った結果の数です。"
   remove:
     button: "削除"
     confirm: "%name%を審判から外しますか？入力済みの結果は残ります。"

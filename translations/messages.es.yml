@@ -1119,6 +1119,10 @@ competition_referees:
     empty: "Aún no hay árbitros."
     player: "Jugador"
     added: "Añadido"
+    activity: "Actividad"
+    activity_value: "{0}%count% resultados · último %time% (%round%)|{1}%count% resultado · último %time% (%round%)|]1,Inf[%count% resultados · último %time% (%round%)"
+    activity_none: "Aún no hay resultados"
+    activity_help: "La actividad cuenta los resultados cuyo último cambio hizo este árbitro."
   remove:
     button: "Quitar"
     confirm: "¿Quitar a %name% de los árbitros? Los resultados que introdujo se conservan."

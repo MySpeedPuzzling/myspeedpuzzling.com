@@ -927,6 +927,10 @@ competition_referees:
     empty: "Noch keine Schiedsrichter."
     player: "Spieler"
     added: "Hinzugefügt"
+    activity: "Aktivität"
+    activity_value: "{0}%count% Ergebnisse · zuletzt %time% (%round%)|{1}%count% Ergebnis · zuletzt %time% (%round%)|]1,Inf[%count% Ergebnisse · zuletzt %time% (%round%)"
+    activity_none: "Noch keine Ergebnisse"
+    activity_help: "Die Aktivität zählt die Ergebnisse, deren letzte Änderung von diesem Schiedsrichter stammt."
   remove:
     button: "Entfernen"
     confirm: "%name% als Schiedsrichter entfernen? Von dieser Person eingegebene Ergebnisse bleiben erhalten."

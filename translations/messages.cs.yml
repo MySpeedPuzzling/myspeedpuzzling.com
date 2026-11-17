@@ -978,6 +978,10 @@ competition_referees:
     empty: "Zatím žádní rozhodčí."
     player: "Hráč"
     added: "Přidán"
+    activity: "Aktivita"
+    activity_value: "{0}%count% výsledků · naposledy %time% (%round%)|{1}%count% výsledek · naposledy %time% (%round%)|[2,4]%count% výsledky · naposledy %time% (%round%)|[5,Inf[%count% výsledků · naposledy %time% (%round%)"
+    activity_none: "Zatím žádné výsledky"
+    activity_help: "Aktivita počítá výsledky, jejichž poslední změnu provedl tento rozhodčí."
   remove:
     button: "Odebrat"
     confirm: "Odebrat hráče %name% z rozhodčích? Výsledky, které zadal(a), zůstanou."

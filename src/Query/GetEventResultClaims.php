@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Nette\Utils\Json;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventResultClaimContext;
 use SpeedPuzzling\Web\Results\EventResultSameResultCandidate;
@@ -99,7 +100,9 @@ SQL;
     }
 
     /**
-     * Null when the result does not exist or is no imported event result.
+     * Null when the result does not exist or is no imported event result. A relay team's result is read as the relay's
+     * first result (the lowest id, RelayResultRepository::resultsOf()) whichever of its results was opened - every
+     * claim, release and removal of the team goes through that one (solo-and-relays.md §2).
      */
     public function context(string $timeId, null|string $viewerId): null|EventResultClaimContext
     {
@@ -110,10 +113,25 @@ SQL;
         $claimersNotHidden = $this->hiddenPlayers->sqlExclude('p.id');
 
         $query = <<<SQL
+WITH target AS (
+    SELECT COALESCE(
+        (SELECT leg.id FROM puzzle_solving_time leg WHERE leg.relay_result_id = asked.relay_result_id ORDER BY leg.id LIMIT 1),
+        asked.id
+    ) AS id
+    FROM puzzle_solving_time asked
+    WHERE asked.id = :timeId
+)
 SELECT
     pst.id AS time_id,
     pst.puzzle_id,
     pst.seconds_to_solve,
+    relay.seconds AS relay_total_seconds,
+    (
+        SELECT JSON_AGG(leg_puzzle.name ORDER BY leg.id)
+        FROM puzzle_solving_time leg
+            INNER JOIN puzzle leg_puzzle ON leg_puzzle.id = leg.puzzle_id
+        WHERE leg.relay_result_id = pst.relay_result_id
+    ) AS relay_puzzle_names,
     pst.pieces_placed,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
     (pst.created_via = :source) AS imported_from_event,
@@ -154,7 +172,8 @@ FROM puzzle_solving_time pst
     LEFT JOIN puzzling_team ON puzzling_team.id = pst.puzzling_team_id
     -- The sheet's name of a single person (solo-and-relays.md §1)
     LEFT JOIN event_imported_result imported ON imported.solving_time_id = pst.id AND pst.team IS NULL
-WHERE pst.id = :timeId
+    LEFT JOIN relay_result relay ON relay.id = pst.relay_result_id
+WHERE pst.id = (SELECT target.id FROM target)
 SQL;
 
         /**
@@ -162,6 +181,8 @@ SQL;
          *     time_id: string,
          *     puzzle_id: string,
          *     seconds_to_solve: null|int,
+         *     relay_total_seconds: null|int,
+         *     relay_puzzle_names: null|string,
          *     pieces_placed: null|int,
          *     solved_at: string,
          *     imported_from_event: null|bool,
@@ -188,6 +209,9 @@ SQL;
         }
 
         $solvedAt = new DateTimeImmutable($row['solved_at']);
+        /** @var list<string> $relayPuzzleNames */
+        $relayPuzzleNames = $row['relay_puzzle_names'] !== null ? Json::decode($row['relay_puzzle_names'], forceArrays: true) : [];
+        $isRelay = $row['relay_total_seconds'] !== null;
 
         return new EventResultClaimContext(
             timeId: $row['time_id'],
@@ -205,9 +229,12 @@ SQL;
             puzzlersCount: $row['puzzlers_count'],
             anonymousCount: $row['anonymous_count'],
             claimers: $row['claimers'] !== null ? array_values(Puzzler::createPuzzlersFromJson($row['claimers'])) : [],
-            sameResultCandidates: $viewerId !== null ? $this->sameResultCandidates($viewerId, $row['puzzle_id'], $timeId, $solvedAt) : [],
+            // A relay team's result is no result of one puzzle - nothing of the player's own is the same one
+            sameResultCandidates: $viewerId !== null && $isRelay === false ? $this->sameResultCandidates($viewerId, $row['puzzle_id'], $timeId, $solvedAt) : [],
             piecesPlaced: $row['pieces_placed'],
             isSolo: $row['is_solo'],
+            relayTotalSeconds: $row['relay_total_seconds'],
+            relayPuzzleNames: $relayPuzzleNames,
         );
     }
 

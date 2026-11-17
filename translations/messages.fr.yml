@@ -13771,6 +13771,8 @@ results_import:
         puzzle_not_approved: "Le puzzle « %detail% » n'est pas encore approuvé - les résultats sont importés quand même."
         rows_out_of_time_order: "À partir de « %detail% », les temps ne sont pas dans l'ordre - un temps est-il mal saisi ?"
         over_time_limit: "« %detail% » a un temps au-delà du temps limite - elle figure après les équipes qui n'ont pas terminé."
+        relay_same_puzzle_twice: "Les deux liens mènent au même puzzle - un relais a besoin de deux puzzles différents."
+        relay_needs_time: "« %detail% » n'a pas de temps - chaque équipe d'un relais a besoin de son temps total."
     preview:
         back: "Retour à tous les événements"
         warnings: "À regarder (rien de cela n'empêche l'import) :"
@@ -15181,3 +15183,11 @@ event_result_solo:
     remove_button: "Pas cette personne : %player%"
     remove_intro: "%player% ne sera plus affiché avec ce résultat. La personne est informée que sa réclamation a été retirée, jamais par qui."
     remove_submit: "Retirer la réclamation"
+
+relay_result:
+    badge: "Relais"
+    round_heading: "Relais · %count% puzzles"
+    round_hint: "Chaque équipe a fait tous les puzzles en même temps - classée par son temps total."
+    profile_total: "%count% puzzles · total %time%"
+    claim_total: "Relais · %count% puzzles · total %time%"
+    import_hint: "Un relais : chaque équipe a fait les deux puzzles en même temps - son Time est le total."

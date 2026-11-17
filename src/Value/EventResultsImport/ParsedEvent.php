@@ -40,7 +40,24 @@ readonly final class ParsedEvent
         // Changes only when something the import reads changes - an unchanged event is not applied again. The format's
         // own: never of the key or the title, and never recomputed another way (stored hashes would all differ)
         public string $contentHash,
+        // A relay (solo-and-relays.md §2): the second puzzle every team solved with the first, ranked by the total time
+        public null|string $secondPuzzleId = null,
     ) {
+    }
+
+    public function isRelay(): bool
+    {
+        return $this->secondPuzzleId !== null;
+    }
+
+    /**
+     * The event's puzzles in the sheet's order - one, or a relay's two.
+     *
+     * @return list<string>
+     */
+    public function puzzleIds(): array
+    {
+        return array_values(array_filter([$this->puzzleId, $this->secondPuzzleId], static fn (null|string $id): bool => $id !== null));
     }
 
     public function hasTabProblem(): bool

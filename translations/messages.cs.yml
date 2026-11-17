@@ -13778,6 +13778,8 @@ results_import:
         puzzle_not_approved: "Puzzle „%detail%“ ještě není schválené - výsledky se importují i tak."
         rows_out_of_time_order: "Od „%detail%“ časy nejdou popořadě - není někde překlep?"
         over_time_limit: "„%detail%“ má čas přes časový limit - bude uveden za týmy, které nedoskládaly."
+        relay_same_puzzle_twice: "Oba odkazy vedou na stejné puzzle - štafeta potřebuje dvě různá puzzle."
+        relay_needs_time: "„%detail%“ nemá čas - každý tým štafety potřebuje svůj celkový čas."
     preview:
         back: "Zpět na všechny události"
         warnings: "Stojí za pohled (nic z toho import nezastaví):"
@@ -15188,3 +15190,11 @@ event_result_solo:
     remove_button: "Tohle nebyl(a): %player%"
     remove_intro: "%player% se už u tohoto výsledku nebude zobrazovat. Dozví se, že bylo přihlášení odebráno, nikdy kým."
     remove_submit: "Odebrat přihlášení"
+
+relay_result:
+    badge: "Štafeta"
+    round_heading: "Štafeta · počet puzzle: %count%"
+    round_hint: "Každý tým skládal všechna puzzle současně - pořadí podle celkového času."
+    profile_total: "počet puzzle: %count% · celkem %time%"
+    claim_total: "Štafeta · počet puzzle: %count% · celkem %time%"
+    import_hint: "Štafeta: každý tým skládal obě puzzle současně - jeho Time je celkový čas."

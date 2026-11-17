@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
+use SpeedPuzzling\Web\Entity\RelayResult;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
@@ -43,6 +44,8 @@ trait TrackerlessTimeSeeding
         string $name = self::TRACKERLESS_EVENT_NAME,
         string $slug = self::TRACKERLESS_EVENT_SLUG,
         RoundCategory $category = RoundCategory::Team,
+        // A relay round (solo-and-relays.md §2): its second puzzle
+        null|string $secondPuzzleId = null,
     ): CompetitionRound {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $now = TestClock::now();
@@ -87,9 +90,77 @@ trait TrackerlessTimeSeeding
         self::assertNotNull($puzzle);
         $entityManager->persist(new CompetitionRoundPuzzle(id: Uuid::uuid7(), round: $round, puzzle: $puzzle));
 
+        if ($secondPuzzleId !== null) {
+            $secondPuzzle = $entityManager->find(Puzzle::class, $secondPuzzleId);
+            self::assertNotNull($secondPuzzle);
+            $entityManager->persist(new CompetitionRoundPuzzle(id: Uuid::uuid7(), round: $round, puzzle: $secondPuzzle));
+        }
+
         $entityManager->flush();
 
         return $round;
+    }
+
+    /**
+     * A relay team nobody has claimed yet (docs/features/event-results-import/solo-and-relays.md §2): one result per puzzle
+     * of the round, linked by one RelayResult with the total, sharing one anonymous pair/team of $size (a single person's
+     * results without a team for $size 1), each with its share of the total as time spent - as the import writes them.
+     *
+     * @param non-empty-list<string> $puzzleIds
+     * @return non-empty-list<PuzzleSolvingTime> in the order of the puzzles
+     */
+    protected function seedTrackerlessRelay(CompetitionRound $round, array $puzzleIds, string $teamName, int $totalSeconds, int $size = 4): array
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        $group = null;
+        $team = null;
+
+        if ($size > 1) {
+            $slots = [];
+            for ($i = 0; $i < $size; $i++) {
+                $slots[] = TeamComposition::ANONYMOUS_PREFIX . Uuid::uuid7()->toString();
+            }
+
+            $group = PuzzlersGroup::anonymous($slots);
+            $composition = TeamComposition::fromGroup($group);
+
+            $team = new PuzzlingTeam(Uuid::uuid7(), $composition->key, $composition->size(), TestClock::now(), $teamName);
+            $entityManager->persist($team);
+
+            foreach ($composition->members as $member) {
+                $entityManager->persist(new PuzzlingTeamMember(Uuid::uuid7(), $team, $member->memberKey, null, null, $member->position));
+            }
+        }
+
+        $relay = new RelayResult(Uuid::uuid7(), $totalSeconds, TestClock::now());
+        $entityManager->persist($relay);
+        $shares = RelayResult::shares($totalSeconds, count($puzzleIds));
+        $times = [];
+
+        foreach ($puzzleIds as $leg => $puzzleId) {
+            $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
+            self::assertNotNull($puzzle);
+
+            $time = PuzzleSolvingTime::importedRelayFromEvent(
+                id: Uuid::uuid7(),
+                puzzle: $puzzle,
+                competition: $round->competition,
+                competitionRound: $round,
+                anonymousGroup: $group,
+                puzzlingTeam: $team,
+                relayResult: $relay,
+                secondsSpent: $shares[$leg],
+                solvedAt: $round->startsAt,
+            );
+            $entityManager->persist($time);
+            $entityManager->persist(new EventImportedResult(Uuid::uuid7(), $this->trackerlessSheetTab(), SearchText::fold($teamName), $time, $teamName, $leg));
+            $times[] = $time;
+        }
+
+        $entityManager->flush();
+
+        return $times;
     }
 
     /**

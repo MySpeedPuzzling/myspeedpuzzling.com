@@ -68,7 +68,20 @@ readonly final class SolvedPuzzle
         // People of an imported event result nobody has claimed yet - not in $players, shown as "+N"
         // (docs/features/event-results-import/README.md "Display"); pair/team lists only
         public int $anonymousCount = 0,
+        // A relay team's result of this puzzle (docs/features/event-results-import/solo-and-relays.md §2): no time of its
+        // own - the team's total of all the relay's puzzles, how many puzzles, and the round that ranks it
+        public null|int $relayTotalSeconds = null,
+        public int $relayPuzzleCount = 0,
+        public null|string $relayRoundSlug = null,
     ) {
+    }
+
+    /**
+     * One of a relay team's results - shown as "Relay · N puzzles · total", linked to the event's round, never as relax
+     */
+    public function isRelay(): bool
+    {
+        return $this->relayTotalSeconds !== null;
     }
 
     /**
@@ -84,7 +97,7 @@ readonly final class SolvedPuzzle
      */
     public function isRelax(): bool
     {
-        return $this->time === null && $this->piecesPlaced === null;
+        return $this->time === null && $this->piecesPlaced === null && $this->relayTotalSeconds === null;
     }
 
     /**
@@ -140,6 +153,9 @@ readonly final class SolvedPuzzle
      *     seconds_spent?: null|int,
      *     finished_later_seconds?: null|int,
      *     anonymous_count?: null|int,
+     *     relay_total_seconds?: null|int,
+     *     relay_puzzle_count?: null|int,
+     *     relay_round_slug?: null|string,
      *     ...
      * } $row
      */
@@ -199,6 +215,9 @@ readonly final class SolvedPuzzle
             secondsSpent: isset($row['seconds_spent']) ? (int) $row['seconds_spent'] : null,
             finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
             anonymousCount: isset($row['anonymous_count']) ? (int) $row['anonymous_count'] : 0,
+            relayTotalSeconds: isset($row['relay_total_seconds']) ? (int) $row['relay_total_seconds'] : null,
+            relayPuzzleCount: isset($row['relay_puzzle_count']) ? (int) $row['relay_puzzle_count'] : 0,
+            relayRoundSlug: $row['relay_round_slug'] ?? null,
         );
     }
 

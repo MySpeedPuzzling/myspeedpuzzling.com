@@ -16,6 +16,7 @@ readonly final class EventResultClaimContext
     /**
      * @param list<Puzzler> $claimers the registered people of the result the viewer may see (hidden players left out)
      * @param list<EventResultSameResultCandidate> $sameResultCandidates the viewer's own results of the puzzle within a day of the event
+     * @param list<string> $relayPuzzleNames a relay team's puzzles, in the order of its results
      */
     public function __construct(
         public string $timeId,
@@ -38,7 +39,15 @@ readonly final class EventResultClaimContext
         public null|int $piecesPlaced = null,
         // A single person's result (solo-and-relays.md §1): no team, $teamName is the sheet's name, one spot
         public bool $isSolo = false,
+        // A relay team (solo-and-relays.md §2): its total of all its puzzles - $seconds is null, $timeId its first result
+        public null|int $relayTotalSeconds = null,
+        public array $relayPuzzleNames = [],
     ) {
+    }
+
+    public function isRelay(): bool
+    {
+        return $this->relayTotalSeconds !== null;
     }
 
     public function hasSpotLeft(): bool
@@ -73,6 +82,11 @@ readonly final class EventResultClaimContext
      */
     public function asksFirstTry(): bool
     {
+        // A relay team solved several puzzles at once - no first try of a puzzle is known (solo-and-relays.md §2)
+        if ($this->isRelay()) {
+            return false;
+        }
+
         return $this->isClaimedByAnybody() === false || $this->firstAttempt;
     }
 }

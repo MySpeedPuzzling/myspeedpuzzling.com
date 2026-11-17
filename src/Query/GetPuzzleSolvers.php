@@ -422,6 +422,9 @@ SQL;
 
         // A relax solve has no time - and is not an unfinished result, which is no solve at all (CountsAsSolve)
         $countsAsSolve = CountsAsSolve::condition('puzzle_solving_time');
+        // A relay team's result has no time and no pieces, yet it is no relax solve of the puzzle - it is the event's
+        // (IsRelayResult, solo-and-relays.md §2)
+        $notRelay = IsRelayResult::notRelay('puzzle_solving_time');
 
         $query = <<<SQL
 SELECT
@@ -435,6 +438,7 @@ FROM puzzle_solving_time
 WHERE puzzle_id = :puzzleId
     AND seconds_to_solve IS NULL
     AND suspicious = false
+    AND {$notRelay}
 SQL;
 
         /** @var array{solo_count: int, duo_count: int, team_count: int, solo_unfinished_count: int, duo_unfinished_count: int, team_unfinished_count: int} $row */

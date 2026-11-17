@@ -1,0 +1,30 @@
+{#
+    A relay round (docs/features/event-results-import/solo-and-relays.md §2): every team solved all the round's puzzles
+    at the same time and only its total is known - one ranked row per team (GetRoundResults::relaysForRound()), the
+    puzzles' cards above it. Times puzzlers logged themselves on one of the puzzles stay listed under that puzzle.
+    Expects the page context (page, event, round).
+#}
+{% for puzzle in round.puzzles %}
+        {{ include('round_results/_puzzle_card.html.twig') }}
+{% endfor %}
+
+        <p class="small mb-2" data-round-relay>
+            <i class="bi bi-arrow-repeat me-1 text-muted" aria-hidden="true"></i><span class="fw-medium">{{ 'relay_result.round_heading'|trans({'%count%': round.puzzles|length}) }}</span>
+            <span class="text-muted mx-1" aria-hidden="true">·</span><span class="text-muted">{{ 'relay_result.round_hint'|trans }}</span>
+        </p>
+
+        {% if not page.hasStarted %}
+            <p class="text-muted mb-4">{{ 'round_results.not_started'|trans({'%when%': round.startsAt|ago}) }}</p>
+        {% else %}
+            {% set puzzle = round.puzzles|first %}
+            {% set puzzle_results = page.relayResults %}
+            {{ include('round_results/_player_times.html.twig') }}
+        {% endif %}
+
+        {% for puzzle in round.puzzles %}
+            {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}
+            {% if puzzle_results is not empty %}
+                <h2 class="h6 mt-4 mb-2">{{ puzzle.puzzleName }}</h2>
+                {{ include('round_results/_player_times.html.twig') }}
+            {% endif %}
+        {% endfor %}

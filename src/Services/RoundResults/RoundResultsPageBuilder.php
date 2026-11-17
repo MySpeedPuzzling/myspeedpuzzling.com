@@ -110,6 +110,8 @@ readonly final class RoundResultsPageBuilder
             )),
             // Queried only for a published round - any other round page runs exactly what it ran before
             officialResults: $round->resultsPublished ? $this->getPublishedRoundResults->forRound($round, $viewer?->playerId) : null,
+            // A relay round (more than one puzzle) only - every other round page runs exactly what it ran before
+            relayResults: count($round->puzzles) > 1 ? $this->getRoundResults->relaysForRound($round, $viewer?->playerId) : [],
         );
     }
 }

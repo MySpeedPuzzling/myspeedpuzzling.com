@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Entity\EventResultsSheet;
 use SpeedPuzzling\Web\Entity\EventResultsSheetTab;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\RelayResult;
 use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
 use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
@@ -35,6 +36,7 @@ use SpeedPuzzling\Web\Repository\EventResultsSheetTabRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\RelayResultRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\EventResultsImport\AppliedEventResultsTab;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
@@ -72,6 +74,7 @@ readonly final class ApplyEventResultsTabHandler
         private PuzzleRepository $puzzleRepository,
         private PuzzleRedirectRepository $puzzleRedirectRepository,
         private PuzzleSolvingTimeRepository $solvingTimeRepository,
+        private RelayResultRepository $relayResultRepository,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
@@ -97,6 +100,8 @@ readonly final class ApplyEventResultsTabHandler
 
         $problems = $parsed->problems;
         $puzzle = null;
+        // A relay's second puzzle (solo-and-relays.md §2) - null for every other tab
+        $secondPuzzle = null;
         $status = match (true) {
             $tab?->isDetached() === true => EventTabStatus::Detached,
             $parsed->hasTabProblem() => EventTabStatus::Problem,
@@ -110,6 +115,22 @@ readonly final class ApplyEventResultsTabHandler
             if ($puzzle === null) {
                 $problems[] = new EventTabProblem(EventTabProblemCode::PuzzleNotFound, $parsed->puzzleId);
                 $status = EventTabStatus::WaitingForPuzzle;
+            }
+
+            // A relay waits for both its puzzles - the missing one named
+            if ($parsed->secondPuzzleId !== null) {
+                $secondPuzzle = $this->puzzle($parsed->secondPuzzleId);
+
+                if ($secondPuzzle === null) {
+                    $problems[] = new EventTabProblem(EventTabProblemCode::PuzzleNotFound, $parsed->secondPuzzleId);
+                    $puzzle = null;
+                    $status = EventTabStatus::WaitingForPuzzle;
+                } elseif ($puzzle !== null && $puzzle->id->equals($secondPuzzle->id)) {
+                    // Two links of one puzzle - one of them merged into the other meanwhile
+                    $problems[] = new EventTabProblem(EventTabProblemCode::RelaySamePuzzleTwice, $secondPuzzle->id->toString());
+                    $puzzle = null;
+                    $status = EventTabStatus::Problem;
+                }
             }
         }
 
@@ -133,19 +154,26 @@ readonly final class ApplyEventResultsTabHandler
             // First: the event's messages clear the entity manager (SecretPuzzleHides locks the round's puzzles), so
             // everything of this handler is read after them. They run in this handler's transaction - a failure later
             // takes the new event back too
-            $createdCompetitionId = $tab?->competition === null ? $this->createEvent($sheet, $parsed, $puzzle->id->toString()) : null;
+            $puzzleIds = [$puzzle->id->toString()];
+
+            if ($secondPuzzle !== null) {
+                $puzzleIds[] = $secondPuzzle->id->toString();
+            }
+
+            $createdCompetitionId = $tab?->competition === null ? $this->createEvent($sheet, $parsed, $puzzleIds) : null;
 
             $sheet = $this->sheetRepository->get($message->sheetId);
             $tab = $this->tabOf($sheet, $message) ?? $this->newTab($sheet, $message);
             $puzzle = $this->puzzle($puzzle->id->toString());
             assert($puzzle !== null);
+            $secondPuzzle = $secondPuzzle !== null ? $this->puzzle($secondPuzzle->id->toString()) : null;
 
             $competition = $createdCompetitionId !== null
                 ? $this->competitionRepository->get($createdCompetitionId)
                 : $tab->competition;
             assert($competition !== null);
 
-            $status = $this->apply($sheet, $tab, $parsed, $competition, $puzzle, $unfinished, $problems, $counts);
+            $status = $this->apply($sheet, $tab, $parsed, $competition, $secondPuzzle === null ? [$puzzle] : [$puzzle, $secondPuzzle], $unfinished, $problems, $counts);
         }
 
         $tab ??= $this->newTab($sheet, $message);
@@ -207,6 +235,7 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * @param non-empty-list<Puzzle> $puzzles the event's puzzle - or a relay's two (solo-and-relays.md §2)
      * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
      * @param array{int, int, int} $counts teams added, updated, removed
@@ -216,7 +245,7 @@ readonly final class ApplyEventResultsTabHandler
         EventResultsSheetTab $tab,
         ParsedEvent $parsed,
         Competition $competition,
-        Puzzle $puzzle,
+        array $puzzles,
         array $unfinished,
         array &$problems,
         array &$counts,
@@ -233,15 +262,22 @@ readonly final class ApplyEventResultsTabHandler
             return EventTabStatus::Problem;
         }
 
-        if ($this->roundPuzzleRepository->puzzleIdsOfRound($round) !== [$puzzle->id->toString()]) {
-            $problems[] = new EventTabProblem(EventTabProblemCode::PuzzleChangedAfterImport, $puzzle->id->toString());
+        // The round's puzzles are the tab's - a tab that turned into a relay or back, or got another puzzle, is for a person
+        $puzzleIds = array_map(static fn (Puzzle $puzzle): string => $puzzle->id->toString(), $puzzles);
+        $sortedPuzzleIds = $puzzleIds;
+        $roundPuzzleIds = $this->roundPuzzleRepository->puzzleIdsOfRound($round);
+        sort($sortedPuzzleIds);
+        sort($roundPuzzleIds);
+
+        if ($roundPuzzleIds !== $sortedPuzzleIds) {
+            $problems[] = new EventTabProblem(EventTabProblemCode::PuzzleChangedAfterImport, implode(', ', $puzzleIds));
 
             return EventTabStatus::Problem;
         }
 
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
         $this->updateEvent($competition, $round, $sheet, $parsed, $location, $eventDay, $startsAt);
-        $counts = $this->upsertResults($tab, $parsed, $competition, $round, $puzzle, $eventDay, $unfinished, $problems);
+        $counts = $this->upsertResults($tab, $parsed, $competition, $round, $puzzles, $eventDay, $unfinished, $problems);
 
         return EventTabStatus::Imported;
     }
@@ -312,9 +348,10 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * @param non-empty-list<string> $puzzleIds the round's puzzles - a relay's two (solo-and-relays.md §2)
      * @return string the new event's id
      */
-    private function createEvent(EventResultsSheet $sheet, ParsedEvent $parsed, string $puzzleId): string
+    private function createEvent(EventResultsSheet $sheet, ParsedEvent $parsed, array $puzzleIds): string
     {
         assert($parsed->eventName !== null && $parsed->category !== null);
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
@@ -357,7 +394,7 @@ readonly final class ApplyEventResultsTabHandler
             startTimeKnown: $parsed->startTimeKnown,
         ));
 
-        $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId->toString(), [$puzzleId]));
+        $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId->toString(), $puzzleIds));
 
         return $competitionId->toString();
     }
@@ -425,6 +462,7 @@ readonly final class ApplyEventResultsTabHandler
     }
 
     /**
+     * @param non-empty-list<Puzzle> $puzzles
      * @param array<string, UnfinishedResult> $unfinished
      * @param list<EventTabProblem> $problems
      * @return array{int, int, int} teams added, updated, removed
@@ -434,7 +472,7 @@ readonly final class ApplyEventResultsTabHandler
         ParsedEvent $parsed,
         Competition $competition,
         CompetitionRound $round,
-        Puzzle $puzzle,
+        array $puzzles,
         DateTimeImmutable $eventDay,
         array $unfinished,
         array &$problems,
@@ -447,31 +485,173 @@ readonly final class ApplyEventResultsTabHandler
             unset($existing[$row->teamKey]);
 
             if ($imported === null) {
-                $this->createResult($tab, $row, $competition, $round, $puzzle, $eventDay, $unfinished[$row->teamKey] ?? null);
+                if (count($puzzles) > 1) {
+                    $this->createRelayResult($tab, $row, $competition, $round, $puzzles, $eventDay);
+                } else {
+                    $this->createResult($tab, $row, $competition, $round, $puzzles[0], $eventDay, $unfinished[$row->teamKey] ?? null);
+                }
+
                 $added++;
                 continue;
             }
 
-            if ($this->updateResult($imported, $row, $unfinished[$row->teamKey] ?? null, $problems)) {
+            // The round's puzzles are the tab's (checked in apply()), so a team's rows are a relay's exactly on a relay tab
+            $changed = count($puzzles) > 1
+                ? $this->updateRelayResult($imported, $row, $problems)
+                : $this->updateResult($imported[0], $row, $unfinished[$row->teamKey] ?? null, $problems);
+
+            if ($changed) {
                 $updated++;
             }
         }
 
-        // Taken off the sheet: removed when nobody claimed it, kept when somebody did (P4) - a person decides
-        foreach ($existing as $imported) {
-            $time = $imported->solvingTime;
+        // Taken off the sheet: removed when nobody claimed it, kept when somebody did (P4) - a person decides. A relay
+        // team goes whole: both its results, then the relay
+        foreach ($existing as $legs) {
+            $time = $legs[0]->solvingTime;
 
             if ($time->isClaimedByAnybody()) {
-                $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamRemovedFromSheet, $time->puzzlingTeam->name ?? $imported->name);
+                $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamRemovedFromSheet, $time->puzzlingTeam->name ?? $legs[0]->name);
                 continue;
             }
 
-            $this->importedResultRepository->delete($imported);
-            $this->solvingTimeRepository->delete($time, SolvingTimeDeletedVia::EventImport);
+            $relayResult = $time->relayResult;
+
+            foreach ($legs as $imported) {
+                $this->importedResultRepository->delete($imported);
+                $this->solvingTimeRepository->delete($imported->solvingTime, SolvingTimeDeletedVia::EventImport);
+            }
+
+            if ($relayResult !== null) {
+                $this->relayResultRepository->delete($relayResult);
+            }
+
             $removed++;
         }
 
         return [$added, $updated, $removed];
+    }
+
+    /**
+     * A relay team (solo-and-relays.md §2): one result per puzzle, linked by one RelayResult holding the total, both
+     * with the same anonymous people (one shared pair/team) - or a single person's - and an equal share of the total
+     * as time spent (the remainder on the first puzzle).
+     *
+     * @param non-empty-list<Puzzle> $puzzles
+     */
+    private function createRelayResult(
+        EventResultsSheetTab $tab,
+        ParsedEventRow $row,
+        Competition $competition,
+        CompetitionRound $round,
+        array $puzzles,
+        DateTimeImmutable $eventDay,
+    ): void {
+        // The parser keeps a relay tab with an unfinished team out (relay_needs_time)
+        assert($row->seconds !== null);
+
+        $relayResult = new RelayResult(Uuid::uuid7(), $row->seconds, $this->clock->now());
+        $this->relayResultRepository->save($relayResult);
+
+        [$group, $puzzlingTeam] = $row->teamSize === 1 ? [null, null] : $this->anonymousTeam($row);
+        $shares = RelayResult::shares($row->seconds, count($puzzles));
+
+        foreach ($puzzles as $leg => $puzzle) {
+            $time = PuzzleSolvingTime::importedRelayFromEvent(
+                id: Uuid::uuid7(),
+                puzzle: $puzzle,
+                competition: $competition,
+                competitionRound: $round,
+                anonymousGroup: $group,
+                puzzlingTeam: $puzzlingTeam,
+                relayResult: $relayResult,
+                secondsSpent: $shares[$leg],
+                solvedAt: $eventDay,
+            );
+
+            $this->solvingTimeRepository->save($time);
+            $this->importedResultRepository->save(new EventImportedResult(Uuid::uuid7(), $tab, $row->teamKey, $time, $row->teamName, $leg));
+        }
+    }
+
+    /**
+     * A relay team follows the sheet like any team (updateResult()): its total - each puzzle's share with it - and,
+     * while nobody claimed it, its size and name; its results always together.
+     *
+     * @param non-empty-list<EventImportedResult> $legs
+     * @param list<EventTabProblem> $problems
+     * @return bool whether anything of the result changed
+     */
+    private function updateRelayResult(array $legs, ParsedEventRow $row, array &$problems): bool
+    {
+        assert($row->seconds !== null);
+
+        $times = array_map(static fn (EventImportedResult $imported): PuzzleSolvingTime => $imported->solvingTime, $legs);
+        $first = $times[0];
+        $relayResult = $first->relayResult;
+        assert($relayResult !== null);
+
+        // Shown only for a single person nobody has claimed (updateResult())
+        $nameChanged = false;
+
+        foreach ($legs as $imported) {
+            $nameChanged = ($imported->nameFromSheet($row->teamName) && $imported->solvingTime->team === null && $imported->solvingTime->player === null) || $nameChanged;
+        }
+
+        $changed = $relayResult->correctTotal($row->seconds);
+        $shares = RelayResult::shares($row->seconds, count($times));
+
+        foreach ($times as $leg => $time) {
+            $changed = $time->correctImportedRelayShare($shares[$leg]) || $changed;
+        }
+
+        if ($first->isClaimedByAnybody()) {
+            if ($changed) {
+                $memberPlayerIds = $first->memberPlayerIds();
+
+                foreach ($memberPlayerIds as $memberPlayerId) {
+                    $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+                }
+
+                foreach ($times as $time) {
+                    $this->messageBus->dispatch(new RecalculateXpChainForSolve($time->id->toString(), $memberPlayerIds));
+                }
+            }
+
+            if ($first->puzzlersCount !== $row->teamSize) {
+                $problems[] = new EventTabProblem(EventTabProblemCode::ClaimedTeamChangedSize, $row->teamName, $row->line);
+            }
+
+            return $changed;
+        }
+
+        if ($first->puzzlersCount !== $row->teamSize) {
+            if ($row->teamSize === 1) {
+                foreach ($times as $time) {
+                    $time->becomeAnonymousSolo();
+                }
+
+                return true;
+            }
+
+            // One new anonymous team for both results - they stay the same people
+            [$group, $puzzlingTeam] = $this->anonymousTeam($row);
+
+            foreach ($times as $time) {
+                $time->replaceAnonymousGroup($group, $puzzlingTeam);
+            }
+
+            return true;
+        }
+
+        // Both results share the pair/team - renamed once
+        if ($first->puzzlingTeam !== null && $first->puzzlingTeam->name !== $row->teamName) {
+            $first->puzzlingTeam->nameFromEvent($row->teamName);
+
+            return true;
+        }
+
+        return $changed || $nameChanged;
     }
 
     private function createResult(

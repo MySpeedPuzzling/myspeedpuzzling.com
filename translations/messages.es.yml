@@ -13776,6 +13776,8 @@ results_import:
         puzzle_not_approved: "El puzzle «%detail%» aún no está aprobado; los resultados se importan igualmente."
         rows_out_of_time_order: "A partir de «%detail%» los tiempos no están en orden: ¿hay un tiempo mal escrito?"
         over_time_limit: "«%detail%» tiene un tiempo por encima del límite; aparece después de los equipos que no terminaron."
+        relay_same_puzzle_twice: "Los dos enlaces llevan al mismo puzzle; un relevo necesita dos puzzles distintos."
+        relay_needs_time: "«%detail%» no tiene tiempo; cada equipo de un relevo necesita su tiempo total."
     preview:
         back: "Volver a todos los eventos"
         warnings: "Merece un vistazo (nada de esto detiene la importación):"
@@ -15186,3 +15188,11 @@ event_result_solo:
     remove_button: "No era esta persona: %player%"
     remove_intro: "%player% dejará de aparecer con este resultado. Se le avisa de que su reclamación se retiró, nunca de quién lo hizo."
     remove_submit: "Retirar la reclamación"
+
+relay_result:
+    badge: "Relevo"
+    round_heading: "Relevo · %count% puzzles"
+    round_hint: "Cada equipo hizo todos los puzzles a la vez; se clasifica por su tiempo total."
+    profile_total: "%count% puzzles · total %time%"
+    claim_total: "Relevo · %count% puzzles · total %time%"
+    import_hint: "Un relevo: cada equipo hizo los dos puzzles a la vez; su Time es el total."

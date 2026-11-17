@@ -29,6 +29,10 @@ enum EventTabProblemCode: string
     case CompetitionTypeChangedAfterImport = 'competition_type_changed_after_import';
     // Pieces placed must be fewer than the puzzle has - all of them is a finished team with a time
     case PiecesPlacedOutOfRange = 'pieces_placed_out_of_range';
+    // A relay (two puzzles, one total time - solo-and-relays.md §2): its two links name one puzzle; a team without a
+    // total (pieces placed) - unfinished relays are not imported in v1
+    case RelaySamePuzzleTwice = 'relay_same_puzzle_twice';
+    case RelayNeedsTime = 'relay_needs_time';
 
     case RowWithoutTeamName = 'row_without_team_name';
     case TeamNameTooLong = 'team_name_too_long';
@@ -56,6 +60,8 @@ enum EventTabProblemCode: string
             self::UnfinishedWithoutTimeLimit,
             self::UnreadablePiecesPlaced,
             self::PiecesPlacedOutOfRange,
+            self::RelaySamePuzzleTwice,
+            self::RelayNeedsTime,
             self::PuzzleNotFound,
             self::PuzzleChangedAfterImport,
             self::CompetitionTypeChangedAfterImport => true,

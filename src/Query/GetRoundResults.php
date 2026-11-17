@@ -136,6 +136,84 @@ SQL,
     }
 
     /**
+     * The relay teams of a relay round (docs/features/event-results-import/solo-and-relays.md §2): one row per team,
+     * ranked by the relay's total of the round's puzzles - its results of each puzzle have no time of their own, so
+     * forRound() never lists them. The team is read from its first result (the lowest id - claims go through it), the
+     * same people as its other one. Hidden like forRound()'s groups: blocked players, every member private. Empty for
+     * every other round.
+     *
+     * @return list<RoundResult>
+     */
+    public function relaysForRound(EditionRoundDetail $round, null|string $viewerPlayerId): array
+    {
+        $unclaimedSoloName = UnclaimedSolo::sqlName('pst');
+
+        $rows = $this->database->executeQuery(
+            <<<SQL
+SELECT DISTINCT ON (pst.relay_result_id)
+    pst.id AS time_id,
+    pst.relay_result_id,
+    pst.puzzle_id,
+    pst.team,
+    rr.seconds AS seconds_to_solve,
+    NULL AS pieces_placed,
+    NULL AS finished_later_seconds,
+    pst.finished_at,
+    pst.finished_at_precision,
+    p.pieces_count,
+    pst.created_via = 'event_import' AS from_organizer,
+    COALESCE(
+        (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id),
+        {$unclaimedSoloName}
+    ) AS team_name,
+    owner.id AS owner_id,
+    owner.name AS owner_name,
+    owner.code AS owner_code,
+    owner.country AS owner_country,
+    {$this->privateProfileAccess->sqlIsPrivate('owner')} AS owner_is_private,
+    owner.ranking_opted_out AS owner_ranking_opted_out,
+    ps.skill_tier AS owner_skill_tier
+FROM puzzle_solving_time pst
+INNER JOIN relay_result rr ON rr.id = pst.relay_result_id
+INNER JOIN puzzle p ON p.id = pst.puzzle_id
+-- No tracker on an imported relay team nobody has claimed yet
+LEFT JOIN player owner ON owner.id = pst.player_id
+LEFT JOIN player_skill ps ON ps.player_id = owner.id AND ps.pieces_count = p.pieces_count
+WHERE pst.competition_round_id = :roundId
+    AND pst.relay_result_id IS NOT NULL
+    AND pst.suspicious = false
+ORDER BY pst.relay_result_id, pst.id
+SQL,
+            ['roundId' => $round->id],
+        )->fetchAllAssociative();
+
+        /** @var list<array{time_id: string, relay_result_id: string, puzzle_id: string, team: null|string, seconds_to_solve: int|string, pieces_placed: null, finished_later_seconds: null, finished_at: null|string, finished_at_precision: null|string, pieces_count: int|string, from_organizer: null|bool, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
+
+        // Ranked by the total, ties in the order the teams were imported
+        usort($rows, static fn (array $a, array $b): int => [(int) $a['seconds_to_solve'], $a['relay_result_id']] <=> [(int) $b['seconds_to_solve'], $b['relay_result_id']]);
+
+        $members = $this->loadGroupMembers($rows);
+        $limitSeconds = $round->minutesLimit === null ? PHP_INT_MAX : $round->minutesLimit * 60;
+        $candidates = [];
+
+        foreach ($rows as $row) {
+            $players = $this->players($row, $members, (int) $row['pieces_count']);
+
+            if ($this->isHiddenFrom($players, $viewerPlayerId)) {
+                continue;
+            }
+
+            $candidates[] = [
+                'players' => $players,
+                'row' => $row,
+                'status' => (int) $row['seconds_to_solve'] <= $limitSeconds ? RoundResultStatus::Finished : RoundResultStatus::OverLimit,
+            ];
+        }
+
+        return $this->order($candidates);
+    }
+
+    /**
      * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, finished_at_precision: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
      * @return list<RoundResult>
      */
@@ -206,12 +284,13 @@ SQL,
                 piecesPlaced: $row['pieces_placed'] !== null ? (int) $row['pieces_placed'] : null,
                 finishedLaterSeconds: $row['finished_later_seconds'] !== null ? (int) $row['finished_later_seconds'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
-                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 teamName: $row['team_name'],
                 fromOrganizer: $fromOrganizer,
                 rank: $resultRank,
                 gapToLeader: $gapToLeader,
                 gapToFaster: $gapToFaster,
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
+                relayResultId: isset($row['relay_result_id']) && is_string($row['relay_result_id']) ? $row['relay_result_id'] : null,
             );
         }
 

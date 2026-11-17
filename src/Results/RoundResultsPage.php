@@ -13,6 +13,8 @@ readonly final class RoundResultsPage
      * @param list<EditionRoundDetail> $rounds rounds of the competition that have a result page, by start
      * @param array<string, list<RoundResult>> $results keyed by puzzle id
      * @param list<string> $stillSecret
+     * @param list<RoundResult> $relayResults the relay teams of a relay round, ranked by their total - one row each
+     *                                        (docs/features/event-results-import/solo-and-relays.md §2)
      * @param null|array<string, DifficultyTier> $difficultyTiers of the round's revealed puzzles, members only (null
      *                                                         for everyone else)
      */
@@ -34,6 +36,7 @@ readonly final class RoundResultsPage
         public null|array $difficultyTiers = null,
         // The organiser's published official results - null keeps the page exactly as without them
         public null|PublishedRoundResults $officialResults = null,
+        public array $relayResults = [],
     ) {
     }
 
@@ -42,6 +45,10 @@ readonly final class RoundResultsPage
      */
     public function hasOrganizerResults(): bool
     {
+        if ($this->relayResults !== []) {
+            return true;
+        }
+
         foreach ($this->results as $puzzleResults) {
             foreach ($puzzleResults as $result) {
                 if ($result->fromOrganizer) {
@@ -55,6 +62,6 @@ readonly final class RoundResultsPage
 
     public function resultsCount(): int
     {
-        return array_sum(array_map('count', $this->results));
+        return array_sum(array_map('count', $this->results)) + count($this->relayResults);
     }
 }

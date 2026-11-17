@@ -593,3 +593,64 @@ in, otherwise divisions are set in the sheet or through the internal API.
   the rounds sharing a puzzle today.
 - Tests: `tests/Query/SolvingTimeRoundMatchTest.php` (the §2.5 matrix adjusted to A1-A4, resolver ⇔ reconciler parity on
   every row, statement count, named round, unfinished path, puzzle merge).
+
+
+---
+
+## As built: D1 + D2 (divisions model, organiser page, ranking, desk, export - 2026-11-17)
+
+- **Model** (migration `Version20261117220319`, additive): `competition_division` (`CompetitionDivision`: name ≤ 60,
+  short label ≤ 12 or null, position; FK to the event `ON DELETE CASCADE`), `competition_round_division`
+  (`CompetitionRoundDivision`, unique round + division, both FKs cascade - `CompetitionRound` untouched),
+  `division_id` on `competition_participant_round` (solo entries; members' rows keep null) and `competition_team`
+  (`ON DELETE SET NULL`, lazy `ManyToOne`, `changeDivision()`). `CompetitionParticipantRound::changeRound()` (no
+  callers) clears the division always - simpler than "only when the new round does not use it" (A14) and equally safe.
+  Plain `readonly` repositories `CompetitionDivisionRepository`, `CompetitionRoundDivisionRepository`, plus
+  `withDivisionInCompetition()` on the entry repositories.
+- **Writes** (both `SerializedByLock` on `CompetitionParticipantsLock`, `SerializedByLockMessagesTest`):
+  `SetCompetitionDivisions(competitionId, list<DivisionInput{id, name, shortName}>, rounds: roundId => divisionIds,
+  confirmClearing)` - the whole picture (a division left out is deleted, a round left out uses none); refusals
+  `InvalidCompetitionDivisions` (422, `reason` = `too_many`, `invalid_name`, `invalid_short_name`, `duplicate_name` -
+  case-insensitive, `duplicate_id`, `unknown_division`, `unknown_round`) and `DivisionsInUse(count)` (409) - all checked
+  before any change; confirmed = entries cleared one by one as entities; entries of removed participants are cleared
+  silently and not counted. The handler answers the changed round ids (the controllers send `official_results.refresh`
+  to them after the commit). **Deviation:** no `actingPlayerId` on the message - the voter in the controller authorises,
+  as for standings. `SetRoundEntryDivisions(competitionId, roundId, list<EntryDivisionInput{participantId|teamId,
+  division}>)` - the internal API's bulk path (A10): solo entries by participant, pairs/teams by team or a member; the
+  division by id, name or short label (case-insensitive), null clears; all or nothing (`unknown_entry`, `not_in_round`,
+  `unknown_division`).
+- **Organiser page** `competition_divisions` (`/{_locale}/manage-event-toolkit/{id}/divisions`,
+  `CompetitionDivisionsController`, `templates/competition_toolkit/divisions.html.twig`, `COMPETITION_TOOLKIT_MANAGE`):
+  one plain form (CSRF `competition-divisions-<id>`) - rows name / short label / order (saved ones + 3 empty, up to 12;
+  emptying a name removes it), then a grid round × division of the **saved** divisions (a new division gets its column
+  after the first save - no JS). Refused = the page again with 422 and the message; in use = 422 with "N entries would
+  lose their division" + "Save and clear them". Hub card `_card_divisions.html.twig` (`GetCompetitionDivisions`, 2
+  statements; the hub has no pinned budget).
+- **Internal API** (A10): `GET|PUT /internal-api/competitions/{id}/divisions` (list with `roundIds` + `entriesCount`;
+  PUT = the page's message, `{"divisions": [{"id"?, "name", "shortName"?, "roundIds"?}], "confirmClearing"?}`),
+  `PUT /internal-api/rounds/{id}/entry-divisions` (`{"entries": [{"participantId"|"teamId", "division"}]}`, answers every
+  entry with its division + division rank). `docs/features/internal-api.md` "Divisions" + the OpenAPI spec.
+- **Copies and cascades**: duplicate copies the list and every copied round's subset (no entry - none carries one);
+  moving a round drops its subset (the source's list; a moved round has no entries); delete / round delete / series
+  delete / conversion rely on the cascades (`ConvertCompetitionForeignKeyCoverageTest`: `competition_division` cascades -
+  an event with rounds is refused anyway); `AdvanceQualifiedHandler` copies the division when the target round uses it
+  (A11, read only when an advanced entry has one); desk walk-ins get none.
+- **Ranking + read side (D2)**: `OfficialResultsRanking::rankWithin($results, $groupKeyOf)` (pure; rank() inside each
+  group, no group = unranked, computed before hidden rows are dropped - A13) + its browser twin `rankResultsWithin()` /
+  `rankEntries()` `divisionRank` in `assets/official_results_ranking.js` (`OfficialResultsRankingParityTest` gains a
+  divisions round). The round's divisions are read as **one JSON column of the statement that already reads the round**
+  (`RoundDivisionsJson::sql()` in `GetRoundResultEntries` and `GetRoundResultsOverview`) - no statement more than
+  before, for any round (the design's "one cheap statement for rounds with divisions" was not needed);
+  `RoundResultsOverview::$divisions` → JSON `divisions` (only when non-empty), `RoundResultEntry::$division` /
+  `$divisionRank` → JSON `division` (`{id, name, shortName}` | null) + `divisionRank` (only on a round with divisions,
+  `divisionsUsed`). `RoundResultsStateGoldenTest` and every other golden/pin unchanged.
+- **Desk + export**: see `results-desk.md` (Division column, "3 · S 1", chips, "N without a division"; export
+  "Division" + "Division rank" after "Rank").
+- **Tests**: `tests/CompetitionToolkit/Divisions/CompetitionDivisionsTest.php` (list + subsets, ranks within divisions,
+  pair entries, refusals, in-use + confirm, advancement, duplicate, delete),
+  `tests/Controller/CompetitionToolkit/CompetitionDivisionsPagesTest.php` (page, hub card, state/desk/export),
+  `tests/Controller/InternalApi/DivisionsInternalApiTest.php`, `OfficialResultsRankingTest` (rankWithin),
+  `OfficialResultsRankingParityTest`, `SerializedByLockMessagesTest`, `ClientErrorLogLevelTest`.
+- **For D3-D7**: the sheet column writes `CompetitionParticipantRound::changeDivision()` / `CompetitionTeam::
+  changeDivision()` (check the round's subset like `SetRoundEntryDivisionsHandler::division()`); public pages read
+  `RoundDivisionsJson` the same way and rank with `rankWithin()` before dropping hidden rows.

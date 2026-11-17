@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Divisions - after D1/D2 (`docs/features/competitions-management/shared-puzzles-and-divisions.md` "As built: D1 + D2", 2026-11-17)
+- [ ] Results desk: a "Division" cell to put an entry into a division in place (A11 - today: the divisions page's internal API `PUT /internal-api/rounds/{id}/entry-divisions`, the sheet column comes with D3)
+- [ ] The desk renders the Division column only when the round had divisions at page load - divisions added while it is open show after a reload
+- [ ] Registration (managed) does not ask for a division (design §5 q8) - organisers assign them
+
 ## Competition toolkit v2 (`docs/features/competitions-management/README.md` "Competition toolkit", `toolkit/STATUS.md`, deferred list = `toolkit/R-review-and-plan.md` §3, 2026-11-17)
 
 Ops steps of the rollout:

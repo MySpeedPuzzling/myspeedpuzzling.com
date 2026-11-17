@@ -1,0 +1,82 @@
+{#
+    One round's box of the bracket (competition toolkit A9). Variables: round (BracketRound), feed (null|BracketFeed),
+    organiser (bool).
+#}
+<article class="bracket-round bracket-round-{{ round.status.value }}" data-bracket-round="{{ round.id }}" data-bracket-round-status="{{ round.status.value }}">
+    <header class="bracket-round-head">
+        <h4 class="bracket-round-name">
+            {%- if round.url is not null -%}
+                <a href="{{ round.url }}" data-bracket-round-link>{{ round.name }}</a>
+            {%- else -%}
+                {{ round.name }}
+            {%- endif -%}
+        </h4>
+        <span class="badge bracket-status bracket-status-{{ round.status.value }}">
+            {%- if round.status.value == 'live' %}<span class="bracket-live-dot" aria-hidden="true"></span>{% endif -%}
+            {{ ('bracket.status.' ~ round.status.value)|trans -}}
+        </span>
+    </header>
+    <p class="bracket-round-when">
+        <i class="bi bi-clock me-1" aria-hidden="true"></i>
+        {%- if round.startTimeKnown -%}
+            {{ round.startsAt|date('d.m. H:i', round.timezone) }}
+        {%- else -%}
+            {{ round.startsAt|date('d.m.', round.timezone) }}
+        {%- endif -%}
+    </p>
+    {% if feed is not null %}
+        {%- set settings = feed.step.settings -%}
+        <p class="bracket-round-feed" data-bracket-feed>
+            <i class="bi bi-arrow-return-right me-1" aria-hidden="true"></i>
+            {%- if settings.qualifyCount is null -%}
+                {{ 'bracket.feed.by_hand'|trans({'%sources%': feed.sourceNames|join(', ')}) }}
+            {%- elseif feed.step.overall -%}
+                {{ 'bracket.feed.overall'|trans({'%count%': settings.qualifyCount, '%sources%': feed.sourceNames|join(', ')}) }}
+            {%- elseif settings.sourceRoundIds|length > 1 -%}
+                {{ 'bracket.feed.per_round'|trans({'%count%': settings.qualifyCount, '%sources%': feed.sourceNames|join(', ')}) }}
+            {%- else -%}
+                {{ 'bracket.feed.top'|trans({'%count%': settings.qualifyCount, '%sources%': feed.sourceNames|join(', ')}) }}
+            {%- endif -%}
+            {%- if settings.bestOfEachCountry is not null %} {{ 'bracket.feed.country'|trans({'%count%': settings.bestOfEachCountry}) }}{% endif -%}
+        </p>
+    {% endif %}
+
+    {% if organiser %}
+        {% if round.progress is not null %}
+            {% set progress = round.progress %}
+            <p class="bracket-round-progress" data-bracket-progress>
+                {{ 'bracket.organiser.progress'|trans({'%results%': progress.entriesWithResult, '%entries%': progress.entriesTotal, '%qualified%': progress.entriesQualified}) }}
+            </p>
+            <p class="bracket-round-tools mb-0">
+                <a href="{{ path('results_desk', {roundId: round.id}) }}" class="small" data-bracket-desk-link>{{ 'bracket.organiser.desk'|trans }}</a>
+                {% if round.url is not null %} · <a href="{{ round.url }}" class="small">{{ 'bracket.organiser.public_results'|trans }}</a>{% endif %}
+            </p>
+        {% endif %}
+    {% elseif round.isPublished %}
+        {% if round.shownEntries is not empty %}
+            <p class="bracket-round-list-title">{{ (round.showsTop ? 'bracket.top' : 'bracket.qualified')|trans }}</p>
+            <ol class="bracket-entries" data-bracket-entries="{{ round.showsTop ? 'top' : 'qualified' }}">
+                {% for entry in round.shownEntries %}
+                    <li class="bracket-entry{{ entry.isViewers ? ' bracket-entry-viewer' }}" data-bracket-entry data-bracket-entry-rank="{{ entry.rank }}"{% if entry.qualified %} data-bracket-qualified{% endif %}>
+                        <span class="bracket-entry-rank">{{ entry.rank }}</span>
+                        <span class="bracket-entry-who">
+                            {%- if entry.isTeam and entry.teamName is not null -%}
+                                <span class="bracket-entry-team">{{ entry.teamName }}</span>
+                            {%- endif -%}
+                            {%- for entrant in entry.entrants -%}
+                                {{ include('_leaderboard_player.html.twig', {player: entrant, small: true, show_tier: false}) }}
+                            {%- endfor -%}
+                        </span>
+                        {% if entry.qualified %}<i class="bi bi-check-circle-fill text-success bracket-entry-mark" role="img" aria-label="{{ 'bracket.qualified_mark'|trans }}" title="{{ 'bracket.qualified_mark'|trans }}"></i>{% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+            {% if round.hiddenCount > 0 %}<p class="bracket-round-more">{{ 'bracket.more'|trans({'%count%': round.hiddenCount}) }}</p>{% endif %}
+        {% else %}
+            <p class="bracket-round-note">{{ 'bracket.no_results'|trans }}</p>
+        {% endif %}
+        {% if round.url is not null %}<a href="{{ round.url }}" class="bracket-round-all small">{{ 'bracket.all_results'|trans }} <span aria-hidden="true">→</span></a>{% endif %}
+    {% else %}
+        <p class="bracket-round-note" data-bracket-not-published>{{ 'bracket.not_published'|trans }}</p>
+    {% endif %}
+</article>

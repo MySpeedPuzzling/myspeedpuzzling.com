@@ -200,6 +200,44 @@ SQL;
     }
 
     /**
+     * Public bracket pages (competition toolkit A9, `event_bracket` / `edition_bracket`): publicly visible events with
+     * declared advancement steps of which at least one round's official results are published - a bracket with nothing
+     * published is `noindex`.
+     *
+     * @return list<array{event_slug: string, series_slug: null|string}>
+     */
+    public function bracketSlugs(): array
+    {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        $query = <<<SQL
+SELECT c.slug AS event_slug, cs.slug AS series_slug
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visibility}
+    AND c.slug IS NOT NULL
+    AND (c.series_id IS NULL OR cs.slug IS NOT NULL)
+    AND EXISTS (
+        SELECT 1
+        FROM competition_advancement_step a
+        CROSS JOIN LATERAL jsonb_array_elements_text(a.source_round_ids || a.target_round_ids) AS step_round(id)
+        INNER JOIN competition_round cr ON CAST(cr.id AS TEXT) = lower(step_round.id)
+        WHERE a.competition_id = c.id
+            AND cr.competition_id = c.id
+            AND cr.results_published_at IS NOT NULL
+    )
+ORDER BY cs.slug NULLS FIRST, c.slug
+SQL;
+
+        /** @var list<array{event_slug: string, series_slug: null|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return $rows;
+    }
+
+    /**
      * Years of the events archive (`events_archive`), newest first: the start years of past publicly visible
      * occurrences - one-time events and series editions, each session of one whose rounds fall on separate days.
      * Dated exactly like the events page (GetEventOccurrences): the dates go through OccurrenceDates::sessions() in

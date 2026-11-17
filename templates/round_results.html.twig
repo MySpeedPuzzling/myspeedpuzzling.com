@@ -91,8 +91,9 @@
     {# The organiser's way back to their tools of this round (official results: live entry, results desk) - only on a
        round with published official results, which already runs statements of its own: an untouched round page never
        asks for the viewer's permissions (OfficialRoundResultsPageTest pins main's statement count). Then the published
-       standings this round is part of (competition toolkit A7) - read with the event, no statement of their own #}
-    {% if app.user and page.officialResults is not null %}{{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}{% endif %}{% if event.publishedStandings is not empty %}{{ include('round_results/_standings_links.html.twig') }}{% endif %}
+       standings this round is part of (competition toolkit A7) and the bracket (A9) - read with the event, no statement
+       of their own #}
+    {% if app.user and page.officialResults is not null %}{{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}{% endif %}{% if event.publishedStandings is not empty %}{{ include('round_results/_standings_links.html.twig') }}{% endif %}{% if event.bracketIncludesRound(round.id) %}{{ include('round_results/_bracket_link.html.twig') }}{% endif %}
 
     {% if unofficial_label %}
         <p class="small mb-3 round-results-unofficial" data-round-unofficial>

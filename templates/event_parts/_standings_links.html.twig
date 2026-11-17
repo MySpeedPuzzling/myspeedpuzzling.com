@@ -1,10 +1,16 @@
 {#
-    The published standings of an event or edition (competition toolkit A7) above its rounds: one link per standing.
-    Variables: standings (list<TimelineStanding>).
+    The published standings of an event or edition (competition toolkit A7) above its rounds: one link per standing -
+    and the bracket of its declared advancement steps (competition toolkit A9).
+    Variables: standings (list<TimelineStanding>), bracket_url (null|string, optional).
 #}
 <div class="ev-standings-links d-flex flex-wrap align-items-center gap-2 mb-3" data-event-standings>
-    <span class="small text-muted"><i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ 'public_standing.event_links'|trans }}</span>
-    {% for standing in standings %}
-        <a class="btn btn-sm btn-outline-primary" href="{{ standing.url }}" data-event-standing-link>{{ standing.name }}</a>
-    {% endfor %}
+    {% if standings is not empty %}
+        <span class="small text-muted"><i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ 'public_standing.event_links'|trans }}</span>
+        {% for standing in standings %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ standing.url }}" data-event-standing-link>{{ standing.name }}</a>
+        {% endfor %}
+    {% endif %}
+    {% if bracket_url|default(null) is not null %}
+        <a class="btn btn-sm btn-outline-primary" href="{{ bracket_url }}" data-event-bracket-link><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ 'bracket.link'|trans }}</a>
+    {% endif %}
 </div>

@@ -13,6 +13,9 @@ use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Value\ParticipantLinkAction;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -24,10 +27,13 @@ readonly final class ConnectCompetitionParticipantHandler
         private LoggerInterface $logger,
         private ClockInterface $clock,
         private GetCompetitionParticipants $getCompetitionParticipants,
+        private ParticipantLinks $participantLinks,
     ) {
     }
 
     /**
+     * Its only dispatcher is compete_connect - the player opened the online personal link signed in (`online_link`).
+     *
      * @throws CompetitionParticipantNotFound
      * @throws PlayerNotFound
      * @throws CompetitionParticipantAlreadyConnectedToDifferentPlayer
@@ -52,6 +58,8 @@ readonly final class ConnectCompetitionParticipantHandler
             throw new CompetitionParticipantAlreadyConnectedToDifferentPlayer();
         }
 
+        $now = $this->clock->now();
+
         // 1. Disconnect existing connection(s)
         $connections = $this->getCompetitionParticipants->getPlayerConnections(
             $message->competitionId,
@@ -65,17 +73,14 @@ readonly final class ConnectCompetitionParticipantHandler
             }
 
             $connectedParticipant = $this->participantRepository->get($participantId);
-            $connectedParticipant->disconnect();
+            $this->participantLinks->unlink($connectedParticipant, ParticipantLinkAction::Unlinked, $player, $now);
         }
 
-        if ($participant === null || $participant->isConnectedTo($player)) {
+        if ($participant === null) {
             return;
         }
 
-        // 2. Make new connection
-        $participant->connect(
-            $player,
-            $this->clock->now(),
-        );
+        // 2. Make new connection - already theirs keeps its moment (ParticipantLinks::link())
+        $this->participantLinks->link($participant, $player, ParticipantLinkMethod::OnlineLink, $player, $now);
     }
 }

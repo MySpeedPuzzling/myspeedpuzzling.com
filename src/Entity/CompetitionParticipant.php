@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 
@@ -29,6 +30,14 @@ class CompetitionParticipant
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[ManyToOne]
     public null|Player $player = null;
+
+    /**
+     * How the current link was made (docs/features/competitions-management/participant-linking.md §3.1) - written by
+     * ParticipantLinks only (ParticipantLinkCoverageTest). Null = not linked, or linked before this was recorded.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, length: 20, nullable: true, enumType: ParticipantLinkMethod::class)]
+    public null|ParticipantLinkMethod $connectedVia = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
@@ -106,10 +115,17 @@ class CompetitionParticipant
     ) {
     }
 
-    public function connect(Player $player, DateTimeImmutable $connectedAt): void
+    /**
+     * Call through ParticipantLinks (it logs the link - ParticipantLinkCoverageTest scans src/). The method defaults to
+     * `organiser` only for tests and fixtures setting up an organiser's list (R12): every link of the application passes
+     * its own, and `organiser` keeps what such a link may do today (a link made after a round started may still propose
+     * a time - R3 refuses only `claim` and unrecorded links).
+     */
+    public function connect(Player $player, DateTimeImmutable $connectedAt, ParticipantLinkMethod $via = ParticipantLinkMethod::Organiser): void
     {
         $this->player = $player;
         $this->connectedAt = $connectedAt;
+        $this->connectedVia = $via;
         // Whoever is connected now has not shown they hold the personal link yet
         $this->onlineLinkConfirmedAt = null;
     }
@@ -123,10 +139,15 @@ class CompetitionParticipant
         return $this->player !== null && $this->player->id->equals($player->id);
     }
 
+    /**
+     * Call through ParticipantLinks. Whatever the link was made with goes with it - a claim token is to be cleared here
+     * only when `connectedVia` was `claim_link` (R6, package L4a): read the method before clearing it.
+     */
     public function disconnect(): void
     {
         $this->player = null;
         $this->connectedAt = null;
+        $this->connectedVia = null;
         $this->onlineLinkConfirmedAt = null;
     }
 

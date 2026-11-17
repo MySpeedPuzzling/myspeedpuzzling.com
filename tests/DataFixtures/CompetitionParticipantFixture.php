@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 
 final class CompetitionParticipantFixture extends Fixture implements DependentFixtureInterface
@@ -46,7 +47,7 @@ final class CompetitionParticipantFixture extends Fixture implements DependentFi
             competition: $wjpcCompetition,
             source: ParticipantSource::Imported,
         );
-        $connected->connect($regularPlayer, $this->clock->now());
+        $connected->connect($regularPlayer, $this->clock->now(), ParticipantLinkMethod::Import);
         $connected->updateExternalId('EXT-001');
         $manager->persist($connected);
         $this->addReference(self::PARTICIPANT_CONNECTED, $connected);
@@ -82,7 +83,7 @@ final class CompetitionParticipantFixture extends Fixture implements DependentFi
             competition: $wjpcCompetition,
             source: ParticipantSource::SelfJoined,
         );
-        $selfJoined->connect($favoritesPlayer, $this->clock->now());
+        $selfJoined->connect($favoritesPlayer, $this->clock->now(), ParticipantLinkMethod::SelfJoin);
         $manager->persist($selfJoined);
         $this->addReference(self::PARTICIPANT_SELF_JOINED, $selfJoined);
 

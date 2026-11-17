@@ -13,6 +13,9 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePersonalLinks;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Value\ParticipantLinkAction;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 
 /**
@@ -30,6 +33,7 @@ readonly final class CompetitionSelfJoin
         private ClockInterface $clock,
         private OfficialResultsGuard $officialResultsGuard,
         private OnlinePersonalLinks $onlinePersonalLinks,
+        private ParticipantLinks $participantLinks,
     ) {
     }
 
@@ -48,7 +52,7 @@ readonly final class CompetitionSelfJoin
         if ($existingId !== null) {
             $participant = $this->participantRepository->get($existingId);
             $participant->restore();
-            $participant->connect($player, $this->clock->now());
+            $this->participantLinks->rejoin($participant, $player, $this->clock->now());
 
             if ($competition->registrationManaged === false) {
                 // Left the waitlist while the event managed registration - it no longer does, so they are going
@@ -66,9 +70,8 @@ readonly final class CompetitionSelfJoin
             source: ParticipantSource::SelfJoined,
         );
 
-        $participant->connect($player, $this->clock->now());
-
         $this->participantRepository->save($participant);
+        $this->participantLinks->link($participant, $player, ParticipantLinkMethod::SelfJoin, $player, $this->clock->now());
 
         return $participant;
     }
@@ -103,7 +106,7 @@ readonly final class CompetitionSelfJoin
             if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
             } else {
-                $participant->disconnect();
+                $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $player, $this->clock->now());
             }
         }
     }

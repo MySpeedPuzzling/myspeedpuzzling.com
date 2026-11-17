@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\AppliedParticipantSheetChanges;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportApplier;
 use SpeedPuzzling\Web\Services\ParticipantsSheet\SheetChangesPlanner;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\SheetChangeGroup;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -97,8 +98,11 @@ readonly final class ApplyParticipantSheetChangesHandler
             );
         }
 
+        $actingPlayer = $this->actingPlayer($message->actingPlayerId);
+
         if ($plan->operations->isEmpty() === false) {
-            $this->applier->applyOperations($competitionId, $plan->operations);
+            // The organiser's links (participant-linking.md §4.1)
+            $this->applier->applyOperations($competitionId, $plan->operations, ParticipantLinkMethod::Organiser, $actingPlayer);
         }
 
         foreach ($plan->teamSizes as $roundId => $teamSize) {
@@ -126,7 +130,7 @@ readonly final class ApplyParticipantSheetChangesHandler
             outcomes: $applied->outcomes(),
             versionBefore: $versionBefore,
             versionAfter: $versionAfter,
-            actingPlayer: $this->actingPlayer($message->actingPlayerId),
+            actingPlayer: $actingPlayer,
             changes: array_map(static fn (SheetChangeGroup $group): array => $group->toArray(), $message->groups),
         ));
 

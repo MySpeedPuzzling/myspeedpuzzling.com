@@ -19,6 +19,9 @@ use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Results\ParticipantImportPlan;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantImportOperations;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Value\ParticipantLinkAction;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 
@@ -39,10 +42,13 @@ readonly final class ParticipantImportApplier
         private CompetitionTeamRepository $competitionTeamRepository,
         private CompetitionParticipantRoundRepository $participantRoundRepository,
         private ClockInterface $clock,
+        private ParticipantLinks $participantLinks,
     ) {
     }
 
     /**
+     * An import: the people the file names are linked with the method `import` (participant-linking.md §4.1).
+     *
      * @throws ParticipantImportPreviewStale
      */
     public function apply(string $competitionId, ParticipantImportPlan $plan): ParticipantImportResult
@@ -50,14 +56,21 @@ readonly final class ParticipantImportApplier
         $operations = $plan->operations;
         assert($operations instanceof ParticipantImportOperations);
 
-        return $this->applyOperations($competitionId, $operations);
+        return $this->applyOperations($competitionId, $operations, ParticipantLinkMethod::Import);
     }
 
     /**
+     * `$linkVia` / `$by`: how the links of these operations are made and by whom (the participants sheet: `organiser`
+     * and the organiser who sent the change set) - ParticipantLinks logs them.
+     *
      * @throws ParticipantImportPreviewStale
      */
-    public function applyOperations(string $competitionId, ParticipantImportOperations $operations): ParticipantImportResult
-    {
+    public function applyOperations(
+        string $competitionId,
+        ParticipantImportOperations $operations,
+        ParticipantLinkMethod $linkVia = ParticipantLinkMethod::Organiser,
+        null|Player $by = null,
+    ): ParticipantImportResult {
         $competition = $this->competitionRepository->get($competitionId);
         $now = $this->clock->now();
 
@@ -152,13 +165,13 @@ readonly final class ParticipantImportApplier
             }
 
             if (($operation['disconnect'] ?? false) === true) {
-                $participant->disconnect();
+                $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $by, $now);
             }
 
             // Already linked to the same player (a plan made before the link, re-applied): the link keeps its moment
             // (TimeProposalOwnership)
-            if ($operation['connectPlayerId'] !== null && $participant->isConnectedTo($players[$operation['connectPlayerId']]) === false) {
-                $participant->connect($players[$operation['connectPlayerId']], $now);
+            if ($operation['connectPlayerId'] !== null) {
+                $this->participantLinks->link($participant, $players[$operation['connectPlayerId']], $linkVia, $by, $now);
             }
 
             if ($operation['markAsImported']) {

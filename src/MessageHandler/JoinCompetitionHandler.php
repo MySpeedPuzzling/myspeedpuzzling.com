@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
 use SpeedPuzzling\Web\Services\CompetitionSelfJoin;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -45,6 +47,7 @@ readonly final class JoinCompetitionHandler
         private CountCompetitionRegistrations $countCompetitionRegistrations,
         private CompetitionRegistrationMailer $registrationMailer,
         private CompetitionSelfJoin $competitionSelfJoin,
+        private ParticipantLinks $participantLinks,
     ) {
     }
 
@@ -80,10 +83,9 @@ readonly final class JoinCompetitionHandler
 
             $this->competitionSelfJoin->releaseOtherParticipants($message->competitionId, $player, keep: $participant);
 
-            // Re-picking your own name keeps the link's moment (TimeProposalOwnership)
-            if ($participant->isConnectedTo($player) === false) {
-                $participant->connect($player, $this->clock->now());
-            }
+            // A claim from a name - linked at once (open policy, package L2 brings ParticipantClaims and the approval
+            // policy here). Re-picking your own name keeps the link's moment (TimeProposalOwnership)
+            $this->participantLinks->link($participant, $player, ParticipantLinkMethod::Claim, $player, $this->clock->now());
 
             return;
         }

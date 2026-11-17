@@ -9,7 +9,10 @@ use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Value\ParticipantLinkAction;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -23,6 +26,8 @@ readonly final class LeaveCompetitionHandler
         private ClockInterface $clock,
         private OfficialResultsGuard $officialResultsGuard,
         private PartnerListingRepository $partnerListingRepository,
+        private PlayerRepository $playerRepository,
+        private ParticipantLinks $participantLinks,
     ) {
     }
 
@@ -30,6 +35,7 @@ readonly final class LeaveCompetitionHandler
     {
         // Every row, not just one — a player who joined twice would otherwise still be going
         $participantIds = $this->getCompetitionParticipants->getPlayerConnections($message->competitionId, $message->playerId);
+        $player = $participantIds !== [] ? $this->playerRepository->get($message->playerId) : null;
 
         foreach ($participantIds as $participantId) {
             $participant = $this->participantRepository->get($participantId);
@@ -38,7 +44,8 @@ readonly final class LeaveCompetitionHandler
             if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
             } else {
-                $participant->disconnect();
+                // Not going is no "this is not me" - the player may pick the name again (a refused pair is L2's "Not me")
+                $this->participantLinks->unlink($participant, ParticipantLinkAction::Unlinked, $player, $this->clock->now());
             }
         }
 

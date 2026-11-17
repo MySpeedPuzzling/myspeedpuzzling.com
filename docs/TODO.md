@@ -123,7 +123,10 @@ list or show results were left for step 2 (display), the write-side ones for ste
   (`RemoveEventResultClaimHandler` counts every removal ever) - counting only removals after the unblock needs a column
 - [ ] Later: venue series (D8), per-team claim codes, start time on organizer pages
 - [x] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - built 2026-11-17 as two linked results ranked by the total on the event, off the puzzle's pages (README "Relays", [solo-and-relays.md](features/event-results-import/solo-and-relays.md) §2). No combined catalogue entry
-- [ ] Relays: a claimed relay result reads as a relax solve on the Hub feed (`RecentActivityItem::isRelaxMode()`), the team page, API v1 and the exports - label it "Relay" there too, or leave it (Jan)
+- [x] Relays: a claimed relay result read as a relax solve on the recent activity (Hub, profile, `/recent-activity`), the team page and API v1 - labelled "Relay · 2 puzzles · total" since 2026-11-17 (recent activity links the round, the team page the result detail = the round; API v1 result lists carry `relay_total_seconds`, additive)
+- [ ] Relays: the results export (`export_puzzler_data_download`) still has an empty `seconds_to_solve` for a relay result, like a relax one - an additive `relay_total_seconds` column is allowed (data-export.md) but moves the pinned last columns of three format tests and My fields' header; and API v0 `/players/{id}/results` says `is_relax_mode: true` (deprecated API, left as is). Do it when an exporting player asks (Jan)
+- [x] Recent activity offered Edit / Delete on every claimed imported result (`RecentActivityItem::isEditableBy()` did not know imported results) - since 2026-11-17 only "Remove from my profile", like the profile's ⋯ menu
+- [x] Results import page wording: "2 teams" on a Solo event - since 2026-11-17 the list, the preview, the confirmation and the import's result count "results"; a relay's list line says "Relay · 2 puzzles"; the import's result names the round's category ("Solo results - new: 2")
 - [ ] Relays: unfinished relay teams (time ran out) are a `problem` (`relay_needs_time`) - import them once an organizer asks
 - [ ] Relays: "N results" of an event (`CountCompetitionResults`) counts a relay team once per puzzle
 

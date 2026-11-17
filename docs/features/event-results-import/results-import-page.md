@@ -148,7 +148,8 @@ Organization ──< Results source (sheet + format) ──< Source item (a tab 
 
 - **Tick**: the list is a GET form - New and Changed events carry a ticked box, every other status a disabled one.
   "Import ticked events" → `results_import_confirm` `GET …/results-import/{sourceId}/import?check=<id>&events[]=…`:
-  "Import 2 events, 5 teams?", each event with its status, teams and changes, the no-undo note (P3), and a form carrying
+  "Import 2 events, 5 results?" (counted as "results" everywhere on the page since 2026-11-17 - a Solo event's rows are
+  people; the import's result says "Team results - new: 2, …" by the round's category), each event with its status, teams and changes, the no-undo note (P3), and a form carrying
   a **new import id** (UUIDv7). Only the source's **latest** check is imported from - an older one (somebody checked
   again meanwhile) goes back to the page with "Your sheet was checked again meanwhile"; nothing ticked, likewise.
 - **Import**: `results_import_import` `POST …/import` (session CSRF `results_import_import_<sourceId>`, always a

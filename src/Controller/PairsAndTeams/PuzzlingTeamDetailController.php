@@ -115,6 +115,7 @@ final class PuzzlingTeamDetailController extends AbstractController
             $puzzles[$time->puzzleId] = true;
             $first = $first === null || $time->solvedAt < $first ? $time->solvedAt : $first;
 
+            // A relay team's result (no time of its own) counts as a result, like a relax one - never a best time
             if ($time->time === null) {
                 $relaxed++;
                 continue;

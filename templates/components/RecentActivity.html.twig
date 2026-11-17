@@ -42,11 +42,14 @@
                                             {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[item.puzzleId] ?? null}) }}
                                         {% endif %}
 
-                                        {% if logged_user.profile is not null and item.isEditableBy(logged_user.profile.playerId) %}
+                                        {# An imported event result is the event's: its people get "Remove from my profile" only,
+                                           like in the profile's results (docs/features/event-results-import/README.md "Gates") #}
+                                        {% if logged_user.profile is not null and (item.isEditableBy(logged_user.profile.playerId) or item.isReleasableBy(logged_user.profile.playerId)) %}
                                             {{ include('_time_actions_menu.html.twig', {
                                                 time_id: item.id,
                                                 puzzle_name: item.puzzleName,
                                                 can_delete: item.playerId is same as logged_user.profile.playerId,
+                                                imported: item.importedFromEvent,
                                             }) }}
                                         {% endif %}
                                     </div>
@@ -87,7 +90,19 @@
                                 </td>
 
                                 <td class="ps-time">
-                                    {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
+                                    {# The row's real link to the result detail - a tap anywhere else on the row clicks it. A relay team's
+                                       result is no result of the puzzle (solo-and-relays.md §2): its row links the event's round #}
+                                    {% if item.isRelay %}
+                                    <a
+                                        class="ps-time-value"
+                                        href="{{ item.competitionSlug is not null and item.relayRoundSlug is not null ? path('event_round_results', {slug: item.competitionSlug, roundSlug: item.relayRoundSlug}) : path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                                        data-row-link-target="link"
+                                        data-testid="relay-result"
+                                    >
+                                        <span class="badge rounded-pill bg-secondary"><i class="bi bi-arrow-repeat"></i> {{ 'relay_result.badge'|trans }}</span>
+                                        <span class="d-block small text-muted">{{ 'relay_result.profile_total'|trans({'%count%': item.relayPuzzleCount, '%time%': item.relayTotalSeconds|puzzlingTime}) }}</span>
+                                    </a>
+                                    {% else %}
                                     <a
                                         class="ps-time-value"
                                         href="{{ path('puzzle_result_detail', {timeId: item.id}) }}"
@@ -103,6 +118,7 @@
                                             <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
                                         {%- endif -%}
                                     </a>
+                                    {% endif %}
 
                                     {# On a feed "1st try" says more at a glance than the PPM (that one is in the result detail) #}
                                     {# A result known to its month or year only: "5 years ago" would be counted from a day nobody knows -

@@ -780,6 +780,122 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
     }
 
     /**
+     * A claimed imported result is the event's (README "Gates" D6): the recent activity - the claimer's profile feed, the
+     * Hub's feed and the favorites feed - offers its claimer no Edit and no Delete, only "Remove from my profile", like
+     * the profile's results list.
+     */
+    public function testAClaimedImportedResultInTheRecentActivityOffersOnlyRemoveFromMyProfile(): void
+    {
+        [$pals] = $this->seed();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ClaimEventResultSlot($pals->id->toString(), PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        foreach ($this->activityFeeds(PlayerFixture::PLAYER_WITH_FAVORITES) as $prefix => $props) {
+            $row = $this->activityRowOf($props, $prefix, $pals->id->toString());
+            self::assertStringContainsString('data-testid="event-result-release-link"', $row, $prefix);
+            self::assertStringContainsString('/en/event-result/' . $pals->id->toString() . '/remove-from-profile', $row, $prefix);
+            self::assertStringNotContainsString('/en/edit-time/', $row, $prefix);
+            self::assertStringNotContainsString('/en/delete-time/', $row, $prefix);
+        }
+
+        // Somebody else of the feed gets no menu at all
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $row = $this->activityRowOf(['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'isOnProfile' => true, 'showLimit' => 50], 'player', $pals->id->toString());
+        self::assertStringNotContainsString('event-result-release-link', $row);
+        self::assertStringNotContainsString('/en/edit-time/', $row);
+    }
+
+    /**
+     * A claimed relay result in the recent activity (solo-and-relays.md §2): "Relay · 2 puzzles · total", linked to the
+     * event's round - never "Relax" - and its claimer can only remove it from their profile.
+     */
+    public function testAClaimedRelayInTheRecentActivityIsARelayLinkedToItsRound(): void
+    {
+        [$first, $second] = $this->seedRelay();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ClaimEventResultSlot($first->id->toString(), PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        $roundUrl = '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG;
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        foreach ($this->activityFeeds(PlayerFixture::PLAYER_WITH_FAVORITES) as $prefix => $props) {
+            foreach ([$first, $second] as $result) {
+                $row = $this->activityRowOf($props, $prefix, $result->id->toString());
+                self::assertStringContainsString('data-testid="relay-result"', $row, $prefix);
+                self::assertStringContainsString('2 puzzles · total 01:23:45', $row, $prefix);
+                self::assertStringContainsString('href="' . $roundUrl . '"', $row, $prefix);
+                self::assertStringNotContainsString('Relax', $row, $prefix);
+                self::assertStringNotContainsString('/en/result/', $row, $prefix);
+                self::assertStringContainsString('data-testid="event-result-release-link"', $row, $prefix);
+                self::assertStringNotContainsString('/en/edit-time/', $row, $prefix);
+                self::assertStringNotContainsString('/en/delete-time/', $row, $prefix);
+            }
+        }
+
+        // API v1: no time of its own, the relay's total in relay_total_seconds (additive) - never a relax solve
+        PatTestHelper::addBearerToken($this->browser, PatTestHelper::createToken($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->browser->request('GET', '/api/v1/me/results?type=team');
+        self::assertResponseIsSuccessful();
+        /** @var array{results: list<array<string, mixed>>} $response */
+        $response = json_decode((string) $this->browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $byId = array_column($response['results'], null, 'time_id');
+        foreach ([$first, $second] as $result) {
+            self::assertArrayHasKey($result->id->toString(), $byId);
+            self::assertNull($byId[$result->id->toString()]['time_seconds']);
+            self::assertSame(5025, $byId[$result->id->toString()]['relay_total_seconds']);
+        }
+    }
+
+    /**
+     * The team page (docs/features/pairs-and-teams/README.md) lists a relay team's results as "Relay · total" - never as
+     * relax - linked to the result detail, which leads a relay result to the event's round.
+     */
+    public function testARelayOnTheTeamPageIsARelay(): void
+    {
+        [$first] = $this->seedRelay();
+
+        $team = $this->page('/en/teams/' . $this->teamIdOf($first));
+        self::assertSame(2, substr_count($team, 'data-testid="relay-result"'));
+        self::assertStringContainsString('2 puzzles · total 01:23:45', $team);
+        self::assertStringContainsString('href="/en/result/' . $first->id->toString() . '"', $team);
+        self::assertStringNotContainsString('>Relax<', $team);
+    }
+
+    /**
+     * The feeds of the RecentActivity component a claimer sees their own result in: their profile and the Hub (the
+     * favorites feed lists other players' results - same template, same item)
+     *
+     * @return array<string, array<string, mixed>> by row id prefix
+     */
+    private function activityFeeds(string $playerId): array
+    {
+        return [
+            'player' => ['playerId' => $playerId, 'isOnProfile' => true, 'showLimit' => 50],
+            'all' => ['limit' => 500],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     */
+    private function activityRowOf(array $props, string $prefix, string $timeId): string
+    {
+        $activity = $this->createLiveComponent('RecentActivity', $props, $this->browser);
+        $activity->setRouteLocale('en');
+        $html = $activity->render()->toString();
+
+        $start = strpos($html, 'id="activity-' . $prefix . '-' . $timeId . '"');
+        self::assertNotFalse($start, 'The result is in the feed ' . $prefix);
+        $start = strrpos(substr($html, 0, $start), '<tr');
+        self::assertNotFalse($start);
+        $end = strpos($html, '</tr>', $start);
+        self::assertNotFalse($end);
+
+        return substr($html, $start, $end - $start);
+    }
+
+    /**
      * A relay of two puzzles (this test's puzzle and RELAY_SECOND_PUZZLE) in the teams round: Relay Rockets, four
      * people, 1:23:45 in total - the import's shape
      *

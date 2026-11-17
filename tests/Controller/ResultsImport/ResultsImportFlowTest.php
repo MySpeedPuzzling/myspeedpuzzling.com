@@ -117,7 +117,7 @@ final class ResultsImportFlowTest extends WebTestCase
         $form = $crawler->filter('[data-results-import-form]')->form();
         $confirm = $this->browser->submit($form);
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-results-import-confirm-heading]', 'Import 2 events, 5 teams?');
+        self::assertSelectorTextContains('[data-results-import-confirm-heading]', 'Import 2 events, 5 results?');
         self::assertSelectorExists('[data-results-import-no-undo]');
 
         $confirmForm = $confirm->filter('[data-results-import-confirm-form]')->form();
@@ -129,8 +129,8 @@ final class ResultsImportFlowTest extends WebTestCase
         $result = $this->browser->followRedirect();
         self::assertSame(['imported', 'imported'], $result->filter('[data-results-import-result-event]')->each(static fn (Crawler $row): string => (string) $row->attr('data-outcome')));
         self::assertCount(2, $result->filter('[data-results-import-results-link]'));
-        self::assertStringContainsString('Teams - new: 1, changed: 1, removed: 1', $result->filter('[data-results-import-result-event="102"]')->text());
-        self::assertStringContainsString('Teams - new: 3, changed: 0, removed: 0', $result->filter('[data-results-import-result-event="103"]')->text());
+        self::assertStringContainsString('Team results - new: 1, changed: 1, removed: 1', $result->filter('[data-results-import-result-event="102"]')->text());
+        self::assertStringContainsString('Pair results - new: 3, changed: 0, removed: 0', $result->filter('[data-results-import-result-event="103"]')->text());
 
         // The results page the link leads to
         $resultsLink = $result->filter('[data-results-import-result-event="103"] [data-results-import-results-link]')->attr('href');
@@ -172,6 +172,57 @@ final class ResultsImportFlowTest extends WebTestCase
         self::assertSelectorExists('[data-results-import-nothing]');
         self::assertSelectorTextContains('[data-results-import-history]', 'Michael Johnson');
         self::assertSelectorTextContains('[data-results-import-history]', '2 events imported');
+    }
+
+    /**
+     * The wording fits every category (docs/features/event-results-import/solo-and-relays.md): a Solo event and a relay
+     * count "results" in the list, the preview, the confirmation and the import's result - never "teams" - and the
+     * relay says it is one ("Relay · 2 puzzles"); the import's result names each event's category.
+     */
+    public function testSoloAndRelayEventsCountResultsAndTheRelaySaysItIsOne(): void
+    {
+        $link = 'https://myspeedpuzzling.com/en/puzzle/';
+        $this->fakeSheetTabs = [
+            '401' => ['title' => 'Willow Solo', 'csv' => self::sheetCsv([
+                "Jane Doe,0:31:00,1,,Willow Solo Night,Willow Hall,\"Springfield, MN\",10/9/26,7:00 PM,60,Solo,{$link}" . PuzzleFixture::PUZZLE_500_01,
+                'John Roe,0:35:00,1,,,,,,,,,',
+            ])],
+            '402' => ['title' => 'Aspen Relay', 'csv' => implode("\r\n", [
+                'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Link to MySpeedPuzzling 2',
+                "Relay Rockets,1:23:45,4,,Aspen Relay Night,Aspen Hall,\"Springfield, MN\",10/10/26,7:00 PM,120,Teams,{$link}" . PuzzleFixture::PUZZLE_500_01 . ",{$link}" . PuzzleFixture::PUZZLE_500_02,
+                'Edge Lords,1:30:01,3,,,,,,,,,,',
+                'Corner Crew,1:40:00,4,,,,,,,,,,',
+            ])],
+        ];
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $this->checkSheet();
+
+        $solo = $crawler->filter('[data-results-import-event="401"]')->text();
+        self::assertStringContainsString('2 results', $solo);
+        self::assertStringNotContainsString('team', strtolower($solo));
+        $relay = $crawler->filter('[data-results-import-event="402"]')->text();
+        self::assertStringContainsString('Relay · 2 puzzles', $relay);
+        self::assertStringContainsString('3 results', $relay);
+        self::assertStringNotContainsString('teams', $relay);
+
+        $preview = $this->browser->request('GET', $this->pageUrl() . '/events/401');
+        self::assertStringContainsString('Results', $preview->filter('[data-results-import-event-card]')->text());
+        self::assertStringNotContainsString('Teams', $preview->filter('[data-results-import-event-card]')->text());
+
+        $crawler = $this->browser->request('GET', $this->pageUrl());
+        $confirm = $this->browser->submit($crawler->filter('[data-results-import-form]')->form());
+        self::assertSelectorTextContains('[data-results-import-confirm-heading]', 'Import 2 events, 5 results?');
+        self::assertStringContainsString('Relay · 2 puzzles', $confirm->filter('[data-results-import-confirm-event="402"]')->text());
+        self::assertStringNotContainsString('team', strtolower($confirm->filter('[data-results-import-confirm-event="401"]')->text()));
+
+        $this->browser->submit($confirm->filter('[data-results-import-confirm-form]')->form());
+        $result = $this->browser->followRedirect();
+        self::assertStringContainsString('Solo results - new: 2, changed: 0, removed: 0', $result->filter('[data-results-import-result-event="401"]')->text());
+        self::assertStringContainsString('Team results - new: 3, changed: 0, removed: 0', $result->filter('[data-results-import-result-event="402"]')->text());
+        // The history sums the events - whatever their categories
+        $page = $this->browser->request('GET', $this->pageUrl());
+        self::assertStringContainsString('Results - new: 5, changed: 0, removed: 0', $page->filter('[data-results-import-history]')->text());
     }
 
     public function testOnlyTheLatestCheckIsImportedFrom(): void

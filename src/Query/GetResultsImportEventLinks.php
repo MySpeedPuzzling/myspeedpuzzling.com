@@ -20,7 +20,7 @@ readonly final class GetResultsImportEventLinks
 
     /**
      * @param list<string> $competitionIds
-     * @return array<string, array{name: string, slug: null|string, round_slug: null|string}> by competition id (lower-case)
+     * @return array<string, array{name: string, slug: null|string, round_slug: null|string, round_category: null|string}> by competition id (lower-case)
      */
     public function byCompetitionIds(array $competitionIds): array
     {
@@ -32,18 +32,23 @@ readonly final class GetResultsImportEventLinks
 
         $query = <<<SQL
 SELECT c.id, c.name, c.slug,
-    (SELECT cr.slug FROM competition_round cr WHERE cr.competition_id = c.id ORDER BY cr.starts_at, cr.id LIMIT 1) AS round_slug
+    first_round.slug AS round_slug,
+    -- The round's category (solo / duo / team) names what the import's result counts: "Team results - new: 2"
+    first_round.category AS round_category
 FROM competition c
+LEFT JOIN LATERAL (
+    SELECT cr.slug, cr.category FROM competition_round cr WHERE cr.competition_id = c.id ORDER BY cr.starts_at, cr.id LIMIT 1
+) first_round ON true
 WHERE c.id = ANY(CAST(:ids AS uuid[]))
 SQL;
 
-        /** @var list<array{id: string, name: string, slug: null|string, round_slug: null|string}> $rows */
+        /** @var list<array{id: string, name: string, slug: null|string, round_slug: null|string, round_category: null|string}> $rows */
         $rows = $this->database->executeQuery($query, ['ids' => '{' . implode(',', $competitionIds) . '}'])->fetchAllAssociative();
 
         $links = [];
 
         foreach ($rows as $row) {
-            $links[strtolower($row['id'])] = ['name' => $row['name'], 'slug' => $row['slug'], 'round_slug' => $row['round_slug']];
+            $links[strtolower($row['id'])] = ['name' => $row['name'], 'slug' => $row['slug'], 'round_slug' => $row['round_slug'], 'round_category' => $row['round_category']];
         }
 
         return $links;

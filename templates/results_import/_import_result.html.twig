@@ -1,6 +1,7 @@
 {#
-    What an import just did: every event with its outcome, the teams it added / changed / removed, and links to the
-    event and its results. Variables: log (ResultsImportLog), event_links (competition id => {name, slug, round_slug})
+    What an import just did: every event with its outcome, the results it added / changed / removed ("Team results -
+    new: 2, …" - its round's category, "Results" when the event is gone), and links to the event and its results.
+    Variables: log (ResultsImportLog), event_links (competition id => {name, slug, round_slug, round_category})
 #}
 <section class="card card-body shadow-sm border-success mb-4" id="import-result" data-results-import-result>
     <h2 class="h5 mb-1">{{ 'results_import.result.heading'|trans }}</h2>
@@ -15,7 +16,7 @@
                         <span class="fw-medium text-break">{{ link ? link.name : event.title }}</span>
                         <div class="small {{ event.outcome == 'imported' or event.outcome == 'unchanged' ? 'text-muted' : 'text-danger-emphasis' }}">
                             {{ ('results_import.outcome.' ~ event.outcome)|trans }}
-                            {%- if event.outcome == 'imported' %} · {{ 'results_import.result.teams'|trans({'%added%': event.added, '%updated%': event.updated, '%removed%': event.removed}) }}{% endif -%}
+                            {%- if event.outcome == 'imported' %} · {% if link and link.round_category %}{{ 'results_import_counts.summary_of_category'|trans({'%category%': ('competition.round.category.' ~ link.round_category)|trans, '%added%': event.added, '%updated%': event.updated, '%removed%': event.removed}) }}{% else %}{{ 'results_import_counts.summary'|trans({'%added%': event.added, '%updated%': event.updated, '%removed%': event.removed}) }}{% endif %}{% endif -%}
                         </div>
                     </div>
                     {% if link and link.slug %}

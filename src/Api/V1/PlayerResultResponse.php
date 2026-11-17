@@ -45,6 +45,13 @@ final class PlayerResultResponse
         public null|int $piecesPlaced = null,
         // An unfinished result's total time when the puzzlers finished it after the time ran out, else null. Additive (2026-11)
         public null|int $finishedLaterSeconds = null,
+        /**
+         * A relay team's result (docs/features/event-results-import/solo-and-relays.md §2): the team solved all the
+         * relay's puzzles at the same time and only the total is known - `time_seconds` is then null and it is no relax
+         * solve: a null time is a relax solve only while `pieces_placed` and `relay_total_seconds` are null too. The
+         * relay's total in seconds, null on every other result. Additive (2026-11).
+         */
+        public null|int $relayTotalSeconds = null,
     ) {
     }
 }

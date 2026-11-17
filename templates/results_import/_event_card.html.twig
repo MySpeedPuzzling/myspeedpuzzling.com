@@ -22,7 +22,7 @@
             <dd class="col-7">{{ event.category ? ('competition.round.category.' ~ event.category.value)|trans : '-' }}</dd>
             <dt class="col-5">{{ 'results_import.preview.time_limit'|trans }}</dt>
             <dd class="col-7" data-results-import-limit>{{ event.timeLimitMinutes is not null ? 'round_results.time_limit'|trans({'%minutes%': event.timeLimitMinutes}) : 'results_import.preview.no_time_limit'|trans }}</dd>
-            <dt class="col-5">{{ 'results_import.preview.teams'|trans }}</dt>
+            <dt class="col-5">{{ 'results_import_counts.label'|trans }}</dt>
             <dd class="col-7">{{ item.teamCount }}</dd>
         </dl>
     </div>

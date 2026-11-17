@@ -167,10 +167,12 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
 ### Gates (D6)
 
 - **The result is the event's.** `PuzzleSolvingTime::canBeModifiedBy()` / `canBeDeletedBy()` refuse it, and so do the
-  read models' `isEditableBy()` (`PuzzleSolversGroup`, `PuzzleResultAttempt`, `SolvedPuzzle`, `SolvedPuzzleDetail` -
-  they carry `importedFromEvent`): no edit button anywhere. Every edit or delete link of an imported result leads to
-  **"Remove from my profile"** (`ReleaseEventResultSlotController`, `/{_locale}/event-result/{timeId}/remove-from-profile`;
-  the profile's ⋯ menu shows it instead of Edit/Delete, the result detail next to the people) =
+  read models' `isEditableBy()` (`PuzzleSolversGroup`, `PuzzleResultAttempt`, `SolvedPuzzle`, `SolvedPuzzleDetail`,
+  `RecentActivityItem` - they carry `importedFromEvent`): no edit button anywhere. Every edit or delete link of an
+  imported result leads to **"Remove from my profile"** (`ReleaseEventResultSlotController`,
+  `/{_locale}/event-result/{timeId}/remove-from-profile`; the ⋯ menu of the profile's results and of the recent activity
+  - Hub, profile, `/recent-activity`, `isReleasableBy()` - shows it instead of Edit/Delete, the result detail next to the
+  people) =
   `ReleaseEventResultSlot`. Only the sheet changes the result; claim-then-delete sabotage is impossible.
 - **Releasing** (`EventResultSlotRelease`, the one way for a release, a removal and a deleted account):
   `PuzzlingTeamMemberConversion::playerToAnonymousSlot()` puts a new `a:` slot in the player's place - in place when the
@@ -320,10 +322,14 @@ time; only its total is known.
   logged once, the other claimers told once; never a first try, no "same result" swap. Release, "Not on our team" and
   account deletion release both (`EventResultSlotRelease::resultsOfTheSameSpot()`, the same new slot on both - still
   one team). The claim screens show "Relay · 2 puzzles · total" and both puzzles' names.
-- **The Results import page**: a relay event shows both puzzles; its teams are ranked by the total; a stored team's
-  time is its relay's total.
-- **Known, not done**: a claimed relay result shows as a relax solve on the Hub feed, the team page, the API and the
-  exports (docs/TODO.md).
+- **The Results import page**: a relay event shows both puzzles ("Relay · 2 puzzles" on its list line and on the
+  confirmation); its teams are ranked by the total; a stored team's time is its relay's total.
+- **Recent activity** (Hub, profile, `/recent-activity` - `GetRecentActivity`, the relay columns read after the limit in
+  the same statement): "Relay · 2 puzzles · total", linked to the round (`RecentActivityItem::isRelay()`, never relax).
+  **Team page**: the same label, linked to the result detail (= the round). **API v1** result lists
+  (`/me/results`, `/players/{id}/results`): `time_seconds` null and `relay_total_seconds` = the total (additive, null on
+  every other result).
+- **Known, not done**: the results export and API v0 still read a relay result like a relax one (docs/TODO.md).
 
 ## Unfinished results (D9)
 

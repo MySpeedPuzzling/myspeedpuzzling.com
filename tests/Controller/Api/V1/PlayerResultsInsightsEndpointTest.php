@@ -73,7 +73,7 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
 
         foreach ($rawResults as $rawResult) {
             // The original keys, then what was added since - always at the end, never renamed
-            $this->assertSame([...self::ORIGINAL_RESULT_KEYS, 'statistics', 'difficulty', 'team_id', 'team_name', 'date_precision', 'pieces_placed', 'finished_later_seconds'], $this->keys($rawResult));
+            $this->assertSame([...self::ORIGINAL_RESULT_KEYS, 'statistics', 'difficulty', 'team_id', 'team_name', 'date_precision', 'pieces_placed', 'finished_later_seconds', 'relay_total_seconds'], $this->keys($rawResult));
             $this->assertIsArray($rawResult);
             $this->assertSame(['solved_times', 'solo', 'duo', 'team'], $this->keys($rawResult['statistics']));
         }

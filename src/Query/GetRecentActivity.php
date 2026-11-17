@@ -316,7 +316,9 @@ SELECT
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
         LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
-    ELSE NULL END AS players
+    ELSE NULL END AS players,
+    COALESCE(pst.created_via = 'event_import', false) AS imported_from_event,
+    {$this->relayColumns('pst')}
 FROM
     filtered_puzzle_solving_time fpt
 INNER JOIN puzzle_solving_time pst ON pst.id = fpt.id
@@ -326,6 +328,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
+LEFT JOIN relay_result ON relay_result.id = pst.relay_result_id
 WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
 ORDER BY pst.tracked_at DESC
 SQL;
@@ -389,6 +392,22 @@ SQL;
     }
 
     /**
+     * A relay team's result (docs/features/event-results-import/solo-and-relays.md §2): the team's total, how many puzzles
+     * the relay had, and the round that ranks it - the row's link (the result detail of the puzzle leaves relay results
+     * out). Like GetPlayerSolvedPuzzles: expects `LEFT JOIN relay_result ON relay_result.id = <alias>.relay_result_id`
+     * and `<alias>.competition_round_id`; NULL / 0 for every other result, which reads no extra row - after the limit, in
+     * the same statement.
+     */
+    private function relayColumns(string $alias): string
+    {
+        return <<<SQL
+relay_result.seconds AS relay_total_seconds,
+    CASE WHEN {$alias}.relay_result_id IS NOT NULL THEN (SELECT COUNT(*) FROM puzzle_solving_time leg WHERE leg.relay_result_id = {$alias}.relay_result_id) ELSE 0 END AS relay_puzzle_count,
+    CASE WHEN {$alias}.relay_result_id IS NOT NULL THEN (SELECT round.slug FROM competition_round round WHERE round.id = {$alias}.competition_round_id) END AS relay_round_slug
+SQL;
+    }
+
+    /**
      * Columns of `listed`: the time, its puzzle and its tracker (joined as `puzzle_solving_time`, `puzzle`, `player`)
      */
     private function listedColumns(): string
@@ -424,7 +443,10 @@ puzzle_solving_time.id AS time_id,
         player.ranking_opted_out,
         puzzle_solving_time.competition_id,
         puzzle_solving_time.competition_series_id,
-        puzzle_solving_time.team
+        puzzle_solving_time.team,
+        COALESCE(puzzle_solving_time.created_via = 'event_import', false) AS imported_from_event,
+        puzzle_solving_time.relay_result_id,
+        puzzle_solving_time.competition_round_id
 SQL;
     }
 
@@ -490,10 +512,13 @@ SELECT
         FROM json_array_elements(listed.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
         LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = {$tierPieces})
-    ELSE NULL END AS players
+    ELSE NULL END AS players,
+    listed.imported_from_event,
+    {$this->relayColumns('listed')}
 FROM listed
 LEFT JOIN competition ON competition.id = listed.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, listed.competition_series_id)
+LEFT JOIN relay_result ON relay_result.id = listed.relay_result_id
 ORDER BY listed.tracked_at DESC
 SQL;
     }

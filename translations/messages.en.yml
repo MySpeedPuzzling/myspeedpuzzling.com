@@ -13973,8 +13973,6 @@ results_import:
         from_previous_sheet: "From your previous sheet - it has the date and name of an event imported before, so importing updates that event instead of adding a new one."
         heading: "Events in your sheet"
         tab: "Tab “%tab%”"
-        teams: "%count% team|%count% teams"
-        teams_changing: "%count% team changes|%count% teams change"
         warnings: "%count% thing to look at|%count% things to look at"
         preview: "Preview"
     status:
@@ -14037,18 +14035,15 @@ results_import:
         category: "Competition"
         time_limit: "Time limit"
         no_time_limit: "None"
-        teams: "Teams"
         puzzle_not_approved: "Not approved yet"
         no_puzzle: "No puzzle linked yet."
         open_event: "Open the event"
         open_results: "Open its results"
         results: "Results as they will be shown"
-        team: "Team"
-        no_teams: "No teams to show."
     differences:
         heading: "What changes"
         claimed: "Claimed"
-        added: "New team"
+        added: "New result"
         removed: "No longer in the sheet - removed (nobody claimed it)"
         kept_claimed: "No longer in the sheet - kept, claimed"
         renamed: "Written as “%name%” before"
@@ -14087,7 +14082,6 @@ results_import:
         failed: "Not imported - something went wrong and nothing of it changed. Please try again."
     result:
         heading: "Import done"
-        teams: "Teams - new: %added%, changed: %updated%, removed: %removed%"
         open_results: "Results"
         open_event: "Event"
     history:
@@ -15510,3 +15504,12 @@ relay_result:
     format_guide: "A relay (every team solves two puzzles at the same time): duplicate any tab, keep the columns, and on row 2 add the second puzzle's MySpeedPuzzling link in a new column Link to MySpeedPuzzling 2. Put each team's total time in Time. The total is shown on the event, never on the puzzles' pages."
     template_tabs: "A tab whose name starts with Template (Template, Template Relay, Template Solo…) is your blank copy - it is never imported."
     open_round: "Results of the event"
+
+results_import_counts:
+    results: "%count% result|%count% results"
+    changing: "%count% result changes|%count% results change"
+    label: "Results"
+    none: "No results to show."
+    summary: "Results - new: %added%, changed: %updated%, removed: %removed%"
+    summary_of_category: "%category% results - new: %added%, changed: %updated%, removed: %removed%"
+    name_column: "Name"

@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {#
-    "Import 3 events, 37 teams?" - the confirmation of an import from the results import page (results-import-page.md
+    "Import 3 events, 37 results?" - the confirmation of an import from the results import page (results-import-page.md
     "As built: PR 3"): the events about to be imported, what each adds or changes, no undo (P3). The form carries the
     import id minted here - sent twice, it imports nothing twice. Variables: organization, source_id, overview
     (ResultsImportOverview), events (list<ResultsImportEvent>), team_count, import_id
@@ -10,7 +10,7 @@
 {% set hide_comparison_launcher = true %}
 {% set back_url = path('results_import', {slug: organization.slug, sourceId: source_id}) %}
 {% set events_text = 'results_import.confirm.events'|trans({'%count%': events|length}) %}
-{% set teams_text = 'results_import.list.teams'|trans({'%count%': team_count}) %}
+{% set teams_text = 'results_import_counts.results'|trans({'%count%': team_count}) %}
 
 {% block title %}{{ 'results_import.confirm.title'|trans }} - {{ organization.name }}{% endblock %}
 
@@ -36,8 +36,9 @@
                         </div>
                         <div class="small text-muted">
                             {%- if item.event.localStartsAt %}{{ item.event.localStartsAt|events_date('yMMMd') }} · {% endif -%}
-                            {{ 'results_import.list.teams'|trans({'%count%': item.teamCount}) }}
-                            {%- if item.status.value == 'changed' %} · {{ 'results_import.list.teams_changing'|trans({'%count%': item.changedTeamCount}) }}{% endif -%}
+                            {%- if item.event.isRelay %}{{ 'relay_result.round_heading'|trans({'%count%': item.event.puzzleIds|length}) }} · {% endif -%}
+                            {{ 'results_import_counts.results'|trans({'%count%': item.teamCount}) }}
+                            {%- if item.status.value == 'changed' %} · {{ 'results_import_counts.changing'|trans({'%count%': item.changedTeamCount}) }}{% endif -%}
                             {%- if item.warnings is not empty %} · <span class="text-warning-emphasis">{{ 'results_import.list.warnings'|trans({'%count%': item.warnings|length}) }}</span>{% endif -%}
                         </div>
                         {% if item.previousSheetKey is not null %}

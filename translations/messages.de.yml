@@ -13726,8 +13726,6 @@ results_import:
         from_previous_sheet: "Aus deiner vorherigen Tabelle - es hat Datum und Namen eines schon importierten Events, deshalb aktualisiert der Import dieses Event, statt ein neues anzulegen."
         heading: "Events in deiner Tabelle"
         tab: "Tab „%tab%“"
-        teams: "%count% Team|%count% Teams"
-        teams_changing: "%count% Team ändert sich|%count% Teams ändern sich"
         warnings: "%count% Punkt zum Ansehen|%count% Punkte zum Ansehen"
         preview: "Vorschau"
     status:
@@ -13790,18 +13788,15 @@ results_import:
         category: "Wettbewerb"
         time_limit: "Zeitlimit"
         no_time_limit: "Keins"
-        teams: "Teams"
         puzzle_not_approved: "Noch nicht freigegeben"
         no_puzzle: "Noch kein Puzzle verlinkt."
         open_event: "Event öffnen"
         open_results: "Ergebnisse öffnen"
         results: "Ergebnisse, wie sie angezeigt werden"
-        team: "Team"
-        no_teams: "Keine Teams zum Anzeigen."
     differences:
         heading: "Was sich ändert"
         claimed: "Beansprucht"
-        added: "Neues Team"
+        added: "Neues Ergebnis"
         removed: "Nicht mehr in der Tabelle - wird entfernt (niemand hat es beansprucht)"
         kept_claimed: "Nicht mehr in der Tabelle - bleibt, beansprucht"
         renamed: "Vorher geschrieben als „%name%“"
@@ -13840,7 +13835,6 @@ results_import:
         failed: "Nicht importiert - etwas ist schiefgegangen, nichts davon wurde geändert. Bitte versuche es noch einmal."
     result:
         heading: "Import abgeschlossen"
-        teams: "Teams - neu: %added%, geändert: %updated%, entfernt: %removed%"
         open_results: "Ergebnisse"
         open_event: "Event"
     history:
@@ -15263,3 +15257,12 @@ relay_result:
     format_guide: "Eine Staffel (jedes Team legt zwei Puzzles gleichzeitig): Kopiere einen beliebigen Tab, behalte die Spalten und füge in Zeile 2 in einer neuen Spalte Link to MySpeedPuzzling 2 den MySpeedPuzzling-Link des zweiten Puzzles ein. Trage die Gesamtzeit jedes Teams in Time ein. Die Gesamtzeit steht bei der Veranstaltung, nie auf den Seiten der Puzzles."
     template_tabs: "Ein Tab, dessen Name mit Template beginnt (Template, Template Relay, Template Solo…), ist deine leere Vorlage - er wird nie importiert."
     open_round: "Ergebnisse der Veranstaltung"
+
+results_import_counts:
+    results: "%count% Ergebnis|%count% Ergebnisse"
+    changing: "%count% Ergebnis ändert sich|%count% Ergebnisse ändern sich"
+    label: "Ergebnisse"
+    none: "Keine Ergebnisse zum Anzeigen."
+    summary: "Ergebnisse - neu: %added%, geändert: %updated%, entfernt: %removed%"
+    summary_of_category: "Ergebnisse (%category%) - neu: %added%, geändert: %updated%, entfernt: %removed%"
+    name_column: "Name"

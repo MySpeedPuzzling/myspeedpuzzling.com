@@ -26,9 +26,10 @@ final class ParticipantsSheetQueryBudgetTest extends WebTestCase
 
     // Signed in (the account, the profile), the event exists, the organiser's permissions - 4 - and then: the page and
     // the state = the version, the event, its rounds, its people, their places, the pairs/teams, the linked players'
-    // own times (7); the version = the version (1). Measured 2026-10-08.
-    private const int PAGE_BUDGET = 11;
-    private const int STATE_BUDGET = 11;
+    // own times (7) + the pending link requests (1, participant-linking.md §7.1, 2026-11-17); the version = the version
+    // (1). Measured 2026-10-08.
+    private const int PAGE_BUDGET = 12;
+    private const int STATE_BUDGET = 12;
     private const int VERSION_BUDGET = 5;
 
     public function testABigEventCostsWhatASmallOneCosts(): void

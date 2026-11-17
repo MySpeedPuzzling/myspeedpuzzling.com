@@ -36,7 +36,7 @@ class ParticipantSheetChangeReceipt
 {
     /**
      * @param list<array<string, mixed>> $outcomes
-     * @param list<array{id: string, changes: list<array<string, null|string|int>>}> $changes
+     * @param list<array{id: string, changes: list<array<string, null|string|int|bool>>}> $changes
      */
     public function __construct(
         // The page's changesetId

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
@@ -796,6 +799,44 @@ final class PrivateProfileCanaryTest extends WebTestCase
         $html = $this->get($browser, $url);
         self::assertStringContainsString(self::OWNER_NAME, $html, 'The allowed friend does not see the private player here - the page is no canary.');
         self::assertStringContainsString('#PLAYER2', $html);
+    }
+
+    /**
+     * The documented exemption (participant-linking.md §3.3): her own link request shows her name and #code to the
+     * event's organisers - she showed herself to them on purpose ("The organisers will see your name and #code"). Only
+     * there: the snapshot is the request's, never her profile's, and the sheet's profile cells keep masking her.
+     */
+    public function testHerOwnLinkRequestShowsHerSnapshotToTheOrganiserOnly(): void
+    {
+        $browser = self::createClient();
+        $competitionId = CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024;
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->insert('competition_maintainer', ['competition_id' => $competitionId, 'player_id' => self::STRANGERS['member']]);
+        $participant = new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: 'Listed Person',
+            country: 'cz',
+            competition: self::getContainer()->get(CompetitionRepository::class)->get($competitionId),
+        );
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($participant);
+        $entityManager->flush();
+        $participantId = $participant->id->toString();
+        $connection->executeStatement(
+            "INSERT INTO participant_link_request (id, competition_id, participant_id, player_id, status, kind, player_name, player_code, releases_own_registration, created_at)
+             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', :name, 'player2', false, now())",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => $competitionId, 'participant' => $participantId, 'player' => self::OWNER, 'name' => self::OWNER_NAME],
+        );
+
+        TestingLogin::asPlayer($browser, self::STRANGERS['member']);
+        $browser->request('GET', '/en/participants-sheet-api/' . $competitionId . '/state');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent());
+
+        // Nobody who does not organise the event gets the sheet
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/participants-sheet-api/' . $competitionId . '/state');
+        self::assertResponseStatusCodeSame(403);
     }
 
     private function get(KernelBrowser $browser, string $url): string

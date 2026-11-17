@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results\ParticipantsSheet;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 
 /**
  * Everything the participants spreadsheet of one event shows (docs/features/competitions-management/participants-spreadsheet.md):
@@ -23,6 +24,7 @@ readonly final class ParticipantsSheetState implements \JsonSerializable
      * @param list<ParticipantsSheetPlace> $places
      * @param list<ParticipantsSheetTeam> $teams
      * @param null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int} $mercure
+     * @param list<ParticipantsSheetLinkRequest> $requests pending link requests (participant-linking.md §7.1)
      */
     public function __construct(
         public DateTimeImmutable $serverNow,
@@ -33,7 +35,42 @@ readonly final class ParticipantsSheetState implements \JsonSerializable
         public array $places,
         public array $teams,
         public null|array $mercure,
+        public array $requests = [],
     ) {
+    }
+
+    /**
+     * The People tab's filters (participant-linking.md §7.1) over the active people: linked, not linked, linked by
+     * themselves (ParticipantLinkMethod::isThePlayersOwn()), and the pending requests.
+     *
+     * @return array{linked: int, notLinked: int, linkedByThemselves: int, requests: int}
+     */
+    public function linkCounts(): array
+    {
+        $linked = 0;
+        $notLinked = 0;
+        $byThemselves = 0;
+
+        foreach ($this->people as $person) {
+            if ($person->removedAt !== null) {
+                continue;
+            }
+
+            if ($person->player === null) {
+                $notLinked++;
+
+                continue;
+            }
+
+            $linked++;
+            $via = $person->linkedVia !== null ? ParticipantLinkMethod::tryFrom($person->linkedVia) : null;
+
+            if ($via !== null && $via->isThePlayersOwn()) {
+                $byThemselves++;
+            }
+        }
+
+        return ['linked' => $linked, 'notLinked' => $notLinked, 'linkedByThemselves' => $byThemselves, 'requests' => count($this->requests)];
     }
 
     public function round(string $roundId): null|ParticipantsSheetRound
@@ -71,6 +108,8 @@ readonly final class ParticipantsSheetState implements \JsonSerializable
      *     places: list<ParticipantsSheetPlace>,
      *     teams: list<ParticipantsSheetTeam>,
      *     mercure: null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int},
+     *     requests: list<ParticipantsSheetLinkRequest>,
+     *     counts: array{linked: int, notLinked: int, linkedByThemselves: int, requests: int},
      * }
      */
     public function jsonSerialize(): array
@@ -84,6 +123,8 @@ readonly final class ParticipantsSheetState implements \JsonSerializable
             'places' => $this->places,
             'teams' => $this->teams,
             'mercure' => $this->mercure,
+            'requests' => $this->requests,
+            'counts' => $this->linkCounts(),
         ];
     }
 }

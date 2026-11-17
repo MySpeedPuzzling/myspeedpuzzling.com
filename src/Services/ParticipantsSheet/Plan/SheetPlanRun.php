@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\LinkRequestStatus;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -46,6 +47,12 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  * - At the end the NET difference between the event before and after all groups becomes the operations: a person taken
  *   out of a round and put back is no change at all, never a delete and an insert of the same entry.
  *
+ * - Link requests (docs/features/competitions-management/participant-linking.md §5.3): approving one is the `player`
+ *   change to the claimant - when the claimant is linked to another active person of the event, their other rows are
+ *   let go of first in the same group (R1, CompetitionSelfJoin's rules: their own self-joined row without a result is
+ *   removed, any other row only unlinked; their own paid registration only when they said yes at the claim). Declining
+ *   one is `declineLinkRequest`; "Not this person" is the `player` change to null with `notThem`.
+ *
  * The working state is plain arrays on purpose: saving and restoring it around a group is an assignment (copy on
  * write), whatever the group did.
  *
@@ -53,7 +60,8 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  * @phpstan-type Entry array{id: null|string, present: bool, team: null|string, ownData: bool}
  * @phpstan-type Team array{roundId: string, name: null|string, new: bool, deleted: bool}
  * @phpstan-type Round array{name: string, category: RoundCategory, teamSize: null|int}
- * @phpstan-type State array{people: array<string, Person>, entries: array<string, array<string, Entry>>, teams: array<string, Team>, members: array<string, array<string, true>>, rounds: array<string, Round>, nameKeys: array<string, string>}
+ * @phpstan-type Request array{participantId: string, playerId: string, status: string, releasesOwnRegistration: bool}
+ * @phpstan-type State array{people: array<string, Person>, entries: array<string, array<string, Entry>>, teams: array<string, Team>, members: array<string, array<string, true>>, rounds: array<string, Round>, nameKeys: array<string, string>, requests: array<string, Request>, notThem: array<string, true>}
  */
 final class SheetPlanRun
 {
@@ -87,6 +95,15 @@ final class SheetPlanRun
     /** @var array<string, string> participant id => ParticipantNameKey */
     private array $nameKeys = [];
 
+    /** @var array<string, Request> request id => the event's link request (pending ones and the ones the changes name) */
+    private array $requests = [];
+
+    /** @var array<string, true> participants whose link the organiser cleared as "Not this person" */
+    private array $notThem = [];
+
+    /** @var array<string, null|string> participant id => registration status (unchanged by the sheet) */
+    private array $registrationStatuses = [];
+
     /** @var State the event before the change set */
     private readonly array $start;
 
@@ -111,13 +128,17 @@ final class SheetPlanRun
     /**
      * @param array<string, true> $foreignParticipantIds ids of new participants that are participants of other events
      * @param array<string, true> $foreignTeamIds team ids the changes name that are pairs/teams of other events
+     * @param array<string, Request> $requests link requests of the event: every pending one and every one the changes name
      */
     public function __construct(
         private readonly SiteSnapshot $site,
         private readonly bool $registrationManaged,
         private readonly array $foreignParticipantIds,
         private readonly array $foreignTeamIds,
+        array $requests = [],
     ) {
+        $this->requests = $requests;
+
         foreach ($site->rounds as $round) {
             $this->rounds[$round->id] = ['name' => $round->name, 'category' => $round->category, 'teamSize' => $round->teamSize];
         }
@@ -136,6 +157,7 @@ final class SheetPlanRun
                 'new' => false,
             ];
             $this->nameKeys[$participant['id']] = ParticipantNameKey::of($participant['name']);
+            $this->registrationStatuses[$participant['id']] = $participant['registrationStatus'];
         }
 
         foreach ($site->teams as $team) {
@@ -299,6 +321,7 @@ final class SheetPlanRun
             SheetChangeOp::Remove => $this->remove($change, $index),
             SheetChangeOp::Restore => $this->restoreParticipant($change, $index),
             SheetChangeOp::TeamSize => $this->teamSize($change, $index),
+            SheetChangeOp::DeclineLinkRequest => $this->declineLinkRequest($change, $index),
         };
     }
 
@@ -500,15 +523,142 @@ final class SheetPlanRun
             $other = ParticipantRules::playerLinkedTo($to, $id, $this->people);
 
             if ($other !== null) {
-                return $this->refused($change, $index, 'player_linked_elsewhere', [
-                    'name' => $person['name'],
-                    'other' => $this->people[$other]['name'],
-                ]);
+                $request = $this->pendingRequestId($to, $id);
+
+                // Approving a claimant who is on the list already (they tapped "I'm going" before, or picked another
+                // name): their other rows are let go of first (R1) - anything else stays refused
+                if ($request === null) {
+                    return $this->refused($change, $index, 'player_linked_elsewhere', [
+                        'name' => $person['name'],
+                        'other' => $this->people[$other]['name'],
+                    ]);
+                }
+
+                $refusal = $this->releaseClaimant($to, $id, $this->requests[$request], $change, $index);
+
+                if ($refusal !== null) {
+                    return $refusal;
+                }
             }
         }
 
         $person['playerId'] = $to;
         $this->people[$id] = $person;
+
+        if ($to === null && $change->notThem) {
+            $this->notThem[$id] = true;
+        } else {
+            unset($this->notThem[$id]);
+        }
+
+        if ($to !== null) {
+            $this->linkedForRequests($id, $to);
+        }
+
+        return $this->outcome($change, $index, SheetChangeStatus::Applied);
+    }
+
+    /**
+     * R1: the claimant's other active rows of the event let go of before the approved link - the rules of
+     * CompetitionSelfJoin::releaseOtherParticipants(): their own self-joined row is removed unless it holds a result
+     * (then only unlinked), an organiser's row is only unlinked. Their own paid registration goes only on the yes they gave
+     * at the claim (`releases_own_registration`).
+     *
+     * @param Request $request
+     */
+    private function releaseClaimant(string $playerId, string $keepId, array $request, SheetChange $change, int $index): null|SheetChangeOutcome
+    {
+        foreach ($this->people as $otherId => $other) {
+            if ($otherId === $keepId || $other['deleted'] || $other['playerId'] !== $playerId) {
+                continue;
+            }
+
+            if ($other['selfJoined'] && ($this->registrationStatuses[$otherId] ?? null) === RegistrationStatus::Paid->value && $request['releasesOwnRegistration'] === false) {
+                return $this->refused($change, $index, 'claimant_registration_paid', ['name' => $other['name']]);
+            }
+        }
+
+        foreach ($this->people as $otherId => $other) {
+            if ($otherId === $keepId || $other['deleted'] || $other['playerId'] !== $playerId) {
+                continue;
+            }
+
+            if ($other['selfJoined'] && $this->keptInEventBy($otherId) === null) {
+                // Their own "I left" record, as when they switch rows themselves - not made the organiser's
+                $this->recordTeamsOf($otherId);
+                $other['deleted'] = true;
+                $this->removedInGroup[$otherId] = true;
+            } else {
+                $other['playerId'] = null;
+                unset($this->notThem[$otherId]);
+            }
+
+            $this->people[$otherId] = $other;
+        }
+
+        return null;
+    }
+
+    /**
+     * The pending request of the player for the participant, in the working state
+     */
+    private function pendingRequestId(string $playerId, string $participantId): null|string
+    {
+        foreach ($this->requests as $requestId => $request) {
+            if ($request['status'] === LinkRequestStatus::Pending->value && $request['playerId'] === $playerId && $request['participantId'] === $participantId) {
+                return $requestId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * What ParticipantLinks::link() does to the requests when the link is written (§4 step 3) - the working state follows,
+     * so a later change of the change set sees it
+     */
+    private function linkedForRequests(string $participantId, string $playerId): void
+    {
+        foreach ($this->requests as $requestId => $request) {
+            if ($request['status'] !== LinkRequestStatus::Pending->value) {
+                continue;
+            }
+
+            if ($request['participantId'] === $participantId) {
+                $request['status'] = $request['playerId'] === $playerId ? LinkRequestStatus::Approved->value : LinkRequestStatus::Superseded->value;
+            } elseif ($request['playerId'] === $playerId) {
+                $request['status'] = LinkRequestStatus::Superseded->value;
+            } else {
+                continue;
+            }
+
+            $this->requests[$requestId] = $request;
+        }
+    }
+
+    /**
+     * The organiser's "no" (§5.3): `from` is the status the page saw (pending). A decline is never undone - the claimant
+     * was told.
+     */
+    private function declineLinkRequest(SheetChange $change, int $index): SheetChangeOutcome
+    {
+        $requestId = (string) $change->requestId;
+        $request = $this->requests[$requestId] ?? null;
+
+        if ($request === null) {
+            return $this->refused($change, $index, 'request_not_found');
+        }
+
+        if ($request['status'] === LinkRequestStatus::Declined->value) {
+            return $this->outcome($change, $index, SheetChangeStatus::Unchanged);
+        }
+
+        if ($request['status'] !== $change->from || $request['status'] !== LinkRequestStatus::Pending->value) {
+            return $this->outcome($change, $index, SheetChangeStatus::Conflict, 'changed_meanwhile');
+        }
+
+        $request['status'] = LinkRequestStatus::Declined->value;
+        $this->requests[$requestId] = $request;
 
         return $this->outcome($change, $index, SheetChangeStatus::Applied);
     }
@@ -1145,6 +1295,7 @@ final class SheetPlanRun
                 ? $this->teams[(string) $change->teamId]['name']
                 : null,
             SheetChangeOp::TeamSize => $this->rounds[(string) $change->roundId]['teamSize'] ?? null,
+            SheetChangeOp::DeclineLinkRequest => $this->requests[(string) $change->requestId]['status'] ?? null,
             default => null,
         };
     }
@@ -1175,6 +1326,8 @@ final class SheetPlanRun
             'members' => $this->members,
             'rounds' => $this->rounds,
             'nameKeys' => $this->nameKeys,
+            'requests' => $this->requests,
+            'notThem' => $this->notThem,
         ];
     }
 
@@ -1189,6 +1342,8 @@ final class SheetPlanRun
         $this->members = $state['members'];
         $this->rounds = $state['rounds'];
         $this->nameKeys = $state['nameKeys'];
+        $this->requests = $state['requests'];
+        $this->notThem = $state['notThem'];
     }
 
     /**
@@ -1249,6 +1404,7 @@ final class SheetPlanRun
                 'softDelete' => !$before['deleted'] && $person['deleted'],
                 'changed' => true,
                 'disconnect' => $person['playerId'] === null && $before['playerId'] !== null,
+                'notThem' => $person['playerId'] === null && $before['playerId'] !== null && isset($this->notThem[$id]),
                 'leaveWaitlist' => $before['deleted'] && !$person['deleted'] && $this->registrationManaged === false,
             ];
 
@@ -1320,6 +1476,13 @@ final class SheetPlanRun
             }
         }
 
+        $declinedRequests = [];
+        foreach ($this->requests as $requestId => $request) {
+            if ($request['status'] === LinkRequestStatus::Declined->value && ($start['requests'][$requestId]['status'] ?? null) === LinkRequestStatus::Pending->value) {
+                $declinedRequests[] = $requestId;
+            }
+        }
+
         return new ParticipantImportOperations(
             participants: $participants,
             newTeams: $newTeams,
@@ -1333,6 +1496,7 @@ final class SheetPlanRun
             restored: $restored,
             removed: $softDeleted,
             renamedTeams: $renamedTeams,
+            declinedRequests: $declinedRequests,
         );
     }
 

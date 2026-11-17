@@ -20,6 +20,9 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  */
 readonly final class SheetChangeOutcome
 {
+    /** The reasons of link requests (SheetPlanRun, participant-linking.md §5.3) - their texts are under participant_linking */
+    public const array LINKING_REASONS = ['request_not_found', 'claimant_registration_paid'];
+
     /**
      * @param array<string, null|string|int> $parameters
      */
@@ -58,6 +61,11 @@ readonly final class SheetChangeOutcome
     {
         if ($this->reason === null) {
             return null;
+        }
+
+        // Participant linking's refusals keep their texts with the feature (participant-linking.md §5.3)
+        if (in_array($this->reason, self::LINKING_REASONS, true)) {
+            return 'participant_linking.sheet.reason.' . $this->reason;
         }
 
         return 'participants_sheet_server.reason.' . $this->reason . ($this->cause !== null ? '_' . $this->cause : '');

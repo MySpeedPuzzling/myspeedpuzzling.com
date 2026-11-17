@@ -45,9 +45,10 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * viewer's own blocks only, the blocked side must never be able to tell) or the profile is private to the viewer
  * (PrivateProfileAccess, the allow list included; nobody is private to themselves) - ParticipantsSheetPlayer.
  *
- * Seven statements for any event size: the version (first - GetParticipantsSheetVersion), the event, its rounds, its
- * people with their profiles, their places in rounds, the pairs/teams, and the rounds in which linked players have
- * times of their own (the results guard the sheet shows). An event with a `pick` round (competition toolkit A4) pays
+ * Eight statements for any event size: the version (first - GetParticipantsSheetVersion), the event, its rounds, its
+ * people with their profiles, their places in rounds, the pairs/teams, the rounds in which linked players have
+ * times of their own (the results guard the sheet shows), and the pending link requests (GetParticipantLinkRequests,
+ * participant-linking.md §7.1 - the claimant's snapshot, never the profile). An event with a `pick` round (competition toolkit A4) pays
  * RoundPuzzleFormats' two statements more for those rounds' `puzzleFormat`; its entries carry their `puzzles`.
  */
 readonly final class GetParticipantsSheetState
@@ -62,6 +63,7 @@ readonly final class GetParticipantsSheetState
         private ImageThumbnailTwigExtension $imageThumbnail,
         private ClockInterface $clock,
         private RoundPuzzleFormats $roundPuzzleFormats,
+        private GetParticipantLinkRequests $getParticipantLinkRequests,
     ) {
     }
 
@@ -96,6 +98,7 @@ readonly final class GetParticipantsSheetState
         }
 
         $people = $this->people($competitionId, null, $event['registration_managed'], $viewerPlayerId);
+        $claimPolicy = GetParticipantClaimPolicy::fromRow($event['participant_claims'], $event['competitor_pages'], $event['time_proposals'], $event['is_online_by_series']);
 
         return new ParticipantsSheetState(
             serverNow: $now,
@@ -113,6 +116,8 @@ readonly final class GetParticipantsSheetState
                     seriesSlug: $event['series_slug'],
                 )),
                 editUrl: $this->urlGenerator->generate('edit_competition', ['competitionId' => $competitionId]),
+                claimPolicy: $claimPolicy['policy']->value,
+                claimPolicyChosen: $claimPolicy['stored']?->value,
             ),
             rounds: $rounds,
             people: $people,
@@ -122,6 +127,7 @@ readonly final class GetParticipantsSheetState
                 $competitionId,
                 array_map(static fn (ParticipantsSheetRound $round): string => $round->id, $rounds),
             ),
+            requests: $this->getParticipantLinkRequests->pendingOf($competitionId),
         );
     }
 
@@ -142,11 +148,12 @@ readonly final class GetParticipantsSheetState
     }
 
     /**
-     * @return array{name: string, slug: null|string, is_online: bool, registration_managed: bool, capacity: null|int, location_country_code: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string}
+     * @return array{name: string, slug: null|string, is_online: bool, registration_managed: bool, capacity: null|int, location_country_code: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, participant_claims: null|string, competitor_pages: bool, time_proposals: bool, is_online_by_series: bool}
      * @throws CompetitionNotFound
      */
     private function competitionRow(string $competitionId): array
     {
+        $isOnline = EventIsOnline::sql('c', 'cs');
         $row = $this->database->fetchAssociative(
             <<<SQL
 SELECT
@@ -158,7 +165,11 @@ SELECT
     c.location_country_code,
     cs.name AS series_name,
     cs.slug AS series_slug,
-    cs.location_country_code AS series_country_code
+    cs.location_country_code AS series_country_code,
+    c.participant_claims,
+    c.competitor_pages,
+    c.time_proposals,
+    {$isOnline} AS is_online_by_series
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE c.id = :competitionId
@@ -170,7 +181,7 @@ SQL,
             throw new CompetitionNotFound();
         }
 
-        /** @var array{name: string, slug: null|string, is_online: bool, registration_managed: bool, capacity: null|int, location_country_code: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string} $row */
+        /** @var array{name: string, slug: null|string, is_online: bool, registration_managed: bool, capacity: null|int, location_country_code: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, participant_claims: null|string, competitor_pages: bool, time_proposals: bool, is_online_by_series: bool} $row */
         return $row;
     }
 

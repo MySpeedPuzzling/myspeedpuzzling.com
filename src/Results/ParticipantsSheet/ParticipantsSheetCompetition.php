@@ -19,11 +19,15 @@ readonly final class ParticipantsSheetCompetition implements \JsonSerializable
         // The public page of the event or the edition (the events list when it has none)
         public string $eventUrl,
         public string $editUrl,
+        // The claim policy in effect (open | approval), the organiser's choice (null = automatic) and whether time
+        // proposals make automatic mean approval (docs/features/competitions-management/participant-linking.md D3)
+        public string $claimPolicy = 'open',
+        public null|string $claimPolicyChosen = null,
     ) {
     }
 
     /**
-     * @return array{id: string, name: string, isOnline: bool, registrationManaged: bool, capacity: null|int, eventUrl: string, editUrl: string}
+     * @return array{id: string, name: string, isOnline: bool, registrationManaged: bool, capacity: null|int, eventUrl: string, editUrl: string, claimPolicy: string, claimPolicyChosen: null|string}
      */
     public function jsonSerialize(): array
     {
@@ -35,6 +39,8 @@ readonly final class ParticipantsSheetCompetition implements \JsonSerializable
             'capacity' => $this->capacity,
             'eventUrl' => $this->eventUrl,
             'editUrl' => $this->editUrl,
+            'claimPolicy' => $this->claimPolicy,
+            'claimPolicyChosen' => $this->claimPolicyChosen,
         ];
     }
 }

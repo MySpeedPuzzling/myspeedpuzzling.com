@@ -20,4 +20,6 @@ enum SheetChangeOp: string
     case Remove = 'remove';
     case Restore = 'restore';
     case TeamSize = 'teamSize';
+    // The organiser's "no" to a player's pending link request (participant-linking.md §5.3) - never undone
+    case DeclineLinkRequest = 'declineLinkRequest';
 }

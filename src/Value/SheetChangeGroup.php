@@ -22,7 +22,7 @@ readonly final class SheetChangeGroup
     /**
      * The group in the wire format (SheetChange::toArray()) - what a change set's receipt keeps of the request.
      *
-     * @return array{id: string, changes: list<array<string, null|string|int>>}
+     * @return array{id: string, changes: list<array<string, null|string|int|bool>>}
      */
     public function toArray(): array
     {

@@ -16,12 +16,14 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
  * The optional keys exist for the sheet only - the import never sets them, so its writes stay as they were:
  * `id` / `source` of a new participant, `reserve` (a new participant of an event managing registration holds a spot -
  * reserved, registered now), `disconnect` (the player link cleared), `organizerNote` (present = set to that value, null
- * clears), `leaveWaitlist` (a restored row of an event that does not manage registration), `id` of a new team.
+ * clears), `leaveWaitlist` (a restored row of an event that does not manage registration), `id` of a new team,
+ * `notThem` (the cleared link is the organiser's "Not this person", participant-linking.md D11) and `declinedRequests`
+ * (link requests the organiser declined, §5.3).
  */
 readonly final class ParticipantImportOperations
 {
     /**
-     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, reserve?: bool, disconnect?: bool, organizerNote?: null|string, leaveWaitlist?: bool}> $participants
+     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, reserve?: bool, disconnect?: bool, notThem?: bool, organizerNote?: null|string, leaveWaitlist?: bool}> $participants
      *        created (key "new:…") or changed (key = participant id) participants; values are the state after the write,
      *        `changed` = a value the organiser sees changes (not only markAsImported())
      * @param list<array{key: string, roundId: string, name: null|string, id?: string}> $newTeams
@@ -30,6 +32,7 @@ readonly final class ParticipantImportOperations
      * @param list<string> $deletedEntries entry ids (full sync, a person taken out of a round in the sheet)
      * @param list<string> $deletedTeams team ids (full sync - teams the import empties; the sheet's deleted pairs/teams)
      * @param list<array{teamId: string, name: null|string}> $renamedTeams existing teams with another name (the sheet)
+     * @param list<string> $declinedRequests ids of pending link requests the organiser declined (the sheet)
      */
     public function __construct(
         public array $participants = [],
@@ -45,6 +48,7 @@ readonly final class ParticipantImportOperations
         public int $restored = 0,
         public int $removed = 0,
         public array $renamedTeams = [],
+        public array $declinedRequests = [],
     ) {
     }
 
@@ -56,7 +60,8 @@ readonly final class ParticipantImportOperations
             && $this->entryTeams === []
             && $this->deletedEntries === []
             && $this->deletedTeams === []
-            && $this->renamedTeams === [];
+            && $this->renamedTeams === []
+            && $this->declinedRequests === [];
     }
 
     /**
@@ -76,6 +81,7 @@ readonly final class ParticipantImportOperations
             && $this->entryTeams === []
             && $this->deletedEntries === []
             && $this->deletedTeams === []
-            && $this->renamedTeams === [];
+            && $this->renamedTeams === []
+            && $this->declinedRequests === [];
     }
 }

@@ -97,7 +97,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
         self::assertStringContainsString('private', $cacheControl);
         self::assertStringContainsString('no-store', $cacheControl);
 
-        self::assertSame(['serverNow', 'version', 'competition', 'rounds', 'people', 'places', 'teams', 'mercure'], array_keys($state));
+        self::assertSame(['serverNow', 'version', 'competition', 'rounds', 'people', 'places', 'teams', 'mercure', 'requests', 'counts'], array_keys($state));
         self::assertSame(self::getContainer()->get(GetParticipantsSheetVersion::class)->ofCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP), $state['version']);
 
         self::assertSame([
@@ -108,7 +108,13 @@ final class ParticipantsSheetStateTest extends WebTestCase
             'capacity' => null,
             'eventUrl' => '/en/events/results-cup',
             'editUrl' => '/en/edit-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            'claimPolicy' => 'open',
+            'claimPolicyChosen' => null,
         ], $state['competition']);
+        // participant-linking.md §7.1: no request waits, the People filters' counts
+        self::assertSame([], $state['requests']);
+        self::assertSame(['linked', 'notLinked', 'linkedByThemselves', 'requests'], array_keys(self::object($state['counts'])));
+        self::assertSame(0, self::object($state['counts'])['requests']);
 
         // By start
         $rounds = self::objects($state['rounds']);
@@ -220,6 +226,45 @@ final class ParticipantsSheetStateTest extends WebTestCase
             ->person(CompetitionFixture::COMPETITION_WJPC_2024, CompetitionParticipantFixture::PARTICIPANT_CONNECTED, PlayerFixture::PLAYER_ADMIN);
         self::assertNull($person->linkedVia);
         self::assertNotNull($person->player);
+    }
+
+    /**
+     * participant-linking.md §7.1: the pending link requests with the claimant's own snapshot (name and #code - even for
+     * a private profile: the claimant showed themselves to the organiser), the policy in effect and the counts
+     */
+    public function testPendingLinkRequestsComeWithTheClaimantsSnapshot(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE competition SET competitor_pages = true, time_proposals = true WHERE id = :id", ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        $database->executeStatement('UPDATE competition_participant SET player_id = NULL, connected_at = NULL, connected_via = NULL WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
+        $requestId = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            "INSERT INTO participant_link_request (id, competition_id, participant_id, player_id, status, kind, player_name, player_code, releases_own_registration, created_at)
+             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', 'Secret Name', 'secret', false, now())",
+            ['id' => $requestId, 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'participant' => OfficialResultsFixture::PARTICIPANT_IVAN, 'player' => PlayerFixture::PLAYER_PRIVATE],
+        );
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+
+        $state = $this->state();
+
+        $competition = self::object($state['competition']);
+        self::assertSame('approval', $competition['claimPolicy']);
+        self::assertNull($competition['claimPolicyChosen']);
+        self::assertSame([[
+            'id' => $requestId,
+            'participantId' => OfficialResultsFixture::PARTICIPANT_IVAN,
+            'kind' => 'claim',
+            'playerId' => PlayerFixture::PLAYER_PRIVATE,
+            'playerName' => 'Secret Name',
+            'playerCode' => 'secret',
+        ]], array_map(static function (array $request): array {
+            unset($request['createdAt']);
+
+            return $request;
+        }, self::objects($state['requests'])));
+        $counts = self::object($state['counts']);
+        self::assertSame(1, $counts['requests']);
+        self::assertGreaterThanOrEqual(1, $counts['notLinked']);
     }
 
     public function testAPrivateProfileIsWithheldButItsParticipantStays(): void

@@ -30,7 +30,7 @@ use SpeedPuzzling\Web\Value\StandingRules;
  * event, is pruned from it (DeleteCompetitionRoundHandler, MoveRoundToCompetitionHandler) and readers skip any id that
  * is not a round of the event and category any more (a round whose category changed later).
  *
- * `published_at` is the public page's switch (A7); nothing sets it yet. The unique (competition_id, slug) index serves
+ * `published_at` is the public page's switch (A7: publish() / unpublish(), event_standing / edition_standing). The unique (competition_id, slug) index serves
  * the event's list too.
  */
 #[Entity]
@@ -122,6 +122,19 @@ class CompetitionStanding
         $this->unfinishedPenaltySecondsPerPiece = $rules->penaltySecondsPerPiece;
         $this->orderRule = $rules->order;
         $this->missingRule = $rules->missing;
+    }
+
+    /**
+     * The standing goes public (competition toolkit A7) - publishing again keeps the first moment.
+     */
+    public function publish(DateTimeImmutable $now): void
+    {
+        $this->publishedAt ??= $now;
+    }
+
+    public function unpublish(): void
+    {
+        $this->publishedAt = null;
     }
 
     /**

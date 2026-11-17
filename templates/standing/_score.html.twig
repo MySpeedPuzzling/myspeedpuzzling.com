@@ -1,0 +1,13 @@
+{#- One round's score of a public standing row (competition toolkit A7). Variables: score (StandingRoundScore), round. -#}
+{%- if score.status.value == 'finished' -%}
+    {{ score.scoreSeconds|puzzlingTime }}
+{%- elseif score.status.value == 'unfinished' -%}
+    <span title="{{ 'competition_standing.status.unfinished_help'|trans({'%pieces%': score.result.piecesPlaced}) }}">{{ score.scoreSeconds|puzzlingTime }}*</span>
+{%- elseif score.status.value == 'not_counted' -%}
+    <span title="{{ 'public_standing.not_published_round'|trans }}">–</span>
+{%- elseif score.status.value == 'unfinished_without_limit' -%}
+    <span class="text-danger">{{ 'competition_standing.status.unfinished_without_limit'|trans }}</span>
+{%- else -%}
+    <span class="text-danger">–</span>
+{%- endif -%}
+{%- if score.rank is not null %} <span class="text-muted">({{ score.rank }}.)</span>{% endif -%}

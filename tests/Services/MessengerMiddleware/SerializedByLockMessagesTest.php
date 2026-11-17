@@ -58,6 +58,8 @@ use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
+use SpeedPuzzling\Web\Message\UnpublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishImport;
@@ -249,6 +251,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new CreateCompetitionStanding(Uuid::uuid7(), $competitionId, 'Overall', RoundCategory::Solo, ['round'], new StandingRules()))->lockKey());
         self::assertSame($key, (new EditCompetitionStanding('standing', $competitionId, 'Overall', RoundCategory::Duo, ['round'], new StandingRules()))->lockKey());
         self::assertSame($key, (new DeleteCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new PublishCompetitionStanding('standing', strtolower($competitionId)))->lockKey());
+        self::assertSame($key, (new UnpublishCompetitionStanding('standing', $competitionId))->lockKey());
     }
 
     /**

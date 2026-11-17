@@ -68,7 +68,30 @@ final class CompetitionStandingsController extends AbstractController
             }
         }
 
+        // The public page of each published standing (A7) - the event's reference only when one is published
+        $publicUrls = [];
+        $reference = array_any($standings, static fn (CompetitionStandingOverview $standing): bool => $standing->publishedAt !== null)
+            ? $this->getCompetitionEvents->referenceById($competitionId)
+            : null;
+
+        foreach ($standings as $standing) {
+            if ($reference === null || $standing->publishedAt === null) {
+                continue;
+            }
+
+            $url = match ($reference->routeName()) {
+                'event_detail' => $this->generateUrl('event_standing', ['slug' => (string) $reference->slug, 'standingSlug' => $standing->slug]),
+                'edition_detail' => $this->generateUrl('edition_standing', ['seriesSlug' => (string) $reference->seriesSlug, 'editionSlug' => (string) $reference->slug, 'standingSlug' => $standing->slug]),
+                default => null,
+            };
+
+            if ($url !== null) {
+                $publicUrls[$standing->id] = $url;
+            }
+        }
+
         $response = $this->render('competition_toolkit/standings.html.twig', [
+            'public_urls' => $publicUrls,
             'competition' => $competition,
             'rounds' => $rounds,
             'tables' => array_map(fn (CompetitionStandingOverview $standing) => $this->getStandingResults->organiserView($standing), $standings),

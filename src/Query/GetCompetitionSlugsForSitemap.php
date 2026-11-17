@@ -162,6 +162,44 @@ SQL;
     }
 
     /**
+     * Public standings pages (competition toolkit A7, `event_standing` / `edition_standing`): published standings of
+     * publicly visible events with at least one of their rounds' official results published - a page with nothing counted
+     * is `noindex`.
+     *
+     * @return list<array{event_slug: string, series_slug: null|string, standing_slug: string}>
+     */
+    public function standingSlugs(): array
+    {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        $query = <<<SQL
+SELECT c.slug AS event_slug, cs.slug AS series_slug, s.slug AS standing_slug
+FROM competition_standing s
+JOIN competition c ON c.id = s.competition_id
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visibility}
+    AND s.published_at IS NOT NULL
+    AND c.slug IS NOT NULL
+    AND (c.series_id IS NULL OR cs.slug IS NOT NULL)
+    AND EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements_text(s.round_ids) AS standing_round(id)
+        INNER JOIN competition_round cr ON CAST(cr.id AS TEXT) = lower(standing_round.id)
+        WHERE cr.competition_id = s.competition_id
+            AND cr.results_published_at IS NOT NULL
+    )
+ORDER BY cs.slug NULLS FIRST, c.slug, s.position, s.slug
+SQL;
+
+        /** @var list<array{event_slug: string, series_slug: null|string, standing_slug: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return $rows;
+    }
+
+    /**
      * Years of the events archive (`events_archive`), newest first: the start years of past publicly visible
      * occurrences - one-time events and series editions, each session of one whose rounds fall on separate days.
      * Dated exactly like the events page (GetEventOccurrences): the dates go through OccurrenceDates::sessions() in

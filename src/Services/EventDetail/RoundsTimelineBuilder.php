@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Services\EventDetail;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
+use SpeedPuzzling\Web\Results\PublishedStandingRef;
 use SpeedPuzzling\Web\Results\EventDetail\RoundsTimeline;
+use SpeedPuzzling\Web\Results\EventDetail\TimelineStanding;
 use SpeedPuzzling\Web\Results\EventDetail\TimelineRound;
 use SpeedPuzzling\Web\Results\EventsPage\DateLeaf;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
@@ -42,6 +44,7 @@ readonly final class RoundsTimelineBuilder
     /**
      * @param list<EditionRoundDetail> $rounds GetEditionRounds::forCompetition() - by start, ties by id
      * @param array<string, int> $resultsPerRound round id => results (CountCompetitionResults::perRound())
+     * @param list<PublishedStandingRef> $standings the event's published standings (CompetitionEvent::$publishedStandings)
      */
     public function build(
         CompetitionReference $event,
@@ -56,6 +59,7 @@ readonly final class RoundsTimelineBuilder
         DateTimeImmutable $now,
         // the zone of an event without rounds - RoundTimezone::resolve(null, its country, its series' country)
         string $zone = 'UTC',
+        array $standings = [],
     ): RoundsTimeline {
         $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
 
@@ -166,6 +170,8 @@ readonly final class RoundsTimelineBuilder
             zoneAssumed: $firstRound !== null && $firstRound->timezoneAssumed,
             runsUntilEnd: $runsUntilEnd,
             mixedZones: count($zones) > 1,
+            // Standings pages of an event that is not public answer 404 - no links to them
+            standings: $isPublic ? $this->standings($event, $standings) : [],
         );
     }
 
@@ -199,6 +205,36 @@ readonly final class RoundsTimelineBuilder
         }
 
         return EventRowFactory::when(EventOccurrenceStatus::Upcoming, $roundDay, $today);
+    }
+
+    /**
+     * @param list<PublishedStandingRef> $standings
+     * @return list<TimelineStanding>
+     */
+    private function standings(CompetitionReference $event, array $standings): array
+    {
+        $links = [];
+
+        foreach ($standings as $standing) {
+            $url = match ($event->routeName()) {
+                'event_detail' => $this->urlGenerator->generate('event_standing', [
+                    'slug' => (string) $event->slug,
+                    'standingSlug' => $standing->slug,
+                ]),
+                'edition_detail' => $this->urlGenerator->generate('edition_standing', [
+                    'seriesSlug' => (string) $event->seriesSlug,
+                    'editionSlug' => (string) $event->slug,
+                    'standingSlug' => $standing->slug,
+                ]),
+                default => null,
+            };
+
+            if ($url !== null) {
+                $links[] = new TimelineStanding($standing->name, $standing->category, $url);
+            }
+        }
+
+        return $links;
     }
 
     private function resultsUrl(CompetitionReference $event, EditionRoundDetail $round): null|string

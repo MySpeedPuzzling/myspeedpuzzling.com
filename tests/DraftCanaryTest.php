@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -472,6 +473,52 @@ final class DraftCanaryTest extends WebTestCase
                 $browser->request('GET', $tag);
                 self::assertResponseRedirects('/en/events', null, 'A tag leads into a draft: ' . $tag);
             }
+        }
+    }
+
+    /**
+     * The public standings (competition toolkit A7): a published standing of Draft Night (its round's results published,
+     * a ranked entry) is a page and a sitemap entry once the event is published - and a 404, out of the sitemap and not
+     * linked while it is a draft, for a guest and a player off its team.
+     */
+    public function testTheStandingsOfADraftAreNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start) VALUES (:id, :participant, :round, 3000, false)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        );
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $category = $connection->fetchOne('SELECT category FROM competition_round WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        assert(is_string($category));
+        PublishedStanding::insert($connection, $draftNight, 'night-overall', 'Night overall', $category, [OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $url = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/standings/night-overall';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $draftNight, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('No canary: the standing is not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the standing');
+
+            $this->setDraft(self::COMPETITION, $draftNight, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing is public');
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
         }
     }
 

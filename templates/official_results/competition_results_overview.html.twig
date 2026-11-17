@@ -39,7 +39,7 @@
                         <i class="bi bi-person-badge me-1" aria-hidden="true"></i>{{ 'name_tags.button'|trans }}
                     </a>
                 {% endif %}
-                {{ include('official_results/_referees_link.html.twig', {competition_id: competition.id}) }}
+                {{ include('official_results/_referees_link.html.twig', {competition_id: competition.id}) }}{% if competition.publishedStandings is not empty and is_granted('COMPETITION_TOOLKIT_MANAGE', competition.id) %}{{ include('official_results/_standings_link.html.twig') }}{% endif %}
             </div>
         </div>
 

@@ -30,7 +30,8 @@ readonly final class GetCompetitionEvents
 
         // hasPageSections: one EXISTS in the statement every competition page runs anyway - a page without sections
         // never queries them (docs/features/competitions-management/public-page.md); hasPublishedOfficialResults the
-        // same for the official results (docs/features/competitions-management/official-results.md)
+        // same for the official results (docs/features/competitions-management/official-results.md); the published
+        // standings (competition toolkit A7) ride along as JSON - pages link them at no statement of their own
         $shownOnPage = GetCompetitionPageSections::sqlShownOnCompetitionPage('s', 'c');
         $showsOfficialResults = GetPublishedRoundResults::sqlShowsOfficialResults('official_round');
         $organizationVisible = IsOrganizationPubliclyVisible::SQL_CONDITION;
@@ -41,6 +42,11 @@ SELECT
     c.*,
     EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections,
     EXISTS (SELECT 1 FROM competition_round official_round WHERE official_round.competition_id = c.id AND {$showsOfficialResults}) AS has_published_official_results,
+    (
+        SELECT json_agg(json_build_object('id', s.id, 'name', s.name, 'slug', s.slug, 'category', s.category, 'round_ids', s.round_ids) ORDER BY s.position, s.created_at, s.id)
+        FROM competition_standing s
+        WHERE s.competition_id = c.id AND s.published_at IS NOT NULL
+    ) AS published_standings,
     o.id AS organization_ref_id,
     o.name AS organization_ref_name,
     o.short_name AS organization_ref_short_name,

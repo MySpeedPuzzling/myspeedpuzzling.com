@@ -1,0 +1,11 @@
+{#- When pieces are missing (competition toolkit T6): the time, the penalty and the missing pieces of a standing row.
+    Variables: row (StandingRow), attribute (the data attribute to mark it with), class. -#}
+{%- if row.totalMissingPieces > 0 -%}
+    <span class="small text-muted fw-normal {{ class|default('') }}" {{ attribute|default('data-standing-breakdown') }}>
+        {%- if row.totalPenaltySeconds > 0 -%}
+            {{ 'finished_missing.standing.breakdown_penalised'|trans({'%time%': row.totalTimeSeconds|puzzlingTime, '%penalty%': row.totalPenaltySeconds|puzzlingTime, '%missing%': 'finished_missing.missing_short'|trans({'%count%': row.totalMissingPieces})}) -}}
+        {%- else -%}
+            {{ 'finished_missing.standing.breakdown'|trans({'%time%': row.totalTimeSeconds|puzzlingTime, '%missing%': 'finished_missing.missing_short'|trans({'%count%': row.totalMissingPieces})}) -}}
+        {%- endif -%}
+    </span>
+{%- endif -%}

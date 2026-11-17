@@ -118,6 +118,8 @@
                                     <li class="list-inline-item text-nowrap me-2"><span class="fw-semibold">{{ 'public_standing.round_short'|trans({'%number%': loop.index}) }}</span> {{ include('standing/_score.html.twig') }}</li>
                                 {% endfor %}
                             </ol>
+                            {# Pieces missing (competition toolkit T6): the total's parts under the name on phones #}
+                            {{ include('standing/_breakdown.html.twig', {class: 'd-block d-lg-none mt-1', attribute: 'data-standing-breakdown-compact'}) }}
                         </td>
 
                         {% for round in table.table.rounds %}
@@ -126,7 +128,7 @@
                         {% endfor %}
 
                         <td class="lb-time">
-                            {{ include('standing/_total.html.twig') }}
+                            {{ include('standing/_total.html.twig', {breakdown_class: 'd-none d-lg-block'}) }}
                         </td>
                     </tr>
                 {% endfor %}

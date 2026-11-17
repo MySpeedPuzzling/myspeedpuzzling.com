@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-readonly final class EditCompetition
+/**
+ * Takes turns with every write to the event's participants (CompetitionParticipantsLock): moving the rounds with the
+ * date (moveRoundsWithDate) checks that no round has an official result under the same lock the results desk records
+ * under.
+ */
+readonly final class EditCompetition implements SerializedByLock
 {
     /**
      * @param array<string> $maintainerIds
@@ -35,6 +42,16 @@ readonly final class EditCompetition
         // An explicitly chosen slug (validated unique) - null keeps the slug, also on a rename: published links and
         // search engines know the competition by it
         public null|string $slug = null,
+        // A new first day (dateFrom) moves every round's start and the registration window by the same number of days,
+        // keeping their times of day (EventDateShift - the rule of a copy with a new date) - only while no round has
+        // begun (EventDateShift::roundsCanMove()). False = the rounds stay where they are (the internal API, every other
+        // caller)
+        public bool $moveRoundsWithDate = false,
     ) {
+    }
+
+    public function lockKey(): string
+    {
+        return CompetitionParticipantsLock::key($this->competitionId);
     }
 }

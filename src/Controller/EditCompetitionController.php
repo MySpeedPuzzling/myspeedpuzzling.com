@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
@@ -13,11 +14,14 @@ use SpeedPuzzling\Web\Message\AssignEventToOrganization;
 use SpeedPuzzling\Web\Message\EditCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\OrganizationEditVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
+use SpeedPuzzling\Web\Services\EventDateShift;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -43,12 +47,15 @@ final class EditCompetitionController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRepository $competitionRepository,
+        private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
         private readonly CompetitionUrlField $urlField,
         private readonly FormPhotoStash $formPhotoStash,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly OrganizationSelectChoices $organizationSelectChoices,
+        private readonly EventDateShift $eventDateShift,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -93,7 +100,18 @@ final class EditCompetitionController extends AbstractController
             ? $this->organizationSelectChoices->forPlayer($playerId, $this->isGranted(AdminAccessVoter::ADMIN_ACCESS), $currentOrganizationId)
             : [];
 
+        // "Move the rounds too" - offered while no round has begun, ticked by default (docs/features/competitions-management/
+        // README.md "Moving an event's date"); read before any message clears the entity manager
+        $moveRoundsOffered = $this->eventDateShift->roundsCanMove($competition);
+        $formData->moveRoundsWithDate = $moveRoundsOffered;
+        $originalDateFrom = $competition->dateFrom;
+        $roundIds = array_map(
+            static fn (CompetitionRound $round): string => $round->id->toString(),
+            $moveRoundsOffered ? $this->competitionRoundRepository->ofCompetition($competition) : [],
+        );
+
         $form = $this->createForm(CompetitionFormType::class, $formData, [
+            'move_rounds_field' => $moveRoundsOffered,
             'url_field' => true,
             'organization_choices' => $organizationChoices !== [] ? $organizationChoices : null,
         ]);
@@ -139,7 +157,15 @@ final class EditCompetitionController extends AbstractController
                         eligibility: $data->eligibility,
                         eventTypes: EventTypes::of($data->eventTypes),
                         slug: $slug,
+                        moveRoundsWithDate: $moveRoundsOffered && $data->moveRoundsWithDate,
                     ));
+
+                    // The event's displays show the rounds' starts (competition toolkit D5) - told after the commit
+                    if ($moveRoundsOffered && $data->moveRoundsWithDate && $data->dateFrom?->format('Y-m-d') !== $originalDateFrom?->format('Y-m-d')) {
+                        foreach ($roundIds as $roundId) {
+                            $this->displayLiveUpdates->roundChanged($roundId);
+                        }
+                    }
 
                     if ($playerId !== null) {
                         $this->formPhotoStash->forget($restoredPhotos, $playerId);
@@ -186,6 +212,7 @@ final class EditCompetitionController extends AbstractController
             'competition' => $competitionEvent,
             'slug_prefix' => $slugPrefix,
             'series_organization' => $seriesOrganizationRef,
+            'original_date_from' => $originalDateFrom,
         ]);
     }
 }

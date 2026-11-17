@@ -24,6 +24,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
+use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
@@ -393,6 +394,16 @@ class Competition implements EntityWithEvents
         $this->registrationTimezone = $timezone;
         $this->entryFeeText = $entryFeeText;
         $this->paymentInstructions = $paymentInstructions;
+    }
+
+    /**
+     * The registration window moves with the event's first day (EditCompetition `moveRoundsWithDate`): by the shift's
+     * days, each moment keeping its wall-clock time in the registration's zone - the rule of a copy (DuplicateCompetition)
+     */
+    public function moveRegistrationWindowBy(DuplicateDateShift $shift): void
+    {
+        $this->registrationOpensAt = $shift->apply($this->registrationOpensAt, $this->registrationZone());
+        $this->registrationClosesAt = $shift->apply($this->registrationClosesAt, $this->registrationZone());
     }
 
     public function changeCompetitorPageSettings(CompetitorPageSettings $settings): void

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetRoundsUsingOnlineTiming;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
+use SpeedPuzzling\Web\Services\EventDateShift;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -28,6 +29,7 @@ readonly final class EditCompetitionHandler
         private ImageOptimizer $imageOptimizer,
         private CompetitionSlugGenerator $slugGenerator,
         private GetRoundsUsingOnlineTiming $getRoundsUsingOnlineTiming,
+        private EventDateShift $eventDateShift,
     ) {
     }
 
@@ -78,6 +80,17 @@ readonly final class EditCompetitionHandler
 
             if (is_resource($stream)) {
                 fclose($stream);
+            }
+        }
+
+        // "Move the rounds too" (docs/features/competitions-management/README.md "Moving an event's date"): measured from
+        // the first day as it is now and done before the edit - a round without a saved zone is read in the zone of the
+        // country it had. Never once a round has begun (the form does not offer it then either)
+        if ($message->moveRoundsWithDate) {
+            $shift = $this->eventDateShift->shiftTo($competition, $message->dateFrom);
+
+            if ($shift->days !== 0 && $this->eventDateShift->roundsCanMove($competition)) {
+                $this->eventDateShift->moveRoundsAndRegistration($competition, $shift);
             }
         }
 

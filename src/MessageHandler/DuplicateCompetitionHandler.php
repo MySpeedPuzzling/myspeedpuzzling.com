@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationApprovalPolicy;
+use SpeedPuzzling\Web\Services\EventDateShift;
 use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\PageSectionOwner;
@@ -66,6 +67,7 @@ readonly final class DuplicateCompetitionHandler
         private CompetitionStandingRepository $standingRepository,
         private CompetitionDisplayRepository $displayRepository,
         private CompetitionAdvancementStepRepository $advancementStepRepository,
+        private EventDateShift $eventDateShift,
     ) {
     }
 
@@ -86,7 +88,8 @@ readonly final class DuplicateCompetitionHandler
 
         $now = $this->clock->now();
         $name = $message->name ?? $source->name;
-        $shift = DuplicateDateShift::between($source->dateFrom, $message->dateFrom);
+        // From the source's first day - its date_from, else its first round's day (EventDateShift)
+        $shift = $this->eventDateShift->shiftTo($source, $message->dateFrom);
 
         $copy = new Competition(
             id: $message->newCompetitionId,

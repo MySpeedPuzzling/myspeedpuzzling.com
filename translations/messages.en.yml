@@ -4753,6 +4753,8 @@ competition:
         date_to: "End date"
         dates_help: "For single-day events, set the same start and end date."
         dates_optional_online: "Optional for an online event - leave them empty if it is ongoing."
+        move_rounds_with_date: "Move the rounds too"
+        move_rounds_with_date_help: "Every round and the registration window move by the same number of days as the start date; the times of day stay."
         event_type: "Event type"
         event_type_offline: "Offline event"
         event_type_online: "Online event"
@@ -10630,6 +10632,15 @@ event_duplicate:
     button: "Duplicate"
     help: "Make a copy as a draft - details, rounds and page content, without participants, puzzles or results."
     flash: "A copy was created as a draft - change its dates and venue, then publish it."
+    flash_dated: "A copy for %date% was created as a draft - check its venue and details, then publish it."
+    title: "Duplicate event"
+    form:
+        date: "New date"
+        source_date: "Copy of %date%"
+        name: "Name"
+        what_moves: "Rounds and registration move by the same number of days; the times of day stay."
+        submit: "Make a copy"
+        cancel: "Cancel"
 puzzle_tags:
     trait:
         large_uniform_areas: "Large single-colour areas"

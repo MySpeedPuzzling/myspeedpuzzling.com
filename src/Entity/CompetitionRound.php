@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
+use SpeedPuzzling\Web\Value\DuplicateDateShift;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -382,6 +383,22 @@ class CompetitionRound implements EntityWithEvents
         $this->category = $category;
         $this->resultsLink = $resultsLink;
         $this->startTimeKnown = $startTimeKnown;
+    }
+
+    /**
+     * The event's first day moved and its rounds go with it (EditCompetition `moveRoundsWithDate`, EventDateShift): the
+     * same wall-clock time the shift's days later in the round's own zone - like a copy's rounds (DuplicateCompetition)
+     */
+    public function moveStartBy(DuplicateDateShift $shift): void
+    {
+        $startsAt = $shift->apply($this->startsAt, $this->displayTimezone()) ?? $this->startsAt;
+
+        if ($startsAt->getTimestamp() !== $this->startsAt->getTimestamp()) {
+            // Its local day dates the round - series picks of an edition may move (high-frequency-series.md)
+            $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
+        }
+
+        $this->startsAt = $startsAt;
     }
 
     /**

@@ -124,8 +124,9 @@ final class PluralMessagesTest extends KernelTestCase
     private static function translator(): TranslatorInterface
     {
         $container = self::getContainer();
-        $translator = $container->has('translator.default') ? $container->get('translator.default') : $container->get(TranslatorInterface::class);
-        self::assertInstanceOf(TranslatorInterface::class, $translator);
+        // PHPStan's container map has no 'translator.default' (private) and types the alias as the collecting translator
+        $translator = $container->has('translator.default') ? $container->get('translator.default') : $container->get(TranslatorInterface::class); // @phpstan-ignore ternary.alwaysFalse
+        self::assertInstanceOf(TranslatorInterface::class, $translator); // @phpstan-ignore staticMethod.alreadyNarrowedType
 
         return $translator;
     }

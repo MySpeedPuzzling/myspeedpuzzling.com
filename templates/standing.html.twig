@@ -69,7 +69,7 @@
                     <th scope="col" class="lb-rank-head"><abbr title="{{ 'public_standing.rank'|trans }}">#</abbr></th>
                     <th scope="col">{{ ('round_results.official.entrant.' ~ standing.category.value)|trans }}</th>
                     {% for round in table.table.rounds %}
-                        <th scope="col" class="text-end text-nowrap d-none d-lg-table-cell small {{ round.counted ? '' : 'text-muted' }}">
+                        <th scope="col" class="text-end text-nowrap d-none d-lg-table-cell {{ round.counted ? '' : 'text-muted' }}">
                             {%- if round.slug is not null and round.counted -%}
                                 <a href="{{ path(round_route, route_params|merge({roundSlug: round.slug})) }}">{{ round.name }}</a>
                             {%- else -%}
@@ -119,7 +119,7 @@
 
                         {% for round in table.table.rounds %}
                             {% set score = row.perRound[round.id] %}
-                            <td class="text-end text-nowrap d-none d-lg-table-cell small" data-standing-score="{{ score.status.value }}">{{ include('standing/_score.html.twig') }}</td>
+                            <td class="text-end text-nowrap d-none d-lg-table-cell" data-standing-score="{{ score.status.value }}"><span class="lb-time-value small">{{ include('standing/_score.html.twig') }}</span></td>
                         {% endfor %}
 
                         <td class="lb-time">

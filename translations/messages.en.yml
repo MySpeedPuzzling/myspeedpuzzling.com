@@ -5587,11 +5587,13 @@ live_results:
     puzzle_split:
         title: "Finish time per puzzle"
         finished_now: "Finished now"
-        own: "own %time%"
+        own: "(%time% for this puzzle)"
         type: "Type the time"
         save: "Save time"
         toast: "%label% finished at %time%"
         out_of_order: "That time does not fit the order - each puzzle finishes after the one before it."
+        pick_remaining: "Which puzzle was finished last? Tap its chip first, then save the time."
+        whole_round: "This finishes the whole round - for one puzzle use its own Finished now."
     proposals:
         title: "Proposed %time%"
         from: "from their phone at %time%"

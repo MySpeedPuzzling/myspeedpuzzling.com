@@ -38,7 +38,7 @@ import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
-import { finishChoice, finishFields, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
+import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
@@ -2781,13 +2781,45 @@ export default class extends Controller {
             return;
         }
 
+        if (this.splitGateRefuses({ seconds: parsed.seconds })) {
+            this.timeInputTarget.focus();
+
+            return;
+        }
+
         this.review({ seconds: parsed.seconds });
     }
 
-    async finishedNow() {
+    /**
+     * Puzzles finished one by one (real events W5): a time for the whole round completes the solving order with the one
+     * left, or says why it cannot be saved yet (which puzzle was last; a time before an earlier split) - true = refused.
+     */
+    splitGateRefuses(value) {
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const gate = entry === null ? { choice: null, refusal: null } : finishGate(splitFormat(this.round), shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value, this.choice, value);
+
+        if (gate.refusal !== null) {
+            this.setText(this.timeParsedTarget, this.t(gate.refusal === 'pick_remaining' ? 'splitPickRemaining' : 'splitOutOfOrder'));
+
+            return true;
+        }
+
+        if (gate.choice !== null) {
+            this.choice = gate.choice;
+        }
+
+        return false;
+    }
+
+    async finishedNow(event) {
         // Frozen the moment it is tapped - on the server's clock
         const tappedAt = this.serverNow();
         const ref = this.openRef;
+
+        // The second tap of a double tap on a puzzle's own Finished now (real events W5) is not the round's finish
+        if (!this.splitTapAllowed(event)) {
+            return;
+        }
 
         // Live updates down for a while: the stopwatch may have been paused or stopped meanwhile - ask the server
         // before trusting it (a failed fetch keeps what is known: better than nothing on venue Wi-Fi)
@@ -2815,15 +2847,14 @@ export default class extends Controller {
             return;
         }
 
-        // Puzzles finished one by one (real events W5): the one left finishes with the round's time as its split
-        const entry = this.entry(ref);
-        const finishing = entry === null ? null : finishChoice(splitFormat(this.round), shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value, this.choice);
+        const value = { seconds: Math.min(elapsed, 86399) };
 
-        if (finishing !== null) {
-            this.choice = finishing;
+        // Puzzles finished one by one (real events W5): the one left finishes with the round's time as its split
+        if (this.splitGateRefuses(value)) {
+            return;
         }
 
-        this.review({ seconds: Math.min(elapsed, 86399) }, { finishedNow: true, tappedAt });
+        this.review(value, { finishedNow: true, tappedAt });
     }
 
     didNotFinish() {
@@ -3146,7 +3177,7 @@ export default class extends Controller {
 
         const rows = view.rows.map((row) => {
             const id = escapeHtml(row.id);
-            const at = row.at !== null ? `✓ ${formatResultTime(row.at)}${row.own !== null && row.order > 1 ? ` · ${this.t('splitOwn', { '%time%': formatResultTime(row.own) })}` : ''}` : (row.done ? '✓' : '');
+            const at = row.at !== null ? `✓ ${formatResultTime(row.at)}${row.own !== null && row.order > 1 ? ` ${this.t('splitOwn', { '%time%': formatResultTime(row.own) })}` : ''}` : (row.done ? '✓' : '');
             const form = this.splitEditing === row.id
                 ? `<form class="lr-split-form" data-id="${id}" data-action="submit->live-results#typedSplit" novalidate><input class="form-control" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('splitPlaceholder'))}" aria-label="${escapeHtml(row.label)}" inputmode="numeric" enterkeyhint="done" autocomplete="off"><button type="submit" class="btn btn-primary">${escapeHtml(this.t('splitSave'))}</button></form>`
                 : '';
@@ -3247,7 +3278,8 @@ export default class extends Controller {
         this.choice = step.choice;
 
         if (step.finishes) {
-            this.review({ seconds }, { finishedNow: tappedAt !== null, tappedAt, shownFrom: this.shownFrom });
+            // The card's `from` fresh from the server now (the snapshot of the entry's opening would read as "Saved meanwhile")
+            this.review({ seconds }, { finishedNow: tappedAt !== null, tappedAt });
 
             return;
         }
@@ -3305,6 +3337,11 @@ export default class extends Controller {
         this.renderConfirmResult();
 
         let note = finishedNow ? this.t('finishedNowNote') : '';
+
+        // A split round with puzzles still to finish (real events W5): this is the whole round, not one puzzle
+        if (finishedNow && !restored && finishesWholeRound(splitFormat(this.round), shownValue(entry, 'puzzles', this.outbox.all()).value)) {
+            note = `${note} · ${this.t('splitWholeRound')}`;
+        }
 
         // Back after a reload: when it was tapped tells the referee the value is the frozen one
         if (finishedNow && restored && tappedAt !== null) {

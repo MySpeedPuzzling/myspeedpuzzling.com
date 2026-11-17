@@ -223,3 +223,44 @@ export function finishFields(format, fields, record, result, shownRecord) {
 
     return sameValue(shownRecord, split) ? { fields, record: split } : { fields: [{ field: 'puzzles', to: split }, ...fields], record: split };
 }
+
+/**
+ * A finished time for the whole round (typed, or the round's own "Finished now") on a card where puzzles were already
+ * finished one by one: `choice` = the solving order that finishes the round (the finished puzzles, then the one left),
+ * or a `refusal` shown on the card before anything is sent - `pick_remaining` (which puzzle was finished last is not
+ * known: tap its chip first) or `splits_out_of_order` (the time is not after an earlier split - saving it would drop
+ * every split). Nothing recorded per puzzle, or not a finished time: {choice: null, refusal: null} - as before.
+ *
+ * @returns {{choice: string[]|null, refusal: string|null}}
+ */
+export function finishGate(format, record, choice, value) {
+    const done = list(record).filter((item) => item.done === true);
+
+    if (format === null || !finishedTime(value) || done.length === 0) {
+        return { choice: null, refusal: null };
+    }
+
+    const doneIds = done.map((item) => key(item.roundPuzzleId));
+    const chosen = [...doneIds, ...(choice ?? []).map(key).filter((id) => !doneIds.includes(id))];
+    const order = chosen.length === format.toSolve ? chosen : (doneIds.length >= format.toSolve ? doneIds : finishChoice(format, record, choice));
+
+    if (order === null) {
+        return { choice: null, refusal: 'pick_remaining' };
+    }
+
+    const splits = order.slice(0, -1).map((id) => done.find((item) => key(item.roundPuzzleId) === id)?.atSeconds).filter(Number.isInteger);
+
+    if (splits.some((split) => value.seconds <= split)) {
+        return { choice: null, refusal: 'splits_out_of_order' };
+    }
+
+    return { choice: order, refusal: null };
+}
+
+/**
+ * The round's own "Finished now" while fewer than K − 1 puzzles are finished on a split round: the confirm step says it
+ * finishes the whole round (a judge's habit tap meant for one puzzle).
+ */
+export function finishesWholeRound(format, record) {
+    return format !== null && list(record).filter((item) => item.done === true).length < format.toSolve - 1;
+}

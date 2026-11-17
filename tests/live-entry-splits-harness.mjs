@@ -3,7 +3,7 @@
 // The outbox part runs the real official_results_outbox.js on an in-memory store with a fake server.
 
 import assert from 'node:assert/strict';
-import { candidates, finishChoice, finishFields, splitFormat, splitRows, splitStep, withFinishSplit } from '../assets/live_entry_splits.js';
+import { candidates, finishChoice, finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, splitStep, withFinishSplit } from '../assets/live_entry_splits.js';
 import { saveFields } from '../assets/live_entry_puzzles.js';
 import { validate } from '../assets/official_results_puzzles.js';
 import { createMemoryStorage, Outbox } from '../assets/official_results_outbox.js';
@@ -178,6 +178,61 @@ const scenarios = {
         assert.equal(finishFields(solveAll, fields, plain, { seconds: 3000 }, null).fields, fields, 'nothing to fill: the fields as saveFields() made them');
         // The record shown is the record without the last split: the change is added
         assert.deepEqual(finishFields(solveAll, fields, desk, { seconds: 3000 }, desk).fields.map((field) => field.field), ['puzzles', 'result']);
+    },
+
+    'review MUST-FIX 1: a round time typed (or the round Finished now) after puzzle 1 was tapped completes the order - never sent alone'() {
+        const solveAll = format(2);
+        const first = splitStep(solveAll, null, [], P_A, 1500, null);
+        assert.deepEqual(first.choice, [P_A], 'after the tap the card\'s choice is puzzle 1 only');
+        const gate = finishGate(solveAll, first.record, first.choice, { seconds: 3100 });
+        assert.deepEqual(gate, { choice: [P_A, P_B], refusal: null });
+
+        // Without the gate the record would be null (choice < K) and the result refused with puzzles_mismatch
+        assert.equal(saveFields(solveAll, first.choice, { seconds: 3100 }, entry({ puzzles: first.record }), []).record, null);
+        const save = saveFields(solveAll, gate.choice, { seconds: 3100 }, entry({ puzzles: first.record }), []);
+        const { fields } = finishFields(solveAll, save.fields, save.record, { seconds: 3100 }, first.record);
+        assert.deepEqual(fields, [
+            { field: 'puzzles', to: [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }, { roundPuzzleId: P_B, done: true, atSeconds: 3100 }] },
+            { field: 'result', to: { seconds: 3100 } },
+        ]);
+        assert.equal(validate(fields[0].to, solveAll, { seconds: 3100 }), null);
+
+        // Pick 2 of 3, one finished, the last one not known: tap its chip first
+        const pick2of3 = format(2, 3);
+        const one = [{ roundPuzzleId: P_A, done: true, atSeconds: 900 }];
+        assert.deepEqual(finishGate(pick2of3, one, [P_A], { seconds: 3000 }), { choice: null, refusal: 'pick_remaining' });
+        assert.deepEqual(finishGate(pick2of3, one, [P_A, P_C], { seconds: 3000 }), { choice: [P_A, P_C], refusal: null }, 'chip tapped: the order is known');
+    },
+
+    'review MUST-FIX 2: a round time not after an earlier split is refused instead of dropping every split'() {
+        const solveAll = format(2);
+        const one = [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }];
+        assert.deepEqual(finishGate(solveAll, one, [P_A], { seconds: 1500 }), { choice: null, refusal: 'splits_out_of_order' });
+        assert.deepEqual(finishGate(solveAll, one, [P_A], { seconds: 1200 }), { choice: null, refusal: 'splits_out_of_order' });
+        // All K already finished (the desk): the last split follows the new time, the earlier must stay before it
+        const both = [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }, { roundPuzzleId: P_B, done: true, atSeconds: 3000 }];
+        assert.deepEqual(finishGate(solveAll, both, [P_A, P_B], { seconds: 2900 }), { choice: [P_A, P_B], refusal: null });
+        assert.deepEqual(finishGate(solveAll, both, [P_A, P_B], { seconds: 1400 }), { choice: null, refusal: 'splits_out_of_order' });
+    },
+
+    'the gate leaves everything else as it was'() {
+        const solveAll = format(2);
+        const none = { choice: null, refusal: null };
+        assert.deepEqual(finishGate(null, [{ roundPuzzleId: P_A, done: true, atSeconds: 1 }], [], { seconds: 3 }), none, 'not a split round');
+        assert.deepEqual(finishGate(solveAll, null, [P_A, P_B], { seconds: 3000 }), none, 'nothing finished per puzzle');
+        assert.deepEqual(finishGate(solveAll, [{ roundPuzzleId: P_A, done: false }], [P_A], { seconds: 3000 }), none, 'a choice only');
+        assert.deepEqual(finishGate(solveAll, [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }], [P_A], { piecesPlaced: 700 }), none, 'unfinished: the pieces rows decide');
+        assert.deepEqual(finishGate(solveAll, [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }], [P_A], null), none);
+    },
+
+    'habit guard: the round\'s Finished now says it finishes the whole round while puzzles are still to finish'() {
+        const solveAll3 = format(3, 3);
+        assert.equal(finishesWholeRound(solveAll3, null), true, 'nothing finished, 3 to solve');
+        assert.equal(finishesWholeRound(solveAll3, [{ roundPuzzleId: P_A, done: true, atSeconds: 900 }]), true);
+        assert.equal(finishesWholeRound(solveAll3, [{ roundPuzzleId: P_A, done: true, atSeconds: 900 }, { roundPuzzleId: P_B, done: true, atSeconds: 1800 }]), false, 'one left: it is that one');
+        assert.equal(finishesWholeRound(format(2), null), true);
+        assert.equal(finishesWholeRound(format(2), [{ roundPuzzleId: P_A, done: true, atSeconds: 900 }]), false);
+        assert.equal(finishesWholeRound(null, null), false, 'not a split round: no note');
     },
 
     async 'offline tap on puzzle 1, online tap on puzzle 2: chained from, one group, exactly once'() {

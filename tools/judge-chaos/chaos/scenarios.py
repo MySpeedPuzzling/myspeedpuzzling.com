@@ -1099,6 +1099,10 @@ def s14_puzzle_splits(context):
     db.all("""UPDATE competition_participant_round SET result_seconds = NULL, result_pieces_placed = NULL,
               result_did_not_start = false, result_entered_at = NULL, result_entered_by_id = NULL, result_puzzles = NULL
               WHERE round_id = %s AND table_number = %s""", (ROUND_SPLITS, SPLIT_TABLE))
+    # The seed's start goes stale (a 600 min limit, the stack may be up for a day): running since 10 minutes ago
+    db.all("""UPDATE competition_round SET stopwatch_status = 'running', stopwatch_stopped_at = NULL,
+              stopwatch_started_at = (now() AT TIME ZONE 'UTC') - interval '10 minutes',
+              stopwatch_first_started_at = (now() AT TIME ZONE 'UTC') - interval '10 minutes' WHERE id = %s""", (ROUND_SPLITS,))
     since = db.now()
     browser = judge(context)
     browser.open_live(ROUND_SPLITS)

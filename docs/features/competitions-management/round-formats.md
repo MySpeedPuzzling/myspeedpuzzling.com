@@ -138,8 +138,17 @@ challenge 2's own time = split₂ − split₁). Pure logic `assets/live_entry_s
   draft restore after a reload); Save = `puzzles` + `result` as one outbox group (rule 7, `enqueueGroup()`).
 - **The last split = the result** (`withFinishSplit()` / `finishFields()` on the card's Save): a finished time whose
   record has every earlier puzzle's split gets the last split = the time (rule 6). Records without splits (the judge
-  never tapped per puzzle) are saved exactly as before. The round's own "Finished now" on a card with K − 1 puzzles
-  finished (each with a split) and one left finishes that one (`finishChoice()`).
+  never tapped per puzzle) are saved exactly as before.
+- **A round time after per-puzzle taps** - typed into the time field or the round's own "Finished now"
+  (`finishGate()`, review of W5): the finished puzzles + the one left make the solving order (`finishChoice()`), so the
+  result never goes alone into a `puzzles_mismatch`; when the last puzzle is not known (Pick K of N, more than one
+  left) the card asks "Which puzzle was finished last? Tap its chip first"; a time not after an earlier split is refused
+  on the card ("That time does not fit the order …") instead of saving it without every split. Records without a
+  finished puzzle: no gate.
+- **Habit guard:** while fewer than K − 1 puzzles are finished, the confirm step of the round's "Finished now" adds
+  "This finishes the whole round - for one puzzle use its own Finished now" (`finishesWholeRound()`; on a "Solve all 2"
+  round this shows until puzzle 1 is tapped); the round button ignores a tap within 350 ms of a split save. The K-th
+  split's confirm step takes its `from` fresh from the server (no false "Saved meanwhile").
 - **Typed correction:** ✎ on a finished puzzle replaces its split (the record alone, `splits_out_of_order` checked on the
   device first: "That time does not fit the order …"); never the last split of a finished entry - that is the result,
   the time field changes both (the last split follows by `withFinishSplit()`).

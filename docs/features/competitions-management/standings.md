@@ -113,6 +113,43 @@ Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (n
   preview, drafts/unapproved 404, links, sitemap, edition URL), canaries `BlocklistCanaryTest`,
   `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…InAPublicStanding`, `…StandingOfADraft…`), `DetailPagesQueryBudgetTest`.
 
+## Guest snapshot + public standing JSON (competition toolkit v2 S1)
+
+Design of record: `toolkit/` v2 note `displays-standings.md` §2.1-2.2, §3.1. As built 2026-11-17:
+
+- **Guest view:** `GetStandingResults::publicView($standing, null, asGuest: true)` → `OfficialEntrantsView::forRounds(...,
+  asGuest: true)`: no viewer, the signed-in user's blocklist ignored and nobody unmasked by an allow list (raw
+  `is_private`) - `HiddenPlayers` / `PrivateProfileAccess` read the signed-in user, not the viewer argument, so a shared
+  answer needs the explicit switch. Default `false` keeps the page byte-identical.
+- **Snapshot:** `PublicStandingSnapshots` (readonly) → `PublicStandingSnapshot` (plain arrays; rows keep the internal `key`,
+  never rendered; statuses passed through as the calculator's values). Pool `competition_standings_cache` (60 s):
+  `gen_{cid}` random generation (1 day), `snap_v1_{standingId}_{gen}` (60 s), `event_{standingId}` (1 day),
+  `list_v1_{cid}_{gen}` (`listFor()`, for the display element's `auto` pick). `changed(cid)` deletes the generation -
+  no stale window after a signalled write; unsignalled edits (participant rename, a player turning private, the results
+  import) heal within 60 s. A failing cache = computed every time (warning). Head query `GetPublicStandingHead` (standing +
+  event/series slugs, 1 statement).
+- **After-commit hook:** `CompetitionStandingsLiveUpdates` (bump only; the public Mercure topic is S4), reached through
+  `CompetitionDisplayLiveUpdates`, which forwards first for every event: `resultsChanged` → when a published standing
+  counts the round and the round is published; `roundChanged` → forgets the round's presence, then when a published
+  standing counts it; `resultsChangedInCompetition` / `roundsChanged` (the latter forgets the event's presence) → when
+  the event has a published standing; new `standingsChanged(cid)` (the 5 standing controllers, the 3 step controllers,
+  wizard extras/structure) → always, + a `display.signal` `what: standings` when the event has displays. Gate
+  `CompetitionStandingsPresence` (`competition_standings_presence_cache`, tagged per event, 5 min, `ResetInterface`) +
+  `GetCompetitionStandingsPresence` - an event without published standings runs 0 statements warm.
+- **JSON `public_standing_state`:** `GET /api/competition-standings/{standingId}` (stateless firewall,
+  `PublicStandingStateController`, whitelist `PublicStandingJson`): `standing {id, name, category, mode, published,
+  provisional, roundsCounted, roundsTotal, rules, url}`, `rounds [{id, name, slug, minutesLimit, counted, url|null}]`,
+  `rows [{rank|null, complete, name, countries, entrants [{name, country, playerCode|null}], totalSeconds (penalised),
+  totalTimeSeconds, totalMissingPieces, totalPenaltySeconds, roundsScored, roundsFinished, perRound [{roundId, status,
+  scoreSeconds, timeSeconds, missingPieces, penaltySeconds, rank, result {seconds, piecesPlaced}|null}]}]`,
+  `generatedAtMs`. No row key, player / participant / line-up / entry ids. 404 `{error: not_found}` for unknown,
+  unpublished, not public (visibility checked every request). `public, max-age=0, must-revalidate` + ETag (sha1 of the
+  body) → 304; CORS `*`; `noindex`; `?locale=` for the URLs (default en). Statements: warm 1, cold ≤ 5.
+- **Exemptions:** the JSON has no viewer (`BlocklistCanaryTest::testThePublicStandingJsonHasNoViewerAndSoNoBlocklist`);
+  private players masked for everybody incl. the allowed friend (`PrivateProfileCanaryTest::testThePublicStandingJsonNeverNamesHer`);
+  drafts 404 (`DraftCanaryTest::testTheStandingsOfADraftAreNotThere`).
+- Tests: `PublicStandingStateTest`, `PublicStandingSnapshotsTest`, `CompetitionStandingsLiveUpdatesTest`.
+
 ## Advancement steps (competition toolkit A8)
 
 As built in [results-desk.md](results-desk.md) "Declared advancement steps". In short: `competition_advancement_step`
@@ -169,6 +206,5 @@ an event with steps has a bracket.
 ## Deferred to v2 (R §3, docs/TODO.md "Competition toolkit v2")
 
 The `stages` standing classification and `numbered_across_stages` (a final classification across the bracket's stages),
-`missing_rule = as_zero_pieces`, a standings Mercure topic (pages are static, refreshed on load), a public standing JSON
-(`public_standing_state`), "drop the worst round" and season standings, a standings/bracket overlay element for the
+`missing_rule = as_zero_pieces`, a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a standings/bracket overlay element for the
 displays.

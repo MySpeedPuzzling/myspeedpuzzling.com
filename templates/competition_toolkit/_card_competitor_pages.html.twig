@@ -1,10 +1,45 @@
-{# Competitor pages & QR (lane C: B1 settings form, B3 "Print tags") - R §1.4 card 1 #}
+{#
+    Competitor pages & QR (lane C: B1 settings form, B3 "Print tags") - R §1.4 card 1, B-qr-competitor-page.md §2.
+    Variables: competition, competitor_pages_form (null for an online event - the settings are for in-person events).
+#}
 <div class="col-lg-6">
     <div class="card shadow-sm h-100" data-toolkit-card="competitor-pages">
         <div class="card-body">
             <h3 class="h5"><i class="bi bi-qr-code me-2"></i>{{ 'competition_toolkit.cards.competitor_pages.title'|trans }}</h3>
             <p class="small text-muted">{{ 'competition_toolkit.cards.competitor_pages.help'|trans }}</p>
-            <p class="small mb-0" data-toolkit-placeholder><i class="bi bi-hourglass-split me-1"></i>{{ 'competition_toolkit.coming_soon'|trans }}</p>
+
+            {% if competitor_pages_form is null %}
+                <p class="small mb-0" data-competitor-pages-online>{{ 'competitor_page.settings.in_person_only'|trans }}</p>
+            {% else %}
+                {% set form = competitor_pages_form %}
+                {{ form_start(form, {attr: {'data-competitor-pages-settings': ''}}) }}
+                    {{ form_errors(form) }}
+
+                    <fieldset class="mb-3">
+                        <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.qrTagMode)|striptags }}</legend>
+                        {{ form_errors(form.qrTagMode) }}
+                        {% for choice in form.qrTagMode %}
+                            {% set mode = choice.vars.value is same as('') ? 'none' : choice.vars.value %}
+                            <div class="form-check mb-1">
+                                {{ form_widget(choice, {attr: {'aria-describedby': choice.vars.id ~ '_help'}}) }}
+                                {{ form_label(choice) }}
+                                <div class="form-text mt-0" id="{{ choice.vars.id }}_help">{{ ('competitor_page.settings.qr_mode.' ~ mode ~ '_help')|trans }}</div>
+                            </div>
+                        {% endfor %}
+                    </fieldset>
+
+                    {{ form_row(form.competitorPages, {row_attr: {class: 'form-check form-switch mb-2'}}) }}
+                    {# Both need the public pages - time proposals are switched off with them when saved #}
+                    <div class="ms-4">
+                        {{ form_row(form.liveResultsBeforePublishing, {row_attr: {class: 'form-check form-switch mb-2'}}) }}
+                        {{ form_row(form.timeProposals, {row_attr: {class: 'form-check form-switch mb-3'}}) }}
+                    </div>
+
+                    <button type="submit" class="btn btn-sm btn-primary" data-competitor-pages-save>
+                        {{ 'competitor_page.settings.save'|trans }}
+                    </button>
+                {{ form_end(form) }}
+            {% endif %}
         </div>
     </div>
 </div>

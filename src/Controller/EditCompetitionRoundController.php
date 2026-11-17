@@ -221,9 +221,10 @@ final class EditCompetitionRoundController extends AbstractController
                     $round = $this->competitionRoundRepository->get($roundId);
                     $form->get('category')->addError(new FormError($this->translator->trans($protected->translationKey())));
                 } catch (RoundPuzzleFormatRefused $refused) {
-                    // K outside the round's puzzles, or a round using online timing (competition toolkit A2) - read it again
+                    // K outside the round's puzzles, a round using online timing (competition toolkit A2), or entries'
+                    // per-puzzle records the change would break (A3) - read it again
                     $round = $this->competitionRoundRepository->get($roundId);
-                    $form->get($refused->reason === RoundPuzzleFormatRefused::ONLINE_TIMING ? 'puzzleFormat' : 'puzzlesToSolve')
+                    $form->get(in_array($refused->reason, [RoundPuzzleFormatRefused::ONLINE_TIMING, RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS], true) ? 'puzzleFormat' : 'puzzlesToSolve')
                         ->addError(new FormError($this->translator->trans($refused->translationKey(), $refused->translationParameters())));
                 } catch (OnlineTimingInUse $inUse) {
                     // A round using online timing stays solo (docs/features/online-competitions/) - read it again too

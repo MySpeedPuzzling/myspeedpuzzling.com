@@ -21,9 +21,11 @@ use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
 use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -39,6 +41,7 @@ readonly final class SetCompetitionRoundPuzzlesHandler
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
         private ClockInterface $clock,
         private RoundStopwatchReveal $roundStopwatchReveal,
+        private PickRoundRecords $pickRoundRecords,
     ) {
     }
 
@@ -49,7 +52,8 @@ readonly final class SetCompetitionRoundPuzzlesHandler
      * @throws PuzzleHiddenByHand
      * @throws PuzzleIsStillSecret
      * @throws SecretPuzzlesWouldBeRevealed
-     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick
+     * @throws RoundPuzzleFormatRefused a `pick` round would keep fewer puzzles than its entries pick, or an entry's
+     *                                  per-puzzle record names a puzzle it removes
      */
     public function __invoke(SetCompetitionRoundPuzzles $message): void
     {
@@ -107,6 +111,19 @@ readonly final class SetCompetitionRoundPuzzlesHandler
 
         // A `pick` round keeps at least K puzzles (competition toolkit A2) - checked before anything changes
         $round->assertKeepsEnoughPuzzles($round->roundPuzzles->count() - count($rowsToRemove) + count($puzzlesToAttach));
+
+        // A puzzle an entry's per-puzzle record names stays (competition toolkit A3) - the round is locked FOR NO KEY
+        // UPDATE above, so no record is written meanwhile (RecordRoundResults reads the round FOR SHARE)
+        if ($round->puzzleFormat === RoundPuzzleFormat::Pick && $rowsToRemove !== []) {
+            $entries = $this->pickRoundRecords->countEntriesNaming(
+                $round->id->toString(),
+                array_map(static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->id->toString(), $rowsToRemove),
+            );
+
+            if ($entries > 0) {
+                throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::PUZZLE_IN_RESULTS, $round->puzzlesToSolve ?? 0, $round->roundPuzzles->count(), $entries);
+            }
+        }
 
         if ($message->refuseToReveal) {
             $revealed = $this->secretRevealPreview->byRemoving($rowsToRemove);

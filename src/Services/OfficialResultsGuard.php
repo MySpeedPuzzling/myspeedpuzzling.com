@@ -16,8 +16,8 @@ use SpeedPuzzling\Web\Results\RoundResultEntry;
 readonly final class OfficialResultsGuard
 {
     private const string ENTRY_HAS_DATA = <<<SQL
-(cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL
-    OR ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL)
+(cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL
+    OR ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL OR ct.result_puzzles IS NOT NULL)
 SQL;
 
     public function __construct(
@@ -28,11 +28,11 @@ SQL;
 
     /**
      * An entry (`competition_participant_round` or `competition_team`, by its alias) holding official data: a result,
-     * a did-not-start or a qualified mark
+     * a did-not-start, a qualified mark or a `pick` round's per-puzzle record (HasOfficialResult::hasOfficialData())
      */
     public static function sqlEntryHoldsOfficialData(string $alias): string
     {
-        return "({$alias}.result_seconds IS NOT NULL OR {$alias}.result_pieces_placed IS NOT NULL OR {$alias}.result_did_not_start OR {$alias}.qualified_at IS NOT NULL)";
+        return "({$alias}.result_seconds IS NOT NULL OR {$alias}.result_pieces_placed IS NOT NULL OR {$alias}.result_did_not_start OR {$alias}.qualified_at IS NOT NULL OR {$alias}.result_puzzles IS NOT NULL)";
     }
 
     /**
@@ -71,7 +71,7 @@ SQL,
     {
         return array_values(array_filter(
             $this->getRoundResultEntries->forRound($roundId),
-            static fn (RoundResultEntry $entry): bool => $entry->result->isNone() === false || $entry->isQualified(),
+            static fn (RoundResultEntry $entry): bool => $entry->result->isNone() === false || $entry->isQualified() || $entry->puzzles !== null,
         ));
     }
 
@@ -87,6 +87,8 @@ SQL,
                 $entry->ref->toString(),
                 json_encode($entry->result->toWire(), JSON_THROW_ON_ERROR),
                 $entry->isQualified() ? 'q' : '-',
+                // A `pick` round's record (competition toolkit A3) - nothing for every other entry, so their hash stays
+                ...($entry->puzzles !== null ? [json_encode($entry->puzzles->toWire(), JSON_THROW_ON_ERROR)] : []),
             ]),
             $entries,
         );
@@ -160,7 +162,7 @@ SELECT ct.id
 FROM competition_team ct
 INNER JOIN competition_round cr ON cr.id = ct.round_id
 WHERE cr.competition_id = :competitionId
-    AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL)
+    AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL OR ct.result_puzzles IS NOT NULL)
 SQL,
             ['competitionId' => $competitionId],
         );
@@ -177,9 +179,9 @@ SQL,
         return $this->count(<<<SQL
 SELECT
     (SELECT COUNT(*) FROM competition_participant_round cpr
-        WHERE cpr.round_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL))
+        WHERE cpr.round_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL))
     + (SELECT COUNT(*) FROM competition_team ct
-        WHERE ct.round_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL))
+        WHERE ct.round_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL OR ct.result_puzzles IS NOT NULL))
 SQL, $roundId);
     }
 
@@ -193,10 +195,10 @@ SQL, $roundId);
 SELECT
     (SELECT COUNT(*) FROM competition_participant_round cpr
         INNER JOIN competition_round cr ON cr.id = cpr.round_id
-        WHERE cr.competition_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL))
+        WHERE cr.competition_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL))
     + (SELECT COUNT(*) FROM competition_team ct
         INNER JOIN competition_round cr ON cr.id = ct.round_id
-        WHERE cr.competition_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL))
+        WHERE cr.competition_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL OR ct.result_puzzles IS NOT NULL))
 SQL, $competitionId);
     }
 

@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Query\GetRoundPuzzlePiecesCounts;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
@@ -37,6 +39,8 @@ readonly final class EditCompetitionRoundHandler
         private SecretRevealPreview $secretRevealPreview,
         private OfficialResultsGuard $officialResultsGuard,
         private OnlineRoundRepository $onlineRoundRepository,
+        private PickRoundRecords $pickRoundRecords,
+        private GetRoundPuzzlePiecesCounts $getRoundPuzzlePiecesCounts,
     ) {
     }
 
@@ -49,7 +53,8 @@ readonly final class EditCompetitionRoundHandler
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsProtected
      * @throws OnlineTimingInUse a round using online timing changed away from solo
-     * @throws RoundPuzzleFormatRefused `pick` with K outside 1..N, or on a round using online timing
+     * @throws RoundPuzzleFormatRefused `pick` with K outside 1..N, on a round using online timing, or breaking an
+     *                                  entry's per-puzzle record
      */
     public function __invoke(EditCompetitionRound $message): void
     {
@@ -97,6 +102,20 @@ readonly final class EditCompetitionRoundHandler
                 && $this->onlineRoundRepository->ofRound($round->id->toString()) !== null
             ) {
                 throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::ONLINE_TIMING, $message->puzzlesToSolve ?? 0, $puzzlesCount);
+            }
+
+            // Entries' per-puzzle records (competition toolkit A3) stay valid: a change of the format or K that would
+            // break one is refused - the organiser clears or corrects those results first. Records exist on `pick`
+            // rounds only; RecordRoundResults reads the round FOR SHARE, so none is written while this lock is held
+            $toSolve = $message->puzzleFormat === RoundPuzzleFormat::Pick ? $message->puzzlesToSolve : null;
+
+            if ($round->puzzleFormat === RoundPuzzleFormat::Pick && ($message->puzzleFormat !== $round->puzzleFormat || $toSolve !== $round->puzzlesToSolve)) {
+                $roundId = $round->id->toString();
+                $broken = $this->pickRoundRecords->countRecordsBrokenBy($roundId, $message->puzzleFormat, $toSolve, $this->getRoundPuzzlePiecesCounts->ofRounds([$roundId]));
+
+                if ($broken > 0) {
+                    throw new RoundPuzzleFormatRefused(RoundPuzzleFormatRefused::CONFLICTS_WITH_RESULTS, $toSolve ?? 0, $puzzlesCount, $broken);
+                }
             }
         }
 

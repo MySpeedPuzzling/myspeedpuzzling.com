@@ -26,8 +26,11 @@ use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Value\NewRoundEntry;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\PickRoundRecords;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundResultChange;
 use SpeedPuzzling\Web\Value\RoundResultChangeStatus;
 use SpeedPuzzling\Web\Value\RoundResultField;
@@ -43,9 +46,17 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * A change whose id the server took before (RoundResultChangeReceipt) is answered "unchanged" and never applied
  * again; every change that goes through, or finds its value there already, leaves such a receipt.
  *
- * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
+ * `pick` rounds (competition toolkit A3, A-round-formats.md §2.2-2.4): a `puzzles` change records the entry's
+ * per-puzzle record, checked by RoundEntryPuzzles' rules - rules 1-5 per change, rule 6 (the record against the result)
+ * on the entry as the whole set leaves it - and a `result` + `puzzles` change of one entry in one set are a group,
+ * applied together or not at all (`group_refused`). Only a set with a `puzzles` change, or with a `result` change on a
+ * `pick` round, reads the round's format and puzzles under a lock (PickRoundRecords); every other set runs exactly the
+ * statements it ran before (RecordRoundResultsStatementPinTest).
+ *
+ * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, puzzles: null|RoundEntryPuzzles, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
  * @phpstan-type Plan array{outcomes: list<RoundResultChangeOutcome>, applied: list<int>, tableChanges: array<string, list<int>>, newEntries: array<string, NewRoundEntry>, state: array<string, EntryState>}
- * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>}
+ * @phpstan-type Format null|array{toSolve: int, pieces: array<string, int>}
+ * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>, format: Format}
  */
 #[AsMessageHandler]
 readonly final class RecordRoundResultsHandler
@@ -65,6 +76,7 @@ readonly final class RecordRoundResultsHandler
         private RoundResultChangeReceiptRepository $receiptRepository,
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
+        private PickRoundRecords $pickRoundRecords,
     ) {
     }
 
@@ -91,16 +103,20 @@ readonly final class RecordRoundResultsHandler
             'round' => $round,
             'receipts' => $receipts,
             'rowsByParticipant' => self::rowsByParticipant($roundRows),
+            'format' => self::readsFormat($message, $round) ? $this->pickRoundRecords->lockForRecording($round->id->toString()) : null,
         ];
 
-        // Changes refused because their table number would be shared - planning again without them may free a number
-        // somebody else takes back, so until nothing new is refused
+        // Changes refused because of the whole set - a table number it would give twice, a `pick` round's record that
+        // disagrees with the result, the partner of a refused change of the same group: planning again without them may
+        // free a number somebody else takes back, or refuse a partner, so until nothing new is refused
         $excluded = [];
         do {
             $plan = $this->plan($message, $context, $entries, $excluded, $actor, $now);
-            $clashes = $this->tableNumberClashes($plan, $excluded);
-            $excluded += $clashes;
-        } while ($clashes !== []);
+            $refused = $this->tableNumberClashes($plan, $excluded)
+                + self::puzzlesMismatches($message, $plan, $excluded, $context['format'])
+                + self::groupRefusals($message, $plan, $excluded);
+            $excluded += $refused;
+        } while ($refused !== []);
 
         if ($message->dryRun) {
             return new RecordedRoundResults($plan['outcomes'], [], true);
@@ -129,6 +145,7 @@ readonly final class RecordRoundResultsHandler
                 RoundResultField::Result => $entry->recordResult(self::result($change->to), $actor, $now),
                 RoundResultField::TableNumber => $entry->assignTableNumber(self::tableNumber($change->to)),
                 RoundResultField::Qualified => $change->to === true ? $entry->markQualified($now) : $entry->unmarkQualified(),
+                RoundResultField::Puzzles => $entry->recordPuzzles(self::puzzles($change->to)),
                 null => throw new \LogicException('An applied change has a field.'),
             };
 
@@ -216,6 +233,7 @@ readonly final class RecordRoundResultsHandler
                 'result' => $entry->officialResult(),
                 'table_number' => $entry->tableNumber,
                 'qualified' => $entry->isQualified(),
+                'puzzles' => $entry->officialPuzzles(),
                 'enteredAt' => $entry->resultEnteredAt,
                 'enteredById' => $entry->resultEnteredBy?->id->toString(),
                 'enteredByName' => $entry->resultEnteredBy !== null ? ($entry->resultEnteredBy->name ?? '#' . strtoupper($entry->resultEnteredBy->code)) : null,
@@ -274,6 +292,7 @@ readonly final class RecordRoundResultsHandler
                     'result' => RoundEntryResult::none(),
                     'table_number' => null,
                     'qualified' => false,
+                    'puzzles' => null,
                     'enteredAt' => null,
                     'enteredById' => null,
                     'enteredByName' => null,
@@ -282,7 +301,10 @@ readonly final class RecordRoundResultsHandler
             }
 
             $current = self::value($state[$refString], $change->field);
-            $refusal = $excluded[$index] ?? ($message->resultsOnly && $change->field !== RoundResultField::Result ? 'results_only' : null) ?? self::valueRefusal($change, $round);
+            $refusal = $excluded[$index] ?? (
+                // The puzzle choice is part of the result - a referee records both (A-round-formats.md §2.4)
+                $message->resultsOnly && !in_array($change->field, [RoundResultField::Result, RoundResultField::Puzzles], true) ? 'results_only' : null
+            ) ?? self::valueRefusal($change, $round, $context['format']);
 
             if ($refusal !== null) {
                 $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, $refusal, $current, $state[$refString]);
@@ -355,6 +377,120 @@ readonly final class RecordRoundResultsHandler
         }
 
         return $clashes;
+    }
+
+    /**
+     * The round's format is read (under its lock) only by a set that can need it: one recording puzzles, or one
+     * recording results on a `pick` round. A plain set of a `total` round never reads it.
+     */
+    private static function readsFormat(RecordRoundResults $message, CompetitionRound $round): bool
+    {
+        foreach ($message->changes as $change) {
+            if ($change->field === RoundResultField::Puzzles) {
+                return true;
+            }
+
+            if ($change->field === RoundResultField::Result && $round->puzzleFormat === RoundPuzzleFormat::Pick) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Rule 6 on a `pick` round: the record against the result, as the set leaves the entry. An entry the set changed
+     * either of them on that ends up inconsistent gets every one of those changes refused.
+     *
+     * @param Plan $plan
+     * @param array<int, string> $excluded
+     * @param Format $format
+     * @return array<int, string> change index => reason, only changes not excluded yet
+     */
+    private static function puzzlesMismatches(RecordRoundResults $message, array $plan, array $excluded, null|array $format): array
+    {
+        if ($format === null) {
+            return [];
+        }
+
+        /** @var array<string, list<int>> $appliedByEntry */
+        $appliedByEntry = [];
+        foreach ($plan['applied'] as $index) {
+            $change = $message->changes[$index];
+            $ref = $change->entryRef()?->toString();
+
+            if ($ref !== null && ($change->field === RoundResultField::Result || $change->field === RoundResultField::Puzzles)) {
+                $appliedByEntry[$ref][] = $index;
+            }
+        }
+
+        $refused = [];
+        foreach ($appliedByEntry as $ref => $indexes) {
+            $entryState = $plan['state'][$ref] ?? null;
+
+            if ($entryState === null || RoundEntryPuzzles::consistencyRefusal($entryState['result'], $entryState['puzzles'], $format['toSolve'], $format['pieces']) === null) {
+                continue;
+            }
+
+            foreach ($indexes as $index) {
+                if (!isset($excluded[$index])) {
+                    $refused[$index] = 'puzzles_mismatch';
+                }
+            }
+        }
+
+        return $refused;
+    }
+
+    /**
+     * Rule 7: the `result` and `puzzles` changes of one entry in one set apply together or not at all - when one of
+     * them is refused or a conflict, the applied ones are refused as `group_refused`. An entry without both kinds in
+     * the set has no group (a set of `result` changes only behaves as it always did).
+     *
+     * @param Plan $plan
+     * @param array<int, string> $excluded
+     * @return array<int, string> change index => reason, only changes not excluded yet
+     */
+    private static function groupRefusals(RecordRoundResults $message, array $plan, array $excluded): array
+    {
+        /** @var array<string, array{result: bool, puzzles: bool, indexes: list<int>}> $groups */
+        $groups = [];
+        foreach ($message->changes as $index => $change) {
+            $ref = $change->entryRef()?->toString();
+
+            if ($ref === null || ($change->field !== RoundResultField::Result && $change->field !== RoundResultField::Puzzles)) {
+                continue;
+            }
+
+            $groups[$ref] ??= ['result' => false, 'puzzles' => false, 'indexes' => []];
+            $groups[$ref][$change->field === RoundResultField::Result ? 'result' : 'puzzles'] = true;
+            $groups[$ref]['indexes'][] = $index;
+        }
+
+        $refused = [];
+        foreach ($groups as $group) {
+            if ($group['result'] === false || $group['puzzles'] === false) {
+                continue;
+            }
+
+            $failed = false;
+            foreach ($group['indexes'] as $index) {
+                $status = $plan['outcomes'][$index]->status;
+                $failed = $failed || $status === RoundResultChangeStatus::Rejected || $status === RoundResultChangeStatus::Conflict;
+            }
+
+            if ($failed === false) {
+                continue;
+            }
+
+            foreach ($group['indexes'] as $index) {
+                if ($plan['outcomes'][$index]->status === RoundResultChangeStatus::Applied && !isset($excluded[$index])) {
+                    $refused[$index] = 'group_refused';
+                }
+            }
+        }
+
+        return $refused;
     }
 
     /**
@@ -452,8 +588,20 @@ readonly final class RecordRoundResultsHandler
         return null;
     }
 
-    private static function valueRefusal(RoundResultChange $change, CompetitionRound $round): null|string
+    /**
+     * @param Format $format
+     */
+    private static function valueRefusal(RoundResultChange $change, CompetitionRound $round, null|array $format): null|string
     {
+        if ($change->field === RoundResultField::Puzzles) {
+            // Rules 1-5 (RoundEntryPuzzles) - only a `pick` round takes a record
+            if ($format === null) {
+                return 'puzzles_not_used';
+            }
+
+            return self::puzzles($change->to)?->itemsRefusal($format['toSolve'], $format['pieces']);
+        }
+
         if ($change->field === RoundResultField::TableNumber) {
             $tableNumber = self::tableNumber($change->to);
 
@@ -471,8 +619,13 @@ readonly final class RecordRoundResultsHandler
         }
 
         if ($result->piecesPlaced !== null) {
-            $piecesCount = $round->singlePuzzlePiecesCount();
-            $maximum = $piecesCount !== null ? $piecesCount - 1 : self::MAX_PIECES_PLACED;
+            // A `pick` round: K × its biggest puzzle − 1 - a record pins the exact sum (rule 6, puzzlesMismatches())
+            $piecesCount = $format === null ? $round->singlePuzzlePiecesCount() : null;
+            $maximum = match (true) {
+                $format !== null => RoundEntryPuzzles::unfinishedMaximum($format['toSolve'], $format['pieces']),
+                $piecesCount !== null => $piecesCount - 1,
+                default => self::MAX_PIECES_PLACED,
+            };
 
             if ($result->piecesPlaced < 1 || $result->piecesPlaced > $maximum) {
                 return 'invalid_pieces_placed';
@@ -546,12 +699,13 @@ readonly final class RecordRoundResultsHandler
     /**
      * @param EntryState $entryState
      */
-    private static function value(array $entryState, RoundResultField $field): null|RoundEntryResult|int|bool
+    private static function value(array $entryState, RoundResultField $field): null|RoundEntryResult|RoundEntryPuzzles|int|bool
     {
         return match ($field) {
             RoundResultField::Result => $entryState['result'],
             RoundResultField::TableNumber => $entryState['table_number'],
             RoundResultField::Qualified => $entryState['qualified'],
+            RoundResultField::Puzzles => $entryState['puzzles'],
         };
     }
 
@@ -559,7 +713,7 @@ readonly final class RecordRoundResultsHandler
      * @param EntryState $entryState
      * @return EntryState
      */
-    private static function withValue(array $entryState, RoundResultField $field, null|RoundEntryResult|int|bool $value, Player $actor, DateTimeImmutable $now): array
+    private static function withValue(array $entryState, RoundResultField $field, null|RoundEntryResult|RoundEntryPuzzles|int|bool $value, Player $actor, DateTimeImmutable $now): array
     {
         if ($field === RoundResultField::Result) {
             $entryState['result'] = self::result($value);
@@ -568,6 +722,8 @@ readonly final class RecordRoundResultsHandler
             $entryState['enteredByName'] = $actor->name ?? '#' . strtoupper($actor->code);
         } elseif ($field === RoundResultField::TableNumber) {
             $entryState['table_number'] = self::tableNumber($value);
+        } elseif ($field === RoundResultField::Puzzles) {
+            $entryState['puzzles'] = self::puzzles($value);
         } else {
             $entryState['qualified'] = $value === true;
         }
@@ -575,23 +731,29 @@ readonly final class RecordRoundResultsHandler
         return $entryState;
     }
 
-    private static function same(RoundResultField $field, null|RoundEntryResult|int|bool $a, null|RoundEntryResult|int|bool $b): bool
+    private static function same(RoundResultField $field, null|RoundEntryResult|RoundEntryPuzzles|int|bool $a, null|RoundEntryResult|RoundEntryPuzzles|int|bool $b): bool
     {
         return match ($field) {
             RoundResultField::Result => self::result($a)->equals(self::result($b)),
             RoundResultField::TableNumber => self::tableNumber($a) === self::tableNumber($b),
             RoundResultField::Qualified => ($a === true) === ($b === true),
+            RoundResultField::Puzzles => RoundEntryPuzzles::same(self::puzzles($a), self::puzzles($b)),
         };
     }
 
-    private static function result(null|RoundEntryResult|int|bool $value): RoundEntryResult
+    private static function result(null|RoundEntryResult|RoundEntryPuzzles|int|bool $value): RoundEntryResult
     {
         return $value instanceof RoundEntryResult ? $value : RoundEntryResult::none();
     }
 
-    private static function tableNumber(null|RoundEntryResult|int|bool $value): null|int
+    private static function tableNumber(null|RoundEntryResult|RoundEntryPuzzles|int|bool $value): null|int
     {
         return is_int($value) ? $value : null;
+    }
+
+    private static function puzzles(null|RoundEntryResult|RoundEntryPuzzles|int|bool $value): null|RoundEntryPuzzles
+    {
+        return $value instanceof RoundEntryPuzzles ? $value : null;
     }
 
     /**
@@ -601,7 +763,7 @@ readonly final class RecordRoundResultsHandler
         RoundResultChange $change,
         RoundResultChangeStatus $status,
         null|string $reason,
-        null|RoundEntryResult|int|bool $current,
+        null|RoundEntryResult|RoundEntryPuzzles|int|bool $current,
         null|array $entryState = null,
     ): RoundResultChangeOutcome {
         $withEntered = $entryState !== null && $change->field === RoundResultField::Result;

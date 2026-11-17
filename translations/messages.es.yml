@@ -4215,6 +4215,16 @@ fair_use_policy:
     "logo_replaces_current": "Tu nuevo logo sigue aquí, no hace falta elegirlo de nuevo. Sustituirá al logo actual al guardar."
     "maintainers": "Administradores"
     "maintainers_help": "Empieza a escribir un nombre de jugador para buscar. Los usuarios seleccionados podrán gestionar este evento."
+  round_puzzles:
+    unboxed:
+      label: "Sin caja – sin imágenes de la caja hasta que se publiquen los resultados"
+      help: "Los participantes resuelven sin ver la caja. Las imágenes de los puzzles de esta ronda permanecen ocultas en las páginas, pantallas y móviles de tu evento hasta que publiques los resultados de la ronda; los nombres siguen los ajustes de revelación de abajo. Un puzzle que ya está en nuestra base de datos conserva su imagen en su propia página: usa un puzzle nuevo (secreto) para un reto de verdad sin caja."
+      published: "Los resultados de la ronda están publicados, así que se muestran sus imágenes."
+      save: "Guardar"
+      saved_on: "Esta ronda ahora es sin caja: sus imágenes permanecen ocultas hasta que publiques sus resultados."
+      saved_off: "Esta ronda ya no es sin caja."
+      confirm_off: "Las imágenes de los puzzles de esta ronda se mostrarán en su revelación normal, de inmediato si ya pasó. ¿Continuar?"
+      badge: "Sin caja"
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Mantener este puzzle en secreto hasta que se revele"

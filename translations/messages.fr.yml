@@ -4281,6 +4281,16 @@ competition:
     "logo_replaces_current": "Votre nouveau logo est toujours là, inutile de le choisir à nouveau. Il remplacera le logo actuel à l'enregistrement."
     "maintainers": "Gestionnaires"
     "maintainers_help": "Commencez à taper un nom de joueur pour chercher. Les utilisateurs sélectionnés pourront gérer cet événement."
+  round_puzzles:
+    unboxed:
+      label: "Sans boîte – pas d'image de la boîte avant la publication des résultats"
+      help: "Les concurrents assemblent sans voir la boîte. Les images des puzzles de cette manche restent masquées sur les pages, écrans et téléphones de votre événement jusqu'à la publication des résultats de la manche ; les noms suivent les réglages de dévoilement ci-dessous. Un puzzle déjà présent dans notre base garde son image sur sa propre page – utilisez un nouveau puzzle (secret) pour un défi vraiment sans boîte."
+      published: "Les résultats de la manche sont publiés, ses images sont donc affichées."
+      save: "Enregistrer"
+      saved_on: "Cette manche est maintenant sans boîte – ses images restent masquées jusqu'à la publication de ses résultats."
+      saved_off: "Cette manche n'est plus sans boîte."
+      confirm_off: "Les images des puzzles de cette manche seront affichées à leur dévoilement normal – tout de suite s'il est passé. Continuer ?"
+      badge: "Sans boîte"
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Garder ce puzzle secret jusqu’à sa révélation"

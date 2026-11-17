@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\Billing;
 
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\MembershipPaymentPending;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Services\MembershipManagement;
 use SpeedPuzzling\Web\Value\BillingPeriod;
@@ -29,6 +30,11 @@ readonly final class WebStripeBilling implements PlatformBillingInterface
             return [
                 'type' => 'redirect',
                 'url' => $checkoutUrl,
+            ];
+        } catch (MembershipPaymentPending $pending) {
+            return [
+                'type' => 'redirect',
+                'url' => $pending->hostedInvoiceUrl,
             ];
         } catch (PlayerAlreadyHaveMembership) {
             return [

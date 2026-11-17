@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Services;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
+use SpeedPuzzling\Web\Exceptions\MembershipPaymentPending;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\Membership\LiveSubscriptionGuard;
 use SpeedPuzzling\Web\Value\BillingPeriod;
 use Stripe\Price;
 use Stripe\StripeClient;
@@ -30,11 +32,13 @@ readonly final class MembershipManagement
         private ClockInterface $clock,
         private PlayerRepository $playerRepository,
         private StripeCouponManager $stripeCouponManager,
+        private LiveSubscriptionGuard $liveSubscriptionGuard,
     ) {
     }
 
     /**
      * @throws PlayerAlreadyHaveMembership
+     * @throws MembershipPaymentPending
      */
     public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period, null|string $priceLookupKey = null, null|string $referralPlayerId = null): string
     {
@@ -112,6 +116,11 @@ readonly final class MembershipManagement
             // Also keeps the trial below sane - Stripe refuses a trial running until the lifetime date
             if ($membership->hasLifetimeGrant()) {
                 throw new PlayerAlreadyHaveMembership();
+            }
+
+            // Looks ended here, but a failed renewal ends it here while Stripe keeps the subscription alive
+            if ($membership->stripeSubscriptionId !== null) {
+                $this->liveSubscriptionGuard->assertNoLiveSubscription($membership->stripeSubscriptionId);
             }
 
             if ($membership->grantedUntil !== null && $now < $membership->grantedUntil) {

@@ -207,8 +207,8 @@ readonly final class GetStandingResults
     {
         $roundsById = [];
 
-        foreach (
-            $this->database->fetchAllAssociative(<<<SQL
+        $labelOrder = $this->labelOrder();
+        $rows = $this->database->fetchAllAssociative(<<<SQL
 SELECT
     r.id,
     r.name,
@@ -224,15 +224,16 @@ SELECT
     CASE WHEN r.puzzle_format = 'pick' AND r.puzzles_to_solve >= 2 THEN (
         SELECT json_object_agg(placed.id, json_build_array(placed.place, placed.label))
         FROM (
-            SELECT crp.id, crp.label, ROW_NUMBER() OVER (ORDER BY {$this->labelOrder()}) AS place
+            SELECT crp.id, crp.label, ROW_NUMBER() OVER (ORDER BY {$labelOrder}) AS place
             FROM competition_round_puzzle crp
             WHERE crp.round_id = r.id
         ) placed
     ) END AS labels_by_round_puzzle
 FROM competition_round r
 WHERE r.competition_id = :competitionId
-SQL, ['competitionId' => $competitionId]) as $row
-        ) {
+SQL, ['competitionId' => $competitionId]);
+
+        foreach ($rows as $row) {
             /** @var array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int|string, pieces_total: null|int|string, pieces_by_round_puzzle: null|string, labels_by_round_puzzle: null|string} $row */
             $pieces = $row['pieces_by_round_puzzle'] !== null ? json_decode($row['pieces_by_round_puzzle'], true, flags: JSON_THROW_ON_ERROR) : [];
             $places = $row['labels_by_round_puzzle'] !== null ? json_decode($row['labels_by_round_puzzle'], true, flags: JSON_THROW_ON_ERROR) : [];

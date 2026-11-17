@@ -40,11 +40,13 @@ final class SolveAllBlockSetup
             ['id' => OfficialResultsFixture::ROUND_GROUP_B],
         );
 
-        foreach ([
+        $splits = [
             OfficialResultsFixture::ENTRY_B_GINA => [1500, 3900],
             OfficialResultsFixture::ENTRY_B_HUGO => [1200, 4500],
             OfficialResultsFixture::ENTRY_B_IVAN => [1800, 5000],
-        ] as $entryId => [$first, $second]) {
+        ];
+
+        foreach ($splits as $entryId => [$first, $second]) {
             $database->executeStatement(
                 'UPDATE competition_participant_round SET result_puzzles = :puzzles WHERE id = :id',
                 ['puzzles' => json_encode([

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\Tests\TestClock;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -140,6 +141,43 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $browser->request('GET', '/en/puzzle/' . $puzzleId);
         self::assertResponseIsSuccessful('at the start');
         self::assertStringContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * A competition display's state (toolkit D3, the public rule of R-review-and-plan.md §1.5): the secret is not in it
+     * for anybody - not for a maintainer of the event or an admin with the link either; the full reveal-mode matrix is
+     * DisplaySecretPuzzleTest
+     */
+    public function testACompetitionDisplayNeverCarriesTheSecretBeforeTheReveal(): void
+    {
+        $browser = self::createClient();
+        $this->secretPuzzle();
+        $token = 'DispSecret111111111111';
+        self::getContainer()->get(Connection::class)->insert('competition_display', [
+            'id' => Uuid::uuid7()->toString(),
+            'competition_id' => CompetitionApiFixture::COMPETITION_API,
+            'kind' => 'overlay',
+            'name' => 'Stream',
+            'token' => $token,
+            'locale' => 'en',
+            'design' => '{"schema": 1, "elements": [{"id": "puzzle01", "type": "puzzle", "hidden": false, "when": {"phases": ["idle"]}, "props": {}}]}',
+            'created_at' => TestClock::FROZEN_NOW,
+            'updated_at' => TestClock::FROZEN_NOW,
+            'follow_mode' => 'pinned',
+            'pinned_round_id' => CompetitionApiFixture::ROUND_FUTURE,
+        ]);
+
+        foreach ([[null, 'a guest'], [PlayerFixture::PLAYER_WITH_FAVORITES, 'a maintainer of the event'], [PlayerFixture::PLAYER_ADMIN, 'an admin']] as [$playerId, $who]) {
+            if ($playerId !== null) {
+                TestingLogin::asPlayer($browser, $playerId);
+            }
+
+            $browser->request('GET', '/display/' . $token . '/state');
+            self::assertResponseIsSuccessful($who);
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString('API Visible', $content, 'No canary: the display shows no puzzle at all.');
+            self::assertStringNotContainsString(self::SECRET_NAME, $content, $who);
+        }
     }
 
     public function testAdminPagesOfASecretPuzzleAreForAdminsOnly(): void

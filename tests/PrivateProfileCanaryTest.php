@@ -380,6 +380,49 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * A competition display (timer screen / stream overlay, toolkit D-displays-overlays.md §9.4) with live results of
+     * Group B lists her by the organiser's name ("Gina Quick") and nothing of her profile - for everybody, the friend
+     * included: a display has no viewer (an anonymous capability URL, the stateless firewall), so no allow list unmasks.
+     */
+    public function testACompetitionDisplayNeverNamesHer(): void
+    {
+        $browser = self::createClient();
+        $token = 'DispPrivate11111111111';
+        self::getContainer()->get(Connection::class)->insert('competition_display', [
+            'id' => Uuid::uuid7()->toString(),
+            'competition_id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            'kind' => 'screen',
+            'name' => 'Hall',
+            'token' => $token,
+            'locale' => 'en',
+            'design' => '{"schema": 1, "elements": [{"id": "board001", "type": "leaderboard", "hidden": false, "when": {"phases": ["idle"]}, "props": {"rows": 10, "source": "live"}}, {"id": "ticker01", "type": "ticker", "hidden": false, "when": {"phases": ["idle"]}, "props": {"rows": 10, "source": "live"}}]}',
+            'created_at' => TestClock::FROZEN_NOW,
+            'updated_at' => TestClock::FROZEN_NOW,
+            'follow_mode' => 'pinned',
+            'pinned_round_id' => OfficialResultsFixture::ROUND_GROUP_B,
+            'uses_results' => true,
+            'uses_live_results' => true,
+        ], ['uses_results' => 'boolean', 'uses_live_results' => 'boolean']);
+        $url = '/display/' . $token . '/state';
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the display does not list her.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER, $content);
+
+        foreach ([...self::STRANGERS, 'friend' => self::FRIEND] as $who => $viewerId) {
+            TestingLogin::asPlayer($browser, $viewerId);
+            // The first request after loginUser() carries the test's token in the container - the second is a browser's
+            $this->get($browser, $url);
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content);
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display names a private player ({$who}).");
+            self::assertStringNotContainsString(self::OWNER, $content, "A display carries a private player's id ({$who}).");
+            self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+        }
+    }
+
+    /**
      * The partner finder (docs/features/partner-finder.md D5): listing herself shows a private player's name, flag and
      * listing to every signed-in viewer - never to guests, and her numbers and profile link only to the friend.
      */

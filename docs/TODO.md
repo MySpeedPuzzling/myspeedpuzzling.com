@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Competition toolkit - reveal at the stopwatch start (`docs/features/competitions-management/README.md` "Reveal at the stopwatch start", A1, 2026-11-17)
+
+- [ ] Results desk: "Still hidden: the stopwatch was never started with Reveal" once the round's time is over (A §4.4) - the control page and the round puzzles page say it today
+- [ ] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox dispatching `RevealRoundPuzzleNow` per row after the publish (A §4.4, R §2.1.5)
+- [ ] Hub card "Round formats & reveals": "reveal at stopwatch start" on the round's line (with A2's format)
+- [ ] Display signal (D5) on the reveal push - `OfficialResultsLiveUpdates::puzzlesRevealed()` is the hook
+- [ ] Deploy: the `stopwatch` value is read by this release only - nobody may choose it before the release is fully out (blue-green; the option is admin-only behind `COMPETITION_TOOLKIT_FOR_ORGANISERS`)
+
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)
 
 The app now mints `__bb_trust` only for eligible accounts, for 90 days, and expires the cookie of an ineligible account

@@ -235,6 +235,7 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 - **Gated files** (the toolkit packages add theirs here):
   - `src/Services/CompetitionToolkit/CompetitionToolkitFeature.php` — `isAvailableTo()`
   - `src/Security/CompetitionToolkitVoter.php` — `COMPETITION_TOOLKIT_MANAGE`
+  - A1: the reveal option "When the round's stopwatch starts" on the round puzzles page (`templates/manage_round_puzzles.html.twig`, refused in `ChangeRoundPuzzleRevealController` without the voter unless the row already uses it)
   - F0: the hub page `competition_toolkit` (`src/Controller/CompetitionToolkit/CompetitionToolkitController.php`, `templates/competition_toolkit/hub.html.twig` - 403 without the voter) and its one link, the "Competition toolkit" button on the event's edit page (`templates/edit_competition.html.twig`)
 - **Not gated:** using what an admin (or a flagged organiser) switched on - recording per-puzzle results, the reveal checkbox at the stopwatch start, competitor pages, displays by token, public standings (`00-context.md` rule 2)
 - **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('COMPETITION_TOOLKIT_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/CompetitionToolkitVoterTest.php`, `tests/Controller/CompetitionToolkit/CompetitionToolkitHubTest.php`

@@ -865,7 +865,7 @@ changing the category of a round with official results is refused (`409`).
 
 **Secret puzzles are never revealed by accident.** A round puzzle may keep its puzzle secret until its reveal:
 - `hideUntilRoundStarts` marks it secret.
-- `revealMode` is `automatic` (the round's `revealDelayMinutes` after it starts, 10 unless set otherwise; it follows the round's start and delay), `scheduled` or `manual`.
+- `revealMode` is `automatic` (the round's `revealDelayMinutes` after it starts, 10 unless set otherwise; it follows the round's start and delay), `scheduled`, `manual` or `stopwatch` (revealed when the round's stopwatch starts with "Reveal" ticked - `revealsAt` is `null` until such a start, then that start's moment; it never follows the round's start, so a round `PATCH` never lists it). The API never sets the mode nor starts a stopwatch - read-only output.
 - `revealsAt` is the reveal moment, in UTC.
 - `hidesEverywhere` means it is hidden on the whole site, not only on the event pages.
 

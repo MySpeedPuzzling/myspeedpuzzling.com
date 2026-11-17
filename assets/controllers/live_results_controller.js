@@ -34,6 +34,7 @@ import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../liv
 import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
+import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick, unfinishedResult } from '../live_entry_puzzles.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -112,8 +113,8 @@ function isNativeApp() {
 export default class extends Controller {
     static targets = [
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
-        'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent',
-        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems',
+        'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton',
+        'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
@@ -175,6 +176,10 @@ export default class extends Controller {
         this.openRef = null;
         this.pendingValue = null;
         this.pendingFinishedNow = false;
+        // A pick round (toolkit C10): the open entry's puzzle choice (round puzzle ids, solving order); the find view's
+        // "Puzzle missing" list on/off
+        this.choice = [];
+        this.missingOnly = false;
         this.query = '';
         this.historyEntry = false;
         this.leavingHistoryEntry = false;
@@ -712,6 +717,7 @@ export default class extends Controller {
             mode: this.piecesFormTarget.classList.contains('lr-hidden') ? 'time' : 'pieces',
             typed: this.timeInputTarget.value,
             pieces: this.piecesInputTarget.value,
+            choice: pickFormat(this.round) ? this.choice : null,
             pending: confirm ? { value: this.pendingValue } : null,
             finishedNow: confirm && this.pendingFinishedNow && this.pendingTappedAt !== null ? { seconds: this.pendingValue?.seconds, tappedAt: this.pendingTappedAt } : null,
         }, Date.now());
@@ -738,6 +744,10 @@ export default class extends Controller {
         }
 
         this.openEntry(draft.ref);
+
+        if (Array.isArray(draft.choice)) {
+            this.choice = choiceOf(pickFormat(this.round), draft.choice.map((roundPuzzleId) => ({ roundPuzzleId })));
+        }
 
         if (draft.mode === 'pieces') {
             this.didNotFinish();
@@ -1323,8 +1333,16 @@ export default class extends Controller {
     }
 
     enqueue(entry, field, to) {
+        return this.enqueueGroup(entry, [{ field, to }])[0];
+    }
+
+    /**
+     * Changes of one entry saved together (a pick round's `puzzles` + `result`, toolkit C10): one group of the outbox,
+     * sent in one request, applied together or not at all.
+     */
+    enqueueGroup(entry, fields) {
         const server = this.serverEntries.get(entry.ref);
-        const { item, persisted } = this.outbox.enqueue({
+        const { items, persisted } = this.outbox.enqueueGroup(fields.map(({ field, to }) => ({
             roundId: this.roundIdValue,
             entryRef: entry.ref,
             newEntry: server === undefined && entry.newEntry ? entry.newEntry : null,
@@ -1333,7 +1351,7 @@ export default class extends Controller {
             to,
             // The name stays readable on the "unsent" list even when the entry is gone or in another round
             label: entry.displayName ?? entry.name ?? '',
-        });
+        })));
 
         persisted
             .catch(() => {
@@ -1345,7 +1363,7 @@ export default class extends Controller {
                 this.flushSoon();
             });
 
-        return item;
+        return items;
     }
 
     async retryAll() {
@@ -1554,7 +1572,18 @@ export default class extends Controller {
 
         this.recentBlockTarget.hidden = typed;
 
-        const { rows } = findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
+        // A pick round: entries with a result but no puzzle chosen (toolkit C10) - a filter in place of the recent ones
+        const missing = typed ? [] : missingChoice(this.allEntries(), pickFormat(this.round), outboxByEntry(items));
+        this.missingOnly = this.missingOnly && missing.length > 0;
+        this.missingButtonTarget.hidden = missing.length === 0;
+        this.setText(this.missingButtonTarget, this.t('puzzleMissing', { '%count%': missing.length }));
+        this.missingButtonTarget.setAttribute('aria-pressed', String(this.missingOnly));
+        this.missingButtonTarget.classList.toggle('active', this.missingOnly);
+        this.recentTitleTarget.hidden = this.missingOnly;
+
+        const { rows } = this.missingOnly
+            ? { rows: rowsOf(missing.map((entry) => ({ entry })), outboxByEntry(items)) }
+            : findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
 
         if (typed) {
             this.matchesTarget.innerHTML = rows.length > 0
@@ -1663,6 +1692,42 @@ export default class extends Controller {
         }
 
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
+        this.renderPuzzles(entry, items);
+    }
+
+    /**
+     * A pick round's chips on the entry card (toolkit C10): labels always, the name and picture once the puzzle is out;
+     * the solving order on the chosen ones; on the confirm step a warning while the choice is missing; on the entry step
+     * "Save puzzle choice" while the choice differs from what is known.
+     */
+    renderPuzzles(entry, items) {
+        const format = pickFormat(this.round);
+        let html = '';
+
+        if (format !== null) {
+            const confirming = this.view === 'confirm';
+            const value = confirming ? this.pendingValue : shownValue(entry, 'result', items).value;
+            const { fields, record } = saveFields(format, this.choice, value, entry, items);
+            const missing = confirming && value && (Number.isInteger(value.seconds) || Number.isInteger(value.piecesPlaced)) && record === null;
+            const chips = puzzleChips(format, this.choice).map((chip) => `<button type="button" class="lr-chip${chip.order > 0 ? ' lr-chip-on' : ''}" data-action="live-results#pickPuzzle" data-id="${escapeHtml(chip.id)}" aria-pressed="${chip.order > 0}">
+                    ${chip.order > 0 ? `<span class="lr-chip-order">${format.toSolve > 1 ? chip.order : '<i class="bi bi-check-lg" aria-hidden="true"></i>'}</span>` : ''}
+                    ${chip.imageUrl ? `<img src="${escapeHtml(chip.imageUrl)}" alt="" width="48" height="48" loading="lazy">` : ''}
+                    <span class="lr-chip-text"><strong>${escapeHtml(chip.label)}</strong>${chip.name ? `<span class="lr-chip-name">${escapeHtml(chip.name)}</span>` : ''}</span>
+                    ${chip.hidden ? `<i class="bi bi-lock" title="${escapeHtml(this.t('puzzleHidden'))}" aria-label="${escapeHtml(this.t('puzzleHidden'))}"></i>` : ''}
+                </button>`).join('');
+            const head = format.toSolve > 1 ? this.t('puzzlesPickK', { '%count%': format.toSolve }) : this.t('puzzlesPickOne');
+            const canSaveChoice = !confirming && fields.some((field) => field.field === 'puzzles') && (record !== null || this.choice.length === 0);
+
+            html = `<div class="small fw-medium mb-1${missing ? ' text-warning-emphasis' : ' text-muted'}">${escapeHtml(missing ? this.t('puzzlesMissingNote') : head)}</div>
+                <div class="lr-chips">${chips}</div>
+                ${canSaveChoice ? `<button type="button" class="btn btn-outline-primary w-100 mt-2" data-action="live-results#saveChoice">${escapeHtml(this.t('puzzlesSave'))}</button>` : ''}`;
+        }
+
+        if (this.puzzlesHtml !== html) {
+            this.puzzlesHtml = html;
+            this.puzzlesTarget.innerHTML = html;
+            this.puzzlesTarget.hidden = html === '';
+        }
     }
 
     describeField(field, value) {
@@ -1674,11 +1739,15 @@ export default class extends Controller {
             return value === null ? this.t('noTable') : this.t('table', { '%number%': value });
         }
 
+        if (field === 'puzzles') {
+            return Array.isArray(value) && value.length > 0 ? describeChoice(pickFormat(this.round), value) : this.t('puzzlesNone');
+        }
+
         return value === true ? this.t('qualified') : this.t('notQualified');
     }
 
     problemHtml(item, entry, withName) {
-        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified') }[item.field] ?? '';
+        const fieldLabel = { result: this.t('fieldResult'), table_number: this.t('fieldTable'), qualified: this.t('fieldQualified'), puzzles: this.t('fieldPuzzles') }[item.field] ?? '';
         const title = withName ? `<strong>${escapeHtml(entry?.displayName ?? '')}</strong> · ${escapeHtml(fieldLabel)}` : `<strong>${escapeHtml(fieldLabel)}</strong>`;
         const id = escapeHtml(item.id);
 
@@ -1702,7 +1771,7 @@ export default class extends Controller {
         if (item.state === 'rejected') {
             // The server's translated reason; a refusal the device made up itself gets the generic text - never a key
             const message = typeof item.message === 'string' && item.message !== '' ? item.message : this.t('invalidChange');
-            const fixable = item.field === 'result' && item.reason !== 'round_not_found' && item.roundId === this.roundIdValue;
+            const fixable = (item.field === 'result' || item.field === 'puzzles') && item.reason !== 'round_not_found' && item.roundId === this.roundIdValue;
 
             return `<div class="alert alert-danger lr-problem" role="alert">
                 <div>${title}: ${escapeHtml(this.describeField(item.field, item.to))}</div>
@@ -2033,6 +2102,11 @@ export default class extends Controller {
         this.pendingValue = null;
         this.entryNowHtml = null;
         this.entryProblemsHtml = null;
+        this.puzzlesHtml = null;
+        // A pick round: the choice known (the server's, this device's waiting or refused one) is preselected
+        const format = pickFormat(this.round);
+        const record = format === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value;
+        this.choice = choiceOf(format, record);
         this.showTimeForm();
 
         // A refused result opens with the refused value, ready to fix
@@ -2042,8 +2116,10 @@ export default class extends Controller {
         this.showView('entry');
 
         if (rejected && rejected.to && typeof rejected.to.piecesPlaced === 'number') {
+            // A pick round's pieces are those of the last puzzle chosen
+            const last = Array.isArray(record) && record.length > 0 ? record[record.length - 1] : null;
             this.didNotFinish();
-            this.piecesInputTarget.value = String(rejected.to.piecesPlaced);
+            this.piecesInputTarget.value = String(last !== null && last.done !== true && Number.isInteger(last.piecesPlaced) ? last.piecesPlaced : rejected.to.piecesPlaced);
             this.piecesTyped();
         }
         this.renderEntryInfo();
@@ -2225,6 +2301,12 @@ export default class extends Controller {
     }
 
     piecesLimit() {
+        const format = pickFormat(this.round);
+
+        if (format !== null) {
+            return piecesLimit(format, this.choice);
+        }
+
         const pieces = this.round?.piecesCount ?? null;
 
         return typeof pieces === 'number' && pieces > 1 ? pieces - 1 : null;
@@ -2242,7 +2324,7 @@ export default class extends Controller {
         } else if (value === null || value < 1 || (max !== null && value > max)) {
             html = `<span class="text-danger">${escapeHtml(this.t('piecesInvalid'))}</span>`;
         } else {
-            html = `<strong>${escapeHtml(this.describe({ piecesPlaced: value }))}</strong>`;
+            html = `<strong>${escapeHtml(this.describe(this.piecesResult(value)))}</strong>`;
         }
 
         this.piecesInputTarget.classList.toggle('is-invalid', text !== '' && html.includes('text-danger'));
@@ -2263,7 +2345,75 @@ export default class extends Controller {
             return;
         }
 
-        this.review({ piecesPlaced: value });
+        this.review(this.piecesResult(value));
+    }
+
+    /**
+     * The unfinished result of the pieces typed - on a pick round those of the last chosen puzzle, the ones before it
+     * counted in full (official_results_puzzles.js total()).
+     */
+    piecesResult(pieces) {
+        const format = pickFormat(this.round);
+
+        return format === null ? { piecesPlaced: pieces } : unfinishedResult(format, this.choice, pieces);
+    }
+
+    pickPuzzle(event) {
+        const format = pickFormat(this.round);
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+
+        if (format === null || entry === null) {
+            return;
+        }
+
+        this.choice = togglePick(this.choice, event.currentTarget.dataset.id, format.toSolve);
+
+        // Unfinished: the total depends on the puzzles chosen
+        if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
+            this.piecesTyped();
+
+            if (this.view === 'confirm' && this.pendingValue?.piecesPlaced !== undefined) {
+                const value = /^\d+$/.test(this.piecesInputTarget.value.trim()) ? parseInt(this.piecesInputTarget.value.trim(), 10) : null;
+                const max = this.piecesLimit();
+
+                if (value === null || value < 1 || (max !== null && value > max)) {
+                    this.backToEntry();
+                } else {
+                    this.review(this.piecesResult(value), { finishedNow: this.pendingFinishedNow, tappedAt: this.pendingTappedAt });
+                }
+            }
+        }
+
+        this.renderEntryInfo();
+        this.rememberDraft();
+    }
+
+    /**
+     * The choice alone (recorded at the table, or added later from "Puzzle missing"), fitted to the result shown.
+     */
+    saveChoice() {
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        const format = pickFormat(this.round);
+
+        if (entry === null || format === null) {
+            return;
+        }
+
+        const items = this.outbox.all();
+        const { fields, record } = saveFields(format, this.choice, shownValue(entry, 'result', items).value, entry, items);
+
+        if (!fields.some((field) => field.field === 'puzzles')) {
+            return;
+        }
+
+        const saved = this.enqueueGroup(entry, fields);
+        this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.describeField('puzzles', record) }), saved);
+        this.backToFind();
+    }
+
+    toggleMissing() {
+        this.missingOnly = !this.missingOnly;
+        this.renderFind();
     }
 
     didNotStart() {
@@ -2308,6 +2458,8 @@ export default class extends Controller {
         this.confirmNoteTarget.textContent = note;
         this.confirmNoteTarget.className = `small mb-3 ${shown.value !== null && shown.value !== undefined && !sameValue(shown.value, value) ? 'text-warning-emphasis fw-medium' : 'text-muted'}`;
         this.showView('confirm');
+        // A pick round's chips say on the confirm step whether the choice goes along (toolkit C10)
+        this.renderEntryInfo();
         // A tap that started before this moment + 350 ms is not a Save (confirmTapAllowed())
         this.confirmShownAt = performance.now();
         this.savePointerAt = null;
@@ -2327,6 +2479,7 @@ export default class extends Controller {
 
     backToEntry() {
         this.showView('entry');
+        this.renderEntryInfo();
         this.rememberDraft();
 
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
@@ -2359,16 +2512,20 @@ export default class extends Controller {
         }
 
         const value = this.pendingValue;
-        const shown = shownValue(entry, 'result', this.outbox.all());
+        // The result, and on a pick round the puzzle record that fits it - one group (toolkit C10, A rule 7)
+        const format = pickFormat(this.round);
+        const { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all());
 
-        if (sameValue(shown.value, value) && (shown.item === null || shown.item.state === 'pending')) {
+        if (fields.length === 0) {
             this.showToast(this.t('toastNothing'), null);
             this.backToFind();
 
             return;
         }
 
-        const item = this.enqueue(entry, 'result', value);
+        // Every change of the Save goes to Undo - a group already sent is no longer on the device to be found by its id
+        const item = this.enqueueGroup(entry, fields);
+        const choice = format !== null && Array.isArray(record) && record.length > 0 ? ` · ${describeChoice(format, record)}` : '';
 
         if (navigator.vibrate) {
             navigator.vibrate(30);
@@ -2376,7 +2533,7 @@ export default class extends Controller {
 
         this.showToast(this.t('toastSaved', {
             '%name%': entry.displayName ?? entry.name ?? '',
-            '%result%': value === null ? this.t('clearResult') : this.describe(value),
+            '%result%': (value === null ? this.t('clearResult') : this.describe(value)) + choice,
         }), item);
         this.backToFind();
     }
@@ -2410,7 +2567,7 @@ export default class extends Controller {
         this.broadcast();
         this.flushSoon();
         this.showToast(this.t('toastUndone'), null);
-        this.openEntry(item.entryRef);
+        this.openEntry((Array.isArray(item) ? item[0] : item).entryRef);
     }
 
     // ---- Problems ----

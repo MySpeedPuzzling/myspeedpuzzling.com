@@ -5550,6 +5550,15 @@ live_results:
     tags:
         foreign: "This QR code is not a tag of this event."
         lineup_not_in_round: "This pair/team does not play in %round%."
+    puzzles:
+        pick_one: "Which puzzle?"
+        pick_k: "Which %count% puzzles? Tap them in solving order."
+        missing_note: "Puzzle choice incomplete - the result is saved without it; add it later (Puzzle missing)."
+        save: "Save puzzle choice"
+        none: "No puzzle"
+        hidden: "Not revealed yet"
+        missing_filter: "Puzzle missing (%count%)"
+        field: "Puzzles"
 
 name_tags:
     button: "Name tags"

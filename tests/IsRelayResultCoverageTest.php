@@ -18,7 +18,7 @@ final class IsRelayResultCoverageTest extends TestCase
     /** Readers of the puzzle's pages that leave a relay result out */
     private const array USES_THE_RULE = [
         'Query/GetPuzzleSolvers.php' => 'the puzzle page tabs: the ranked tabs and the unfinished rows read rows with a time or pieces placed only; the relax / unfinished counts under the tabs use the rule',
-        'Query/GetPuzzleResultDetail.php' => 'the result detail of the puzzle: a relay result is not found when opened and never listed among the attempts (the profile links the relay\'s round instead)',
+        'Query/GetPuzzleResultDetail.php' => 'the result detail of the puzzle: a relay result is not found when opened (PuzzleResultDetailController sends it to its round) and never listed among the attempts',
         'Services/PuzzleStatisticsCalculator.php' => 'the puzzle\'s statistics (puzzle_statistics: "Completed N×", counts and times on the puzzle page and in catalogue lists)',
     ];
 

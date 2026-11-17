@@ -95,7 +95,9 @@ plan was not what the code needed:
 - Never a first try, no "same result" swap; claimed, released and removed once in the claim log and the notifications.
 - The puzzle's statistics (`puzzle_statistics`: "Completed N×" also on catalogue lists) leave relays out - they are the
   puzzle's counts; global and personal statistics count them.
-- The result detail of a relay result is not found (it is the puzzle's page); profiles link the relay's round instead.
+- The result detail (the puzzle's page) never shows a relay result: opened, it leads to the relay's round (a redirect, or
+  a short card in the modal) - every existing link into it (feeds, notifications, the claim screens) lands there;
+  profiles link the round directly.
 - `Template…` tabs: any tab whose trimmed title starts with "template" is never an event.
 - A tab that turns into a relay or back after its import is `puzzle_changed_after_import`.
 - The round page reads the relay teams in the same statement as the round's results, so no other round page runs a

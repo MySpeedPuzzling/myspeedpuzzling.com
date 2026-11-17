@@ -89,7 +89,7 @@ rows above - nothing new for `TrackerlessTimeQueryCoverageTest`. What is new is 
 |---|---|---|
 | `Query/GetPuzzleSolvers.php` (`untimedCountsByPuzzleId()`) | counted as a relax solve under the puzzle's tabs | `IsRelayResult::notRelay()` |
 | `Services/PuzzleStatisticsCalculator.php` | "Completed N×" of the puzzle | `IsRelayResult::notRelay()` |
-| `Query/GetPuzzleResultDetail.php` | a relax attempt of the puzzle | not found, never listed |
+| `Query/GetPuzzleResultDetail.php` | a relax attempt of the puzzle | not found, never listed - the controller sends it to its round (`GetRelayResultRound`) |
 | `Query/GetRoundResults.php` | dropped (no time, no pieces) | the same statement reads relay rows; one row per relay, ranked by the total |
 | `Query/GetPlayerSolvedPuzzles.php` (solo + group lists) | a relax solve on the profile | the relay's total, puzzles and round (`SolvedPuzzle::isRelay()`) |
 | `Query/GetEventResultClaims.php` (`context()`) | one result of two | read as the relay's first result |

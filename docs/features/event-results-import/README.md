@@ -302,7 +302,10 @@ time; only its total is known.
   (total, size, name, removal, the `p:` re-key) moves both together.
 - **Not on the puzzle's pages** (Jan): the tabs and their relax / unfinished counts (`GetPuzzleSolvers`), the puzzle's
   statistics (`PuzzleStatisticsCalculator` - "Completed N×", averages), the result detail (`GetPuzzleResultDetail`: not
-  found, never listed) leave them out through `Query\IsRelayResult`; `IsRelayResultCoverageTest` keeps every reader of
+  found, never listed - `PuzzleResultDetailController` then sends a relay result to its round via `GetRelayResultRound`:
+  a redirect, or in the modal a short "Relay · total" card linking the round, so every link into it - feeds,
+  notifications, the claim screens - lands on the round) leave them out through `Query\IsRelayResult`;
+  `IsRelayResultCoverageTest` keeps every reader of
   the puzzle family decided. Leaderboards, ranks, medians, difficulty, rating and predictions never see them
   (`seconds_to_solve` NULL).
 - **On the event**: the round page (`GetRoundResults::forRoundWithRelays()`, the same one statement as before) ranks the

@@ -39,6 +39,60 @@ anonymous stopwatch stream, refetch planner), `displays.md` (stateless firewall,
 | D12 | A pair/team row = the exact line-up's history (`puzzling_team` by composition key, only when every member is linked and public) + each member's own history; members' **solo** predictions labelled solo; no pair/team prediction | The pair/team model is "never shown" (prediction-history.md) - not the studio's call to change |
 | D13 | `noindex, nofollow` everywhere, links `rel="nofollow"`, not in the sitemap; per-IP rate limits on the JSON | Scraping cost bounded by the caches and limits |
 
+## 0a. Review amendments (binding - they override the sections below where they differ)
+
+Independent design review 2026-11-17, decisions by the orchestrator:
+
+- **R1 Secret puzzles by exclusion (was a blocker).** Every exclusion list and every "round puzzle" set in a query is
+  built from the **visible** slots only - never from all round puzzle ids (`NOT IN (:roundPuzzleIds)` of a hidden
+  puzzle would leak by subtraction). Every list of §3.3 (attempts, recent similar solves, recent form) applies the
+  history cut-off and the embargo (`hide_until`/`hide_image_until` > now excluded). The secret test is a **swap
+  test**: the same round with hidden puzzle X vs hidden puzzle Y (fixture entrants have solved X at the same pieces and
+  brand as a visible puzzle, and logged a time on X after the cut-off) - `state`, `analytics` and `entrant` answers
+  byte-identical (ignoring `serverNowMs`); after the reveal X's data appears.
+- **R2 State cache.** The server-side state cache is keyed by `RoundClock::stateHash()` + `visibleHash` + a published
+  /results fingerprint is NOT needed: key = round id + stopwatch state hash + visible hash, TTL 2 s capped at
+  `nextRevealAtMs`; `serverNowMs` is stamped per response outside the cache. A push refetch therefore never gets a
+  pre-push answer for a stopwatch change; "Reveal now" and new results arrive at the next poll (≤ 10 s) - accepted.
+- **R3 No async prediction warm (cut).** Predictions are computed **synchronously only for the entrants on screen**:
+  the selected entrant (`entrant` endpoint) and the compare set (a `predictions?entries=a,b,c,d` endpoint, ≤ 4
+  entries, each member through `GetPlayerPredictions::forPuzzles()`), cached per player × visible puzzle set in
+  `analytics_studio_cache` 15 min via the pool's `get()` callback (stampede lock). No prediction column/sort in the
+  list (v2 in `docs/TODO.md`). No `WarmAnalyticsStudioPredictions`, no LockFactory, no messenger routing.
+- **R4 "As of now" numbers.** Predictions, rating, skill, solved total and best 500 are the player's current values
+  (labelled "now"); only the per-puzzle and similar-puzzle history is "before this round" (cut-off).
+- **R5 Date precision.** A history row with a month/year-only date counts as "before" only when its whole period ends
+  before the cut-off; such dates are shown at their precision (month / year), never as a day.
+  `DatePrecisionCoverageTest` classifies the new readers.
+- **R6 Rate limits.** No limiter on `state` (micro-cached; venues share one NAT). `analytics_studio_heavy` 600/min per IP
+  for analytics + entrant + predictions.
+- **R7 Opt-out wording.** The studio shows other players' predictions publicly (Jan: "predictions for the players"):
+  the opt-out help text (`messages.*.yml` key used at `en:1638` area) gains "…and on event analytics studios" in all
+  6 locales in S1 (S1 makes the data public).
+- **R8 Live results are not a leaderboard.** Unpublished confirmed results (organiser opted in) appear per entrant as
+  a cell/detail value labelled "confirmed by the judge, not official"; the list is never sorted by them and no
+  ordered live list is drawn. Published rounds show the official ranking (sortable by rank). Open question to Jan.
+- **R9 Guard tests** in S1's list in addition: `PrivateProfileQueryCoverageTest`, `DatePrecisionCoverageTest`,
+  `UnfinishedResultsAreInvisibleTest`, `RobotsTxtTest`, `CustomValuesPrivacyCanaryTest`, `DraftVisibilityCoverageTest`.
+- **R10 Cuts for v1:** density toggle, `cmp=` in the URL (kept: `puzzle`, `e`, `q`, `sort`), 4-wide compare on phones
+  (2 max there), the JSON fixture contract test, keymap trimmed to `/`, Esc, ↑/↓ (j/k), Enter, `c`, `x`, `[` `]`,
+  `?`. The bundle budget test stays (cheap).
+- **R11 Budgets** are pinned at the real numbers the implementation measures (no `tiersOf()` - `forPuzzleList()`
+  already returns the tier).
+- **R12** Line-up keys from lowercase player ids (`TeamComposition` member keys). **R13** rating place via
+  `GetPlayerRatingRanking::sqlRankOf()` (the header's number), not the snapshot. **R14** no separate
+  `IsSeriesPubliclyVisible` (covered by `SQL_CONDITION`).
+- **R15 Naming:** every class/test/key carries `AnalyticsStudio` (e.g. `AnalyticsStudioStateController`,
+  `src/Results/AnalyticsStudio*`, `AnalyticsStudioQueryBudgetTest`), link labels say "Analytics studio".
+- **R16** `OfficialEntrantsView::entrant()` objects are never serialized - the JSON is built field by field; the
+  private canary asserts a private entrant's player id/code is absent from all answers.
+- **R17** Cache computations through `CacheInterface::get()` callbacks (one computation at a reveal).
+- **R18** S4 adds its own `analyticsStudioUrl` to `RoundsTimelineBuilder` rows (not dependent on results).
+- **R19 Earlier rounds at this event**: the entrant detail shows the entrant's published results in the event's
+  other rounds (`OfficialEntrantsView::forRounds()`, published only, +1 statement on `entrant`).
+- **R20 Blocklist exemption** (Q5) is broader than displays (a public URL, not an organiser token) - stated in the
+  doc and to Jan; accepted for on-air consistency.
+
 ---
 
 ## 1. Routes, controllers, HTTP

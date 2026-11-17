@@ -85,17 +85,17 @@
                         <div class="mb-3">
                             <div class="form-label">{{ 'event_wizard.puzzle.reveal_label'|trans }}</div>
                             {% for child in form.revealMode %}
-                                <div class="form-check mb-1">
-                                    {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                <div class="mb-1">
+                                    {#- The bootstrap theme renders a radio with its label - the automatic one names its moment -#}
                                     {% if child.vars.value == 'automatic' %}
-                                        <label class="form-check-label" for="{{ child.vars.id }}">{{ 'event_wizard.puzzle.reveal_automatic_at'|trans({'%after_start%': 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}), '%time%': automatic_time}) }}</label>
+                                        {{ form_widget(child, {label: 'event_wizard.puzzle.reveal_automatic_at'|trans({'%after_start%': 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}), '%time%': automatic_time})}) }}
                                     {% else %}
-                                        {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                        {{ form_widget(child) }}
                                     {% endif %}
                                     {% if child.vars.value == 'stopwatch' %}
-                                        <div class="form-text mt-0">{{ 'event_wizard.puzzle.reveal_stopwatch_help'|trans }}</div>
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_stopwatch_help'|trans }}</div>
                                     {% elseif child.vars.value == 'manual' %}
-                                        <div class="form-text mt-0">{{ 'event_wizard.puzzle.reveal_manual_help'|trans }}</div>
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_manual_help'|trans }}</div>
                                     {% endif %}
                                 </div>
                             {% endfor %}

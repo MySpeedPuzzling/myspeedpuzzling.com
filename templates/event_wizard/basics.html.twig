@@ -41,7 +41,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-7 col-sm-6 mb-3">
+                    <div class="col-12 col-sm-7 mb-3">
                         {{ form_label(form.dateFrom, 'event_wizard.basics.date'|trans, {label_attr: {class: 'form-label required'}}) }}
                         <div class="input-group">
                             {{ form_widget(form.dateFrom, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
@@ -49,7 +49,7 @@
                         </div>
                         {{ form_errors(form.dateFrom) }}
                     </div>
-                    <div class="col-5 col-sm-4 mb-3">
+                    <div class="col-7 col-sm-5 mb-3">
                         {{ form_label(form.startTime, null, {label_attr: {class: 'form-label required'}}) }}
                         {{ form_widget(form.startTime, {type: 'time'}) }}
                         {{ form_errors(form.startTime) }}
@@ -59,7 +59,7 @@
 
                 {{ form_row(form.multiDay) }}
                 <div data-organizer-form-target="part" data-show-field="multiDay" data-show-values="1">
-                    <div class="col-7 col-sm-6 mb-3">
+                    <div class="col-12 col-sm-7 mb-3">
                         {{ form_label(form.dateTo, 'event_wizard.basics.date_to'|trans, {label_attr: {class: 'form-label'}}) }}
                         <div class="input-group">
                             {{ form_widget(form.dateTo, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}

@@ -26,6 +26,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  *   stores under the old key, which nobody asks for again - so after a signalled write nobody reads a stale snapshot;
  *   unsignalled edits (a participant renamed, a player turning private) heal within SNAPSHOT_LIFETIME.
  * - `event_{standingId}` - the standing's event (immutable, 1 day); `list_v1_{cid}_{gen}` - the event's standings.
+ * - `html_v1_{standingId}_{locale}_{gen}` - the guests' HTML of the public page's table part (guestHtml(), competition
+ *   toolkit v2 S4: the `public_standing_table` fragment every open page fetches after a standings signal).
  * - The cache failing is no failure: every read falls back to computing (a warning), nothing is ever stale for it.
  *
  * Statements: warm 0; cold: the event (1, once a day), the head (1), the rounds (1), the entries (1 - one category).
@@ -134,6 +136,28 @@ readonly final class PublicStandingSnapshots
 
         /** @var list<array{id: string, name: string, slug: string, category: string, mode: string, roundIds: list<string>, published: bool, position: int}> $list */
         return $list;
+    }
+
+    /**
+     * The guests' HTML of a standing's table part in a locale, rendered once per generation (`render` = the fragment for
+     * nobody signed in - the same for every guest). Whether the event is public is the caller's, on every request; what
+     * `render` throws (a 404) is not cached. The cache failing = rendered every time.
+     *
+     * @param \Closure(): string $render
+     */
+    public function guestHtml(string $standingId, string $competitionId, string $locale, \Closure $render): string
+    {
+        $html = $this->cached(
+            sprintf('html_%s_%s_%s_%s', self::VERSION, strtolower($standingId), $locale, $this->generation($competitionId)),
+            static function (ItemInterface $item) use ($render): string {
+                $item->expiresAfter(self::SNAPSHOT_LIFETIME);
+
+                return $render();
+            },
+            $render,
+        );
+
+        return is_string($html) ? $html : $render();
     }
 
     /**

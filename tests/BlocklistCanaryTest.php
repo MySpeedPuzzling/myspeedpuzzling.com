@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use Symfony\Component\Clock\MockClock;
@@ -500,6 +501,49 @@ final class BlocklistCanaryTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
         self::assertStringNotContainsString('Ben Steady', $content);
+    }
+
+    /**
+     * The table fragment of the public standing page (`public_standing_table`, competition toolkit v2 S4) - what an open
+     * page swaps in after a standings signal: the page's own rules per signed-in viewer, while guests share one cached
+     * render. The blocker asking first must not leave his view for the guests, nor the guests' for him.
+     */
+    public function testTheStandingTableFragmentAppliesTheBlocklistLikeThePage(): void
+    {
+        $browser = self::createClient();
+        // The guests' render is cached per generation: one kernel and a pool a reset does not empty, as on production
+        $browser->disableReboot();
+        self::getContainer()->set('competition_standings_cache', new FilesystemAdapter('s4_' . bin2hex(random_bytes(6)), 0, sys_get_temp_dir() . '/standing-table-canary'));
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $standingId = PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A]);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $fragment = '/en/standing-table/' . $standingId;
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['1', '2', '4'], $crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank')));
+
+        $browser->restart();
+        $browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Ben Steady', (string) $browser->getResponse()->getContent(), 'No canary (or the blocker\'s view was cached for the guests): the fragment does not list him.');
+
+        // The guests' cached render never reaches him
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $fragment);
+        self::assertStringNotContainsString('Ben Steady', (string) $browser->getResponse()->getContent(), 'The blocker is given the guests\' cached fragment.');
     }
 
     /**

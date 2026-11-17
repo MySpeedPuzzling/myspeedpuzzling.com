@@ -5,18 +5,23 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\CompetitionToolkit;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\AfterResponse;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingsLiveUpdates;
 use SpeedPuzzling\Web\Services\Standings\PublicStandingSnapshots;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
+use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Mercure\Update;
 
 /**
  * The after-commit hook of the public standings (competition toolkit v2 S1, displays-standings.md §2.2), reached through
  * CompetitionDisplayLiveUpdates (the choke point every results / round write calls - forwarded first, also for an event
  * without displays): which writes start a new generation of the guest snapshots, and that an event without published
- * standings pays no statement once its answer is cached.
+ * standings pays no statement once its answer is cached. v2 S4: the public, data-free signal after the new generation -
+ * once the answer went out (AfterResponse), once per event and request, a hub failure only a warning.
  *
  * Results Cup: Group A published, Group B not; one published standing over both.
  */
@@ -110,5 +115,76 @@ final class CompetitionStandingsLiveUpdatesTest extends KernelTestCase
         $holder->reset();
         $this->hook->resultsChanged(OfficialResultsFixture::ROUND_GROUP_A);
         self::assertSame([], $holder->getData()['default'] ?? []);
+    }
+
+    public function testTheBumpSendsOnePublicDataFreeSignalAfterTheResponse(): void
+    {
+        PublishedStanding::insert($this->database, self::CUP, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]);
+        $hub = self::hub();
+
+        // Gated out (an unpublished round): no signal
+        $this->hook->resultsChanged(OfficialResultsFixture::ROUND_GROUP_B);
+        self::afterResponse()->run();
+        self::assertSame([], self::standingsUpdates($hub));
+
+        // Three writes of one request: nothing before the response, one signal after it
+        $this->hook->resultsChanged(OfficialResultsFixture::ROUND_GROUP_A);
+        $this->hook->roundChanged(OfficialResultsFixture::ROUND_GROUP_A);
+        $this->hook->resultsChangedInCompetition(self::CUP);
+        self::assertSame([], self::standingsUpdates($hub), 'Signalled before the response went out');
+        self::afterResponse()->run();
+
+        $updates = self::standingsUpdates($hub);
+        self::assertCount(1, $updates);
+        self::assertSame([CompetitionStandingsLiveUpdates::topic(self::CUP)], $updates[0]->getTopics());
+        self::assertSame('/competition-standings/' . strtolower(self::CUP), $updates[0]->getTopics()[0]);
+        self::assertFalse($updates[0]->isPrivate());
+        // No data: no standing, no round, no name - a listener fetches what it shows through the public rules
+        self::assertSame('{"type":"standing.signal"}', $updates[0]->getData());
+
+        // The next request signals again
+        $this->hook->standingsChanged(self::CUP);
+        self::afterResponse()->run();
+        self::assertCount(2, self::standingsUpdates($hub));
+    }
+
+    public function testAHubFailureIsAWarningOnly(): void
+    {
+        PublishedStanding::insert($this->database, self::CUP, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A]);
+        $hub = self::hub();
+        $hub->failWith(new \RuntimeException('The hub is down'));
+        $generation = $this->snapshots->generation(self::CUP);
+
+        $this->hook->resultsChanged(OfficialResultsFixture::ROUND_GROUP_A);
+        self::afterResponse()->run();
+
+        // The new generation stands; nothing thrown
+        self::assertNotSame($generation, $this->snapshots->generation(self::CUP));
+        $hub->failWith(null);
+        self::assertSame([], self::standingsUpdates($hub));
+    }
+
+    private static function hub(): NullMercureHub
+    {
+        $hub = self::getContainer()->get(NullMercureHub::class); // @phpstan-ignore symfonyContainer.serviceNotFound
+        assert($hub instanceof NullMercureHub);
+
+        return $hub;
+    }
+
+    private static function afterResponse(): AfterResponse
+    {
+        return self::getContainer()->get(AfterResponse::class);
+    }
+
+    /**
+     * @return list<Update>
+     */
+    private static function standingsUpdates(NullMercureHub $hub): array
+    {
+        return array_values(array_filter(
+            $hub->getPublishedUpdates(),
+            static fn (Update $update): bool => str_starts_with($update->getTopics()[0] ?? '', '/competition-standings/'),
+        ));
     }
 }

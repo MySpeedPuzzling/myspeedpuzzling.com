@@ -16,26 +16,36 @@ use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetStandingResults;
 use SpeedPuzzling\Web\Results\PublicStandingRow;
 use SpeedPuzzling\Web\Results\StandingRow;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
+use SpeedPuzzling\Web\Services\Standings\StandingPageBuilder;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\LocaleAwareInterface;
+use Twig\Environment;
 
 /**
  * Public standings (competition toolkit A7, A-round-formats.md §3.4/§3.6): publish/unpublish, the public page counting
  * only rounds whose results are published ("Provisional" until all are), ranks equal to the organiser's preview once
  * everything is published, 404 for unpublished standings and drafts, the links (event page, round page, results
- * overview, organiser page) and the sitemap.
+ * overview, organiser page) and the sitemap. Competition toolkit v2 S4: the table part extracted into a partial renders
+ * as before, the `public_standing_table` fragment (404 rules, guests' render once per generation, fresh after a signal).
  */
 final class PublicStandingsTest extends WebTestCase
 {
+    use QueryCountAssertions;
     use WorldSeriesSetup;
 
     private const string SOLO_URL = '/en/events/world-series-test/standings/';
@@ -334,6 +344,191 @@ final class PublicStandingsTest extends WebTestCase
         // The event URL of an edition redirects to the series URL
         $this->browser->request('GET', '/en/events/ejj-68-february-2026/standings/overall');
         self::assertResponseRedirects($url, 301);
+    }
+
+    /**
+     * Competition toolkit v2 S4: the table part moved into standing/_public_table.html.twig - the page's content renders
+     * exactly as the template did before (tests/fixtures/standing-page-before-v2-s4.html.twig, a copy of it), apart from
+     * the live wrapper around the table part. Rendered with every part of the table in use: a provisional standing, an
+     * incomplete row, pieces missing, the round links.
+     */
+    public function testTheTablePartRendersAsBeforeTheExtraction(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_participant_round SET result_missing_pieces = 15 WHERE round_id = :roundId AND participant_id = :participantId',
+            ['roundId' => $this->soloRounds[0], 'participantId' => $this->people['Bob']],
+        );
+        $this->database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => $this->soloRounds[3]]);
+        $standingId = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds, new StandingRules(30));
+        $this->publish($standingId);
+        $slug = $this->slug($standingId);
+        $url = self::SOLO_URL . $slug;
+
+        $crawler = $this->browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $live = $crawler->filter('[data-controller="standing-live"]');
+        self::assertCount(1, $live);
+        self::assertSame('/en/standing-table/' . $standingId, $live->attr('data-standing-live-url-value'));
+        self::assertSame('/competition-standings/' . strtolower(self::WS_COMPETITION), $live->attr('data-standing-live-topic-value'));
+        self::assertCount(1, $live->filter('turbo-frame#standing-table[target="_top"] [data-standing-table]'));
+
+        $container = self::getContainer();
+        $page = $container->get(StandingPageBuilder::class)->build(self::WS_COMPETITION, $slug);
+        $request = Request::create($url);
+        $request->setLocale('en');
+        $request->attributes->set('_locale', 'en');
+        $container->get(RequestStack::class)->push($request);
+        $translator = $container->get('translator');
+        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
+        $translator->setLocale('en');
+
+        // renderBlock() runs no top-level `set` of the template: its variables come with the context
+        $context = [
+            'page' => $page,
+            'table' => $page->table,
+            'standing' => $page->standing,
+            'event' => $page->event,
+            'event_url' => '/en/events/world-series-test',
+            'standing_route' => 'event_standing',
+            'round_route' => 'event_round_results',
+            'route_params' => ['slug' => 'world-series-test'],
+        ];
+        $twig = $container->get(Environment::class);
+        $before = $twig->createTemplate((string) file_get_contents(__DIR__ . '/../fixtures/standing-page-before-v2-s4.html.twig'))->renderBlock('content', $context);
+        $after = $twig->load('standing.html.twig')->renderBlock('content', $context);
+
+        self::assertStringContainsString('data-standing-incomplete', $before, 'No canary: the table has no incomplete row');
+        self::assertStringContainsString('data-standing-missing="15"', $before, 'No canary: the table shows no missing pieces');
+        self::assertStringContainsString('href="/en/events/world-series-test/results/solo-1"', $before, 'No canary: the table links no round');
+        if (preg_match('~^(.*)<div data-controller="standing-live"[^>]*>\s*<turbo-frame id="standing-table"[^>]*>(.*)</turbo-frame>\s*<p [^>]*data-standing-live-target="status"[^>]*></p>\s*</div>(.*)$~s', $after, $parts) !== 1) {
+            self::fail('The page has no live wrapper around its table part');
+        }
+
+        self::assertSame(self::collapsed($before), self::collapsed($parts[1] . $parts[2] . $parts[3]));
+    }
+
+    /**
+     * The table fragment (competition toolkit v2 S4, `public_standing_table`): the page's table part in the same frame,
+     * never stored by anybody, never indexed; the page's 404 rules.
+     */
+    public function testTheTableFragmentIsThePagesTablePart(): void
+    {
+        $standingId = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds);
+        $unpublishedId = $this->create('World Series - Pairs', RoundCategory::Duo, $this->pairRounds);
+        $this->publish($standingId);
+        $fragment = '/en/standing-table/' . $standingId;
+
+        $pageCrawler = $this->browser->request('GET', self::SOLO_URL . $this->slug($standingId));
+        $crawler = $this->browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        $response = $this->browser->getResponse();
+        self::assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
+        self::assertStringContainsString('no-cache', (string) $response->headers->get('Cache-Control'));
+        self::assertSame('noindex, nofollow', $response->headers->get('X-Robots-Tag'));
+        self::assertCount(1, $crawler->filter('turbo-frame#standing-table[target="_top"]'));
+        self::assertSame([['1', 'Dora', '00:40:00'], ['2', 'Bob', '00:45:00'], ['3', 'Alice', '00:50:00'], ['4', 'Cyril', '00:55:00']], self::pageRows($crawler));
+        self::assertSame(
+            self::collapsed($pageCrawler->filter('turbo-frame#standing-table')->html()),
+            self::collapsed($crawler->filter('turbo-frame#standing-table')->html()),
+        );
+
+        // Another locale: its texts and links
+        $this->browser->request('GET', '/cs/standing-table/' . $standingId);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('href="/en/', (string) $this->browser->getResponse()->getContent());
+
+        // Unknown, not published, a draft (its team too), an unapproved event
+        $this->browser->request('GET', '/en/standing-table/' . Uuid::uuid7()->toString());
+        self::assertResponseStatusCodeSame(404);
+        $this->browser->request('GET', '/en/standing-table/' . $unpublishedId);
+        self::assertResponseStatusCodeSame(404);
+        $this->database->executeStatement('UPDATE competition SET is_draft = true WHERE id = :id', ['id' => self::WS_COMPETITION]);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseStatusCodeSame(404);
+        TestingLogin::asPlayer($this->browser, self::WS_ORGANISER);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseStatusCodeSame(404);
+        $this->database->executeStatement('UPDATE competition SET is_draft = false, approved_at = NULL WHERE id = :id', ['id' => self::WS_COMPETITION]);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * Hundreds of open pages answer one signal within seconds: the guests' fragment is rendered once per generation
+     * (warm: the event's visibility only), a signalled write is seen by the next fetch, a signed-in viewer gets a render
+     * of his own.
+     */
+    public function testTheGuestsFragmentIsRenderedOncePerGeneration(): void
+    {
+        $standingId = $this->create('World Series - Solo', RoundCategory::Solo, $this->soloRounds);
+        $this->publish($standingId);
+        $fragment = '/en/standing-table/' . $standingId;
+        // The test pool is an array adapter emptied by the reset after every request (production: Redis, kept)
+        $this->browser->disableReboot();
+        self::getContainer()->set('competition_standings_cache', new FilesystemAdapter('s4_' . bin2hex(random_bytes(6)), 0, sys_get_temp_dir() . '/public-standing-table-test'));
+
+        $this->startCountingQueries($this->browser);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        // The standing's event, visibility, the standing with its slugs, visibility (the builder's own), the rounds, the entries
+        $this->assertQueryCountAtMost($this->browser, 7, 'cold');
+
+        $this->startCountingQueries($this->browser);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        self::assertSame(1, $this->queryCount($this->browser), 'warm: ' . implode("\n", $this->executedSql($this->browser)));
+
+        // An unsignalled change waits for the cache; the after-commit hook's new generation is seen at once
+        $this->database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => $this->soloRounds[3]]);
+        $this->browser->request('GET', $fragment);
+        self::assertSelectorTextContains('[data-standing-state]', 'after 3 of 6 rounds', 'No canary: the fragment is not cached');
+        $this->browser->getContainer()->get(CompetitionDisplayLiveUpdates::class)->roundChanged($this->soloRounds[3]);
+        $this->browser->request('GET', $fragment);
+        self::assertSelectorTextContains('[data-standing-state]', 'after 4 of 6 rounds');
+
+        // Signed in: rendered for the viewer, never the guests' copy
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->browser->request('GET', $fragment);
+        $this->startCountingQueries($this->browser);
+        $this->browser->request('GET', $fragment);
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(1, $this->queryCount($this->browser));
+    }
+
+    /**
+     * An edition's fragment links its rounds under the series URL, like its page.
+     */
+    public function testAnEditionsFragmentLinksTheSeriesUrls(): void
+    {
+        $this->database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_EJJ_68]);
+        $participantId = Uuid::uuid7()->toString();
+        $this->database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, 'Olga Official', 'cz', :competitionId, 'imported')",
+            ['id' => $participantId, 'competitionId' => CompetitionSeriesFixture::EDITION_EJJ_68],
+        );
+        $this->database->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start) VALUES (:id, :participantId, :roundId, 3000, false)',
+            ['id' => Uuid::uuid7()->toString(), 'participantId' => $participantId, 'roundId' => CompetitionSeriesFixture::ROUND_EJJ_68],
+        );
+        $category = $this->database->fetchOne('SELECT category FROM competition_round WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_EJJ_68]);
+        assert(is_string($category));
+        $standingId = PublishedStanding::insert($this->database, CompetitionSeriesFixture::EDITION_EJJ_68, 'overall', 'Overall', $category, [CompetitionSeriesFixture::ROUND_EJJ_68]);
+
+        $pageCrawler = $this->browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/standings/overall');
+        self::assertResponseIsSuccessful();
+        $crawler = $this->browser->request('GET', '/en/standing-table/' . $standingId);
+        self::assertResponseIsSuccessful();
+        self::assertSame([['1', 'Olga Official', '00:50:00']], self::pageRows($crawler));
+        self::assertSame(
+            self::collapsed($pageCrawler->filter('turbo-frame#standing-table')->html()),
+            self::collapsed($crawler->filter('turbo-frame#standing-table')->html()),
+        );
+        self::assertStringContainsString('href="/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/results/', (string) $this->browser->getResponse()->getContent());
+    }
+
+    private static function collapsed(string $html): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', $html));
     }
 
     /**

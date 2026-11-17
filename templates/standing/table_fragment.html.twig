@@ -1,0 +1,9 @@
+{#
+    The `public_standing_table` fragment (competition toolkit v2 S4): the table part of the public standing page, which
+    the open page swaps in on a standings signal (assets/standing_live.js) - the frame's content replaces the page's.
+
+    Variables: view (PublicStandingTableView).
+#}
+<turbo-frame id="standing-table" target="_top">
+    {{- include('standing/_public_table.html.twig', {table: view.table, standing: view.standing, round_route: view.roundRoute, route_params: view.routeParams}, with_context = false) -}}
+</turbo-frame>

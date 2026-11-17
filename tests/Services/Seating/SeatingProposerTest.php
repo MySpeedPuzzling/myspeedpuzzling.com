@@ -195,6 +195,107 @@ final class SeatingProposerTest extends TestCase
         self::assertNull(SeatingProposer::compositionKey(self::team('t', [self::member('anna', 'p-anna'), self::member('anna2', 'p-anna')]), $visible));
     }
 
+    public function testSameTablesKeepTheSamePeopleAtTheirTableAndTheRestAfterTheHighest(): void
+    {
+        $source = [
+            self::sitting('round-1', 'anna', 7),
+            self::sitting('round-1', 'ben', 3),
+            self::sitting('round-1', 'cara', 12),
+            // In round 1 without a table
+            self::sitting('round-1', 'dan', null),
+        ];
+        $entries = [
+            self::sitting(self::ROUND, 'anna', null),
+            // Already at table 3 here - stays
+            self::sitting(self::ROUND, 'ben', 3),
+            self::sitting(self::ROUND, 'cara', 1),
+            self::sitting(self::ROUND, 'dan', null),
+            // New here, sitting at table 7 - Anna's table from round 1: Eva moves after the highest
+            self::sitting(self::ROUND, 'eva', 7),
+            // New here, at a table nobody matched takes: stays
+            self::sitting(self::ROUND, 'fred', 5),
+            self::sitting(self::ROUND, 'zoe', null),
+        ];
+
+        $plan = SeatingProposer::sameTables($entries, $source, 1, SeatingProposer::nameComparator('en'));
+
+        self::assertSame([
+            self::sittingRef(self::ROUND, 'anna') => 7,
+            self::sittingRef(self::ROUND, 'ben') => 3,
+            self::sittingRef(self::ROUND, 'cara') => 12,
+            self::sittingRef(self::ROUND, 'fred') => 5,
+            // After the highest (12), by name
+            self::sittingRef(self::ROUND, 'dan') => 13,
+            self::sittingRef(self::ROUND, 'eva') => 14,
+            self::sittingRef(self::ROUND, 'zoe') => 15,
+        ], $plan['tables']);
+        self::assertSame([self::sittingRef(self::ROUND, 'anna'), self::sittingRef(self::ROUND, 'ben'), self::sittingRef(self::ROUND, 'cara')], array_keys($plan['matched']));
+        self::assertSame(3, $plan['sourceSeated']);
+    }
+
+    public function testSameTablesWithNobodyToMatchStartAtTheFirstTable(): void
+    {
+        $plan = SeatingProposer::sameTables([self::sitting(self::ROUND, 'zoe', null), self::sitting(self::ROUND, 'adam', null)], [self::sitting('round-1', 'cara', 4)], 101, SeatingProposer::nameComparator('en'));
+
+        self::assertSame([self::sittingRef(self::ROUND, 'adam') => 101, self::sittingRef(self::ROUND, 'zoe') => 102], $plan['tables']);
+        self::assertSame([], $plan['matched']);
+    }
+
+    public function testSameTablesFindAPairOnlyAsExactlyTheSamePeople(): void
+    {
+        /** @return list<RoundResultEntryMember> */
+        $people = static fn (string ...$ids): array => array_values(array_map(static fn (string $id): RoundResultEntryMember => self::member($id), $ids));
+
+        $source = [
+            self::withTable(self::team('sharks', $people('anna', 'ben'), 'round-1'), 4),
+            self::withTable(self::team('edges', $people('cara', 'dan'), 'round-1'), 9),
+        ];
+        $entries = [
+            self::team('sharks-again', $people('ben', 'anna')),
+            // Cara with somebody else is another pair
+            self::team('mixed', $people('cara', 'eva')),
+        ];
+
+        $plan = SeatingProposer::sameTables($entries, $source, 1, SeatingProposer::nameComparator('en'));
+
+        self::assertSame([self::teamRef('sharks-again') => 4, self::teamRef('mixed') => 5], $plan['tables']);
+        self::assertSame([self::teamRef('sharks-again')], array_keys($plan['matched']));
+    }
+
+    public function testSameTablesAreTheBestAvailableOnlyForTheSameField(): void
+    {
+        // Every challenge of a World Series championship: the same people every round
+        self::assertTrue(SeatingProposer::sameTablesIsDefault(100, 100, 100));
+        self::assertTrue(SeatingProposer::sameTablesIsDefault(100, 90, 95));
+        // A few new entrants too many
+        self::assertFalse(SeatingProposer::sameTablesIsDefault(100, 89, 89));
+        // A final of 20 from a semifinal of 100 - seeded by results, not by the semifinal's tables
+        self::assertFalse(SeatingProposer::sameTablesIsDefault(20, 20, 100));
+        self::assertFalse(SeatingProposer::sameTablesIsDefault(0, 0, 0));
+    }
+
+    public function testSameTablesComeFromTheLatestEarlierRoundOfTheKindWithTables(): void
+    {
+        $challenge1 = self::overview('challenge-1', '2027-06-02 09:00', 500, withTable: 40);
+        $challenge2 = self::overview('challenge-2', '2027-06-02 09:00', 500, withTable: 40);
+        // Not seated, or without table numbers - never a source
+        $challenge3 = self::overview('challenge-3', '2027-06-02 09:00', 500);
+        $challenge4 = self::overview('challenge-4', '2027-06-02 09:00', 500, withTable: 40, tableNumbersOff: true);
+        $pairs = self::overview('pairs-1', '2027-06-02 09:00', 500, withTable: 20);
+        $challenge5 = self::overview('challenge-5', '2027-06-02 09:00', 500);
+        // Listed after challenge 5 with the same placeholder start
+        $challenge6 = self::overview('challenge-6', '2027-06-02 09:00', 500, withTable: 40);
+        $rounds = [$challenge1, $challenge2, $challenge3, $challenge4, $pairs, $challenge5, $challenge6];
+
+        $candidates = SeatingProposer::sameTablesRounds($rounds, $challenge5);
+
+        self::assertSame(['challenge-1', 'challenge-2', 'challenge-6'], array_map(static fn (RoundResultsOverview $round): string => $round->roundId, $candidates));
+        self::assertSame('challenge-2', SeatingProposer::defaultSameTablesRound($candidates, $rounds, $challenge5)?->roundId);
+        // Only rounds listed after it: the last of them
+        self::assertSame('challenge-6', SeatingProposer::defaultSameTablesRound([$challenge6], $rounds, $challenge5)?->roundId);
+        self::assertNull(SeatingProposer::defaultSameTablesRound([], $rounds, $challenge5));
+    }
+
     /**
      * @param list<RoundResultEntry> $entries
      * @return list<string>
@@ -219,6 +320,62 @@ final class SeatingProposerTest extends TestCase
     private static function teamRef(string $name): string
     {
         return RoundEntryRef::team(self::uuid($name))->toString();
+    }
+
+    /**
+     * A person's entry in a round: the same name = the same participant in every round.
+     */
+    private static function sitting(string $roundId, string $name, null|int $tableNumber): RoundResultEntry
+    {
+        return self::withTable(new RoundResultEntry(
+            ref: RoundEntryRef::participantRound(self::uuid($roundId . '-' . $name)),
+            kind: RoundResultEntry::KIND_PERSON,
+            roundId: $roundId,
+            name: $name,
+            participantId: self::uuid('participant-' . $name),
+            country: null,
+            countries: [],
+            members: [],
+            playerId: null,
+            playerCode: null,
+            playerName: null,
+            tableNumber: null,
+            result: RoundEntryResult::none(),
+            rank: null,
+            qualifiedAt: null,
+            resultEnteredAt: null,
+            resultEnteredById: null,
+            resultEnteredByName: null,
+        ), $tableNumber);
+    }
+
+    private static function sittingRef(string $roundId, string $name): string
+    {
+        return RoundEntryRef::participantRound(self::uuid($roundId . '-' . $name))->toString();
+    }
+
+    private static function withTable(RoundResultEntry $entry, null|int $tableNumber): RoundResultEntry
+    {
+        return new RoundResultEntry(
+            ref: $entry->ref,
+            kind: $entry->kind,
+            roundId: $entry->roundId,
+            name: $entry->name,
+            participantId: $entry->participantId,
+            country: null,
+            countries: [],
+            members: $entry->members,
+            playerId: null,
+            playerCode: null,
+            playerName: null,
+            tableNumber: $tableNumber,
+            result: $entry->result,
+            rank: $entry->rank,
+            qualifiedAt: null,
+            resultEnteredAt: null,
+            resultEnteredById: null,
+            resultEnteredByName: null,
+        );
     }
 
     private static function person(string $id, string $name, null|string $playerId = null, null|string $roundId = null, null|RoundEntryResult $result = null, null|int $rank = null): RoundResultEntry
@@ -339,7 +496,7 @@ final class SeatingProposerTest extends TestCase
         return $entries;
     }
 
-    private static function overview(string $id, string $startsAt, null|int $piecesCount): RoundResultsOverview
+    private static function overview(string $id, string $startsAt, null|int $piecesCount, int $withTable = 0, bool $tableNumbersOff = false): RoundResultsOverview
     {
         return new RoundResultsOverview(
             roundId: $id,
@@ -353,11 +510,11 @@ final class SeatingProposerTest extends TestCase
             stopwatchStoppedAt: null,
             resultsPublishedAt: null,
             resultsFirstPublishedAt: null,
-            tableNumbersOff: false,
+            tableNumbersOff: $tableNumbersOff,
             puzzlesCount: 1,
             piecesCount: $piecesCount,
-            entriesTotal: 0,
-            entriesWithTableNumber: 0,
+            entriesTotal: $withTable,
+            entriesWithTableNumber: $withTable,
             entriesWithResult: 0,
             entriesQualified: 0,
         );

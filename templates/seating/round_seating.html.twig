@@ -115,7 +115,31 @@
                 proposalEmpty: 'seating.auto.empty'|trans,
                 mspHelp: 'seating.auto.source_msp_times_help'|trans,
                 orderFirst: 'seating.auto.order'|trans,
+                sameTablesSummary: 'seating.same_tables.summary'|trans,
+                sameTablesNotMatched: browser_translation('seating.same_tables.not_matched'),
+                sameTablesWithTable: browser_translation('seating.same_tables.with_table'),
+                copyLoading: 'seating.copy.loading'|trans,
+                copyNone: 'seating.copy.none'|trans,
+                copyNotSeated: 'seating.copy.not_seated'|trans,
+                copyTarget: 'seating.copy.target'|trans,
+                copyNothingChosen: 'seating.copy.nothing_chosen'|trans,
+                copyDone: browser_translation('seating.copy.done'),
+                copyRefused: 'seating.copy.refused'|trans,
+                copyFailed: 'seating.copy.failed'|trans,
             } %}
+
+            {# "Use these tables in later rounds" (competition toolkit W3) - offered when a later round of the same kind
+               uses table numbers; the rounds come from the overview the page has anyway #}
+            {% set has_later_rounds = false %}
+            {% set past_this_round = false %}
+            {% for other in rounds %}
+                {% if past_this_round and other.category == round.category.value and not other.tableNumbersOff %}
+                    {% set has_later_rounds = true %}
+                {% endif %}
+                {% if other.roundId == round.id.toString %}
+                    {% set past_this_round = true %}
+                {% endif %}
+            {% endfor %}
 
             <div
                 class="seating"
@@ -127,6 +151,7 @@
                 data-round-seating-assign-url-value="{{ path('official_results_assign_table_numbers', {roundId: round.id}) }}"
                 data-round-seating-usage-url-value="{{ path('official_results_table_numbers_usage', {roundId: round.id}) }}"
                 data-round-seating-proposal-url-value="{{ path('official_results_seating_proposal', {roundId: round.id}) }}"
+                data-round-seating-copy-url-value="{{ has_later_rounds ? path('official_results_copy_table_numbers', {roundId: round.id}) : '' }}"
                 data-round-seating-sign-in-url-value="{{ path('login', {return: path('round_seating', {roundId: round.id})}) }}"
                 data-round-seating-csrf-token-value="{{ csrf_token(csrf_token_id) }}"
                 data-round-seating-entries-value="{{ entries|json_encode }}"
@@ -202,6 +227,11 @@
                         <button type="button" class="btn btn-outline-danger" data-action="round-seating#clearAll" data-round-seating-target="clearButton" disabled>
                             <i class="bi bi-eraser me-1" aria-hidden="true"></i>{{ 'seating.toolbar.clear_all'|trans }}
                         </button>
+                        {% if has_later_rounds %}
+                            <button type="button" class="btn btn-outline-secondary" data-action="round-seating#toggleCopy" data-round-seating-target="copyButton" aria-expanded="false" aria-controls="seating-copy-{{ round.id }}" hidden>
+                                <i class="bi bi-files me-1" aria-hidden="true"></i>{{ 'seating.copy.button'|trans }}
+                            </button>
+                        {% endif %}
                         <span class="seating-status small ms-sm-auto" data-round-seating-target="status" role="status" aria-live="polite"></span>
                     </div>
 
@@ -229,6 +259,17 @@
                                             </label>
                                         </div>
                                     {% endfor %}
+                                    {# "Same tables as round X" - shown when the proposal names earlier rounds of this kind with tables #}
+                                    <div class="form-check seating-source" data-round-seating-target="sameTablesOption" hidden>
+                                        <input class="form-check-input" type="radio" name="seating-source-{{ round.id }}" id="seating-source-same_tables-{{ round.id }}" value="same_tables" data-round-seating-target="sourceInput" data-action="round-seating#optionsChanged">
+                                        <label class="form-check-label" for="seating-source-same_tables-{{ round.id }}">
+                                            {{ 'seating.same_tables.source'|trans }}
+                                        </label>
+                                        <select class="form-select form-select-sm d-inline-block w-auto ms-1 align-baseline" aria-label="{{ 'seating.same_tables.source'|trans }}" data-round-seating-target="fromRound" data-action="round-seating#fromRoundChanged"></select>
+                                        <span class="small text-muted" data-source-count="same_tables"></span>
+                                        <span class="badge text-bg-success ms-1" data-source-best="same_tables" hidden>{{ 'seating.auto.best_available'|trans }}</span>
+                                        <span class="d-block small text-muted">{{ 'seating.same_tables.source_help'|trans }}</span>
+                                    </div>
                                 </fieldset>
 
                                 <div class="col-12 col-lg-6">
@@ -261,6 +302,23 @@
                             </div>
                         </div>
                     </section>
+
+                    {% if has_later_rounds %}
+                        {# "Use these tables in later rounds of this category": a confirm with the rounds, then one write #}
+                        <section class="card shadow-sm mb-4" id="seating-copy-{{ round.id }}" data-round-seating-target="copyPanel" data-targets-url="{{ path('official_results_copy_table_numbers_targets', {roundId: round.id}) }}" hidden aria-labelledby="seating-copy-title-{{ round.id }}">
+                            <div class="card-body">
+                                <h2 class="h5 mb-1" id="seating-copy-title-{{ round.id }}">{{ 'seating.copy.title'|trans }}</h2>
+                                <p class="text-muted small">{{ 'seating.copy.intro'|trans }}</p>
+                                <div data-round-seating-target="copyList" aria-live="polite"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <button type="button" class="btn btn-success" data-action="round-seating#applyCopy" data-round-seating-target="copyApply" disabled>
+                                        <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'seating.copy.copy'|trans }}
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" data-action="round-seating#toggleCopy">{{ 'seating.copy.cancel'|trans }}</button>
+                                </div>
+                            </div>
+                        </section>
+                    {% endif %}
 
                     <div class="mb-3" style="max-width: 24rem;">
                         <label class="form-label small text-muted mb-1" for="seating-filter-{{ round.id }}">{{ 'seating.toolbar.filter'|trans }}</label>

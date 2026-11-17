@@ -25,6 +25,7 @@ import {
     typedNumberWrite,
     undoAssignments,
     withFrom,
+    copyRequestTargets,
 } from '../seating.js';
 
 const RESYNC_EVERY_MS = 60000;
@@ -45,7 +46,8 @@ export default class extends Controller {
         'readiness', 'readinessBox', 'readinessProgress', 'readinessNote', 'onPanel', 'offPanel',
         'autoButton', 'renumberButton', 'renumberLabel', 'clearButton', 'status',
         'autoPanel', 'sourceInput', 'orderInput', 'orderFieldset', 'orderLegend', 'firstInput', 'mspHelp', 'proposal',
-        'applyButton', 'drawAgainButton',
+        'applyButton', 'drawAgainButton', 'sameTablesOption', 'fromRound',
+        'copyButton', 'copyPanel', 'copyList', 'copyApply',
         'filter', 'filterNote', 'orderBar', 'orderBarRenumber', 'swapBar', 'swapText', 'empty', 'nothingFound',
         'lists', 'unseatedSection', 'unseatedHeading', 'seatRestButton', 'unseatedList', 'seatedHeading', 'seatedList',
         'toast', 'gone',
@@ -59,6 +61,8 @@ export default class extends Controller {
         assignUrl: String,
         usageUrl: String,
         proposalUrl: String,
+        // "Use these tables in later rounds" ('' = no later round of this kind uses table numbers)
+        copyUrl: String,
         signInUrl: String,
         csrfToken: String,
         entries: Array,
@@ -84,6 +88,9 @@ export default class extends Controller {
         this.proposal = null;
         this.proposalRequest = 0;
         this.proposalNote = null;
+        // "Use these tables in later rounds": the targets the confirm shows (null = not loaded)
+        this.copyTargets = null;
+        this.copyRequest = 0;
         this.hiddenAt = null;
         this.dragging = false;
         this.sortables = [];
@@ -383,6 +390,14 @@ export default class extends Controller {
         this.orderBarTarget.hidden = !this.orderDirty;
         this.clearButtonTarget.disabled = this.busy || assigned === 0;
         this.applyButtonTarget.disabled = this.busy || !this.proposalApplicable();
+
+        // "Use these tables in later rounds": only from a round where every entry has a table
+        if (this.hasCopyButtonTarget) {
+            const seatedFully = total > 0 && assigned >= total;
+            this.copyButtonTarget.hidden = !seatedFully && this.copyPanelTarget.hidden;
+            this.copyButtonTarget.disabled = this.busy;
+            this.copyApplyTarget.disabled = this.busy || !seatedFully || this.chosenCopyTargets().length === 0;
+        }
 
         this.unseatedHeadingTarget.textContent = this.t('unseatedHeading', { '%count%': this.unseated.length });
         this.seatedHeadingTarget.textContent = this.t('seatedHeading', { '%count%': this.seated.length });
@@ -1159,6 +1174,14 @@ export default class extends Controller {
         this.requestProposal({ keepSeed: false });
     }
 
+    fromRoundChanged() {
+        // Picking the round picks the source
+        this.sourceInputTargets.forEach((input) => {
+            input.checked = input.value === 'same_tables';
+        });
+        this.requestProposal({ keepSeed: false });
+    }
+
     selectedSource() {
         return this.sourceInputTargets.find((input) => input.checked)?.value ?? '';
     }
@@ -1170,6 +1193,10 @@ export default class extends Controller {
 
         if (source !== '') {
             params.set('source', source);
+        }
+
+        if (source === 'same_tables' && this.fromRoundTarget.value !== '') {
+            params.set('from_round', this.fromRoundTarget.value);
         }
 
         params.set('order', this.orderInputTargets.find((input) => input.checked)?.value ?? 'fastest_first');
@@ -1230,7 +1257,31 @@ export default class extends Controller {
         }
 
         this.mspHelpTarget.textContent = this.t('mspHelp', { '%pieces%': proposal.piecesCount });
-        this.orderFieldsetTarget.hidden = proposal.source === 'random' || proposal.source === 'name';
+
+        // "Same tables as round X" exists only when an earlier round of this kind has tables
+        const sameTables = proposal.sameTables ?? null;
+        this.sameTablesOptionTarget.hidden = sameTables === null;
+
+        if (sameTables !== null) {
+            const options = sameTables.rounds.map((round) => {
+                const option = document.createElement('option');
+                option.value = round.roundId;
+                option.textContent = round.name;
+                option.selected = round.roundId === sameTables.fromRound.roundId;
+
+                return option;
+            });
+            this.fromRoundTarget.replaceChildren(...options);
+
+            const count = this.element.querySelector('[data-source-count="same_tables"]');
+            const withTable = proposal.sources.find((item) => item.source === 'same_tables')?.withData ?? 0;
+
+            if (count) {
+                count.textContent = `(${this.t('sameTablesWithTable', { '%count%': withTable, '%total%': total })})`;
+            }
+        }
+
+        this.orderFieldsetTarget.hidden = proposal.source === 'random' || proposal.source === 'name' || proposal.source === 'same_tables';
         this.orderLegendTarget.textContent = this.t('orderFirst', { '%first%': proposal.firstTable });
         this.drawAgainButtonTarget.hidden = proposal.source !== 'random';
     }
@@ -1272,6 +1323,15 @@ export default class extends Controller {
 
         if ((proposal.source === 'earlier_rounds' || proposal.source === 'msp_times') && proposal.withoutData > 0) {
             summary.push(this.t('noData', { '%count%': proposal.withoutData }));
+        }
+
+        if (proposal.source === 'same_tables' && proposal.sameTables) {
+            const round = proposal.sameTables.fromRound.name;
+            summary.push(this.t('sameTablesSummary', { '%round%': round }));
+
+            if (proposal.sameTables.notMatched > 0) {
+                summary.push(this.t('sameTablesNotMatched', { '%count%': proposal.sameTables.notMatched, '%round%': round }));
+            }
         }
 
         summary.push(this.t('changes', { '%count%': proposalAssignments(proposal.rows, this.byRef).length }));
@@ -1374,6 +1434,157 @@ export default class extends Controller {
         if (applied) {
             this.closeAuto();
         }
+    }
+
+    // ---- "Use these tables in later rounds of this category" (competition toolkit W3)
+
+    toggleCopy() {
+        if (!this.hasCopyPanelTarget) {
+            return;
+        }
+
+        if (this.copyPanelTarget.hidden) {
+            this.copyPanelTarget.hidden = false;
+            this.copyButtonTarget.setAttribute('aria-expanded', 'true');
+            this.loadCopyTargets();
+            this.copyPanelTarget.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else {
+            this.copyPanelTarget.hidden = true;
+            this.copyButtonTarget.setAttribute('aria-expanded', 'false');
+            this.copyTargets = null;
+            this.copyRequest++;
+            this.copyListTarget.replaceChildren();
+            this.render();
+            this.copyButtonTarget.focus();
+        }
+    }
+
+    async loadCopyTargets(note = null) {
+        const request = ++this.copyRequest;
+        this.copyTargets = null;
+        this.copyListTarget.replaceChildren(this.paragraph(this.t('copyLoading'), 'text-muted'));
+        this.render();
+
+        const result = await officialResultsRequest(this.copyPanelTarget.dataset.targetsUrl);
+
+        if (request !== this.copyRequest) {
+            return;
+        }
+
+        if (result.kind !== 'ok') {
+            if (isGone(result)) {
+                this.goneAway();
+            }
+
+            this.copyListTarget.replaceChildren(this.paragraph(this.failureText(result), 'text-danger'));
+
+            return;
+        }
+
+        this.copyTargets = result.data.targets ?? [];
+        const parts = [];
+
+        if (note !== null) {
+            parts.push(note);
+        }
+
+        if (this.copyTargets.length === 0) {
+            parts.push(this.paragraph(this.t('copyNone'), 'text-muted'));
+        }
+
+        for (const target of this.copyTargets) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'form-check';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'form-check-input';
+            input.id = `seating-copy-${this.roundIdValue}-${target.roundId}`;
+            input.value = target.roundId;
+            input.checked = true;
+            input.dataset.copyTarget = '';
+            input.addEventListener('change', () => this.render());
+            const label = document.createElement('label');
+            label.className = 'form-check-label';
+            label.htmlFor = input.id;
+            label.textContent = this.t('copyTarget', { '%round%': target.name, '%matched%': target.matched, '%entries%': target.entries, '%changes%': target.changes });
+            wrapper.append(input, label);
+            parts.push(wrapper);
+        }
+
+        if (result.data.sourceSeated === 0 || [...this.byRef.values()].some((entry) => entry.tableNumber === null)) {
+            parts.push(this.paragraph(this.t('copyNotSeated'), 'text-warning-emphasis small mt-2 mb-0'));
+        }
+
+        this.copyListTarget.replaceChildren(...parts);
+        this.render();
+    }
+
+    chosenCopyTargets() {
+        if (this.copyTargets === null || !this.hasCopyListTarget) {
+            return [];
+        }
+
+        const chosen = [...this.copyListTarget.querySelectorAll('input[data-copy-target]')]
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+
+        return copyRequestTargets(this.copyTargets, chosen);
+    }
+
+    async applyCopy() {
+        const targets = this.chosenCopyTargets();
+
+        if (targets.length === 0) {
+            this.showToast(this.t('copyNothingChosen'), null);
+
+            return;
+        }
+
+        this.busy = true;
+        this.setStatus('saving');
+        this.render();
+
+        const result = await officialResultsRequest(this.copyUrlValue, {
+            method: 'POST',
+            body: { targets },
+            csrfToken: this.csrfTokenValue,
+        });
+
+        this.busy = false;
+        this.render();
+
+        if (result.kind === 'ok') {
+            const changed = Object.values(result.data.changed ?? {}).reduce((sum, count) => sum + count, 0);
+            this.setStatus('saved');
+            this.showToast(this.t('copyDone', { '%count%': changed }), null);
+            this.toggleCopy();
+
+            return;
+        }
+
+        if (result.kind === 'client' && result.data?.error === 'copy_refused') {
+            this.setStatus(null);
+            const note = document.createElement('div');
+            note.className = 'alert alert-warning py-2 small';
+            note.append(document.createTextNode(this.t('copyRefused')));
+            const list = document.createElement('ul');
+            list.className = 'mb-0';
+
+            for (const problem of result.data.problems ?? []) {
+                const name = this.copyTargets?.find((target) => target.roundId === problem.round)?.name ?? null;
+                const item = document.createElement('li');
+                item.textContent = name === null ? problem.message : `${name}: ${problem.message}`;
+                list.append(item);
+            }
+
+            note.append(list);
+            // The rounds are looked at again - the organiser decides anew
+            await this.loadCopyTargets(note);
+
+            return;
+        }
+
+        this.failed(result, () => this.applyCopy());
     }
 
     // ---- filter

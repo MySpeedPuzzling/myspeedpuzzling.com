@@ -6104,6 +6104,32 @@ seating:
         show_both: "Both lists"
         show_tables: "By table only"
         show_names: "Names only"
+    same_tables:
+        source: "Same tables as"
+        source_help: "Everybody keeps the table they had in that round - the same tables in every round, so table tents are printed once."
+        summary: "Tables as in %round%."
+        not_matched: "One entry has no table in %round% - it keeps its own table if free, else gets one after the highest.|%count% entries have no table in %round% - they keep their own tables if free, else get ones after the highest."
+        with_table: "{0}nobody had a table there|{1}one of %total% had a table there|]1,Inf[%count% of %total% had a table there"
+    copy:
+        button: "Use these tables in later rounds"
+        title: "Use these tables in later rounds of this category"
+        intro: "Each entrant of the rounds below gets the table they have here. Entrants who are not in this round keep their own table if it is free, else get one after the highest. Nothing is saved until you copy."
+        loading: "Looking at the later rounds…"
+        none: "There is no later round of this category that uses table numbers."
+        not_seated: "Give every entry of this round a table first."
+        target: "%round%: %matched% of %entries% get their table from here, %changes% tables change"
+        copy: "Copy the tables"
+        cancel: "Cancel"
+        nothing_chosen: "Choose at least one round."
+        done: "{0}Tables copied - nothing had to change.|{1}Tables copied - one table changed.|]1,Inf[Tables copied - %count% tables changed."
+        refused: "Nothing was copied:"
+        failed: "The tables could not be copied. Try again."
+        reason:
+            no_targets: "Choose at least one round."
+            source_without_tables: "This round has no table numbers to copy."
+            round_not_available: "That round is not a later round of this category that uses table numbers."
+            changed_meanwhile: "The entrants or tables of that round changed meanwhile - look at it again."
+            invalid_table_number: "That round would need a table above 9999."
 
 # Referral Program
 referral:

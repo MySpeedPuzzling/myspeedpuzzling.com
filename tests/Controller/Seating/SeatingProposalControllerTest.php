@@ -105,6 +105,36 @@ final class SeatingProposalControllerTest extends WebTestCase
         }
     }
 
+    public function testSameTablesAsAnEarlierRoundOfTheSameKind(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $pairsFinal = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_PAIRS_FINAL . '/seating-proposal';
+
+        $this->browser->request('GET', $pairsFinal . '?source=same_tables&from_round=' . OfficialResultsFixture::ROUND_PAIRS);
+
+        self::assertResponseIsSuccessful();
+        $proposal = $this->json();
+        self::assertSame('same_tables', $proposal['source']);
+        self::assertContains('same_tables', array_column(is_array($proposal['sources']) ? $proposal['sources'] : [], 'source'));
+        self::assertSame([
+            'fromRound' => ['roundId' => OfficialResultsFixture::ROUND_PAIRS, 'name' => 'Pairs'],
+            'notMatched' => 0,
+            'rounds' => [['roundId' => OfficialResultsFixture::ROUND_PAIRS, 'name' => 'Pairs']],
+        ], $proposal['sameTables']);
+
+        // Not a round of this kind, or not a round id at all
+        foreach (['?source=same_tables&from_round=' . OfficialResultsFixture::ROUND_GROUP_A, '?source=same_tables&from_round=pairs'] as $query) {
+            $this->browser->request('GET', $pairsFinal . $query);
+
+            self::assertResponseStatusCodeSame(400, $query);
+            self::assertSame(['error' => 'invalid_seating_options'], $this->json());
+        }
+
+        // The first round of the event has nothing to take the tables from: no source, no `sameTables`
+        $this->browser->request('GET', self::URL);
+        self::assertArrayNotHasKey('sameTables', $this->json());
+    }
+
     public function testARoundOfAnEventTheOrganiserDoesNotRunIsForbidden(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);

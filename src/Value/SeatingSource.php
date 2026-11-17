@@ -21,11 +21,15 @@ enum SeatingSource: string
     // Alphabetically
     case Name = 'name';
 
+    // The tables the same people had in an earlier round of the same kind (`from_round`) - the rest after the highest
+    // (competition toolkit W3, "same table for every round")
+    case SameTables = 'same_tables';
+
     /**
-     * Earlier rounds and MySpeedPuzzling times order the entrants that have data and put the rest last.
+     * Earlier rounds, MySpeedPuzzling times and the same tables place the entrants that have data and put the rest last.
      */
     public function needsData(): bool
     {
-        return $this === self::EarlierRounds || $this === self::MspTimes;
+        return $this === self::EarlierRounds || $this === self::MspTimes || $this === self::SameTables;
     }
 }

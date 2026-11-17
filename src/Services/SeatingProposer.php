@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\SeatingSourceRoundNotAvailable;
 use SpeedPuzzling\Web\MessageHandler\RecordRoundResultsHandler;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
@@ -13,6 +14,7 @@ use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\SeatingProposal;
 use SpeedPuzzling\Web\Results\SeatingProposalRow;
+use SpeedPuzzling\Web\Results\SeatingSameTables;
 use SpeedPuzzling\Web\Value\SeatingSource;
 use SpeedPuzzling\Web\Value\TeamComposition;
 
@@ -26,7 +28,9 @@ use SpeedPuzzling\Web\Value\TeamComposition;
  *   person; a pair/team = exactly the same people), ordered by AdvancementSeeding - the order advancing uses
  * - MySpeedPuzzling times: GetSeatingSeedTimes for the round's piece count; a pair/team by the time of the puzzling
  *   team of exactly these people, else the mean of its members' times
- * - random: a seeded draw; by name.
+ * - random: a seeded draw; by name
+ * - same tables: the table the same person (the same people) had in an earlier round of the same kind; the rest after
+ *   the highest table (competition toolkit W3).
  * Nothing but the order (and how many had data) reaches the organiser - never anybody's time.
  */
 readonly final class SeatingProposer
@@ -43,6 +47,7 @@ readonly final class SeatingProposer
     /**
      * @param null|SeatingSource $source null = the best available (SeatingProposal::$defaultSource)
      * @throws CompetitionRoundNotFound
+     * @throws SeatingSourceRoundNotAvailable the from-round is not an earlier round of the same kind with tables
      */
     public function propose(
         string $competitionId,
@@ -52,6 +57,8 @@ readonly final class SeatingProposer
         int $randomSeed,
         int $firstTable,
         string $locale,
+        // "Same tables as round X": the round to take the tables from (null = the latest earlier round with tables)
+        null|string $fromRoundId = null,
     ): SeatingProposal {
         $rounds = $this->getRoundResultsOverview->forCompetition($competitionId);
         $target = null;
@@ -77,35 +84,75 @@ readonly final class SeatingProposer
         $roundPiecesCount = $this->getSeatingSeedTimes->roundPiecesCount($target->roundId);
         $piecesCount = $roundPiecesCount ?? GetSeatingSeedTimes::DEFAULT_PIECES_COUNT;
         $mspSeconds = $this->mspSeconds($entries, $piecesCount);
-
-        $defaultSource = self::defaultSource(count($entries), count($earlierSeeds), count($mspSeconds));
-        $source ??= $defaultSource;
         $compareNames = self::nameComparator($locale);
 
+        // "Same tables as round X": an earlier round of the same kind with table numbers (all of them are loaded above)
+        $sameTablesRounds = self::sameTablesRounds($rounds, $target);
+        $defaultFromRound = self::defaultSameTablesRound($sameTablesRounds, $rounds, $target);
+        $fromRound = $defaultFromRound;
+
+        if ($fromRoundId !== null) {
+            $fromRound = null;
+
+            foreach ($sameTablesRounds as $candidate) {
+                if ($candidate->roundId === strtolower($fromRoundId)) {
+                    $fromRound = $candidate;
+                }
+            }
+
+            if ($fromRound === null) {
+                throw new SeatingSourceRoundNotAvailable();
+            }
+        }
+
+        $sameTables = $fromRound === null ? null : self::sameTables($entries, $entriesByEarlierRound[$fromRound->roundId] ?? [], $firstTable, $compareNames);
+
+        $defaultSource = self::defaultSource(count($entries), count($earlierSeeds), count($mspSeconds));
+
+        if ($defaultFromRound !== null) {
+            $defaultSameTables = $defaultFromRound === $fromRound ? $sameTables : self::sameTables($entries, $entriesByEarlierRound[$defaultFromRound->roundId] ?? [], $firstTable, $compareNames);
+
+            if ($defaultSameTables !== null && self::sameTablesIsDefault(count($entries), count($defaultSameTables['matched']), $defaultSameTables['sourceSeated'])) {
+                $defaultSource = SeatingSource::SameTables;
+            }
+        }
+
+        $source ??= $defaultSource;
+
+        // Nothing to take the tables from - the best available instead
+        if ($source === SeatingSource::SameTables && $sameTables === null) {
+            $source = $defaultSource;
+        }
+
+        // Same tables: the numbers come with the plan, not from the order
+        $tables = $source === SeatingSource::SameTables ? ($sameTables['tables'] ?? []) : [];
         $ordered = match ($source) {
             SeatingSource::EarlierRounds => self::orderByKey($entries, array_map(static fn (array $seed): int => $seed['seed'], $earlierSeeds), $slowestFirst, $compareNames),
             SeatingSource::MspTimes => self::orderByKey($entries, $mspSeconds, $slowestFirst, $compareNames),
             SeatingSource::Random => self::orderRandomly($entries, $randomSeed),
             SeatingSource::Name => self::orderByKey($entries, [], false, $compareNames),
+            SeatingSource::SameTables => self::orderByKey($entries, $tables, false, $compareNames),
         };
 
         $rows = [];
         foreach ($ordered as $index => $entry) {
             $ref = $entry->ref->toString();
             $basis = $source === SeatingSource::EarlierRounds ? ($earlierSeeds[$ref] ?? null) : null;
+            $sameTableBasis = $source === SeatingSource::SameTables && isset($sameTables['matched'][$ref]) ? $fromRound : null;
 
             $rows[] = new SeatingProposalRow(
                 entryRef: $ref,
                 displayName: $entry->displayName(),
-                tableNumber: $firstTable + $index,
+                tableNumber: $tables[$ref] ?? $firstTable + $index,
                 currentTableNumber: $entry->tableNumber,
                 hasData: match ($source) {
                     SeatingSource::EarlierRounds => isset($earlierSeeds[$ref]),
                     SeatingSource::MspTimes => isset($mspSeconds[$ref]),
+                    SeatingSource::SameTables => isset($sameTables['matched'][$ref]),
                     SeatingSource::Random, SeatingSource::Name => true,
                 },
-                basisRoundId: $basis['roundId'] ?? null,
-                basisRoundName: $basis['roundName'] ?? null,
+                basisRoundId: $sameTableBasis->roundId ?? $basis['roundId'] ?? null,
+                basisRoundName: $sameTableBasis->name ?? $basis['roundName'] ?? null,
                 basisRank: $basis['rank'] ?? null,
             );
         }
@@ -119,6 +166,7 @@ readonly final class SeatingProposer
                 SeatingSource::MspTimes->value => count($mspSeconds),
                 SeatingSource::Random->value => count($entries),
                 SeatingSource::Name->value => count($entries),
+                SeatingSource::SameTables->value => count($sameTables['matched'] ?? []),
             ],
             slowestFirst: $slowestFirst,
             randomSeed: $source === SeatingSource::Random ? $randomSeed : null,
@@ -126,6 +174,12 @@ readonly final class SeatingProposer
             piecesCountAssumed: $roundPiecesCount === null,
             firstTable: $firstTable,
             rows: $rows,
+            sameTables: $fromRound === null ? null : new SeatingSameTables(
+                fromRoundId: $fromRound->roundId,
+                fromRoundName: $fromRound->name,
+                notMatched: count($entries) - count($sameTables['matched'] ?? []),
+                rounds: array_map(static fn (RoundResultsOverview $round): array => ['roundId' => $round->roundId, 'name' => $round->name], $sameTablesRounds),
+            ),
         );
     }
 
@@ -144,6 +198,130 @@ readonly final class SeatingProposer
         }
 
         return SeatingSource::Name;
+    }
+
+    /**
+     * "Same tables" is the best available when the round is the same field as the latest earlier round with tables:
+     * at least 90 % of the entrants had a table there, and at least 90 % of that round's seated entries are entrants
+     * here - a final of 20 from a semifinal of 100 is seeded by results, not by the semifinal's tables.
+     */
+    public static function sameTablesIsDefault(int $entries, int $matched, int $sourceSeated): bool
+    {
+        return $entries > 0
+            && $matched * 10 >= $entries * 9
+            && $matched * 10 >= $sourceSeated * 9;
+    }
+
+    /**
+     * The rounds "Same tables as round X" can take the tables from: the earlier rounds of the same kind (earlierRounds())
+     * that use table numbers and have at least one.
+     *
+     * @param list<RoundResultsOverview> $rounds
+     * @return list<RoundResultsOverview> in the event's order
+     */
+    public static function sameTablesRounds(array $rounds, RoundResultsOverview $target): array
+    {
+        return array_values(array_filter(
+            self::earlierRounds($rounds, $target),
+            static fn (RoundResultsOverview $round): bool => $round->tableNumbersOff === false && $round->entriesWithTableNumber > 0,
+        ));
+    }
+
+    /**
+     * The round "Same tables" takes the tables from when the organiser did not pick one: the latest of them listed
+     * before this round (rounds of a day often share one placeholder start), else the last of them.
+     *
+     * @param list<RoundResultsOverview> $candidates sameTablesRounds()
+     * @param list<RoundResultsOverview> $rounds every round of the event, in its order
+     */
+    public static function defaultSameTablesRound(array $candidates, array $rounds, RoundResultsOverview $target): null|RoundResultsOverview
+    {
+        $before = [];
+        foreach ($rounds as $round) {
+            if ($round->roundId === $target->roundId) {
+                break;
+            }
+
+            $before[$round->roundId] = true;
+        }
+
+        $latest = null;
+        foreach ($candidates as $candidate) {
+            if (isset($before[$candidate->roundId])) {
+                $latest = $candidate;
+            }
+        }
+
+        return $latest ?? ($candidates === [] ? null : $candidates[count($candidates) - 1]);
+    }
+
+    /**
+     * Each entrant's table taken from the source round: the same person - exactly the same people for a pair/team -
+     * keeps the table they had there. The others keep their current table when nobody matched took it, else - and
+     * when they have none - get the tables after the highest one, by name (from `firstTable` when nobody has one).
+     *
+     * @param list<RoundResultEntry> $entries the round's entrants
+     * @param list<RoundResultEntry> $sourceEntries every entry of the source round
+     * @param callable(RoundResultEntry, RoundResultEntry): int $compareNames
+     * @return array{tables: array<string, int>, matched: array<string, true>, sourceSeated: int} entrant ref => table;
+     *     matched = the entrants who keep their source table; sourceSeated = the source round's entries with a table
+     */
+    public static function sameTables(array $entries, array $sourceEntries, int $firstTable, callable $compareNames): array
+    {
+        $tableByPeople = [];
+        $sourceSeated = 0;
+
+        foreach ($sourceEntries as $sourceEntry) {
+            $key = self::peopleKey($sourceEntry);
+
+            if ($sourceEntry->tableNumber !== null) {
+                $sourceSeated++;
+
+                if ($key !== null) {
+                    $tableByPeople[$key] = $sourceEntry->tableNumber;
+                }
+            }
+        }
+
+        $tables = [];
+        $matched = [];
+        $used = [];
+        $rest = [];
+
+        foreach ($entries as $entry) {
+            $key = self::peopleKey($entry);
+            $table = $key === null ? null : ($tableByPeople[$key] ?? null);
+
+            if ($table !== null && !isset($used[$table])) {
+                $ref = $entry->ref->toString();
+                $tables[$ref] = $table;
+                $matched[$ref] = true;
+                $used[$table] = true;
+            } else {
+                $rest[] = $entry;
+            }
+        }
+
+        usort($rest, $compareNames);
+        $moved = [];
+
+        // The current table stays unless an entrant matched above took it (that one moves to the end)
+        foreach ($rest as $entry) {
+            if ($entry->tableNumber !== null && !isset($used[$entry->tableNumber])) {
+                $tables[$entry->ref->toString()] = $entry->tableNumber;
+                $used[$entry->tableNumber] = true;
+            } else {
+                $moved[] = $entry;
+            }
+        }
+
+        $next = $used === [] ? $firstTable : max(array_keys($used)) + 1;
+
+        foreach ($moved as $entry) {
+            $tables[$entry->ref->toString()] = $next++;
+        }
+
+        return ['tables' => $tables, 'matched' => $matched, 'sourceSeated' => $sourceSeated];
     }
 
     /**

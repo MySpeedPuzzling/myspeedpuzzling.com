@@ -140,6 +140,26 @@ final class RoundSeatingControllerTest extends WebTestCase
         }
     }
 
+    public function testSameTablesAndTheCopyToLaterRoundsAreOffered(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // The Pairs round has a later pairs round: the copy is offered (shown by the page once every entry has a table)
+        $crawler = $this->browser->request('GET', '/en/round-seating/' . OfficialResultsFixture::ROUND_PAIRS);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-round-seating-target="copyButton"]'));
+        self::assertStringContainsString('/copy-table-numbers', (string) $crawler->filter('[data-controller="round-seating"]')->attr('data-round-seating-copy-url-value'));
+        self::assertStringContainsString('/copy-table-numbers', (string) $crawler->filter('[data-round-seating-target="copyPanel"]')->attr('data-targets-url'));
+        // "Same tables as" waits for the proposal to name rounds to take them from
+        self::assertCount(1, $crawler->filter('[data-round-seating-target="sameTablesOption"][hidden] input[value="same_tables"]'));
+
+        // The Pairs Final is the last pairs round - nothing later to copy to
+        $crawler = $this->browser->request('GET', '/en/round-seating/' . OfficialResultsFixture::ROUND_PAIRS_FINAL . '?propose=same_tables');
+        self::assertCount(0, $crawler->filter('[data-round-seating-target="copyButton"]'));
+        self::assertSame('', $crawler->filter('[data-controller="round-seating"]')->attr('data-round-seating-copy-url-value'));
+        self::assertSame('same_tables', $crawler->filter('[data-controller="round-seating"]')->attr('data-round-seating-propose-value'));
+    }
+
     public function testUnknownRoundsAreNotFound(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);

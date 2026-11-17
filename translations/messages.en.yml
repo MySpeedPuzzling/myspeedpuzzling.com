@@ -13981,3 +13981,24 @@ competition_toolkit:
         judges:
             title: "Judges"
             help: "Judges enter results on their phones in the live entry. Add them on the referees page."
+competitor_page:
+    settings:
+        in_person_only: "Competitor pages and QR codes are for events in person."
+        qr_mode:
+            label: "QR codes"
+            none: "Name tags as before"
+            none_help: "One QR code per person on their name tag. Judges scan it to enter results."
+            entrant: "One code per competitor"
+            entrant_help: "A competitor, pair or team keeps the same code for the whole competition."
+            table: "One code per table"
+            table_help: "The code stays on the table and always shows whoever sits there in the current round."
+            round_entry: "One code per competitor per round"
+            round_entry_help: "A new code for each round, for one competitor, pair or team at their table."
+        pages: "Public competitor pages"
+        pages_help: "Scanning a code opens the competitor's page with their rounds and results. Organisers and judges still get the live entry."
+        live_results: "Show confirmed results before publishing"
+        live_results_help: "Competitor pages show a result as soon as a judge confirms it, marked as not official yet. Ranks wait until you publish the round."
+        time_proposals: "Let competitors propose their time"
+        time_proposals_help: "A competitor signed in on their own page can tap Stop when they finish. A judge confirms the time. Needs public competitor pages."
+        save: "Save"
+        saved: "Competitor page settings saved."

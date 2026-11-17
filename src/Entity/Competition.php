@@ -23,7 +23,9 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
+use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\EventTypes;
+use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
@@ -56,6 +58,26 @@ class Competition implements EntityWithEvents
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $registrationTimezone = null;
+
+    /**
+     * Competitor pages & QR (docs/features/competitions-management/toolkit/B-qr-competitor-page.md §2) - the defaults
+     * are the behaviour before the toolkit; changeCompetitorPageSettings() / competitorPageSettings().
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $competitorPages = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(name: 'competitor_pages_live_results', options: ['default' => false])]
+    public bool $competitorPagesLiveResults = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $timeProposals = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 16, nullable: true, enumType: QrTagMode::class)]
+    public null|QrTagMode $qrTagMode = null;
 
     /**
      * @param Collection<int, Player> $maintainers
@@ -371,6 +393,24 @@ class Competition implements EntityWithEvents
         $this->registrationTimezone = $timezone;
         $this->entryFeeText = $entryFeeText;
         $this->paymentInstructions = $paymentInstructions;
+    }
+
+    public function changeCompetitorPageSettings(CompetitorPageSettings $settings): void
+    {
+        $this->competitorPages = $settings->competitorPages;
+        $this->competitorPagesLiveResults = $settings->liveResultsBeforePublishing;
+        $this->timeProposals = $settings->timeProposals;
+        $this->qrTagMode = $settings->qrTagMode;
+    }
+
+    public function competitorPageSettings(): CompetitorPageSettings
+    {
+        return new CompetitorPageSettings(
+            competitorPages: $this->competitorPages,
+            liveResultsBeforePublishing: $this->competitorPagesLiveResults,
+            timeProposals: $this->timeProposals,
+            qrTagMode: $this->qrTagMode,
+        );
     }
 
     /**

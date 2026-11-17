@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -20,6 +22,8 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
         private CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private SecretPuzzleHides $secretPuzzleHides,
         private SecretRevealPreview $secretRevealPreview,
+        private RoundStopwatchReveal $roundStopwatchReveal,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -47,6 +51,12 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
             if (SecretRevealPreview::refuses($revealed, false, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
             }
+        }
+
+        // A countdown with "Reveal the puzzles" still ahead never reveals this puzzle at its moment once it left the
+        // round: taken back while the row exists (RoundStopwatchReveal) - the round's other rows keep theirs
+        if ($roundPuzzle->hideUntilRoundStarts) {
+            $this->roundStopwatchReveal->withdrawBeforeRemoving([$roundPuzzle], $this->clock->now());
         }
 
         $roundPuzzle->recordRemoval();

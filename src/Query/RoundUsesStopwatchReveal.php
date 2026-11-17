@@ -6,12 +6,11 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
- * Whether a round has a secret puzzle revealed at its stopwatch start (RoundPuzzleReveal::Stopwatch) - the cheap check
- * before a stopwatch action takes the reveal's locks (RoundStopwatchReveal): a round without one keeps today's
- * statements and locks.
+ * Whether a stopwatch action on a round takes the reveal's locks (RoundStopwatchReveal::lockIfNeeded()): the round has a
+ * secret puzzle - any reveal mode, since this runs before the lock and a secret row may turn to RoundPuzzleReveal::
+ * Stopwatch meanwhile. A round without one keeps today's statements and locks.
  */
 readonly final class RoundUsesStopwatchReveal
 {
@@ -27,8 +26,8 @@ readonly final class RoundUsesStopwatchReveal
         }
 
         $exists = $this->database->fetchOne(
-            'SELECT 1 FROM competition_round_puzzle WHERE round_id = :roundId AND reveal_mode = :mode AND hide_until_round_starts LIMIT 1',
-            ['roundId' => $roundId, 'mode' => RoundPuzzleReveal::Stopwatch->value],
+            'SELECT 1 FROM competition_round_puzzle WHERE round_id = :roundId AND hide_until_round_starts LIMIT 1',
+            ['roundId' => $roundId],
         );
 
         return $exists !== false;

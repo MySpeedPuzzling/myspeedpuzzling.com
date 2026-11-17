@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
@@ -12,6 +13,7 @@ use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -25,6 +27,8 @@ readonly final class DeleteCompetitionRoundHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private SecretRevealPreview $secretRevealPreview,
         private OfficialResultsGuard $officialResultsGuard,
+        private RoundStopwatchReveal $roundStopwatchReveal,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -79,6 +83,15 @@ readonly final class DeleteCompetitionRoundHandler
             if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
             }
+        }
+
+        // A countdown with "Reveal the puzzles" still ahead never reveals at its moment once the round is gone: taken back
+        // while its rows exist - without them the puzzles' dates stay as they are (RoundStopwatchReveal)
+        if ($secretPuzzleIds !== []) {
+            $this->roundStopwatchReveal->withdrawBeforeRemoving(
+                $this->competitionRoundRepository->get($message->roundId)->roundPuzzles,
+                $this->clock->now(),
+            );
         }
 
         $this->database->executeStatement(

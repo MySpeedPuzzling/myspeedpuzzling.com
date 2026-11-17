@@ -39,9 +39,10 @@ readonly final class ScheduleRoundStartHandler
      */
     public function __invoke(ScheduleRoundStart $message): void
     {
-        $now = $this->clock->now();
         // First - it clears the entity manager when it locks
         $withReveal = $this->roundStopwatchReveal->lockIfNeeded($message->roundId, $message->revealPuzzles);
+        // After the lock - a wait for it never leaves the action at a moment already past
+        $now = $this->clock->now();
         $round = $this->competitionRoundRepository->get($message->roundId);
 
         // Every check before anything changes

@@ -30,7 +30,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  * Call resync() after anything that may move a reveal: adding a puzzle to a round, a reveal change, "Reveal now",
  * a round's start or its reveal delay (CompetitionRound::changeRevealDelay()), removing the puzzle from a round,
  * deleting a round or an event, a merge. With no such row left the dates stay as they are - a puzzle is never revealed
- * by accident.
+ * by accident. So a reveal still ahead on a row going away (a countdown with the stopwatch tick) is taken back before
+ * the removal, while the row exists (RoundStopwatchReveal::withdrawBeforeRemoving()).
  *
  * Works on the unit of work as it is now (rows added or removed in this handler count), since a handler only flushes
  * at its end (doctrine_transaction).

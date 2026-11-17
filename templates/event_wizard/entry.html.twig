@@ -16,7 +16,7 @@
                 <h1 class="h3 mb-3">{{ 'event_wizard.entry.question'|trans }}</h1>
 
                 {#- A GET form: the answer comes back as ?kind= and is sent on (EventWizardEntryController) -#}
-                <form method="get" action="{{ path('event_wizard') }}" data-event-wizard-entry>
+                <form method="get" action="{{ path('event_wizard') }}" data-event-wizard-entry data-controller="organizer-form" data-action="change->organizer-form#update">
                     <div class="d-grid gap-2 mb-3">
                         {% for choice in choices %}
                             <label class="card card-body flex-row align-items-start gap-3 py-3" for="event-wizard-kind-{{ choice.value }}" style="cursor: pointer;">
@@ -26,6 +26,21 @@
                                     <span class="d-block small text-muted">{{ ('event_wizard.entry.' ~ choice.value ~ '_help')|trans }}</span>
                                 </span>
                             </label>
+                            {#- Several rounds: the follow-up question (W5) - its answer picks the Structure step's template -#}
+                            {% if choice.value == 'several_rounds' %}
+                                <fieldset class="ms-4 mb-1" data-organizer-form-target="part" data-show-field="kind" data-show-values="several_rounds" data-event-wizard-structure-question>
+                                    <legend class="form-label fs-sm mb-1">{{ 'event_wizard.entry.qualify_question'|trans }}</legend>
+                                    {% for template in structure_templates %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="structure" value="{{ template.value }}" id="event-wizard-structure-{{ template.value }}"{% if loop.first %} checked{% endif %}>
+                                            <label class="form-check-label" for="event-wizard-structure-{{ template.value }}">
+                                                {{ ('event_wizard.entry.qualify_' ~ template.value)|trans }}
+                                                <span class="d-block small text-muted">{{ ('event_wizard.entry.qualify_' ~ template.value ~ '_help')|trans }}</span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </fieldset>
+                            {% endif %}
                         {% endfor %}
                     </div>
 

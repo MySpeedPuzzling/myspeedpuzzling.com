@@ -322,6 +322,26 @@ Template "Every round counts" (S4):
 - Same-puzzle groups (pain 9): if the organiser says "all groups solve the same puzzle", the wizard proposes *one round
   with seating groups* instead, or explains the rule - to be validated with organisers (Q3).
 
+**As built (W5, 2026-11-17):**
+- Path: a draft without any round (not an edition) is on the several-rounds path (`EventWizardPath::of()`) - the
+  one-round path creates its round with the draft, so a several-rounds draft between Basics and Structure (or "Not sure
+  yet") resumes at Structure without anything stored; a classic-form draft without rounds resumes there too. Structure
+  never saves exactly one round (that is the one-round path).
+- Basics creates no round on this path; its start time goes to Structure as `?start=` (the first round's start). Once
+  the rounds exist, Basics hides the start time and a new date moves the rounds along (`EditCompetition
+  moveRoundsWithDate`, only while none has begun or holds a secret puzzle).
+- Structure = two forms: the template ("Create the rounds" - writes at once, then the schedule table; behind "Start
+  again from a template" later, which deletes every round and the standings left without them) and the schedule table
+  (name, day, time, who competes, minutes, remove, spare rows) - both one transaction (`SetUpEventWizardStructure`).
+  Read-only once a round has an entry, a linked result or a stopwatch run (`GetEventWizardStructureLock`).
+- **Schedule rule**: rounds spread evenly over the event's days - ceil(rounds / days) a day in order, each day's first
+  at the start time, then every N minutes (default 120). Names: first stage lettered ("Group A"), later stages numbered
+  ("Semifinal 1"), one-round stages keep the stage name; "Solo 1", "Pairs 1", "Teams 1" interleaved or by category.
+- Toolkit (W7, `COMPETITION_TOOLKIT_MANAGE`): a stage's "top N of each round go on" → `CreateCompetitionAdvancementStep`
+  (`single` for one target round, `balanced` for several, per-round count; mixed categories refused on the field);
+  "add up the times per category" → `StandingsPerCategory` (the standings page's "One per category" preset, shared),
+  unpublished. Without the toolkit neither field exists.
+
 ### 3.6 Step "Puzzles" (several rounds)
 
 One row per round, puzzle picker inline, "Decide later" per row, one switch on top: *Keep every puzzle secret until
@@ -336,6 +356,16 @@ puzzle" and the K field in the row.
 ```
 
 Writes as in 3.4, per round.
+
+**As built (W5):** one form for the grid (`SetUpEventWizardPuzzles` = W1's `SetUpEventWizardRound` per changed row, one
+transaction); per row W1's picker (brand + puzzle autocomplete, the brands handed to every picker once by
+`event_wizard_puzzles_controller.js`), a new puzzle by name + pieces (its photo/codes on the round's own puzzle form),
+"+ another puzzle" (up to 4 pickers per submit through `<template>`s; without JavaScript, or after the fourth, it saves
+and comes back to the row), "each competitor solves K" (toolkit or a round already `pick`; empty = all), "Change for
+this round" (as above / not secret / a reveal). Checked up front as row errors (422, nothing written): the same puzzle
+twice in one category (chosen twice or already in a round), the automatic reveal shown (`automatic_reveal_at[<round>]`)
+vs the round's now, K above the round's puzzles; another organiser's secret puzzle refused (`SecretPuzzleAccess`).
+Done when every round has a puzzle.
 
 ### 3.7 Steps "Dates" + "Each date's round" (series)
 

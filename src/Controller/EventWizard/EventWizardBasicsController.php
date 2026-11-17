@@ -41,6 +41,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardPath;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
+use SpeedPuzzling\Web\Value\EventWizard\EventWizardStructureTemplate;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -66,6 +67,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - A draft again (`event_wizard_basics_edit`): EditCompetition, and the single round's start follows the date and the
  *   time (SaveEventWizardBasics) - a draft without a round gets it now. Only for a draft on a path with wizard steps -
  *   a published event (or an edition, or several rounds until W3/W5) goes to its edit page.
+ *
+ * - Several rounds (W5, saveSeveralRounds()): the draft only - no round; the start time goes on to the Structure step.
  *
  * A full-page form: a saved step answers 303 (to the next step, or the draft's page for "Finish later"), a refused one
  * 422.
@@ -136,8 +139,14 @@ final class EventWizardBasicsController extends AbstractController
             $formData->locationCountryCode = CountryCode::fromCode($organizationCountry)->name ?? CountryCode::fromCode($player->country)?->name;
         }
 
+        // Several rounds (W5): no round is created here - the start time is the first round's start the Structure step
+        // schedules from; once the rounds exist their times are the Structure step's, and a new date moves them along
+        $severalRounds = $progress->path === EventWizardPath::SeveralRounds;
+        $hasRounds = ($progress->state->roundsCount ?? 0) > 0;
+
         $form = $this->createForm(EventWizardBasicsFormType::class, $formData, [
             'action' => $request->getRequestUri(),
+            'start_time' => $severalRounds === false || $hasRounds === false,
         ]);
 
         // A new event's id travels with the page (kept on a refused submit): a second submit of it creates nothing twice
@@ -154,6 +163,10 @@ final class EventWizardBasicsController extends AbstractController
         $restoredPhotos = $this->formPhotoStash->restore($request, $form, $player->playerId);
         $form->handleRequest($request);
         $this->formPhotoStash->reportLost($form, $restoredPhotos);
+
+        if ($form->isSubmitted() && $form->isValid() && $severalRounds) {
+            return $this->saveSeveralRounds($request, $form, $progress, $competition, $player->playerId, $restoredPhotos, $organizationName);
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -249,6 +262,82 @@ final class EventWizardBasicsController extends AbstractController
     }
 
     /**
+     * Several rounds (W5): the draft alone (AddCompetition) - its rounds come from the Structure step, which gets the
+     * typed start time as `start` (the first round's start; nothing stores it until the rounds exist). Saved again, the
+     * event's details change and, once it has rounds, a new first day moves them along (EditCompetition
+     * `moveRoundsWithDate` - only while none has begun, EventDateShift).
+     *
+     * @param FormInterface<CompetitionFormData> $form
+     * @param array<string, null|string> $restoredPhotos
+     */
+    private function saveSeveralRounds(Request $request, FormInterface $form, EventWizardProgress $progress, null|Competition $competition, string $playerId, array $restoredPhotos, null|string $organizationName): Response
+    {
+        $data = $form->getData();
+        $start = null;
+
+        if ($form->has('startTime')) {
+            $typedStartTime = $form->get('startTime')->getData();
+            $start = is_string($typedStartTime) ? EventWizardBasicsFormType::startTime($typedStartTime) : null;
+        }
+
+        try {
+            if ($competition === null) {
+                // The page's own id (W1F): the same page sent again finds the draft its first submit created
+                $draftId = $form->get('draftId')->getData();
+                $competitionId = is_string($draftId) && Uuid::isValid($draftId) ? strtolower($draftId) : Uuid::uuid7()->toString();
+                $existing = $this->existingDraft($competitionId, $playerId);
+
+                if ($existing === false) {
+                    $competitionId = Uuid::uuid7()->toString();
+                }
+
+                if ($existing !== true) {
+                    $this->messageBus->dispatch($this->addCompetition($competitionId, $playerId, $data));
+                }
+            } else {
+                $competitionId = $competition->id->toString();
+                $this->messageBus->dispatch(new SaveEventWizardBasics(
+                    competitionId: $competitionId,
+                    competition: $this->editCompetition($competition, $data, moveRoundsWithDate: ($progress->state->roundsCount ?? 0) > 0),
+                ));
+            }
+        } catch (HandlerFailedException | SecretPuzzlesWouldBeRevealed | OnlineTimingInUse | OrganizationNotManaged $failure) {
+            // Two submits of the same new page at once: the second one's insert met the first one's draft
+            if ($competition === null && EventWizardRefusal::find($failure, UniqueConstraintViolationException::class) !== null && $this->existingDraft($competitionId, $playerId) === true) {
+                return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
+                    'competitionId' => $competitionId,
+                    'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
+                    'start' => $start,
+                ]), Response::HTTP_SEE_OTHER);
+            }
+
+            if ($this->explain($failure, $form) === false) {
+                throw $failure;
+            }
+
+            return $this->page($form, $progress, $restoredPhotos, $playerId, $organizationName, $competition?->logo);
+        }
+
+        $this->formPhotoStash->forget($restoredPhotos, $playerId);
+
+        if (self::clicked($form, 'later')) {
+            $this->addFlash('success', $this->translator->trans('event_wizard.flash.saved_for_later'));
+
+            return $this->redirect($this->competitionDetailUrl->of($competitionId), Response::HTTP_SEE_OTHER);
+        }
+
+        if (($progress->state->roundsCount ?? 0) > 0) {
+            return $this->redirectToRoute(EventWizardStep::Structure->route(), ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
+            'competitionId' => $competitionId,
+            'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
+            'start' => $start,
+        ]), Response::HTTP_SEE_OTHER);
+    }
+
+    /**
      * @param FormInterface<CompetitionFormData> $form
      * @param array<string, null|string> $restoredPhotos
      */
@@ -291,7 +380,7 @@ final class EventWizardBasicsController extends AbstractController
         );
     }
 
-    private function editCompetition(Competition $competition, CompetitionFormData $data): EditCompetition
+    private function editCompetition(Competition $competition, CompetitionFormData $data, bool $moveRoundsWithDate = false): EditCompetition
     {
         return new EditCompetition(
             competitionId: $competition->id->toString(),
@@ -311,6 +400,7 @@ final class EventWizardBasicsController extends AbstractController
             maintainerIds: $data->maintainers,
             eligibility: $data->eligibility,
             eventTypes: EventTypes::of($data->eventTypes),
+            moveRoundsWithDate: $moveRoundsWithDate,
         );
     }
 

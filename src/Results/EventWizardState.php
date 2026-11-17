@@ -24,6 +24,8 @@ readonly final class EventWizardState
         // One of the Extras step's features is on: registration here or elsewhere, a judge, competitor pages or QR tags,
         // a display (EventWizardSteps: the step is done)
         public bool $extrasOn = false,
+        // Its rounds without any puzzle yet (several rounds: the Puzzles step is done when none is left)
+        public int $roundsWithoutPuzzle = 0,
     ) {
     }
 }

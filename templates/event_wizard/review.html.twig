@@ -80,6 +80,9 @@
         </div>
     {% endif %}
 
+    {% if progress.path.value == 'several_rounds' %}
+        {{ include('event_wizard/_review_rounds.html.twig') }}
+    {% endif %}
     {% if extras is not null %}
         {{ include('event_wizard/_review_extras.html.twig', {extras: extras, progress: progress}, with_context = false) }}
     {% endif %}

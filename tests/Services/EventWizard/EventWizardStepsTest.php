@@ -37,18 +37,34 @@ final class EventWizardStepsTest extends TestCase
         self::assertTrue($withExtras->isDone(EventWizardStep::Extras));
         self::assertSame(EventWizardStep::Review, $withExtras->firstNotDone());
 
-        // A draft from the classic form without a round: the round step is not done (Basics creates the round)
-        self::assertSame(EventWizardStep::Puzzle, $steps->of(self::state(roundsCount: 0, puzzles: 0))->firstNotDone());
     }
 
-    public function testPathsWithoutStepsYetHaveNone(): void
+    /**
+     * Several rounds (W5): a draft without any round is on this path too (the one-round path creates its round with
+     * the draft) - between Basics and Structure, or "not sure yet"; Structure is done with two rounds or more, Puzzles
+     * once no round is left without a puzzle.
+     */
+    public function testTheSeveralRoundsPathResumesAtTheFirstStepNotDone(): void
     {
         $steps = new EventWizardSteps();
 
-        $several = $steps->of(self::state(roundsCount: 2, puzzles: 2));
-        self::assertSame(EventWizardPath::SeveralRounds, $several->path);
-        self::assertSame([], $several->steps);
-        self::assertNull($several->firstNotDone());
+        $noRounds = $steps->of(self::state(roundsCount: 0, puzzles: 0));
+        self::assertSame(EventWizardPath::SeveralRounds, $noRounds->path);
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Review], $noRounds->steps);
+        self::assertSame(EventWizardStep::Structure, $noRounds->firstNotDone());
+
+        $withoutPuzzles = $steps->of(self::state(roundsCount: 3, puzzles: 1, roundsWithoutPuzzle: 2));
+        self::assertTrue($withoutPuzzles->isDone(EventWizardStep::Structure));
+        self::assertSame(EventWizardStep::Puzzles, $withoutPuzzles->firstNotDone());
+        self::assertSame(EventWizardStep::Review, $withoutPuzzles->next(EventWizardStep::Puzzles));
+
+        self::assertSame(EventWizardStep::Review, $steps->of(self::state(roundsCount: 3, puzzles: 3))->firstNotDone());
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::SeveralRounds)->steps);
+    }
+
+    public function testTheSeriesPathHasNoStepsYet(): void
+    {
+        $steps = new EventWizardSteps();
 
         $edition = $steps->of(self::state(roundsCount: 1, puzzles: 0, isEdition: true));
         self::assertSame(EventWizardPath::Series, $edition->path);
@@ -57,7 +73,7 @@ final class EventWizardStepsTest extends TestCase
         self::assertSame([EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Extras, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::OneRound)->steps);
     }
 
-    private static function state(int $roundsCount, int $puzzles, bool $isEdition = false, bool $extrasOn = false): EventWizardState
+    private static function state(int $roundsCount, int $puzzles, bool $isEdition = false, bool $extrasOn = false, int $roundsWithoutPuzzle = 0): EventWizardState
     {
         return new EventWizardState(
             competitionId: '018d0042-0000-0000-0000-000000000099',
@@ -67,6 +83,7 @@ final class EventWizardStepsTest extends TestCase
             singleRoundId: $roundsCount === 1 ? '018d0042-0000-0000-0000-000000000098' : null,
             roundPuzzlesCount: $puzzles,
             extrasOn: $extrasOn,
+            roundsWithoutPuzzle: $roundsWithoutPuzzle,
         );
     }
 }

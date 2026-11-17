@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Controller\EventWizard;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\PublishCompetition;
+use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetRoundPuzzlesForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -17,6 +19,7 @@ use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardExtras;
+use SpeedPuzzling\Web\Value\EventWizard\EventWizardPath;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,7 +34,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The event creation wizard's "Review" (W-creation-wizard-research.md §3.9): every value of the draft, the inferred ones
  * included (the round's name, zone, time limit, the secret puzzle's reveal), each with an "edit" link back to its step;
  * whether it is public at once (under an approved organization - OrganizationApprovalPolicy approved it on creation)
- * or after an admin's check; then **Publish** (PublishCompetition - the admins' e-mail on the first publish, never for
+ * or after an admin's check (several rounds, W5: every round's start, who competes, puzzles with their secret and reveal,
+ * and the toolkit's advancement steps and standings); then **Publish** (PublishCompetition - the admins' e-mail on the first publish, never for
  * an admin) → the event's edit page, or **Keep as draft** → the draft's page, as the classic form does.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
@@ -48,6 +52,8 @@ final class EventWizardReviewController extends AbstractController
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly EventWizardDefaults $defaults,
         private readonly EventWizardExtras $extras,
+        private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
+        private readonly GetCompetitionStandings $getCompetitionStandings,
     ) {
     }
 
@@ -98,6 +104,16 @@ final class EventWizardReviewController extends AbstractController
         $roundId = $progress->state?->singleRoundId;
         $round = $roundId !== null ? $this->competitionRoundRepository->get($roundId) : null;
 
+        // Several rounds (W5): every round with its start, who competes, puzzles (secret + reveal) and the toolkit's
+        // advancement steps and standings the Structure step set up (never published by the wizard)
+        $severalRounds = $progress->path === EventWizardPath::SeveralRounds;
+        $rounds = $severalRounds ? $this->competitionRoundRepository->ofCompetition($competition) : [];
+        $roundsPuzzles = [];
+        foreach ($rounds as $severalRound) {
+            $roundsPuzzles[$severalRound->id->toString()] = $this->getRoundPuzzlesForManagement->ofRound($severalRound->id->toString());
+        }
+        $toolkit = $severalRounds && $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId);
+
         return $this->render('event_wizard/review.html.twig', [
             'progress' => $progress,
             'step' => EventWizardStep::Review,
@@ -109,6 +125,10 @@ final class EventWizardReviewController extends AbstractController
             'extras' => $progress->has(EventWizardStep::Extras)
                 ? $this->extras->of($competitionId, $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId))
                 : null,
+            'rounds' => $rounds,
+            'rounds_puzzles' => $roundsPuzzles,
+            'advancement_steps' => $toolkit ? $this->getCompetitionAdvancementSteps->ofCompetition($competitionId) : [],
+            'standings' => $toolkit ? $this->getCompetitionStandings->ofCompetition($competitionId) : [],
             'approved_at_once' => $competition->isApproved() && $competition->isRejected() === false,
             'error' => $error,
         ], new Response(status: $error !== null ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));

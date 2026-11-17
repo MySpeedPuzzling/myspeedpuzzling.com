@@ -1,0 +1,225 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.structure'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.structure.title'|trans }}{% endblock %}
+
+{% macro category_label(category) -%}
+    {{- (category.value == 'solo' ? 'competition.round.category.solo' : (category.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans -}}
+{%- endmacro %}
+
+{% block wizard_content %}
+    {% if locked %}
+        {#- Entries or results exist: nothing changes here any more - the rounds' own pages do it -#}
+        <div class="alert alert-info d-flex align-items-start" data-event-wizard-structure-locked>
+            <i class="ci-locked me-2 mt-1"></i>
+            <span>{{ 'event_wizard.structure.locked'|trans }}</span>
+        </div>
+        <ul class="list-group mb-3">
+            {% for round in rounds %}
+                <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span>
+                        <span class="fw-semibold">{{ round.name }}</span>
+                        <span class="small text-muted d-block">{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }} · {{ _self.category_label(round.category) }}{% if round.minutesLimit is not null %} · {{ 'event_wizard.structure.minutes'|trans({'%count%': round.minutesLimit}) }}{% endif %}</span>
+                    </span>
+                    <a class="small" href="{{ path('edit_competition_round', {roundId: round.id}) }}">{{ 'event_wizard.edit'|trans }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" href="{{ path(progress.next(step).route, {competitionId: competition_id}) }}">{{ 'event_wizard.continue'|trans }} <i class="ci-arrow-right ms-1"></i></a>
+            <a class="btn btn-outline-secondary" href="{{ path('manage_competition_rounds', {competitionId: competition_id}) }}">{{ 'event_wizard.structure.rounds_page'|trans }}</a>
+        </div>
+    {% else %}
+        {% if rounds is not empty or not template_open %}
+            {{ block('schedule_section') }}
+            <details class="mt-4 border rounded p-3"{% if template_form.vars.submitted and not template_form.vars.valid %} open{% endif %} data-event-wizard-template-again>
+                <summary class="fw-semibold">{{ (rounds is empty ? 'event_wizard.structure.use_template' : 'event_wizard.structure.start_again')|trans }}</summary>
+                {% if rounds is not empty %}<p class="small text-muted mt-2 mb-0">{{ 'event_wizard.structure.start_again_help'|trans }}</p>{% endif %}
+                <div class="mt-3">{{ block('template_section') }}</div>
+            </details>
+        {% else %}
+            {{ block('template_section') }}
+            <details class="mt-4 border rounded p-3" data-event-wizard-one-by-one>
+                <summary class="fw-semibold">{{ 'event_wizard.structure.one_by_one'|trans }}</summary>
+                <div class="mt-3">{{ block('schedule_section') }}</div>
+            </details>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block template_section %}
+    {%- set form = template_form -%}
+    <div class="card shadow-sm" data-event-wizard-template>
+        <div class="card-body">
+            {{ form_start(form) }}
+            <div data-controller="organizer-form" data-action="change->organizer-form#update">
+                {{ form_errors(form) }}
+                <div class="mb-3">
+                    <div class="form-label">{{ 'event_wizard.structure.how_played'|trans }}</div>
+                    {% for child in form.template %}
+                        <div class="form-check">
+                            {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                            {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {#- Qualification: one card per stage, spare stages behind "+ add a stage" -#}
+                <div data-organizer-form-target="part" data-show-field="template" data-show-values="qualification" data-event-wizard-stages>
+                    {{ form_errors(form.stages) }}
+                    <div data-controller="event-wizard-rows">
+                        {% for stage in form.stages %}
+                            {%- set used = stage.vars.value.used -%}
+                            <div class="border rounded p-3 mb-2" data-event-wizard-rows-target="spare"{% if not used %} data-empty{% endif %} data-event-wizard-stage>
+                                <div data-controller="organizer-form" data-action="change->organizer-form#update">
+                                    <div class="small text-muted mb-2">{{ 'event_wizard.structure.stage'|trans({'%number%': loop.index}) }}</div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-sm-5">{{ form_row(stage.name) }}</div>
+                                        <div class="col-6 col-sm-3">{{ form_row(stage.roundsCount) }}</div>
+                                        <div class="col-6 col-sm-4">{{ form_row(stage.category) }}</div>
+                                        <div class="col-6 col-sm-4" data-organizer-form-target="part" data-show-field="category" data-show-values="team">{{ form_row(stage.teamSize) }}</div>
+                                        <div class="col-6 col-sm-4">{{ form_row(stage.minutesLimit) }}</div>
+                                        {% if stage.advance is defined %}
+                                            {#- Toolkit (W7): an advancement step to the next stage -#}
+                                            <div class="col-12 col-sm-4" data-event-wizard-advance>{{ form_row(stage.advance, {help: 'event_wizard.structure.advance_help'}) }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" hidden data-event-wizard-rows-target="add" data-action="event-wizard-rows#add"><i class="ci-plus me-1"></i>{{ 'event_wizard.structure.add_stage'|trans }}</button>
+                    </div>
+                    {% if not toolkit %}<p class="small text-muted">{{ 'event_wizard.structure.qualify_manually'|trans }}</p>{% endif %}
+                </div>
+
+                {#- Every round counts: how many rounds of each category -#}
+                <div data-organizer-form-target="part" data-show-field="template" data-show-values="every_round_counts" data-event-wizard-categories>
+                    {% for category in ['solo', 'pairs', 'teams'] %}
+                        <div class="row g-2 align-items-end mb-2">
+                            <div class="col-6 col-sm-4">{{ form_row(attribute(form, category ~ 'Rounds')) }}</div>
+                            <div class="col-6 col-sm-4">{{ form_row(attribute(form, category ~ 'Minutes')) }}</div>
+                            {% if category == 'teams' %}<div class="col-6 col-sm-4">{{ form_row(form.teamSize) }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    {% if form.sumPerCategory is defined %}
+                        <div data-event-wizard-sum>{{ form_row(form.sumPerCategory) }}</div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <div class="form-label">{{ 'event_wizard.structure.order'|trans }}</div>
+                        {% for child in form.interleaved %}
+                            <div class="form-check">
+                                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div data-organizer-form-target="part" data-show-field="template" data-show-values="qualification every_round_counts">
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-4 mb-2">
+                            {{ form_label(form.startTime) }}
+                            {{ form_widget(form.startTime, {type: 'time'}) }}
+                            {{ form_errors(form.startTime) }}
+                        </div>
+                        <div class="col-6 col-sm-4 mb-2">{{ form_row(form.everyMinutes) }}</div>
+                    </div>
+                    <p class="form-text mt-0">{{ 'event_wizard.structure.schedule_rule'|trans }}</p>
+                </div>
+                <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="empty">{{ 'event_wizard.structure.empty_help'|trans }}</p>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                    {{ form_widget(form.build, {attr: {class: rounds is empty ? 'btn btn-primary' : 'btn btn-outline-danger', 'data-event-wizard-build': ''}}) }}
+                    {% if rounds is empty %}<a href="{{ path('event_wizard_basics_edit', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>{% endif %}
+                </div>
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}
+
+{% block schedule_section %}
+    {%- set form = schedule_form -%}
+    <div class="card shadow-sm" id="schedule" data-event-wizard-schedule>
+        <div class="card-body">
+            {% if advancement_steps is not empty or standings is not empty %}
+                {#- Toolkit (W7): what the template set up - changed on the toolkit's pages, never published here -#}
+                <div class="small border rounded p-2 mb-3" data-event-wizard-toolkit-summary>
+                    {% for advancement_step in advancement_steps %}
+                        <div><i class="ci-arrow-right me-1"></i>{{ advancement_step.name ?? '' }}: {{ 'event_wizard.structure.advance_summary'|trans({'%count%': advancement_step.settings.qualifyCount ?? 0}) }}</div>
+                    {% endfor %}
+                    {% for standing in standings %}
+                        <div><i class="ci-list me-1"></i>{{ standing.name }} <span class="text-muted">· {{ 'event_wizard.structure.standing_unpublished'|trans }}</span></div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {{ form_start(form) }}
+            {{ form_errors(form) }}
+            <div class="d-none d-md-flex row g-2 small text-muted mb-1">
+                <div class="col-md-3">{{ 'event_wizard.structure.round_name'|trans }}</div>
+                <div class="col-md-4">{{ 'event_wizard.structure.start'|trans }}</div>
+                <div class="col-md-3">{{ 'event_wizard.puzzle.who_competes'|trans }}</div>
+                <div class="col-md-2">{{ 'event_wizard.structure.minutes_short'|trans }}</div>
+            </div>
+            <div data-controller="event-wizard-rows">
+                {% for key, row in form.rows %}
+                    {%- set is_new = key starts with 'new' -%}
+                    <div class="border-bottom py-2"
+                         {% if is_new %}data-event-wizard-rows-target="spare"{% if row.vars.value.name is empty %} data-empty{% endif %}{% endif %}
+                         data-event-wizard-schedule-row="{{ is_new ? 'new' : key }}">
+                        {#- One line from 768 px (name, start, who, minutes), stacked as a card on phones -#}
+                        <div data-controller="organizer-form" data-action="change->organizer-form#update" class="row g-2 align-items-start">
+                            <div class="col-12 col-md-3">
+                                {{ form_label(row.name, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                                {{ form_widget(row.name, {attr: {placeholder: is_new ? 'event_wizard.structure.new_round'|trans : null}}) }}
+                                {{ form_errors(row.name) }}
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4">
+                                {{ form_label(row.start, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                                {{ form_widget(row.start, {type: 'datetime-local'}) }}
+                                {{ form_errors(row.start) }}
+                            </div>
+                            <div class="col-7 col-sm-4 col-md-3">
+                                {{ form_label(row.category, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                                {{ form_widget(row.category) }}
+                                {{ form_errors(row.category) }}
+                            </div>
+                            <div class="col-5 col-sm-2 col-md-2">
+                                {{ form_label(row.minutesLimit, 'event_wizard.structure.minutes_short', {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
+                                {{ form_widget(row.minutesLimit) }}
+                                {{ form_errors(row.minutesLimit) }}
+                            </div>
+                            <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+                                {#- The part's own element only toggles `hidden` - d-flex (display: flex !important) would beat it -#}
+                                <div data-organizer-form-target="part" data-show-field="category" data-show-values="team">
+                                    <div class="d-flex align-items-center gap-2">
+                                        {{ form_label(row.teamSize, null, {label_attr: {class: 'small mb-0 text-nowrap'}}) }}
+                                        {{ form_widget(row.teamSize, {attr: {class: 'form-control form-control-sm', style: 'width: 5rem;'}}) }}
+                                    </div>
+                                    {{ form_errors(row.teamSize) }}
+                                </div>
+                                {% if row.remove is defined %}
+                                    <div class="form-check small mb-0">
+                                        {{ form_widget(row.remove, {attr: {class: 'form-check-input'}}) }}
+                                        {{ form_label(row.remove, null, {label_attr: {class: 'form-check-label'}}) }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" hidden data-event-wizard-rows-target="add" data-action="event-wizard-rows#add"><i class="ci-plus me-1"></i>{{ 'event_wizard.structure.add_round'|trans }}</button>
+            </div>
+            {% if rounds is empty %}<p class="form-text mt-2">{{ 'event_wizard.structure.empty_help'|trans }}</p>{% endif %}
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.save_continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                <a href="{{ path('event_wizard_basics_edit', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+                {{ form_widget(form.later, {attr: {class: 'btn btn-link text-muted ms-auto'}}) }}
+            </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

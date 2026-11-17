@@ -17,6 +17,9 @@ enum EventWizardStep: string
     // Opt-in features as plain switches (W6, W-creation-wizard-research.md §3.8) - the last step before Review on every
     // path that has it
     case Extras = 'extras';
+    // Several rounds (W5): the rounds from a template, then their puzzles in one grid
+    case Structure = 'structure';
+    case Puzzles = 'puzzles';
     case Review = 'review';
     // The series path (W3) - its pages take `seriesId`: the draft is a series, not an event
     case SeriesBasics = 'series_basics';
@@ -33,6 +36,8 @@ enum EventWizardStep: string
             self::Basics => 'event_wizard_basics_edit',
             self::Puzzle => 'event_wizard_puzzle',
             self::Extras => 'event_wizard_extras',
+            self::Structure => 'event_wizard_structure',
+            self::Puzzles => 'event_wizard_puzzles',
             self::Review => 'event_wizard_review',
             self::SeriesBasics => 'event_wizard_series_basics_edit',
             self::Dates => 'event_wizard_series_dates',

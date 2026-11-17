@@ -47,13 +47,13 @@ SELECT
         OR c.qr_tag_mode IS NOT NULL
         OR EXISTS (SELECT 1 FROM competition_referee r WHERE r.competition_id = c.id)
         OR EXISTS (SELECT 1 FROM competition_display d WHERE d.competition_id = c.id)
-        OR EXISTS (SELECT 1 FROM competition_standing s WHERE s.competition_id = c.id)
-    ) AS extras_on
+    ) AS extras_on,
+    (SELECT COUNT(*) FROM competition_round cr WHERE cr.competition_id = c.id AND NOT EXISTS (SELECT 1 FROM competition_round_puzzle crp WHERE crp.round_id = cr.id)) AS rounds_without_puzzle
 FROM competition c
 WHERE c.id = :competitionId
 SQL;
 
-        /** @var false|array{is_draft: bool, added_by_player_id: null|string, is_edition: bool, rounds_count: int|string, first_round_id: null|string, puzzles_count: int|string, extras_on: bool} $row */
+        /** @var false|array{is_draft: bool, added_by_player_id: null|string, is_edition: bool, rounds_count: int|string, first_round_id: null|string, puzzles_count: int|string, extras_on: bool, rounds_without_puzzle: int|string} $row */
         $row = $this->database->executeQuery($query, ['competitionId' => $competitionId])->fetchAssociative();
 
         if ($row === false) {
@@ -71,6 +71,7 @@ SQL;
             roundPuzzlesCount: (int) $row['puzzles_count'],
             addedByPlayerId: $row['added_by_player_id'],
             extrasOn: (bool) $row['extras_on'],
+            roundsWithoutPuzzle: (int) $row['rounds_without_puzzle'],
         );
     }
 }

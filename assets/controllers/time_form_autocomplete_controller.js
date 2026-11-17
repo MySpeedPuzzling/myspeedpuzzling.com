@@ -30,6 +30,8 @@ export default class extends Controller {
         allowNew: { type: Boolean, default: true },
         // The edit form's picker stays closed until asked for - its brand's puzzles are fetched only then
         optionsOnDemand: { type: Boolean, default: false },
+        // The event creation wizard: a picker left empty is "Decide later" - the form goes out without a puzzle
+        optional: { type: Boolean, default: false },
         // The edit form: the result's own puzzle ({brand, option}) stays selectable where its brand's list leaves it
         // out - a secret puzzle is never listed
         ownPuzzle: { type: Object, default: {} },
@@ -402,6 +404,11 @@ export default class extends Controller {
         }
 
         if (this.puzzleTarget.value && !this.puzzleTarget.disabled) {
+            return;
+        }
+
+        // Nothing chosen in an optional picker ("Decide later")
+        if (this.optionalValue && !this.brandTarget.value && !this.puzzleTarget.value) {
             return;
         }
 

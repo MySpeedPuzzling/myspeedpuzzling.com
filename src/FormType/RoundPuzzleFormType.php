@@ -45,11 +45,10 @@ final class RoundPuzzleFormType extends AbstractType
         // ("Decide later" - EventWizardPuzzleFormType)
         $puzzleRequired = ($options['puzzle_required'] ?? true) === true;
 
-        // Only the organisers reach this form - they also see the brands of their own secret puzzles
-        $brandChoices = $this->brandChoicesBuilder->build(
-            $competitionId,
-            $this->retrieveLoggedUserProfile->getProfile()?->playerId,
-        );
+        // Only the organisers reach this form - they also see the brands of their own secret puzzles. The wizard's
+        // Puzzles grid (one picker per round) leaves them out here and hands them to every picker once
+        // (`brand_options` false - EventWizardPuzzleSlotFormType, event_wizard_puzzles_controller.js)
+        $brandChoices = ($options['brand_options'] ?? true) === true ? $this->brandChoices($competitionId) : [];
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
@@ -131,6 +130,19 @@ final class RoundPuzzleFormType extends AbstractType
                 PuzzleHideMode::Entirely => 'competition.round_puzzle.form.hide_mode_entirely',
             },
         ]);
+    }
+
+    /**
+     * The brands every picker of this form offers (BrandChoicesBuilder) - also the wizard's Puzzles grid, once per page.
+     *
+     * @return array<array{value: string, text: string, name: string, eanPrefix: string}>
+     */
+    public function brandChoices(string $competitionId): array
+    {
+        return $this->brandChoicesBuilder->build(
+            $competitionId,
+            $this->retrieveLoggedUserProfile->getProfile()?->playerId,
+        );
     }
 
     public function configureOptions(OptionsResolver $resolver): void

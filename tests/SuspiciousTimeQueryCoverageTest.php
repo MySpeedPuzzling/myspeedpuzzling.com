@@ -38,6 +38,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetBotTrustEligibility.php' => 'Bot-blocker trust eligibility: any result the account logged, suspicious or not, shows a person using the site - no figure is shown.',
+        'Query/GetEventWizardStructureLock.php' => 'The creation wizard\'s Structure step: whether any result is linked to one of the event\'s rounds at all (then it is read-only) - every result counts, nothing is shown.',
         'Query/GetResultsImportStoredTabs.php' => 'The results import page compares the organizer\'s imported results with their sheet - each one, whatever it is flagged; nothing is ranked or counted.',
         'Query/GetSandboxSimulationData.php' => 'The sandbox simulation counts a made-up player\'s own solves of a puzzle (attempt number, first try) - every one counts, like the add-time handler\'s own first-try rule.',
         'Query/GetBadges.php' => 'Reads the moment a solve was logged (achievements earned with it) - the badge evaluation itself leaves suspicious results out.',

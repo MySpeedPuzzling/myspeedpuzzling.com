@@ -1,0 +1,64 @@
+{#
+    Review on the several-rounds path (W5): every round - start, who competes, time limit, its puzzles with secret and
+    reveal, "K of N" - then what the toolkit set up (advancement steps, standings - not published).
+    Required: competition, rounds (list<CompetitionRound>), rounds_puzzles (round id => list<RoundPuzzleForManagement>),
+    advancement_steps, standings
+#}
+<div class="card shadow-sm mb-3" data-event-wizard-review-rounds>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <h2 class="h6 mb-2">{{ 'event_wizard.review.rounds'|trans({'%count%': rounds|length}) }}</h2>
+            <span class="small flex-shrink-0">
+                <a href="{{ path('event_wizard_structure', {competitionId: competition.id}) }}">{{ 'event_wizard.review.edit_structure'|trans }}</a>
+                · <a href="{{ path('event_wizard_puzzles', {competitionId: competition.id}) }}">{{ 'event_wizard.review.edit_puzzles'|trans }}</a>
+            </span>
+        </div>
+        {% for round in rounds %}
+            {%- set round_puzzles = rounds_puzzles[round.id.toString] ?? [] -%}
+            <div class="border-top py-2 small" data-event-wizard-review-round>
+                <div class="d-flex flex-wrap justify-content-between gap-1">
+                    <span class="fw-semibold">{{ round.name }}</span>
+                    <span class="text-muted">{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}</span>
+                </div>
+                <div class="text-muted">
+                    {{- (round.category.value == 'solo' ? 'competition.round.category.solo' : (round.category.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans -}}
+                    {%- if round.category.value == 'team' and round.teamSize is not null %} ({{ 'event_wizard.review.team_of'|trans({'%count%': round.teamSize}) }}){% endif -%}
+                    {%- if round.minutesLimit is not null %} · {{ 'event_wizard.structure.minutes'|trans({'%count%': round.minutesLimit}) }}{% endif -%}
+                </div>
+                {% for round_puzzle in round_puzzles %}
+                    <div>
+                        {{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}
+                        {% if round_puzzle.hideUntilRoundStarts %}
+                            <span class="text-muted">
+                                · <i class="ci-locked"></i>
+                                {%- if round_puzzle.revealMode.value == 'automatic' %}
+                                    {{ 'event_wizard.review.secret_automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)}) }}
+                                {%- else %}
+                                    {{ ('event_wizard.review.secret_' ~ round_puzzle.revealMode.value)|trans }}
+                                {%- endif -%}
+                            </span>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-muted" data-event-wizard-review-puzzle-later>{{ 'event_wizard.review.puzzle_later'|trans }}</div>
+                {% endfor %}
+                {% if round.puzzleFormat.value == 'pick' %}
+                    <div>{{ 'event_wizard.review.pick'|trans({'%count%': round.puzzlesToSolve, '%total%': round_puzzles|length}) }}</div>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="small text-muted mb-0">{{ 'event_wizard.review.no_rounds'|trans }}</p>
+        {% endfor %}
+
+        {% if advancement_steps is not empty or standings is not empty %}
+            <div class="border-top pt-2 small" data-event-wizard-review-toolkit>
+                {% for advancement_step in advancement_steps %}
+                    <div><i class="ci-arrow-right me-1"></i>{{ advancement_step.name ?? '' }}: {{ 'event_wizard.structure.advance_summary'|trans({'%count%': advancement_step.settings.qualifyCount ?? 0}) }}</div>
+                {% endfor %}
+                {% for standing in standings %}
+                    <div><i class="ci-list me-1"></i>{{ standing.name }} <span class="text-muted">· {{ 'event_wizard.structure.standing_unpublished'|trans }}</span></div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>

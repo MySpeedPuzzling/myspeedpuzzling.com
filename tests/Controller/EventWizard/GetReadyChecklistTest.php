@@ -182,19 +182,16 @@ final class GetReadyChecklistTest extends WebTestCase
         $this->browser()->request('GET', '/en/you-organize');
         self::assertSelectorNotExists('[data-event-wizard-continue]');
 
-        // A second round: several rounds have no wizard steps yet (W5) - no link anywhere
+        // A second round: since W5 several rounds have their wizard steps - the draft resumes there (its Puzzles step)
         $this->overrideFeatureFlagEnv(self::FLAG, true);
         self::ensureKernelShutdown();
         $this->client = self::createClient();
         $this->insertRound(self::DRAFT, 'Second round', '2026-11-08 20:30:00');
         $this->editPage(self::DRAFT, self::DRAFT_ORGANISER, newClient: false);
         self::assertSelectorExists('[data-get-ready]');
-        self::assertSelectorNotExists('[data-event-wizard-continue]');
-        $this->browser()->request('GET', '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG);
-        self::assertSelectorNotExists('[data-event-wizard-continue]');
+        self::assertSelectorExists('[data-event-wizard-continue]');
         $this->browser()->request('GET', '/en/you-organize');
-        self::assertSelectorExists('[data-organized-id="' . self::DRAFT . '"]');
-        self::assertSelectorNotExists('[data-organized-id="' . self::DRAFT . '"] [data-event-wizard-continue]');
+        self::assertSelectorExists('[data-organized-id="' . self::DRAFT . '"] [data-event-wizard-continue]');
     }
 
     public function testAfterTheWizardsPublishTheChecklistIsOpenWithWhatIsLeft(): void

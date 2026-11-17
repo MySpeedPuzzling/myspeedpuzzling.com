@@ -1,0 +1,153 @@
+{% extends 'event_wizard/_layout.html.twig' %}
+
+{% block title %}{{ 'event_wizard.step.puzzles'|trans }} - {{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block wizard_title %}{{ 'event_wizard.puzzles.title'|trans }}{% endblock %}
+
+{% macro slot(slot, round_id) %}
+    {#- W1's picker (time_form_autocomplete): brand, puzzle, a new puzzle's pieces - empty = "Decide later" -#}
+    <div class="border rounded p-2 mb-2"
+         data-controller="time-form-autocomplete"
+         data-time-form-autocomplete-optional-value="true"
+         data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+         data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
+         data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}"
+         data-event-wizard-puzzles-slot-picker>
+        <div class="row g-2">
+            <div class="col-12 col-sm-6">{{ form_row(slot.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}, help: false}) }}</div>
+            <div class="col-12 col-sm-6">{{ form_row(slot.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}, help: false}) }}</div>
+        </div>
+        <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-sm-4">{{ form_row(slot.piecesCount) }}</div>
+                <div class="col-12 col-sm-8 small text-muted mb-3">
+                    {{ 'event_wizard.puzzles.new_puzzle_details'|trans }}
+                    <a href="{{ path('add_puzzle_to_round', {roundId: round_id}) }}">{{ 'event_wizard.puzzles.new_puzzle_form'|trans }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% block wizard_content %}
+    {% if rounds is empty %}
+        <div class="alert alert-light border" data-event-wizard-puzzles-empty>
+            {{ 'event_wizard.puzzles.no_rounds'|trans }}
+            <a href="{{ path('event_wizard_structure', {competitionId: competition_id}) }}">{{ 'event_wizard.step.structure'|trans }}</a>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" href="{{ path('event_wizard_review', {competitionId: competition_id}) }}">{{ 'event_wizard.continue'|trans }} <i class="ci-arrow-right ms-1"></i></a>
+            <a href="{{ path('event_wizard_structure', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+        </div>
+    {% else %}
+        <div data-controller="event-wizard-puzzles" data-event-wizard-puzzles-brands-value="{{ brand_choices|json_encode }}">
+            {{ form_start(form) }}
+            {#- Enter in a field saves and continues - never the first row's "+ another puzzle" -#}
+            <button type="submit" class="d-none" tabindex="-1" aria-hidden="true"></button>
+            {{ form_errors(form) }}
+
+            {#- One switch for every round: the reveal chosen once -#}
+            <div class="card shadow-sm mb-3" data-controller="organizer-form" data-action="change->organizer-form#update" data-event-wizard-puzzles-secret>
+                <div class="card-body">
+                    {{ form_row(form.secret) }}
+                    <div class="ms-4" data-organizer-form-target="part" data-show-field="secret" data-show-values="1">
+                        <div class="mb-3">
+                            <div class="form-label">{{ 'event_wizard.puzzle.reveal_label'|trans }}</div>
+                            {% for child in form.revealMode %}
+                                <div class="mb-1">
+                                    {{ form_widget(child) }}
+                                    {% if child.vars.value == 'stopwatch' %}
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_stopwatch_help'|trans }}</div>
+                                    {% elseif child.vars.value == 'manual' %}
+                                        <div class="form-text mt-0 ms-4">{{ 'event_wizard.puzzle.reveal_manual_help'|trans }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-1">
+                            <div class="form-label">{{ 'event_wizard.puzzle.hide_what'|trans }}</div>
+                            {% for child in form.hideMode %}
+                                <div class="form-check mb-1">
+                                    {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                                    {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <p class="form-text mb-0">{{ 'event_wizard.puzzles.secret_help'|trans }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {% for round in rounds %}
+                {%- set round_id = round.id.toString -%}
+                {%- set row = form.rows[round_id] -%}
+                {%- set existing = round_puzzles[round_id] ?? [] -%}
+                <div class="card shadow-sm mb-3" id="round-{{ round_id }}" data-event-wizard-puzzles-row="{{ round_id }}">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-1 mb-2">
+                            <h2 class="h6 mb-0">{{ round.name }}</h2>
+                            <span class="small text-muted">
+                                {{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}
+                                · {{ (round.category.value == 'solo' ? 'competition.round.category.solo' : (round.category.value == 'duo' ? 'event_wizard.puzzle.category_pairs' : 'event_wizard.puzzle.category_teams'))|trans }}
+                            </span>
+                        </div>
+                        {#- The round's automatic reveal this page names - a secret puzzle is added only while the round still has
+                            it (AddPuzzleToCompetitionRound) -#}
+                        <input type="hidden" name="automatic_reveal_at[{{ round_id }}]" value="{{ round.automaticRevealAt.timestamp }}">
+
+                        {% if existing is not empty %}
+                            <ul class="list-unstyled small mb-2" data-event-wizard-puzzles-existing>
+                                {% for round_puzzle in existing %}
+                                    <li class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-light text-dark border">{{ round_puzzle.label }}</span>
+                                        <span class="text-truncate">{{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}</span>
+                                        {% if round_puzzle.hideUntilRoundStarts %}<span class="badge bg-dark ms-auto flex-shrink-0"><i class="ci-locked me-1"></i>{{ ('event_wizard.puzzles.secret_' ~ round_puzzle.revealMode.value)|trans }}</span>{% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <a class="small d-inline-block mb-2" href="{{ path('manage_round_puzzles', {roundId: round_id}) }}">{{ 'event_wizard.puzzle.manage_existing'|trans }}</a>
+                        {% endif %}
+
+                        {% for index, slot in row.puzzles %}
+                            {%- set filled = slot.vars.value.puzzle is not empty or slot.vars.value.brand is not empty or not slot.vars.valid -%}
+                            {% if index == 0 or filled %}
+                                {{ _self.slot(slot, round_id) }}
+                            {% else %}
+                                <template data-event-wizard-puzzles-slot>{{ _self.slot(slot, round_id) }}</template>
+                            {% endif %}
+                        {% endfor %}
+                        {% if existing is empty %}<p class="form-text mt-0 mb-2"><i class="ci-time me-1"></i>{{ 'event_wizard.puzzles.decide_later'|trans }}</p>{% endif %}
+
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button type="submit" name="another" value="{{ round_id }}" class="btn btn-sm btn-outline-secondary" data-action="event-wizard-puzzles#another" data-event-wizard-puzzles-another>
+                                <i class="ci-plus me-1"></i>{{ 'event_wizard.puzzles.another'|trans }}
+                            </button>
+                        </div>
+
+                        {% if row.puzzlesToSolve is defined %}
+                            {#- Several puzzles (competition toolkit A2): shown once the round has or gets a second one -#}
+                            <div class="mt-2" data-event-wizard-puzzles-pick{% if existing is empty and row.puzzlesToSolve.vars.value is empty and row.puzzlesToSolve.vars.valid %} hidden{% endif %}>
+                                <div class="col-8 col-sm-5">{{ form_row(row.puzzlesToSolve) }}</div>
+                            </div>
+                        {% endif %}
+
+                        <details class="mt-2"{% if row.override.vars.value is not empty or not row.override.vars.valid %} open{% endif %} data-event-wizard-puzzles-override>
+                            <summary class="small">{{ 'event_wizard.puzzles.change_secret'|trans }}</summary>
+                            <div class="mt-2 col-12 col-sm-8">
+                                {{ form_row(row.override) }}
+                                <p class="form-text">{{ 'event_wizard.puzzles.automatic_at'|trans({'%time%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)}) }}</p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" data-event-wizard-continue>{{ 'event_wizard.save_continue'|trans }} <i class="ci-arrow-right ms-1"></i></button>
+                <a href="{{ path('event_wizard_structure', {competitionId: competition_id}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
+                {{ form_widget(form.later, {attr: {class: 'btn btn-link text-muted ms-auto'}}) }}
+            </div>
+            {{ form_end(form) }}
+        </div>
+    {% endif %}
+{% endblock %}

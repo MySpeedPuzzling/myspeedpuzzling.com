@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\EventWizard\EventWizardSteps;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardEntryChoice;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardPath;
+use SpeedPuzzling\Web\Value\EventWizard\EventWizardStructureTemplate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -52,11 +53,12 @@ final class EventWizardEntryController extends AbstractController
         $choice = EventWizardEntryChoice::tryFrom($request->query->getString('kind'));
 
         if ($choice !== null) {
-            return $this->redirect($this->target($choice, $organizationId));
+            return $this->redirect($this->target($choice, $organizationId, EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))));
         }
 
         return $this->render('event_wizard/entry.html.twig', [
             'choices' => EventWizardEntryChoice::cases(),
+            'structure_templates' => EventWizardStructureTemplate::cases(),
             'organization_choices' => $organizationChoices,
             'organization_id' => $organizationId,
             'events_to_copy' => $this->getEventsToCopy->forPlayer($player->playerId),
@@ -66,9 +68,10 @@ final class EventWizardEntryController extends AbstractController
 
     /**
      * Where an answer leads: a path with wizard steps opens its first one (the series path its own Basics, W3), any
-     * other answer the classic form - W5 gives several rounds their steps, then they open here too.
+     * other answer the classic form. Several rounds (W5) carries the follow-up answer ("Do competitors qualify for later
+     * rounds?") to its Structure step as `structure`.
      */
-    private function target(EventWizardEntryChoice $choice, null|string $organizationId): string
+    private function target(EventWizardEntryChoice $choice, null|string $organizationId, null|EventWizardStructureTemplate $structure = null): string
     {
         $path = $choice->path();
 
@@ -79,6 +82,7 @@ final class EventWizardEntryController extends AbstractController
         if ($path !== null && $this->eventWizardSteps->forNewEvent($path)->steps !== []) {
             return $this->generateUrl('event_wizard_basics', array_filter([
                 'path' => $path === EventWizardPath::OneRound ? null : $path->value,
+                'structure' => $path === EventWizardPath::SeveralRounds ? ($structure ?? EventWizardStructureTemplate::Qualification)->value : null,
                 'organization' => $organizationId,
             ]));
         }

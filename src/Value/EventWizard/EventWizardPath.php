@@ -8,7 +8,7 @@ namespace SpeedPuzzling\Web\Value\EventWizard;
  * What the organiser is setting up - the branch of the event creation wizard (W-creation-wizard-research.md §3.2). Not
  * stored anywhere: of a draft it is derived from its data (of()), so a draft resumes on the right path whoever made it.
  *
- * W1 builds the one-round path; the series path (W3) and several rounds (W5) answer with the classic pages until their
+ * W1 builds the one-round path, W5 several rounds; the series path (W3) answers with the classic pages until its
  * steps exist - steps() lists only the steps that exist, and EventWizardSteps sends a draft of a path without steps of
  * its own to its edit page.
  */
@@ -19,14 +19,17 @@ enum EventWizardPath: string
     case Series = 'series';
 
     /**
-     * An edition belongs to a series; two rounds or more are "several rounds"; anything else - no round yet or one -
-     * is the one-round path.
+     * An edition belongs to a series; two rounds or more are "several rounds" - and so is a draft without any round: the
+     * one-round path creates its round with the draft (StartEventWizardDraft), so a draft without one is a several-rounds
+     * draft between Basics and Structure (or "not sure yet" - an empty round list), or a classic draft, for which the
+     * Structure step is the right next question too. Exactly one round is the one-round path (the Structure step never
+     * saves exactly one round, EventWizardStructureController).
      */
     public static function of(bool $isEdition, int $roundsCount): self
     {
         return match (true) {
             $isEdition => self::Series,
-            $roundsCount >= 2 => self::SeveralRounds,
+            $roundsCount >= 2, $roundsCount === 0 => self::SeveralRounds,
             default => self::OneRound,
         };
     }
@@ -42,11 +45,11 @@ enum EventWizardPath: string
     {
         return match ($this) {
             self::OneRound => [EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Extras, EventWizardStep::Review],
+            self::SeveralRounds => [EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Extras, EventWizardStep::Review],
             // A draft series (W3) - its editions are not set up in the wizard (EventWizardSteps::of()). No Extras: every
             // feature it switches (registration, links, judges, the toolkit's settings and displays) belongs to one
             // date (an edition), not to the series - each date's edit page and "Get ready" checklist have them
             self::Series => [EventWizardStep::SeriesBasics, EventWizardStep::Dates, EventWizardStep::SeriesReview],
-            self::SeveralRounds => [],
         };
     }
 }

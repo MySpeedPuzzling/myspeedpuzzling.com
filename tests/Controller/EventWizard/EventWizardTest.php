@@ -141,8 +141,9 @@ final class EventWizardTest extends WebTestCase
         $this->browser->request('GET', '/en/new-event?kind=one_round' . $organization);
         self::assertResponseRedirects('/en/new-event/basics?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
+        // Several rounds has its wizard path since W5 - the follow-up answer (default: qualification) goes along
         $this->browser->request('GET', '/en/new-event?kind=several_rounds' . $organization);
-        self::assertResponseRedirects('/en/add-event?classic=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
+        self::assertResponseRedirects('/en/new-event/basics?path=several_rounds&structure=qualification&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
         // The series path (W3)
         $this->browser->request('GET', '/en/new-event?kind=series' . $organization);
@@ -248,14 +249,15 @@ final class EventWizardTest extends WebTestCase
         $form = $crawler->filter('form[name="event_wizard_basics_form"]')->form();
         $form['event_wizard_basics_form[startTime]'] = '10:00';
 
-        // The first save gives it the round...
+        // Since W5 a draft without any round is on the several-rounds path (EventWizardPath::of()): Basics creates no
+        // round and goes on to Structure - sent twice, still none (the one-round path's "the round exists once" stays
+        // checked under the lock in SaveEventWizardBasicsHandler)
         $this->browser->submit($form);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
-        // ...the same page sent again (it showed no round) adds none
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?start=10:00', 303);
         $this->browser->submit($form);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/puzzle', 303);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/structure?start=10:00', 303);
 
-        self::assertSame(1, $this->dbInt('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
+        self::assertSame(0, $this->dbInt('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]));
     }
 
     public function testSavingOtherFieldsLeavesARoundMovedOnTheRoundsPageWhereItIs(): void

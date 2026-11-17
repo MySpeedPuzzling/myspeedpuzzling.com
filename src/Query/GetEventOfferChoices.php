@@ -39,11 +39,9 @@ readonly final class GetEventOfferChoices
         $going = GetMarketplaceEvents::sqlPlayerGoing('c.id', 'ssli.player_id');
         // A puzzle of this event's rounds shows no picture while a round keeps it back - a secret not revealed yet, or an
         // unboxed round before its results are published (RoundPuzzleReveal::sqlImageHidden(), world-series-rules.md W2-a)
-        $roundImageHidden = RoundPuzzleReveal::sqlImageHidden('picture_crp', 'picture_cr');
-        $imageHidden = "(p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp) OR EXISTS ("
-            . 'SELECT 1 FROM competition_round_puzzle picture_crp'
-            . ' INNER JOIN competition_round picture_cr ON picture_cr.id = picture_crp.round_id'
-            . " WHERE picture_crp.puzzle_id = p.id AND picture_cr.competition_id = :competitionId AND {$roundImageHidden})";
+        // (one lateral lookup per listing - RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin())
+        $roundKeepsPicture = RoundPuzzleReveal::sqlCompetitionKeepsPictureJoin('p', ':competitionId', 'event_picture');
+        $imageHidden = '(p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp) OR event_picture.kept IS TRUE';
 
         $query = <<<SQL
 SELECT
@@ -78,6 +76,7 @@ SELECT
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON p.id = ssli.puzzle_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
+{$roundKeepsPicture}
 WHERE ssli.player_id = :playerId
     AND ssli.published_on_marketplace = true
 ORDER BY ssli.added_at DESC, ssli.id DESC

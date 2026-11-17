@@ -414,7 +414,7 @@ final class SerializedByLockMessagesTest extends TestCase
         DuplicateCompetition::class => 'creates a new draft event with empty rounds - only reads the source\'s round settings, never its entries or results, and nobody can be entered in the copy before it exists',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
         DeletePlayer::class => 'account deletion only clears the player link on the rows of every event the player was in - an unbounded set of events; no spot, entry or result changes',
-        OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',
+        OfficialRoundResultsPublished::class => 'the notification after a publish - reads only; for an unboxed round the site-wide picture hide of its secret puzzles is re-synced (SecretPuzzleHides takes its own row locks) - entries and results are not touched',
         PublishRoundResults::class => 'shows the recorded results on the public page - writes only the round\'s published state, nothing recorded changes',
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
         RecordOnlineEntryEvents::class => 'a participant\'s phone\'s events on their own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',

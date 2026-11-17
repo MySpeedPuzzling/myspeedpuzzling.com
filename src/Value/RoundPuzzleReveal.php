@@ -143,4 +143,20 @@ enum RoundPuzzleReveal: string
 
         return "({$hidden} OR ({$roundAlias}.unboxed AND {$roundAlias}.results_first_published_at IS NULL))";
     }
+
+    /**
+     * A LEFT JOIN LATERAL (evaluated once per row) whose `{$alias}.kept` is true while a round of one competition
+     * ($competitionParameter, e.g. ':competitionId') keeps the picture of the puzzle $puzzleAlias back
+     * (sqlImageHidden()) - for listings narrowed to one event (the marketplace at an event). Test it as
+     * "{$alias}.kept IS TRUE"; :now must be bound.
+     */
+    public static function sqlCompetitionKeepsPictureJoin(string $puzzleAlias, string $competitionParameter, string $alias): string
+    {
+        $imageHidden = self::sqlImageHidden("{$alias}_crp", "{$alias}_cr");
+
+        return "LEFT JOIN LATERAL (SELECT true AS kept FROM competition_round_puzzle {$alias}_crp"
+            . " INNER JOIN competition_round {$alias}_cr ON {$alias}_cr.id = {$alias}_crp.round_id"
+            . " WHERE {$alias}_crp.puzzle_id = {$puzzleAlias}.id AND {$alias}_cr.competition_id = {$competitionParameter}"
+            . " AND {$imageHidden} LIMIT 1) {$alias} ON true";
+    }
 }

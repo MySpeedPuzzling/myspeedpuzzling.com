@@ -69,7 +69,7 @@ SQL;
     /**
      * @param array<string, mixed> $row
      */
-    private static function hydrate(array $row): CompetitionStandingOverview
+    public static function hydrate(array $row): CompetitionStandingOverview
     {
         /** @var array{id: string, competition_id: string, name: string, slug: string, category: string, mode: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool, position: int, published_at: null|string} $row */
         $roundIds = json_decode($row['round_ids'], true, flags: JSON_THROW_ON_ERROR);

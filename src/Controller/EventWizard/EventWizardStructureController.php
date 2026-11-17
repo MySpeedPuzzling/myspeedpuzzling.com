@@ -53,6 +53,7 @@ use SpeedPuzzling\Web\Value\EventWizard\EventWizardStructureTemplate;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\ClickableInterface;
 use Symfony\Component\Form\FormError;
@@ -109,6 +110,7 @@ final class EventWizardStructureController extends AbstractController
         private readonly StandingsPerCategory $standingsPerCategory,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly FormFactoryInterface $formFactory,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -577,6 +579,10 @@ final class EventWizardStructureController extends AbstractController
 
             return false;
         }
+
+        // After the commit: the structure may have replaced the event's standings and steps - their guest snapshots start
+        // a new generation (competition toolkit v2 S1)
+        $this->displayLiveUpdates->standingsChanged($message->competitionId);
 
         return true;
     }

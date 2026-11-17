@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\InvalidAdvancementStep;
@@ -31,6 +32,7 @@ final class AddAdvancementStepController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly AdvancementStepForms $forms,
         private readonly MessageBusInterface $messageBus,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -67,6 +69,8 @@ final class AddAdvancementStepController extends AbstractController
 
                 $this->addFlash('success', $this->translator->trans('advancement_step.flash.added'));
 
+                // After the commit: the public standings' guest snapshots start a new generation (competition toolkit v2 S1)
+                $this->displayLiveUpdates->standingsChanged($competitionId);
                 return $this->redirectToRoute('competition_advancement_steps_manage', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
             } catch (InvalidAdvancementStep $refused) {
                 $form->addError(new FormError($this->translator->trans($refused->translationKey())));

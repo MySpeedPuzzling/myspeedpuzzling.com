@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
@@ -34,6 +35,7 @@ final class CreateStandingsPerCategoryController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly GetCompetitionStandings $getCompetitionStandings,
         private readonly MessageBusInterface $messageBus,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly TranslatorInterface $translator,
         private readonly StandingsPerCategory $standingsPerCategory,
     ) {
@@ -87,6 +89,8 @@ final class CreateStandingsPerCategoryController extends AbstractController
             $this->addFlash('success', $this->translator->trans('competition_standing.flash.added_per_category', ['%count%' => $created]));
         }
 
+        // After the commit: the public standings' guest snapshots start a new generation (competition toolkit v2 S1)
+        $this->displayLiveUpdates->standingsChanged($competitionId);
         return $this->redirectToRoute('competition_standings_manage', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
     }
 }

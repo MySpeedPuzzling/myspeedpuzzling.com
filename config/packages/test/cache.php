@@ -88,6 +88,14 @@ return App::config([
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Computed from the standings and results a test seeds and DAMA rolls back - never what an earlier test saw
+                'competition_standings_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
+                'competition_standings_presence_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                    'tags' => true,
+                ],
                 // Read from the displays a test seeds and DAMA rolls back - never what an earlier test saw
                 'competition_displays_presence_cache' => [
                     'adapters' => ['cache.adapter.array'],

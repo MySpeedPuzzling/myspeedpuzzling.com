@@ -553,8 +553,10 @@ final class DraftCanaryTest extends WebTestCase
         $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
         $category = $connection->fetchOne('SELECT category FROM competition_round WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
         assert(is_string($category));
-        PublishedStanding::insert($connection, $draftNight, 'night-overall', 'Night overall', $category, [OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $standingId = PublishedStanding::insert($connection, $draftNight, 'night-overall', 'Night overall', $category, [OrganizationFixture::ROUND_DRAFT_NIGHT]);
         $url = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/standings/night-overall';
+        // The public JSON of the standing (public_standing_state, competition toolkit v2 S1)
+        $json = '/api/competition-standings/' . $standingId;
 
         foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
             $browser->restart();
@@ -568,10 +570,14 @@ final class DraftCanaryTest extends WebTestCase
             self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
             $browser->request('GET', self::SITEMAP);
             self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the standing');
+            $browser->request('GET', $json);
+            self::assertResponseIsSuccessful('No canary: the standing JSON is not there once published');
 
             $this->setDraft(self::COMPETITION, $draftNight, true);
             $browser->request('GET', $url);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing is public');
+            $browser->request('GET', $json);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing JSON is public');
             $browser->request('GET', self::SITEMAP);
             self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
         }

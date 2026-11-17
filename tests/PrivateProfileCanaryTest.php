@@ -438,6 +438,40 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The public standing JSON (`public_standing_state`, competition toolkit v2 S1): the guest snapshot, the same for
+     * everybody - her organiser's name only ("Gina Quick"), no profile name, #code or id, for the allowed friend too (no
+     * viewer: one shared answer must never depend on whose allow list the computing request carried).
+     */
+    public function testThePublicStandingJsonNeverNamesHer(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:b, :pairs)', ['b' => OfficialResultsFixture::ROUND_GROUP_B, 'pairs' => OfficialResultsFixture::ROUND_PAIRS]);
+        $urls = [
+            '/api/competition-standings/' . PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]),
+            '/api/competition-standings/' . PublishedStanding::insert($database, $cup, 'overall-pairs', 'Overall pairs', 'duo', [OfficialResultsFixture::ROUND_PAIRS]),
+        ];
+        $code = $database->fetchOne('SELECT code FROM player WHERE id = :id', ['id' => self::OWNER]);
+        self::assertIsString($code);
+
+        foreach ([null, self::FRIEND, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ($urls as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsStringIgnoringCase('"' . $code . '"', $content, $url);
+            }
+        }
+    }
+
+    /**
      * The public bracket (competition toolkit A9): her qualified row in Group B and in the pairs round (Edge Hunters)
      * names her by the organiser's name only ("Gina Quick") - no profile name, link, #code or id - except for the friend.
      */

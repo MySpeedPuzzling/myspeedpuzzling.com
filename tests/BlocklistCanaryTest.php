@@ -503,6 +503,42 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * **Documented exemption: the public standing JSON** (`public_standing_state`, competition toolkit v2 S1,
+     * displays-standings.md §6). It is the guest snapshot, shared by everybody - overlays, big screens, stream tools - on
+     * the stateless firewall, so no viewer's blocklist can apply; the guest snapshot ignores the signed-in user's
+     * blocklist explicitly (publicView asGuest). The page keeps applying it: the blocker gets the row in the JSON and
+     * not on the page.
+     */
+    public function testThePublicStandingJsonHasNoViewerAndSoNoBlocklist(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $standingId = PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A]);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $browser->request('GET', '/api/competition-standings/' . $standingId);
+        self::assertResponseIsSuccessful();
+        $asGuest = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Ben Steady', $asGuest, 'No canary: the JSON does not list him.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/en/events/results-cup/standings/overall-solo');
+        self::assertStringNotContainsString('Ben Steady', (string) $browser->getResponse()->getContent(), 'No canary: the page shows the blocker the blocked row.');
+        $browser->request('GET', '/api/competition-standings/' . $standingId);
+        self::assertSame($asGuest, (string) $browser->getResponse()->getContent(), 'The JSON answers a blocker differently - it has a viewer.');
+        self::assertStringNotContainsString(self::BLOCKED, $asGuest, 'The JSON never carries a player id.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $asGuest, 'The JSON never carries a profile name.');
+    }
+
+    /**
      * The public bracket (competition toolkit A9): the blocked player's qualified row - solo, or a pair with them - is
      * not in a round's box for the blocker; everybody else keeps their official place.
      */

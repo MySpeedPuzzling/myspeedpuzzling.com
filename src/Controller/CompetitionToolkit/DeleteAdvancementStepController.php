@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\DeleteCompetitionAdvancementStep;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
@@ -27,6 +28,7 @@ final class DeleteAdvancementStepController extends AbstractController
     public function __construct(
         private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
         private readonly MessageBusInterface $messageBus,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -62,6 +64,8 @@ final class DeleteAdvancementStepController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('advancement_step.flash.deleted'));
 
+        // After the commit: the public standings' guest snapshots start a new generation (competition toolkit v2 S1)
+        $this->displayLiveUpdates->standingsChanged($step->competitionId);
         return $this->redirectToRoute('competition_advancement_steps_manage', ['competitionId' => $step->competitionId], Response::HTTP_SEE_OTHER);
     }
 }

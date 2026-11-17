@@ -60,12 +60,15 @@ readonly final class OfficialEntrantsView
      * @param array<string, RoundCategory> $rounds round id => its category (which table holds its entries)
      * @param bool $keepHidden the public standings (competition toolkit A7) only: the rows hidden from the viewer stay,
      *     marked `hiddenFromViewer` - a standing sums every entrant first and drops the hidden rows after its own ranking
+     * @param bool $asGuest what a guest sees, whoever is signed in (competition toolkit v2 S1, the cached and shared
+     *     guest snapshot of a standing - PublicStandingSnapshots): no viewer, nobody hidden (the blocklist is ignored),
+     *     nobody unmasked by an allow list (the raw `is_private` setting)
      * @return array<string, OfficialRoundEntrants> every requested round id - one that is not published or has nothing
      *     ranked comes empty (isEmpty())
      */
-    public function forRounds(array $rounds, null|string $viewerPlayerId, bool $keepHidden = false): array
+    public function forRounds(array $rounds, null|string $viewerPlayerId, bool $keepHidden = false, bool $asGuest = false): array
     {
-        $viewerPlayerId = $viewerPlayerId !== null ? strtolower($viewerPlayerId) : null;
+        $viewerPlayerId = $viewerPlayerId !== null && $asGuest === false ? strtolower($viewerPlayerId) : null;
         $soloIds = [];
         $teamIds = [];
 
@@ -80,7 +83,10 @@ readonly final class OfficialEntrantsView
         /** @var array<string, list<Row>> $rowsByRound */
         $rowsByRound = [];
 
-        foreach ([...$this->people($soloIds, $viewerPlayerId), ...$this->teams($teamIds, $viewerPlayerId)] as $row) {
+        // A guest's view reads the raw setting: the allow list of whoever is signed in must never reach a shared answer
+        $isPrivate = $asGuest ? 'player.is_private' : $this->privateProfileAccess->sqlIsPrivate('player');
+
+        foreach ([...$this->people($soloIds, $viewerPlayerId, $isPrivate), ...$this->teams($teamIds, $viewerPlayerId, $isPrivate)] as $row) {
             $rowsByRound[$row['round_id']][] = $row;
         }
 
@@ -88,7 +94,7 @@ readonly final class OfficialEntrantsView
 
         foreach (array_keys($rounds) as $roundId) {
             $roundId = (string) $roundId;
-            $result[$roundId] = $this->round($roundId, $rowsByRound[strtolower($roundId)] ?? [], $viewerPlayerId, $keepHidden);
+            $result[$roundId] = $this->round($roundId, $rowsByRound[strtolower($roundId)] ?? [], $viewerPlayerId, $keepHidden, $asGuest);
         }
 
         return $result;
@@ -97,7 +103,7 @@ readonly final class OfficialEntrantsView
     /**
      * @param list<Row> $rows
      */
-    private function round(string $roundId, array $rows, null|string $viewerPlayerId, bool $keepHidden): OfficialRoundEntrants
+    private function round(string $roundId, array $rows, null|string $viewerPlayerId, bool $keepHidden, bool $asGuest): OfficialRoundEntrants
     {
         $ranks = OfficialResultsRanking::rank(array_map(
             static fn (array $row): RoundEntryResult => $row['result'],
@@ -119,7 +125,7 @@ readonly final class OfficialEntrantsView
             }
 
             // Hidden AFTER ranking - the places of everybody else stay the official ones
-            $hidden = $this->isHiddenFromViewer($row['entrants'], $viewerPlayerId);
+            $hidden = $asGuest === false && $this->isHiddenFromViewer($row['entrants'], $viewerPlayerId);
 
             if ($hidden && $keepHidden === false) {
                 continue;
@@ -160,7 +166,7 @@ readonly final class OfficialEntrantsView
      * @param list<string> $roundIds
      * @return list<Row>
      */
-    private function people(array $roundIds, null|string $viewerPlayerId): array
+    private function people(array $roundIds, null|string $viewerPlayerId, string $isPrivate): array
     {
         if ($roundIds === []) {
             return [];
@@ -183,7 +189,7 @@ SELECT
     player.code AS player_code,
     player.country AS player_country,
     player.avatar AS player_avatar,
-    {$this->privateProfileAccess->sqlIsPrivate('player')} AS player_is_private,
+    {$isPrivate} AS player_is_private,
     (SELECT COUNT(*) FROM competition_round_puzzle crp WHERE crp.round_id = cpr.round_id) AS round_puzzles_count,
     {$this->sqlViewer('cpr', false)}
 FROM competition_participant_round cpr
@@ -225,7 +231,7 @@ SQL,
      * @param list<string> $roundIds
      * @return list<Row>
      */
-    private function teams(array $roundIds, null|string $viewerPlayerId): array
+    private function teams(array $roundIds, null|string $viewerPlayerId, string $isPrivate): array
     {
         if ($roundIds === []) {
             return [];
@@ -253,7 +259,7 @@ SELECT
             'player_code', player.code,
             'player_country', player.country,
             'player_avatar', player.avatar,
-            'player_is_private', {$this->privateProfileAccess->sqlIsPrivate('player')}
+            'player_is_private', {$isPrivate}
         ) ORDER BY cp.name, cp.id)
         FROM competition_participant_round cpr
         INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL

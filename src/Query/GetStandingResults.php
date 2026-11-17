@@ -94,8 +94,12 @@ readonly final class GetStandingResults
      * The standing as the public page shows it to one viewer (competition toolkit A7, A-round-formats.md §3.4). Whether
      * the standing is published and the event public is the caller's business; this counts only the rounds whose
      * official results are published and have something ranked - the others show "–" and make nobody "missing".
+     *
+     * @param bool $asGuest the viewer-independent guest view (competition toolkit v2 S1, PublicStandingSnapshots - cached
+     *     and shared by the public JSON and the displays): the blocklist and the allow list of whoever is signed in are
+     *     ignored explicitly - HiddenPlayers / PrivateProfileAccess read the signed-in user, not $viewerPlayerId
      */
-    public function publicView(CompetitionStandingOverview $standing, null|string $viewerPlayerId): PublicStandingTable
+    public function publicView(CompetitionStandingOverview $standing, null|string $viewerPlayerId, bool $asGuest = false): PublicStandingTable
     {
         $roundsById = $this->rounds($standing->competitionId);
 
@@ -119,8 +123,9 @@ readonly final class GetStandingResults
         $officialByRound = $published !== []
             ? $this->officialEntrantsView->forRounds(
                 array_map(static fn (array $round): RoundCategory => RoundCategory::from($round['category']), $published),
-                $viewerPlayerId,
+                $asGuest ? null : $viewerPlayerId,
                 keepHidden: true,
+                asGuest: $asGuest,
             )
             : [];
 

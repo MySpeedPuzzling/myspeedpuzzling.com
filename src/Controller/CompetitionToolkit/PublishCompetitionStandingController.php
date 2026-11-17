@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\UnpublishCompetitionStanding;
@@ -29,6 +30,7 @@ final class PublishCompetitionStandingController extends AbstractController
     public function __construct(
         private readonly GetCompetitionStandings $getCompetitionStandings,
         private readonly MessageBusInterface $messageBus,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -71,6 +73,8 @@ final class PublishCompetitionStandingController extends AbstractController
             ['%name%' => $standing->name],
         ));
 
+        // After the commit: the public standings' guest snapshots start a new generation (competition toolkit v2 S1)
+        $this->displayLiveUpdates->standingsChanged($standing->competitionId);
         return $this->redirectToRoute('competition_standings_manage', ['competitionId' => $standing->competitionId], Response::HTTP_SEE_OTHER);
     }
 }

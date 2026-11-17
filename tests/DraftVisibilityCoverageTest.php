@@ -43,6 +43,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetMyDataResults.php' => self::OWN . ' "My data" names only the event a "Link my results" link of the player\'s own result waits for (waiting_event_link, creation-wizard.md "Backfill") - an event they may edit, not public yet on purpose.',
         'Query/GetPastEventSeriesChoices.php' => self::OWN . ' The series the player may add a date to ("Part of a series" of the backfill path) - their own drafts included on purpose, never a rejected one.',
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
+        'Query/GetPublicStandingHead.php' => self::PAGE_GATED . ' The public standing JSON (public_standing_state, competition toolkit v2 S1) checks IsCompetitionPubliclyVisible on every request before it reads a snapshot; it reads only the event\'s slugs for the URL.',
         'Query/GetBracketRounds.php' => self::PAGE_GATED . ' The public bracket (BracketPageBuilder, competition toolkit A9) checks IsCompetitionPubliclyVisible first.',
         'Query/GetCompetitionDisplayState.php' => 'A competition display is found by its token only (the organiser\'s capability URL, D-displays-overlays.md §2): it works for a draft on purpose - a rehearsal before publishing - and is never listed anywhere.',
         'Query/GetCompetitionDisplayImagePaths.php' => 'Storage clean-up: the uploaded display pictures of an event or series being deleted - nothing is shown to anybody.',

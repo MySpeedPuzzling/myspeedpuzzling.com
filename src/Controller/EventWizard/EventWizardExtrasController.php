@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\CompetitionRefereeListItem;
 use SpeedPuzzling\Web\Results\EventWizardExtrasState;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardExtras;
@@ -80,6 +81,7 @@ final class EventWizardExtrasController extends AbstractController
         private readonly CompetitionRepository $competitionRepository,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionDisplaysPresence $displaysPresence,
+        private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
     ) {
     }
 
@@ -266,6 +268,8 @@ final class EventWizardExtrasController extends AbstractController
         if ($form->has('standings') && $data->standings) {
             try {
                 $this->standingsPerCategory($competitionId);
+                // After the commit: the public standings' guest snapshots start a new generation (competition toolkit v2 S1)
+                $this->displayLiveUpdates->standingsChanged($competitionId);
             } catch (HandlerFailedException | HttpExceptionInterface $failure) {
                 $refused = EventWizardRefusal::find($failure, InvalidCompetitionStanding::class);
 

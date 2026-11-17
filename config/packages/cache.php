@@ -133,6 +133,19 @@ return App::config([
                     'adapters' => ['cache.app'],
                     'tags' => true,
                 ],
+                // The guest snapshots of published standings (PublicStandingSnapshots, competition toolkit v2 S1): keyed by the
+                // event's generation, which every signalled write replaces - so never stale after a write; 60 s heals the
+                // unsignalled ones. Disposable: a miss is one recompute
+                'competition_standings_cache' => [
+                    'adapters' => ['cache.app'],
+                    'default_lifetime' => 60,
+                ],
+                // Does a published standing count a round / is it published (CompetitionStandingsPresence): asked on every
+                // results write, so an event without published standings pays no statement. Tagged per event; 5 minutes
+                'competition_standings_presence_cache' => [
+                    'adapters' => ['cache.app'],
+                    'tags' => true,
+                ],
                 // The analytics studio's answers (docs/features/competitions-management/analytics-studio.md §2.9, R2, R3):
                 // the state 2 s, the analytics and puzzle statistics 10 minutes, an entrant 5 minutes, predictions per player
                 // 15 minutes - each keyed by what it depends on (round, stopwatch state, visible puzzles, entrants), so a

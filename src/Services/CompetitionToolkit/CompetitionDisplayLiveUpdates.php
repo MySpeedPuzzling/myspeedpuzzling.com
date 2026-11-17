@@ -27,6 +27,9 @@ use Symfony\Component\Mercure\Update;
  *   runtime re-picks the round when another followed round starts): the stopwatch actions signal nothing here, except
  *   a start that reveals puzzles (the reveal push, puzzlesChanged() through OfficialResultsLiveUpdates::puzzlesRevealed()).
  * - A failure never fails the write: logged (warning), the displays catch up on their 60 s state fetch.
+ * - Being the choke point, it forwards every results / round write to CompetitionStandingsLiveUpdates FIRST, before its
+ *   own display gate (competition toolkit v2 S1): the published standings' guest snapshots start a new generation
+ *   whether or not the event has displays - and before a display signal that would read them.
  */
 final readonly class CompetitionDisplayLiveUpdates
 {
@@ -36,6 +39,7 @@ final readonly class CompetitionDisplayLiveUpdates
         private HubInterface $hub,
         private CompetitionDisplaysPresence $presence,
         private LoggerInterface $logger,
+        private CompetitionStandingsLiveUpdates $standings,
     ) {
     }
 
@@ -44,6 +48,7 @@ final readonly class CompetitionDisplayLiveUpdates
      */
     public function resultsChanged(string $roundId): void
     {
+        $this->standings->resultsChanged($roundId);
         $this->signalRound($roundId, 'results', static fn (CompetitionDisplaysPresent $presence): bool => $presence->results);
     }
 
@@ -52,6 +57,7 @@ final readonly class CompetitionDisplayLiveUpdates
      */
     public function resultsChangedInCompetition(string $competitionId): void
     {
+        $this->standings->competitionChanged($competitionId);
         $this->signalCompetition($competitionId, 'results', static fn (CompetitionDisplaysPresent $presence): bool => $presence->results);
     }
 
@@ -69,6 +75,7 @@ final readonly class CompetitionDisplayLiveUpdates
      */
     public function roundChanged(string $roundId): void
     {
+        $this->standings->roundChanged($roundId);
         $this->signalRound($roundId, 'round', static fn (CompetitionDisplaysPresent $presence): bool => $presence->displays);
     }
 
@@ -78,7 +85,19 @@ final readonly class CompetitionDisplayLiveUpdates
      */
     public function roundsChanged(string $competitionId): void
     {
+        $this->standings->roundsChanged($competitionId);
         $this->signalCompetition($competitionId, 'round', static fn (CompetitionDisplaysPresent $presence): bool => $presence->displays);
+    }
+
+    /**
+     * A standing of the event (created, edited, deleted, published, unpublished) or an advancement step was written - by
+     * the standing / step controllers and the creation wizard, after the commit. The guest snapshots start a new
+     * generation, then the event's displays (any) get a `standings` signal.
+     */
+    public function standingsChanged(string $competitionId): void
+    {
+        $this->standings->standingsChanged($competitionId);
+        $this->signalCompetition($competitionId, 'standings', static fn (CompetitionDisplaysPresent $presence): bool => $presence->displays);
     }
 
     /**

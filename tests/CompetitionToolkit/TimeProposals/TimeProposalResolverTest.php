@@ -254,17 +254,30 @@ final class TimeProposalResolverTest extends KernelTestCase
         self::assertSame([], array_values(array_filter($statements['sql'], static fn (string $sql): bool => str_contains($sql, 'competition_time_proposal'))));
     }
 
+    /**
+     * In every locale of the site, each in its own catalogue - a key missing there would show in English (competition
+     * toolkit G3).
+     */
     public function testTheNewReasonsAreTranslated(): void
     {
         $translator = self::getContainer()->get(TranslatorInterface::class);
+        $keys = [
+            ...array_map(static fn (string $reason): string => 'official_results.reason.' . $reason, ['proposals_off', 'proposal_not_found']),
+            ...array_map(static fn (string $reason): string => 'time_proposal.reason.' . $reason, ['sign_in_required', 'invalid_proposal', 'rate_limited', 'round_not_found', 'proposals_off', 'invalid_proposal_id', 'entry_not_in_round', 'not_your_entry', 'linked_after_start', 'clock_ahead', 'not_running', 'times_up', 'too_late', 'result_recorded', 'already_proposed', 'proposal_not_found']),
+        ];
+        $missing = [];
 
-        foreach (['proposals_off', 'proposal_not_found'] as $reason) {
-            self::assertNotSame('official_results.reason.' . $reason, $translator->trans('official_results.reason.' . $reason, locale: 'en'));
+        foreach (['cs', 'de', 'en', 'es', 'fr', 'ja'] as $locale) {
+            $catalogue = $translator->getCatalogue($locale);
+
+            foreach ($keys as $key) {
+                if (!$catalogue->defines($key)) {
+                    $missing[] = $locale . ': ' . $key;
+                }
+            }
         }
 
-        foreach (['sign_in_required', 'invalid_proposal', 'rate_limited', 'round_not_found', 'proposals_off', 'invalid_proposal_id', 'entry_not_in_round', 'not_your_entry', 'linked_after_start', 'clock_ahead', 'not_running', 'times_up', 'too_late', 'result_recorded', 'already_proposed', 'proposal_not_found'] as $reason) {
-            self::assertNotSame('time_proposal.reason.' . $reason, $translator->trans('time_proposal.reason.' . $reason, locale: 'en'));
-        }
+        self::assertSame([], $missing, 'Keys missing in a locale\'s own catalogue (the page would fall back to English)');
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\LiveResults;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -30,8 +31,32 @@ final class LiveResultsScanRedirectMatrixTest extends WebTestCase
 
     public function testEveryViewerAndEveryTagLeadWhereTheyLedBefore(): void
     {
+        self::assertMatchesGoldenFile(__DIR__ . '/golden/live-results-scan-matrix.txt', $this->matrix(competitorPages: false), 'The name tag scan redirect matrix');
+    }
+
+    /**
+     * Competitor pages on (toolkit B2, B-qr-competitor-page.md §3.3): only the public branch may change - organisers
+     * and referees land where they did. TODO(B4): once the `competitor_page` route exists (CompetitorPageUrl), the public
+     * rows of known participants lead to `/en/competitor/{cid}/p/{id}` - regenerate with UPDATE_GOLDEN=1 and check by
+     * eye; until then they fall back to the event page, so this golden equals the one above.
+     */
+    public function testWithCompetitorPagesOnOnlyThePublicBranchChanges(): void
+    {
+        self::assertMatchesGoldenFile(__DIR__ . '/golden/live-results-scan-matrix-competitor-pages.txt', $this->matrix(competitorPages: true), 'The name tag scan redirect matrix with competitor pages on');
+    }
+
+    private function matrix(bool $competitorPages): string
+    {
         $browser = self::createClient();
         $browser->disableReboot();
+
+        if ($competitorPages) {
+            self::getContainer()->get(Connection::class)->executeStatement(
+                'UPDATE competition SET competitor_pages = true WHERE id IN (:ids)',
+                ['ids' => [OfficialResultsFixture::COMPETITION_RESULTS_CUP, CompetitionFixture::COMPETITION_UNAPPROVED, OrganizationFixture::EDITION_LANTERN_DRAFT]],
+                ['ids' => ArrayParameterType::STRING],
+            );
+        }
 
         self::getContainer()->get(Connection::class)->insert('competition_referee', [
             'id' => Uuid::uuid7()->toString(),
@@ -87,6 +112,6 @@ final class LiveResultsScanRedirectMatrixTest extends WebTestCase
             }
         }
 
-        self::assertMatchesGoldenFile(__DIR__ . '/golden/live-results-scan-matrix.txt', implode("\n", $lines) . "\n", 'The name tag scan redirect matrix');
+        return implode("\n", $lines) . "\n";
     }
 }

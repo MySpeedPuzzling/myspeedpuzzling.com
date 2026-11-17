@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Services\PreferredLocale;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * A draft's page exists only for its team and admins (docs/features/organizations/README.md "Drafts", P5/P7): 404
@@ -144,6 +148,47 @@ final class DraftPagesTest extends WebTestCase
         $browser->request('GET', $stopwatch);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME);
+    }
+
+    /**
+     * The toolkit's printed tags (line-up, table, round entry - R-review-and-plan.md §1.3) of a draft lead its outsiders
+     * to the events list like the name tag - with competitor pages on too (B-qr-competitor-page.md §7)
+     */
+    public function testNoPrintedTagOfADraftLeadsIntoIt(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        $draft = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $tags = [
+            '/live/' . $draft . '/t/1',
+            '/cs/live/' . $draft . '/t/1',
+            '/live/' . $draft . '/e/018d0042-0000-0000-0000-0000000000ff',
+            '/live/' . $draft . '/g/018d0042-0000-0000-0000-0000000000ff',
+        ];
+
+        $router = self::getContainer()->get(UrlGeneratorInterface::class);
+        $eventsLists = array_map(static fn (string $locale): string => $router->generate('events', ['_locale' => $locale]), PreferredLocale::LOCALES);
+
+        foreach ([false, true] as $competitorPages) {
+            self::getContainer()->get(Connection::class)->executeStatement(
+                'UPDATE competition SET competitor_pages = :on WHERE id = :id',
+                ['on' => $competitorPages, 'id' => $draft],
+                ['on' => ParameterType::BOOLEAN],
+            );
+
+            foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                foreach ($tags as $tag) {
+                    $browser->request('GET', $tag);
+                    // The events list in the viewer's language - a signed-in player's profile follows the pages they visit
+                    self::assertContains($browser->getResponse()->headers->get('Location'), $eventsLists, $tag);
+                }
+            }
+        }
     }
 
     /**

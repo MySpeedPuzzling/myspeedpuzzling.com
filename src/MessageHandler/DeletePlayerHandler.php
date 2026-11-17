@@ -51,6 +51,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\EventResultsImport\EventResultSlotRelease;
 use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinksOfDeletedAccount;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -78,6 +79,7 @@ final class DeletePlayerHandler
         private readonly SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
         private readonly EventResultSlotRelease $eventResultSlotRelease,
         private readonly ResultClaimLogRepository $resultClaimLogRepository,
+        private readonly ParticipantLinksOfDeletedAccount $participantLinksOfDeletedAccount,
     ) {
     }
 
@@ -144,6 +146,8 @@ final class DeletePlayerHandler
         $this->anonymizeSoldSwappedItems($player, $playerName);
         $this->anonymizeTransactionRatings($player, $playerName);
         $this->anonymizeCompetitionSeries($playerId);
+        // Their competition rows let go of the account (participant-linking.md §11) - before player_id is gone
+        $this->participantLinksOfDeletedAccount->release($playerId);
         $this->anonymizeBulkSimpleFks($playerId);
         // The address lives on the account row, which goes below - read it while it is still there
         $email = $this->playerAccountEmail->ofPlayer($player);
@@ -549,7 +553,6 @@ final class DeletePlayerHandler
 
         $conn->executeStatement('UPDATE puzzle SET added_by_user_id = NULL WHERE added_by_user_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE manufacturer SET added_by_user_id = NULL WHERE added_by_user_id = :p', ['p' => $playerId]);
-        $conn->executeStatement('UPDATE competition_participant SET player_id = NULL WHERE player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE wjpc_participant SET player_id = NULL WHERE player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE lent_puzzle SET owner_player_id = NULL WHERE owner_player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('UPDATE lent_puzzle SET current_holder_player_id = NULL WHERE current_holder_player_id = :p', ['p' => $playerId]);

@@ -36,6 +36,25 @@ SQL;
     }
 
     /**
+     * The participant (by its alias) holds official data in any round of its event - participantHasOfficialData() as a
+     * condition of a set-based statement (account deletion, DeletePlayerHandler)
+     */
+    public static function sqlParticipantHoldsOfficialData(string $participantAlias): string
+    {
+        $hasData = self::ENTRY_HAS_DATA;
+
+        return <<<SQL
+EXISTS (
+    SELECT 1
+    FROM competition_participant_round cpr
+    LEFT JOIN competition_team ct ON ct.id = cpr.team_id
+    WHERE cpr.participant_id = {$participantAlias}.id
+        AND {$hasData}
+)
+SQL;
+    }
+
+    /**
      * The round has an official result - finished, pieces placed or did not start - on a round entry or a pair/team of
      * it (a qualified mark alone is no result). A Reset of a round with online timing waits for the results desk to
      * clear them (ResetRoundStopwatchHandler).

@@ -18,18 +18,26 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\RecordPhotoStashEntry;
 use SpeedPuzzling\Web\Query\GetModerationActions;
+use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ModerationActionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\MessageHandler\ParticipantsSheet\SheetChangeSets;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class DeletePlayerHandlerTest extends KernelTestCase
 {
     use TrackerlessTimeSeeding;
+    use SheetChangeSets;
 
     private MessageBusInterface $messageBus;
     private EntityManagerInterface $entityManager;
@@ -463,6 +471,82 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         self::assertIsArray($row);
         self::assertNotNull($row['approved_at']);
         self::assertNull($row['approved_by_player_id']);
+    }
+
+    /**
+     * docs/features/competitions-management/participant-linking.md §11: the account's competition rows let go of it
+     * with nothing of the link left, its own self-joined rows without official data go (else they would read as an
+     * unclaimed name anybody could pick), and the link log keeps ids and actions but never the account's name.
+     */
+    public function testTheAccountsCompetitionRowsLetGoOfIt(): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $favorites = PlayerFixture::PLAYER_WITH_FAVORITES;
+
+        // An organiser's row without official data (WJPC, linked by the organiser) ...
+        $container = self::getContainer();
+        $container->get(ParticipantLinks::class)->link(
+            $container->get(CompetitionParticipantRepository::class)->get(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED),
+            $container->get(PlayerRepository::class)->get($favorites),
+            ParticipantLinkMethod::Organiser,
+            null,
+            TestClock::now(),
+        );
+        $this->entityManager->flush();
+        $connection->executeStatement(
+            'UPDATE competition_participant SET online_link_confirmed_at = connected_at WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
+        );
+        // ... and a self-joined row holding an official result (the Results Cup's Ivan, finished in group B)
+        $this->applySheetChanges([
+            self::sheetGroup(['op' => 'player', 'participant' => OfficialResultsFixture::PARTICIPANT_IVAN, 'from' => null, 'to' => $favorites]),
+        ]);
+        $connection->executeStatement("UPDATE competition_participant SET source = 'self_joined' WHERE id = :id", ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
+        // PARTICIPANT_SELF_JOINED is their own self-joined row without results
+
+        $this->messageBus->dispatch(new DeletePlayer($favorites));
+        $this->entityManager->clear();
+
+        /** @var array<string, array{player_id: null|string, connected_at: null|string, connected_via: null|string, online_link_confirmed_at: null|string, deleted_at: null|string}> $rows */
+        $rows = $connection->fetchAllAssociativeIndexed(
+            'SELECT id, player_id, connected_at, connected_via, online_link_confirmed_at, deleted_at FROM competition_participant WHERE id IN (:a, :b, :c)',
+            ['a' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, 'b' => OfficialResultsFixture::PARTICIPANT_IVAN, 'c' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
+        );
+
+        foreach ($rows as $id => $row) {
+            self::assertNull($row['player_id'], $id);
+            self::assertNull($row['connected_at'], $id);
+            self::assertNull($row['connected_via'], $id);
+            self::assertNull($row['online_link_confirmed_at'], $id);
+        }
+
+        self::assertNull($rows[CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]['deleted_at'], 'The organiser\'s row stays on the list');
+        self::assertNull($rows[OfficialResultsFixture::PARTICIPANT_IVAN]['deleted_at'], 'A self-joined row with an official result stays - the organiser\'s record');
+        self::assertSame(TestClock::FROZEN_NOW, $rows[CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED]['deleted_at'], 'Their own self-joined row goes');
+        self::assertSame('Michael Johnson', $connection->fetchOne('SELECT name FROM competition_participant WHERE id = :id', ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED]));
+
+        // Nothing of theirs is left anywhere on a participant
+        self::assertSame(0, $connection->fetchOne('SELECT COUNT(*) FROM competition_participant WHERE player_id = :p', ['p' => $favorites]));
+
+        // The log: the account's name erased everywhere, one account_deleted row per participant they were linked to
+        self::assertSame(0, $connection->fetchOne("SELECT COUNT(*) FROM participant_link_log WHERE player_id = :p AND player_name <> ''", ['p' => $favorites]));
+        self::assertGreaterThan(0, $connection->fetchOne("SELECT COUNT(*) FROM participant_link_log WHERE player_id = :p AND action = 'linked'", ['p' => $favorites]));
+
+        foreach ([CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, OfficialResultsFixture::PARTICIPANT_IVAN, CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED] as $participantId) {
+            /** @var list<array{id: string, player_name: string, method: null|string, by_player_id: null|string, at: string, participant_name: string}> $deleted */
+            $deleted = $connection->fetchAllAssociative(
+                "SELECT id, player_name, method, by_player_id, at, participant_name FROM participant_link_log WHERE participant_id = :id AND player_id = :p AND action = 'account_deleted'",
+                ['id' => $participantId, 'p' => $favorites],
+            );
+            self::assertCount(1, $deleted, $participantId);
+            self::assertSame('', $deleted[0]['player_name']);
+            self::assertNull($deleted[0]['method']);
+            self::assertNull($deleted[0]['by_player_id']);
+            self::assertSame(TestClock::FROZEN_NOW, $deleted[0]['at']);
+            self::assertNotSame('', $deleted[0]['participant_name']);
+            // gen_uuid_v7() - a time-ordered id
+            self::assertSame('7', $deleted[0]['id'][14]);
+        }
     }
 
     private function insertComparisonRow(string $ownerId, string $teamId): string

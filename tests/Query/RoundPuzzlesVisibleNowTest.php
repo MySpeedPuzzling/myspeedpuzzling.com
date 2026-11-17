@@ -148,7 +148,7 @@ final class RoundPuzzlesVisibleNowTest extends KernelTestCase
             'SELECT starts_at, reveal_delay_minutes FROM competition_round WHERE id = :id',
             ['id' => CompetitionApiFixture::ROUND_FUTURE],
         );
-        assert(is_array($row) && is_string($row['starts_at']));
+        assert(is_array($row) && is_string($row['starts_at']) && (is_int($row['reveal_delay_minutes']) || is_string($row['reveal_delay_minutes'])));
 
         return RoundPuzzleReveal::automaticRevealAt(new DateTimeImmutable($row['starts_at']), (int) $row['reveal_delay_minutes']);
     }

@@ -1,0 +1,377 @@
+{
+    "serverNow": "2026-10-14T12:00:00+00:00",
+    "serverNowMs": 1791979200000,
+    "topic": "/round-results/018d0020-0000-0000-0000-000000000104",
+    "competition": {
+        "id": "018d0020-0000-0000-0000-000000000001",
+        "name": "Results Cup",
+        "isOnline": false
+    },
+    "round": {
+        "id": "018d0020-0000-0000-0000-000000000104",
+        "name": "Pairs",
+        "category": "duo",
+        "startsAt": "2026-10-04T13:00:00+00:00",
+        "minutesLimit": 90,
+        "slug": "pairs",
+        "stopwatch": {
+            "status": null,
+            "startedAt": null,
+            "stoppedAt": null
+        },
+        "resultsPublished": false,
+        "resultsPublishedAt": null,
+        "resultsFirstPublishedAt": null,
+        "tableNumbersOff": false,
+        "puzzlesCount": 1,
+        "piecesCount": 2000,
+        "entries": {
+            "total": 4,
+            "withTableNumber": 3,
+            "withResult": 3,
+            "qualified": 2
+        },
+        "seated": false,
+        "tablesReadiness": false
+    },
+    "rounds": [
+        {
+            "id": "018d0020-0000-0000-0000-000000000101",
+            "name": "Group A",
+            "category": "solo",
+            "startsAt": "2026-10-04T09:00:00+00:00",
+            "minutesLimit": 90,
+            "slug": "group-a",
+            "stopwatch": {
+                "status": null,
+                "startedAt": null,
+                "stoppedAt": null
+            },
+            "resultsPublished": true,
+            "resultsPublishedAt": "2026-10-04T11:00:00+00:00",
+            "resultsFirstPublishedAt": "2026-10-04T11:00:00+00:00",
+            "tableNumbersOff": false,
+            "puzzlesCount": 1,
+            "piecesCount": 1000,
+            "entries": {
+                "total": 6,
+                "withTableNumber": 5,
+                "withResult": 5,
+                "qualified": 2
+            },
+            "seated": false,
+            "tablesReadiness": false
+        },
+        {
+            "id": "018d0020-0000-0000-0000-000000000102",
+            "name": "Group B",
+            "category": "solo",
+            "startsAt": "2026-10-04T11:00:00+00:00",
+            "minutesLimit": 90,
+            "slug": "group-b",
+            "stopwatch": {
+                "status": null,
+                "startedAt": null,
+                "stoppedAt": null
+            },
+            "resultsPublished": false,
+            "resultsPublishedAt": null,
+            "resultsFirstPublishedAt": null,
+            "tableNumbersOff": false,
+            "puzzlesCount": 1,
+            "piecesCount": 5000,
+            "entries": {
+                "total": 3,
+                "withTableNumber": 3,
+                "withResult": 3,
+                "qualified": 2
+            },
+            "seated": true,
+            "tablesReadiness": false
+        },
+        {
+            "id": "018d0020-0000-0000-0000-000000000104",
+            "name": "Pairs",
+            "category": "duo",
+            "startsAt": "2026-10-04T13:00:00+00:00",
+            "minutesLimit": 90,
+            "slug": "pairs",
+            "stopwatch": {
+                "status": null,
+                "startedAt": null,
+                "stoppedAt": null
+            },
+            "resultsPublished": false,
+            "resultsPublishedAt": null,
+            "resultsFirstPublishedAt": null,
+            "tableNumbersOff": false,
+            "puzzlesCount": 1,
+            "piecesCount": 2000,
+            "entries": {
+                "total": 4,
+                "withTableNumber": 3,
+                "withResult": 3,
+                "qualified": 2
+            },
+            "seated": false,
+            "tablesReadiness": false
+        },
+        {
+            "id": "018d0020-0000-0000-0000-000000000103",
+            "name": "Final",
+            "category": "solo",
+            "startsAt": "2026-10-04T15:00:00+00:00",
+            "minutesLimit": 90,
+            "slug": "final",
+            "stopwatch": {
+                "status": null,
+                "startedAt": null,
+                "stoppedAt": null
+            },
+            "resultsPublished": false,
+            "resultsPublishedAt": null,
+            "resultsFirstPublishedAt": null,
+            "tableNumbersOff": false,
+            "puzzlesCount": 1,
+            "piecesCount": 6000,
+            "entries": {
+                "total": 1,
+                "withTableNumber": 0,
+                "withResult": 0,
+                "qualified": 0
+            },
+            "seated": false,
+            "tablesReadiness": false
+        },
+        {
+            "id": "018d0020-0000-0000-0000-000000000105",
+            "name": "Pairs Final",
+            "category": "duo",
+            "startsAt": "2026-10-04T17:00:00+00:00",
+            "minutesLimit": 90,
+            "slug": "pairs-final",
+            "stopwatch": {
+                "status": null,
+                "startedAt": null,
+                "stoppedAt": null
+            },
+            "resultsPublished": false,
+            "resultsPublishedAt": null,
+            "resultsFirstPublishedAt": null,
+            "tableNumbersOff": false,
+            "puzzlesCount": 0,
+            "piecesCount": null,
+            "entries": {
+                "total": 0,
+                "withTableNumber": 0,
+                "withResult": 0,
+                "qualified": 0
+            },
+            "seated": true,
+            "tablesReadiness": false
+        }
+    ],
+    "entries": [
+        {
+            "ref": "team:018d0020-0000-0000-0000-000000000401",
+            "kind": "team",
+            "id": "018d0020-0000-0000-0000-000000000401",
+            "roundId": "018d0020-0000-0000-0000-000000000104",
+            "name": "Puzzle Sharks",
+            "displayName": "Puzzle Sharks",
+            "participantId": null,
+            "country": null,
+            "countries": [
+                "cz",
+                "de"
+            ],
+            "members": [
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000201",
+                    "participantRoundId": "01a1e6dc-ae91-7fef-a7b1-3969d126bef2",
+                    "name": "Anna Fast",
+                    "country": "cz",
+                    "playerId": "018d0000-0000-0000-0000-000000000003",
+                    "playerCode": "admin",
+                    "playerName": "Admin User"
+                },
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000202",
+                    "participantRoundId": "01a1e6dc-ae92-700c-b68e-dd7d702442ee",
+                    "name": "Ben Steady",
+                    "country": "de",
+                    "playerId": null,
+                    "playerCode": null,
+                    "playerName": null
+                }
+            ],
+            "playerId": null,
+            "playerCode": null,
+            "playerName": null,
+            "tableNumber": 1,
+            "result": {
+                "seconds": 5400
+            },
+            "rank": 1,
+            "qualified": true,
+            "qualifiedAt": "2026-10-04T10:00:00+00:00",
+            "enteredAt": "2026-10-04T10:00:00+00:00",
+            "enteredBy": {
+                "playerId": "018d0000-0000-0000-0000-000000000005",
+                "name": "Sarah Williams"
+            }
+        },
+        {
+            "ref": "team:018d0020-0000-0000-0000-000000000404",
+            "kind": "team",
+            "id": "018d0020-0000-0000-0000-000000000404",
+            "roundId": "018d0020-0000-0000-0000-000000000104",
+            "name": "Edge Hunters",
+            "displayName": "Edge Hunters",
+            "participantId": null,
+            "country": null,
+            "countries": [
+                "us",
+                "de"
+            ],
+            "members": [
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000207",
+                    "participantRoundId": "01a1e6dc-ae92-7097-b68e-dd7d72da6b03",
+                    "name": "Gina Quick",
+                    "country": "us",
+                    "playerId": "018d0000-0000-0000-0000-000000000002",
+                    "playerCode": "player2",
+                    "playerName": "Jane Smith"
+                },
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000208",
+                    "participantRoundId": "01a1e6dc-ae92-70a3-b68e-dd7d7347b042",
+                    "name": "Hugo Slow",
+                    "country": "de",
+                    "playerId": "018d0000-0000-0000-0000-000000000001",
+                    "playerCode": "player1",
+                    "playerName": "John Doe"
+                }
+            ],
+            "playerId": null,
+            "playerCode": null,
+            "playerName": null,
+            "tableNumber": 3,
+            "result": {
+                "seconds": 6000
+            },
+            "rank": 2,
+            "qualified": true,
+            "qualifiedAt": "2026-10-04T10:00:00+00:00",
+            "enteredAt": "2026-10-04T10:00:00+00:00",
+            "enteredBy": {
+                "playerId": "018d0000-0000-0000-0000-000000000005",
+                "name": "Sarah Williams"
+            }
+        },
+        {
+            "ref": "team:018d0020-0000-0000-0000-000000000402",
+            "kind": "team",
+            "id": "018d0020-0000-0000-0000-000000000402",
+            "roundId": "018d0020-0000-0000-0000-000000000104",
+            "name": "Corner Pieces",
+            "displayName": "Corner Pieces",
+            "participantId": null,
+            "country": null,
+            "countries": [
+                "us",
+                "cz"
+            ],
+            "members": [
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000203",
+                    "participantRoundId": "01a1e6dc-ae92-7039-b68e-dd7d71080e95",
+                    "name": "Cara Tied",
+                    "country": "us",
+                    "playerId": null,
+                    "playerCode": null,
+                    "playerName": null
+                },
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000204",
+                    "participantRoundId": "01a1e6dc-ae92-7049-b68e-dd7d7123d901",
+                    "name": "Dan Unfinished",
+                    "country": "cz",
+                    "playerId": null,
+                    "playerCode": null,
+                    "playerName": null
+                }
+            ],
+            "playerId": null,
+            "playerCode": null,
+            "playerName": null,
+            "tableNumber": 2,
+            "result": {
+                "piecesPlaced": 1700
+            },
+            "rank": 3,
+            "qualified": false,
+            "qualifiedAt": null,
+            "enteredAt": "2026-10-04T10:00:00+00:00",
+            "enteredBy": {
+                "playerId": "018d0000-0000-0000-0000-000000000005",
+                "name": "Sarah Williams"
+            }
+        },
+        {
+            "ref": "team:018d0020-0000-0000-0000-000000000403",
+            "kind": "team",
+            "id": "018d0020-0000-0000-0000-000000000403",
+            "roundId": "018d0020-0000-0000-0000-000000000104",
+            "name": null,
+            "displayName": "Eva Noshow, Filip Pending",
+            "participantId": null,
+            "country": null,
+            "countries": [
+                "sk",
+                "cz"
+            ],
+            "members": [
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000205",
+                    "participantRoundId": "01a1e6dc-ae92-706a-b68e-dd7d7182d1f8",
+                    "name": "Eva Noshow",
+                    "country": "sk",
+                    "playerId": null,
+                    "playerCode": null,
+                    "playerName": null
+                },
+                {
+                    "participantId": "018d0020-0000-0000-0000-000000000206",
+                    "participantRoundId": "01a1e6dc-ae92-7076-b68e-dd7d720e18d2",
+                    "name": "Filip Pending",
+                    "country": "cz",
+                    "playerId": null,
+                    "playerCode": null,
+                    "playerName": null
+                }
+            ],
+            "playerId": null,
+            "playerCode": null,
+            "playerName": null,
+            "tableNumber": null,
+            "result": null,
+            "rank": null,
+            "qualified": false,
+            "qualifiedAt": null,
+            "enteredAt": null,
+            "enteredBy": null
+        }
+    ],
+    "mercure": {
+        "url": "http://localhost:8082/.well-known/mercure",
+        "topics": [
+            "/round-results/018d0020-0000-0000-0000-000000000104",
+            "/round-stopwatch/018d0020-0000-0000-0000-000000000104"
+        ],
+        "token": "<fresh token>",
+        "expiresAt": "2026-10-14T13:00:00+00:00",
+        "expiresIn": 3600
+    }
+}

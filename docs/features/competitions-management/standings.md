@@ -153,7 +153,7 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §2.1-2.2, §3.1. A
   no stale window after a signalled write; unsignalled edits (participant rename, a player turning private, the results
   import) heal within 60 s. A failing cache = computed every time (warning). Head query `GetPublicStandingHead` (standing +
   event/series slugs, 1 statement).
-- **After-commit hook:** `CompetitionStandingsLiveUpdates` (bump only; the public Mercure topic is S4), reached through
+- **After-commit hook:** `CompetitionStandingsLiveUpdates` (the bump; since S4 also the public signal below), reached through
   `CompetitionDisplayLiveUpdates`, which forwards first for every event: `resultsChanged` → when a published standing
   counts the round and the round is published; `roundChanged` → forgets the round's presence, then when a published
   standing counts it; `resultsChangedInCompetition` / `roundsChanged` (the latter forgets the event's presence) → when
@@ -176,6 +176,72 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §2.1-2.2, §3.1. A
 - Tests: `PublicStandingStateTest`, `PublicStandingSnapshotsTest`, `CompetitionStandingsLiveUpdatesTest`.
 - **On the displays (v2 S2):** the `standings` element shows a guest snapshot (`DisplayStandings`) - see
   [displays.md](displays.md) "Standings element".
+
+## Live push (competition toolkit v2 S4)
+
+Design of record: `toolkit/` v2 note `displays-standings.md` §4.2. As built 2026-11-18:
+
+- **Topic:** after the generation bump `CompetitionStandingsLiveUpdates` publishes one **public** Mercure update on
+  `/competition-standings/{competitionId}` (`CompetitionStandingsLiveUpdates::topic()`, lower case), payload
+  `{"type":"standing.signal"}` - no data, no standing or round id. Same gate as the bump (a results write of an
+  unpublished round sends nothing). Sent once the answer went out (`AfterResponse`, like the other pushes; the bump itself
+  is before the response, so a fetch the signal starts reads the new data), at most one per event and request
+  (`$pending`, `ResetInterface`). A hub failure = `warning`, never fails the write. Deferred work outside an HTTP request
+  (none today) would never be sent - the pages' 60 s poll covers a lost signal.
+- **Fragment `public_standing_table`:** `GET /{_locale}/standing-table/{standingId}` (main firewall,
+  `PublicStandingTableController`) = `standing/table_fragment.html.twig`: `<turbo-frame id="standing-table" target="_top">`
+  around `standing/_public_table.html.twig` - the page's table part (state line, rules, table, legend) extracted from
+  `standing.html.twig`; the page includes the same partial, its output is unchanged apart from the live wrapper
+  (`PublicStandingsTest::testTheTablePartRendersAsBeforeTheExtraction` renders the pre-S4 template copy
+  `tests/fixtures/standing-page-before-v2-s4.html.twig` against the new one). 404 like the page through
+  `StandingPageBuilder::buildById()` (unknown, unpublished, not public - drafts for their team too); visibility read on
+  every request. **Guests** (nobody signed in): the HTML cached per generation and locale
+  (`PublicStandingSnapshots::guestHtml()`, `html_v1_{standingId}_{locale}_{gen}`, 60 s) - warm 1 statement; **signed in**:
+  rendered for the viewer (blocklist, allow list, own row) every time. `Cache-Control: private, no-cache`, `noindex`.
+- **Client:** the page wraps the table part in `<div data-controller="standing-live">` (url, topic, hub) + an
+  `aria-live="polite"` "Updated at …" line (`public_standing.live.updated`). Lazy `standing_live_controller.js` (fetch,
+  `DOMParser`, swaps the frame's content only when it differs - no scroll jump) over the pure `assets/standing_live.js`
+  (harness `tests/standing-live-harness.mjs`, `StandingLiveScriptTest`): anonymous stream via `OfficialResultsEvents`
+  `{url, topics, public: true}`; signal on a visible page → fetch after a random 0-4 s, signals meanwhile coalesce, one
+  fetch at a time (+ one more after it); hidden → dirty, fetched 0-1 s after `visibilitychange`; no live stream
+  (refused, down, still opening) → the fragment every 60 s ±20 % while visible; stream re-opened → one fetch 0-4 s;
+  404 → everything stops.
+- **Herd:** 500 open pages × one signal ≈ 125 fetches/s over 4 s, each warm = 1 statement + cache reads + a cached
+  string; one render per generation and locale. **Not measured** (S4 was built without Docker: the planned
+  `tools/competition-load/` scenario - 500 viewers + 30 publishes, fragment p95 < 50 ms - is still to run).
+- **External listeners (OBS browser source, vMix, a script):** subscribe to the topic and re-fetch the public JSON
+  (`public_standing_state`, CORS `*`, ETag) on every message. The event id is the standing's event (the JSON does not carry
+  ids - take it from the organiser's URL `/manage-event-toolkit/{competitionId}`). A script (no CORS involved):
+
+  ```bash
+  curl -sN 'https://myspeedpuzzling.com/.well-known/mercure?match=/competition-standings/<competitionId>' \
+    | while read -r line; do
+        case "$line" in data:*) curl -s 'https://myspeedpuzzling.com/api/competition-standings/<standingId>' > standing.json ;; esac
+      done
+  ```
+
+  A browser source page:
+
+  ```js
+  const hub = new URL('https://myspeedpuzzling.com/.well-known/mercure');
+  hub.searchParams.append('match', '/competition-standings/<competitionId>'); // the parameter assets/official_results_events.js uses
+  const load = () => fetch('https://myspeedpuzzling.com/api/competition-standings/<standingId>', { cache: 'no-cache' })
+      .then((r) => r.json()).then(render);
+  new EventSource(hub).onmessage = () => setTimeout(load, Math.random() * 2000);
+  load();
+  setInterval(load, 60000); // the stream may be down - never rely on it alone
+  ```
+
+  The signal says only "something changed": always fetch, never parse it. An EventSource from another origin needs the
+  hub's `cors_origins` to allow that origin (lily's hub config - not checked from here); a page served by OBS from a local
+  file or another site may be refused - then the 60 s poll of the JSON alone still works.
+- Tests: `PublicStandingsTest` (extraction, fragment = the page's frame, 404s, cs locale, edition links, guests once per
+  generation: cold ≤ 7 / warm 1, a signalled write seen at once, signed in = own render), `CompetitionStandingsLiveUpdatesTest`
+  (one public data-free signal after the response, gated, hub failure = warning), canaries
+  `BlocklistCanaryTest::testTheStandingTableFragmentAppliesTheBlocklistLikeThePage`,
+  `PrivateProfileCanaryTest::testTheStandingTableFragmentLinksHerProfileForTheFriendOnly` (both with a kept cache: no
+  viewer's render reaches the guests or back), `DraftCanaryTest::testTheStandingsOfADraftAreNotThere` (+ fragment),
+  `StandingLiveScriptTest`.
 
 ## Advancement steps (competition toolkit A8)
 
@@ -233,5 +299,5 @@ an event with steps has a bracket.
 ## Deferred to v2 (R §3, docs/TODO.md "Competition toolkit v2")
 
 The `stages` standing classification and `numbered_across_stages` (a final classification across the bracket's stages),
-a standings Mercure topic (pages are static, refreshed on load), "drop the worst round" and season standings, a bracket overlay element for the
-displays (the standings element is built - v2 S2).
+"drop the worst round" and season standings, a bracket overlay element for the
+displays (the standings element is built - v2 S2; the standings Mercure topic - v2 S4 above).

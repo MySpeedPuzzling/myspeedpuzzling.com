@@ -27,7 +27,8 @@ use SpeedPuzzling\Web\Value\SolvingTimeSource;
  *   or counted here.
  * - A result without a tracker (an organiser's sheet, nobody's yet) has no member, so it is never anybody's row; a
  *   claimed one is read through the membership like every pair/team result.
- * - No event is shown or joined: a series pick needs nothing here.
+ * - No event is shown or joined (a series pick needs nothing here) - but the one a "Link my results" link waits for
+ *   (waiting_event_link, the player's own link to their event that is not public yet).
  * - The people of a pair/team result are named as the player's own profile results name them: a teammate with a
  *   private profile is masked (PrivateProfileAccess - named only when this player is on their allow list); a teammate
  *   the player blocks stays on the row, because the player took part (HiddenPlayers::sqlExcludeTeam keeps the viewer's
@@ -232,6 +233,15 @@ SELECT
             AND COALESCE(other.name, player_elem.player ->> 'player_name', other.code) IS NOT NULL
     ) AS co_puzzlers,
     (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    -- "Link my results" to an event not public yet (creation-wizard.md "Backfill"): the event the link waits for - every
+    -- row here is the player's own and changeable by them (an imported event result never gets a waiting link)
+    (
+        SELECT COALESCE(waiting_competition.name, waiting_series.name)
+        FROM waiting_event_link waiting
+            LEFT JOIN competition waiting_competition ON waiting_competition.id = waiting.competition_id
+            LEFT JOIN competition_series waiting_series ON waiting_series.id = waiting.series_id
+        WHERE waiting.puzzle_solving_time_id = pst.id
+    ) AS waiting_event_name,
     {$puzzleColumns},
     COUNT(*) OVER () AS total
 FROM mine

@@ -54,6 +54,9 @@ readonly final class PuzzleResultAttempt
         public null|int $piecesPlaced = null,
         // Its total when they finished it afterwards - display only
         public null|int $finishedLaterSeconds = null,
+        // The event a "Link my results" link waits for (not public yet - creation-wizard.md "Backfill") - set only for a
+        // viewer who may change the time (GetPuzzleResultDetail), null for everybody else
+        public null|string $waitingEventName = null,
     ) {
     }
 
@@ -99,6 +102,7 @@ readonly final class PuzzleResultAttempt
             datePrecision: $this->datePrecision,
             piecesPlaced: $this->piecesPlaced,
             finishedLaterSeconds: $this->finishedLaterSeconds,
+            waitingEventName: $this->waitingEventName,
         );
     }
 }

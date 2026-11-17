@@ -59,9 +59,11 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 8];
         // The old edition page + results per round
         yield 'edition, guest' => [self::SEASON_ONE, null, 12];
-        // + the signed-in overhead (4), statuses, attendance and the permissions statement
-        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 19];
+        // + the signed-in overhead (4), statuses, attendance and the permissions statement, and - Season One has begun -
+        // "Were you there? Link my results" (LinkMyResultsEntry, one count over the viewer's own times; none for a guest
+        // or an event that has not started - Hilltop below)
+        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 20];
+        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 20];
         // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one.
         // Hilltop has a pairs round in person: a partner finder - its card's one statement for a signed-in player only
         yield 'event, guest' => [self::HILLTOP, null, 12];
@@ -89,7 +91,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         // A non-admin organiser: maintainer of both series (Season One is edited through its series), creator of the
         // one-time event - the same statements as an admin, the permissions statement answers both
         yield 'series, maintainer' => [self::HARBOR, 9];
-        yield 'edition, series maintainer' => [self::SEASON_ONE, 19];
+        yield 'edition, series maintainer' => [self::SEASON_ONE, 20];
         yield 'event, creator' => [self::HILLTOP, 20];
     }
 

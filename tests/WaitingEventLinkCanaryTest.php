@@ -56,6 +56,33 @@ final class WaitingEventLinkCanaryTest extends WebTestCase
     }
 
     /**
+     * Whoever may change the time reads where it waits (result detail, My data) - the surfaces above stay silent for
+     * everybody else, so the note itself is what this proves: the owner sees the name, only while it waits
+     */
+    #[DataProvider('provideOwnSurfaces')]
+    public function testTheOwnerReadsWhereTheLinkWaits(string $url): void
+    {
+        $browser = self::createClient();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new LinkSolvingTimesToEvent(PlayerFixture::PLAYER_REGULAR, CompetitionFixture::COMPETITION_UNAPPROVED, null, [PuzzleSolvingTimeFixture::TIME_06]));
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Linked to ' . self::EVENT_NAME . ' once an admin approves it', (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * @return iterable<string, array{0: string}>
+     */
+    public static function provideOwnSurfaces(): iterable
+    {
+        yield 'result detail' => ['/en/result/' . PuzzleSolvingTimeFixture::TIME_06];
+        yield 'my data' => ['/en/my-data'];
+    }
+
+    /**
      * @return iterable<string, array{0: string, 1: null|string}>
      */
     public static function provideSurfaces(): iterable

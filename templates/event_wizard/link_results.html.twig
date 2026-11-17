@@ -62,6 +62,9 @@
         {% if progress is not null %}
             <a href="{{ path('event_wizard_past_puzzles', {competitionId: competition.id.toString}) }}" class="btn btn-link">{{ 'event_wizard.back'|trans }}</a>
         {% endif %}
+        {% if back_to_event|default(null) is not null %}
+            <a href="{{ back_to_event }}" class="btn btn-link" data-event-wizard-link-back-to-event>{{ 'event_wizard_backfill.link.back_to_event'|trans }}</a>
+        {% endif %}
     </div>
     {{ form_end(form) }}
 {% endblock %}

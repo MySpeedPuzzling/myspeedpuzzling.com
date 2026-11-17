@@ -15316,6 +15316,11 @@ event_wizard_backfill:
         submit: "Link the ticked results"
         flash_linked: "{1}1 result linked to the event.|[0,Inf[%count% results linked to the event."
         flash_waiting: "{1}1 result is linked once an admin approves the event (usually within a day).|[0,Inf[%count% results are linked once an admin approves the event (usually within a day)."
+        back_to_event: "Back to the event"
+    event_page:
+        title: "Were you there?"
+        count: "{1}1 of your results may be from this event.|[0,Inf[%count% of your results may be from this event."
+        action: "Link my results"
     done:
         title: "All set"
         pending: "Waiting for an admin's approval - until then only you see it."

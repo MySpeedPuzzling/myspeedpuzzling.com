@@ -114,6 +114,11 @@
 
                 {{ include('_leaderboard_time_badges.html.twig', {time: attempt}) }}
 
+                {#- A "Link my results" link waiting for its event's approval - only ever set for whoever may change the time -#}
+                {% if attempt.waitingEventName is not null and attempt.isEditableBy(viewer_id) %}
+                    <p class="fs-xs text-muted mb-0 mt-1" data-waiting-event-link><i class="ci-time me-1" aria-hidden="true"></i>{{ 'event_wizard_backfill.link.waiting_for'|trans({'%event%': attempt.waitingEventName}) }}</p>
+                {% endif %}
+
                 {% if attempt.comment %}
                     <p class="fs-xs text-muted fst-italic text-break mb-0 mt-1">{{ attempt.comment }}</p>
                 {% endif %}

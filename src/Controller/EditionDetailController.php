@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
 use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
+use SpeedPuzzling\Web\Services\EventWizard\LinkMyResultsEntry;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\PartnerFinder\PartnerFinderCardResolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -58,6 +59,7 @@ final class EditionDetailController extends AbstractController
         readonly private EventPagePuzzles $eventPagePuzzles,
         readonly private RoundsTimelineBuilder $roundsTimelineBuilder,
         readonly private PartnerFinderCardResolver $partnerFinderCardResolver,
+        readonly private LinkMyResultsEntry $linkMyResultsEntry,
     ) {
     }
 
@@ -194,6 +196,9 @@ final class EditionDetailController extends AbstractController
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $justJoined,
             'partner_finder' => $partnerFinder,
+            // "Were you there? Link my results" (creation-wizard.md "Backfill", entry points): no statement for a guest or
+            // an event that has not started, one for a signed-in player - null = not shown
+            'link_my_results' => $this->linkMyResultsEntry->count($competition, $competitionEvent, $rounds, $isPubliclyVisible, $loggedPlayer?->playerId, $now),
             // Organiser-written sections: queried only when one shows - a page without them runs what it ran before. Only
             // on a publicly visible event: nothing an organiser writes is published before the event is approved
             'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible

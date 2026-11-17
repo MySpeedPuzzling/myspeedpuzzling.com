@@ -32,6 +32,61 @@ readonly final class GetLinkableSolvingTimes
     }
 
     /**
+     * "Were you there? Link my results" on the event / edition page (creation-wizard.md "Backfill", entry points): how
+     * many of the signed-in player's own results are most likely from this event - a strict subset of what forPlayer()
+     * lists for it, so the entry never leads to an empty page. Linked to nothing yet (a result linked elsewhere is that
+     * event's), no link waiting, not imported, not unfinished, solved on a known day: of one of the event's puzzles
+     * visible now from its first day to 7 days after its last (a result logged a few days later is common; one before
+     * the event is practice), or - an event without puzzles - on its days (what the Link page ticks). One statement
+     * over the player's own times (the same `mine` as forPlayer() - player / team member indexes).
+     *
+     * @param list<string> $eventPuzzleIds
+     */
+    public function countLikelyFromEvent(string $playerId, array $eventPuzzleIds, DateTimeImmutable $dayFrom, DateTimeImmutable $dayTo): int
+    {
+        if (Uuid::isValid($playerId) === false) {
+            return 0;
+        }
+
+        $days = self::DAYS;
+        $solvedDay = 'CAST(COALESCE(pst.finished_at, pst.tracked_at) AS DATE)';
+        $window = $eventPuzzleIds !== []
+            ? "pst.puzzle_id IN (:puzzleIds) AND {$solvedDay} BETWEEN CAST(:dayFrom AS DATE) AND CAST(:dayTo AS DATE) + {$days}"
+            : "{$solvedDay} BETWEEN CAST(:dayFrom AS DATE) AND CAST(:dayTo AS DATE)";
+
+        $count = $this->database->fetchOne(<<<SQL
+WITH mine AS (
+    SELECT pst.id
+    FROM puzzle_solving_time pst
+    WHERE pst.player_id = :playerId
+        AND pst.puzzling_team_id IS NULL
+    UNION
+    SELECT pst.id
+    FROM puzzling_team_member member
+    INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = member.team_id
+    WHERE member.player_id = :playerId
+)
+SELECT COUNT(*)
+FROM mine
+INNER JOIN puzzle_solving_time pst ON pst.id = mine.id
+WHERE pst.created_via IS DISTINCT FROM 'event_import'
+    AND pst.pieces_placed IS NULL
+    AND pst.competition_id IS NULL
+    AND pst.competition_series_id IS NULL
+    AND pst.finished_at_precision IS NULL
+    AND {$window}
+    AND NOT EXISTS (SELECT 1 FROM waiting_event_link w WHERE w.puzzle_solving_time_id = pst.id)
+SQL, [
+            'playerId' => $playerId,
+            'puzzleIds' => $eventPuzzleIds !== [] ? $eventPuzzleIds : ['00000000-0000-0000-0000-000000000000'],
+            'dayFrom' => $dayFrom->format('Y-m-d'),
+            'dayTo' => $dayTo->format('Y-m-d'),
+        ], ['puzzleIds' => ArrayParameterType::STRING]);
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
      * @param list<string> $eventPuzzleIds
      * @return list<LinkableSolvingTime>
      */

@@ -34,6 +34,7 @@ final class SeriesPickQueryCoverageTest extends TestCase
         'Query/GetCompetitionSlugsForSitemap.php' => self::ROUND_LEVEL,
         'Query/GetEventResultClaims.php' => 'The claim modal of one imported event result - the import links it to its one-time event explicitly, never a series pick (docs/features/event-results-import).',
         'Query/GetEventWizardStructureLock.php' => 'The creation wizard\'s Structure step: whether any result is linked to one of the event\'s rounds at all (then it is read-only) - every result counts, nothing is shown.',
+        'Query/GetMyDataResults.php' => self::NOT_A_TIMES_EVENT . ' "My data" shows no linked event - only the one a waiting link names (waiting_event_link, creation-wizard.md "Backfill").',
         'Query/GetNotifications.php' => self::NOT_A_TIMES_EVENT,
         'Query/GetParticipantsSheetState.php' => self::ROUND_LEVEL,
         'Query/GetPublishedRoundResults.php' => self::ROUND_LEVEL,

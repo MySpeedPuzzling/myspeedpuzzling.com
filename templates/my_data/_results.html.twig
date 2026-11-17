@@ -66,6 +66,7 @@
                             <span class="d-block" style="min-width: 0;">
                                 <span class="d-block fw-medium">{{ row.puzzle.name }}</span>
                                 {{ include('puzzle/_name.html.twig', {name: row.puzzle.name, alternative_names: row.puzzle.otherNames, class: 'd-block fs-xs'}, with_context = false) }}
+                                {%- if row.waitingEventName is not null %}<span class="d-block fs-xs text-muted fw-normal" data-testid="my-data-waiting-link"><i class="ci-time me-1" aria-hidden="true"></i>{{ 'event_wizard_backfill.link.waiting_for'|trans({'%event%': row.waitingEventName}) }}</span>{% endif -%}
                             </span>
                         </a>
                     </th>

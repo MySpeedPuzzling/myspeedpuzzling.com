@@ -57,6 +57,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class EventWizardLinkResultsController extends AbstractController
 {
     public const string FORM = 'link_results';
+    // Opened from the event / edition page's "Were you there? Link my results" (event_parts/_link_my_results.html.twig):
+    // a closed value, never a URL - after linking (and "Back to the event") the player lands on the event's page
+    public const string FROM_EVENT = 'event';
 
     public function __construct(
         private readonly EventWizardAccess $access,
@@ -125,7 +128,8 @@ final class EventWizardLinkResultsController extends AbstractController
             array_filter($selectable, static fn (LinkableSolvingTime $time): bool => $time->preTicked($eventPuzzleIds !== []) && isset($waiting[$time->timeId]) === false),
         ));
 
-        $form = $this->createLinkForm($competition, $series, $request, $selectable, $preTicked);
+        $fromEvent = $competition !== null && $request->query->getString('from') === self::FROM_EVENT;
+        $form = $this->createLinkForm($competition, $series, $request, $selectable, $preTicked, $fromEvent);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -152,7 +156,7 @@ final class EventWizardLinkResultsController extends AbstractController
                 $this->addFlash('success', $this->translator->trans('event_wizard_backfill.link.flash_waiting', ['%count%' => $result->waiting]));
             }
 
-            if ($competition !== null && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString())) {
+            if ($competition !== null && $fromEvent === false && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString())) {
                 return $this->redirectToRoute('event_wizard_past_done', ['competitionId' => $competition->id->toString()], Response::HTTP_SEE_OTHER);
             }
 
@@ -172,8 +176,10 @@ final class EventWizardLinkResultsController extends AbstractController
             'waits' => $decision === EventLinkDecision::Waits,
             'day_from' => $dayFrom,
             'day_to' => $dayTo,
-            // The rail only on the player's own backfill (an event they edit) - a link-only visit is one page
-            'progress' => $competition !== null && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString())
+            'back_to_event' => $fromEvent ? $this->competitionDetailUrl->of($competition->id->toString()) : null,
+            // The rail only on the player's own backfill (an event they edit) - a link-only visit (from the event's page
+            // too) is one page
+            'progress' => $competition !== null && $fromEvent === false && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString())
                 ? $this->eventWizardSteps->forBackfill($competition->id->toString(), EventWizardStep::LinkResults)
                 : null,
             'step' => EventWizardStep::LinkResults,
@@ -234,10 +240,10 @@ final class EventWizardLinkResultsController extends AbstractController
      * @param list<string> $preTicked
      * @return FormInterface<array{times: list<string>}>
      */
-    private function createLinkForm(null|Competition $competition, null|CompetitionSeries $series, Request $request, array $selectable, array $preTicked): FormInterface
+    private function createLinkForm(null|Competition $competition, null|CompetitionSeries $series, Request $request, array $selectable, array $preTicked, bool $fromEvent): FormInterface
     {
         $action = $competition !== null
-            ? $this->generateUrl('event_wizard_link_results', ['competitionId' => $competition->id->toString()])
+            ? $this->generateUrl('event_wizard_link_results', array_filter(['competitionId' => $competition->id->toString(), 'from' => $fromEvent ? self::FROM_EVENT : null]))
             : $this->generateUrl('event_wizard_series_link_results', array_filter(['seriesId' => $series?->id->toString(), 'date' => $request->query->getString('date')]));
 
         $choices = array_map(static fn (LinkableSolvingTime $time): string => $time->timeId, $selectable);

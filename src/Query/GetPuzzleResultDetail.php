@@ -180,7 +180,21 @@ SELECT
     focus.is_private_for_viewer AS is_private,
     focus.skill_tier,
     focus.ranking_opted_out,
-    focus.players
+    focus.players,
+    -- "Link my results" to an event not public yet (creation-wizard.md "Backfill"): the link waits in waiting_event_link
+    -- and the time stays unlinked. Its event's name only for whoever may change the time (the tracker or a registered
+    -- member - PuzzleResultAttempt::isEditableBy()), never for anybody else: the event is not public
+    CASE WHEN pst.player_id = CAST(:viewerId AS UUID) OR EXISTS (
+        SELECT 1
+        FROM json_array_elements(pst.team -> 'puzzlers') AS viewer_member(player)
+        WHERE (viewer_member.player ->> 'player_id') = CAST(:viewerId AS VARCHAR)
+    ) THEN (
+        SELECT COALESCE(waiting_competition.name, waiting_series.name)
+        FROM waiting_event_link waiting
+            LEFT JOIN competition waiting_competition ON waiting_competition.id = waiting.competition_id
+            LEFT JOIN competition_series waiting_series ON waiting_series.id = waiting.series_id
+        WHERE waiting.puzzle_solving_time_id = pst.id
+    ) END AS waiting_event_name
 FROM focus
     INNER JOIN subject_times ON true
     INNER JOIN puzzle_solving_time pst ON pst.id = subject_times.id
@@ -196,6 +210,7 @@ SQL;
                 'timeId' => $timeId,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'eventImport' => SolvingTimeSource::EventImport->value,
+                'viewerId' => $viewerPlayerId !== null && Uuid::isValid($viewerPlayerId) ? $viewerPlayerId : null,
             ])
             ->fetchAllAssociative();
 
@@ -240,6 +255,7 @@ SQL;
          *     skill_tier: null|int,
          *     ranking_opted_out: bool,
          *     players: null|string,
+         *     waiting_event_name: null|string,
          * }> $rows
          */
 
@@ -301,6 +317,7 @@ SQL;
                 importedFromEvent: $row['imported_from_event'] === true,
                 piecesPlaced: $row['pieces_placed'],
                 finishedLaterSeconds: $row['finished_later_seconds'],
+                waitingEventName: $row['waiting_event_name'],
             );
         }
 

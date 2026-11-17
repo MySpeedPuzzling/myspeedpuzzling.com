@@ -40,6 +40,8 @@ readonly final class MyDataResultRow
         // An unfinished competition result (docs/features/competitions-management/unfinished-results-plan.md): pieces
         // placed when the round's time ran out - shown instead of "no time"; editing keeps to the cells that are not the time
         public null|int $piecesPlaced = null,
+        // The event a "Link my results" link waits for (not public yet - creation-wizard.md "Backfill")
+        public null|string $waitingEventName = null,
     ) {
     }
 
@@ -135,6 +137,7 @@ readonly final class MyDataResultRow
          *     created_via: null|string,
          *     suspicious: bool,
          *     only_registered_member: bool,
+         *     waiting_event_name?: null|string,
          * } $row
          */
         return new self(
@@ -156,6 +159,7 @@ readonly final class MyDataResultRow
             suspicious: $row['suspicious'],
             onlyRegisteredMember: $row['only_registered_member'],
             piecesPlaced: $row['pieces_placed'] ?? null,
+            waitingEventName: $row['waiting_event_name'] ?? null,
         );
     }
 }

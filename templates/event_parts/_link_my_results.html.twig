@@ -1,0 +1,18 @@
+{#
+    "Were you there? Link my results" (docs/features/competitions-management/creation-wizard.md "Backfill", entry points):
+    on the one-time event and edition pages for a signed-in player with results likely from this event
+    (LinkMyResultsEntry - null = nothing rendered). Leads to the Link step, which comes back here (`from=event`).
+    Variables: link_my_results (null|int), event
+#}
+{% if link_my_results|default(null) is not null %}
+    <div class="d-flex flex-wrap align-items-center gap-2 border rounded-3 px-3 py-2 mb-3" data-link-my-results>
+        <i class="ci-link text-primary" aria-hidden="true"></i>
+        <span class="flex-grow-1 small" style="min-width: 12rem;">
+            <span class="fw-semibold">{{ 'event_wizard_backfill.event_page.title'|trans }}</span>
+            <span class="text-muted">{{ 'event_wizard_backfill.event_page.count'|trans({'%count%': link_my_results}) }}</span>
+        </span>
+        <a href="{{ path('event_wizard_link_results', {competitionId: event.id, from: 'event'}) }}" class="btn btn-sm btn-outline-primary text-wrap" data-link-my-results-action>
+            {{- 'event_wizard_backfill.event_page.action'|trans -}}
+        </a>
+    </div>
+{% endif %}

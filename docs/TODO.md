@@ -18,6 +18,7 @@ Ops steps of the rollout:
 Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11):
 - [ ] A prediction column / sort in the entrant list (round-wide predictions need an async warm - cut from v1)
 - [ ] A public data-free signal on results and "Reveal now" instead of the 10 s poll (§11 Q4)
+- [ ] S3 walk gaps: a stopwatch push through Mercure reaching the page in a browser (the walk relied on the polls and the reveal timer), real phones/tablets, a 300-entrant round on screen
 
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - copy the format/K/labels once round puzzles are copied, or say so on the copy

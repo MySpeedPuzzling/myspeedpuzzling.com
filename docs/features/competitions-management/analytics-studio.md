@@ -737,3 +737,43 @@ Where it differs from the sections above (§0a applied throughout):
   times; `recentForm` keeps every puzzle at that piece count (visible round puzzles included) before the cut-off.
 - **Measured** (test DB, Docker on a Mac): cold analytics of a fixture round 16-19 ms; a 300-entrant × 3-puzzle round with
   12,000 times: first cold 214 ms (incl. process warm-up), cold recompute ~43 ms, warm ~30-40 ms, 439 KB JSON.
+
+## As built: S3 (the page, 2026-11-17)
+
+Where it differs from the sections above:
+
+- **Routes** `event_analytics_studio` / `edition_analytics_studio` (§1.1 paths, 6 locales; `EventAnalyticsStudioController`
+  / `EditionAnalyticsStudioController`, resolution + draft rule copied from the standing pages) → `AnalyticsStudioPageBuilder`
+  (`GetAnalyticsStudioRound::bySlug()` - the switcher's rounds ride on it). Guest statements **event 2, edition 3**
+  (`AnalyticsStudioQueryBudgetTest::testTheShellCost`). Headers `private, max-age=0, no-cache` (the explicit max-age keeps
+  `AnonymousCacheHeadersSubscriber` from making the guest shell shared-cacheable - it carries `serverNowMs`),
+  `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: same-origin`, the robots meta; no canonical/hreflang.
+- **Organiser links by the round's id**: the three organiser pages know a round's id but not its event's/series' slugs, so
+  they link `analytics_studio_round` (`/{locale}/analytics-studio/{roundId}`, `AnalyticsStudioRoundController`): one
+  statement (`GetAnalyticsStudioRound::byId()`, the visibility condition included) and a 302 to the page; 404 like the
+  page. The links (`rel="nofollow noopener"`, new tab) only for slugged rounds: displays page = an "Analytics studio"
+  section with one button per slugged round (`CompetitionRoundForManagement::$slug`, a column of the statement it ran
+  anyway), round stopwatch page and online control room = one button. `AnalyticsStudioLinksTest` pins equal statement
+  counts with and without the link. No public link (S4).
+- **Plain entry, no Stimulus**: `assets/analytics_studio.js` → `assets/analytics-studio/page.js` (the DOM adapter: fetches
+  without cookies, the keymap, click delegation over the `data-as-*` attributes, `history.replaceState` of the view, the
+  phone sheet as a history entry so Back closes it, the 1 s clock, `visibilitychange`). The renderer is created at the
+  first state answer (before it the shell's "Loading…"). Measured 63.5 KB minified / 21.2 KB gzip
+  (`AnalyticsStudioBundleTest`, budget +5 %; `tests/live-entry-bundle.mjs` takes the entry as an argument now and skips
+  stylesheet imports). Own stylesheet `assets/styles/analytics_studio.scss` (no Bootstrap), entry excluded from the
+  split chunks and in `PRECACHE_SKIP_ENTRIES` (`CACHE_VERSION` unchanged - nothing cached needs evicting).
+- **Layout**: ≥ 1280 px three columns 440 / flexible / 340 px (440, not 400: the row's name needs the room next to
+  table, solved, best, rating, result), 1024-1279 narrower without the table/rating columns, 768-1023 two columns +
+  tab bar, < 768 one panel + bottom tabs, the entrant / compare as a full-screen sheet. Dark by default, light under
+  `prefers-color-scheme: light`.
+- **render.js fix (S2)**: the compare view got its own head (title, Clear, ×) - on a phone the compare sheet had no
+  way out; harness extended.
+- **Labels**: `AnalyticsStudioPageBuilder::LABEL_NAMES` = render.js `LABEL_NAMES` (pinned by `AnalyticsStudioPageTest`),
+  translated server-side into `data-labels`; the English block `analytics_studio.*` (flat keys - `compare` and
+  `compare.clear` are both messages) + `page.*` and `organiser.*`. No plural messages (counts are interpolated in the
+  browser, `%count%×`).
+- **Browser walk** (headless Chrome, test fixtures + a pick round with a scheduled secret): search with diacritics,
+  ↑/↓/Enter, compare 2-4 and the fifth refused, `[` `]`, `?`, a confirmed result and a scheduled reveal arriving
+  without a reload, pairs, a published round, an empty round, light mode; phone list, sheet + Back, tabs, compare 2.
+  Not tried: a stopwatch push through Mercure from the browser (the stream's CORS on a non-default origin), real
+  devices, a 300-entrant round on screen.

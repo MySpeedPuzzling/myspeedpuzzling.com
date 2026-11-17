@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Creation wizard - backfill path (`docs/features/competitions-management/creation-wizard.md` "Backfill", 2026-11-17)
+- [ ] "Link my results" has no entry point outside the wizard yet - an event page button ("Were you there? Link my results") for signed-in players would make linking to an existing event one click from its page
+- [ ] The puzzles step searches by brand + puzzle only (W1's picker) - a cross-brand search by name / EAN would help players who don't know the brand
+- [ ] Result detail / My data do not say "linked once an admin approves the event" next to a waiting result yet (only Link my results + Done do) - both have pinned statement budgets
+
 ## Competition toolkit v2 (`docs/features/competitions-management/README.md` "Competition toolkit", `toolkit/STATUS.md`, deferred list = `toolkit/R-review-and-plan.md` §3, 2026-11-17)
 
 Ops steps of the rollout:

@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture as Wjpc;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\ParticipantsSheet\SheetChangeSets;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\ClaimOutcome;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -430,7 +431,7 @@ final class ParticipantClaimsTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO participant_link_log (id, competition_id, participant_id, participant_name, player_id, player_name, action, method, by_player_id, at)
-             VALUES (:id, :competition, :participant, 'x', :player, 'y', :action, NULL, NULL, now())",
+             VALUES (:id, :competition, :participant, 'x', :player, 'y', :action, NULL, NULL, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'participant' => $participantId, 'player' => $playerId, 'action' => $action],
         );
     }

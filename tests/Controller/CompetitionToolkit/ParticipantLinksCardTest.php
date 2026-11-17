@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantClaimPolicy;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\ParticipantClaimPolicy;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -44,15 +45,15 @@ final class ParticipantLinksCardTest extends WebTestCase
 
     public function testWaitingRequestsAreCountedAndAutomaticSaysWhy(): void
     {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement('UPDATE competition SET competitor_pages = true, time_proposals = true WHERE id = :id', ['id' => self::EVENT]);
         $database->executeStatement('UPDATE competition_participant SET player_id = NULL WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
         $database->executeStatement(
             "INSERT INTO participant_link_request (id, competition_id, participant_id, player_id, status, kind, player_name, player_code, releases_own_registration, created_at)
-             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', 'Admin User', 'admin', false, now())",
+             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', 'Admin User', 'admin', false, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'participant' => OfficialResultsFixture::PARTICIPANT_IVAN, 'player' => PlayerFixture::PLAYER_ADMIN],
         );
-        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
 
         $page = $browser->request('GET', self::HUB);
 

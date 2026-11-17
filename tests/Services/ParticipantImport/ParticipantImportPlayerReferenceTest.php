@@ -96,7 +96,7 @@ final class ParticipantImportPlayerReferenceTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO participant_link_log (id, competition_id, participant_id, participant_name, player_id, player_name, action, method, by_player_id, at)
-             VALUES (:id, :competition, :participant, 'Jane Unconnected', :player, 'Admin User', 'not_this_person', NULL, NULL, now())",
+             VALUES (:id, :competition, :participant, 'Jane Unconnected', :player, 'Admin User', 'not_this_person', NULL, NULL, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => self::WJPC, 'participant' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, 'player' => PlayerFixture::PLAYER_ADMIN],
         );
 

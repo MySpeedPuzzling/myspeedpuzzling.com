@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -824,7 +825,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
         $participantId = $participant->id->toString();
         $connection->executeStatement(
             "INSERT INTO participant_link_request (id, competition_id, participant_id, player_id, status, kind, player_name, player_code, releases_own_registration, created_at)
-             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', :name, 'player2', false, now())",
+             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', :name, 'player2', false, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => $competitionId, 'participant' => $participantId, 'player' => self::OWNER, 'name' => self::OWNER_NAME],
         );
 

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEditable;
@@ -93,6 +94,8 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         self::assertNull($this->competition($this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE))['participant_claims']);
 
         $this->database->executeStatement("UPDATE competition SET participant_claims = 'approval' WHERE id = :id", ['id' => $source]);
+        // The first copy loaded the source into the identity map - the SQL change above is not in that entity
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
         $copy = $this->duplicate($source, PlayerFixture::PLAYER_WITH_STRIPE);
 
         self::assertSame('approval', $this->competition($copy)['participant_claims']);

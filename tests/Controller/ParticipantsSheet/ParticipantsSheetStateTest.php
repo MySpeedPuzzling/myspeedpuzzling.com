@@ -240,7 +240,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
         $requestId = Uuid::uuid7()->toString();
         $database->executeStatement(
             "INSERT INTO participant_link_request (id, competition_id, participant_id, player_id, status, kind, player_name, player_code, releases_own_registration, created_at)
-             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', 'Secret Name', 'secret', false, now())",
+             VALUES (:id, :competition, :participant, :player, 'pending', 'claim', 'Secret Name', 'secret', false, " . TestClock::SQL_NOW . ")",
             ['id' => $requestId, 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'participant' => OfficialResultsFixture::PARTICIPANT_IVAN, 'player' => PlayerFixture::PLAYER_PRIVATE],
         );
         TestingLogin::asPlayer($this->browser, self::ORGANISER);

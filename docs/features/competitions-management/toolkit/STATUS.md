@@ -53,7 +53,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | C10 | B | merged | 3698eb8b3..3916fe168 | puzzle chips (labels before reveal, order taps), grouped result+puzzles saves, Puzzle missing list, Save puzzle choice; bundle 180 KB/50 KB gzip (now 47.6). Not tried: reveal while card open, offline group save |
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | merged | 4809c8704, 00d8e47bc, 114c81d9c | competitor_page p/g/t/e + competitor_state, 404 rules, published/live/own results, guest 4 statements, canaries, B2 goldens regenerated; docs competitor-pages.md |
-| P1F | A (extra slot) | started | | review-P1.md fixes |
+| P1F | A (extra slot) | merged | 48360480f, 19db0c38c | stopwatch_first_started_at (stopwatchOriginalStartAt()), taps before Stop accepted (too_late from the round's end), re-pick keeps connectedAt |
+| B5 | C | started | | |
 | A4 | B (swap) | merged | 973884dc5, 41725625e, 89d05d343 | desk per-puzzle editor (grouped saves), sheet recompute/clear+undo + Puzzles column, export Puzzle N columns (total pinned) |
 | C9 | B | started | | |
 

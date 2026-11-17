@@ -49,6 +49,37 @@
          data-competitor-page-server-now-ms-value="{{ view.serverNow|date('U') * 1000 }}"
          data-competitor-page-mercure-url-value="{{ mercure_public_url }}"
          data-competitor-page-topics-value="{{ view.topics|json_encode|e('html_attr') }}"
+         {%- if view.anyCanPropose %}
+         {#- B8: the competitor's own Stop button - the endpoints (round/proposal id swapped in by the controller), the
+             stateless CSRF token, who is signed in (the phone's outbox keeps only their own taps) and the labels #}
+         data-competitor-page-propose-url-value="{{ path('competitor_propose_time', {roundId: '00000000-0000-0000-0000-000000000000'}) }}"
+         data-competitor-page-withdraw-url-value="{{ path('competitor_withdraw_time_proposal', {proposalId: '00000000-0000-0000-0000-000000000000'}) }}"
+         data-competitor-page-csrf-token-value="{{ csrf_token('time_proposal') }}"
+         data-competitor-page-viewer-value="{{ logged_user.profile.playerId }}"
+         data-competitor-page-proposal-labels-value="{{ {
+             stop: 'competitor_page.proposal.stop'|trans,
+             confirm_question: 'competitor_page.proposal.confirm_question'|trans,
+             confirm_help: 'competitor_page.proposal.confirm_help'|trans,
+             confirm: 'competitor_page.proposal.confirm'|trans,
+             cancel: 'competitor_page.proposal.cancel'|trans,
+             sending: 'competitor_page.proposal.sending'|trans,
+             offline: 'competitor_page.proposal.offline'|trans,
+             sign_in_again: 'competitor_page.proposal.sign_in_again'|trans,
+             reload: 'competitor_page.proposal.reload'|trans,
+             pending: 'competitor_page.proposal.pending'|trans,
+             undo: 'competitor_page.proposal.undo'|trans,
+             withdrawing: 'competitor_page.proposal.withdrawing'|trans,
+             withdrawn: 'competitor_page.proposal.withdrawn'|trans,
+             confirmed: 'competitor_page.proposal.confirmed'|trans,
+             changed: 'competitor_page.proposal.changed'|trans,
+             rejected: 'competitor_page.proposal.rejected'|trans,
+             superseded: 'competitor_page.proposal.superseded'|trans,
+             reset: 'competitor_page.proposal.reset'|trans,
+             reason_not_finished: 'competitor_page.proposal.reason.not_finished'|trans,
+             reason_wrong_entry: 'competitor_page.proposal.reason.wrong_entry'|trans,
+             reason_other: 'competitor_page.proposal.reason.other'|trans,
+         }|json_encode|e('html_attr') }}"
+         {%- endif %}
     >
         <p class="competitor-page-event small mb-1">
             {% if event_route is not null %}

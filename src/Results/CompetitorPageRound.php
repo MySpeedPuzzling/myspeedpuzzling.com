@@ -41,6 +41,12 @@ readonly final class CompetitorPageRound implements \JsonSerializable
         public null|CompetitorPageEntry $entry,
         // The entry is there but hidden from the viewer (the blocklist): the table page shows "—", nothing of it
         public bool $masked = false,
+        // Time proposals (B8): the signed-in competitor's own entry with proposals on - the Stop button may show
+        public bool $canPropose = false,
+        // Their latest proposal in this round (competitor view: no judge identity) - only with canPropose
+        public null|TimeProposalView $proposal = null,
+        // A guest on a page whose entrant has a linked profile: "Sign in to propose your time" (never says who)
+        public bool $signInToPropose = false,
     ) {
     }
 
@@ -78,6 +84,16 @@ readonly final class CompetitorPageRound implements \JsonSerializable
             'masked' => $this->masked,
             'entry' => $this->masked ? null : $this->entry,
         ];
+
+        // Only with time proposals on, only on the viewer's own entry - untouched competitions keep their JSON
+        if ($this->canPropose) {
+            $json['canPropose'] = true;
+            $json['proposal'] = $this->proposal;
+        }
+
+        if ($this->signInToPropose) {
+            $json['signInToPropose'] = true;
+        }
 
         if ($this->isPick) {
             $json['puzzleFormat'] = ['mode' => 'pick', 'toSolve' => $this->puzzlesToSolve];

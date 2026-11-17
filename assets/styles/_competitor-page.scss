@@ -207,3 +207,89 @@
 .competitor-round-actions:empty {
     display: none;
 }
+
+// On a phone the round that runs now (or comes next) leads - person and line-up pages; a table page already lists it
+// first in the HTML (B8, orchestrator's decision after B5)
+@include media-breakpoint-down(md) {
+    .competitor-round.is-current {
+        order: -1;
+    }
+}
+
+// "Done - propose my time" (B8, competitor_page_controller.js): one big button under the clock, the "Propose?" sheet,
+// the proposal's state for the competitor
+.competitor-round-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+.competitor-propose-stop {
+    min-height: 4rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    width: 100%;
+}
+
+.competitor-propose-sheet {
+    border: 2px solid $success;
+    border-radius: .5rem;
+    padding: .75rem;
+    background: rgba($success, .06);
+    text-align: center;
+}
+
+.competitor-propose-question {
+    font-size: 1.375rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: .25rem;
+}
+
+.competitor-propose-sheet-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+
+    .btn {
+        min-height: 3.5rem;
+    }
+}
+
+.competitor-propose-status {
+    margin: 0;
+    padding: .5rem .75rem;
+    border-radius: .375rem;
+    background: $gray-100;
+    font-weight: 500;
+    text-align: center;
+
+    &.is-pending,
+    &.is-sending {
+        background: rgba($primary, .1);
+    }
+
+    &.is-offline,
+    &.is-sign_in_again,
+    &.is-reload,
+    &.is-rejected,
+    &.is-refused {
+        background: rgba($warning, .18);
+    }
+
+    &.is-confirmed,
+    &.is-changed {
+        background: rgba($success, .12);
+        color: darken($success, 10%);
+    }
+}
+
+.competitor-propose-undo {
+    align-self: center;
+}
+
+.competitor-round-signin {
+    margin-bottom: .5rem;
+}

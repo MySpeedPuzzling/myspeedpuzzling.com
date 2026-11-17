@@ -41,6 +41,20 @@ organiser or referee) is in the markup hidden and chosen by `assets/live_entry_p
 `roundOptions()`, `resolveLanding()` - node harness); links carry placeholders the page fills in. A failed first fetch
 says so and is tried again by itself (2, 4 … 30 s, at once when back online, Retry).
 
+**Offline copy and native apps** (competition toolkit C3): `live_results_shell` (`/{locale}/live-results-shell`, cs
+`/zadavani-vysledku-shell`, `LiveResultsShellController`) is the same markup with nothing of any round or person -
+`data-live-results-shell-value="true"`, no round id, sign-in link without a return, no `msp-rendered-at` meta (the
+stale-document check does nothing there), `Cache-Control: public, no-cache`, `noindex`, on the `stateless` firewall (no
+session, no cookie). The service worker will keep it per locale and answer it when the network fails for a live entry
+URL (C6), the page then rendering the device's saved rounds (C4/C5). Whose rounds: the readable cookie
+`msp_live_player=<playerId>` (`LiveEntryDeviceCookie`) - set only by the live page (so only for organisers and the
+event's referees), `Path=/`, `SameSite=Lax`, not HttpOnly, 30 days like the sign-in; cleared on sign-out and when another
+player signs in on the device (`LiveResultsDeviceCookieSubscriber`; the same player signing in again keeps it). It is no
+credential - the server never reads it. Inside the native apps (Hotwire Native, `is_native_app()`) the page adds the
+entry `live_entry_native` (Turbo with Drive off): the apps' WebView finishes loading a page only when Turbo runs on it
+(without it, the iOS app waits 30 s, the Android app 4 s, then shows its error screen). Links stay plain page loads,
+which the apps route natively. The offline copy never carries it (the apps run no service worker).
+
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and
    Scan. Client-side (`searchEntries()`): an exact table number first (`12` + Enter opens table 12), then tables

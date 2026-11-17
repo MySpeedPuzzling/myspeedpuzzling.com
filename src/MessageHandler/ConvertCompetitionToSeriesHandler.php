@@ -216,6 +216,7 @@ SELECT
     EXISTS (SELECT 1 FROM competition_referee WHERE competition_id = :competitionId) AS referees,
     EXISTS (SELECT 1 FROM competition_page_section WHERE competition_id = :competitionId) AS page_sections,
     EXISTS (SELECT 1 FROM sell_swap_list_item_event WHERE competition_id = :competitionId) AS marketplace_marks,
+    EXISTS (SELECT 1 FROM competition_display WHERE competition_id = :competitionId) AS displays,
     EXISTS (SELECT 1 FROM competition_participant WHERE competition_id = :competitionId AND deleted_at IS NULL) AS participants
 SQL,
             ['competitionId' => $competition->id->toString()],

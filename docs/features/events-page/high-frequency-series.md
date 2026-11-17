@@ -496,7 +496,8 @@ Used at
   are repointed to the series and a new row maps the old one-time path (`('', old slug, '')`) to the series (P13); the
   competition row is deleted (its maintainer links with it). The series slug = the event slug when free (as today).
 - **Refused** (409 `CompetitionNotConvertible` naming the reasons, nothing changes) for `keepAsEdition: false` when the
-  event has rounds, official results, referees, page sections or marketplace marks, or participants (unless
+  event has rounds, official results, referees, page sections, marketplace marks or displays
+  (competition toolkit), or participants (unless
   `dropParticipants: true` - then they and their participant-sheet receipts are deleted). 409
   `CompetitionAlreadyInSeries` for an edition. Takes the event's participants lock (P11).
 

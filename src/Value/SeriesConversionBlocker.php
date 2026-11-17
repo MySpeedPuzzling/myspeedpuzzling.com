@@ -16,5 +16,7 @@ enum SeriesConversionBlocker: string
     case Referees = 'referees';
     case PageSections = 'page_sections';
     case MarketplaceMarks = 'marketplace_marks';
+    // Timer screens and stream overlays (competition toolkit D8) - their designs, pictures and links would cascade away
+    case Displays = 'displays';
     case Participants = 'participants';
 }

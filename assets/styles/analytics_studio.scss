@@ -468,6 +468,12 @@ body.as-body {
     padding: 12px 14px;
 }
 
+// The side column is the one scroll container: its panels keep their full height (flex items would shrink to fit and
+// let a long Top 10 run under "Live"), Live flows after the puzzle statistics
+.as-side > .as-panel {
+    flex: none;
+}
+
 .as-live {
     border-top: 1px solid var(--as-border);
 }

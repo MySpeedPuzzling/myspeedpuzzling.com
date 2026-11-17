@@ -777,3 +777,18 @@ Where it differs from the sections above:
   without a reload, pairs, a published round, an empty round, light mode; phone list, sheet + Back, tabs, compare 2.
   Not tried: a stopwatch push through Mercure from the browser (the stream's CORS on a non-default origin), real
   devices, a 300-entrant round on screen.
+
+## As built: S4 (public links, 2026-11-17)
+
+- **Event / edition page**: `TimelineRound::$analyticsStudioUrl` (R18, `RoundsTimelineBuilder::analyticsStudioUrl()`) -
+  every slugged round of a public page, independent of results (an upcoming round too: commentators prepare before
+  it), "Analytics studio" next to "Results" in `templates/event_parts/_round.html.twig` (`rel="nofollow"`,
+  `data-analytics-studio-link`). No link on a page that is not public (draft for its team, unapproved, rejected) or for a
+  round without a slug. Built from the rounds already loaded - `DetailPagesQueryBudgetTest` unchanged.
+- **Round results page**: one `<p data-analytics-studio-link>` right after the header line ("Analytics studio →"), the
+  URL from `round_route` + `round_route_params` (0 statements). `OfficialRoundResultsGoldenTest` asserts exactly one
+  such element with the expected URL, cuts it out and compares the rest with the unchanged golden files.
+- Key `analytics_studio.link` in all 6 locales. Tests `AnalyticsStudioPublicLinksTest` (event, edition, round pages,
+  Czech URLs, not public, draft for its team, a round without a slug, the link answers 200),
+  `RoundsTimelineBuilderTest::testTheAnalyticsStudioOfEverySluggedRoundOfAPublicPageResultsOrNot`, a `DraftCanaryTest`
+  surface.

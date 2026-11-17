@@ -18,6 +18,10 @@
  *   fresh token (the pages fetch it every minute anyway - each answer passes its subscription to update()); an open
  *   stream is replaced by opening the new one first, so nothing is missed (copies dropped by event id).
  * - The state answers signed out / no rights: no stream (suspend()) until the next state the page gets (update()).
+ * - A public subscription (`{url, topics, public: true}` - the public competitor page following the public
+ *   `/round-stopwatch/{roundId}` topics, competition toolkit B5) has no token: no Authorization header, nothing to renew;
+ *   a newer state with other topics opens their stream first, then drops the old one. Refused (the hub allows no
+ *   anonymous subscribers): no stream any more - the page lives on its state refreshes.
  *
  * Messages are handed over parsed (`onMessage`) - the pages filter them by `type` / `roundId` as before. No DOM:
  * fetch, the clock and the timers are injected - pinned by tests/official-results-events-harness.mjs.
@@ -173,8 +177,13 @@ export function readSubscription(subscription, now) {
     }
 
     const { url, topics, token, expiresIn, expiresAt } = subscription;
+    const isPublic = subscription.public === true;
 
-    if (typeof url !== 'string' || url === '' || typeof token !== 'string' || token === '' || !Array.isArray(topics)) {
+    if (typeof url !== 'string' || url === '' || !Array.isArray(topics)) {
+        return null;
+    }
+
+    if (!isPublic && (typeof token !== 'string' || token === '')) {
         return null;
     }
 
@@ -182,6 +191,10 @@ export function readSubscription(subscription, now) {
 
     if (list.length === 0) {
         return null;
+    }
+
+    if (isPublic) {
+        return { url, topics: list, token: null, public: true, expiresAt: Infinity };
     }
 
     let ends;
@@ -195,6 +208,16 @@ export function readSubscription(subscription, now) {
     }
 
     return { url, topics: list, token, expiresAt: ends };
+}
+
+function sameTopics(a, b) {
+    if (a.length !== b.length) {
+        return false;
+    }
+
+    const sorted = [...b].sort();
+
+    return [...a].sort().every((topic, index) => topic === sorted[index]);
 }
 
 export class OfficialResultsEvents {
@@ -241,6 +264,7 @@ export class OfficialResultsEvents {
         this.retryMs = 0;
         this.lastEventId = null;
         this.refusedToken = null;
+        this.publicRefused = false;
         this.hadStream = false;
         this.started = false;
         this.suspended = false;
@@ -264,11 +288,13 @@ export class OfficialResultsEvents {
         const next = readSubscription(subscription, this.now());
 
         if (next !== null) {
+            const otherTopics = this.subscription === null || !sameTopics(this.subscription.topics, next.topics);
             this.subscription = next;
 
             // No stream: the state just answered with a token - no need to sit out a pause (at most once a minute,
-            // the pages' state refresh)
-            if (this.stream === null && this.retryTimer !== null) {
+            // the pages' state refresh). A public subscription has nothing new unless its topics changed: the pause
+            // stays (a state polled every 15 s while the hub is down must not reconnect every 15 s).
+            if (this.stream === null && this.retryTimer !== null && (!next.public || otherTopics)) {
                 this.cancel(this.retryTimer);
                 this.retryTimer = null;
             }
@@ -316,6 +342,10 @@ export class OfficialResultsEvents {
     }
 
     usable(subscription) {
+        if (subscription?.public === true) {
+            return !this.publicRefused;
+        }
+
         return subscription !== null
             && subscription.token !== this.refusedToken
             && subscription.expiresAt - this.now() > MIN_OPEN_MS;
@@ -328,6 +358,16 @@ export class OfficialResultsEvents {
 
         if (this.stream !== null) {
             const current = this.stream.subscription;
+
+            if (current.public === true || this.subscription?.public === true) {
+                // Other topics (another round within reach): their stream opens first, then the old one goes
+                if (this.stream.open && this.successor === null && this.subscription !== null && this.usable(this.subscription)
+                    && !sameTopics(current.topics, this.subscription.topics)) {
+                    this.successor = this.openStream(this.subscription);
+                }
+
+                return;
+            }
             const fresher = this.subscription !== null
                 && this.subscription.token !== current.token
                 && this.subscription.token !== this.refusedToken
@@ -344,6 +384,11 @@ export class OfficialResultsEvents {
         // No subscription at all (an online event's seating page, or the server could not make a token): no stream -
         // the page lives on its state refreshes until one of them brings one
         if (this.retryTimer !== null || this.subscription === null) {
+            return;
+        }
+
+        // A public subscription the hub refused: no stream - the page lives on its state refreshes
+        if (this.subscription.public === true && this.publicRefused) {
             return;
         }
 
@@ -434,7 +479,11 @@ export class OfficialResultsEvents {
         const url = new URL(subscription.url, this.baseUrl);
         subscription.topics.forEach((topic) => url.searchParams.append('match', topic));
 
-        const headers = { Accept: 'text/event-stream', Authorization: `Bearer ${subscription.token}` };
+        const headers = { Accept: 'text/event-stream' };
+
+        if (subscription.token !== null) {
+            headers.Authorization = `Bearer ${subscription.token}`;
+        }
 
         if (this.lastEventId !== null && this.lastEventId !== '') {
             headers['Last-Event-ID'] = this.lastEventId;
@@ -577,7 +626,11 @@ export class OfficialResultsEvents {
         this.discard(stream);
 
         if (reason === 'refused') {
-            this.refusedToken = stream.subscription.token;
+            if (stream.subscription.public === true) {
+                this.publicRefused = true;
+            } else {
+                this.refusedToken = stream.subscription.token;
+            }
         }
 
         if (stream === this.successor) {
@@ -638,6 +691,11 @@ export class OfficialResultsEvents {
         }
 
         const left = this.stream.subscription.expiresAt - this.now();
+
+        // A public subscription has no token to renew
+        if (!Number.isFinite(left)) {
+            return;
+        }
 
         this.renewTimer = this.schedule(() => this.renewalDue(), Math.max(0, left - RENEW_BEFORE_MS, left / 2));
     }

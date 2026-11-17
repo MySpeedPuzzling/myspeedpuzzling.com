@@ -36,10 +36,12 @@ const ICON_FONT_KEY_PREFIXES = [
 ];
 
 // Encore entries NOT precached on install: their files are cached on first use only (cache-first like every /build
-// file). Every other entry is precached for every visitor - the live result entry (`live_entry`, ~40 KB gzip) on
-// purpose, so a referee's page works offline after any visit. `display` (the competition timer screens and stream
-// overlays, competition toolkit D4) is for a handful of venue screens - never downloaded by every visitor.
-const PRECACHE_SKIP_ENTRIES = ['display'];
+// file). Every other entry is precached for every visitor. Skipped - pages a handful of devices open, never downloaded
+// by every visitor: `display` (the competition timer screens and stream overlays, competition toolkit D4),
+// `live_entry` (the referees' live result entry: their devices store the page's offline copy and its files on purpose,
+// `live-shell:prepare`, toolkit C6) and `live_entry_native` (Turbo for that page inside the native apps, which run no
+// service worker at all).
+const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native'];
 
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [

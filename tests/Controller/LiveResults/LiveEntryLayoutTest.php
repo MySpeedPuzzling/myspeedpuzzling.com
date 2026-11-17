@@ -41,6 +41,52 @@ final class LiveEntryLayoutTest extends WebTestCase
         self::assertCount(1, $crawler->filter('head link[rel="stylesheet"][href*="/build/app"]'), 'the site\'s stylesheet');
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function nativeAppUserAgents(): iterable
+    {
+        yield 'iOS app' => ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MySpeedPuzzling iOS; Turbo Native iOS'];
+        yield 'Android app' => ['Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36 MySpeedPuzzling Android; Turbo Native Android'];
+    }
+
+    /**
+     * The native apps (Hotwire Native) finish a visit only on a page that runs Turbo - without it the iOS app waits 30 s,
+     * the Android app 4 s, and shows its error screen over the page. So inside the apps the page adds the
+     * `live_entry_native` entry (Turbo, Drive off); the web page stays without it.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('nativeAppUserAgents')]
+    public function testInsideTheNativeAppsThePageRunsTurbo(string $userAgent): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', self::PAGE, server: ['HTTP_USER_AGENT' => $userAgent]);
+
+        self::assertResponseIsSuccessful();
+        $scripts = $crawler->filter('head script[src]')->each(static fn ($script): string => (string) $script->attr('src'));
+        self::assertCount(1, array_filter($scripts, static fn (string $src): bool => str_contains($src, '/build/live_entry_native')), 'Turbo for the apps\' WebView');
+        self::assertCount(1, array_filter($scripts, static fn (string $src): bool => str_contains($src, '/build/live_entry.')), 'the live entry bundle');
+        self::assertCount(0, array_filter($scripts, static fn (string $src): bool => str_contains($src, '/build/app')), 'never the site bundle');
+    }
+
+    public function testInABrowserThePageRunsNoTurbo(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('GET', self::PAGE, server: ['HTTP_USER_AGENT' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1']);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('/build/live_entry_native', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testTheNativeEntryIsTurboWithDriveOff(): void
+    {
+        $source = (string) file_get_contents(__DIR__ . '/../../../assets/live_entry_native.js');
+
+        self::assertStringContainsString("import * as Turbo from '@hotwired/turbo';", $source);
+        self::assertStringContainsString('Turbo.session.drive = false;', $source, 'links stay plain page loads, as on the web');
+    }
+
     public function testTheSelfHealScriptsAreTheOnesOfEveryOtherPage(): void
     {
         $browser = self::createClient();

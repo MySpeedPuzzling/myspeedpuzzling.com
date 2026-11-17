@@ -201,7 +201,8 @@
          data-live-results-record-url-value="{{ path('official_results_record', {roundId: uuid_placeholder}) }}"
          data-live-results-live-url-value="{{ path('live_results', {roundId: uuid_placeholder}) }}"
          data-live-results-scan-url-value="{{ path('live_results_scan', {competitionId: competition_placeholder, participantId: uuid_placeholder}) }}"
-         data-live-results-login-url-value="{{ path('login', {return: path('live_results', {roundId: round_id})}) }}"
+         data-live-results-login-url-value="{{ live_entry_shell ?? false ? path('login') : path('login', {return: path('live_results', {roundId: round_id})}) }}"{% if live_entry_shell ?? false %}
+         data-live-results-shell-value="true"{% endif %}
          data-live-results-csrf-token-value="{{ csrf_token('official_results') }}"
          data-live-results-entrant-value="{{ entrant_id ?? '' }}"
          data-live-results-table-value="{{ table ?? '' }}"

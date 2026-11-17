@@ -4,8 +4,9 @@
  * Components, no Bootstrap JS, no other controllers. Only the live results controller, registered eagerly, so the page
  * is interactive as soon as this file runs (no lazy chunk after `app.js`).
  *
- * Everything the page needs is imported statically - never `import()`: the service worker precaches the files
- * entrypoints.json lists for this entry, and a lazy chunk would be missing offline (tests/LiveEntryBundleTest.php).
+ * Everything the page needs is imported statically - never `import()`: a referee's device stores the files
+ * entrypoints.json lists for this entry with the page's offline copy (service worker, toolkit C6), and a lazy chunk would
+ * be missing offline (tests/LiveEntryBundleTest.php).
  */
 
 import { Application } from '@hotwired/stimulus';

@@ -22,8 +22,12 @@
 
            Real time on purpose, never now(): the browser compares it with the
            server's Date header, which no frozen test clock moves
-           (docs/features/time-and-clock, SystemClockCoverageTest). #}
-        <meta name="msp-rendered-at" content="{{ 'now'|date('U') }}">
+           (docs/features/time-and-clock, SystemClockCoverageTest).
+
+           The live entry page's offline copy (`live_entry_shell`, competition
+           toolkit C3) carries no timestamp: the service worker keeps it for
+           hours on purpose, and without the meta this script does nothing. #}
+        {% if not (live_entry_shell ?? false) %}<meta name="msp-rendered-at" content="{{ 'now'|date('U') }}">{% endif %}
         <script>
         (function () {
             var STALE_AFTER_SECONDS = 300;

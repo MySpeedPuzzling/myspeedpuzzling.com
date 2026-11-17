@@ -10,9 +10,10 @@ use Symfony\Component\Process\Process;
 
 /**
  * What the real public/service-worker.js precaches on install (tests/service-worker-install-harness.js):
- * every Encore entry's files - the live result entry included, so a referee's page works offline after any visit
- * (competition toolkit C2) - except the entries in PRECACHE_SKIP_ENTRIES (`display`: the competition timer screens and
- * stream overlays are for a few venue screens, never for every visitor - toolkit R §2.8).
+ * every Encore entry's files except the entries in PRECACHE_SKIP_ENTRIES - pages a handful of devices open, never
+ * downloaded by every visitor (toolkit R §2.8): `display` (the competition timer screens and stream overlays),
+ * `live_entry` (the referees' live result entry - their devices store its offline copy and files on purpose, toolkit
+ * C6 `live-shell:prepare`) and `live_entry_native` (Turbo for that page in the native apps, which run no worker).
  *
  * The list goes to cache.addAll() once per URL: browsers refuse a list holding the same request twice as a whole, and
  * every entry lists runtime.js - the precache did nothing at all while it passed each entry's list as it was.
@@ -23,6 +24,7 @@ final class ServiceWorkerInstallTest extends TestCase
         'entrypoints' => [
             'app' => ['js' => ['/build/runtime.1.js', '/build/9045.2.js', '/build/app.3.js'], 'css' => ['/build/9045.4.css', '/build/app.5.css']],
             'live_entry' => ['js' => ['/build/runtime.1.js', '/build/live_entry.6.js']],
+            'live_entry_native' => ['js' => ['/build/runtime.1.js', '/build/live_entry_native.10.js']],
             'compete' => ['js' => ['/build/runtime.1.js'], 'css' => ['/build/compete.7.css']],
             'display' => ['js' => ['/build/runtime.1.js', '/build/display.8.js'], 'css' => ['/build/display.9.css']],
         ],
@@ -39,7 +41,6 @@ final class ServiceWorkerInstallTest extends TestCase
             '/build/app.3.js',
             '/build/9045.4.css',
             '/build/app.5.css',
-            '/build/live_entry.6.js',
             '/build/compete.7.css',
         ], $result['added']);
     }
@@ -53,11 +54,19 @@ final class ServiceWorkerInstallTest extends TestCase
         self::assertContains('/build/runtime.1.js', $added, 'a file another entry needs too is still precached');
     }
 
-    public function testTheSkipListNamesTheDisplayEntry(): void
+    public function testTheLiveEntryIsNeverPrecachedForEveryVisitor(): void
+    {
+        $added = array_merge(...$this->install(self::ENTRYPOINTS)['added']);
+
+        self::assertNotContains('/build/live_entry.6.js', $added);
+        self::assertNotContains('/build/live_entry_native.10.js', $added);
+    }
+
+    public function testTheSkipListNamesTheVenueAndRefereeEntries(): void
     {
         $serviceWorker = (string) file_get_contents(__DIR__ . '/../public/service-worker.js');
 
-        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display'\\];$/m", $serviceWorker));
+        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native'\\];$/m", $serviceWorker));
     }
 
     /**

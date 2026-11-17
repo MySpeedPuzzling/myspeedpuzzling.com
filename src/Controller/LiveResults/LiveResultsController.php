@@ -8,6 +8,9 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetLiveResultsEntrant;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\LiveEntryDeviceCookie;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +27,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * `?table=<n>` (opens the entry at that table), `?entry=<participant_round:id|team:id>` (opens that entry).
  * Organisers and the event's referees may open it; referees get no links to the other organiser tools (shown by the
  * page only for `viewer.organiser`).
+ * The answer sets the device cookie `msp_live_player` (LiveEntryDeviceCookie, toolkit C3): whose saved rounds the page's
+ * offline copy may show - only ever here, so only organisers and referees get it.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class LiveResultsController extends AbstractController
@@ -31,6 +36,9 @@ final class LiveResultsController extends AbstractController
     public function __construct(
         private readonly CompetitionRoundRepository $roundRepository,
         private readonly GetLiveResultsEntrant $getLiveResultsEntrant,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        #[Autowire(param: 'loginLifetimeSeconds')]
+        private readonly int $loginLifetimeSeconds,
     ) {
     }
 
@@ -74,6 +82,13 @@ final class LiveResultsController extends AbstractController
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+
+        // The voter above has read the profile already (memoised) - no query
+        $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+
+        if ($playerId !== null) {
+            $response->headers->setCookie(LiveEntryDeviceCookie::forPlayer($playerId, $request, $this->loginLifetimeSeconds));
+        }
 
         return $response;
     }

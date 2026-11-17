@@ -117,6 +117,14 @@ return static function (ContainerConfigurator $configurator): void {
         $services->alias('online_rate_limiter.' . $name, 'limiter.' . $name);
     }
 
+    // The analytics studio's watch markers survive the browser's kernel reboots but never a test (AnalyticsStudioWatchPool,
+    // emptied before every test by AnalyticsStudioWatchResetExtension)
+    $services->set('analytics_studio_watch.test_pool', \SpeedPuzzling\Web\Tests\TestDouble\AnalyticsStudioWatchPool::class)
+        ->autowire(false)
+        ->autoconfigure(false);
+    $services->set(\SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioWatch::class)
+        ->arg('$analyticsStudioWatchCache', service('analytics_studio_watch.test_pool'));
+
     // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
     $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);

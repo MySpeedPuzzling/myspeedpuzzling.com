@@ -317,8 +317,6 @@ final class SecretPuzzleRoutesTest extends WebTestCase
     public function testTheAnalyticsStudioSignalCarriesOnlyItsTypeAndRound(): void
     {
         $browser = self::createClient();
-        // The studio's watch marker lives in this kernel (per kernel in tests)
-        $browser->disableReboot();
         $puzzleId = $this->secretPuzzle();
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement("UPDATE competition_round SET slug = 'future-round' WHERE id = :id", ['id' => CompetitionApiFixture::ROUND_FUTURE]);

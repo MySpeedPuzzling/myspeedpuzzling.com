@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioWatch;
+use SpeedPuzzling\Web\Tests\TestDouble\AnalyticsStudioWatchPool;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
@@ -25,11 +26,11 @@ trait AnalyticsStudioTesting
     }
 
     /**
-     * The studio's watch marker of this kernel (its pool is per kernel in tests - config/packages/test/cache.php).
+     * The studio's watch markers (static in tests, emptied before every test - AnalyticsStudioWatchPool).
      */
     protected function studioWatch(): AnalyticsStudioWatch
     {
-        return new AnalyticsStudioWatch(self::getContainer()->get('analytics_studio_watch_cache'));
+        return new AnalyticsStudioWatch(new AnalyticsStudioWatchPool());
     }
 
     /**

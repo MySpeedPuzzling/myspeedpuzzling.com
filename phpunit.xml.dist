@@ -25,5 +25,6 @@
         <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
         <bootstrap class="SpeedPuzzling\Web\Tests\Panther\Extension\PantherDatabaseExtension"/>
         <bootstrap class="SpeedPuzzling\Web\Tests\Extension\XpLaunchSwitchResetExtension"/>
+        <bootstrap class="SpeedPuzzling\Web\Tests\Extension\AnalyticsStudioWatchResetExtension"/>
     </extensions>
 </phpunit>

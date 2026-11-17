@@ -1112,6 +1112,27 @@ scenario('refresh: a signal of another round, another typed message or one befor
     assert.equal(server.fetches.length, 1);
 });
 
+scenario('refresh: a signal fetch still planned when the round went gone (404) is dropped', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, server, events, advance, sinceStart } = setup({ state, random: () => 0.5 });
+    refresh.start();
+    await settle();
+    await advance(1000);
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    // A refresh before the signal's fetch answers 404
+    server.status = 'gone';
+    refresh.onVisible();
+    await advance(500);
+    assert.deepEqual(sinceStart(), [0, 1250]);
+    await advance(10_000);
+    assert.deepEqual(sinceStart(), [0, 1250], 'no signal fetch after gone');
+    // A signal arriving while gone is ignored too
+    events.options.onMessage({ type: SIGNAL_TYPE, roundId: ROUND });
+    await advance(10_000);
+    assert.deepEqual(sinceStart(), [0, 1250]);
+});
+
 scenario('refresh: polls every 30 s while the stream is live, back to 10 s when it is not; reconnect asks within 0-3 s', async () => {
     const state = clone(STATE);
     state.nextRevealAtMs = null;

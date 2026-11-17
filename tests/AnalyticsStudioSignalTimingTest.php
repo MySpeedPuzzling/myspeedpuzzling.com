@@ -25,9 +25,22 @@ final class AnalyticsStudioSignalTimingTest extends TestCase
 
     public function testTheMarkerOutlivesTwoFallbackPolls(): void
     {
-        // The live fallback poll while the stream is live: 30 s + 20 %
-        self::assertSame(30_000, self::constant('STREAMED_LIVE_POLL_MS'));
-        self::assertGreaterThan(2 * intdiv(self::constant('STREAMED_LIVE_POLL_MS') * 6, 5000), AnalyticsStudioWatch::WATCH_TTL_SECONDS);
+        // The live fallback poll while the stream is live: 30 s + 20 % = 36 s; the marker (AnalyticsStudioWatch, 180 s)
+        // outlives two lost polls and an idle 60 s poll
+        $slowestPollSeconds = intdiv(self::constant('STREAMED_LIVE_POLL_MS') * 6, 5000);
+        self::assertSame(36, $slowestPollSeconds);
+        self::assertGreaterThan(2 * $slowestPollSeconds, self::watchTtlSeconds());
+    }
+
+    /**
+     * Read from the class at run time - PHPStan folds the constant itself into an always-true assertion
+     */
+    private static function watchTtlSeconds(): int
+    {
+        $ttl = new \ReflectionClassConstant(AnalyticsStudioWatch::class, 'WATCH_TTL_SECONDS')->getValue();
+        self::assertIsInt($ttl);
+
+        return $ttl;
     }
 
     public function testThePageKnowsTheSignalsType(): void

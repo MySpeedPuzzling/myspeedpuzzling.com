@@ -375,6 +375,13 @@ export class AnalyticsStudioRefresh {
         this.signalAt = now + delay;
         this.set('signal', delay, () => {
             this.signalAt = null;
+
+            if (this.gone) {
+                this.signalAgain = false;
+
+                return;
+            }
+
             this.lastSignalFetchAt = this.now();
             this.refresh();
 
@@ -433,6 +440,10 @@ export class AnalyticsStudioRefresh {
             this.gone = true;
             this.events?.suspend();
             this.clear('reveal');
+            // A signal fetch still planned is no fetch for a round that is gone - the 5-minute look stays
+            this.clear('signal');
+            this.signalAt = null;
+            this.signalAgain = false;
             this.set('poll', GONE_POLL_MS, () => this.refresh());
             this.onGoneFn();
 

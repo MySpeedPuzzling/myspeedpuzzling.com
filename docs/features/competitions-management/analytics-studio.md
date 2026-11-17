@@ -824,9 +824,12 @@ Where it differs from the sections above:
   Hooked in `OfficialResultsLiveUpdates` after the display forwarding (S1's standings forwarding through
   `CompetitionDisplayLiveUpdates` untouched): `entriesChanged()` + `refresh()` → results, `puzzlesRevealed()` → puzzles,
   `roundChanged()` → round. `AnalyticsStudioStateBuilder::compute()` marks the round and lists both topics.
-- The marker has its own pool `analytics_studio_watch_cache` (not `analytics_studio_cache`, as the note had it): in
-  tests it is an array pool per kernel, so a marker one test set can never make another test's results write publish
-  (the studio cache is on disk there); tests that watch a round keep their kernel (`disableReboot()`).
+- The marker has its own pool `analytics_studio_watch_cache` (not `analytics_studio_cache`, as the note had it). In
+  tests `AnalyticsStudioWatch` gets `tests/TestDouble/AnalyticsStudioWatchPool` (config/services_test.php): static, no
+  `ResetInterface` (a kernel reboot or reset would clear any container pool between the state and the write), emptied
+  before every test by `AnalyticsStudioWatchResetExtension` - a marker one test set never makes another test's results
+  write publish (the studio cache is on disk there).
+- A signal fetch still planned when the state answers 404 (gone) is dropped; signals while gone are ignored.
 - Client `assets/analytics-studio/refresh.js`: `SIGNAL_TYPE`, `SIGNAL_SETTLE_MS`, `SIGNAL_JITTER_MS`,
   `SIGNAL_MIN_GAP_MS`, `STREAMED_LIVE_POLL_MS`; `requestSignalRefresh()` has its own timer slot - a refresh already
   planned at least 2.3 s ahead serves the signal, one planned earlier (a stopwatch push's 0-1 s) does not, and a signal

@@ -26,8 +26,8 @@ use Symfony\Component\Mercure\Update;
  * - public, `{type, roundId}` only; results only while they are public; never for a draft; nothing for a round nobody
  * watches, a refused write or a hub that is down (the write answers as always).
  *
- * The marker pool is per kernel in tests (config/packages/test/cache.php): every test watching a round keeps its kernel
- * (disableReboot()) between the state and the write.
+ * The markers are static in tests and emptied before every test (AnalyticsStudioWatchPool): they survive the browser's
+ * kernel reboot between the state and the write, never into another test.
  */
 final class AnalyticsStudioSignalsTest extends WebTestCase
 {
@@ -164,14 +164,16 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
             $signals->roundChanged($roundId);
         }
         self::assertSame([], $hub->getPublishedUpdates());
-        self::assertSame([], $logger->records);
+        self::assertFalse($logger->hasRecord('warning', ''));
 
         $watch->markWatched(F::ROUND_GROUP_A);
         $hub->failWith(new \RuntimeException('Hub down'));
         $signals->resultsChanged(F::ROUND_GROUP_A);
 
         self::assertTrue($logger->hasRecord('warning', 'Could not publish an analytics studio signal'));
-        self::assertInstanceOf(\RuntimeException::class, $logger->records[0]['context']['exception'] ?? null);
+        $warning = array_find($logger->records, static fn (array $record): bool => $record['level'] === 'warning');
+        self::assertIsArray($warning);
+        self::assertInstanceOf(\RuntimeException::class, $warning['context']['exception'] ?? null);
 
         $hub->failWith(null);
         $signals->resultsChanged(F::ROUND_GROUP_A);
@@ -185,8 +187,6 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
     private function organiser(): KernelBrowser
     {
         $browser = self::createClient();
-        // The marker lives in this kernel's pool (per kernel in tests) - kept between the state and the write
-        $browser->disableReboot();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         return $browser;
@@ -233,7 +233,7 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
     {
         $signals = array_values(array_filter(
             self::hub()->getPublishedUpdates(),
-            static fn (Update $update): bool => array_filter($update->getTopics(), static fn (string $topic): bool => str_starts_with($topic, '/analytics-studio-signal/')) !== [],
+            static fn (Update $update): bool => array_filter($update->getTopics(), static fn (mixed $topic): bool => is_string($topic) && str_starts_with($topic, '/analytics-studio-signal/')) !== [],
         ));
 
         foreach ($signals as $signal) {

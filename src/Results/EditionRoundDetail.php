@@ -6,12 +6,15 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class EditionRoundDetail
 {
     /**
      * @param array<EditionRoundPuzzle> $puzzles
+     * @param list<RoundPuzzleSlot> $puzzleSlots a `pick` round's puzzles as places with their labels (RoundPuzzlesVisibleNow,
+     *                                          hidden ones by their label only) - empty for every other round
      */
     public function __construct(
         public string $id,
@@ -38,6 +41,15 @@ readonly final class EditionRoundDetail
         public bool $onlineVideo = false,
         // false = only the day is known, $startsAt is noon of it - pages show no time (CompetitionRound::$startTimeKnown)
         public bool $startTimeKnown = true,
+        // How the round's puzzles are solved, and K of a `pick` round (competition toolkit A2)
+        public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total,
+        public null|int $puzzlesToSolve = null,
+        public array $puzzleSlots = [],
     ) {
+    }
+
+    public function isPick(): bool
+    {
+        return $this->puzzleFormat === RoundPuzzleFormat::Pick && $this->puzzlesToSolve !== null;
     }
 }

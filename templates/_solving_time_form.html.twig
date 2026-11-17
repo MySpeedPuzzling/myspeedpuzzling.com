@@ -100,7 +100,7 @@
             <input type="hidden" name="official_entry" value="{{ official_entry_ref }}">
             {% if official_member|default(null) is not null %}
                 <input type="hidden" name="official_member" value="{{ official_member }}">
-            {% endif %}
+            {% endif %}{% if official_round_puzzle|default(null) is not null %}<input type="hidden" name="round_puzzle" value="{{ official_round_puzzle }}">{% endif %}
         {% endif %}
         {% if return_context|default(null) %}
             <input type="hidden" name="context" value="{{ return_context }}">

@@ -53,7 +53,8 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 | A5 | C (swap) | merged | a67e67ecf..e31a67273 | OfficialEntrantsView (forRound/forRounds, rankOf), public chips (label before reveal), per-puzzle Add to my profile (`round_puzzle` param, only on the official_entry path), golden pins |
 | B4 | C | merged | 4809c8704, 00d8e47bc, 114c81d9c | competitor_page p/g/t/e + competitor_state, 404 rules, published/live/own results, guest 4 statements, canaries, B2 goldens regenerated; docs competitor-pages.md |
 | P1F | A (extra slot) | started | | review-P1.md fixes |
-| A4 | B (swap) | started | | |
+| A4 | B (swap) | merged | 973884dc5, 41725625e, 89d05d343 | desk per-puzzle editor (grouped saves), sheet recompute/clear+undo + Puzzles column, export Puzzle N columns (total pinned) |
+| C9 | B | started | | |
 
 ## Hardening list (H) - collected
 - Duplicate competition: copy competitor-page settings (B1)? displays (D8). Rounds copied without puzzles stay `total`.

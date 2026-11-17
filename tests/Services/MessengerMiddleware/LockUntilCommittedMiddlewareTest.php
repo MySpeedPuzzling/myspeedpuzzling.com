@@ -80,6 +80,43 @@ final class LockUntilCommittedMiddlewareTest extends TestCase
     }
 
     /**
+     * A composite holding the key dispatches a message of the same key from inside its handler (the event creation
+     * wizard's SetUpEventWizardRound around EditCompetitionRound): the inner one passes through instead of waiting for
+     * the outer one, and the key stays held until the outer one is done.
+     */
+    public function testANestedMessageOfAHeldKeyPassesThroughAndTheOuterKeepsTheLock(): void
+    {
+        $middleware = $this->middleware();
+        $innerHandled = false;
+        $lockFreeAfterInner = null;
+        $outer = new Envelope($this->lockedMessage());
+        $inner = new Envelope($this->lockedMessage());
+
+        $middleware->handle($outer, $this->stack(function () use ($middleware, $inner, $outer, &$innerHandled, &$lockFreeAfterInner): Envelope {
+            $middleware->handle($inner, $this->stack(static function () use (&$innerHandled, $inner): Envelope {
+                $innerHandled = true;
+
+                return $inner;
+            }));
+            $lockFreeAfterInner = $this->isLockFree();
+
+            return $outer;
+        }));
+
+        self::assertTrue($innerHandled);
+        self::assertFalse($lockFreeAfterInner, 'The outer message keeps the lock until it is done');
+        self::assertTrue($this->isLockFree());
+
+        // The next message acquires it as usual
+        $middleware->handle($inner, $this->stack(function () use ($inner, &$lockFreeAfterInner): Envelope {
+            $lockFreeAfterInner = $this->isLockFree();
+
+            return $inner;
+        }));
+        self::assertFalse($lockFreeAfterInner);
+    }
+
+    /**
      * The lock store keeps its own long-lived database connection. After Postgres restarted,
      * the first lock of every worker failed with ConnectionLost (production 2026-09-03: a
      * Stripe webhook answered 500). DBAL closes a lost connection, so one more attempt

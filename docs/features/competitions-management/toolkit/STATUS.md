@@ -90,6 +90,36 @@ screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding wher
 - ~~D7: ConvertCompetitionToSeries loses displays (blocker?).~~ **Resolved** by D8 (convert-to-series refuses an event with displays).
 - ~~D1: copy-link 404 until D4.~~ **Resolved** by D4 (`/display/{token}` exists).
 
+## Reliability hardening (2026-11-17, orchestrator: sub-session; brief `cm-delivery/brief-reliability-orchestrator.md`)
+Jan: "reliability and performance are 2 key success requirements" - the judge page and the proposals extremely reliable,
+fast and working offline (scanning too). Delivered on `main` (= production) from the evening of 2026-11-17, no flags.
+
+| Pkg | State | What |
+|---|---|---|
+| T1 | on main | Time's up + missing pieces: the judge types MISSING pieces (placed = pieces − missing, per puzzle on pick rounds, several unfinished puzzles), the card opens in that mode once the round's time is up (a default - "Back to the time" one tap), desk too; format names "One result for the round" / "Solve all N (order recorded)" / "Pick K of N" |
+| T2 | on main | Proposal timing: the recorded time is always the tap's (Jan); competitor heartbeat (`/-/competitor-heartbeat`, signed token, redis-state, 0 Postgres statements, p95 3-9 ms); evidence-based verdict on_time / offline / suspicious + clock note - the judge card warns ("Check this time", one-tap "Use received") only on evidence; threat model in `competitor-pages.md` "Timing you can trust" |
+| T3 | on main (tool) | `tools/judge-chaos/`: 16 real-browser scenarios in prod mode (Selenium Chromium, own proxy for offline/flapping/500/429/hangs, CPU 6x, fake camera with QR videos of all 4 tag kinds, SW update, session expiry, two judges, clock jump, frozen tab) - DB-checked exactly-once |
+| T4 | on main | `tools/competition-load/` (k6 over HTTP, prod-mode stack, lock sampler, judge timings); answers sent before the Mercure pushes (`AfterResponse`); lock analysis: no per-round key needed |
+| T5 | on main | `judge-device-checklist.md` (real phones; PWA install prompt not recommended now) |
+| T6 | on main | Standings: time + missing pieces + penalised total; "finished with N pieces missing" (`result_missing_pieces`, `RecordRoundResults` field `missing_pieces`) recorded by judge/desk; switch `penalise_finished_missing` (default off) |
+| F1 | on main | fixes D1-D4, D6 (below) |
+| F2 | on main | fix D7 (below) |
+| TR | on main | 49 keys × cs/de/es/fr/ja |
+
+Defects found by the chaos suite (`cm-delivery/rl-t3-defects.md`), all fixed:
+- **D1 critical** - unsent results went out under ANOTHER account after a different player signed in on the phone → `expectedPlayerId` + 409 `another_account` (server), outbox stops until a fresh state names the same player (F1).
+- **D2 high** - a phone clock change while the page was open shifted "Finished now" and the competitor's tap → the server-synced clock runs on the monotonic clock, re-sampled after sleep/jumps (F1).
+- **D3/D4** - offline reload in the first seconds showed "No offline copy"; snapshot never written under a steady stream of updates → first state at once, max wait 2 s (F1).
+- **D5** - a late proposal confirmed at the receipt time (every offline proposal) → tap time always (T2).
+- **D6** - "Sign in again" banner shifted the card and ate the Save tap → banner below an open card (F1).
+- **D7** - another judge's value arriving while the confirm step was open was silently overwritten → Save carries what the card showed as `from`; "Saved meanwhile by X … - Save replaces it" + "Replace <value>" (F2).
+
+Measured (Docker-on-Mac, prod mode, 16 FrankenPHP workers, 300 entrants, 6 judges, 100 proposals in 1-10 s + 300 phones' heartbeats/polls) - p95 before → after T4: save 83 → 42 ms, save result+puzzles 176 → 41 ms, proposal 40 → 22 ms (100-in-1-s burst 136 → 106 ms), heartbeat 9 → 4 ms; with the Mercure hub stalled 2,050 → 19-51 ms. The event lock is held ~20 ms per save, waited on in ≤ 0.3 % of samples. Judge page (production build, 375×812, CPU 4x, 300 entries): cold ready 2.7 s (Slow 4G) / 4.2 s (Fast 3G), warm 0.33-0.8 s, table → card p95 61 ms, Save → "All saved" p95 266 ms (Slow 4G); chaos suite at CPU 6x: table → card p95 111 ms, Save → sent p95 298 ms.
+
+Proven by the suite: exactly-once under flapping networks, reloads mid-save, 500/429/hang bursts and lost answers; offline reload → enter → sync; SW update mid-event; session expiry without loss or wrong attribution; two judges' conflicts; tap moments kept offline (judge and competitor, 65-90 s later + reload); offline scanning of all 4 tag kinds via the self-hosted zbar from the worker's cache. Needs a real phone (`judge-device-checklist.md`): iOS Safari/WebKit, a real camera and native BarcodeDetector (Linux Chrome has none - shimmed), tab discarding, captive portals, a real deploy with new asset hashes.
+
+Open for Jan: penalty 0 - missing pieces as a tie-break? (none now); sheet editing of "pieces missing" (desk/judge only now); load numbers on lily; a live-entry-only stylesheet would cut the cold open (137 KB gzip CSS) if that ever matters.
+
 ## Creation wizard (2026-11-17, orchestrator: sub-session; design `W-creation-wizard-research.md`)
 Jan: rework creating competitions into a wizard (toggle features, one round without extra clicks, especially series)
 and fix Duplicate (new dates). No flag (WF, 2026-11-17: `EVENT_CREATION_WIZARD` retired - the wizard is every player's

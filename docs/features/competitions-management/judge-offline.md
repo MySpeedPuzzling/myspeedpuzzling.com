@@ -244,6 +244,13 @@ snapshots (`proposals`).
   live entry prefix), so with unsent results the judge is asked whether to leave - the results are kept either way.
 - C10 not tried: a reveal while a card is open, an offline group save.
 
+## Chaos suite + device checklist (reliability hardening)
+
+`tools/judge-chaos/` (README) - 16 real-browser scenarios against a prod-mode stack (offline, flapping, server
+errors, SW update, session expiry, two judges, clock jump, frozen tab, CPU 6x, offline scanning of all 4 tag kinds with a
+fake camera); not in CI (~25 min, Docker). Defects it found and their fixes: `toolkit/STATUS.md` "Reliability
+hardening". Real phones: [judge-device-checklist.md](judge-device-checklist.md).
+
 ## Tests
 
 - PHP: `tests/Controller/LiveResults/` `LiveResultsShellControllerTest`, `LiveEntryDeviceCookieTest`,

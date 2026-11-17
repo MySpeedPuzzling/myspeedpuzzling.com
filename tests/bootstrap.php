@@ -419,6 +419,36 @@ function createCustomIndexes(): void
     // Unread notifications badge (Version20260930163000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_notification_unread ON notification (player_id) WHERE read_at IS NULL');
 
+    // The notification foreign keys that are nearly always NULL: a partial index instead of Doctrine's full one
+    // (Version20261117170000). schema:create built the full ones - the migration drops them, so does this
+    $notificationPartialIndexes = [
+        'actor_player_id' => 'idx_bf5476ca6d9f05f3',
+        'target_borrow_request_id' => 'idx_bf5476ca4f71a703',
+        'target_change_request_id' => 'idx_bf5476ca96566c4c',
+        'target_competition_round_id' => 'idx_bf5476cafd44e32c',
+        'target_conversation_id' => 'idx_bf5476ca4ba2e1f5',
+        'target_data_import_batch_id' => 'idx_bf5476ca45b56d34',
+        'target_data_import_undo_id' => 'idx_bf5476cacacb171d',
+        'target_guest_link_request_id' => 'idx_bf5476ca5f704f2',
+        'target_listing_request_id' => 'idx_bf5476caf5730683',
+        'target_merge_request_id' => 'idx_bf5476cafb320824',
+        'target_partner_listing_id' => 'idx_bf5476caff157ae',
+        'target_partner_request_id' => 'idx_bf5476ca99ee7211',
+        'target_puzzling_team_id' => 'idx_bf5476caa3e76637',
+        'target_sold_swapped_item_id' => 'idx_bf5476ca343e61b1',
+        'target_transfer_id' => 'idx_bf5476cad44a07a5',
+    ];
+
+    foreach ($notificationPartialIndexes as $column => $replacedIndex) {
+        $pdo->exec(sprintf('CREATE INDEX IF NOT EXISTS custom_notification_fk_%1$s ON notification (%1$s) WHERE %1$s IS NOT NULL', $column));
+        $pdo->exec(sprintf('DROP INDEX IF EXISTS %s', $replacedIndex));
+    }
+
+    // Prefixes of unique indexes, dropped (Version20261117170000): player_rating_snapshot (player_id),
+    // solving_time_prediction (time_id)
+    $pdo->exec('DROP INDEX IF EXISTS idx_ab6a238999e6f5df');
+    $pdo->exec('DROP INDEX IF EXISTS idx_b40d9d315eeadd3b');
+
     // Player search (Version20260930163100)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_search_trgm ON player USING GIN (LOWER(name) gin_trgm_ops, LOWER(code) gin_trgm_ops, LOWER(immutable_unaccent(name)) gin_trgm_ops, LOWER(immutable_unaccent(code)) gin_trgm_ops)');
 

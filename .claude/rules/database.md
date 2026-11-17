@@ -76,6 +76,22 @@ web container has migrated. The same goes for any later change of it.
   purpose: a name-based id is the point where it is used (advisory lock keys, the API's `Idempotency-Key` retry
   detection in `CreateSolvingTimeProcessor`).
 
+## Foreign keys that are nearly always NULL: a partial index, not Doctrine's
+Doctrine indexes every `ManyToOne` join column with a full b-tree, NULLs included. `notification`'s 15 nullable
+"what is it about" columns (`actor_player_id`, `target_*` except `target_solving_time_id`) are 99.6-100 % NULL, so
+their full indexes (486 MB) were replaced by `custom_notification_fk_<column> … WHERE <column> IS NOT NULL`
+(`Version20261117170000`, docs/database-indexes.md) - the foreign key's cascade lookup `WHERE $1 = <column>` still
+uses them; never drop such an index outright. Doctrine stays quiet because DBAL assumes the implicit index for every
+foreign key no index covers when it reads the database back - CI's `doctrine:schema:validate` after the migrations
+guards that.
+- **A new nullable `target_*` (or similar mostly-NULL) relation:** `migrations:diff` generates a full
+  `CREATE INDEX IDX_… ON notification (…)` - replace it in the migration with a partial `custom_notification_fk_<column>`
+  and mirror it in `tests/bootstrap.php` (create the partial one, drop Doctrine's by name).
+- **A generated `DROP INDEX idx_…` for one of these columns** (a renamed or retyped column) targets an index that is
+  gone: make it `DROP INDEX IF EXISTS`.
+- An index Doctrine wants for a foreign key whose column already leads a unique index of the same table is redundant
+  too (`player_rating_snapshot (player_id)`, `solving_time_prediction (time_id)` were dropped the same way).
+
 ## `custom_` is reserved for unmanaged objects
 `CustomIndexFilteringSchemaManagerFactory` hides every `custom_*` index from Doctrine, so never name a table or
 an index Doctrine should manage with that prefix (the custom fields tables are `player_custom_field` /

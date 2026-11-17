@@ -41,6 +41,12 @@ Where this section and the body differ, this section wins.
   C" no longer applies after exclusions: an empty set answers NULL. A time with no entries anywhere and ≥ 2 candidates
   left after exclusions → NULL. (Carnival: teams are registered per round, so linked players resolve by E; the rest
   choose the round on their result.)
+- A3b. **Sticky link (main session, 2026-11-18, after the production dry run):** when several candidates remain and the
+  evidence does not single one out, a round the time already holds is KEPT while it is a remaining (not excluded)
+  candidate (`round_chosen` unchanged) - existing links are never silently unlinked (production: the 50 times of
+  "Pairs round 1" of one national championship whose two pairs rounds share a puzzle since a merge). Only a time
+  without a current candidate round stays unlinked; evidence (E/R) that singles out another round still moves it. A
+  chosen round that is no longer a candidate is not sticky (A4).
 - A4. **No "none of these" state.** `round_chosen` (bool) only marks a round the player/API named. Every writer that
   clears `competition_round_id` with raw SQL (`DeleteCompetitionRoundHandler:102`, `DeleteCompetitionHandler:77`,
   `DeleteCompetitionSeriesHandler:65`, `ConvertCompetitionToSeriesHandler:156`, `SeriesEditionReconciler:98`, + any
@@ -569,6 +575,10 @@ in, otherwise divisions are set in the sheet or through the internal API.
   `roundChosen` round counts as named, so an edit / Keep this one / Link my results keep a named round while it is a
   candidate (rows 5-6 come with S1 for free). A `$named` that is not a candidate costs a second statement and is
   ignored. `resolveFor()` keeps its signature (no evidence: a shared puzzle answers no round - S3 row 7).
+- **A3b sticky link**: `sqlAnswer()` = COALESCE(the evidence's answer, the current round when it is a remaining
+  candidate) for every time not decided by n = 1 or by a chosen round - resolver and reconciler alike (matrix rows:
+  ambiguous + current candidate → kept; ambiguous + current excluded → none; evidence elsewhere → moved; the merge
+  test keeps a time without evidence in its round).
 - **Reconciler**: link statement = the answer for every time with a candidate (a round or NULL, flag kept or cleared),
   counted by `RETURNING`; unlink statement unchanged + `round_chosen = false`. Note: the A4 transition (chosen round
   lost, ≥ 2 candidates → unlinked, flag cleared) is one step - the next run treats the time as an ordinary derived one,

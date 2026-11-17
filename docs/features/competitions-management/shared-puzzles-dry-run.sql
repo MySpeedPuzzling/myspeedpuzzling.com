@@ -106,11 +106,17 @@ SELECT e.time_id,
         WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
         WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
         WHEN bool_or(e.chosen) THEN NULL
-        WHEN MAX(e.union_mask) = 0 THEN CASE
-            WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
-        END
-        WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
-        WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+        -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate
+        ELSE COALESCE(
+            CASE
+                WHEN MAX(e.union_mask) = 0 THEN CASE
+                    WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
+                END
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+            END,
+            (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id AND e.excluded = false))[1]
+        )
     END AS round_id,
     COALESCE(bool_or(e.chosen AND e.round_id = e.current_round_id), false) AS chosen,
     MAX(e.n) AS candidates
@@ -236,11 +242,17 @@ SELECT e.time_id,
         WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
         WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
         WHEN bool_or(e.chosen) THEN NULL
-        WHEN MAX(e.union_mask) = 0 THEN CASE
-            WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
-        END
-        WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
-        WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+        -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate
+        ELSE COALESCE(
+            CASE
+                WHEN MAX(e.union_mask) = 0 THEN CASE
+                    WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
+                END
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+            END,
+            (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id AND e.excluded = false))[1]
+        )
     END AS round_id,
     COALESCE(bool_or(e.chosen AND e.round_id = e.current_round_id), false) AS chosen,
     MAX(e.n) AS candidates

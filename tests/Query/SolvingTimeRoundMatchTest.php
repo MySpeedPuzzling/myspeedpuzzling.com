@@ -317,9 +317,25 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
             false,
         ];
 
-        yield 'a derived link the evidence no longer supports is dropped' => [
+        yield 'ambiguous, the round the time holds is a remaining candidate - kept (A3b, sticky)' => [
             static fn (self $test): array => [$test->time(round: self::CHALLENGE), self::CHALLENGE],
+            self::CHALLENGE,
+            false,
+        ];
+
+        yield 'ambiguous, the round the time holds is excluded (Sunday\'s round, finished Sat) - unlinked' => [
+            static fn (self $test): array => [$test->time(round: self::OPEN_2, finishedAt: self::SATURDAY), self::OPEN_2],
             null,
+            false,
+        ];
+
+        yield 'the evidence names another round than the one the time holds - moved' => [
+            static function (self $test): array {
+                $test->team(self::OPEN_1, [self::OWNER]);
+
+                return [$test->time(round: self::CHALLENGE), self::CHALLENGE];
+            },
+            self::OPEN_1,
             false,
         ];
     }
@@ -407,9 +423,9 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
     /**
      * A puzzle merge moves the merged puzzle's round puzzle rows onto the survivor without any check
      * (ApprovePuzzleMergeRequestHandler) - two rounds of one category may then hold one puzzle. The reconcile no longer
-     * files every time in the earliest of them: a time the evidence cannot place is left unlinked.
+     * files every time in the earliest of them: evidence moves a time, a time without evidence keeps its round (A3b).
      */
-    public function testAfterAPuzzleMergeAnAmbiguousTimeIsLeftUnlinked(): void
+    public function testAfterAPuzzleMergeEvidenceMovesATimeAndTheRestKeepTheirRound(): void
     {
         $this->removePuzzle(self::OPEN_1, self::P);
         $this->removePuzzle(self::OPEN_2, self::P);
@@ -438,11 +454,12 @@ final class SolvingTimeRoundMatchTest extends KernelTestCase
 
         $reconciler->reconcile(Uuid::fromString(self::COMPETITION));
 
-        // The owner's entry in Open #1 places both of their times there; the other player's is not placed (before the
-        // merge it would have been filed in Challenge, the earliest round)
+        // The owner's entry in Open #1 places both of their times there (the one stored in Challenge moves); the other
+        // player's time has no evidence and keeps the round it holds (A3b - before, every time would have been filed in
+        // Challenge, the earliest round)
         self::assertSame(self::OPEN_1, $this->stored($onSurvivor)['round']);
         self::assertSame(self::OPEN_1, $this->stored($onMergedWithEntry)['round']);
-        self::assertNull($this->stored($onMergedWithoutEntry)['round']);
+        self::assertSame(self::OPEN_1, $this->stored($onMergedWithoutEntry)['round']);
     }
 
     /**

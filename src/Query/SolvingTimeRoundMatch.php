@@ -27,6 +27,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *   round (excluded ones too) has one in it.
  *   Nobody with an entry: exactly one remaining round -> it, else no round. One qualifying round -> it. Several -> the
  *   one whose entry recorded the time's result (seconds, or pieces placed of an unfinished one), if exactly one does.
+ * - Sticky (A3b): when the evidence does not single out one round, a round the time already holds stays while it is a
+ *   remaining (not excluded) candidate - an existing link is never dropped for want of evidence; evidence naming another
+ *   round still moves it. A round the player named and that is no longer a candidate is not sticky (A4).
  * - Anything else -> no round: the evidence never guesses (the time stays linked to its event, round unknown).
  *
  * Usage: `WITH ` . sqlCandidates($timesSelect) . ` SELECT … FROM (` . sqlAnswer() . `) answer`. $timesSelect is a
@@ -154,11 +157,17 @@ SELECT e.time_id,
         WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
         WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
         WHEN bool_or(e.chosen) THEN NULL
-        WHEN MAX(e.union_mask) = 0 THEN CASE
-            WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
-        END
-        WHEN COUNT(*) FILTER (WHERE {$qualifies}) = 1 THEN (array_agg(e.round_id) FILTER (WHERE {$qualifies}))[1]
-        WHEN COUNT(*) FILTER (WHERE {$qualifies} AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE {$qualifies} AND e.result_match))[1]
+        -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate
+        ELSE COALESCE(
+            CASE
+                WHEN MAX(e.union_mask) = 0 THEN CASE
+                    WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
+                END
+                WHEN COUNT(*) FILTER (WHERE {$qualifies}) = 1 THEN (array_agg(e.round_id) FILTER (WHERE {$qualifies}))[1]
+                WHEN COUNT(*) FILTER (WHERE {$qualifies} AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE {$qualifies} AND e.result_match))[1]
+            END,
+            (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id AND e.excluded = false))[1]
+        )
     END AS round_id,
     COALESCE(bool_or(e.chosen AND e.round_id = e.current_round_id), false) AS chosen,
     MAX(e.n) AS candidates

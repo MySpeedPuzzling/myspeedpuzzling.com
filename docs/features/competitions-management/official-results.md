@@ -200,7 +200,7 @@ A round whose results are published leads its public page (`event_round_results`
   organiser's - never shown. Below it, folded in a `<details>` "Times added by puzzlers (N)", main's list of times with
   its note ("not the official placings"). The round's external results link turns into **Organiser's results** (the MSP
   table is the official result now). The meta description says "Official results of …"; the round has no JSON-LD.
-- **Read model `GetPublishedRoundResults::forRound()`**: entries with a ranked result (people removed from the event left
+- **Read model `GetPublishedRoundResults::forRound()`** (entries through `OfficialEntrantsView` since competition toolkit A5 - shared with the competitor pages and standings; pick rounds' chips and per-puzzle "Add to my profile": README "Public round page of `pick` rounds"): entries with a ranked result (people removed from the event left
   out, like the organiser's tools), ranked with `OfficialResultsRanking` over all of them, then the rows hidden from the
   viewer (`HiddenPlayers`) dropped **without renumbering** - a solo row of a hidden player; a pair/team with a hidden
   linked member unless the viewer is a linked member too (main's group rule). Names are always the organiser's participant

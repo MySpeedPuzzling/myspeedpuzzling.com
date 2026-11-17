@@ -172,11 +172,14 @@ final class SecretPuzzleRoutesTest extends WebTestCase
                 TestingLogin::asPlayer($browser, $playerId);
             }
 
-            $browser->request('GET', '/display/' . $token . '/state');
-            self::assertResponseIsSuccessful($who);
-            $content = (string) $browser->getResponse()->getContent();
-            self::assertStringContainsString('API Visible', $content, 'No canary: the display shows no puzzle at all.');
-            self::assertStringNotContainsString(self::SECRET_NAME, $content, $who);
+            // The state answer and the display page with the same state inline (toolkit D4), read decoded
+            foreach (['/display/' . $token . '/state', '/display/' . $token] as $url) {
+                $browser->request('GET', $url);
+                self::assertResponseIsSuccessful($who);
+                $content = html_entity_decode((string) $browser->getResponse()->getContent(), ENT_QUOTES | ENT_HTML5);
+                self::assertStringContainsString('API Visible', $content, 'No canary: the display shows no puzzle at all.');
+                self::assertStringNotContainsString(self::SECRET_NAME, $content, "{$who} {$url}");
+            }
         }
     }
 

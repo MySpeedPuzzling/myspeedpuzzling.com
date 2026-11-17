@@ -282,6 +282,9 @@ Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a loc
   `VACUUM (ANALYZE) puzzle_solving_time` (no blocking, ~228 MB heap). Lasting: a per-table setting like notification's
   (`Version20261026235000`) - ~58k row updates a day, so e.g. 2 % - measure the boards and the batch before / after
   (analyze alone is every ~1 % since `Version20261111130000`, for the month lists' estimates - vacuum is still 20 %)
+  - [x] The lasting setting: vacuum and insert-vacuum every ~2 % instead of the server's 5 % (`Version20261117170000`, analyze stays 1 %)
+  - [ ] After its deploy: `last_autovacuum` of `puzzle_solving_time` every few days, and the Heap Fetches of the
+    insights batch's first-attempts scan and the solo boards against the numbers above
 - [ ] `recalculate-community-stats` (~3 s a run on production): the `community_player_stats` upsert (1.2-1.45 s) and
   the moments' running totals (1.4 s) aggregate every result of every (candidate) player, pairs and teams expanded from
   JSON - no index helps a full aggregate. Splitting the moments' windows at `:since` (results before it only counted)

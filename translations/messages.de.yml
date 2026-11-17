@@ -1137,7 +1137,7 @@ competition_referees:
   "hide_ranking": "Mein Ranking & Skill ausblenden"
   "hide_ranking_help": "Deine Skill-Stufe und Rating-Platzierung werden ausgeblendet. Du erscheinst nicht auf der MSP Rating Rangliste. Deine Daten werden weiterhin für Berechnungen der Puzzle-Schwierigkeit und Rankings anderer Spieler verwendet."
   "hide_time_predictions": "Zeitvorhersagen ausblenden"
-  "hide_time_predictions_help": "Deine persönlichen Zeitvorhersagen werden auf Puzzle-Seiten und in Zeit-Zusammenfassungen ausgeblendet. Schalte sie aus, wenn du einfach nur Spaß am Puzzeln haben möchtest, ohne den Druck oder die Enttäuschung einer vorhergesagten Zeit — das sind nur unsere magischen Berechnungen, wir wollen dich nicht stressen!"
+  "hide_time_predictions_help": "Deine persönlichen Zeitvorhersagen werden auf Puzzle-Seiten und in Zeit-Zusammenfassungen ausgeblendet, und niemand sieht sie im Analytics-Studio von Events. Schalte sie aus, wenn du einfach nur Spaß am Puzzeln haben möchtest, ohne den Druck oder die Enttäuschung einer vorhergesagten Zeit — das sind nur unsere magischen Berechnungen, wir wollen dich nicht stressen!"
   "hide_streak": "Meine Serie ausblenden"
   "hide_streak_help": "Deine Serie wird nicht auf deiner Statistikseite angezeigt."
   "change_password": "Passwort"

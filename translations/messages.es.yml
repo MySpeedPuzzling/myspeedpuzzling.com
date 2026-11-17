@@ -826,7 +826,7 @@
   "hide_ranking": "Ocultar mi clasificación y habilidad"
   "hide_ranking_help": "Tu nivel de habilidad y clasificación Rating se ocultarán. No aparecerás en la escalera MSP Rating. Tus datos seguirán usándose en los cálculos de dificultad de puzzles y clasificaciones de otros jugadores."
   "hide_time_predictions": "Ocultar predicciones de tiempo"
-  "hide_time_predictions_help": "Tus predicciones personales de tiempo se ocultarán en las páginas de puzzles y en los resúmenes de tiempos. Desactívalas si solo quieres disfrutar resolviendo puzzles, sin la presión o decepción de un tiempo predicho — son solo nuestros cálculos mágicos, ¡no queremos estresarte!"
+  "hide_time_predictions_help": "Tus predicciones personales de tiempo se ocultarán en las páginas de puzzles y en los resúmenes de tiempos, y nadie las verá en el estudio de análisis de los eventos. Desactívalas si solo quieres disfrutar resolviendo puzzles, sin la presión o decepción de un tiempo predicho — son solo nuestros cálculos mágicos, ¡no queremos estresarte!"
   "hide_streak": "Ocultar mi racha"
   "hide_streak_help": "Tu racha no se mostrará en tu página de estadísticas."
   "messaging_notifications": "Mensajes y notificaciones"

@@ -62,7 +62,7 @@ final class UploadCompetitionDisplayImageControllerTest extends WebTestCase
         self::assertIsString($response['path']);
         self::assertMatchesRegularExpression('~^competition-displays/' . self::EVENT . '/[0-9a-f-]{36}\.png\z~', $response['path']);
         self::assertIsString($response['url']);
-        self::assertStringEndsWith('/original/' . $response['path'], $response['url']);
+        self::assertStringEndsWith('/preset:display/plain/' . $response['path'], $response['url']);
 
         $filesystem = self::getContainer()->get(Filesystem::class);
         self::assertTrue($filesystem->fileExists($response['path']));

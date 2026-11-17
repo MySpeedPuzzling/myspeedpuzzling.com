@@ -12,8 +12,8 @@ use SpeedPuzzling\Web\Services\UploaderHelper;
  *
  * - Stored at `competition-displays/<competitionId>/<uuid7>.<ext>` - exactly what DisplayDesignSanitizer keeps in a
  *   design of that event (never another event's file, never an external URL).
- * - Delivered through the image proxy: with the `display` preset (rs:fit:1920:1920, alpha kept) once lily's imgproxy
- *   knows it and DISPLAY_IMAGE_PRESET names it; until then (empty, the default) the original upload - `/original/`.
+ * - Delivered through the image proxy with the preset DISPLAY_IMAGE_PRESET names - `display` (rs:fit:1920:1920, alpha
+ *   kept; dev compose.yml and lily's imgproxy define it) by default; empty = the original upload - `/original/`.
  */
 readonly final class DisplayImages
 {

@@ -7,13 +7,11 @@ that would otherwise be forgotten. Newest section on top.
 ## Competition toolkit v2 (`docs/features/competitions-management/README.md` "Competition toolkit", `toolkit/STATUS.md`, deferred list = `toolkit/R-review-and-plan.md` §3, 2026-11-17)
 
 Ops steps of the rollout:
-- [ ] Lily: imgproxy preset `display=rs:fit:1920:1920` (alpha kept), then `DISPLAY_IMAGE_PRESET=display` in the web env and redeploy - in this order (`feature_flags.md` "Display image preset", `displays.md`)
 - [ ] After merging to main: `docker compose restart js-watch` on every dev checkout - new Encore entries `live_entry`, `live_entry_native`, `display` (the watcher does not pick up new entries)
 - [ ] Deploy: the reveal mode `stopwatch` is read by the new release only - nobody may choose it before the release is fully out (blue-green; the option is admin-only behind `COMPETITION_TOOLKIT_FOR_ORGANISERS`)
 - [ ] Measure time proposals on prod-like hardware: 40 simultaneous proposals had p95 ≈ 0.8 s on Docker-on-Mac (≈ 19 ms each under the event lock) → 100 ≈ 1.9 s vs the 500 ms goal; a per-round lock key needs Jan's OK (`official-results.md` "Time proposals")
 - [ ] Real-device walks: the native apps on the live entry page (C3 Turbo bootstrap `live_entry_native`), iPhone Safari offline (airplane-mode reload → shell → save → synced), camera scan of every tag kind, an overlay in OBS 30+ over a colour source (transparent), a 1 h display soak with live results (memory flat), 300 competitor pages on one stopwatch start
 - [ ] Browser walk of display live signals (D5) - the dev hub's origin blocked it
-- [ ] Dev `compose.yml` imgproxy has no `display` preset - add it to try `DISPLAY_IMAGE_PRESET=display` locally
 - [ ] Displays: the `display_public` rate limiter of D §9.1 was not built (token endpoints are unthrottled) - decide
 - [ ] Set `COMPETITION_TOOLKIT_FOR_ORGANISERS=1` in production once Jan says go; remove the flag later (`feature_flags.md`)
 

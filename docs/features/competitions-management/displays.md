@@ -300,9 +300,9 @@ editor badges those elements. `DisplayPreset::fits()` checks the kind, both in t
     429 `rate_limited`.
 - Stored at `competition-displays/<competitionId>/<uuid7>.<ext>` (`DisplayImages::newPath()`). The sanitizer keeps only
   this event's paths, so removing a picture never touches another event's file.
-- **Delivery** `DisplayImages::url()`: `{nginxProxyBaseUrl}/preset:{DISPLAY_IMAGE_PRESET}/plain/<path>` once env
-  `DISPLAY_IMAGE_PRESET` names a preset (lily: `display=rs:fit:1920:1920`). The default (empty, or not a plain name) is
-  the original upload `/original/` (`UploaderHelper::getPublicPath()`). Dev `compose.yml` has no `display` preset.
+- **Delivery** `DisplayImages::url()`: `{nginxProxyBaseUrl}/preset:{DISPLAY_IMAGE_PRESET}/plain/<path>`; the `.env`
+  default is `display` (`rs:fit:1920:1920`, alpha kept - defined in dev `compose.yml` and lily's imgproxy). Empty, or
+  not a plain name, = the original upload `/original/` (`UploaderHelper::getPublicPath()`).
 - **Lifecycle:** `GetStoredFileReferences` has 3 UNION branches over `competition_display.design` (background
   `canvas.background.image.path`, every element's `props.path`, rotator `props.images[].path`), and every row counts,
   so a duplicate keeps shared files. `DeleteCompetitionDisplayImages` (async, after commit) → `DeleteUnreferencedStoredFiles`

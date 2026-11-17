@@ -187,8 +187,9 @@ services:
             # Same presets as production (lily.srv apps/myspeedpuzzling/compose.yaml). puzzle_large = the
             # 1200 px, metadata-stripped image for og:image, JSON-LD, the image sitemap and the photo link:
             # JPEG pinned (every link previewer takes it, not all take WebP). No IMGPROXY_ENFORCE_THUMBNAIL:
-            # it served a HEIC from its embedded ~240x320 preview in every size (off on production since 2026-10-19)
-            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200,puzzle_medium=rs:fit:400:400/el:1,avatar=rs:fit:300:300,puzzle_large=rs:fit:1200:1200/f:jpg"
+            # it served a HEIC from its embedded ~240x320 preview in every size (off on production since 2026-10-19).
+            # display = pictures of competition timer screens / stream overlays (DISPLAY_IMAGE_PRESET), alpha kept
+            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200,puzzle_medium=rs:fit:400:400/el:1,avatar=rs:fit:300:300,puzzle_large=rs:fit:1200:1200/f:jpg,display=rs:fit:1920:1920"
             IMGPROXY_JPEG_QUALITY: "88"
             IMGPROXY_WEBP_QUALITY: "82"
             IMGPROXY_AVIF_QUALITY: "65"

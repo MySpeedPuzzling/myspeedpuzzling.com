@@ -67,7 +67,7 @@ final class CompetitionDisplayImagesTest extends KernelTestCase
         self::assertFalse(DisplayImages::isDisplayUpload('avatars/someone.png'));
     }
 
-    public function testTheUrlIsTheOriginalUntilAPresetIsConfigured(): void
+    public function testTheUrlGoesThroughTheConfiguredPreset(): void
     {
         $path = 'competition-displays/' . self::EVENT . '/0193a7b2-1c3d-7e4f-8a9b-0c1d2e3f4a5b.png';
         $uploaderHelper = new UploaderHelper('https://img.example');
@@ -76,8 +76,8 @@ final class CompetitionDisplayImagesTest extends KernelTestCase
         self::assertSame('https://img.example/preset:display/plain/' . $path, new DisplayImages($uploaderHelper, 'https://img.example', 'display')->url($path));
         self::assertSame('https://img.example/original/' . $path, new DisplayImages($uploaderHelper, 'https://img.example', 'dis/../play')->url($path), 'No plain preset name = the original');
 
-        // The application's default (DISPLAY_IMAGE_PRESET empty): the original upload
-        self::assertStringContainsString('/original/' . $path, self::getContainer()->get(DisplayImages::class)->url($path));
+        // The application's default (DISPLAY_IMAGE_PRESET=display, the preset dev compose.yml and lily define)
+        self::assertStringEndsWith('/preset:display/plain/' . $path, self::getContainer()->get(DisplayImages::class)->url($path));
     }
 
     public function testEveryPictureOfADesignIsAReference(): void

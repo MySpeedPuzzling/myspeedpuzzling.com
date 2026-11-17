@@ -4885,6 +4885,9 @@ live_results:
     replaces: "Ersetzt %result%"
     replaces_by: "Ersetzt %result% (%name%, %time%)"
     same: "Das ist bereits das gespeicherte Ergebnis."
+    meanwhile: "Inzwischen auf einem anderen Handy gespeichert: %result% - Speichern ersetzt es"
+    meanwhile_by: "Inzwischen von %name% gespeichert (%time%): %result% - Speichern ersetzt es"
+    replace_saved: "%result% ersetzen"
     clear_result: "Kein Ergebnis"
   toast:
     saved: "Gespeichert: %name% · %result%"

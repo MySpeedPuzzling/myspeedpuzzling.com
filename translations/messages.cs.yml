@@ -4960,6 +4960,9 @@ live_results:
     replaces: "Nahradí %result%"
     replaces_by: "Nahradí %result% (%name%, %time%)"
     same: "Toto už je uložený výsledek."
+    meanwhile: "Mezitím uloženo na jiném telefonu: %result% - Uložit ho nahradí"
+    meanwhile_by: "Mezitím uložil(a) %name% (%time%): %result% - Uložit ho nahradí"
+    replace_saved: "Nahradit %result%"
     clear_result: "Bez výsledku"
   toast:
     saved: "Uloženo: %name% · %result%"

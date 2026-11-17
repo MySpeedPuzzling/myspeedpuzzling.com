@@ -4886,6 +4886,9 @@ live_results:
     replaces: "Sustituye a %result%"
     replaces_by: "Sustituye a %result% (%name%, %time%)"
     same: "Este ya es el resultado guardado."
+    meanwhile: "Guardado mientras tanto en otro móvil: %result% - Guardar lo sustituye"
+    meanwhile_by: "Guardado mientras tanto por %name% (%time%): %result% - Guardar lo sustituye"
+    replace_saved: "Sustituir %result%"
     clear_result: "Sin resultado"
   toast:
     saved: "Guardado: %name% · %result%"

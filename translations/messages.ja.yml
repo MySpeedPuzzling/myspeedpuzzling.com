@@ -4875,6 +4875,9 @@ live_results:
     replaces: "%result%を置き換えます"
     replaces_by: "%result%（%name%、%time%）を置き換えます"
     same: "すでにこの結果が保存されています。"
+    meanwhile: "その間に別の端末で保存されました：%result% - 保存すると置き換えます"
+    meanwhile_by: "その間に%name%が保存しました（%time%）：%result% - 保存すると置き換えます"
+    replace_saved: "%result%を置き換える"
     clear_result: "結果なし"
   toast:
     saved: "保存しました：%name% · %result%"

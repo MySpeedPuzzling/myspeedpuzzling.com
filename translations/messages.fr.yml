@@ -4952,6 +4952,9 @@ live_results:
     replaces: "Remplace %result%"
     replaces_by: "Remplace %result% (%name%, %time%)"
     same: "C'est déjà le résultat enregistré."
+    meanwhile: "Enregistré entre-temps sur un autre téléphone : %result% - Enregistrer le remplace"
+    meanwhile_by: "Enregistré entre-temps par %name% (%time%) : %result% - Enregistrer le remplace"
+    replace_saved: "Remplacer %result%"
     clear_result: "Aucun résultat"
   toast:
     saved: "Enregistré : %name% · %result%"

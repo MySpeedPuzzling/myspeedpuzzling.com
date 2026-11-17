@@ -23,6 +23,9 @@ import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
 import { fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
+import { devicePlayerOf, forgetDraftsExcept, samePlayer } from '../live_entry_device.js';
+import { createIndexedDbSnapshotStorage, createMemorySnapshotStorage, PREFETCH_GAP_MS, prefetchRounds, prefetchTargets, SnapshotStore } from '../live_entry_snapshot.js';
+import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../live_entry_draft.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -50,7 +53,6 @@ const STOPWATCH_TRUSTED_MS = 10000;
 // for this long - the browser starts unloading right after the click
 const LEAVE_CONFIRMED_MS = 3000;
 const CHANNEL = 'msp-official-results';
-const KEYBOARD_KEY = 'msp.liveResults.keyboard';
 const ROUND_KEY = 'msp.liveResults.round.';
 
 function escapeHtml(value) {
@@ -68,6 +70,17 @@ function serverTimeOf(state) {
 function storageGet(key) {
     try {
         return window.localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+// The tab's sessionStorage / the device's localStorage, null where the browser refuses them (a private window)
+function webStorage(name) {
+    try {
+        const storage = window[name];
+
+        return storage && typeof storage.length === 'number' ? storage : null;
     } catch (e) {
         return null;
     }
@@ -157,11 +170,17 @@ export default class extends Controller {
         this.storageMissing = false;
         this.foreign = 0;
         this.lastClockSecond = null;
+        // The page runs on the round's last known state (a snapshot, live_entry_snapshot.js) since this moment - its
+        // first state fetch failed; null once a state answered
+        this.offlineCopyAt = null;
+        this.prefetchStarted = false;
+        this.pendingTappedAt = null;
+        this.setupSnapshots();
 
         this.setKeyboard('text');
 
         this.onOnline = () => {
-            if (!this.ready) {
+            if (!this.ready || this.offlineCopyAt !== null) {
                 this.loadNow();
             }
 
@@ -171,8 +190,11 @@ export default class extends Controller {
             if (document.visibilityState === 'visible') {
                 this.refreshState();
                 this.flushSoon();
+            } else {
+                this.snapshots?.flush();
             }
         };
+        this.onPageHide = () => this.snapshots?.flush();
         this.onFocus = () => {
             // Back from the sign-in tab
             if (this.outbox?.blocked != null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
@@ -227,6 +249,7 @@ export default class extends Controller {
         window.addEventListener('focus', this.onFocus);
         window.addEventListener('beforeunload', this.onBeforeUnload);
         window.addEventListener('popstate', this.onPopState);
+        window.addEventListener('pagehide', this.onPageHide);
         document.addEventListener('visibilitychange', this.onVisibility);
         document.addEventListener('click', this.onLinkClick);
         document.addEventListener('keydown', this.onKeydown);
@@ -253,9 +276,19 @@ export default class extends Controller {
         clearTimeout(this.loadTimer);
         this.loadTimer = null;
 
-        return this.refreshState().then((kind) => {
-            if (this.ready || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || this.stateBlocked === 'gone') {
+        return this.refreshState().then(async (kind) => {
+            if ((this.ready && this.offlineCopyAt === null) || !this.isConnected() || kind === 'auth' || kind === 'forbidden' || this.stateBlocked === 'gone') {
                 // Signed out / no rights: the banner's Retry (and the window's focus) asks again
+                return;
+            }
+
+            // No network (or a failing server) before the first state: the round as this device last knew it - asked
+            // for again until a state answers (the page then goes live by itself)
+            if (!this.ready && (kind === 'offline' || kind === 'server')) {
+                await this.startFromSnapshot();
+            }
+
+            if (!this.isConnected() || (this.ready && this.offlineCopyAt === null)) {
                 return;
             }
 
@@ -275,7 +308,8 @@ export default class extends Controller {
         clearTimeout(this.loadTimer);
         this.userId = this.settings.playerId ?? '';
 
-        if (this.autoPickedValue) {
+        // (Not from the offline copy: another round's page cannot load without the network)
+        if (this.autoPickedValue && this.offlineCopyAt === null) {
             const remembered = this.readRememberedRound();
             const target = preferredRound(this.roundIdValue, remembered, this.rounds, Date.now());
 
@@ -299,16 +333,243 @@ export default class extends Controller {
             };
         }
 
-        this.setKeyboard(storageGet(KEYBOARD_KEY) ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text'));
+        this.setKeyboard(this.prefs().keyboard ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text'));
         this.events.update(state.mercure ?? null);
         this.events.start();
         this.render();
         this.tickClock(true);
         this.land();
 
+        // A result being entered before a reload comes back - unless the page was opened for an entry (a landing)
+        if (this.landing === null && this.view === 'find') {
+            this.restoreDraft();
+        }
+
         if (this.noticeValue !== '') {
             this.notice(this.noticeValue, 'warning');
         }
+
+        this.rememberState();
+        this.schedulePrefetch();
+    }
+
+    // ---- Snapshots + drafts (competition toolkit C4) ----
+
+    /**
+     * The device's snapshots of the player its cookie names (live_entry_snapshot.js): every other player's go, and
+     * so do other players' drafts in this tab.
+     */
+    setupSnapshots() {
+        const player = devicePlayerOf(document.cookie);
+        const session = webStorage('sessionStorage');
+
+        if (session !== null) {
+            forgetDraftsExcept(session, player);
+        }
+
+        this.snapshots = null;
+
+        if (player === null) {
+            return;
+        }
+
+        const opened = createIndexedDbSnapshotStorage()
+            .catch(() => null)
+            .then((storage) => storage ?? createMemorySnapshotStorage());
+
+        this.snapshots = new SnapshotStore({
+            storage: {
+                getAll: async () => (await opened).getAll(),
+                get: async (key) => (await opened).get(key),
+                put: async (record) => (await opened).put(record),
+                delete: async (key) => (await opened).delete(key),
+            },
+            playerId: player,
+            devicePlayer: () => devicePlayerOf(document.cookie),
+            marker: webStorage('localStorage'),
+        });
+        this.snapshots.start();
+    }
+
+    /**
+     * The first state did not come: the page starts from the round's snapshot, if this device has one.
+     */
+    async startFromSnapshot() {
+        if (this.snapshots === null) {
+            return false;
+        }
+
+        const snapshot = await this.snapshots.read(this.roundIdValue).catch(() => null);
+
+        if (snapshot === null || this.ready || !this.isConnected() || !samePlayer(snapshot.state?.viewer?.playerId, snapshot.playerId)) {
+            return false;
+        }
+
+        if (snapshot.clockOffsetMs !== null) {
+            this.serverClock.hint(snapshot.clockOffsetMs);
+        }
+
+        this.offlineCopyAt = snapshot.savedAt;
+        this.applyState(snapshot.state);
+
+        if (Array.isArray(snapshot.eventPeople)) {
+            this.eventPeople = snapshot.eventPeople;
+            this.peopleIndex = null;
+        }
+
+        this.start(snapshot.state);
+
+        return true;
+    }
+
+    /**
+     * A state answered while the page ran on its snapshot: it is the live page again (the same player - another one
+     * signed in meanwhile gets the page anew).
+     */
+    goLive(state) {
+        if (!samePlayer(state.viewer?.playerId, this.userId)) {
+            this.confirmLeaving();
+            window.location.reload();
+
+            return;
+        }
+
+        this.offlineCopyAt = null;
+        this.loadFailed = false;
+        this.loadAttempts = 0;
+        clearTimeout(this.loadTimer);
+        this.viewer = state.viewer;
+        // The event's people from the snapshot: asked for anew when needed
+        this.eventPeople = null;
+        this.peopleIndex = null;
+        this.refreshSettings();
+        this.scheduleRender();
+        this.schedulePrefetch();
+    }
+
+    /**
+     * The round as the page knows it now goes into its snapshot (after a short pause) - never while the page runs on
+     * the snapshot itself (its time would claim knowledge the page does not have).
+     */
+    rememberState() {
+        if (this.snapshots === null || !this.ready || this.offlineCopyAt !== null || !samePlayer(this.viewer?.playerId, this.snapshots.playerId)) {
+            return;
+        }
+
+        this.snapshots.save({
+            roundId: this.roundIdValue,
+            state: {
+                competition: this.competition,
+                round: this.round ? { ...this.round, stopwatch: this.stopwatch } : null,
+                rounds: this.rounds,
+                entries: [...this.serverEntries.values()],
+                viewer: this.viewer,
+            },
+            clockOffsetMs: this.serverClock.offsetMs(),
+            clockMeasuredAt: Date.now(),
+            eventPeople: this.eventPeople,
+        });
+    }
+
+    /**
+     * Once per page, a while after it went live: the event's other rounds of the day go into snapshots too (a round
+     * switch or another group's name tag work offline). Not on a data-saving connection.
+     */
+    schedulePrefetch() {
+        if (this.prefetchStarted || this.snapshots === null || this.offlineCopyAt !== null || navigator.connection?.saveData === true) {
+            return;
+        }
+
+        this.prefetchStarted = true;
+        this.prefetchTimer = setTimeout(() => {
+            prefetchRounds({
+                roundIds: prefetchTargets(this.rounds, this.roundIdValue, this.serverNow()),
+                store: this.snapshots,
+                wait: (ms) => new Promise((resolve) => {
+                    this.prefetchTimer = setTimeout(resolve, ms);
+                }),
+                shouldStop: () => !this.isConnected() || navigator.onLine === false || this.offlineCopyAt !== null,
+                extra: () => ({ clockOffsetMs: this.serverClock.offsetMs(), clockMeasuredAt: Date.now() }),
+                fetchState: async (roundId) => {
+                    const abort = new AbortController();
+                    const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+
+                    try {
+                        const answer = await officialResultsRequest(stateUrl(this.stateUrlValue, roundId), { signal: abort.signal });
+
+                        return answer.kind === 'ok' && samePlayer(answer.data?.viewer?.playerId, this.snapshots.playerId) ? answer.data : null;
+                    } finally {
+                        clearTimeout(timer);
+                    }
+                },
+            });
+        }, PREFETCH_GAP_MS);
+    }
+
+    prefs() {
+        return readPrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+    }
+
+    /**
+     * The opened entry, what is typed in it and the value waiting on the confirm view - for a reload of this tab.
+     */
+    rememberDraft() {
+        const storage = webStorage('sessionStorage');
+
+        if (storage === null || this.userId === '' || this.openRef === null || (this.view !== 'entry' && this.view !== 'confirm')) {
+            return;
+        }
+
+        const confirm = this.view === 'confirm';
+
+        writeDraft(storage, this.userId, {
+            roundId: this.roundIdValue,
+            ref: this.openRef,
+            view: this.view,
+            mode: this.piecesFormTarget.classList.contains('lr-hidden') ? 'time' : 'pieces',
+            typed: this.timeInputTarget.value,
+            pieces: this.piecesInputTarget.value,
+            pending: confirm ? { value: this.pendingValue } : null,
+            finishedNow: confirm && this.pendingFinishedNow && this.pendingTappedAt !== null ? { seconds: this.pendingValue?.seconds, tappedAt: this.pendingTappedAt } : null,
+        }, Date.now());
+    }
+
+    forgetDraft() {
+        const storage = webStorage('sessionStorage');
+
+        if (storage !== null && this.userId !== '') {
+            clearDraft(storage, this.userId);
+        }
+    }
+
+    /**
+     * The tab's draft of this round (younger than 10 minutes) opens again, exactly as it was - a "Finished now" value
+     * as it was frozen, never measured again.
+     */
+    restoreDraft() {
+        const storage = webStorage('sessionStorage');
+        const draft = storage === null ? null : readDraft(storage, this.userId, this.roundIdValue, Date.now());
+
+        if (draft === null || this.entry(draft.ref) === null) {
+            return false;
+        }
+
+        this.openEntry(draft.ref);
+
+        if (draft.mode === 'pieces') {
+            this.didNotFinish();
+            this.piecesInputTarget.value = draft.pieces;
+            this.piecesTyped();
+        } else {
+            this.timeInputTarget.value = draft.typed;
+            this.timeTyped();
+        }
+
+        if (draft.view === 'confirm') {
+            this.review(draft.pending.value, { finishedNow: draft.finishedNow !== null, tappedAt: draft.finishedNow?.tappedAt ?? null, restored: true });
+        }
+
+        return true;
     }
 
     /**
@@ -362,6 +623,7 @@ export default class extends Controller {
                 if (answer.kind === 'ok' && Array.isArray(answer.data?.people)) {
                     this.eventPeople = answer.data.people;
                     this.peopleIndex = null;
+                    this.rememberState();
                 }
 
                 return this.eventPeople ?? [];
@@ -382,6 +644,8 @@ export default class extends Controller {
         clearInterval(this.stateTimer);
         clearTimeout(this.toastTimer);
         clearTimeout(this.countsTimer);
+        clearTimeout(this.prefetchTimer);
+        this.snapshots?.flush();
         this.events?.close();
         this.channel?.close();
         this.stopScan?.();
@@ -390,6 +654,7 @@ export default class extends Controller {
         window.removeEventListener('focus', this.onFocus);
         window.removeEventListener('beforeunload', this.onBeforeUnload);
         window.removeEventListener('popstate', this.onPopState);
+        window.removeEventListener('pagehide', this.onPageHide);
         document.removeEventListener('visibilitychange', this.onVisibility);
         document.removeEventListener('click', this.onLinkClick);
         document.removeEventListener('keydown', this.onKeydown);
@@ -554,6 +819,7 @@ export default class extends Controller {
 
         this.indexDirty = true;
         this.scheduleRender();
+        this.rememberState();
 
         // An entrant added or a table number given from this device: the round's counts ("Tables: x / y") come with
         // the state - Mercure brings them to the other devices
@@ -685,8 +951,13 @@ export default class extends Controller {
                     // The page's first state: everything that needs the round or its reader starts now
                     this.start(answer.data);
                 } else {
+                    if (this.offlineCopyAt !== null) {
+                        this.goLive(answer.data);
+                    }
+
                     // A fresh token - the stream is renewed with it in its last minutes, or opened again if it is down
                     this.events.update(answer.data.mercure ?? null);
+                    this.rememberState();
                 }
             } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
                 this.stateBlocked = answer.kind;
@@ -736,6 +1007,7 @@ export default class extends Controller {
                 this.round = data.round;
                 this.refreshSettings();
                 this.scheduleRender();
+                this.rememberState();
             }
 
             return;
@@ -757,6 +1029,7 @@ export default class extends Controller {
             }
 
             this.tickClock(true);
+            this.rememberState();
         }
     }
 
@@ -996,6 +1269,10 @@ export default class extends Controller {
                     <a class="btn btn-outline-secondary" href="${escapeHtml(this.loginUrlValue)}" target="_blank" rel="noopener">${escapeHtml(this.t('signIn'))}</a>
                 </div>
             </div>`);
+        }
+
+        if (this.offlineCopyAt !== null) {
+            parts.push(`<div class="alert alert-secondary mb-2 small" role="status" data-live-offline-copy>${escapeHtml(this.t('offlineCopy', { '%time%': this.timeOfDay(new Date(this.offlineCopyAt).toISOString()) }))}</div>`);
         }
 
         if (this.storageMissing) {
@@ -1372,7 +1649,7 @@ export default class extends Controller {
     toggleKeyboard() {
         const next = this.keyboard === 'numeric' ? 'text' : 'numeric';
         this.setKeyboard(next);
-        storageSet(KEYBOARD_KEY, next);
+        writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { keyboard: next });
         // The new keyboard shows only on a fresh focus
         this.findInputTarget.blur();
         this.findInputTarget.focus();
@@ -1489,6 +1766,8 @@ export default class extends Controller {
         } else {
             this.timeInputTarget.focus();
         }
+
+        this.rememberDraft();
     }
 
     showTimeForm() {
@@ -1497,6 +1776,7 @@ export default class extends Controller {
 
         if (this.view === 'entry') {
             this.timeInputTarget.focus();
+            this.rememberDraft();
         }
     }
 
@@ -1507,6 +1787,8 @@ export default class extends Controller {
 
     showFind({ focus = true } = {}) {
         this.closeOverlays({ keepHistory: true });
+        // Saved, undone or left: nothing to bring back after a reload
+        this.forgetDraft();
         this.openRef = null;
         this.pendingValue = null;
         this.findInputTarget.value = '';
@@ -1592,6 +1874,7 @@ export default class extends Controller {
 
         this.timeInputTarget.classList.toggle('is-invalid', !parsed.empty && parsed.error !== undefined);
         this.timeParsedTarget.innerHTML = html;
+        this.rememberDraft();
     }
 
     reviewTime(event) {
@@ -1639,7 +1922,7 @@ export default class extends Controller {
             return;
         }
 
-        this.review({ seconds: Math.min(elapsed, 86399) }, { finishedNow: true });
+        this.review({ seconds: Math.min(elapsed, 86399) }, { finishedNow: true, tappedAt });
     }
 
     didNotFinish() {
@@ -1673,6 +1956,7 @@ export default class extends Controller {
 
         this.piecesInputTarget.classList.toggle('is-invalid', text !== '' && html.includes('text-danger'));
         this.piecesParsedTarget.innerHTML = html;
+        this.rememberDraft();
     }
 
     reviewPieces(event) {
@@ -1699,7 +1983,7 @@ export default class extends Controller {
         this.review(null);
     }
 
-    review(value, { finishedNow = false } = {}) {
+    review(value, { finishedNow = false, tappedAt = null, restored = false } = {}) {
         const entry = this.entry(this.openRef);
 
         if (entry === null) {
@@ -1708,6 +1992,7 @@ export default class extends Controller {
 
         this.pendingValue = value;
         this.pendingFinishedNow = finishedNow;
+        this.pendingTappedAt = finishedNow ? tappedAt : null;
         const shown = shownValue(entry, 'result', this.outbox.all());
         const table = this.usesTables() && typeof entry.tableNumber === 'number' ? this.t('table', { '%number%': entry.tableNumber }) : '';
 
@@ -1717,6 +2002,11 @@ export default class extends Controller {
         this.confirmResultTarget.classList.toggle('text-danger', value === null);
 
         let note = finishedNow ? this.t('finishedNowNote') : '';
+
+        // Back after a reload: when it was tapped tells the referee the value is the frozen one
+        if (finishedNow && restored && tappedAt !== null) {
+            note = `${note} · ${this.t('finishedNowTappedAt', { '%time%': this.clockTime(tappedAt) })}`;
+        }
 
         if (sameValue(shown.value, value)) {
             note = this.t('same');
@@ -1731,10 +2021,22 @@ export default class extends Controller {
         this.confirmNoteTarget.className = `small mb-3 ${shown.value !== null && shown.value !== undefined && !sameValue(shown.value, value) ? 'text-warning-emphasis fw-medium' : 'text-muted'}`;
         this.showView('confirm');
         this.saveButtonTarget.focus();
+        this.rememberDraft();
+    }
+
+    clockTime(ms) {
+        const date = new Date(ms);
+
+        try {
+            return date.toLocaleTimeString(this.localeValue || undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+        } catch (e) {
+            return date.toISOString().slice(11, 19);
+        }
     }
 
     backToEntry() {
         this.showView('entry');
+        this.rememberDraft();
 
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
             this.piecesInputTarget.focus();

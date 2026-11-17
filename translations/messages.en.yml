@@ -5534,6 +5534,9 @@ live_results:
         load_failed: "The round could not be loaded - check the connection. It is tried again by itself."
         table_empty: "Nobody sits at table %number% in %round%."
         entry_not_in_round: "This entry is not in %round%."
+    restore:
+        offline_copy: "No connection - this is the round as this device knew it at %time%. Results entered elsewhere since then are not shown; what you save here is sent once the connection is back."
+        finished_now_tapped_at: "tapped at %time%"
 
 name_tags:
     button: "Name tags"

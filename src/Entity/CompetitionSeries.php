@@ -30,6 +30,9 @@ class CompetitionSeries implements EntityWithEvents
 {
     use HasEvents;
 
+    // The column's length (`schedule`, "When it happens")
+    public const int SCHEDULE_MAX_LENGTH = 160;
+
     /**
      * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
      * published, approved, or created or published by an admin or the internal API. The admins' "submitted" e-mail
@@ -106,7 +109,7 @@ class CompetitionSeries implements EntityWithEvents
         public null|string $eligibility = null,
         // "When it happens" ("Fourth Friday of the month, 8 pm") - free text, each date is still its own edition
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(length: 160, nullable: true)]
+        #[Column(length: self::SCHEDULE_MAX_LENGTH, nullable: true)]
         public null|string $schedule = null,
         // What kind of events (EventTypes), optional: [] = not set; its editions without their own show these -
         // changeEventTypes()
@@ -153,6 +156,23 @@ class CompetitionSeries implements EntityWithEvents
     {
         $this->eligibility = $eligibility;
         $this->schedule = $schedule;
+    }
+
+    /**
+     * The creation wizard's Dates step fills "When it happens" from its rule (SeriesScheduleText) - only while the series
+     * has none: a text the organiser typed is never replaced. True when it was filled.
+     */
+    public function scheduleFromDatesRule(string $text): bool
+    {
+        $text = trim($text);
+
+        if ($text === '' || ($this->schedule !== null && trim($this->schedule) !== '')) {
+            return false;
+        }
+
+        $this->schedule = mb_substr($text, 0, self::SCHEDULE_MAX_LENGTH);
+
+        return true;
     }
 
     public function changeEventTypes(null|EventTypes $types): void

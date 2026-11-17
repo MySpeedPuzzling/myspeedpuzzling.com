@@ -219,6 +219,34 @@ final class EventWizardSeriesTest extends WebTestCase
         self::assertCount(0, $this->rounds($seriesId));
     }
 
+    /**
+     * "When it happens" of the series from the Dates rule, in the creator's language - only while the series has none
+     */
+    public function testTheDatesRuleFillsWhenItHappensButNeverOverATypedText(): void
+    {
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $seriesId = $this->startSeries();
+        self::assertNotNull($seriesId);
+
+        $this->addMonthlyDates($seriesId);
+        self::assertMatchesRegularExpression('/^Third Saturday of the month at 7:00[\s\x{00A0}\x{202F}]PM$/u', $this->schedule($seriesId));
+
+        // Weekly, no rounds (no time), in Czech - and a series with a text already keeps it
+        $weekly = $this->startSeries(['name' => 'Tuesday Club']);
+        self::assertNotNull($weekly);
+        $crawler = $this->browser->request('GET', '/cs/new-event/series/' . $weekly . '/dates?' . http_build_query([...self::MONTHLY, 'rule' => 'weekly', 'weekday' => '2', 'withRounds' => '0', 'startTime' => '', 'count' => '3']));
+        $this->browser->submit($crawler->filter('#event-wizard-dates-preview form')->form());
+        self::assertResponseRedirects();
+        self::assertNotSame('', $this->schedule($weekly));
+        self::assertStringNotContainsString(':', $this->schedule($weekly));
+
+        $this->database()->executeStatement("UPDATE competition_series SET schedule = 'When the moon is full' WHERE id = :id", ['id' => $weekly]);
+        $crawler = $this->browser->request('GET', '/en/new-event/series/' . $weekly . '/next-dates?' . http_build_query(self::MONTHLY));
+        $this->browser->submit($crawler->filter('#event-wizard-dates-preview form')->form());
+        self::assertResponseRedirects();
+        self::assertSame('When the moon is full', $this->schedule($weekly));
+    }
+
     public function testAnotherPlayerCannotOpenTheSeriesSteps(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -337,6 +365,13 @@ final class EventWizardSeriesTest extends WebTestCase
         $created = array_values(array_diff(self::ids($this->database()->fetchFirstColumn('SELECT id FROM competition_series')), $before));
 
         return $created[0] ?? null;
+    }
+
+    private function schedule(string $seriesId): string
+    {
+        $schedule = $this->database()->fetchOne('SELECT schedule FROM competition_series WHERE id = :id', ['id' => $seriesId]);
+
+        return is_string($schedule) ? $schedule : '';
     }
 
     private function addMonthlyDates(string $seriesId): void

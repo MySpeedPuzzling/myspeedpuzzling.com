@@ -109,6 +109,28 @@ Today they had to create the event, add a round and add the puzzle, and in 99% t
   empty until applied).
 - **Done** (`EventWizardPastDoneController`): the event (+ "Waiting for an admin's approval" while not public), the
   rounds made, results linked (`CountCompetitionResults`) + waiting; Open the event / Link more / Edit.
+- **"Were you there? Link my results" on the event and edition pages** (G1, `LinkMyResultsEntry`,
+  `event_parts/_link_my_results.html.twig` under the facts strip): for a signed-in player with results most likely
+  from this event - `GetLinkableSolvingTimes::countLikelyFromEvent()`, a strict subset of what Link lists, so the entry
+  never leads to an empty page: their own / pair / team results (the same `mine`), linked to nothing and no link
+  waiting, not imported, not unfinished, a known day; of one of the event's puzzles visible now (the page's own rounds =
+  `RoundPuzzlesVisibleNow`) solved from its first day to **7 days after** its last (logged later is common; a solve
+  before the event is practice, so the Link page's symmetric window is not used), or - an event without puzzles - on
+  its days (what Link ticks). "2 of your results may be from this event" + "Link my results" →
+  `event_wizard_link_results?from=event` (an edition is a competition, so the same route). Shown only where linking is
+  allowed (`EventLinkRule`: public, or not public but the viewer may edit it, never rejected). **Cost**: no statement
+  for a guest, an event that has not begun (its first day after today) or one without days; one `COUNT` over the
+  viewer's own times otherwise (`DetailPagesQueryBudgetTest`: the begun Season One edition 19 → 20 signed in; the
+  upcoming Hilltop event unchanged). `from=event` (a closed value, never a URL) keeps itself on the form's action,
+  hides the rail, adds "Back to the event" and sends the submit to the event's page (flash) instead of Done - the
+  entry is gone then (the times are linked or waiting).
+- **The waiting note**: a result whose link waits says "Linked to <event> once an admin approves it (usually within a
+  day)" (`event_wizard_backfill.link.waiting_for`) on the result detail (`GetPuzzleResultDetail`: a correlated
+  subquery in its attempts statement, the name only when the viewer is the time's tracker or a registered member of
+  its pair/team - `PuzzleResultAttempt::$waitingEventName`; the template checks `isEditableBy()` too) and on My data
+  (`GetMyDataResults`: the same subquery in its page statement - every row is the player's own; under the puzzle's
+  name). +0 statements on both. `WaitingEventLinkCanaryTest`: the owner reads it, a guest / another player never sees
+  the name.
 
 Click count "backfill a past one-round event and link 2 of my times" (browser-walked, non-admin): **before** ~14
 (Add event → classic form → save → Manage rounds → Add round (form) → save → Puzzles → Add puzzle → save, then per
@@ -141,5 +163,5 @@ S1 one round, one puzzle: 5 (was 8-10) · S2 12 monthly dates with a round each:
 `tests/Controller/EventWizard/*` (paths, Extras, checklist, series), `tests/Services/EventWizard/*`, handler tests
 (`StartEventWizardDraftTwiceTest`, `SetUpEventWizardStructureHandlerTest`, `AddEventWizardEditionsHandlerTest`,
 `PublishEventWizardSeriesHandlerTest`), `DuplicateCompetitionControllerTest`, `EditCompetitionMoveRounds*Test`,
-`LockUntilCommittedMiddlewareTest`. Backfill: `EventWizardBackfillTest`, `LinkSolvingTimesToEventHandlerTest`,
+`LockUntilCommittedMiddlewareTest`. Backfill: `EventWizardBackfillTest`, `LinkMyResultsEntryTest`, `LinkSolvingTimesToEventHandlerTest`,
 `WaitingEventLinkCanaryTest`.

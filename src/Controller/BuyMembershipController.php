@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
+use SpeedPuzzling\Web\Exceptions\MembershipPaymentPending;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -58,6 +59,9 @@ final class BuyMembershipController extends AbstractController
 
         try {
             $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale, $billingPeriod, $priceLookupKey, $referralPlayerId);
+        } catch (MembershipPaymentPending $pending) {
+            // Paying the open invoice keeps the subscription and its price - no second subscription
+            return $this->redirect($pending->hostedInvoiceUrl, 303);
         } catch (PlayerAlreadyHaveMembership) {
             // billing_portal sends players without a Stripe customer back here - e.g. a lifetime voucher member
             if ($player->stripeCustomerId === null) {

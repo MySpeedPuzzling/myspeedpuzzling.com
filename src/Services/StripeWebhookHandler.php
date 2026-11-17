@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
+use SpeedPuzzling\Web\Message\EnableSavingPaymentMethodOnSubscription;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
 use SpeedPuzzling\Web\Message\TerminateMembershipDueToDispute;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
@@ -140,13 +141,19 @@ readonly final class StripeWebhookHandler
 
     private function handlePaymentFailed(Invoice $invoice): void
     {
-        if ($invoice->attempt_count === 1) {
-            // In Stripe API v2025+, subscription moved to parent->subscription_details->subscription
-            $stripeSubscriptionId = $invoice->parent?->subscription_details->subscription ?? null;
+        // In Stripe API v2025+, subscription moved to parent->subscription_details->subscription
+        $stripeSubscriptionId = $invoice->parent?->subscription_details->subscription ?? null;
 
-            if (is_string($stripeSubscriptionId)) {
-                $this->messageBus->dispatch(new NotifyAboutFailedPayment($stripeSubscriptionId));
-            }
+        if (!is_string($stripeSubscriptionId)) {
+            return;
         }
+
+        if ($invoice->attempt_count === 1) {
+            $this->messageBus->dispatch(new NotifyAboutFailedPayment($stripeSubscriptionId));
+        }
+
+        // Async, before the player pays the open invoice: a new card paying it becomes the subscription's default.
+        // Every failed attempt - the handler skips a subscription that has it on already
+        $this->messageBus->dispatch(new EnableSavingPaymentMethodOnSubscription($stripeSubscriptionId));
     }
 }

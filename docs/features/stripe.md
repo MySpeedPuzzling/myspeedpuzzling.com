@@ -56,6 +56,23 @@ The player has an active membership if **either** the subscription date or the g
 - `billing_period_ends_at`: null
 - `granted_until` preserved — if still in the future, membership continues
 
+### No second subscription next to a living one
+
+`MembershipManagement::getMembershipPaymentUrl()` refuses a checkout while our row is alive (`ends_at` null or in the future). A failed renewal makes the row look ended (state 5, `ends_at = now`) while Stripe keeps the subscription and retries its invoice, so before a checkout for a row that still names a `stripe_subscription_id`, `Services\Membership\LiveSubscriptionGuard` asks Stripe:
+
+| Stripe says | Buy button leads to |
+|---|---|
+| `past_due`, the billing period not over yet, its invoice open | that invoice's hosted page (`MembershipPaymentPending`) - paying it resumes the subscription **at its own price** (an early adopter keeps 100 CZK instead of 150) |
+| `active`, `trialing` | billing portal (`PlayerAlreadyHaveMembership`) |
+| anything else - the period over (a player back after half a year), `unpaid`, `incomplete`, `canceled`, `incomplete_expired`, `paused`, no open invoice | a new checkout at today's price, as before |
+| Stripe error | a new checkout, as before (fail open, logged as a warning) |
+
+Narrow on purpose (Jan): only the retry period leads to the old invoice, never months the player did not use. Added 2026-11-17 after an early adopter whose card change failed the renewal was offered a new subscription at 150 CZK. That day every ended row on prod (158) pointed to a `canceled` subscription - the account cancels after the retries - so the guard only adds one read for them.
+
+### Cards
+
+Stripe manages the cards, we never store or pick one. A subscription created by Checkout carries its own `default_payment_method`, which wins over the customer's default - so a player who paid the open invoice with a **new card** during the retry period would still be charged on the old card at the next renewal. On every `invoice.payment_failed` we therefore turn on Stripe's `payment_settings.save_default_payment_method = on_subscription` for that subscription (`EnableSavingPaymentMethodOnSubscription`, async, outside a transaction, skipped when already on): Stripe then makes the card that pays the invoice the subscription's default. Only that one setting changes - price, items, billing date and the cards stay as they are; the `customer.subscription.updated` it causes re-runs `UpdateMembershipSubscription` for a subscription already `past_due` (paused, no event). Subscriptions that never fail are never touched - no backfill on purpose (Jan, 2026-11-17).
+
 ## Stripe Webhook Flow
 
 ### Handled Events
@@ -66,7 +83,7 @@ The player has an active membership if **either** the subscription date or the g
 | `customer.subscription.updated` | `UpdateMembershipSubscription` | false |
 | `customer.subscription.deleted` | `CancelMembershipSubscription` | — |
 | `invoice.payment_succeeded` | `UpdateMembershipSubscription` | **true** |
-| `invoice.payment_failed` | `NotifyAboutFailedPayment` | — |
+| `invoice.payment_failed` | `NotifyAboutFailedPayment` (first attempt) + `EnableSavingPaymentMethodOnSubscription` (async, see [Cards](#cards)) | — |
 
 ### Normal Renewal Flow
 

@@ -155,7 +155,9 @@ readonly final class ParticipantImportApplier
                 $participant->disconnect();
             }
 
-            if ($operation['connectPlayerId'] !== null) {
+            // Already linked to the same player (a plan made before the link, re-applied): the link keeps its moment
+            // (TimeProposalOwnership)
+            if ($operation['connectPlayerId'] !== null && $participant->isConnectedTo($players[$operation['connectPlayerId']]) === false) {
                 $participant->connect($players[$operation['connectPlayerId']], $now);
             }
 

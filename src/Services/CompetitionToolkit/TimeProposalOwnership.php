@@ -18,8 +18,9 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * §2.4 "Proposals: anti-cheat and ownership"): the signed-in player linked to a participant of the entry - the solo
  * entrant, or any member of the pair/team - who is not removed and is going (not waiting on the waitlist).
  *
- * **The link must be older than the round's start** (the stopwatch start - for a scheduled start the scheduled moment;
- * a round never started: any link). Connecting to a friend's unlinked participant at the venue (anybody may connect
+ * **The link must be older than the round's start** (the stopwatch's first start - CompetitionRound::
+ * stopwatchOriginalStartAt(), kept through pause/resume; for a scheduled start the scheduled moment; a round never
+ * started: any link). Connecting to a friend's unlinked participant at the venue (anybody may connect
  * to an unconnected participant) and proposing their time is refused (`linked_after_start`). A link without a moment
  * (older data, before connections were dated) counts as an old one. Stateless (worker mode).
  */
@@ -77,7 +78,9 @@ final readonly class TimeProposalOwnership
                 continue;
             }
 
-            $startedAt = $round->stopwatchStartedAt;
+            // The round's first start, not the stored one: a resume moves that forward by the pause, and a link made
+            // during the pause would pass (P1F)
+            $startedAt = $round->stopwatchOriginalStartAt();
 
             if ($startedAt !== null && $participant->connectedAt !== null && $participant->connectedAt >= $startedAt) {
                 $linkedLate = true;

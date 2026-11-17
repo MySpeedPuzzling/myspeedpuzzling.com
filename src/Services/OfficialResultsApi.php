@@ -59,13 +59,19 @@ final readonly class OfficialResultsApi
             return self::error('json_required', JsonResponse::HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
-        $token = new CsrfToken(self::CSRF_TOKEN_ID, (string) $request->headers->get(self::CSRF_HEADER, ''));
-
-        if ($this->csrfTokenManager->isTokenValid($token) === false) {
+        if ($this->hasValidCsrfHeader($request) === false) {
             return self::error('invalid_csrf_token', JsonResponse::HTTP_FORBIDDEN);
         }
 
         return $profile->playerId;
+    }
+
+    /**
+     * The `X-CSRF-Token` header check of the writes - also for a write that is no JSON (a multipart picture upload).
+     */
+    public function hasValidCsrfHeader(Request $request): bool
+    {
+        return $this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, (string) $request->headers->get(self::CSRF_HEADER, '')));
     }
 
     /**

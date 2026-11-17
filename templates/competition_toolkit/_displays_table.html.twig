@@ -13,8 +13,8 @@
 {% else %}
     <ul class="list-unstyled mb-3" data-displays-list>
         {% for display in displays %}
-            {# The renderer's route arrives with D4 - the address is fixed already: /display/{token}, no locale #}
-            {% set display_url = app.request.schemeAndHttpHost ~ '/display/' ~ display.token %}
+            {# The display's address: /display/{token}, no locale - the token is the capability #}
+            {% set display_url = url('competition_display', {token: display.token}) %}
             <li class="border rounded p-2 mb-2" data-display="{{ display.id }}">
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="fw-semibold" data-display-name>{{ display.name }}</span>
@@ -38,6 +38,9 @@
                     <button type="button" class="btn btn-sm btn-outline-primary" data-copy-link-target="button" data-action="copy-link#copy" data-display-copy-link>
                         <i class="bi bi-link-45deg me-1"></i><span>{{ 'competition_display.list.copy_link'|trans }}</span>
                     </button>
+                    <a href="{{ display_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer" data-turbo="false" data-display-open-link>
+                        <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'competition_display.list.open'|trans }}
+                    </a>
                     <a href="{{ path('competition_display_settings', {displayId: display.id, return: displays_return}) }}" class="btn btn-sm btn-outline-secondary" data-display-settings-link>
                         <i class="bi bi-gear me-1"></i>{{ 'competition_display.list.settings'|trans }}
                     </a>

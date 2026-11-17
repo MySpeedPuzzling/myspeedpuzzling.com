@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\CompetitionToolkit;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionDisplayNotFound;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplayState;
+use SpeedPuzzling\Web\Results\CompetitionDisplayState;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -24,7 +25,28 @@ final readonly class CompetitionDisplayPayload
         private OfficialResultsSubscription $officialResultsSubscription,
         private TranslatorInterface $translator,
         private ClockInterface $clock,
+        private DisplayQrCodes $displayQrCodes,
+        private DisplayRendererBuild $displayRendererBuild,
     ) {
+    }
+
+    /**
+     * The display page's first picture (competition toolkit D4): the state answer and the stored design, from one read.
+     *
+     * @return array{state: array<string, mixed>, design: array<string, mixed>, competitionId: string, kind: string, locale: string}
+     * @throws CompetitionDisplayNotFound
+     */
+    public function pageForToken(string $token): array
+    {
+        $state = $this->getCompetitionDisplayState->forToken($token);
+
+        return [
+            'state' => $this->answer($state),
+            'design' => $state->design,
+            'competitionId' => $state->competitionId,
+            'kind' => $state->kind->value,
+            'locale' => $state->locale,
+        ];
     }
 
     /**
@@ -33,7 +55,14 @@ final readonly class CompetitionDisplayPayload
      */
     public function forToken(string $token): array
     {
-        $state = $this->getCompetitionDisplayState->forToken($token);
+        return $this->answer($this->getCompetitionDisplayState->forToken($token));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function answer(CompetitionDisplayState $state): array
+    {
         $locale = $state->locale;
         $texts = [
             'startsIn' => $this->translator->trans('competition.stopwatch.starts_in', ['%time%' => '%time%'], locale: $locale),
@@ -46,6 +75,9 @@ final readonly class CompetitionDisplayPayload
             'category' => $state->round !== null
                 ? $this->translator->trans('competition.round.category.' . $state->round['category'], locale: $locale)
                 : null,
+            'table' => $this->translator->trans('competition_display.texts.table', ['%number%' => '%number%'], locale: $locale),
+            'pieces' => $this->translator->trans('competition_display.texts.pieces', ['%count%' => '%count%'], locale: $locale),
+            'invalid' => $this->translator->trans('competition_display.texts.invalid', locale: $locale),
         ];
 
         $serverNow = $this->clock->now();
@@ -53,6 +85,8 @@ final readonly class CompetitionDisplayPayload
         return [
             ...$state->jsonSerialize(),
             'texts' => $texts,
+            'qr' => (object) $this->displayQrCodes->forState($state),
+            'rendererBuild' => $this->displayRendererBuild->current(),
             'mercure' => $this->officialResultsSubscription->forDisplay($state->competitionId, $state->followedRoundIds),
             'serverNowMs' => RoundClock::milliseconds($serverNow),
         ];

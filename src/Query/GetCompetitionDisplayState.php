@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionDisplayNotFound;
 use SpeedPuzzling\Web\Results\CompetitionDisplayState;
+use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\DisplayResultRow;
 use SpeedPuzzling\Web\Results\DisplayResults;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
@@ -51,8 +52,8 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * Three statements (display + event, rounds, visible puzzles), a fourth for the results entries only when the design
  * shows results that may be shown now.
  *
- * @phpstan-type Round array{id: string, name: string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable}
- * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_country_code: null|string, organization_logo: null|string}
+ * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable}
+ * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string}
  */
 readonly final class GetCompetitionDisplayState
 {
@@ -156,6 +157,14 @@ readonly final class GetCompetitionDisplayState
             results: $results,
             images: $images,
             followedRoundIds: array_map(static fn (array $followedRound): string => $followedRound['id'], $followed),
+            design: $design,
+            event: new CompetitionReference(
+                name: $display['competition_name'],
+                slug: $display['competition_slug'],
+                seriesName: $display['series_name'],
+                seriesSlug: $display['series_slug'],
+            ),
+            roundSlug: $round['slug'] ?? null,
         );
     }
 
@@ -209,12 +218,15 @@ SELECT
     d.uses_results,
     d.uses_live_results,
     c.name AS competition_name,
+    c.slug AS competition_slug,
     c.logo AS competition_logo,
     c.location,
     c.location_country_code,
     c.date_from,
     c.date_to,
     cs.logo AS series_logo,
+    cs.name AS series_name,
+    cs.slug AS series_slug,
     cs.location_country_code AS series_country_code,
     o.logo AS organization_logo
 FROM competition_display d
@@ -230,7 +242,7 @@ SQL,
             throw new CompetitionDisplayNotFound();
         }
 
-        /** @var array{id: string, competition_id: string, token: string, kind: string, locale: string, design: string, design_version: int|string, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|string, uses_results: bool, uses_live_results: bool, competition_name: string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_country_code: null|string, organization_logo: null|string} $row */
+        /** @var array{id: string, competition_id: string, token: string, kind: string, locale: string, design: string, design_version: int|string, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|string, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string} $row */
         $followRoundIds = null;
 
         if ($row['follow_round_ids'] !== null) {
@@ -259,6 +271,7 @@ SQL,
 SELECT
     cr.id,
     cr.name,
+    cr.slug,
     cr.category,
     cr.starts_at,
     cr.minutes_limit,
@@ -278,10 +291,11 @@ SQL,
         $rounds = [];
 
         foreach ($rows as $position => $row) {
-            /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string} $row */
+            /** @var array{id: string, name: string, slug: null|string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string} $row */
             $rounds[] = [
                 'id' => strtolower($row['id']),
                 'name' => $row['name'],
+                'slug' => $row['slug'],
                 'category' => $row['category'],
                 'starts_at' => new DateTimeImmutable($row['starts_at']),
                 'minutes_limit' => $row['minutes_limit'] !== null ? (int) $row['minutes_limit'] : null,

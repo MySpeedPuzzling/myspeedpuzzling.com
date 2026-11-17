@@ -14159,6 +14159,7 @@ competition_display:
         follows_pinned: "Shows %round%"
         link: "Display link"
         copy_link: "Copy link"
+        open: "Open"
         copied: "Copied"
         settings: "Settings"
         duplicate: "Duplicate"
@@ -14200,3 +14201,10 @@ competition_display:
     texts:
         finished: "finished"
         pieces_placed: "%count% pieces"
+        table: "Table %number%"
+        pieces: "%count% pieces"
+        invalid: "This display link is no longer valid."
+    page:
+        title: "Competition display"
+        not_found: "This display link is no longer valid. Copy the current link from the event's displays page."
+        fullscreen: "Full screen"

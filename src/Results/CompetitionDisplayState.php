@@ -23,6 +23,10 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      * @param list<array{name: string, brand: null|string, pieces: int, imageUrl: null|string}> $puzzles revealed only
      * @param array<string, string> $images every picture the design uses: stored path => URL
      * @param list<string> $followedRoundIds the rounds the display may switch between (one when pinned)
+     * @param array<string, mixed> $design the stored (normalised) design - not part of the state answer; the page and the
+     *                                     QR codes read it
+     * @param null|CompetitionReference $event the event's address (QR codes to its page) - not part of the state answer
+     * @param null|string $roundSlug the shown round's address (QR codes to its results) - not part of the state answer
      */
     public function __construct(
         public string $displayId,
@@ -39,6 +43,9 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         public null|DisplayResults $results,
         public array $images,
         public array $followedRoundIds,
+        public array $design = [],
+        public null|CompetitionReference $event = null,
+        public null|string $roundSlug = null,
     ) {
     }
 

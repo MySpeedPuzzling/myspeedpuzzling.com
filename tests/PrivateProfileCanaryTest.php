@@ -403,22 +403,30 @@ final class PrivateProfileCanaryTest extends WebTestCase
             'uses_results' => true,
             'uses_live_results' => true,
         ], ['uses_results' => 'boolean', 'uses_live_results' => 'boolean']);
-        $url = '/display/' . $token . '/state';
+        // The state answer and the display page (toolkit D4), which carries the same state inline (as an HTML
+        // attribute - read decoded, so an escaped name could not slip past)
+        $urls = ['/display/' . $token . '/state', '/display/' . $token];
+        $read = fn (string $url): string => html_entity_decode($this->get($browser, $url), ENT_QUOTES | ENT_HTML5);
 
-        $content = $this->get($browser, $url);
-        self::assertStringContainsString('Gina Quick', $content, 'No canary: the display does not list her.');
-        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
-        self::assertStringNotContainsString(self::OWNER, $content);
+        foreach ($urls as $url) {
+            $content = $read($url);
+            self::assertStringContainsString('Gina Quick', $content, "No canary: the display does not list her ({$url}).");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A guest is shown a private player ({$url}).");
+            self::assertStringNotContainsString(self::OWNER, $content);
+        }
 
         foreach ([...self::STRANGERS, 'friend' => self::FRIEND] as $who => $viewerId) {
             TestingLogin::asPlayer($browser, $viewerId);
             // The first request after loginUser() carries the test's token in the container - the second is a browser's
-            $this->get($browser, $url);
-            $content = $this->get($browser, $url);
-            self::assertStringContainsString('Gina Quick', $content);
-            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display names a private player ({$who}).");
-            self::assertStringNotContainsString(self::OWNER, $content, "A display carries a private player's id ({$who}).");
-            self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+            $read($urls[0]);
+
+            foreach ($urls as $url) {
+                $content = $read($url);
+                self::assertStringContainsString('Gina Quick', $content);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, "A display names a private player ({$who}, {$url}).");
+                self::assertStringNotContainsString(self::OWNER, $content, "A display carries a private player's id ({$who}, {$url}).");
+                self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+            }
         }
     }
 

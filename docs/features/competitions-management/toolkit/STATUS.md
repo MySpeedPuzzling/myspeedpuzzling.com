@@ -1,0 +1,27 @@
+# Competition toolkit - delivery status (living record)
+
+Started 2026-11-17 from Jan's request (`00-context.md`). Designs: `A-round-formats.md` (multi-puzzle rounds, sum
+standings, brackets, reveal on stopwatch start), `B-qr-competitor-page.md` (QR modes, competitor page, time proposals),
+`C-judge-page.md` (judge live entry: offline shell, speed, puzzle choice, proposals), `D-displays-overlays.md` (timer
+screens + OBS overlays with an editor). **`R-review-and-plan.md` is binding where the four disagree** (§1 contracts,
+§2 safety fixes, §3 cuts to v2, §4 packages and lanes).
+
+## How it is delivered
+- Integration branch `competition-toolkit` (worktree `.claude/worktrees/ct-integrate`), not main, until hardening (H)
+  is done and Jan says go. Every new behaviour is opt-in per competition; organiser-facing settings behind
+  `COMPETITION_TOOLKIT_FOR_ORGANISERS` (admins always).
+- One agent per package in its own worktree (`.claude/worktrees/ct-<pkg>`), own DB `speedpuzzling_ct<pkg>_test` via
+  `.claude/worktrees/cm-delivery/run.sh` / `heavy.sh`; at most 3 at once (lanes A, B, C of R §4.3).
+- Orchestrator reviews each diff (+ a review agent on big packages), cherry-picks onto the branch, runs gates.
+
+## Decisions taken with defaults (for Jan to confirm - R §5)
+1. "Every puzzle" = pick K of N with K = N ("Solve all 3" / "Pick 2 of 3" / "One result for the round").
+2. Toolkit surfaces (desk included) show puzzle labels, not names, before the public reveal - even to organisers.
+3. Proposals only from a participant linked before the round's start; a late proposal defaults to the receipt time;
+   no confirming from a list without opening the entry.
+4. Deferred to v2: R §3.
+
+## Packages
+| Pkg | Lane | State | Commit(s) on branch | Notes |
+|---|---|---|---|---|
+| F0 | A | started | | |

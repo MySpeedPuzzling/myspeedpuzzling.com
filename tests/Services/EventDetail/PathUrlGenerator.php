@@ -25,6 +25,8 @@ final class PathUrlGenerator implements UrlGeneratorInterface
             'competition_series_detail' => '/series/' . ($values['slug'] ?? ''),
             'event_round_results' => '/events/' . ($values['slug'] ?? '') . '/results/' . ($values['roundSlug'] ?? ''),
             'edition_round_results' => '/series/' . ($values['seriesSlug'] ?? '') . '/' . ($values['editionSlug'] ?? '') . '/results/' . ($values['roundSlug'] ?? ''),
+            'event_analytics_studio' => '/events/' . ($values['slug'] ?? '') . '/analytics-studio/' . ($values['roundSlug'] ?? ''),
+            'edition_analytics_studio' => '/series/' . ($values['seriesSlug'] ?? '') . '/' . ($values['editionSlug'] ?? '') . '/analytics-studio/' . ($values['roundSlug'] ?? ''),
             'puzzle_add' => '/puzzle-add' . (isset($values['puzzleId']) ? '/' . $values['puzzleId'] : '') . '?competition=' . ($values['competition'] ?? ''),
             default => '/' . $name . '/' . implode('/', $values),
         };

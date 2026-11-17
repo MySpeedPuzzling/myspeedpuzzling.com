@@ -144,6 +144,9 @@ final class DraftCanaryTest extends WebTestCase
         // ... and its round line in a signed-in player's Details (docs/features/events-page/high-frequency-series.md P24)
         yield 'puzzle page (player) - Details: draft event using the puzzle' => [...$draftNight, self::PUZZLE_PAGE, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, '#puzzleDetails'];
 
+        // The analytics studio link of a round (analytics-studio.md §8, S4): its team sees the draft's page, never the link
+        yield 'event page (team) - analytics studio link of a draft' => [...$draftNight, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG, PlayerFixture::PLAYER_WITH_STRIPE, '/analytics-studio/main-round'];
+
         yield 'sitemap - draft one-time event' => [...$draftNight, self::SITEMAP, null, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '<'];
         yield 'sitemap - draft edition' => [...$lanternDraft, self::SITEMAP, null, '/' . OrganizationFixture::EDITION_LANTERN_DRAFT_SLUG . '<'];
         yield 'sitemap - draft series and its editions' => [...$quietPines, self::SITEMAP, null, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_SLUG];

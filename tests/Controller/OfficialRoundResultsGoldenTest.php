@@ -17,7 +17,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * Baseline pin of the competition toolkit (R-review-and-plan.md §2.9, package A5): the public round page of rounds that
  * use no toolkit format (`total`), byte for byte - published official results for a guest and for an entrant who is
  * offered "Add to my profile", a published pair round, and an unpublished round. Pick rounds' per-puzzle chips and
- * per-puzzle "Add to my profile" are opt-in: a `total` round must stay exactly this.
+ * per-puzzle "Add to my profile" are opt-in: a `total` round must stay exactly this. The analytics studio link (S4) is
+ * the one element every round page gained - cut out before comparing (withoutTheAnalyticsStudioLink()).
  */
 final class OfficialRoundResultsGoldenTest extends WebTestCase
 {
@@ -55,9 +56,25 @@ final class OfficialRoundResultsGoldenTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertMatchesGoldenFile(
             __DIR__ . '/golden/round-results-' . $round . '-' . ($viewer === null ? 'guest' : 'entrant') . '.html',
-            self::stable((string) $browser->getResponse()->getContent()),
+            self::withoutTheAnalyticsStudioLink((string) $browser->getResponse()->getContent(), $round),
             'The round page (' . $round . ')',
         );
+    }
+
+    /**
+     * The one line every round page gained with the analytics studio (analytics-studio.md §8, S4): the single
+     * `[data-analytics-studio-link]` element is checked and cut out - the rest of the page must still be its golden file
+     * byte for byte, so the link is the only difference (the files are not regenerated for it).
+     */
+    private static function withoutTheAnalyticsStudioLink(string $html, string $round): string
+    {
+        self::assertSame(1, substr_count($html, 'data-analytics-studio-link'), 'One analytics studio link on the round page');
+
+        $element = '~<p class="small mt-n2 mb-3" data-analytics-studio-link><a href="([^"]+)" rel="nofollow" class="text-nowrap">.*?</a></p>~s';
+        self::assertSame(1, preg_match($element, $html, $match), 'The link is a single element');
+        self::assertSame('/en/events/results-cup/analytics-studio/' . $round, $match[1]);
+
+        return self::stable((string) preg_replace($element, '', $html, 1));
     }
 
     /**

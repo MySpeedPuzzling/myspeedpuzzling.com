@@ -128,6 +128,38 @@ final class RoundsTimelineBuilderTest extends TestCase
         self::assertSame('/events/spring-open/results/final', $oneTime->rounds[0]->resultsUrl);
     }
 
+    public function testTheAnalyticsStudioOfEverySluggedRoundOfAPublicPageResultsOrNot(): void
+    {
+        $rounds = [
+            // over, with results
+            self::round('r1', '2026-03-11 22:00', slug: 'sprint-1'),
+            // over, nobody logged a time
+            self::round('r2', '2026-04-08 22:00', slug: 'sprint-2'),
+            // ahead - commentators prepare before the round
+            self::round('r3', '2026-07-15 22:00', slug: 'sprint-3'),
+            // no slug - no studio page
+            self::round('r4', '2026-07-20 22:00'),
+        ];
+        $edition = new CompetitionReference('Season One', 'season-one', 'Sprint League', 'sprint-league');
+
+        $timeline = $this->build($rounds, event: $edition, resultsPerRound: ['r1' => 4]);
+        self::assertSame(
+            [
+                '/series/sprint-league/season-one/analytics-studio/sprint-1',
+                '/series/sprint-league/season-one/analytics-studio/sprint-2',
+                '/series/sprint-league/season-one/analytics-studio/sprint-3',
+                null,
+            ],
+            array_map(static fn (TimelineRound $round): null|string => $round->analyticsStudioUrl, $timeline->rounds),
+        );
+
+        $notPublic = $this->build($rounds, event: $edition, isPublic: false, resultsPerRound: ['r1' => 4]);
+        self::assertSame([null, null, null, null], array_map(static fn (TimelineRound $round): null|string => $round->analyticsStudioUrl, $notPublic->rounds));
+
+        $oneTime = $this->build([self::round('r1', '2026-07-11 22:00', slug: 'final')]);
+        self::assertSame('/events/spring-open/analytics-studio/final', $oneTime->rounds[0]->analyticsStudioUrl);
+    }
+
     public function testAddMyTimeOnStartedRoundsWithTheOneVisiblePuzzle(): void
     {
         $rounds = [

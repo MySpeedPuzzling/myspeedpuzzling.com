@@ -43,14 +43,13 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
-use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
+use SpeedPuzzling\Web\Services\SolvingTimeEventDerivation;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\MarkedTimeEditRecheck;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
@@ -66,7 +65,6 @@ readonly final class EditPuzzleSolvingTimeHandler
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
         private LoggerInterface $logger,
-        private SolvingTimeRoundResolver $roundResolver,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private SolvingTimePredictor $solvingTimePredictor,
         private FirstTryAssessor $firstTryAssessor,
@@ -76,7 +74,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private MarkedTimeEditRecheck $markedTimeEditRecheck,
         private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
         private CompetitionSeriesRepository $competitionSeriesRepository,
-        private SeriesEditionResolver $seriesEditionResolver,
+        private SolvingTimeEventDerivation $solvingTimeEventDerivation,
         private MessageBusInterface $commandBus,
     ) {
     }
@@ -262,17 +260,9 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         // After modify(): a series pick's edition depends on the puzzle, solo/duo/team and the day - always the rule's
-        // current answer, an edit is a fresh evaluation
-        if ($competitionSeries !== null) {
-            $resolution = $this->seriesEditionResolver->resolve($solvingTime);
-            $solvingTime->seriesEditionResolved(
-                $resolution->competitionId !== null ? $this->competitionRepository->get($resolution->competitionId) : null,
-                $resolution->kind,
-            );
-        }
-
-        // After modify(): the round depends on the competition and on solo/duo/team, both final only now
-        $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
+        // current answer, an edit is a fresh evaluation; the round depends on the competition and on solo/duo/team, both
+        // final only now (shared with "Link my results" - SolvingTimeEventDerivation)
+        $this->solvingTimeEventDerivation->derive($solvingTime);
 
         // modify() forgets the prediction when the date, solo/group or the presence of a time changed, moveToPuzzle()
         // always

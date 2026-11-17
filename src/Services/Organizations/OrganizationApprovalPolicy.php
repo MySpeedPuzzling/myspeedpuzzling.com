@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Query\GetRoundsWithPublishedOfficialResults;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Services\EventWizard\WaitingEventLinksApplier;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
@@ -30,6 +31,7 @@ readonly final class OrganizationApprovalPolicy
         private CompetitionSeriesRepository $competitionSeriesRepository,
         private GetRoundsWithPublishedOfficialResults $getRoundsWithPublishedOfficialResults,
         private MessageBusInterface $messageBus,
+        private WaitingEventLinksApplier $waitingEventLinksApplier,
     ) {
     }
 
@@ -62,6 +64,8 @@ readonly final class OrganizationApprovalPolicy
 
         $item->approve($actor, $now);
         $this->tellOfficialResults($item);
+        // "Link my results" waiting for it (creation-wizard.md "Backfill") - none for an item created right now
+        $this->waitingEventLinksApplier->applyFor($item);
 
         return true;
     }
@@ -84,6 +88,7 @@ readonly final class OrganizationApprovalPolicy
 
             $item->approve($approver, $now);
             $this->tellOfficialResults($item);
+            $this->waitingEventLinksApplier->applyFor($item);
         }
     }
 

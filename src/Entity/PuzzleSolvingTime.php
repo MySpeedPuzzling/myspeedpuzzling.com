@@ -1104,9 +1104,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
         $this->firstAttempt = $firstAttempt;
         $this->unboxed = $unboxed;
-        $this->competition = $competition;
-        $this->competitionSeries = $competitionSeries;
-        $this->seriesEditionMatch = null;
+        $this->setEventLink($competition, $competitionSeries);
 
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
@@ -1126,6 +1124,41 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * Only the event link changes - "Link my results" of the creation wizard's backfill path
+     * (docs/features/competitions-management/creation-wizard.md "Backfill"): an explicit event (an edition included) or
+     * a series pick, set exactly as an edit's modify() sets them. The caller then derives the series pick's edition and
+     * the round (SolvingTimeEventDerivation), like EditPuzzleSolvingTimeHandler. Records no domain event: nothing the
+     * puzzle's statistics, the predictions or the duplicate checks read changed.
+     */
+    public function linkToEvent(null|Competition $competition, null|CompetitionSeries $competitionSeries): void
+    {
+        if ($competitionSeries !== null && $competition !== null) {
+            throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
+        }
+
+        $this->setEventLink($competition, $competitionSeries);
+    }
+
+    /**
+     * Whether the time is linked to this event (explicitly or as the edition its series pick found) or picks this series
+     */
+    public function isLinkedTo(null|Competition $competition, null|CompetitionSeries $competitionSeries): bool
+    {
+        if ($competitionSeries !== null) {
+            return $this->competitionSeries?->id->equals($competitionSeries->id) === true;
+        }
+
+        return $competition !== null && $this->competitionSeries === null && $this->competition?->id->equals($competition->id) === true;
+    }
+
+    private function setEventLink(null|Competition $competition, null|CompetitionSeries $competitionSeries): void
+    {
+        $this->competition = $competition;
+        $this->competitionSeries = $competitionSeries;
+        $this->seriesEditionMatch = null;
     }
 
     /**

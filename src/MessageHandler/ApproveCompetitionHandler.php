@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\ApproveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Query\GetRoundsWithPublishedOfficialResults;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\EventWizard\WaitingEventLinksApplier;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -33,6 +34,7 @@ readonly final class ApproveCompetitionHandler
         private PlayerAccountEmail $playerAccountEmail,
         private GetRoundsWithPublishedOfficialResults $getRoundsWithPublishedOfficialResults,
         private MessageBusInterface $messageBus,
+        private WaitingEventLinksApplier $waitingEventLinksApplier,
     ) {
     }
 
@@ -42,6 +44,9 @@ readonly final class ApproveCompetitionHandler
         $approvedBy = $this->playerRepository->get($message->approvedByPlayerId);
 
         $competition->approve($approvedBy, $this->clock->now());
+
+        // "Link my results" waiting for this approval (creation-wizard.md "Backfill") - linked now, in this transaction
+        $this->waitingEventLinksApplier->applyFor($competition);
 
         // Official results published while the event was not public yet - the players are told now
         foreach ($this->getRoundsWithPublishedOfficialResults->ofCompetition($competition->id->toString()) as $roundId) {

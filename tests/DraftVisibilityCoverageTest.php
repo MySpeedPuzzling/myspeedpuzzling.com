@@ -39,6 +39,8 @@ final class DraftVisibilityCoverageTest extends TestCase
         'MessageHandler/ConvertCompetitionToSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
         'Query/GetEventResultClaims.php' => 'Names the event of one imported result in its claim modal - the import creates its events published, never as drafts (docs/features/event-results-import).',
+        'Query/GetLinkableSolvingTimes.php' => 'The player\'s own results on their own "Link my results" page (creation-wizard.md "Backfill") - names the event each of their times is linked to now, their own link.',
+        'Query/GetPastEventSeriesChoices.php' => self::OWN . ' The series the player may add a date to ("Part of a series" of the backfill path) - their own drafts included on purpose, never a rejected one.',
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
         'Query/GetBracketRounds.php' => self::PAGE_GATED . ' The public bracket (BracketPageBuilder, competition toolkit A9) checks IsCompetitionPubliclyVisible first.',
         'Query/GetCompetitionDisplayState.php' => 'A competition display is found by its token only (the organiser\'s capability URL, D-displays-overlays.md §2): it works for a draft on purpose - a rehearsal before publishing - and is never listed anywhere.',

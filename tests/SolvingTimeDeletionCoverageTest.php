@@ -24,6 +24,7 @@ final class SolvingTimeDeletionCoverageTest extends TestCase
         'src/Repository/DataImportPersonRepository.php' => 'removes a person of an import\'s file that no row names any more (docs/features/data-import/people.md) - it only counts results through DQL, never removes one',
         'src/Repository/SolvingTimeCustomValuesRepository.php' => 'removes a player\'s own custom values row of a result (docs/features/custom-fields.md) - never the result',
         'src/Repository/RelayResultRepository.php' => 'removes a relay team\'s total (docs/features/event-results-import/solo-and-relays.md §2) after its results went through PuzzleSolvingTimeRepository::delete() - never a result',
+        'src/Repository/WaitingEventLinkRepository.php' => 'removes a waiting event link once it is applied or dropped (docs/features/competitions-management/creation-wizard.md "Backfill") - never the result',
     ];
 
     public function testEveryFileRemovingEntitiesNextToSolvingTimesIsDecided(): void

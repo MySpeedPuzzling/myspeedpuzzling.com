@@ -19,6 +19,16 @@ use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
 use SpeedPuzzling\Web\Events\PuzzleMergeReverted;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
+use SpeedPuzzling\Web\Message\ApplyWaitingEventLinks;
+use SpeedPuzzling\Web\Message\AddCompetition;
+use SpeedPuzzling\Web\Message\AddCompetitionSeries;
+use SpeedPuzzling\Web\Message\ApproveCompetition;
+use SpeedPuzzling\Web\Message\ApproveCompetitionSeries;
+use SpeedPuzzling\Web\Message\ApproveOrganization;
+use SpeedPuzzling\Web\Message\AssignEventToOrganization;
+use SpeedPuzzling\Web\Message\PublishCompetition;
+use SpeedPuzzling\Web\Message\PublishCompetitionSeries;
+use SpeedPuzzling\Web\Message\LinkSolvingTimesToEvent;
 use SpeedPuzzling\Web\Message\AddImportRows;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
@@ -372,6 +382,16 @@ final class SerializedByLockMessagesTest extends TestCase
         ReconcileRoundResults::class => 'console reconcile of players\' own times and their rounds (puzzle_solving_time) - never entries or official results',
         SeriesEditionsChanged::class => 're-matches players\' series picks to editions and their rounds (puzzle_solving_time) - never entries or official results',
         EditPuzzleSolvingTime::class => 'a player\'s own time - reads the rounds to link it, never writes entries or official results',
+        LinkSolvingTimesToEvent::class => 'players\' own times linked to an event ("Link my results") - reads the rounds to link them, never writes entries or official results',
+        ApplyWaitingEventLinks::class => 'cron: players\' own times whose event was approved get their waiting link - reads the rounds to link them, never writes entries or official results',
+        AddCompetition::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        AddCompetitionSeries::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        ApproveCompetition::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        ApproveCompetitionSeries::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        ApproveOrganization::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        AssignEventToOrganization::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        PublishCompetition::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
+        PublishCompetitionSeries::class => 'creates, approves or publishes an event: WaitingEventLinksApplier links the players\' own times waiting for it (puzzle_solving_time, their rounds read) - never entries, teams or official results',
         EditUnfinishedPuzzleSolvingTime::class => 'a player\'s own unfinished result - reads the rounds for the limit and to link it, never writes entries or official results',
         KeepDuplicateCopy::class => 'a player\'s own times (duplicate results) - reads the rounds to link them, never writes entries or official results',
         UndoAutoRemoval::class => 'a player\'s own time restored (duplicate results) - reads the rounds to link it, never writes entries or official results',

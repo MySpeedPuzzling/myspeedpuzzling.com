@@ -57,6 +57,10 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         'puzzle_solving_time.competition_id' => self::MOVED,
         // SeriesConversionBlocker::MarketplaceMarks
         'sell_swap_list_item_event.competition_id' => self::REFUSED,
+        // "Link my results" waiting for an event to be approved (creation-wizard.md "Backfill") - the conversion is for
+        // public events, whose links never wait (applied by the cron once public); a row still there goes with the event
+        // and its time stays unlinked
+        'waiting_event_link.competition_id' => self::CASCADES,
     ];
 
     public function testEveryForeignKeyToCompetitionSaysWhatTheConversionDoesWithIt(): void

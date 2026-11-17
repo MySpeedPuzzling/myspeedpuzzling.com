@@ -36,6 +36,8 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeletePlayerHandler.php' => self::WRITE,
         'Query/GetAccountDeletionSummary.php' => 'Counts what an account deletion removes - everything.',
+        'Entity/WaitingEventLink.php' => self::WRITE,
+        'Query/GetWaitingEventLinks.php' => self::WRITE . ' Waiting event links ("Link my results" before the event is approved) - no figure.',
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetBotTrustEligibility.php' => 'Bot-blocker trust eligibility: any result the account logged, suspicious or not, shows a person using the site - no figure is shown.',

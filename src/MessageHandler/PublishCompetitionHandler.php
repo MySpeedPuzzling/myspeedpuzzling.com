@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Message\PublishCompetition;
 use SpeedPuzzling\Web\Query\GetRoundsWithPublishedOfficialResults;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Services\EventWizard\WaitingEventLinksApplier;
 use SpeedPuzzling\Web\Services\Organizations\CompetitionSubmittedMailer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -29,6 +30,7 @@ readonly final class PublishCompetitionHandler
         private GetRoundsWithPublishedOfficialResults $getRoundsWithPublishedOfficialResults,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private WaitingEventLinksApplier $waitingEventLinksApplier,
     ) {
     }
 
@@ -54,6 +56,9 @@ readonly final class PublishCompetitionHandler
         }
 
         if ($competition->isPubliclyVisible()) {
+            // "Link my results" waiting for it (creation-wizard.md "Backfill")
+            $this->waitingEventLinksApplier->applyFor($competition);
+
             foreach ($this->getRoundsWithPublishedOfficialResults->ofCompetition($competition->id->toString()) as $roundId) {
                 $this->messageBus->dispatch(new OfficialRoundResultsPublished(Uuid::fromString($roundId)), [new DispatchAfterCurrentBusStamp()]);
             }

@@ -29,6 +29,7 @@ final class SeriesPickQueryCoverageTest extends TestCase
         'MessageHandler/DeleteCompetitionHandler.php' => self::RELEASES_ON_DELETE,
         'Query/CountCompetitionResults.php' => self::PER_COMPETITION,
         'Query/GetCompetitionParticipants.php' => self::PARTICIPANTS,
+        'Query/GetWaitingEventLinks.php' => self::NOT_A_TIMES_EVENT . ' waiting_event_link names the event a link waits for (creation-wizard.md "Backfill"); its series_id is a series pick that waits.',
         'Query/GetCompetitionPuzzles.php' => self::PER_COMPETITION,
         'Query/GetCompetitionSlugsForSitemap.php' => self::ROUND_LEVEL,
         'Query/GetEventResultClaims.php' => 'The claim modal of one imported event result - the import links it to its one-time event explicitly, never a series pick (docs/features/event-results-import).',

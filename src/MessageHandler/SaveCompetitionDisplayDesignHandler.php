@@ -8,12 +8,15 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionDisplayNotFound;
 use SpeedPuzzling\Web\Exceptions\DisplayDesignConflict;
 use SpeedPuzzling\Web\Exceptions\InvalidDisplayDesign;
+use SpeedPuzzling\Web\Message\DeleteCompetitionDisplayImages;
 use SpeedPuzzling\Web\Message\SaveCompetitionDisplayDesign;
 use SpeedPuzzling\Web\Repository\CompetitionDisplayRepository;
 use SpeedPuzzling\Web\Results\DisplayDesignError;
 use SpeedPuzzling\Web\Results\SavedCompetitionDisplayDesign;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
  * The editor's Save (D-displays-overlays.md §3.3): a stale base version is a conflict (409) before anything else; the
@@ -21,7 +24,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * needs the organiser's confirmation (D §5.1 - 422 `live_not_confirmed` on its source); uses_results /
  * uses_live_results are derived from what is stored.
  *
- * Pictures that dropped out of the design are removed with D7 (DeleteCompetitionDisplayImages after commit).
+ * Pictures that dropped out of the design are removed once the save committed (DeleteCompetitionDisplayImages - only
+ * those no other display still shows).
  */
 #[AsMessageHandler]
 readonly final class SaveCompetitionDisplayDesignHandler
@@ -30,6 +34,7 @@ readonly final class SaveCompetitionDisplayDesignHandler
         private CompetitionDisplayRepository $displayRepository,
         private DisplayDesignSanitizer $sanitizer,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -63,9 +68,14 @@ readonly final class SaveCompetitionDisplayDesignHandler
             }
         }
 
+        $droppedImages = array_values(array_diff(DisplayDesignSanitizer::imagePaths($display->design), DisplayDesignSanitizer::imagePaths($design)));
         $usesResults = DisplayDesignSanitizer::usesResults($design);
         $usesLiveResults = DisplayDesignSanitizer::usesLiveResults($design);
         $changed = $display->saveDesign($design, $message->baseVersion, $usesLiveResults, $usesResults, $this->clock->now());
+
+        if ($droppedImages !== []) {
+            $this->messageBus->dispatch(new DeleteCompetitionDisplayImages($droppedImages), [new DispatchAfterCurrentBusStamp()]);
+        }
 
         return new SavedCompetitionDisplayDesign(
             designVersion: $display->designVersion,

@@ -14198,6 +14198,13 @@ competition_display:
         too_many_images: "A display can use at most 30 pictures."
         too_large: "The design is too large. Remove some elements or texts."
         live_not_confirmed: "This element shows results before they are published. Confirm it to save."
+    image_upload:
+        no_file: "Choose a picture to upload."
+        too_large: "The picture is larger than 5 MB. Upload a smaller one."
+        unsupported_type: "Upload a JPEG, PNG, WebP or GIF picture."
+        invalid_image: "This file could not be read as a picture."
+        upload_failed: "The picture could not be uploaded. Try again."
+        rate_limited: "Too many pictures uploaded in the last hour. Try again later."
     texts:
         finished: "finished"
         pieces_placed: "%count% pieces"

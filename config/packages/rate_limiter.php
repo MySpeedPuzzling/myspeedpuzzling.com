@@ -115,6 +115,13 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 hour',
             ],
+            // Pictures of an event's displays (competition toolkit D7: logos, sponsor images, backgrounds) - stored on
+            // the CDN like the page sections' pictures. Per player.
+            'competition_display_image_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 60,
+                'interval' => '1 hour',
+            ],
             // The feedback form (FeedbackController): every feedback is an e-mail to our inbox, up to 3 screenshots
             // attached (docs/features/feedback-screenshots.md). Per player - far above anybody writing to us, a stop
             // for a script.

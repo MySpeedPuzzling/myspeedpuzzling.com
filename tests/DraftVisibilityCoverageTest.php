@@ -41,6 +41,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetEventResultClaims.php' => 'Names the event of one imported result in its claim modal - the import creates its events published, never as drafts (docs/features/event-results-import).',
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
         'Query/GetCompetitionDisplayState.php' => 'A competition display is found by its token only (the organiser\'s capability URL, D-displays-overlays.md §2): it works for a draft on purpose - a rehearsal before publishing - and is never listed anywhere.',
+        'Query/GetCompetitionDisplayImagePaths.php' => 'Storage clean-up: the uploaded display pictures of an event or series being deleted - nothing is shown to anybody.',
         'Query/GetCompetitionPermissions.php' => self::ORGANISER,
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,
         'Query/GetCompetitorPageSettings.php' => self::ORGANISER,

@@ -63,6 +63,11 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            'competition_display_image_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
             // Fixture players start imports in many tests and runs - the test of the limit uses the budget up itself
             'data_import_upload' => [
                 'policy' => 'sliding_window',

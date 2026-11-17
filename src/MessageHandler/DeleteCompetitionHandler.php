@@ -8,12 +8,16 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
+use SpeedPuzzling\Web\Message\DeleteCompetitionDisplayImages;
+use SpeedPuzzling\Web\Query\GetCompetitionDisplayImagePaths;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\RoundStopwatchReveal;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 readonly final class DeleteCompetitionHandler
@@ -26,6 +30,8 @@ readonly final class DeleteCompetitionHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private RoundStopwatchReveal $roundStopwatchReveal,
         private ClockInterface $clock,
+        private GetCompetitionDisplayImagePaths $getCompetitionDisplayImagePaths,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -104,11 +110,18 @@ readonly final class DeleteCompetitionHandler
             $params,
         );
 
+        // Its displays cascade with it - their uploaded pictures are deleted once the deletion committed
+        $displayImages = $this->getCompetitionDisplayImagePaths->ofCompetition($competitionId);
+
         $competition = $this->competitionRepository->get($competitionId);
         // An edition: its series' picks are re-matched once it is gone (SeriesEditionsChanged)
         $competition->recordRemoval();
         $this->competitionRepository->delete($competition);
 
         $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);
+
+        if ($displayImages !== []) {
+            $this->messageBus->dispatch(new DeleteCompetitionDisplayImages($displayImages), [new DispatchAfterCurrentBusStamp()]);
+        }
     }
 }

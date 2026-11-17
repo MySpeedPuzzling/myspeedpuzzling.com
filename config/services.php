@@ -167,6 +167,8 @@ return static function (ContainerConfigurator $configurator): void {
     // The competition toolkit (docs/features/feature_flags.md): organisers may open its settings and editors only while 1,
     // admins always.
     $parameters->set('competitionToolkitForOrganisers', '%env(bool:COMPETITION_TOOLKIT_FOR_ORGANISERS)%');
+    // The imgproxy preset display pictures are served with (DisplayImages) - empty = the original upload
+    $parameters->set('displayImagePreset', '%env(trim:string:DISPLAY_IMAGE_PRESET)%');
 
     // Online competitions' evidence uploads: an empty ONLINE_MEDIA_PUBLIC_ENDPOINT falls back to this (OnlineMediaStores)
     $parameters->set('online_media_s3_endpoint', '%env(S3_ENDPOINT)%');
@@ -207,6 +209,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
         ->bind('$competitionToolkitForOrganisers', '%competitionToolkitForOrganisers%')
+        ->bind('$displayImagePreset', '%displayImagePreset%')
         ->bind('$insightsPublic', '%insightsPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')

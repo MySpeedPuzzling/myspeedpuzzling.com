@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetAnalyticsStudioEntrantHistory;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioEntrants;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioLineupHistory;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioPlayerFacts;
+use SpeedPuzzling\Web\Query\GetAnalyticsStudioPuzzleStats;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioSimilarHistory;
 use SpeedPuzzling\Web\Results\AnalyticsStudioAttempt;
 use SpeedPuzzling\Web\Results\AnalyticsStudioContext;
@@ -29,7 +30,9 @@ use Symfony\Contracts\Cache\ItemInterface;
  * the key set never depends on a hidden puzzle; a member without public MySpeedPuzzling history (unlinked or private -
  * indistinguishable) is `{}`.
  *
- * Statements: the round, its visible puzzles and the entrants (3, always - the cache key is made of them), then when
+ * Statements: the round, its visible puzzles and the entrants (3, always - the cache key is made of them), who the
+ * record holders are now (1, always when a visible puzzle has solvers - never cached, a player turning private is
+ * nameless at once), then when
  * cold the puzzle statistics (AnalyticsStudioPuzzleStatsCache, its own 10 minutes), the history on the round's puzzles,
  * the members' facts, the similar-puzzle summary and - pair/team rounds - the line-ups. The whole payload is kept
  * 10 minutes under the round, the visible hash, the history cut-off and a hash of the entrants' analysable members and
@@ -43,6 +46,7 @@ readonly final class AnalyticsStudioAnalyticsBuilder
         private AnalyticsStudioContextLoader $contextLoader,
         private GetAnalyticsStudioEntrants $getAnalyticsStudioEntrants,
         private AnalyticsStudioPuzzleStatsCache $puzzleStatsCache,
+        private GetAnalyticsStudioPuzzleStats $getAnalyticsStudioPuzzleStats,
         private GetAnalyticsStudioEntrantHistory $getAnalyticsStudioEntrantHistory,
         private GetAnalyticsStudioPlayerFacts $getAnalyticsStudioPlayerFacts,
         private GetAnalyticsStudioSimilarHistory $getAnalyticsStudioSimilarHistory,
@@ -61,14 +65,54 @@ readonly final class AnalyticsStudioAnalyticsBuilder
         $entrants = $this->getAnalyticsStudioEntrants->forRound($context->round);
         $key = implode('.', ['analytics', $context->round->id, $context->visibleHash, $context->cutOffMs(), self::entrantsHash($entrants)]);
 
-        /** @var array<string, mixed> $payload */
+        /** @var array{visibleHash: string, cutOffMs: int, puzzles: array<string, array<string, mixed>>, tops: array<string, list<array{place: int, seconds: int, playerId: string}>>, entrants: stdClass|array<string, array<string, mixed>>} $payload */
         $payload = $this->analyticsStudioCache->get($key, function (ItemInterface $item) use ($context, $entrants): array {
             $item->expiresAfter(self::TTL_SECONDS);
 
             return $this->compute($context, $entrants);
         });
 
-        return $payload;
+        // The record holders by their id only in the cache: who they are - and whether they are private by now - is read on
+        // every answer (one statement), and who of them is in this round from the entrants read above
+        $playerIds = [];
+        foreach ($payload['tops'] as $top) {
+            foreach ($top as $row) {
+                $playerIds[] = $row['playerId'];
+            }
+        }
+        $identities = $this->getAnalyticsStudioPuzzleStats->identities($playerIds);
+
+        $entryOfPlayer = [];
+        foreach ($entrants as $entrant) {
+            foreach ($entrant->analysablePlayerIds() as $playerId) {
+                $entryOfPlayer[$playerId] = $entrant->key();
+            }
+        }
+
+        $puzzles = [];
+        foreach ($payload['puzzles'] as $slotKey => $puzzle) {
+            $puzzle['top'] = array_map(static function (array $row) use ($identities, $entryOfPlayer): array {
+                $identity = $identities[$row['playerId']] ?? null;
+
+                // A private record holder: no name, country, profile or entry
+                return [
+                    'place' => $row['place'],
+                    'name' => $identity['name'] ?? null,
+                    'country' => $identity['country'] ?? null,
+                    'profile' => $identity !== null ? AnalyticsStudioProfile::path($row['playerId']) : null,
+                    'seconds' => $row['seconds'],
+                    'inRound' => $identity !== null ? ($entryOfPlayer[$row['playerId']] ?? null) : null,
+                ];
+            }, $payload['tops'][$slotKey] ?? []);
+            $puzzles[$slotKey] = $puzzle;
+        }
+
+        return [
+            'visibleHash' => $payload['visibleHash'],
+            'cutOffMs' => $payload['cutOffMs'],
+            'puzzles' => $puzzles === [] ? new stdClass() : $puzzles,
+            'entrants' => $payload['entrants'],
+        ];
     }
 
     /**
@@ -96,34 +140,29 @@ readonly final class AnalyticsStudioAnalyticsBuilder
 
     /**
      * @param list<AnalyticsStudioEntrant> $entrants
-     * @return array<string, mixed>
+     * @return array{visibleHash: string, cutOffMs: int, puzzles: array<string, array<string, mixed>>, tops: array<string, list<array{place: int, seconds: int, playerId: string}>>, entrants: stdClass|array<string, array<string, mixed>>}
      */
     private function compute(AnalyticsStudioContext $context, array $entrants): array
     {
         $stats = $this->puzzleStatsCache->of($context->visiblePuzzleIds(), $context->round->category);
         $collected = $this->collect($context, $entrants, $stats);
 
-        // Who of the round holds a place in a top ten: an analysable member's entry
-        $entryOfPlayer = [];
-        foreach ($entrants as $entrant) {
-            foreach ($entrant->analysablePlayerIds() as $playerId) {
-                $entryOfPlayer[$playerId] = $entrant->key();
-            }
-        }
-
         $puzzles = [];
+        $tops = [];
         foreach ($context->visible as $slotKey => $puzzle) {
             $puzzleStats = $stats[strtolower($puzzle->puzzleId)] ?? null;
 
             if ($puzzleStats !== null) {
-                $puzzles[$slotKey] = self::puzzle($puzzleStats, $entryOfPlayer, $context->round->category);
+                $puzzles[$slotKey] = self::puzzle($puzzleStats, $context->round->category);
+                $tops[$slotKey] = $puzzleStats['top'];
             }
         }
 
         return [
             'visibleHash' => $context->visibleHash,
             'cutOffMs' => $context->cutOffMs(),
-            'puzzles' => $puzzles === [] ? new stdClass() : $puzzles,
+            'puzzles' => $puzzles,
+            'tops' => $tops,
             'entrants' => $collected['rows'] === [] ? new stdClass() : $collected['rows'],
         ];
     }
@@ -257,7 +296,7 @@ readonly final class AnalyticsStudioAnalyticsBuilder
         $member = [
             'rating' => $facts?->rating,
             'ratingPlace' => $facts?->ratingPlace,
-            'solvedTotal' => $facts?->solvedTotal ?? 0,
+            'solvedTotal' => $facts->solvedTotal ?? 0,
             'best500' => $facts?->best500Seconds,
             'rankingOptedOut' => $rankingOptedOut,
             'skill' => $skill,
@@ -334,11 +373,10 @@ readonly final class AnalyticsStudioAnalyticsBuilder
     }
 
     /**
-     * @param array{solo: array{bests: list<int>, firstTries: int, firstTryMedian: null|int, fastestFirstTry: null|int}, group: null|array{bests: list<int>, firstTries: int, firstTryMedian: null|int, fastestFirstTry: null|int}, top: list<array{place: int, seconds: int, playerId: null|string, name: null|string, code: null|string, country: null|string, private: bool}>, timesLogged: int, difficulty: null|array{score: null|float, tier: null|string, confidence: string}} $stats
-     * @param array<string, string> $entryOfPlayer
+     * @param array{solo: array{bests: list<int>, firstTries: int, firstTryMedian: null|int, fastestFirstTry: null|int}, group: null|array{bests: list<int>, firstTries: int, firstTryMedian: null|int, fastestFirstTry: null|int}, top: list<array{place: int, seconds: int, playerId: string}>, timesLogged: int, difficulty: null|array{score: null|float, tier: null|string, confidence: string}} $stats
      * @return array<string, mixed>
      */
-    private static function puzzle(array $stats, array $entryOfPlayer, RoundCategory $category): array
+    private static function puzzle(array $stats, RoundCategory $category): array
     {
         $bests = $stats['solo']['bests'];
 
@@ -355,15 +393,8 @@ readonly final class AnalyticsStudioAnalyticsBuilder
                 'fastestSeconds' => $stats['solo']['fastestFirstTry'],
             ],
             'difficulty' => $stats['difficulty'],
-            // A private record holder: no name, country or profile
-            'top' => array_map(static fn (array $row): array => [
-                'place' => $row['place'],
-                'name' => $row['name'],
-                'country' => $row['country'],
-                'profile' => $row['playerId'] !== null ? AnalyticsStudioProfile::path($row['playerId']) : null,
-                'seconds' => $row['seconds'],
-                'inRound' => $row['playerId'] !== null ? ($entryOfPlayer[$row['playerId']] ?? null) : null,
-            ], $stats['top']),
+            // Filled per answer from the record holders' ids (build())
+            'top' => [],
         ];
 
         if ($category !== RoundCategory::Solo) {

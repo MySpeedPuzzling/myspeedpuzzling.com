@@ -718,8 +718,12 @@ Where it differs from the sections above (§0a applied throughout):
   event's slugged rounds as JSON) and its visible puzzles (2); analytics/entrant/predictions also the entrants (3).
   state 3 cold unpublished / 4 published / **2 within 2 s** (R2's key needs the two reads); analytics 10 cold (puzzle
   statistics are 4 - the distributions, top tens, `GetPuzzleStatistics` and `GetPuzzleDifficulty` reused, not folded) /
-  11 pairs with an all-public line-up / 3 warm; entrant 17 cold solo incl. the member's prediction / 3 warm; predictions
-  7 cold for 1 entry / 19 for 4 / 3 warm.
+  12 pairs with an all-public line-up and solvers / 3 warm, + 1 on every answer whose puzzles have solvers (who the
+  record holders are now - the top tens are cached by player id only, so a player turning private is nameless at once);
+  entrant (reads only its entry, `GetAnalyticsStudioEntrants::forEntries()`) 17 cold solo incl. the member's prediction
+  / 4 warm (the earlier published rounds are read on every answer, never cached); predictions 7 cold for 1 entry / 19
+  for 4 / 3 warm. The rating place is one `RANK()` window over the stored ladder (the header's number without a viewer),
+  not a count per player.
 - **State cache key**: round + `stateHash()` + visible hash + published moment + live-results switch; not cached at all
   when the next reveal is < 2 s away. Extra fields beyond §3.1: `event`, `cutOffMs`, slot `key`/`position`, member `code`.
 - **Puzzle statistics cache**: one entry per visible puzzle set and round category (one computation for all of them).

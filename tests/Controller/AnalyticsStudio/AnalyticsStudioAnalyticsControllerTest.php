@@ -42,11 +42,11 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
         self::assertSame('noindex, nofollow', $browser->getResponse()->headers->get('X-Robots-Tag'));
 
         $slot = $this->slotOf(F::ROUND_GROUP_B);
-        self::assertSame([$slot], array_keys($analytics['puzzles']));
-        $startsAt = (string) $this->studioDatabase()->fetchOne('SELECT starts_at FROM competition_round WHERE id = :id', ['id' => F::ROUND_GROUP_B]);
-        self::assertSame(self::ms($startsAt), $analytics['cutOffMs'], 'no stopwatch: the scheduled start');
+        self::assertSame([$slot], array_keys(self::digArray($analytics, 'puzzles')));
+        $startsAt = $this->studioString('SELECT starts_at FROM competition_round WHERE id = :id', ['id' => F::ROUND_GROUP_B]);
+        self::assertSame(self::ms($startsAt), self::dig($analytics, 'cutOffMs'), 'no stopwatch: the scheduled start');
 
-        $hugo = $analytics['entrants'][F::ENTRY_B_HUGO]['members'][0];
+        $hugo = self::dig($analytics, 'entrants', F::ENTRY_B_HUGO, 'members', 0);
         self::assertSame([
             'solves' => 3,
             'firstSeconds' => 20000,
@@ -59,20 +59,44 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
             // Among every solver's best (7,000 private, 8,000 his own after the cut-off) his best before the round is 3rd
             'placeOnPuzzle' => 3,
             'asGroup' => null,
-        ], $hugo['perPuzzle'][$slot]);
+        ], self::dig($hugo, 'perPuzzle', $slot));
 
         // Gina (private) and Ivan (unlinked) are the same: nothing
-        self::assertSame([], $analytics['entrants'][F::ENTRY_B_GINA]['members'][0]);
-        self::assertSame([], $analytics['entrants'][F::ENTRY_B_IVAN]['members'][0]);
+        self::assertSame([], self::dig($analytics, 'entrants', F::ENTRY_B_GINA, 'members', 0));
+        self::assertSame([], self::dig($analytics, 'entrants', F::ENTRY_B_IVAN, 'members', 0));
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, (string) $browser->getResponse()->getContent());
 
-        $puzzle = $analytics['puzzles'][$slot];
-        self::assertSame(2, $puzzle['solvers'], 'suspicious times are no solver');
-        self::assertSame(7000, $puzzle['fastestSeconds']);
-        self::assertSame(['count' => 1, 'medianSeconds' => 20000, 'fastestSeconds' => 20000], $puzzle['firstTries']);
-        self::assertSame(['place' => 1, 'name' => null, 'country' => null, 'profile' => null, 'seconds' => 7000, 'inRound' => null], $puzzle['top'][0]);
-        self::assertSame([2, 8000, '/en/player-profile/' . self::HUGO, F::ENTRY_B_HUGO], [$puzzle['top'][1]['place'], $puzzle['top'][1]['seconds'], $puzzle['top'][1]['profile'], $puzzle['top'][1]['inRound']]);
-        self::assertSame(2, array_sum(array_column($puzzle['histogram'], 'count')));
+        $puzzle = self::dig($analytics, 'puzzles', $slot);
+        self::assertSame(2, self::dig($puzzle, 'solvers'), 'suspicious times are no solver');
+        self::assertSame(7000, self::dig($puzzle, 'fastestSeconds'));
+        self::assertSame(['count' => 1, 'medianSeconds' => 20000, 'fastestSeconds' => 20000], self::dig($puzzle, 'firstTries'));
+        self::assertSame(['place' => 1, 'name' => null, 'country' => null, 'profile' => null, 'seconds' => 7000, 'inRound' => null], self::dig($puzzle, 'top', 0));
+        self::assertSame([2, 8000, '/en/player-profile/' . self::HUGO, F::ENTRY_B_HUGO], [self::dig($puzzle, 'top', 1, 'place'), self::dig($puzzle, 'top', 1, 'seconds'), self::dig($puzzle, 'top', 1, 'profile'), self::dig($puzzle, 'top', 1, 'inRound')]);
+        $solvers = 0;
+        foreach (self::column(self::dig($puzzle, 'histogram'), 'count') as $count) {
+            self::assertIsInt($count);
+            $solvers += $count;
+        }
+        self::assertSame(2, $solvers);
+    }
+
+    public function testARecordHolderTurningPrivateIsNamelessOnTheNextAnswer(): void
+    {
+        $browser = self::createClient();
+        $database = $this->studioDatabase();
+        $this->seedStudioTime(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_5000, 6000, '2026-07-01 10:00:00');
+        $this->clearAnalyticsStudioCache();
+        $slot = $this->slotOf(F::ROUND_GROUP_B);
+        $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/analytics';
+
+        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES, self::dig($this->studioJson($browser, $url), 'puzzles', $slot, 'top', 0, 'profile'));
+        self::assertIsString(self::dig($this->studioJson($browser, $url), 'puzzles', $slot, 'top', 0, 'name'));
+
+        // Not an entrant: the cached analytics stay - only who the record holder is is read again
+        $database->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_WITH_FAVORITES]);
+        $content = json_encode($this->studioJson($browser, $url), JSON_THROW_ON_ERROR);
+        self::assertSame(['place' => 1, 'name' => null, 'country' => null, 'profile' => null, 'seconds' => 6000, 'inRound' => null], self::dig(json_decode($content, true, flags: JSON_THROW_ON_ERROR), 'puzzles', $slot, 'top', 0));
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_WITH_FAVORITES, $content);
     }
 
     public function testNumbersAsOfNowWithTheOptOutsHonoured(): void
@@ -93,19 +117,19 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
         $slot = $this->slotOf(F::ROUND_GROUP_B);
         $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/analytics';
 
-        $hugo = $this->studioJson($browser, $url)['entrants'][F::ENTRY_B_HUGO]['members'][0];
-        self::assertSame(1500, $hugo['rating']);
-        self::assertIsInt($hugo['ratingPlace']);
-        self::assertSame([$slot => 'proficient'], $hugo['skill'], 'the tier at the puzzle\'s piece count, as the API token');
-        self::assertFalse($hugo['rankingOptedOut']);
+        $hugo = self::dig($this->studioJson($browser, $url), 'entrants', F::ENTRY_B_HUGO, 'members', 0);
+        self::assertSame(1500, self::dig($hugo, 'rating'));
+        self::assertIsInt(self::dig($hugo, 'ratingPlace'));
+        self::assertSame([$slot => 'proficient'], self::dig($hugo, 'skill'), 'the tier at the puzzle\'s piece count, as the API token');
+        self::assertFalse(self::dig($hugo, 'rankingOptedOut'));
 
         $database->executeStatement('UPDATE player SET ranking_opted_out = true, time_predictions_opted_out = true WHERE id = :id', ['id' => self::HUGO]);
-        $hugo = $this->studioJson($browser, $url)['entrants'][F::ENTRY_B_HUGO]['members'][0];
-        self::assertNull($hugo['rating']);
-        self::assertNull($hugo['ratingPlace']);
-        self::assertNull($hugo['skill']);
-        self::assertTrue($hugo['rankingOptedOut']);
-        self::assertArrayHasKey('perPuzzle', $hugo, 'his public history stays');
+        $hugo = self::dig($this->studioJson($browser, $url), 'entrants', F::ENTRY_B_HUGO, 'members', 0);
+        self::assertNull(self::dig($hugo, 'rating'));
+        self::assertNull(self::dig($hugo, 'ratingPlace'));
+        self::assertNull(self::dig($hugo, 'skill'));
+        self::assertTrue(self::dig($hugo, 'rankingOptedOut'));
+        self::assertArrayHasKey('perPuzzle', self::digArray($hugo), 'his public history stays');
     }
 
     public function testSimilarPuzzlesLeaveOutTheRoundsOwnAndEmbargoedOnes(): void
@@ -124,13 +148,13 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
         $slot = $this->slotOf(F::ROUND_GROUP_B);
         $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/analytics';
 
-        $similar = $this->studioJson($browser, $url)['entrants'][F::ENTRY_B_HUGO]['members'][0]['similar'][$slot];
+        $similar = self::dig($this->studioJson($browser, $url), 'entrants', F::ENTRY_B_HUGO, 'members', 0, 'similar', $slot);
         self::assertSame(['sizeCount' => 1, 'sizeMedian' => 18000, 'sizeBest' => 18000, 'brandCount' => 1, 'brandMedian' => 18000, 'brandBest' => 18000], $similar, 'the round puzzle itself and the solve after the cut-off are out');
 
         $database->executeStatement("UPDATE puzzle SET hide_until = TIMESTAMP '2027-01-01 00:00:00' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_6000]);
         $this->clearAnalyticsStudioCache();
-        $similar = $this->studioJson($browser, $url)['entrants'][F::ENTRY_B_HUGO]['members'][0]['similar'][$slot];
-        self::assertSame(0, $similar['sizeCount'], 'a puzzle under the embargo is never similar history');
+        $similar = self::dig($this->studioJson($browser, $url), 'entrants', F::ENTRY_B_HUGO, 'members', 0, 'similar', $slot);
+        self::assertSame(0, self::dig($similar, 'sizeCount'), 'a puzzle under the embargo is never similar history');
     }
 
     public function testAPairsLineUpHasItsOwnHistoryWhenEveryMemberIsPublic(): void
@@ -146,17 +170,17 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
         $slot = $this->slotOf(F::ROUND_PAIRS);
 
         $analytics = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_PAIRS . '/analytics');
-        $sharks = $analytics['entrants'][F::TEAM_SHARKS];
-        self::assertSame(1, $sharks['lineup']['perPuzzle'][$slot]['solves']);
-        self::assertSame(9000, $sharks['lineup']['perPuzzle'][$slot]['bestSeconds']);
-        self::assertSame(['solves' => 1, 'bestSeconds' => 9000], $sharks['members'][0]['perPuzzle'][$slot]['asGroup'], "a member's pair history");
-        self::assertSame(0, $sharks['members'][0]['perPuzzle'][$slot]['solves'], 'no solo history');
+        $sharks = self::dig($analytics, 'entrants', F::TEAM_SHARKS);
+        self::assertSame(1, self::dig($sharks, 'lineup', 'perPuzzle', $slot, 'solves'));
+        self::assertSame(9000, self::dig($sharks, 'lineup', 'perPuzzle', $slot, 'bestSeconds'));
+        self::assertSame(['solves' => 1, 'bestSeconds' => 9000], self::dig($sharks, 'members', 0, 'perPuzzle', $slot, 'asGroup'), "a member's pair history");
+        self::assertSame(0, self::dig($sharks, 'members', 0, 'perPuzzle', $slot, 'solves'), 'no solo history');
 
         // Edge Hunters: Gina is private - no line-up history, and nothing of her
-        self::assertNull($analytics['entrants'][F::TEAM_EDGES]['lineup']);
-        self::assertSame([], $analytics['entrants'][F::TEAM_EDGES]['members'][0]);
+        self::assertNull(self::dig($analytics, 'entrants', F::TEAM_EDGES, 'lineup'));
+        self::assertSame([], self::dig($analytics, 'entrants', F::TEAM_EDGES, 'members', 0));
         // The group distribution of the pairs
-        self::assertGreaterThanOrEqual(1, $analytics['puzzles'][$slot]['group']['solvers']);
+        self::assertGreaterThanOrEqual(1, self::dig($analytics, 'puzzles', $slot, 'group', 'solvers'));
     }
 
     public function testBeforeAnyRevealNothingIsKeyedByAPuzzle(): void
@@ -171,12 +195,12 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
         $this->clearAnalyticsStudioCache();
 
         $analytics = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/analytics');
-        self::assertSame([], $analytics['puzzles']);
-        $hugo = $analytics['entrants'][F::ENTRY_B_HUGO]['members'][0];
+        self::assertSame([], self::dig($analytics, 'puzzles'));
+        $hugo = self::digArray($analytics, 'entrants', F::ENTRY_B_HUGO, 'members', 0);
         self::assertArrayNotHasKey('perPuzzle', $hugo);
         self::assertArrayNotHasKey('similar', $hugo);
-        self::assertSame([500], array_keys((array) $hugo['skill']), 'skill at 500 only - no piece count implied');
-        self::assertFalse($hugo['rankingOptedOut']);
+        self::assertSame([500], array_keys(self::digArray($hugo, 'skill')), 'skill at 500 only - no piece count implied');
+        self::assertFalse(self::dig($hugo, 'rankingOptedOut'));
     }
 
     private function seedHugosHistory(): void
@@ -197,7 +221,7 @@ final class AnalyticsStudioAnalyticsControllerTest extends WebTestCase
 
     private function slotOf(string $roundId): string
     {
-        return strtolower((string) $this->studioDatabase()->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => $roundId]));
+        return strtolower($this->studioString('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => $roundId]));
     }
 
     /**

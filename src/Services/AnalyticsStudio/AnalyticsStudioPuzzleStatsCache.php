@@ -20,7 +20,7 @@ use Symfony\Contracts\Cache\ItemInterface;
  * to everybody, analytics-studio.md D5).
  *
  * @phpstan-type Distribution array{bests: list<int>, firstTries: int, firstTryMedian: null|int, fastestFirstTry: null|int}
- * @phpstan-type PuzzleStats array{solo: Distribution, group: null|Distribution, top: list<array{place: int, seconds: int, playerId: null|string, name: null|string, code: null|string, country: null|string, private: bool}>, timesLogged: int, difficulty: null|array{score: null|float, tier: null|string, confidence: string}}
+ * @phpstan-type PuzzleStats array{solo: Distribution, group: null|Distribution, top: list<array{place: int, seconds: int, playerId: string}>, timesLogged: int, difficulty: null|array{score: null|float, tier: null|string, confidence: string}}
  */
 readonly final class AnalyticsStudioPuzzleStatsCache
 {

@@ -42,7 +42,6 @@ use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
@@ -258,9 +257,10 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'puzzle' => PuzzleFixture::PUZZLE_2000, 'team' => $teamId],
         );
         $cache = self::getContainer()->get('analytics_studio_cache');
-        self::assertInstanceOf(AdapterInterface::class, $cache);
         $cache->clear();
-        $slot = strtolower((string) $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_PAIRS]));
+        $slot = $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_PAIRS]);
+        self::assertIsString($slot);
+        $slot = strtolower($slot);
 
         $this->browser->request('GET', '/analytics-studio/' . OfficialResultsFixture::ROUND_PAIRS . '/analytics');
         self::assertResponseIsSuccessful();

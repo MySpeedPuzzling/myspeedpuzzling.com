@@ -69,17 +69,18 @@ final class AnalyticsStudioDistribution
         $buckets = max(1, min($buckets, $span + 1));
         $width = max(1, (int) ceil(($span + 1) / $buckets));
 
-        $histogram = [];
-        for ($index = 0; $index < $buckets; $index++) {
-            $histogram[$index] = ['fromSeconds' => $from + $index * $width, 'count' => 0];
-        }
+        $counts = array_fill(0, $buckets, 0);
 
         foreach ($sortedBests as $seconds) {
-            $index = min($buckets - 1, intdiv(max(0, $seconds - $from), $width));
-            $histogram[$index]['count']++;
+            $counts[min($buckets - 1, intdiv(max(0, $seconds - $from), $width))]++;
         }
 
-        return array_values($histogram);
+        $histogram = [];
+        foreach ($counts as $index => $count) {
+            $histogram[] = ['fromSeconds' => $from + $index * $width, 'count' => $count];
+        }
+
+        return $histogram;
     }
 
     /**

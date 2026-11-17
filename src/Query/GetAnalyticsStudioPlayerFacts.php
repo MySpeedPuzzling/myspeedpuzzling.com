@@ -11,8 +11,8 @@ use SpeedPuzzling\Web\Results\AnalyticsStudioPlayerFacts;
 /**
  * The studio members' numbers as of now (analytics-studio.md §2.7, R4, R13) - one statement for every analysable
  * member, shaped like GetPlayerCard's: community totals (community_player_stats), the MSP Rating at 500 pieces (the
- * ladder's) with the player header's place (GetPlayerRatingRanking::sqlRankOf() - no viewer here, so nobody's blocks
- * close it up) and the skill tier at the asked piece counts. A player who opted out of rankings has neither rating nor
+ * ladder's) with the player header's place (GetPlayerRatingRanking::sqlRankOf()'s number, as one window over the ladder - no
+ * viewer here, so nobody's blocks close it up) and the skill tier at the asked piece counts. A player who opted out of rankings has neither rating nor
  * skill (`ranking_opted_out`). Only analysable (public) members are asked, so no private player is ever read.
  */
 readonly final class GetAnalyticsStudioPlayerFacts
@@ -21,7 +21,6 @@ readonly final class GetAnalyticsStudioPlayerFacts
 
     public function __construct(
         private Connection $database,
-        private GetPlayerRatingRanking $getPlayerRatingRanking,
     ) {
     }
 
@@ -37,16 +36,25 @@ readonly final class GetAnalyticsStudioPlayerFacts
         }
 
         $piecesCounts = array_values(array_unique([self::RATING_PIECES, ...$piecesCounts]));
-        $rankOf = $this->getPlayerRatingRanking->sqlRankOf('elo');
+        $onLadder = GetPlayerRatingRanking::sqlOnStoredLadder('ladder_player');
 
+        // The ladder's places in one window (RANK() = 1 + the players rated higher - GetPlayerRatingRanking::sqlRankOf()'s
+        // number, the player header's): without a viewer nobody's blocks close it up, so the stored ladder's rule is it
         $rows = $this->database->executeQuery(
             <<<SQL
+WITH ladder AS (
+    SELECT ladder_elo.player_id, RANK() OVER (ORDER BY ladder_elo.elo_rating DESC) AS place
+    FROM player_elo ladder_elo
+    INNER JOIN player ladder_player ON ladder_player.id = ladder_elo.player_id
+    WHERE ladder_elo.pieces_count = :ratingPieces
+        AND {$onLadder}
+)
 SELECT
     p.id AS player_id,
     COALESCE(s.solved_total, 0) AS solved_total,
     s.best500_seconds,
     CASE WHEN p.ranking_opted_out THEN NULL ELSE elo.elo_rating END AS elo_rating,
-    CASE WHEN p.ranking_opted_out OR elo.id IS NULL THEN NULL ELSE {$rankOf} END AS elo_place,
+    CASE WHEN p.ranking_opted_out OR elo.id IS NULL THEN NULL ELSE ladder.place END AS elo_place,
     CASE WHEN p.ranking_opted_out THEN NULL ELSE (
         SELECT json_object_agg(skill.pieces_count, skill.skill_tier)
         FROM player_skill skill
@@ -56,6 +64,7 @@ SELECT
 FROM player p
 LEFT JOIN community_player_stats s ON s.player_id = p.id
 LEFT JOIN player_elo elo ON elo.player_id = p.id AND elo.pieces_count = :ratingPieces
+LEFT JOIN ladder ON ladder.player_id = p.id
 WHERE p.id IN (:playerIds)
 SQL,
             ['playerIds' => $playerIds, 'piecesCounts' => $piecesCounts, 'ratingPieces' => self::RATING_PIECES],

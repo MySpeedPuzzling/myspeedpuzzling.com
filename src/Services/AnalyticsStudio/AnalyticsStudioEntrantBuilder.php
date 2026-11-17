@@ -28,10 +28,11 @@ use Symfony\Contracts\Cache\ItemInterface;
  * shown model); a pair/team's line-up attempts; the entry's published results in the event's other rounds
  * (OfficialEntrantsView, published rounds only).
  *
- * Statements: the round, its visible puzzles and the entrants (3, always), then when cold the puzzle statistics (their
+ * Statements: the round, its visible puzzles and this entry (3, always), then when cold the puzzle statistics (their
  * own cache), the attempts, the facts and the similar summary (AnalyticsStudioAnalyticsBuilder::collect()), the line-up
- * (pairs/teams), the similar solves, the recent form and the earlier rounds (0-2) - kept 5 minutes per entry, visible
- * hash and history cut-off - and per member without a cached prediction GetPlayerPredictions' own statements (15 minutes).
+ * (pairs/teams), the similar solves and the recent form - kept 5 minutes per entry, visible hash and history cut-off;
+ * on every answer the earlier published rounds (0-2, never cached - a round published meanwhile shows at once) and, per
+ * member without a cached prediction, GetPlayerPredictions' own statements (15 minutes).
  */
 readonly final class AnalyticsStudioEntrantBuilder
 {
@@ -57,14 +58,7 @@ readonly final class AnalyticsStudioEntrantBuilder
     public function build(string $roundId, string $entryId): array
     {
         $context = $this->contextLoader->load($roundId);
-        $entrant = null;
-
-        foreach ($this->getAnalyticsStudioEntrants->forRound($context->round) as $candidate) {
-            if ($candidate->key() === strtolower($entryId)) {
-                $entrant = $candidate;
-                break;
-            }
-        }
+        $entrant = $this->getAnalyticsStudioEntrants->forEntries($context->round, [$entryId])[0] ?? null;
 
         if ($entrant === null) {
             throw new AnalyticsStudioNotFound();
@@ -96,7 +90,8 @@ readonly final class AnalyticsStudioEntrantBuilder
             }
         }
 
-        return [...$payload, 'members' => $members];
+        // The earlier published rounds outside the cache: publishing another round shows at once
+        return [...$payload, 'members' => $members, 'earlierRounds' => $this->earlierRounds($context, $entrant)];
     }
 
     /**
@@ -162,7 +157,6 @@ readonly final class AnalyticsStudioEntrantBuilder
             'key' => $entrant->key(),
             'analytics' => $collected['rows'][$entrant->key()],
             'members' => $members,
-            'earlierRounds' => $this->earlierRounds($context, $entrant),
         ];
 
         if ($entrant->isTeam()) {

@@ -35,7 +35,6 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -271,8 +270,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $base = '/analytics-studio/' . CompetitionApiFixture::ROUND_FUTURE;
         $read = function (string $answer) use ($browser, $base): string {
             $cache = self::getContainer()->get('analytics_studio_cache');
-            self::assertInstanceOf(AdapterInterface::class, $cache);
-            $cache->clear();
+                $cache->clear();
             $browser->request('GET', $base . '/' . $answer);
             self::assertResponseIsSuccessful($answer);
 

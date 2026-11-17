@@ -12,7 +12,7 @@ use stdClass;
  * The analytics studio's `predictions` answer (analytics-studio.md R3): the time predictions of the compare set - at
  * most MAX_ENTRIES entries, each member through AnalyticsStudioPredictions (solo predictions, the shown model, cached per
  * player and visible puzzle set). Entries not of the round are left out. Statements: the round, its visible puzzles and
- * the entrants (3), then GetPlayerPredictions' own per member without a cached prediction.
+ * the asked entries (3), then GetPlayerPredictions' own per member without a cached prediction.
  */
 readonly final class AnalyticsStudioPredictionsBuilder
 {
@@ -37,11 +37,7 @@ readonly final class AnalyticsStudioPredictionsBuilder
         $entrants = [];
 
         if ($wanted !== []) {
-            foreach ($this->getAnalyticsStudioEntrants->forRound($context->round) as $entrant) {
-                if (in_array($entrant->key(), $wanted, true) === false) {
-                    continue;
-                }
-
+            foreach ($this->getAnalyticsStudioEntrants->forEntries($context->round, $wanted) as $entrant) {
                 $members = [];
                 foreach ($entrant->members as $member) {
                     $members[] = $this->predictions->memberJson($member, $context->visible);

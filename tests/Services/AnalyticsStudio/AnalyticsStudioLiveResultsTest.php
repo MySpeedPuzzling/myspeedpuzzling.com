@@ -48,11 +48,19 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
                     'rank' => $entry->rank,
                     'qualified' => $entry->qualified,
                 ];
-                $actual = isset($studio[$entryId]) ? array_intersect_key($studio[$entryId], array_flip(['state', 'seconds', 'piecesPlaced', 'piecesCount', 'rank', 'qualified'])) : null;
+                $row = $studio[$entryId] ?? null;
+                $actual = $row === null ? null : [
+                    'state' => $row['state'],
+                    'seconds' => $row['seconds'],
+                    'piecesPlaced' => $row['piecesPlaced'],
+                    'piecesCount' => $row['piecesCount'],
+                    'rank' => $row['rank'],
+                    'qualified' => $row['qualified'],
+                ];
 
                 self::assertEquals($expected, $actual, "{$roundId} {$entryId}");
-                if ($actual !== null && $actual['state'] === 'live') {
-                    self::assertNull($actual['rank']);
+                if ($row !== null && $row['state'] === 'live') {
+                    self::assertNull($row['rank']);
                 }
                 $compared++;
             }
@@ -65,7 +73,7 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
     }
 
     /**
-     * @return array<string, array<string, mixed>>
+     * @return array<string, array{key: string, state: string, seconds: null|int, piecesPlaced: null|int, piecesCount: null|int, rank: null|int, qualified: bool, puzzles?: list<array{label: string, done: bool, seconds: null|int, piecesPlaced: null|int}>}>
      */
     private function studio(string $roundId): array
     {
@@ -75,7 +83,12 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
         $puzzles = $container->get(RoundPuzzlesVisibleNow::class)->forRound($roundId, TestClock::now());
         $official = $round->published() ? $container->get(OfficialEntrantsView::class)->forRound($roundId, $round->category, null) : null;
 
-        return array_column(AnalyticsStudioLiveResults::of($round, $entrants, $puzzles, $official), null, 'key');
+        $rows = [];
+        foreach (AnalyticsStudioLiveResults::of($round, $entrants, $puzzles, $official) as $row) {
+            $rows[$row['key']] = $row;
+        }
+
+        return $rows;
     }
 
     /**

@@ -114,7 +114,8 @@ SQL,
         $result = [];
 
         foreach ($rows as $row) {
-            $playerId = strtolower((string) $row['player_id']);
+            /** @var array<string, mixed>&array{player_id: string} $row */
+            $playerId = strtolower($row['player_id']);
 
             foreach ($slotByIndex as $i => $slotKey) {
                 $result[$playerId][$slotKey] = [

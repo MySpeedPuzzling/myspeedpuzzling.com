@@ -39,32 +39,32 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         self::assertSame('noindex, nofollow', $response->headers->get('X-Robots-Tag'));
         self::assertSame([], $response->headers->getCookies(), 'the stateless firewall never sets a cookie');
 
-        self::assertSame(TestClock::milliseconds(), $state['serverNowMs']);
-        self::assertIsArray($state['round']);
-        self::assertSame('group-a', $state['round']['slug']);
-        self::assertSame('solo', $state['round']['category']);
-        self::assertTrue($state['round']['published']);
-        self::assertArrayNotHasKey('puzzleFormat', $state['round']);
-        self::assertSame(['/round-stopwatch/' . F::ROUND_GROUP_A], $state['mercure']['topics'] ?? null);
+        self::assertSame(TestClock::milliseconds(), self::dig($state, 'serverNowMs'));
+        self::assertIsArray(self::dig($state, 'round'));
+        self::assertSame('group-a', self::dig($state, 'round', 'slug'));
+        self::assertSame('solo', self::dig($state, 'round', 'category'));
+        self::assertTrue(self::dig($state, 'round', 'published'));
+        self::assertArrayNotHasKey('puzzleFormat', self::digArray($state, 'round'));
+        self::assertSame(['/round-stopwatch/' . F::ROUND_GROUP_A], self::dig($state, 'mercure', 'topics'));
 
-        self::assertIsArray($state['slots']);
-        self::assertCount(1, $state['slots']);
-        self::assertSame('A', $state['slots'][0]['label']);
-        self::assertSame(1000, $state['slots'][0]['puzzle']['pieces']);
+        self::assertIsArray(self::dig($state, 'slots'));
+        self::assertCount(1, self::digArray($state, 'slots'));
+        self::assertSame('A', self::dig($state, 'slots', 0, 'label'));
+        self::assertSame(1000, self::dig($state, 'slots', 0, 'puzzle', 'pieces'));
 
-        $names = array_map(static fn (array $entrant): string => $entrant['members'][0]['name'], $state['entrants']);
+        $names = array_map(static fn (mixed $entrant): mixed => self::dig($entrant, 'members', 0, 'name'), self::digArray($state, 'entrants'));
         self::assertSame(['Anna Fast', 'Ben Steady', 'Cara Tied', 'Dan Unfinished', 'Eva Noshow', 'Filip Pending'], $names);
 
         // Anna is the admin's public profile: analysable, with the profile id and code
-        $anna = $state['entrants'][0]['members'][0];
+        $anna = self::dig($state, 'entrants', 0, 'members', 0);
         self::assertSame(['name' => 'Anna Fast', 'country' => 'cz', 'profile' => '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN, 'code' => 'ADMIN', 'analysable' => true], $anna);
-        self::assertFalse($state['entrants'][1]['members'][0]['analysable'], 'Ben is linked to nobody');
+        self::assertFalse(self::dig($state, 'entrants', 1, 'members', 0, 'analysable'), 'Ben is linked to nobody');
 
-        $results = array_column($state['results'], null, 'key');
+        $results = self::keyed(self::dig($state, 'results'), 'key');
         self::assertSame([F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN], array_keys($results), 'the official rows in rank order');
-        self::assertSame(['key' => F::ENTRY_A_ANNA, 'state' => 'official', 'seconds' => 3600, 'piecesPlaced' => null, 'piecesCount' => null, 'rank' => 1, 'qualified' => true], $results[F::ENTRY_A_ANNA]);
-        self::assertSame(2, $results[F::ENTRY_A_CARA]['rank'], 'ties share the official place');
-        self::assertSame(['seconds' => null, 'piecesPlaced' => 850, 'piecesCount' => 1000, 'rank' => 4], array_intersect_key($results[F::ENTRY_A_DAN], ['seconds' => 1, 'piecesPlaced' => 1, 'piecesCount' => 1, 'rank' => 1]));
+        self::assertSame(['key' => F::ENTRY_A_ANNA, 'state' => 'official', 'seconds' => 3600, 'piecesPlaced' => null, 'piecesCount' => null, 'rank' => 1, 'qualified' => true], self::dig($results, F::ENTRY_A_ANNA));
+        self::assertSame(2, self::dig($results, F::ENTRY_A_CARA, 'rank'), 'ties share the official place');
+        self::assertSame(['seconds' => null, 'piecesPlaced' => 850, 'piecesCount' => 1000, 'rank' => 4], array_intersect_key(self::digArray($results, F::ENTRY_A_DAN), ['seconds' => 1, 'piecesPlaced' => 1, 'piecesCount' => 1, 'rank' => 1]));
         self::assertStringNotContainsString('didNotStart', (string) $browser->getResponse()->getContent());
     }
 
@@ -76,24 +76,24 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
 
         $this->clearAnalyticsStudioCache();
         $state = $this->studioJson($browser, $url);
-        self::assertFalse($state['round']['published']);
-        self::assertFalse($state['round']['liveResults']);
-        self::assertSame([], $state['results'], 'nothing before publishing by default');
+        self::assertFalse(self::dig($state, 'round', 'published'));
+        self::assertFalse(self::dig($state, 'round', 'liveResults'));
+        self::assertSame([], self::dig($state, 'results'), 'nothing before publishing by default');
 
         // The live results setting does nothing while the competitor pages are off (the competitor page rule)
         $database->executeStatement('UPDATE competition SET competitor_pages_live_results = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
         $this->clearAnalyticsStudioCache();
-        self::assertSame([], $this->studioJson($browser, $url)['results']);
+        self::assertSame([], self::dig($this->studioJson($browser, $url), 'results'));
 
         $database->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
         $this->clearAnalyticsStudioCache();
         $state = $this->studioJson($browser, $url);
-        self::assertTrue($state['round']['liveResults']);
-        self::assertSame(['live'], array_values(array_unique(array_column($state['results'], 'state'))));
-        self::assertSame([null], array_values(array_unique(array_column($state['results'], 'rank'))), 'never a place before publishing');
-        self::assertSame([false], array_values(array_unique(array_column($state['results'], 'qualified'))));
+        self::assertTrue(self::dig($state, 'round', 'liveResults'));
+        self::assertSame(['live', 'live', 'live'], self::column(self::dig($state, 'results'), 'state'));
+        self::assertSame([null, null, null], self::column(self::dig($state, 'results'), 'rank'), 'never a place before publishing');
+        self::assertSame([false, false, false], self::column(self::dig($state, 'results'), 'qualified'));
         // The entrants' order (Gina, Hugo, Ivan) - not a leaderboard (R8)
-        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], array_column($state['results'], 'key'));
+        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], self::column(self::dig($state, 'results'), 'key'));
     }
 
     public function testAPrivatePlayerIsTheOrganisersNameOnly(): void
@@ -102,12 +102,15 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         $this->clearAnalyticsStudioCache();
 
         $state = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/state');
-        $members = array_merge(...array_map(static fn (array $entrant): array => $entrant['members'], $state['entrants']));
-        $byName = array_column($members, null, 'name');
+        $members = [];
+        foreach (self::digArray($state, 'entrants') as $entrant) {
+            $members = [...$members, ...self::digArray($entrant, 'members')];
+        }
+        $byName = self::keyed($members, 'name');
 
-        self::assertSame(['name' => 'Gina Quick', 'country' => 'us', 'profile' => null, 'code' => null, 'analysable' => false], $byName['Gina Quick']);
-        self::assertSame(['name' => 'Ivan Last', 'country' => 'sk', 'profile' => null, 'code' => null, 'analysable' => false], $byName['Ivan Last'], 'unlinked looks exactly like private');
-        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, $byName['Hugo Slow']['profile']);
+        self::assertSame(['name' => 'Gina Quick', 'country' => 'us', 'profile' => null, 'code' => null, 'analysable' => false], self::dig($byName, 'Gina Quick'));
+        self::assertSame(['name' => 'Ivan Last', 'country' => 'sk', 'profile' => null, 'code' => null, 'analysable' => false], self::dig($byName, 'Ivan Last'), 'unlinked looks exactly like private');
+        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, self::dig($byName, 'Hugo Slow', 'profile'));
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, (string) $browser->getResponse()->getContent());
     }
 
@@ -119,16 +122,16 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         $this->clearAnalyticsStudioCache();
 
         $state = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_PAIRS . '/state');
-        self::assertSame('duo', $state['round']['category']);
+        self::assertSame('duo', self::dig($state, 'round', 'category'));
 
-        $entrants = array_column($state['entrants'], null, 'key');
-        self::assertTrue($entrants[F::TEAM_SHARKS]['isTeam']);
-        self::assertSame('Puzzle Sharks', $entrants[F::TEAM_SHARKS]['teamName']);
-        self::assertSame(['Anna Fast', 'Ben Steady'], array_column($entrants[F::TEAM_SHARKS]['members'], 'name'));
+        $entrants = self::keyed(self::dig($state, 'entrants'), 'key');
+        self::assertTrue(self::dig($entrants, F::TEAM_SHARKS, 'isTeam'));
+        self::assertSame('Puzzle Sharks', self::dig($entrants, F::TEAM_SHARKS, 'teamName'));
+        self::assertSame(['Anna Fast', 'Ben Steady'], self::column(self::dig($entrants, F::TEAM_SHARKS, 'members'), 'name'));
 
-        $results = array_column($state['results'], null, 'key');
-        self::assertSame(5400, $results[F::TEAM_SHARKS]['seconds']);
-        self::assertSame(['piecesPlaced' => 1700, 'piecesCount' => 2000], array_intersect_key($results[F::TEAM_CORNERS], ['piecesPlaced' => 1, 'piecesCount' => 1]));
+        $results = self::keyed(self::dig($state, 'results'), 'key');
+        self::assertSame(5400, self::dig($results, F::TEAM_SHARKS, 'seconds'));
+        self::assertSame(['piecesPlaced' => 1700, 'piecesCount' => 2000], array_intersect_key(self::digArray($results, F::TEAM_CORNERS), ['piecesPlaced' => 1, 'piecesCount' => 1]));
         self::assertArrayNotHasKey(F::TEAM_UNNAMED, $results, 'no result yet');
     }
 
@@ -148,8 +151,8 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         $this->clearAnalyticsStudioCache();
 
         $state = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/state');
-        self::assertSame(['kind' => 'pick', 'toSolve' => 1], $state['round']['puzzleFormat']);
-        self::assertSame([['label' => 'A', 'done' => true, 'seconds' => null, 'piecesPlaced' => null]], $state['results'][0]['puzzles']);
+        self::assertSame(['kind' => 'pick', 'toSolve' => 1], self::dig($state, 'round', 'puzzleFormat'));
+        self::assertSame([['label' => 'A', 'done' => true, 'seconds' => null, 'piecesPlaced' => null]], self::dig($state, 'results', 0, 'puzzles'));
     }
 
     public function testNothingOfAnEventThatIsNotPublic(): void
@@ -192,7 +195,7 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
             ['id' => F::ROUND_GROUP_B],
         );
         $state = $this->studioJson($browser, $url);
-        self::assertSame('running', $state['round']['stopwatch']['status']);
+        self::assertSame('running', self::dig($state, 'round', 'stopwatch', 'status'));
         self::assertStringContainsString('Renamed Hugo', json_encode($state, JSON_THROW_ON_ERROR), 'a stopwatch change is a new key');
     }
 }

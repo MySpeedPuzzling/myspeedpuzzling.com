@@ -9,7 +9,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Contracts\Cache\CacheInterface;
 
 /**
  * Helpers of the analytics studio's tests (docs/features/competitions-management/analytics-studio.md): its cache pool is
@@ -21,8 +20,6 @@ trait AnalyticsStudioTesting
     protected function clearAnalyticsStudioCache(): void
     {
         $cache = self::getContainer()->get('analytics_studio_cache');
-        self::assertInstanceOf(CacheInterface::class, $cache);
-        self::assertTrue(method_exists($cache, 'clear'));
         $cache->clear();
     }
 
@@ -42,6 +39,17 @@ trait AnalyticsStudioTesting
         $json = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $json;
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    protected function studioString(string $sql, array $parameters): string
+    {
+        $value = $this->studioDatabase()->fetchOne($sql, $parameters);
+        self::assertIsString($value);
+
+        return $value;
     }
 
     protected function studioDatabase(): Connection
@@ -86,5 +94,71 @@ SQL,
         );
 
         return $id;
+    }
+
+    /**
+     * A value deep in a decoded answer - every step must be an array holding the key.
+     */
+    protected static function dig(mixed $json, string|int ...$path): mixed
+    {
+        foreach ($path as $key) {
+            self::assertIsArray($json, 'not an array at ' . $key);
+            self::assertArrayHasKey($key, $json);
+            $json = $json[$key];
+        }
+
+        return $json;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected static function digArray(mixed $json, string|int ...$path): array
+    {
+        $value = self::dig($json, ...$path);
+        self::assertIsArray($value);
+
+        return $value;
+    }
+
+    /**
+     * One column of a list of rows of a decoded answer.
+     *
+     * @return list<mixed>
+     */
+    protected static function column(mixed $rows, string $column): array
+    {
+        self::assertIsArray($rows);
+        $values = [];
+
+        foreach ($rows as $row) {
+            $values[] = self::dig($row, $column);
+        }
+
+        return $values;
+    }
+
+    /**
+     * The rows of a decoded list keyed by one of their columns.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function keyed(mixed $rows, string $column): array
+    {
+        self::assertIsArray($rows);
+        $keyed = [];
+
+        foreach ($rows as $row) {
+            $keyed[(string) self::scalar(self::dig($row, $column))] = $row;
+        }
+
+        return $keyed;
+    }
+
+    private static function scalar(mixed $value): string
+    {
+        self::assertTrue(is_string($value) || is_int($value));
+
+        return (string) $value;
     }
 }

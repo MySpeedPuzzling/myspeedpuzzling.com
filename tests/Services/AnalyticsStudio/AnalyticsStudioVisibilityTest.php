@@ -58,7 +58,7 @@ final class AnalyticsStudioVisibilityTest extends TestCase
 
     private function slot(string $id, int $position, null|VisibleRoundPuzzle $puzzle): RoundPuzzleSlot
     {
-        return new RoundPuzzleSlot(roundPuzzleId: $id, position: $position, label: chr(64 + $position), revealsAt: $puzzle === null ? new DateTimeImmutable('2026-10-14 12:00:00') : null, puzzle: $puzzle);
+        return new RoundPuzzleSlot(roundPuzzleId: $id, position: $position, label: ['A', 'B', 'C'][$position - 1], revealsAt: $puzzle === null ? new DateTimeImmutable('2026-10-14 12:00:00') : null, puzzle: $puzzle);
     }
 
     private function puzzle(string $id, bool $imageHidden): VisibleRoundPuzzle

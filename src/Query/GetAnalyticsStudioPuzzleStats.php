@@ -16,8 +16,8 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * - distributions(): the best time of every solver per puzzle (sorted), first tries (count, median, fastest) - solo by
  *   player, and for a pair/team round also by `puzzling_team_id` of that category, which counts the imported results
  *   without a tracker (`player_id` NULL) as the group results they are;
- * - top(): the ten fastest solo solvers per puzzle with their public identity - a private record holder
- *   (PrivateProfileAccess::sqlIsPrivate(), no viewer = nobody unmasked) comes without name, country or id.
+ * - top(): the ten fastest solo solvers per puzzle by player id (cacheable); identities() says who they are now - a
+ *   private record holder (PrivateProfileAccess::sqlIsPrivate(), no viewer = nobody unmasked) without name or id.
  *
  * Suspicious times are neither counted nor timed; an unfinished result never has a `seconds_to_solve`, so it is no
  * solve here; a relax solve (no time) is no time. The blocklist does not apply (no viewer - analytics-studio.md D3).
@@ -89,39 +89,45 @@ SQL,
             ['puzzleIds' => ArrayParameterType::STRING],
         )->fetchAllAssociative();
 
-        $empty = ['bests' => [], 'firstTries' => 0, 'firstTryMedian' => null, 'fastestFirstTry' => null];
-        $result = [];
-
-        foreach ($puzzleIds as $puzzleId) {
-            $result[strtolower($puzzleId)] = ['solo' => $empty, 'group' => $category === RoundCategory::Solo ? null : $empty];
-        }
+        $byKind = [];
 
         foreach ($rows as $row) {
             /** @var array{puzzle_id: string, kind: string, bests: string, first_tries: int|string, first_try_median: null|float|string, fastest_first_try: null|int|string} $row */
             $bests = trim($row['bests'], '{}');
-            $entry = [
+            $byKind[strtolower($row['puzzle_id'])][$row['kind'] === 'group' ? 'group' : 'solo'] = [
                 'bests' => $bests === '' ? [] : array_map('intval', explode(',', $bests)),
                 'firstTries' => (int) $row['first_tries'],
                 'firstTryMedian' => $row['first_try_median'] !== null ? (int) round((float) $row['first_try_median']) : null,
                 'fastestFirstTry' => $row['fastest_first_try'] !== null ? (int) $row['fastest_first_try'] : null,
             ];
-            $result[strtolower($row['puzzle_id'])][$row['kind'] === 'group' ? 'group' : 'solo'] = $entry;
+        }
+
+        $empty = ['bests' => [], 'firstTries' => 0, 'firstTryMedian' => null, 'fastestFirstTry' => null];
+        $result = [];
+
+        foreach ($puzzleIds as $puzzleId) {
+            $puzzleId = strtolower($puzzleId);
+            $result[$puzzleId] = [
+                'solo' => $byKind[$puzzleId]['solo'] ?? $empty,
+                'group' => $category === RoundCategory::Solo ? null : ($byKind[$puzzleId]['group'] ?? $empty),
+            ];
         }
 
         return $result;
     }
 
     /**
+     * The ten fastest solo solvers per puzzle - by player id only, so a cached list never keeps a name: who they are
+     * (and whether they are private now) is identities()' business, read on every answer.
+     *
      * @param list<string> $puzzleIds
-     * @return array<string, list<array{place: int, seconds: int, playerId: null|string, name: null|string, code: null|string, country: null|string, private: bool}>>
+     * @return array<string, list<array{place: int, seconds: int, playerId: string}>>
      */
     public function top(array $puzzleIds, int $limit = 10): array
     {
         if ($puzzleIds === []) {
             return [];
         }
-
-        $private = $this->privateProfileAccess->sqlIsPrivate('player');
 
         $rows = $this->database->executeQuery(
             <<<SQL
@@ -142,17 +148,8 @@ ranked AS (
         ROW_NUMBER() OVER (PARTITION BY best.puzzle_id ORDER BY best.seconds, best.player_id) AS position
     FROM best
 )
-SELECT
-    ranked.puzzle_id,
-    ranked.place,
-    ranked.seconds,
-    player.id AS player_id,
-    player.name AS player_name,
-    player.code AS player_code,
-    player.country AS player_country,
-    {$private} AS is_private
+SELECT ranked.puzzle_id, ranked.place, ranked.seconds, ranked.player_id
 FROM ranked
-INNER JOIN player ON player.id = ranked.player_id
 WHERE ranked.position <= :limit
 ORDER BY ranked.puzzle_id, ranked.position
 SQL,
@@ -163,19 +160,54 @@ SQL,
         $result = [];
 
         foreach ($rows as $row) {
-            /** @var array{puzzle_id: string, place: int|string, seconds: int|string, player_id: string, player_name: null|string, player_code: null|string, player_country: null|string, is_private: bool} $row */
-            $public = $row['is_private'] === false;
+            /** @var array{puzzle_id: string, place: int|string, seconds: int|string, player_id: string} $row */
             $result[strtolower($row['puzzle_id'])][] = [
                 'place' => (int) $row['place'],
                 'seconds' => (int) $row['seconds'],
-                'playerId' => $public ? strtolower($row['player_id']) : null,
-                'name' => $public ? $row['player_name'] : null,
-                'code' => $public && $row['player_code'] !== null ? strtoupper($row['player_code']) : null,
-                'country' => $public ? $row['player_country'] : null,
-                'private' => $public === false,
+                'playerId' => strtolower($row['player_id']),
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Who the record holders are right now - one statement per answer, never cached: a private player
+     * (PrivateProfileAccess::sqlIsPrivate(), no viewer = nobody unmasked) is null, so a player who turns private is
+     * nameless on the very next answer.
+     *
+     * @param list<string> $playerIds
+     * @return array<string, null|array{name: null|string, code: null|string, country: null|string}> null = private
+     */
+    public function identities(array $playerIds): array
+    {
+        if ($playerIds === []) {
+            return [];
+        }
+
+        $private = $this->privateProfileAccess->sqlIsPrivate('player');
+
+        $rows = $this->database->executeQuery(
+            <<<SQL
+SELECT player.id, player.name, player.code, player.country, {$private} AS is_private
+FROM player
+WHERE player.id IN (:playerIds)
+SQL,
+            ['playerIds' => array_values(array_unique($playerIds))],
+            ['playerIds' => ArrayParameterType::STRING],
+        )->fetchAllAssociative();
+
+        $identities = [];
+
+        foreach ($rows as $row) {
+            /** @var array{id: string, name: null|string, code: null|string, country: null|string, is_private: bool} $row */
+            $identities[strtolower($row['id'])] = $row['is_private'] ? null : [
+                'name' => $row['name'],
+                'code' => $row['code'] !== null ? strtoupper($row['code']) : null,
+                'country' => $row['country'],
+            ];
+        }
+
+        return $identities;
     }
 }

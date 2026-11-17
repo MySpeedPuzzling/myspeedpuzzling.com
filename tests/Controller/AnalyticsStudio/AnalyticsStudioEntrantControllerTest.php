@@ -43,27 +43,27 @@ final class AnalyticsStudioEntrantControllerTest extends WebTestCase
 
         $entrant = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/entrant/' . F::ENTRY_B_HUGO . '?v=x');
         self::assertSame('noindex, nofollow', $browser->getResponse()->headers->get('X-Robots-Tag'));
-        self::assertSame(F::ENTRY_B_HUGO, $entrant['key']);
+        self::assertSame(F::ENTRY_B_HUGO, self::dig($entrant, 'key'));
 
         // The same row as in the analytics answer
         $analytics = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/analytics');
-        self::assertSame($analytics['entrants'][F::ENTRY_B_HUGO], $entrant['analytics']);
+        self::assertSame(self::dig($analytics, 'entrants', F::ENTRY_B_HUGO), self::dig($entrant, 'analytics'));
 
-        $hugo = $entrant['members'][0];
-        self::assertFalse($hugo['predictionsOptedOut']);
+        $hugo = self::dig($entrant, 'members', 0);
+        self::assertFalse(self::dig($hugo, 'predictionsOptedOut'));
         self::assertSame([
             ['solvedAtMs' => self::ms('2026-09-20 10:00:00'), 'solvedAtPrecision' => 'day', 'seconds' => null, 'piecesPlaced' => 3000, 'firstAttempt' => false, 'kind' => 'solo', 'unboxed' => false],
             ['solvedAtMs' => self::ms('2026-09-01 00:00:00'), 'solvedAtPrecision' => 'month', 'seconds' => 16000, 'piecesPlaced' => null, 'firstAttempt' => false, 'kind' => 'solo', 'unboxed' => false],
             ['solvedAtMs' => self::ms('2026-08-01 10:00:00'), 'solvedAtPrecision' => 'day', 'seconds' => 20000, 'piecesPlaced' => null, 'firstAttempt' => true, 'kind' => 'solo', 'unboxed' => false],
-        ], $hugo['attempts'][$slot], 'newest first, after the cut-off left out');
+        ], self::dig($hugo, 'attempts', $slot), 'newest first, after the cut-off left out');
 
-        self::assertCount(1, $hugo['recentSimilar'][$slot]);
-        self::assertSame(18000, $hugo['recentSimilar'][$slot][0]['seconds']);
-        self::assertSame(['medianSeconds' => 18000, 'seconds' => [18000, 16000, 20000]], $hugo['recentForm']['5000']);
+        self::assertCount(1, self::digArray($hugo, 'recentSimilar', $slot));
+        self::assertSame(18000, self::dig($hugo, 'recentSimilar', $slot, 0, 'seconds'));
+        self::assertSame(['medianSeconds' => 18000, 'seconds' => [18000, 16000, 20000]], self::dig($hugo, 'recentForm', '5000'));
 
         // Gina (private) and Ivan: nothing
         $gina = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/entrant/' . F::ENTRY_B_GINA);
-        self::assertSame([[]], $gina['members']);
+        self::assertSame([[]], self::dig($gina, 'members'));
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, (string) $browser->getResponse()->getContent());
     }
 
@@ -83,12 +83,25 @@ final class AnalyticsStudioEntrantControllerTest extends WebTestCase
             'piecesCount' => null,
             'qualified' => true,
             'teamName' => null,
-        ]], $entrant['earlierRounds']);
+        ]], self::dig($entrant, 'earlierRounds'));
 
         // The Puzzle Sharks: Anna and Ben both were in Group A
         $sharks = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_PAIRS . '/entrant/' . F::TEAM_SHARKS);
-        self::assertSame([1, 2], array_column($sharks['earlierRounds'], 'rank'));
-        self::assertArrayHasKey('lineupAttempts', $sharks);
+        self::assertSame([1, 2], self::column(self::dig($sharks, 'earlierRounds'), 'rank'));
+        self::assertArrayHasKey('lineupAttempts', self::digArray($sharks));
+    }
+
+    public function testARoundPublishedOrWithdrawnMeanwhileShowsAtOnce(): void
+    {
+        $browser = self::createClient();
+        $this->clearAnalyticsStudioCache();
+        $url = '/analytics-studio/' . F::ROUND_FINAL . '/entrant/' . F::ENTRY_FINAL_ANNA;
+
+        self::assertCount(1, self::digArray($this->studioJson($browser, $url), 'earlierRounds'));
+
+        // The entry's own part stays cached - its earlier rounds are read on every answer
+        $this->studioDatabase()->executeStatement('UPDATE competition_round SET results_published_at = NULL WHERE id = :id', ['id' => F::ROUND_GROUP_A]);
+        self::assertSame([], self::dig($this->studioJson($browser, $url), 'earlierRounds'));
     }
 
     public function testAnEntryOfAnotherRoundIsNotThere(): void
@@ -113,19 +126,19 @@ final class AnalyticsStudioEntrantControllerTest extends WebTestCase
         self::assertNotNull($expected, 'no canary: no prediction for the fixture player');
 
         $entrant = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/entrant/' . F::ENTRY_B_HUGO);
-        $prediction = $entrant['members'][0]['prediction'][$slot];
-        self::assertSame([$expected->predictedSeconds, $expected->rangeLowSeconds, $expected->rangeHighSeconds], [$prediction['seconds'], $prediction['low50'], $prediction['high50']]);
-        self::assertSame('personal', $prediction['method']);
+        $prediction = self::dig($entrant, 'members', 0, 'prediction', $slot);
+        self::assertSame([$expected->predictedSeconds, $expected->rangeLowSeconds, $expected->rangeHighSeconds], [self::dig($prediction, 'seconds'), self::dig($prediction, 'low50'), self::dig($prediction, 'high50')]);
+        self::assertSame('personal', self::dig($prediction, 'method'));
 
         $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/predictions?entries=' . implode(',', [F::ENTRY_B_HUGO, F::ENTRY_B_GINA, F::ENTRY_A_ANNA, 'junk']) . '&v=x';
         $predictions = $this->studioJson($browser, $url);
-        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO], array_keys($predictions['entrants']), 'only entries of the round');
-        self::assertSame($prediction, $predictions['entrants'][F::ENTRY_B_HUGO]['members'][0]['prediction'][$slot]);
-        self::assertSame([], $predictions['entrants'][F::ENTRY_B_GINA]['members'][0], 'a private player gets none');
+        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO], array_keys(self::digArray($predictions, 'entrants')), 'only entries of the round');
+        self::assertSame($prediction, self::dig($predictions, 'entrants', F::ENTRY_B_HUGO, 'members', 0, 'prediction', $slot));
+        self::assertSame([], self::dig($predictions, 'entrants', F::ENTRY_B_GINA, 'members', 0), 'a private player gets none');
 
         $database->executeStatement('UPDATE player SET time_predictions_opted_out = true WHERE id = :id', ['id' => self::HUGO]);
         $predictions = $this->studioJson($browser, $url);
-        self::assertSame(['predictionsOptedOut' => true, 'prediction' => null], $predictions['entrants'][F::ENTRY_B_HUGO]['members'][0]);
+        self::assertSame(['predictionsOptedOut' => true, 'prediction' => null], self::dig($predictions, 'entrants', F::ENTRY_B_HUGO, 'members', 0));
     }
 
     public function testTheProfilePathIsThePlayerProfileRoute(): void
@@ -141,7 +154,7 @@ final class AnalyticsStudioEntrantControllerTest extends WebTestCase
 
     private function slotOf(string $roundId): string
     {
-        return strtolower((string) $this->studioDatabase()->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => $roundId]));
+        return strtolower($this->studioString('SELECT id FROM competition_round_puzzle WHERE round_id = :round', ['round' => $roundId]));
     }
 
     private static function ms(string $utc): int

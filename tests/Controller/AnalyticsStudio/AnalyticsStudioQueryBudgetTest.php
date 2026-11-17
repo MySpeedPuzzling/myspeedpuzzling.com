@@ -19,9 +19,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * - state: + entrants + the published round's official rows (OfficialEntrantsView) - 3 unpublished / 4 published;
  * - analytics: + the puzzle statistics (distributions, top tens, times logged, difficulty - 4) + the history on the
  *   round's puzzles, the members' facts, the similar summary (3) = 10; pair/team rounds + the line-ups when a line-up is
- *   all public;
- * - entrant: the analytics' 7 for one entry + the similar solves, the recent form, the earlier published rounds (1 per
- *   category kind of them) and GetPlayerPredictions' own per member without a cached prediction;
+ *   all public; warm or cold + who the record holders are now (1, when a visible puzzle has solvers);
+ * - entrant (the round, its puzzles, this entry): the analytics' 7 for one entry + the similar solves and the recent
+ *   form; warm or cold the earlier published rounds (1 per category kind of them) and GetPlayerPredictions' own per
+ *   member without a cached prediction;
  * - predictions: GetPlayerPredictions' own per member without a cached prediction.
  */
 final class AnalyticsStudioQueryBudgetTest extends WebTestCase
@@ -43,9 +44,12 @@ final class AnalyticsStudioQueryBudgetTest extends WebTestCase
         yield 'analytics, cold' => [$groupB . '/analytics', false, 10];
         yield 'analytics, warm' => [$groupB . '/analytics', true, 3];
         // The Puzzle Sharks (Anna + Ben, both public here) have a line-up: + 1
-        yield 'analytics, pairs, cold' => ['/analytics-studio/' . F::ROUND_PAIRS . '/analytics', false, 11];
+        yield 'analytics, pairs, cold' => ['/analytics-studio/' . F::ROUND_PAIRS . '/analytics', false, 12];
+        // Who the record holders are is read on every answer (PUZZLE_2000 has solvers; Group B's PUZZLE_5000 none)
+        yield 'analytics, pairs, warm' => ['/analytics-studio/' . F::ROUND_PAIRS . '/analytics', true, 4];
         yield 'entrant, solo, cold' => [$groupB . '/entrant/' . F::ENTRY_B_HUGO, false, 17];
-        yield 'entrant, warm' => [$groupB . '/entrant/' . F::ENTRY_B_HUGO, true, 3];
+        // The earlier published rounds are read on every answer (Group A: one solo statement)
+        yield 'entrant, warm' => [$groupB . '/entrant/' . F::ENTRY_B_HUGO, true, 4];
         yield 'predictions, 1 entry, cold' => [$groupB . '/predictions?entries=' . F::ENTRY_B_HUGO, false, 7];
         yield 'predictions, 4 entries, cold' => [$groupA . '/predictions?entries=' . implode(',', [F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN]), false, 19];
         yield 'predictions, 4 entries, warm' => [$groupA . '/predictions?entries=' . implode(',', [F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN]), true, 3];

@@ -46,7 +46,7 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         $this->seedStudioTime(PlayerFixture::PLAYER_REGULAR, self::X, 2500, '2026-10-10 10:00:00');
 
         $withX = $this->answers($browser);
-        $xName = (string) $database->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => self::X]);
+        $xName = $this->studioString('SELECT name FROM puzzle WHERE id = :id', ['id' => self::X]);
         foreach (['state', 'analytics'] as $answer) {
             foreach ([self::X, $xName] as $secret) {
                 self::assertStringNotContainsString($secret, $withX[$answer], "{$answer} carries the hidden puzzle");
@@ -66,8 +66,8 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         self::assertStringContainsString($xName, $revealed['state']);
         $analytics = json_decode($revealed['analytics'], true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($analytics);
-        self::assertArrayHasKey(self::HIDDEN_SLOT, $analytics['puzzles']);
-        self::assertGreaterThanOrEqual(1, $analytics['entrants'][F::ENTRY_B_HUGO]['members'][0]['perPuzzle'][self::HIDDEN_SLOT]['solves']);
+        self::assertArrayHasKey(self::HIDDEN_SLOT, self::digArray($analytics, 'puzzles'));
+        self::assertGreaterThanOrEqual(1, self::dig($analytics, 'entrants', F::ENTRY_B_HUGO, 'members', 0, 'perPuzzle', self::HIDDEN_SLOT, 'solves'));
         self::assertNotSame($withX['analytics'], $revealed['analytics']);
     }
 

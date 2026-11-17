@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\AnalyticsStudioEntrant;
 use SpeedPuzzling\Web\Results\AnalyticsStudioMember;
 use SpeedPuzzling\Web\Results\AnalyticsStudioRound;
@@ -36,6 +38,29 @@ readonly final class GetAnalyticsStudioEntrants
      * @return list<AnalyticsStudioEntrant>
      */
     public function forRound(AnalyticsStudioRound $round): array
+    {
+        return $this->fetch($round, null);
+    }
+
+    /**
+     * Only these entries of the round (the entrant detail, the compare set) - the same rules, filtered in the statement;
+     * a key that is no entry of the round is simply not there.
+     *
+     * @param list<string> $entryIds
+     * @return list<AnalyticsStudioEntrant>
+     */
+    public function forEntries(AnalyticsStudioRound $round, array $entryIds): array
+    {
+        $entryIds = array_values(array_filter(array_map('strtolower', $entryIds), Uuid::isValid(...)));
+
+        return $entryIds === [] ? [] : $this->fetch($round, $entryIds);
+    }
+
+    /**
+     * @param null|list<string> $entryIds null = every entry
+     * @return list<AnalyticsStudioEntrant>
+     */
+    private function fetch(AnalyticsStudioRound $round, null|array $entryIds): array
     {
         $private = $this->privateProfileAccess->sqlIsPrivate('player');
         $member = <<<SQL
@@ -70,6 +95,7 @@ FROM competition_participant_round cpr
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
 LEFT JOIN player ON player.id = cp.player_id
 WHERE cpr.round_id = :roundId
+    {$this->only('cpr', $entryIds)}
 SQL;
         } else {
             $sql = <<<SQL
@@ -91,10 +117,15 @@ SELECT
     )::text AS members
 FROM competition_team ct
 WHERE ct.round_id = :roundId
+    {$this->only('ct', $entryIds)}
 SQL;
         }
 
-        $rows = $this->database->fetchAllAssociative($sql, ['roundId' => $round->id]);
+        $rows = $this->database->fetchAllAssociative(
+            $sql,
+            ['roundId' => $round->id, 'entryIds' => $entryIds ?? []],
+            ['entryIds' => ArrayParameterType::STRING],
+        );
         $entrants = [];
 
         foreach ($rows as $row) {
@@ -140,5 +171,13 @@ SQL;
             ?: strcmp($a->key(), $b->key()));
 
         return $entrants;
+    }
+
+    /**
+     * @param null|list<string> $entryIds
+     */
+    private function only(string $alias, null|array $entryIds): string
+    {
+        return $entryIds === null ? '' : "AND {$alias}.id IN (:entryIds)";
     }
 }

@@ -14234,6 +14234,10 @@ competitor_page:
         live: "Confirmed by the judge - not official yet"
         own: "Your time, confirmed by the judge - not published yet"
         none: "No official result."
+    clock:
+        starts_in: "Starts in %time%"
+        left: "%time% left"
+        times_up: "Time's up"
     print:
         scan_page: "Anybody else who scans it opens the public competitor page."
         scan_event: "Anybody else who scans it lands on the event page."

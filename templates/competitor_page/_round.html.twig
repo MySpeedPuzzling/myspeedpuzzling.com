@@ -11,11 +11,21 @@
     <header class="competitor-round-head">
         <h2 class="competitor-round-name">{{ round.name }}</h2>
         {%- if round.current %} <span class="badge rounded-pill competitor-round-now">{{ 'competitor_page.round.current'|trans }}</span>{% endif -%}
-        {%- if phase == 'running' %} <span class="badge rounded-pill bg-success" data-competitor-round-running>{{ 'competitor_page.round.running'|trans }}</span>
-        {%- elseif phase == 'scheduled' %} <span class="badge rounded-pill bg-primary">{{ 'competitor_page.round.scheduled'|trans }}</span>
-        {%- elseif phase == 'stopped' %} <span class="badge rounded-pill bg-warning text-dark">{{ 'competitor_page.round.stopped'|trans }}</span>
+        {#- The phase badge - the live clock (competitor_page_controller.js) keeps its text and colour current -#}
+        {%- if phase == 'running' %} <span class="badge rounded-pill bg-success" data-competitor-round-badge data-competitor-round-running>{{ 'competitor_page.round.running'|trans }}</span>
+        {%- elseif phase == 'scheduled' %} <span class="badge rounded-pill bg-primary" data-competitor-round-badge>{{ 'competitor_page.round.scheduled'|trans }}</span>
+        {%- elseif phase == 'stopped' %} <span class="badge rounded-pill bg-warning text-dark" data-competitor-round-badge>{{ 'competitor_page.round.stopped'|trans }}</span>
+        {%- else %} <span class="badge rounded-pill" data-competitor-round-badge hidden></span>
         {%- endif %}
     </header>
+
+    {#- The live clock: drawn by competitor_page_controller.js from the round's stopwatch (hidden until it has a phase to show) -#}
+    <div class="competitor-round-clock" data-competitor-clock hidden>
+        <div class="competitor-round-clock-time" data-competitor-clock-time>00:00:00</div>
+        <div class="competitor-round-clock-note small" data-competitor-clock-note></div>
+    </div>
+    {#- B8: the competitor's "Done - propose my time" button goes here (filled by the page's controller) -#}
+    <div class="competitor-round-actions" data-competitor-round-actions></div>
 
     <p class="competitor-round-meta small text-muted">
         <span data-round-category>{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>

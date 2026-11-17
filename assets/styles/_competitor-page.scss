@@ -172,3 +172,38 @@
     font-size: 1.375rem;
     font-weight: 600;
 }
+
+// The live clock (competitor_page_controller.js): big digits on the phone at the table
+.competitor-round-clock {
+    margin: .25rem 0 .5rem;
+    text-align: center;
+}
+
+.competitor-round-clock-time {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+}
+
+.competitor-round-clock-note {
+    color: $gray-600;
+    min-height: 1.25rem;
+}
+
+.competitor-round.is-phase-running .competitor-round-clock-time {
+    color: $success;
+}
+
+.competitor-round.is-phase-times_up .competitor-round-clock-time {
+    color: $danger;
+}
+
+.competitor-round.is-phase-stopped .competitor-round-clock-time {
+    color: $gray-600;
+}
+
+.competitor-round-actions:empty {
+    display: none;
+}

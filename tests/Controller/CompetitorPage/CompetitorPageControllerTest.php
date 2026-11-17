@@ -427,6 +427,46 @@ final class CompetitorPageControllerTest extends WebTestCase
         self::assertNull(self::at($this->stateRound($state, F::ROUND_GROUP_B), 'entry.result'));
     }
 
+    public function testThePageCarriesTheLiveClockWithTheSameStateAsTheJson(): void
+    {
+        $browser = self::createClient();
+        $this->turnOn($browser);
+        $browser->getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = " . TestClock::SQL_NOW . " - INTERVAL '10 minutes' WHERE id = :id",
+            ['id' => F::ROUND_GROUP_B],
+        );
+
+        $crawler = $browser->request('GET', '/en/competitor/' . self::CUP . '/t/1');
+        self::assertResponseIsSuccessful();
+        $root = $crawler->filter('[data-competitor-page]');
+        self::assertSame('competitor-page', $root->attr('data-controller'));
+        self::assertSame('/competitor-state/' . self::CUP . '/t/1', $root->attr('data-competitor-page-state-url-value'));
+
+        /** @var array<string, mixed> $labels */
+        $labels = json_decode((string) $root->attr('data-competitor-page-labels-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame('Starts in %time%', $labels['starts_in'] ?? null);
+        self::assertSame("Time's up", $labels['times_up'] ?? null);
+        self::assertSame('In progress', $labels['running'] ?? null);
+
+        // The first state is the competitor_state JSON - the same view, nothing more (no hidden puzzle, no player id)
+        /** @var array<string, mixed> $pageState */
+        $pageState = json_decode((string) $root->attr('data-competitor-page-state-value'), true, flags: JSON_THROW_ON_ERROR);
+        $browser->request('GET', '/competitor-state/' . self::CUP . '/t/1');
+        $state = $this->json($browser);
+        unset($state['mercure']);
+        self::assertSame($state, $pageState);
+
+        // Every card: a clock (hidden until the controller draws it), a badge and B8's empty slot
+        foreach ([F::ROUND_PAIRS, F::ROUND_GROUP_A, F::ROUND_GROUP_B] as $roundId) {
+            $card = $this->round($crawler, $roundId);
+            self::assertCount(1, $card->filter('[data-competitor-clock][hidden] [data-competitor-clock-time]'));
+            self::assertCount(1, $card->filter('[data-competitor-round-badge]'));
+            self::assertCount(1, $card->filter('[data-competitor-round-actions]'));
+        }
+        self::assertSame('In progress', $this->round($crawler, F::ROUND_GROUP_B)->filter('[data-competitor-round-badge]')->text());
+        self::assertCount(1, $crawler->filter('[data-competitor-rounds] [data-competitor-round]')->first());
+    }
+
     private function turnOn(KernelBrowser $browser, bool $liveResults = false): void
     {
         $browser->getContainer()->get(Connection::class)->executeStatement(

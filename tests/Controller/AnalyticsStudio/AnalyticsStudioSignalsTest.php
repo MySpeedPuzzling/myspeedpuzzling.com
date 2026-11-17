@@ -105,6 +105,8 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
     public function testAHubThatIsDownNeverFailsTheWrite(): void
     {
         $browser = $this->organiser();
+        // The failing hub is this kernel's - kept for the write (the reset between requests keeps the failure)
+        $browser->disableReboot();
         $this->watch($browser, F::ROUND_GROUP_A);
         self::hub()->failWith(new \RuntimeException('Hub down'));
 

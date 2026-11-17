@@ -118,6 +118,21 @@ first, jsdelivr only when ours fails (the EAN scanner's order). Tests: `ServiceW
 4. **Saved** - the change goes into the outbox, a toast "Saved: Puzzle Sharks · 1:23:45" with **Undo** (a waiting
    change is just dropped; a sent one gets the opposite change; then the entry opens again), back to Find with the
    input empty and focused.
+   **Pick rounds** (competition toolkit C10, `assets/live_entry_puzzles.js` - round JSON `puzzleFormat`, entry
+   `puzzles`, README "Per-puzzle results of `pick` rounds"): the card shows a chip per round puzzle between the name and
+   the time - its label always, the name and picture only once the puzzle is out (`hidden: false`; a name that came for
+   a hidden slot anyway is not shown, a lock instead). The known choice (the server's, this device's waiting or refused
+   one) is preselected. One of N: a tap picks (again: none); K of N: taps in solving order (order badges), tap again
+   removes, a tap when K are chosen replaces the last. Save sends the result **and** the record that fits it as one
+   outbox group (`enqueueGroup()`, A rule 7 - never split): finished = all K done (the desk's earlier splits kept when
+   they still fit); Didn't finish = the pieces typed are the **last** chosen puzzle's (limit its count − 1), the ones
+   before count in full, the result is the sum (`total()` of `official_results_puzzles.js`; nothing chosen: K × the
+   biggest − 1, `unfinishedMaximum()`); Did not start = no record. A finished result without all K chosen is saved
+   alone (the confirm step warns, Save stays enabled). "Save puzzle choice" records the choice alone (at the table, or
+   later), fitted to the result shown. Find shows **"Puzzle missing (N)"** (entries with a time or pieces and no
+   record) as a filter in place of the recent list. Undo takes back every change of the Save; a refused group shows
+   both changes with the server's reasons (`puzzles_mismatch`, `group_refused`, …), Fix reopens with them. Taps:
+   table → chip → Finished now → Save. Split times entered by the judge are deferred (R §3).
 5. **Quick add** - "Not on the list? Add an entrant": a name (solo round) or a pair/team name + members, optional table
    (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
    entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, asked
@@ -284,7 +299,8 @@ CompetitionRefereeHandlersTest.php`, `tests/Query/GetCompetitionPermissionsTest.
 order, batches, conflicts, refusals, auth, a 403 for one event while another goes on, a stale page, a busy server with
 and without Retry-After, a deleted round, offline backoff, server-error isolation, two tabs, lease fallback, foreign
 account, broken store; the JSON client's classification of answers; search; shown values; recent list; result texts;
-time parser; QR URL parsing; round preference); the live updates stream: `tests/OfficialResultsEventsScriptsTest.php`
+time parser; QR URL parsing; round preference; pick rounds: chips and the hidden-name defence, taps, preselect,
+the grouped save never split, the unfinished total, Undo of a sent group, refusals, "Puzzle missing"); the live updates stream: `tests/OfficialResultsEventsScriptsTest.php`
 and `tests/Controller/OfficialResults/LiveUpdatesSubscriptionTest.php` (official-results.md).
 
 ## Follow-ups

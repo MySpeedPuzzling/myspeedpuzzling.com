@@ -8,10 +8,12 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\FormData\CompetitorPageSettingsFormData;
 use SpeedPuzzling\Web\FormType\CompetitorPageSettingsFormType;
 use SpeedPuzzling\Web\Message\ChangeCompetitorPageSettings;
+use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitorPageSettings;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPage;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +40,8 @@ final class CompetitionToolkitController extends AbstractController
         private readonly GetCompetitorPageSettings $getCompetitorPageSettings,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly GetCompetitionDisplays $getCompetitionDisplays,
+        private readonly CompetitionDisplaysPage $competitionDisplaysPage,
     ) {
     }
 
@@ -88,6 +92,10 @@ final class CompetitionToolkitController extends AbstractController
             'competition' => $competition,
             'rounds' => $this->getCompetitionRoundsForManagement->ofCompetition($competitionId),
             'competitor_pages_form' => $competitorPagesForm,
+            // Displays & overlays: the card's own forms post to their controllers and come back here
+            'displays' => $this->getCompetitionDisplays->ofCompetition($competitionId),
+            'add_display_form' => $this->competitionDisplaysPage->addForm($request, $competitionId, $request->getRequestUri())->createView(),
+            'displays_return' => $request->getRequestUri(),
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

@@ -38,6 +38,7 @@ use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\CancelRoundStart;
+use SpeedPuzzling\Web\Message\ChangeCompetitionDisplayFollow;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
@@ -299,6 +300,7 @@ final class SerializedByLockMessagesTest extends TestCase
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
         CancelRoundStart::class => 'the round\'s stopwatch only - calls a countdown off',
+        ChangeCompetitionDisplayFollow::class => 'a competition display\'s round to follow - only reads the event\'s rounds to check the chosen ones are its own; entries and results are not touched',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
         CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DuplicateCompetition::class => 'creates a new draft event with empty rounds - only reads the source\'s round settings, never its entries or results, and nobody can be entered in the copy before it exists',

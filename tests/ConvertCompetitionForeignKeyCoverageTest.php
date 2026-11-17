@@ -25,6 +25,9 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
     private const array WHAT_THE_CONVERSION_DOES = [
         // Its maintainers become the series' maintainers first; the links go with the competition
         'competition_maintainer.competition_id' => self::CASCADES,
+        // Timer screens and stream overlays (competition toolkit) - set up for an event's rounds; an event with rounds is
+        // refused (SeriesConversionBlocker::Rounds), so only displays of a round-less event go with it
+        'competition_display.competition_id' => self::CASCADES,
         // SeriesConversionBlocker::PageSections
         'competition_page_section.competition_id' => self::REFUSED,
         // SeriesConversionBlocker::Participants unless dropParticipants - then deleted (removed ones always)

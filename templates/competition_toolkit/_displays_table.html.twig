@@ -1,0 +1,74 @@
+{#
+    An event's displays (D-displays-overlays.md §8.1) - on the toolkit hub's Displays card and the displays page.
+    Variables: displays (list<CompetitionDisplayOverview>), rounds (list<CompetitionRoundForManagement>), displays_return
+    (where the row buttons come back to). The link is the display's capability - organisers only.
+#}
+{% set round_names = {} %}
+{% for round in rounds %}
+    {% set round_names = round_names|merge({(round.id): round.name}) %}
+{% endfor %}
+
+{% if displays is empty %}
+    <p class="small mb-3" data-displays-empty>{{ 'competition_display.list.empty'|trans }}</p>
+{% else %}
+    <ul class="list-unstyled mb-3" data-displays-list>
+        {% for display in displays %}
+            {# The renderer's route arrives with D4 - the address is fixed already: /display/{token}, no locale #}
+            {% set display_url = app.request.schemeAndHttpHost ~ '/display/' ~ display.token %}
+            <li class="border rounded p-2 mb-2" data-display="{{ display.id }}">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-semibold" data-display-name>{{ display.name }}</span>
+                    <span class="badge {{ display.kind.value == 'overlay' ? 'bg-info text-dark' : 'bg-secondary' }}" data-display-kind="{{ display.kind.value }}">{{ ('competition_display.kind.' ~ display.kind.value)|trans }}</span>
+                    <span class="badge bg-light text-dark border">{{ display.locale|upper }}</span>
+                </div>
+
+                <div class="small text-muted mt-1" data-display-follow>
+                    {% if display.followsCurrentRound %}
+                        {% if display.followRoundIds is not null %}
+                            {{ 'competition_display.list.follows_current_of'|trans({'%rounds%': display.followRoundIds|map(id => round_names[id] ?? null)|filter(name => name is not null)|join(', ')}) }}
+                        {% else %}
+                            {{ 'competition_display.list.follows_current'|trans }}
+                        {% endif %}
+                    {% else %}
+                        {{ 'competition_display.list.follows_pinned'|trans({'%round%': round_names[display.pinnedRoundId] ?? ''}) }}
+                    {% endif %}
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2" data-controller="copy-link" data-copy-link-url-value="{{ display_url }}" data-copy-link-copied-value="{{ 'competition_display.list.copied'|trans }}">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-copy-link-target="button" data-action="copy-link#copy" data-display-copy-link>
+                        <i class="bi bi-link-45deg me-1"></i><span>{{ 'competition_display.list.copy_link'|trans }}</span>
+                    </button>
+                    <a href="{{ path('competition_display_settings', {displayId: display.id, return: displays_return}) }}" class="btn btn-sm btn-outline-secondary" data-display-settings-link>
+                        <i class="bi bi-gear me-1"></i>{{ 'competition_display.list.settings'|trans }}
+                    </a>
+
+                    {% set display_token = csrf_token('competition_display_' ~ display.id|lower) %}
+                    <form method="post" action="{{ path('duplicate_competition_display', {displayId: display.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ display_token }}">
+                        <input type="hidden" name="return" value="{{ displays_return }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" data-display-duplicate>
+                            <i class="bi bi-copy me-1"></i>{{ 'competition_display.list.duplicate'|trans }}
+                        </button>
+                    </form>
+                    <form method="post" action="{{ path('regenerate_competition_display_token', {displayId: display.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ display_token }}">
+                        <input type="hidden" name="return" value="{{ displays_return }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" data-display-regenerate
+                                data-turbo-confirm="{{ 'competition_display.list.new_link_confirm'|trans }}">
+                            <i class="bi bi-arrow-repeat me-1"></i>{{ 'competition_display.list.new_link'|trans }}
+                        </button>
+                    </form>
+                    <form method="post" action="{{ path('delete_competition_display', {displayId: display.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ display_token }}">
+                        <input type="hidden" name="return" value="{{ displays_return }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" data-display-delete
+                                data-turbo-confirm="{{ 'competition_display.list.delete_confirm'|trans({'%name%': display.name}) }}">
+                            <i class="bi bi-trash me-1"></i>{{ 'competition_display.list.delete'|trans }}
+                        </button>
+                    </form>
+                </div>
+                <input class="form-control form-control-sm mt-2" type="url" value="{{ display_url }}" readonly hidden data-copy-link-target="field" aria-label="{{ 'competition_display.list.link'|trans }}">
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

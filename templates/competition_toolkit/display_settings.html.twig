@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A display's settings (D-displays-overlays.md §8.1 competition_display_settings): name, language, round to follow.
+    Variables: competition, display (CompetitionDisplayOverview), rounds, form.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ display.name }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'competition_display.list.title'|trans, url: path('competition_displays', {competitionId: competition.id})},
+        {label: display.name},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_displays', {competitionId: competition.id}), fallbackTitle: 'competition_display.list.title'|trans}) }}
+
+    <div class="pb-4" style="max-width: 40rem;" data-competition-display-settings>
+        <h1 class="h2">{{ display.name }}</h1>
+        <p class="text-muted">
+            <span class="badge {{ display.kind.value == 'overlay' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ ('competition_display.kind.' ~ display.kind.value)|trans }}</span>
+            {{ ('competition_display.kind.' ~ display.kind.value ~ '_help')|trans }}
+        </p>
+
+        {{ form_start(form, {attr: {'data-display-settings-form': ''}}) }}
+            {{ form_errors(form) }}
+            {{ form_row(form.name, {row_attr: {class: 'mb-3'}}) }}
+            {{ form_row(form.locale, {row_attr: {class: 'mb-3'}}) }}
+
+            <fieldset class="mb-3">
+                <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.followMode)|striptags }}</legend>
+                {{ form_errors(form.followMode) }}
+                {% for choice in form.followMode %}
+                    <div class="form-check mb-2">
+                        {{ form_widget(choice) }}
+                        {{ form_label(choice) }}
+                        <div class="form-text mt-0">{{ ('competition_display.follow.' ~ choice.vars.value ~ '_help')|trans }}</div>
+
+                        {% if choice.vars.value == 'current' and rounds|length > 1 %}
+                            <div class="mt-2 ms-1">
+                                <div class="small fw-semibold">{{ form_label(form.roundIds)|striptags }}</div>
+                                <div class="form-text mt-0 mb-1">{{ 'competition_display.form.round_subset_help'|trans }}</div>
+                                {{ form_errors(form.roundIds) }}
+                                {% for round_choice in form.roundIds %}
+                                    <div class="form-check">
+                                        {{ form_widget(round_choice) }}
+                                        {{ form_label(round_choice) }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if choice.vars.value == 'pinned' %}
+                            <div class="mt-2 ms-1">
+                                {% if rounds is empty %}
+                                    <div class="form-text mt-0">{{ 'competition_display.form.no_rounds'|trans }}</div>
+                                {% endif %}
+                                {{ form_row(form.pinnedRoundId, {row_attr: {class: 'mb-0'}}) }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+
+            {# One round (or none): no subset to choose #}
+            {% do form.roundIds.setRendered %}
+
+            <button type="submit" class="btn btn-primary" data-display-settings-save>{{ 'competition_display.form.save'|trans }}</button>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

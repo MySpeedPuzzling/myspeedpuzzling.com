@@ -98,12 +98,10 @@ final class AdvancementStepGraphTest extends TestCase
 
     public function testByASourceMapCoveringEverySourceIsValid(): void
     {
-        AdvancementStepGraph::validateStep(
-            self::step(['group-a', 'group-b', 'group-c'], ['semi-1', 'semi-2'], AdvanceDistribution::BySource, map: ['group-a' => 'semi-1', 'group-b' => 'semi-2', 'group-c' => 'semi-1']),
-            self::ROUNDS,
-        );
+        $step = self::step(['group-a', 'group-b', 'group-c'], ['semi-1', 'semi-2'], AdvanceDistribution::BySource, map: ['group-a' => 'semi-1', 'group-b' => 'semi-2', 'group-c' => 'semi-1']);
+        AdvancementStepGraph::validate(['step' => $step], self::ROUNDS);
 
-        $this->addToAssertionCount(1);
+        self::assertSame(['group-a' => 'semi-1', 'group-b' => 'semi-2', 'group-c' => 'semi-1'], $step->targetBySource);
     }
 
     public function testARoundIsFedByOneStepOnly(): void
@@ -117,12 +115,13 @@ final class AdvancementStepGraphTest extends TestCase
     public function testARoundMayFeedTwoSteps(): void
     {
         // A group feeds the semifinal and a consolation round alike - each fed once
-        AdvancementStepGraph::validate([
+        $steps = [
             'main' => self::step(['group-a'], ['semi-1'], AdvanceDistribution::Single, qualify: 10),
             'consolation' => self::step(['group-a'], ['semi-2'], AdvanceDistribution::Single),
-        ], self::ROUNDS);
+        ];
+        AdvancementStepGraph::validate($steps, self::ROUNDS);
 
-        $this->addToAssertionCount(1);
+        self::assertSame(['group-a' => 1, 'semi-1' => 2, 'semi-2' => 2], self::sorted(AdvancementStepGraph::stages($steps)));
     }
 
     public function testCyclesAreRefused(): void

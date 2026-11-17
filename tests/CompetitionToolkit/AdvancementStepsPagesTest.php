@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Value\AdvancementQualifyScope;
 use SpeedPuzzling\Web\Value\AdvancementStepSettings;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -39,6 +40,9 @@ final class AdvancementStepsPagesTest extends WebTestCase
     private const string DESK_GROUP_A = '/en/manage-round-results/' . OfficialResultsFixture::ROUND_GROUP_A;
 
     private KernelBrowser $browser;
+
+    /** @var list<string> the last preset answer's ties at the cut */
+    private array $lastTied = [];
 
     protected function setUp(): void
     {
@@ -82,9 +86,9 @@ final class AdvancementStepsPagesTest extends WebTestCase
         $crawler = $this->browser->request('GET', self::STEPS . '/new');
         self::assertResponseIsSuccessful();
         $form = $crawler->filter('[data-advancement-step-form] form')->form();
-        self::tick($form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_A);
-        self::tick($form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_B);
-        self::tick($form, 'targetRoundIds', OfficialResultsFixture::ROUND_FINAL);
+        self::tick($crawler, $form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_A);
+        self::tick($crawler, $form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_B);
+        self::tick($crawler, $form, 'targetRoundIds', OfficialResultsFixture::ROUND_FINAL);
         $form['advancement_step_form[qualifyCount]'] = '2';
         $form['advancement_step_form[distribution]'] = 'single';
         $this->browser->submit($form);
@@ -100,8 +104,8 @@ final class AdvancementStepsPagesTest extends WebTestCase
         // A second step into the Final is refused with the reason - the form again, 422
         $crawler = $this->browser->request('GET', self::STEPS . '/new');
         $form = $crawler->filter('[data-advancement-step-form] form')->form();
-        self::tick($form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_B);
-        self::tick($form, 'targetRoundIds', OfficialResultsFixture::ROUND_FINAL);
+        self::tick($crawler, $form, 'sourceRoundIds', OfficialResultsFixture::ROUND_GROUP_B);
+        self::tick($crawler, $form, 'targetRoundIds', OfficialResultsFixture::ROUND_FINAL);
         $form['advancement_step_form[distribution]'] = 'single';
         $this->browser->submit($form);
         self::assertResponseStatusCodeSame(422);
@@ -235,25 +239,20 @@ final class AdvancementStepsPagesTest extends WebTestCase
         self::assertStringContainsString('no-store', (string) $this->browser->getResponse()->headers->get('Cache-Control'));
     }
 
-    /** @var list<string> */
-    private array $lastTied = [];
-
-    private static function tick(Form $form, string $field, string $roundId): void
+    /**
+     * Ticks the round's checkbox in a round list of the step form.
+     */
+    private static function tick(Crawler $crawler, Form $form, string $field, string $roundId): void
     {
+        $values = $crawler->filter('input[name="advancement_step_form[' . $field . '][]"]')->each(static fn (Crawler $input): string => (string) $input->attr('value'));
+        $index = array_search($roundId, $values, true);
+        self::assertIsInt($index, 'No such round in ' . $field);
+
         $choices = $form['advancement_step_form[' . $field . ']'];
         self::assertIsArray($choices);
-
-        foreach ($choices as $choice) {
-            self::assertInstanceOf(ChoiceFormField::class, $choice);
-
-            if ($choice->availableOptionValues() === [$roundId]) {
-                $choice->tick();
-
-                return;
-            }
-        }
-
-        self::fail('No such round in ' . $field);
+        $choice = $choices[$index];
+        self::assertInstanceOf(ChoiceFormField::class, $choice);
+        $choice->tick();
     }
 
     /**

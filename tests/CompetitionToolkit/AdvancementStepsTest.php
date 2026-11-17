@@ -203,7 +203,7 @@ final class AdvancementStepsTest extends KernelTestCase
 
         $this->messageBus->dispatch(new DeleteCompetition(self::WS_COMPETITION));
 
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_advancement_step'));
+        self::assertEquals(0, $this->database->fetchOne('SELECT COUNT(*) FROM competition_advancement_step'));
     }
 
     private function create(AdvancementStepSettings $settings, null|string $name = null): string

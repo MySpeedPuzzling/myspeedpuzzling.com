@@ -59,6 +59,7 @@ final class AdminAreaAccessTest extends WebTestCase
         yield 'time verification' => ['/admin/time-verification'];
         yield 'box-text mismatches' => ['/admin/box-text-mismatches'];
         yield 'spreadsheet imports' => ['/admin/imports'];
+        yield 'event claim blocks' => ['/admin/event-claim-blocks'];
     }
 
     #[DataProvider('adminPages')]

@@ -33,6 +33,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetAllowedPartnerCoMembers' => 'Write-side check of a partner finder listing\'s co-members: filters on user_block itself, in both directions, for the lister id the handler gives it.',
         'GetAchievementRarity' => self::AGGREGATE,
         'GetAdminCompetitions' => self::ADMIN,
+        'GetEventClaimBlocks' => self::ADMIN,
         'GetAdminOrganizations' => self::ADMIN,
         'GetAdminReferralDetail' => self::ADMIN,
         'GetAdminReferralsOverview' => self::ADMIN,

@@ -272,6 +272,80 @@ final class EventResultClaimControllersTest extends WebTestCase
     }
 
     /**
+     * A block between the viewer and somebody already in a result, either way: no "This was my team" on that result, and a
+     * claim sent anyway is refused with words that never tell a block exists.
+     */
+    public function testABlockBetweenTheViewerAndAClaimerHidesTheButtonAndRefusesNeutrally(): void
+    {
+        [$pals] = $this->seed();
+        $timeId = $pals->id->toString();
+        $roundUrl = '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG;
+        $this->bus()->dispatch(new ClaimEventResultSlot($timeId, PlayerFixture::PLAYER_REGULAR));
+
+        // The claimer blocks the viewer - the viewer still sees the claimer, but only the other team is offered
+        $this->database()->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->browser->request('GET', $roundUrl);
+        self::assertCount(1, $this->browser->getCrawler()->filter('[data-testid="event-result-claim-button"]'));
+
+        $crawler = $this->browser->request('POST', '/en/event-result/' . $timeId . '/claim', ['_token' => 'csrf-token'], server: self::MODAL);
+        self::assertResponseStatusCodeSame(422);
+        $error = $crawler->filter('[data-testid="event-result-claim-error"]')->text();
+        self::assertStringNotContainsStringIgnoringCase('block', $error);
+        self::assertStringContainsString('organizer', $error);
+        self::assertSame(3, $this->anonymousCount($timeId));
+    }
+
+    /**
+     * "Not on our team" in the ⋯ menu of a result row on the round's results - for the event's team (here its creator)
+     * and admins, next to every claimer; nobody else gets the menu.
+     */
+    public function testTheOrganizerRemovesAClaimFromTheRoundResults(): void
+    {
+        [$pals] = $this->seed();
+        $timeId = $pals->id->toString();
+        $roundUrl = '/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG;
+        $this->bus()->dispatch(new ClaimEventResultSlot($timeId, PlayerFixture::PLAYER_REGULAR));
+        $this->database()->executeStatement('UPDATE competition SET added_by_player_id = :player WHERE id = :id', ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'id' => $pals->competition?->id->toString()]);
+
+        $this->browser->request('GET', $roundUrl);
+        self::assertCount(0, $this->browser->getCrawler()->filter('[data-testid="round-result-organizer-menu"]'), 'Guests get no menu');
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->browser->request('GET', $roundUrl);
+        self::assertCount(0, $this->browser->getCrawler()->filter('[data-testid="round-result-organizer-menu"]'), 'Nor a stranger');
+
+        // The claimer themselves: their own spot is "Remove from my profile", not here
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->browser->request('GET', $roundUrl);
+        self::assertCount(0, $this->browser->getCrawler()->filter('[data-testid="round-result-organizer-menu"]'));
+
+        foreach ([PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN] as $organizer) {
+            TestingLogin::asPlayer($this->browser, $organizer);
+            $crawler = $this->browser->request('GET', $roundUrl);
+            self::assertCount(1, $crawler->filter('[data-testid="round-result-organizer-menu"]'), 'Only the row with a claimer');
+            $link = $crawler->filter('[data-testid="round-result-organizer-menu"] [data-testid="event-result-remove-link"]');
+            self::assertCount(1, $link);
+            self::assertSame('/en/event-result/' . $timeId . '/not-on-our-team/' . PlayerFixture::PLAYER_REGULAR, $link->attr('href'));
+            self::assertSame('modal-frame', $link->attr('data-turbo-frame'));
+        }
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $this->browser->request('GET', '/en/event-result/' . $timeId . '/not-on-our-team/' . PlayerFixture::PLAYER_REGULAR, server: self::MODAL);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('textarea[name="reason"]'));
+
+        $this->browser->request('POST', '/en/event-result/' . $timeId . '/not-on-our-team/' . PlayerFixture::PLAYER_REGULAR, ['_token' => 'csrf-token', 'reason' => 'Not on the sheet'], server: self::MODAL);
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->trackerOf($pals));
+        self::assertSame(4, $this->anonymousCount($timeId));
+    }
+
+    /**
      * Two anonymous teams of four in the round: Puzzle Pals 1:00:00, Corner Crew 50:00
      *
      * @return array{PuzzleSolvingTime, PuzzleSolvingTime}
@@ -291,6 +365,16 @@ final class EventResultClaimControllersTest extends WebTestCase
         $tracker = $this->database()->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $time->id->toString()]);
 
         return is_string($tracker) ? $tracker : null;
+    }
+
+    private function anonymousCount(string $timeId): int
+    {
+        $count = $this->database()->fetchOne(
+            "SELECT COUNT(*) FROM puzzle_solving_time pst, json_array_elements(pst.team -> 'puzzlers') AS slot(puzzler) WHERE pst.id = :id AND slot.puzzler ->> 'anonymous_slot' IS NOT NULL",
+            ['id' => $timeId],
+        );
+
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     private function bus(): MessageBusInterface

@@ -54,6 +54,7 @@
                                 {% for puzzle_solver in puzzle.players %}
                                     {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true, show_tier: false}) }}
                                 {% endfor %}
+                                {% if puzzle.anonymousCount > 0 %}{{ include('_anonymous_puzzlers.html.twig', {unclaimed_count: puzzle.anonymousCount}) }}{% endif %}
                             </div>
                         {% endif %}
 
@@ -82,7 +83,7 @@
                             {{ include('_leaderboard_time_badges.html.twig', {
                                 time: puzzle,
                                 attempts: solved_puzzle|length,
-                                team_page_label: (puzzle.players|length == 2 ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
+                                team_page_label: (puzzle.players|length + puzzle.anonymousCount == 2 ?'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
                             }) }}
 
                         </div>
@@ -114,7 +115,8 @@
                             <span class="ps-ppm">
                                 PPM <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount) }}</span>
                                 {%- if puzzle.players is not null %}
-                                    <br>{{ puzzle.players|length }}× <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }}</span>
+                                    {%- set people_count = puzzle.players|length + puzzle.anonymousCount %}
+                                    <br>{{ people_count }}× <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount, people_count) }}</span>
                                 {%- endif %}
                             </span>
                         {% endif %}

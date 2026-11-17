@@ -141,7 +141,11 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
 1. refuses (`EventResultClaimRefused`, reason `EventResultClaimRefusal`) an ordinary result, a player blocked from
    claiming, a "same result" that is not the player's own result of the puzzle, a player already in any result of the
    round (one spot per round - the "same result" about to go does not count), a full team, a first try somebody of the
-   result already holds elsewhere; over the rate limit `event_result_claim` (10 a day per player)
+   result already holds elsewhere, a block between the player and anybody already in the result in either direction
+   (`GetUserBlocks::blockedEitherWay()`, reason `not_available`: "This spot cannot be claimed from your account. If
+   this was your team, please contact the organizer of the event." - it never tells that a block exists nor who
+   blocks whom; "This was my team" is not offered on such a result either, `EventResultClaimability` reads the
+   viewer's blocks both ways in its one statement); over the rate limit `event_result_claim` (10 a day per player)
    `EventResultClaimLimitReached` (429);
 2. deletes the "same result" (`PuzzleSolvingTimeRepository::delete()`, `SolvingTimeDeletedVia::EventResultClaim`) -
    the imported result stays;
@@ -177,12 +181,17 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
   member, never gets a named guest.
 - **Wrong claims:** one spot per person per round; claims ≤ team size; claimers shown publicly; **"Not on our team"**
   (`RemoveEventResultClaimController`, `/{_locale}/event-result/{timeId}/not-on-our-team/{playerId}`, links next to
-  every other claimer on the result detail) = `RemoveEventResultClaim`, allowed for another claimer of the result, the
+  every other claimer on the result detail, and for the event's team and admins a ⋯ menu on every result row with a
+  claimer on the round's results - `round_results/_organizer_claims_menu.html.twig`, which asks for the viewer's
+  permissions only on such a row) = `RemoveEventResultClaim`, allowed for another claimer of the result, the
   organizer's team of its event (`GetCompetitionPermissions::canEditCompetition()` - the creator, maintainers, the
   organization's team) and admins; never for the player themselves (that is the release). The removed player is told
   without who did it ("Your spot in Puzzle Pals at <event> was removed", `NotificationType::EventResultClaimRemoved`).
   A player removed twice (`RemoveEventResultClaimHandler::REMOVALS_UNTIL_BLOCKED`) can no longer claim
-  (`player.event_claims_blocked_at`, an admin clears it with `Player::unblockEventClaims()` - no UI yet).
+  (`player.event_claims_blocked_at`). Admins see every blocked player with their newest removals (when, by whom, the
+  note, a link to the result) on **Claim blocks** (`/admin/event-claim-blocks`, admin menu, English only) and lift a
+  block with "Allow claiming again" = `AllowEventResultClaimsAgain` (`Player::unblockEventClaims()`). The removals stay
+  counted, so the next removal blocks the player again (to be confirmed by Jan, 2026-11-17).
 - **Audit:** `result_claim_log`, append-only, no foreign keys (copied ids and names, like
   `puzzle_moderation_decision`): `solving_time_id`, `slot_key`, `player_id`, `player_name`, `action` (claimed /
   released / removed / account_deleted), `by_player_id` (null = the system), `reason` (the remover's optional note,
@@ -197,7 +206,7 @@ a refusal is answered 422 in the modal with the reason, a success closes the mod
 | Round results page | ranked like any time, the same line | same |
 | Result detail | the team's results, no person | same |
 | Global fastest pairs/teams, Hub recent activity | **not shown** (D4) | shown |
-| Profiles, Players page, ratings, insights, XP | nobody's | the claimer's, like any team time |
+| Profiles, Players page, ratings, insights, XP | nobody's | the claimer's, like any team time; the profile's results and recent activity show the claimers + "+2" and the PPM counts every person (`SolvedPuzzle::$anonymousCount`) |
 
 ## A pair at a teams event (D10)
 

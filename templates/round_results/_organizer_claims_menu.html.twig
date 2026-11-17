@@ -1,0 +1,29 @@
+{#
+    "Not on our team" for the organizer (docs/features/event-results-import/README.md "Gates"): a ⋯ menu on a result row
+    of the organizer's imported results with an entry per claimer - for the event's team (COMPETITION_EDIT: the creator,
+    maintainers, the organization's team) and admins. The viewer's own spot is not listed (that is "Remove from my
+    profile"). Asks for the viewer's permissions only on a row with somebody else's claim, so a round page without claims
+    pays nothing.
+
+    Inputs:
+      - result: RoundResult (fromOrganizer)
+      - event: the round's event
+#}
+{%- set viewer_id = logged_user.profile is not null ? logged_user.profile.playerId : null -%}
+{%- set claimers = result.players|filter(p => p.anonymousSlot is null and p.playerId is not null and p.playerId != viewer_id) -%}
+{%- if viewer_id is not null and claimers is not empty and is_granted('COMPETITION_EDIT', event.id) -%}
+<span class="dropdown d-inline-block ms-1" data-testid="round-result-organizer-menu">
+    <button class="btn btn-link btn-xs text-muted p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'event_result_claim.organizer_menu'|trans }}">
+        <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        {%- for claimer in claimers %}
+        <li>
+            <a class="dropdown-item text-danger" href="{{ path('event_result_claim_remove', {timeId: result.timeId, playerId: claimer.playerId}) }}" data-turbo-frame="modal-frame" data-testid="event-result-remove-link" rel="nofollow">
+                {{- 'event_result_claim.remove.button'|trans({'%player%': claimer.isPrivate ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) -}}
+            </a>
+        </li>
+        {%- endfor %}
+    </ul>
+</span>
+{%- endif -%}

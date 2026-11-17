@@ -610,6 +610,12 @@ SELECT
     cs.slug AS competition_series_slug,
     pst.suspicious,
     (pst.created_via = 'event_import') AS imported_from_event,
+    -- The people of an imported event result nobody has claimed yet: "+N" next to the claimers
+    CASE WHEN pst.created_via = 'event_import' THEN (
+        SELECT COUNT(*)
+        FROM json_array_elements(pst.team -> 'puzzlers') AS slot(puzzler)
+        WHERE slot.puzzler ->> 'anonymous_slot' IS NOT NULL
+    ) ELSE 0 END AS anonymous_count,
     pst.puzzling_type
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id

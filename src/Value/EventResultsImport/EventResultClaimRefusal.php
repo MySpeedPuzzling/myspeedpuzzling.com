@@ -19,6 +19,9 @@ enum EventResultClaimRefusal: string
     case AlreadyInRound = 'already_in_round';
     // Removed from two teams by other people - an admin lets them claim again
     case Blocked = 'blocked';
+    // A block between the claimer and somebody already in the result, either way (docs/features/player-blocklist.md) -
+    // worded so it never tells that a block exists, nor who blocks whom
+    case NotAvailable = 'not_available';
     // Somebody of the team already has another result of the puzzle marked as a first try
     case FirstTryTaken = 'first_try_taken';
     // "Is this the same result?" named a result that is not the player's own result of this puzzle

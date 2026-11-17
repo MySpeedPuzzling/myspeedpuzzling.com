@@ -65,6 +65,9 @@ readonly final class SolvedPuzzle
         public null|int $secondsSpent = null,
         // An unfinished result's total when they finished it afterwards - display only
         public null|int $finishedLaterSeconds = null,
+        // People of an imported event result nobody has claimed yet - not in $players, shown as "+N"
+        // (docs/features/event-results-import/README.md "Display"); pair/team lists only
+        public int $anonymousCount = 0,
     ) {
     }
 
@@ -136,6 +139,7 @@ readonly final class SolvedPuzzle
      *     pieces_placed?: null|int,
      *     seconds_spent?: null|int,
      *     finished_later_seconds?: null|int,
+     *     anonymous_count?: null|int,
      *     ...
      * } $row
      */
@@ -194,6 +198,7 @@ readonly final class SolvedPuzzle
             piecesPlaced: isset($row['pieces_placed']) ? (int) $row['pieces_placed'] : null,
             secondsSpent: isset($row['seconds_spent']) ? (int) $row['seconds_spent'] : null,
             finishedLaterSeconds: isset($row['finished_later_seconds']) ? (int) $row['finished_later_seconds'] : null,
+            anonymousCount: isset($row['anonymous_count']) ? (int) $row['anonymous_count'] : 0,
         );
     }
 

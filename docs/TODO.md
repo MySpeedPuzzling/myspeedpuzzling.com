@@ -107,11 +107,12 @@ list or show results were left for step 2 (display), the write-side ones for ste
 
 ## Event results import - claiming (`docs/features/event-results-import/README.md`, 2026-11-16)
 
-- [ ] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)
-- [ ] Admin screen to lift a claim block (`Player::unblockEventClaims()` has no UI)
-- [ ] Profiles show "+N" for unclaimed teammates, like the puzzle page
-- [ ] Claims checked against blocks between the claimers of one result
-- [ ] Automatic weekly sync once Sarah's results are in and runs are steady (promised to her, F204, ~4 Dec)
+- [x] "Not on our team" in the organizer's ⋯ menu (today only the links on the result detail)
+- [x] Admin screen to lift a claim block (`Player::unblockEventClaims()` has no UI)
+- [x] Profiles show "+N" for unclaimed teammates, like the puzzle page
+- [x] Claims checked against blocks between the claimers of one result
+- [ ] Jan to confirm: after "Allow claiming again" the old removals still count, so the next removal blocks again
+  (`RemoveEventResultClaimHandler` counts every removal ever) - counting only removals after the unblock needs a column
 - [ ] Later: venue series (D8), solo events, per-team claim codes, start time on organizer pages
 - [ ] Relay events (organizer, 2026-11-16): a team solves two 500-piece puzzles at the same time and only the total time is known - today a result is one puzzle; needs a "several puzzles, one time" result (ties in with multipacks, `docs/features/wasgij-and-multipacks.md`). Until then: no combined catalogue entry
 

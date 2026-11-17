@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Claim blocks{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">Claim blocks</h1>
+    <p class="text-muted fs-sm mb-4">
+        Players whose spots of imported event results were removed by other people ("Not on our team") twice can no longer
+        claim event results. "Allow claiming again" lifts the block - the removals stay counted, so the next removal blocks
+        the player again. The newest {{ removals_shown }} removals of each player are listed.
+    </p>
+
+    {% if blocks is empty %}
+        <p class="text-muted">Nobody is blocked from claiming event results.</p>
+    {% else %}
+        <div class="d-flex flex-column gap-3">
+            {% for block in blocks %}
+                <div class="card" data-testid="event-claim-block">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                            <div>
+                                <a class="fw-semibold" href="{{ path('player_profile', {playerId: block.playerId}) }}">{{ block.playerName ?? ('#' ~ block.playerCode) }}</a>
+                                <span class="text-muted fs-sm">#{{ block.playerCode }}</span>
+                                <div class="text-muted fs-sm">Blocked {{ block.blockedAt|date('Y-m-d H:i') }} UTC</div>
+                            </div>
+                            <form method="post" action="{{ path('admin_event_claim_allow', {playerId: block.playerId}) }}" data-testid="event-claim-unblock-form">
+                                <input type="hidden" name="_token" value="{{ csrf_token('event_result_claim') }}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Allow claiming again</button>
+                            </form>
+                        </div>
+
+                        {% if block.removals is empty %}
+                            <p class="text-muted fs-sm mb-0">No removals in the log.</p>
+                        {% else %}
+                            <ul class="list-unstyled fs-sm mb-0">
+                                {% for removal in block.removals %}
+                                    <li class="py-1 border-top" data-testid="event-claim-block-removal">
+                                        {{ removal.at|date('Y-m-d H:i') }}
+                                        · <a href="{{ path('puzzle_result_detail', {timeId: removal.solvingTimeId, _locale: 'en'}) }}">result</a>
+                                        · removed by
+                                        {% if removal.byPlayerId is not null and removal.byPlayerName is not null %}
+                                            <a href="{{ path('player_profile', {playerId: removal.byPlayerId}) }}">{{ removal.byPlayerName }}</a>
+                                        {% else %}
+                                            <span class="text-muted">a deleted account</span>
+                                        {% endif %}
+                                        {% if removal.reason is not null %}
+                                            <div class="text-muted">“{{ removal.reason }}”</div>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

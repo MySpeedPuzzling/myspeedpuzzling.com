@@ -310,7 +310,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', elem.player ->> 'anonymous_slot'
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
@@ -483,7 +484,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_m.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', elem.player ->> 'anonymous_slot'
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(listed.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID

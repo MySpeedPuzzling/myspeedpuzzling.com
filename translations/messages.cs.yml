@@ -14634,3 +14634,7 @@ bracket:
         desk: "Výsledkový pult"
         public_results: "Veřejné výsledky"
         note: "Veřejný pavouk ukáže postupující kola, až když jsou jeho výsledky zveřejněné."
+
+# Claiming: a claim refused without saying why (a block between claimers stays unsaid)
+event_result_claim.refused.not_available: "K tomuto místu se ze svého účtu přihlásit nemůžeš. Pokud to byl tvůj tým, obrať se prosím na pořadatele akce."
+event_result_claim.organizer_menu: "Spravovat místa tohoto týmu"

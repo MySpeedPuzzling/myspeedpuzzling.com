@@ -65,9 +65,11 @@
                                             {% if item.players is null %}
                                                 {{ include('_leaderboard_player.html.twig', {player: item}) }}
                                             {% else %}
-                                                {% for puzzle_solver in item.players %}
+                                                {% for puzzle_solver in item.players|filter(p => p.anonymousSlot is null) %}
                                                     {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
                                                 {% endfor %}
+                                                {#- An imported event result: the spots nobody claimed yet as "+N" -#}
+                                                {% if item.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: item.players}) }}{% endif %}
                                             {% endif %}
                                         </div>
 

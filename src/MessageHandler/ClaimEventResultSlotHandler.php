@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Query\GetEventResultClaims;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
@@ -33,8 +34,8 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 /**
  * "This was my team" (docs/features/event-results-import/README.md "Claiming a spot"). Every gate is checked before
- * anything changes: an imported result, a spot left, one spot per person per round, not blocked from claiming, the
- * first try (FirstTryAssessor, like a save), the "same result" being the player's own result of the puzzle, the daily
+ * anything changes: an imported result, a spot left, one spot per person per round, not blocked from claiming, no
+ * block between the player and anybody already in the result (either way), the first try (FirstTryAssessor, like a save), the "same result" being the player's own result of the puzzle, the daily
  * limit. Then the first anonymous slot becomes the player, the first claimer tracks the result, the player's own copy
  * goes and the claim is logged; the other claimers are told (EventResultSlotClaimed).
  */
@@ -46,6 +47,7 @@ readonly final class ClaimEventResultSlotHandler
         private PlayerRepository $playerRepository,
         private ResultClaimLogRepository $resultClaimLogRepository,
         private GetEventResultClaims $getEventResultClaims,
+        private GetUserBlocks $getUserBlocks,
         private FirstTryAssessor $firstTryAssessor,
         private PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
         private RateLimiterFactoryInterface $eventResultClaimLimiter,
@@ -89,6 +91,11 @@ readonly final class ClaimEventResultSlotHandler
         // Only a tag the claim can set is checked - a later claimer keeps it or takes it off (slotClaimedBy())
         if ($message->firstTry && ($time->player === null || $time->firstAttempt)) {
             $this->assertFirstTryPossible($time, $player, $sameResult);
+        }
+
+        // A block between the player and anybody already in the result, whoever blocks whom - a refusal that never says so
+        if ($this->getUserBlocks->blockedEitherWay($playerId, $time->memberPlayerIds()) !== []) {
+            throw new EventResultClaimRefused(EventResultClaimRefusal::NotAvailable);
         }
 
         if ($this->eventResultClaimLimiter->create($playerId)->consume()->isAccepted() === false) {

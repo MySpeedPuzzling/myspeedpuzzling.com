@@ -144,6 +144,49 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
     }
 
     /**
+     * The claimer's profile (docs/features/event-results-import/README.md "Display"): the result lists the claimer and
+     * "+3" for the unclaimed rest - never an empty or "#" name - and counts all four people (4× PPM), in the results
+     * list and in the profile's recent activity.
+     */
+    public function testAPartlyClaimedResultOnTheClaimersProfileShowsTheRestAsPlusN(): void
+    {
+        [$pals] = $this->seed();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ClaimEventResultSlot($pals->id->toString(), PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $this->page('/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES);
+
+            $solved = $this->createLiveComponent('PlayerSolvedPuzzles', [
+                'playerId' => PlayerFixture::PLAYER_WITH_FAVORITES,
+                'category' => 'group',
+            ], $this->browser);
+            $solved->setRouteLocale('en');
+            $html = $solved->render()->toString();
+            $row = $this->rowOf($html, $pals->id->toString());
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $row);
+            self::assertSame(1, substr_count($row, 'data-testid="anonymous-more"'));
+            self::assertStringContainsString('>+3</span>', $row);
+            self::assertStringContainsString('4×', $row);
+            self::assertStringNotContainsString('>#</span>', $row);
+
+            $activity = $this->createLiveComponent('RecentActivity', [
+                'playerId' => PlayerFixture::PLAYER_WITH_FAVORITES,
+                'isOnProfile' => true,
+                'showLimit' => 50,
+            ], $this->browser);
+            $activity->setRouteLocale('en');
+            $row = $this->rowOf($activity->render()->toString(), $pals->id->toString());
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $row);
+            self::assertStringContainsString('>+3</span>', $row);
+            self::assertStringNotContainsString('>#</span>', $row);
+        }
+    }
+
+    /**
      * An imported team that did not finish within the limit (docs/features/competitions-management/unfinished-results-plan.md):
      * a bottom row of the puzzle page with its name, "4 puzzlers" and "This was my team" like a ranked imported row, its
      * own row on the round's results and in the result detail - each anonymous team its own row.
@@ -425,6 +468,21 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
         self::assertNotNull($time->puzzlingTeam);
 
         return $time->puzzlingTeam->id->toString();
+    }
+
+    /**
+     * The table row (<tr>…</tr>) holding the link to the result's detail.
+     */
+    private function rowOf(string $html, string $timeId): string
+    {
+        $link = strpos($html, '/en/result/' . $timeId);
+        self::assertNotFalse($link, 'The result is listed');
+        $start = strrpos(substr($html, 0, $link), '<tr');
+        self::assertNotFalse($start);
+        $end = strpos($html, '</tr>', $link);
+        self::assertNotFalse($end);
+
+        return substr($html, $start, $end - $start);
     }
 
     private function page(string $url): string

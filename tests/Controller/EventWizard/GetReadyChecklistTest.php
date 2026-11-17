@@ -104,16 +104,11 @@ final class GetReadyChecklistTest extends WebTestCase
 
     public function testTheChecklistCostsTwoStatements(): void
     {
+        // No page without the checklist is left to compare with (the wizard has no flag): its own statements are counted
         $this->client = self::createClient();
-        $fresh = $this->measureWithClient(self::EVENT, self::ORGANISER);
+        $this->measureWithClient(self::EVENT, self::ORGANISER);
+        self::assertSelectorExists('[data-get-ready]');
         self::assertSame(2, $this->checklistStatements(), 'the event with its counts + its rounds with theirs');
-
-        // The same page without its checklist (the event is over: the facts are read, nothing else) costs the same
-        $this->insertRound(self::EVENT, 'Morning', TestClock::now()->modify('-5 hours')->format('Y-m-d H:i:s'));
-        $over = $this->measureWithClient(self::EVENT, self::ORGANISER);
-        self::assertSelectorNotExists('[data-get-ready]');
-        self::assertSame(2, $this->checklistStatements());
-        self::assertSame($over, $fresh, 'the rows ask nothing beyond the facts');
     }
 
     public function testTheChecklistCostsTwoStatementsWhateverTheNumberOfRounds(): void

@@ -528,6 +528,16 @@ the per-round `table_number` that every reader - judge "find by table", tags, de
 - Tests: `SeatingProposerTest` (same tables, unmatched, collision), `SeatingProposalIntegrationTest` (pairs by exact
   member set), page test for the source option, `SeatingJsTest` if the page JS changes.
 
+**As built (W3, 2026-11-17)** - details in [seating.md](seating.md) "Sources" 5 and "Same tables in every round".
+Built as designed, proposal path + the optional `CopyRoundTableNumbers`. Deviations: (1) Q-J7's default needs **both**
+≥ 90 % of the entrants matched **and** ≥ 90 % of the source round's seated entries present - with the entrants-only
+rule a final of 20 from a semifinal of 100 (all matched) would have defaulted to the semifinal's scattered tables and
+changed today's default for existing events; (2) unmatched entrants keep their current table when no matched entrant
+takes it (the design's collision rule implies it), else go after the highest; (3) the source is offered only when an
+earlier round of the kind has tables, so the proposal JSON of every other round is unchanged; (4) the copy's targets
+are the rounds of the kind listed after the source that use table numbers, the confirm is fetched when opened (the
+seating page itself runs no new statement) and the copy has no Undo toast.
+
 ---
 
 ## 7. Unboxed rounds

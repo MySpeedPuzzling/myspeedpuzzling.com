@@ -9,8 +9,9 @@
  *   hidden slot is still not shown.
  * - Taps: K = 1 picks one (tap again: none); K > 1 adds in solving order, tap again removes, a tap when K are chosen
  *   replaces the last.
- * - Save: the record that fits the result (finished = all K done; unfinished = the puzzles before the last done, the
- *   last one with its pieces; did not start = none; no result = chosen, not done) goes with the result in one group.
+ * - Save: the record that fits the result (finished = all K done; unfinished = the puzzles the judge marked not finished
+ *   with their pieces, the others done - by default only the last chosen is open; did not start = none; no result =
+ *   chosen, not done) goes with the result in one group.
  *
  * Pure functions - tests/live-results-harness.mjs runs them under node.
  */
@@ -119,20 +120,12 @@ function doneItems(ids, previous) {
     });
 }
 
-function withoutSplits(items) {
-    return items.map(({ atSeconds, ...item }) => item);
+function open(id, pieces) {
+    return Number.isInteger(pieces) && pieces > 0 ? { roundPuzzleId: id, done: false, piecesPlaced: pieces } : { roundPuzzleId: id, done: false };
 }
 
-/**
- * The unfinished result: the pieces typed are those of the last chosen puzzle, the puzzles before it count in full
- * (nothing chosen: the pieces typed are the result).
- */
-export function unfinishedResult(format, choice, pieces) {
-    if (choice.length === 0) {
-        return { piecesPlaced: pieces };
-    }
-
-    return { piecesPlaced: total(doneItems(choice.slice(0, -1), []), format) + pieces };
+function withoutSplits(items) {
+    return items.map(({ atSeconds, ...item }) => item);
 }
 
 /**
@@ -140,9 +133,13 @@ export function unfinishedResult(format, choice, pieces) {
  * the desk may have recorded. Null = no record (did not start, nothing chosen, or a finished result without all K
  * chosen - saved without them, "Puzzle missing" then). `refusal` = the record would not fit the result (never sent).
  *
+ * `notDone` (a Map round puzzle id → pieces placed | null, unfinished results only): the puzzles the judge marked not
+ * finished - several are fine (one abandoned, another started); without it the open puzzles of `previous` stay open
+ * and the last of them gets the rest of the pieces (else the last chosen one).
+ *
  * @returns {{record: object[]|null, refusal: string|null}}
  */
-export function recordFor(format, choice, result, previous = null) {
+export function recordFor(format, choice, result, previous = null, notDone = null) {
     const before = Array.isArray(previous) ? previous : [];
 
     if (choice.length === 0 || result?.didNotStart === true) {
@@ -163,10 +160,16 @@ export function recordFor(format, choice, result, previous = null) {
         }
 
         items = [...doneItems(choice.slice(0, -1), before), { roundPuzzleId: choice[choice.length - 1], done: true }];
+    } else if (notDone instanceof Map) {
+        // The judge said which puzzles are not finished and each one's pieces (official_results_missing.js)
+        items = [...doneItems(choice.filter((id) => !notDone.has(id)), before), ...choice.filter((id) => notDone.has(id)).map((id) => open(id, notDone.get(id)))];
     } else {
-        const done = doneItems(choice.slice(0, -1), before);
-        const rest = result.piecesPlaced - total(done, format);
-        items = [...done, rest > 0 ? { roundPuzzleId: choice[choice.length - 1], done: false, piecesPlaced: rest } : { roundPuzzleId: choice[choice.length - 1], done: false }];
+        // The puzzles not finished the record shown has (an abandoned one and another) stay so; the last gets the rest
+        const kept = before.filter((item) => item.done !== true && choice.includes(key(item.roundPuzzleId))).map((item) => key(item.roundPuzzleId));
+        const openIds = kept.length > 0 ? choice.filter((id) => kept.includes(id)) : [choice[choice.length - 1]];
+        const done = doneItems(choice.filter((id) => !openIds.includes(id)), before);
+        const others = openIds.slice(0, -1).map((id) => open(id, before.find((item) => key(item.roundPuzzleId) === id)?.piecesPlaced));
+        items = [...done, ...others, open(openIds[openIds.length - 1], result.piecesPlaced - total([...done, ...others], format))];
     }
 
     const target = result ?? undefined;
@@ -190,9 +193,10 @@ export function recordFor(format, choice, result, previous = null) {
  * @param {*} value              the result to save (RoundEntryResult's wire format)
  * @param {object} entry
  * @param {object[]} outboxItems
+ * @param {Map<string, number|null>|null} notDone  recordFor()'s
  * @returns {{fields: {field: string, to: *}[], record: object[]|null|undefined, refusal: string|null}}
  */
-export function saveFields(format, choice, value, entry, outboxItems) {
+export function saveFields(format, choice, value, entry, outboxItems, notDone = null) {
     const result = shownValue(entry, 'result', outboxItems);
     const resultSettled = result.item === null || result.item.state === 'pending';
     const resultChanges = !(sameValue(result.value, value) && resultSettled);
@@ -202,7 +206,7 @@ export function saveFields(format, choice, value, entry, outboxItems) {
 
     if (format !== null) {
         const known = shownValue(entry, 'puzzles', outboxItems);
-        ({ record, refusal } = recordFor(format, choice, value, known.value));
+        ({ record, refusal } = recordFor(format, choice, value, known.value, notDone));
 
         if (refusal === null && !(sameValue(known.value, record) && (known.item === null || known.item.state === 'pending'))) {
             fields.push({ field: 'puzzles', to: record });

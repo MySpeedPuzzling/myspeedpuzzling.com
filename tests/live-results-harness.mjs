@@ -39,10 +39,11 @@ import {
     urlWithoutLanding,
 } from '../assets/live_entry_page.js';
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
-import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick, unfinishedResult } from '../assets/live_entry_puzzles.js';
+import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick } from '../assets/live_entry_puzzles.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
+import { convertTyped, count, MISSING, openFor, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
 const ROUND_B = '018d0020-0000-0000-0000-000000000102';
@@ -1577,14 +1578,13 @@ const scenarios = {
         assert.equal(piecesLimit(format, choice), 999, 'the last puzzle (C, 1000) - 1');
         assert.equal(piecesLimit(format, []), 2 * 1000 - 1, 'nothing chosen: unfinishedMaximum()');
 
-        const result = unfinishedResult(format, choice, 312);
+        const result = pickUnfinished(format, choice, openFor(choice, []), { [P_C]: '312' }, PLACED).result;
         assert.deepEqual(result, { piecesPlaced: 812 });
 
         const { record, refusal } = recordFor(format, choice, result);
         assert.equal(refusal, null);
         assert.deepEqual(record, [{ roundPuzzleId: P_A, done: true }, { roundPuzzleId: P_C, done: false, piecesPlaced: 312 }]);
         assert.equal(validate(record, format, result), null);
-        assert.deepEqual(unfinishedResult(format, [], 300), { piecesPlaced: 300 });
     },
 
     'a finished result without all K chosen goes without a record (Puzzle missing); did not start drops a known record'() {
@@ -1612,6 +1612,104 @@ const scenarios = {
 
         assert.deepEqual(recordFor(format, [P_A, P_C], { seconds: 3000 }, previous).record, [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }, { roundPuzzleId: P_C, done: true }]);
         assert.deepEqual(recordFor(format, [P_A, P_C], { seconds: 1200 }, previous).record, [{ roundPuzzleId: P_A, done: true }, { roundPuzzleId: P_C, done: true }]);
+    },
+
+    'missing pieces: placed = pieces − missing, 1..pieces − 1, pieces unknown → only placed (T1)'() {
+        assert.equal(piecesMode(null, 1000), MISSING, 'Missing by default while the count is known');
+        assert.equal(piecesMode(PLACED, 1000), PLACED, "the judge's last choice");
+        assert.equal(piecesMode(MISSING, null), PLACED, 'pieces unknown: only Placed');
+        assert.equal(piecesMode(MISSING, 1), PLACED);
+
+        assert.deepEqual(typedPieces('37', MISSING, 1000), { empty: false, placed: 963, missing: 37, error: false });
+        assert.deepEqual(typedPieces('963', PLACED, 1000), { empty: false, placed: 963, missing: 37, error: false });
+        assert.deepEqual(typedPieces(' 999 ', MISSING, 1000), { empty: false, placed: 1, missing: 999, error: false });
+        assert.equal(typedPieces('1000', MISSING, 1000).error, true, 'missing all = nothing placed');
+        assert.equal(typedPieces('0', MISSING, 1000).error, true, 'nothing missing = finished, not a "didn\'t finish"');
+        assert.equal(typedPieces('1000', PLACED, 1000).error, true);
+        assert.equal(typedPieces('12a', MISSING, 1000).error, true);
+        assert.equal(typedPieces('-3', MISSING, 1000).error, true);
+        assert.equal(typedPieces('37', MISSING, null).error, true, 'missing cannot be read without the count');
+        assert.deepEqual(typedPieces('480', PLACED, null), { empty: false, placed: 480, missing: null, error: false });
+        assert.equal(typedPieces('', MISSING, 1000).empty, true);
+        assert.equal(typedPieces('1999', PLACED, null, { max: 1999 }).error, false, 'a pick round without a choice: K × biggest − 1');
+        assert.equal(typedPieces('1000', MISSING, 1000, { allowNone: true }).placed, 0, 'a pick round\'s abandoned puzzle');
+
+        assert.equal(convertTyped('37', MISSING, PLACED, 1000), '963');
+        assert.equal(convertTyped('963', PLACED, MISSING, 1000), '37');
+        assert.equal(convertTyped('x', PLACED, MISSING, 1000), '');
+        assert.equal(convertTyped('37', MISSING, MISSING, 1000), '37');
+        assert.equal(count('0042'), 42);
+        assert.equal(count('1234567'), null);
+    },
+
+    "time's up: a limit reached while running or stopped after it - never before it, never without a limit (T1)"() {
+        assert.equal(timesUp('running', 3599, 60), false);
+        assert.equal(timesUp('running', 3600, 60), true);
+        assert.equal(timesUp('stopped', 3700, 60), true, 'stopped after the limit');
+        assert.equal(timesUp('stopped', 3000, 60), false, 'stopped before the limit: they finished early');
+        assert.equal(timesUp('scheduled', null, 60), false);
+        assert.equal(timesUp(null, null, 60), false);
+        assert.equal(timesUp('running', 99999, null), false, 'no limit, no time\'s up');
+        assert.equal(timesUp('running', 99999, 0), false);
+    },
+
+    'solve all 3 in the order 2 → 3 → 1, time ran out on 1: its missing pieces make the total (T1)'() {
+        const format = pickRound(3);
+        const choice = [P_B, P_C, P_A];
+        const open = openFor(choice, []);
+        assert.deepEqual(open, [P_A], 'the last chosen is the one not finished');
+
+        const typing = pickUnfinished(format, choice, open, {}, MISSING);
+        assert.equal(typing.firstEmpty, P_A);
+        assert.equal(typing.result, null);
+
+        const typed = pickUnfinished(format, choice, open, { [P_A]: '37' }, MISSING);
+        assert.deepEqual(typed.rows.map((row) => [row.id, row.open, row.placed, row.missing]), [[P_B, false, null, null], [P_C, false, null, null], [P_A, true, 463, 37]]);
+        assert.deepEqual(typed.result, { piecesPlaced: 500 + 1000 + 463 });
+
+        const { record, refusal } = recordFor(format, choice, typed.result, null, typed.notDone);
+        assert.equal(refusal, null);
+        assert.deepEqual(record, [{ roundPuzzleId: P_B, done: true }, { roundPuzzleId: P_C, done: true }, { roundPuzzleId: P_A, done: false, piecesPlaced: 463 }]);
+
+        const anna = entry(ANNA, 'Anna', 1);
+        assert.deepEqual(saveFields(format, choice, typed.result, anna, [], typed.notDone).fields, [{ field: 'puzzles', to: record }, { field: 'result', to: { piecesPlaced: 1963 } }]);
+    },
+
+    'abandoned one, started another: two puzzles not finished, done ones first, each with its own count (T1)'() {
+        const format = pickRound(3);
+        const choice = [P_B, P_C, P_A];
+        // B finished; C abandoned with 200 placed; A started after it, 37 missing
+        let open = toggleOpen(choice, openFor(choice, []), P_C);
+        assert.deepEqual(open, [P_C, P_A]);
+        assert.deepEqual(toggleOpen(choice, [P_A], P_A), [P_A], 'the last one not finished stays (rule 6: at least one)');
+        assert.deepEqual(toggleOpen(choice, open, P_C), [P_A]);
+
+        const typed = pickUnfinished(format, choice, open, { [P_C]: '800', [P_A]: '37' }, MISSING);
+        assert.deepEqual(typed.result, { piecesPlaced: 500 + 200 + 463 });
+        const { record, refusal } = recordFor(format, choice, typed.result, null, typed.notDone);
+        assert.equal(refusal, null);
+        assert.deepEqual(record, [{ roundPuzzleId: P_B, done: true }, { roundPuzzleId: P_C, done: false, piecesPlaced: 200 }, { roundPuzzleId: P_A, done: false, piecesPlaced: 463 }]);
+        assert.equal(validate(record, format, typed.result), null);
+
+        // Nothing placed on the abandoned one: missing = all its pieces, the item goes without pieces
+        const none = pickUnfinished(format, choice, open, { [P_C]: '1000', [P_A]: '37' }, MISSING);
+        assert.deepEqual(none.result, { piecesPlaced: 963 });
+        assert.deepEqual(recordFor(format, choice, none.result, null, none.notDone).record, [{ roundPuzzleId: P_B, done: true }, { roundPuzzleId: P_C, done: false }, { roundPuzzleId: P_A, done: false, piecesPlaced: 463 }]);
+
+        // A middle puzzle marked not finished: the record lists the finished ones first (the server's rule 5)
+        const middle = pickUnfinished(format, [P_B, P_C, P_A], [P_C], { [P_C]: '10' }, MISSING);
+        assert.deepEqual(recordFor(format, choice, middle.result, null, middle.notDone).record.map((item) => [item.roundPuzzleId, item.done]), [[P_B, true], [P_A, true], [P_C, false]]);
+
+        // Placed mode and a nothing-placed entry
+        assert.deepEqual(pickUnfinished(format, [P_C], [P_C], { [P_C]: '0' }, PLACED).result, null);
+        assert.equal(pickUnfinished(format, [P_C], [P_C], { [P_C]: '0' }, PLACED).invalid, true);
+        assert.equal(pickUnfinished(format, choice, [P_A], { [P_A]: '500' }, MISSING).invalid, false, 'all of A missing is fine - the others count');
+        assert.equal(pickUnfinished(format, choice, [P_A], { [P_A]: '501' }, MISSING).invalid, true);
+
+        // The judge's starting point on an entry with such a record, and the sheet/desk recompute keeping both open
+        assert.deepEqual(openOfRecord(choice, record), [P_C, P_A]);
+        assert.deepEqual(recordFor(format, choice, { piecesPlaced: 1100 }, record).record, [{ roundPuzzleId: P_B, done: true }, { roundPuzzleId: P_C, done: false, piecesPlaced: 200 }, { roundPuzzleId: P_A, done: false, piecesPlaced: 400 }]);
+        assert.notEqual(recordFor(format, choice, { piecesPlaced: 1200 }, record).refusal, null, 'A cannot take 500 of its 500 - no record fits');
     },
 
     'a total round sends the result alone, exactly as before'() {

@@ -16,6 +16,7 @@ import {
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
+import { MISSING, typedPieces } from '../official_results_missing.js';
 
 const RESULT = 'result';
 const TABLE = 'table_number';
@@ -820,6 +821,7 @@ export default class extends Controller {
                 <select class="form-select form-select-sm w-auto" data-editor-mode aria-label="${escapeHtml(this.t('editor_kind'))}" data-action="change->results-desk#editorPreview">
                     ${option('time', this.t('mode_time'))}
                     ${option('pieces', this.t('mode_pieces'))}
+                    ${Number.isInteger(this.round.piecesCount) && this.round.piecesCount > 1 ? option('missing', this.t('mode_missing')) : ''}
                     ${option('dns', this.t('mode_dns'))}
                     ${option('none', this.t('mode_none'))}
                 </select>
@@ -870,6 +872,7 @@ export default class extends Controller {
                 <select class="form-select form-select-sm w-auto" data-editor-mode aria-label="${escapeHtml(this.t('editor_kind'))}" data-action="change->results-desk#editorPreview">
                     ${option('time', this.t('mode_time'))}
                     ${option('pieces', this.t('mode_pieces'))}
+                    ${option('missing', this.t('mode_missing'))}
                     ${option('dns', this.t('mode_dns'))}
                     ${option('none', this.t('mode_none'))}
                 </select>
@@ -898,6 +901,10 @@ export default class extends Controller {
         rowsTarget.hidden = mode === 'dns';
         const all = [...form.querySelectorAll('[data-puzzle-row]')];
         const lastChosen = all.map((row) => row.querySelector('[data-row-puzzle]').value !== '').lastIndexOf(true);
+        // Didn't finish counted as missing pieces (reliability hardening T1): per puzzle, placed = its pieces − missing
+        const missing = mode === 'missing';
+        const piecesOf = new Map((this.pickFormat()?.puzzles ?? []).map((puzzle) => [String(puzzle.roundPuzzleId).toLowerCase(), puzzle.piecesCount ?? null]));
+        const counted = [];
 
         all.forEach((row, index) => {
             const status = row.querySelector('[data-row-status]');
@@ -908,7 +915,8 @@ export default class extends Controller {
 
             status.hidden = mode === 'time';
             at.hidden = !done;
-            pieces.hidden = done || mode !== 'pieces';
+            pieces.hidden = done || !(mode === 'pieces' || missing);
+            pieces.placeholder = this.t(missing ? 'placeholder_missing' : 'placeholder_pieces');
             // A finished result's time is the last puzzle's "finished at"
             at.placeholder = mode === 'time' && index === lastChosen ? this.t('puzzles_placeholder_time') : this.t('puzzles_placeholder_at');
 
@@ -927,7 +935,17 @@ export default class extends Controller {
                 }
             }
 
-            if (!done && mode === 'pieces' && piecesText !== '') {
+            if (!done && missing && piecesText !== '') {
+                const count = piecesOf.get(id.toLowerCase()) ?? null;
+                const read = typedPieces(piecesText, MISSING, count, { allowNone: true });
+
+                if (read.error) {
+                    error ??= this.t('error_missing_row', { position: index + 1, max: count ?? '?' });
+                } else {
+                    piecesPlaced = read.placed > 0 ? read.placed : null;
+                    counted.push(this.t('preview_missing', { missing: read.missing, placed: read.placed, pieces: count }));
+                }
+            } else if (!done && mode === 'pieces' && piecesText !== '') {
                 if (!/^\d{1,6}$/.test(piecesText) || Number(piecesText) < 1) {
                     error ??= this.t('puzzles_error_pieces', { position: index + 1 });
                 } else {
@@ -938,7 +956,7 @@ export default class extends Controller {
             rows.push({ id, done, at: atSeconds, pieces: piecesPlaced });
         });
 
-        return error !== null ? { error } : { rows };
+        return error !== null ? { error } : { rows, counted };
     }
 
     /**
@@ -953,7 +971,7 @@ export default class extends Controller {
             return { error: typed.error };
         }
 
-        const outcome = editorOutcome(format, mode, typed.rows);
+        const outcome = editorOutcome(format, mode === 'missing' ? 'pieces' : mode, typed.rows);
 
         if (outcome.error !== null) {
             return { error: this.t(`puzzles_error_${outcome.error}`, { count: format.toSolve }) };
@@ -970,7 +988,7 @@ export default class extends Controller {
         } else if (Number.isInteger(outcome.result?.seconds)) {
             preview = this.t('preview_time', { time: formatResultTime(outcome.result.seconds) });
         } else if (Number.isInteger(outcome.result?.piecesPlaced)) {
-            preview = this.t('puzzles_preview_pieces', { placed: outcome.result.piecesPlaced });
+            preview = [this.t('puzzles_preview_pieces', { placed: outcome.result.piecesPlaced }), ...typed.counted].join(' · ');
         }
 
         return { value: { result: outcome.result, puzzles: outcome.record }, preview };
@@ -1058,7 +1076,7 @@ export default class extends Controller {
 
         const mode = form.querySelector('[data-editor-mode]').value;
         input.hidden = mode === 'dns' || mode === 'none';
-        input.placeholder = mode === 'pieces' ? this.t('placeholder_pieces') : this.t('placeholder_time');
+        input.placeholder = this.t(mode === 'missing' ? 'placeholder_missing' : (mode === 'pieces' ? 'placeholder_pieces' : 'placeholder_time'));
 
         if (mode === 'dns') {
             return { value: { didNotStart: true }, preview: this.t('preview_dns') };
@@ -1066,6 +1084,18 @@ export default class extends Controller {
 
         if (mode === 'none') {
             return { value: null, preview: this.t('preview_none') };
+        }
+
+        if (mode === 'missing') {
+            // Counted as missing pieces (reliability hardening T1): placed = the round's pieces − missing, both shown
+            const pieces = this.round.piecesCount;
+            const read = typedPieces(text, MISSING, pieces);
+
+            if (read.empty || read.error) {
+                return { error: this.t('error_missing', { max: pieces - 1 }) };
+            }
+
+            return { value: { piecesPlaced: read.placed }, preview: this.t('preview_missing', { missing: read.missing, placed: read.placed, pieces }) };
         }
 
         if (mode === 'pieces') {

@@ -34,7 +34,8 @@ import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../liv
 import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
-import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick, unfinishedResult } from '../live_entry_puzzles.js';
+import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
+import { convertTyped, MISSING, openFor, openOfRecord, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -116,7 +117,7 @@ export default class extends Controller {
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
         'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'proposal',
-        'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
+        'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
         'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
@@ -181,6 +182,10 @@ export default class extends Controller {
         // "Puzzle missing" list on/off
         this.choice = [];
         this.missingOnly = false;
+        // Didn't finish (reliability hardening T1): Missing | Placed, the pick round's puzzles not finished and their counts
+        this.piecesPref = MISSING;
+        this.openPuzzles = [];
+        this.pieceTexts = {};
         // Time proposals (toolkit C9): the round's, by id - only while the competition has them on; the find view's
         // "Proposals waiting" list on/off; the proposal a Change edits (its Save confirms it with the judge's value);
         // the open card's "Not right" reasons shown; when the card's Confirm showed up (the 350 ms guard)
@@ -729,6 +734,9 @@ export default class extends Controller {
             mode: this.piecesFormTarget.classList.contains('lr-hidden') ? 'time' : 'pieces',
             typed: this.timeInputTarget.value,
             pieces: this.piecesInputTarget.value,
+            piecesMode: this.piecesPref,
+            open: this.openPuzzles,
+            texts: this.pieceTexts,
             choice: pickFormat(this.round) ? this.choice : null,
             proposalId: this.proposalEditing,
             pending: confirm ? { value: this.pendingValue } : null,
@@ -769,9 +777,13 @@ export default class extends Controller {
 
         if (draft.mode === 'pieces') {
             this.didNotFinish();
+            this.piecesPref = draft.piecesMode ?? this.piecesPref;
+            this.openPuzzles = openFor(this.choice, draft.open ?? this.openPuzzles);
+            this.pieceTexts = { ...draft.texts };
             this.piecesInputTarget.value = draft.pieces;
             this.piecesTyped();
         } else {
+            this.showTimeForm();
             this.timeInputTarget.value = draft.typed;
             this.timeTyped();
         }
@@ -1976,7 +1988,7 @@ export default class extends Controller {
         if (format !== null) {
             const confirming = this.view === 'confirm';
             const value = confirming ? this.pendingValue : shownValue(entry, 'result', items).value;
-            const { fields, record } = saveFields(format, this.choice, value, entry, items);
+            const { fields, record } = saveFields(format, this.choice, value, entry, items, confirming ? this.notDone(value) : null);
             const missing = confirming && value && (Number.isInteger(value.seconds) || Number.isInteger(value.piecesPlaced)) && record === null;
             const chips = puzzleChips(format, this.choice).map((chip) => `<button type="button" class="lr-chip${chip.order > 0 ? ' lr-chip-on' : ''}" data-action="live-results#pickPuzzle" data-id="${escapeHtml(chip.id)}" aria-pressed="${chip.order > 0}">
                     ${chip.order > 0 ? `<span class="lr-chip-order">${format.toSolve > 1 ? chip.order : '<i class="bi bi-check-lg" aria-hidden="true"></i>'}</span>` : ''}
@@ -2402,19 +2414,30 @@ export default class extends Controller {
         this.showView('entry');
 
         if (rejected && rejected.to && typeof rejected.to.piecesPlaced === 'number') {
-            // A pick round's pieces are those of the last puzzle chosen
-            const last = Array.isArray(record) && record.length > 0 ? record[record.length - 1] : null;
+            // Back as the judge typed it: placed (a pick round: per puzzle not finished, from the refused record)
             this.didNotFinish();
-            this.piecesInputTarget.value = String(last !== null && last.done !== true && Number.isInteger(last.piecesPlaced) ? last.piecesPlaced : rejected.to.piecesPlaced);
+            this.piecesPref = 'placed';
+            const refused = (this.outbox?.all() ?? []).find((item) => item.entryRef === ref && item.field === 'puzzles' && item.state === 'rejected');
+            const items = Array.isArray(refused?.to) ? refused.to : (Array.isArray(record) ? record : []);
+            this.openPuzzles = openOfRecord(this.choice, items);
+            this.pieceTexts = Object.fromEntries(items.filter((item) => item.done !== true).map((item) => [String(item.roundPuzzleId).toLowerCase(), String(item.piecesPlaced ?? 0)]));
+            this.piecesInputTarget.value = String(rejected.to.piecesPlaced);
             this.piecesTyped();
         }
         this.renderEntryInfo();
         this.tickClock(true);
 
         const proposalConfirm = this.proposalTarget.querySelector('[data-proposal-confirm]');
+        const shownResult = shownValue(entry, 'result', this.outbox?.all() ?? []).value;
+
+        // The round's time is up (reliability hardening T1): an entry without a result opens in "Didn't finish" -
+        // the judge sweeps the tables counting missing pieces. Not with a time proposal waiting, never before the limit
+        if (!rejected && proposalConfirm === null && (shownResult === null || shownResult === undefined) && this.roundTimesUp()) {
+            this.didNotFinish();
+        }
 
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
-            this.piecesInputTarget.focus();
+            this.focusPieces();
         } else if (proposalConfirm !== null && this.timeInputTarget.value === '') {
             // A pending proposal: its Confirm is the likely next tap
             proposalConfirm.focus();
@@ -2430,6 +2453,7 @@ export default class extends Controller {
 
     showTimeForm() {
         this.timeFormTarget.classList.remove('lr-hidden');
+        this.finishedNowTarget.classList.remove('lr-hidden');
         this.piecesFormTarget.classList.add('lr-hidden');
 
         if (this.view === 'entry') {
@@ -2587,10 +2611,86 @@ export default class extends Controller {
 
     didNotFinish() {
         this.timeFormTarget.classList.add('lr-hidden');
+        // "Finished now" goes with the time form - one tap ("Back to time") brings both back
+        this.finishedNowTarget.classList.add('lr-hidden');
         this.piecesFormTarget.classList.remove('lr-hidden');
         this.piecesInputTarget.value = '';
+        this.piecesPref = this.prefs().piecesMode ?? MISSING;
+        const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        this.openPuzzles = openOfRecord(this.choice, entry === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value);
+        this.pieceTexts = {};
         this.piecesTyped();
-        this.piecesInputTarget.focus();
+        this.focusPieces();
+    }
+
+    /** Time's up: the round has a limit and the stopwatch ran past it (running or stopped after it). */
+    roundTimesUp(now = this.serverNow()) {
+        const status = stopwatchStatusAt(this.stopwatch, now);
+        const stopped = status === 'stopped' && this.stopwatch?.startedAt && this.stopwatch?.stoppedAt
+            ? Math.floor((Date.parse(this.stopwatch.stoppedAt) - Date.parse(this.stopwatch.startedAt)) / 1000)
+            : null;
+
+        return timesUp(status, status === 'running' ? this.elapsedSeconds(now) : stopped, this.round?.minutesLimit);
+    }
+
+    /** The field to type in: a pick round without a choice → its chips, else the first open puzzle still empty. */
+    focusPieces() {
+        const format = pickFormat(this.round);
+
+        if (format !== null && this.choice.length === 0) {
+            const chip = this.puzzlesTarget.querySelector('.lr-chip');
+
+            if (chip !== null) {
+                chip.focus();
+
+                return;
+            }
+        }
+
+        const inputs = [...this.piecesRowsTarget.querySelectorAll('input')];
+        (inputs.find((input) => input.value.trim() === '') ?? inputs[0] ?? this.piecesInputTarget).focus();
+    }
+
+    setPiecesMode(event) {
+        const mode = event.currentTarget.dataset.mode;
+        const was = this.piecesPref;
+
+        if (mode === was) {
+            return;
+        }
+
+        // The count the judge meant stays: 37 missing of 1000 → 963 placed
+        const format = pickFormat(this.round);
+        this.piecesInputTarget.value = convertTyped(this.piecesInputTarget.value, piecesMode(was, this.round?.piecesCount), piecesMode(mode, this.round?.piecesCount), this.round?.piecesCount);
+
+        if (format !== null) {
+            for (const row of pickUnfinished(format, this.choice, this.openPuzzles, this.pieceTexts, was).rows.filter((one) => one.open)) {
+                this.pieceTexts[row.id] = convertTyped(row.text, row.mode, piecesMode(mode, row.pieces), row.pieces);
+            }
+        }
+
+        this.piecesPref = mode;
+        writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { piecesMode: mode });
+        this.piecesTyped();
+        this.focusPieces();
+    }
+
+    toggleOpenPuzzle(event) {
+        this.openPuzzles = toggleOpen(this.choice, this.openPuzzles, event.currentTarget.dataset.id);
+        this.piecesTyped();
+        this.focusPieces();
+    }
+
+    pieceRowTyped(event) {
+        this.pieceTexts[event.currentTarget.dataset.id] = event.currentTarget.value;
+        this.piecesTyped();
+    }
+
+    /** A pick round with a choice: the chosen puzzles' rows instead of the one field. */
+    pickRows() {
+        const format = pickFormat(this.round);
+
+        return format !== null && this.choice.length > 0 ? pickUnfinished(format, this.choice, this.openPuzzles, this.pieceTexts, this.piecesPref) : null;
     }
 
     piecesLimit() {
@@ -2605,50 +2705,132 @@ export default class extends Controller {
         return typeof pieces === 'number' && pieces > 1 ? pieces - 1 : null;
     }
 
-    piecesTyped() {
-        const text = this.piecesInputTarget.value.trim();
-        const pieces = this.round?.piecesCount ?? null;
-        const value = /^\d+$/.test(text) ? parseInt(text, 10) : null;
-        const max = this.piecesLimit();
-        let html;
-
-        if (text === '') {
-            html = `<span class="text-muted small">${escapeHtml(this.t('piecesHint'))}${pieces ? ` · ${escapeHtml(this.t('piecesOf', { '%pieces%': pieces }))}` : ''}</span>`;
-        } else if (value === null || value < 1 || (max !== null && value > max)) {
-            html = `<span class="text-danger">${escapeHtml(this.t('piecesInvalid'))}</span>`;
-        } else {
-            html = `<strong>${escapeHtml(this.describe(this.piecesResult(value)))}</strong>`;
+    /** One count's line: "missing 37 → placed 963 of 1000" (or the pieces placed when the count is unknown). */
+    countText(read, pieces, invalidKey, max) {
+        if (read.error) {
+            return `<span class="text-danger">${escapeHtml(this.t(invalidKey, { '%max%': max ?? '' }))}</span>`;
         }
 
-        this.piecesInputTarget.classList.toggle('is-invalid', text !== '' && html.includes('text-danger'));
+        return read.missing !== null
+            ? `<strong>${escapeHtml(this.t('missingPreview', { '%missing%': read.missing, '%placed%': read.placed, '%pieces%': pieces }))}</strong>`
+            : `<strong>${escapeHtml(this.describe({ piecesPlaced: read.placed }))}</strong>`;
+    }
+
+    piecesTyped() {
+        const format = pickFormat(this.round);
+        const pick = this.pickRows();
+        const pieces = format === null ? (this.round?.piecesCount ?? null) : null;
+        const mode = pick !== null ? this.piecesPref : piecesMode(this.piecesPref, pieces);
+        const switchable = pick !== null ? pick.rows.some((row) => row.open && row.pieces > 1) : pieces > 1;
+        let html;
+
+        this.piecesSwitchTarget.hidden = !switchable;
+        this.piecesSwitchTarget.querySelectorAll('button').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+        this.piecesRowsTarget.hidden = pick === null;
+        this.piecesLabelTarget.hidden = pick !== null;
+        this.piecesInputTarget.hidden = pick !== null;
+
+        if (pick !== null) {
+            this.renderPickRows(format, pick);
+            html = pick.result !== null
+                ? `<strong>${escapeHtml(this.t('missingTotal', { '%placed%': pick.result.piecesPlaced }))}</strong>`
+                : (pick.firstEmpty !== null ? `<span class="text-muted small">${escapeHtml(this.t('missingTypeAll'))}</span>` : `<span class="text-danger">${escapeHtml(this.t('piecesInvalid'))}</span>`);
+        } else {
+            const text = this.piecesInputTarget.value.trim();
+            const max = this.piecesLimit();
+            const read = typedPieces(text, mode, pieces, { max });
+            this.setText(this.piecesLabelTarget, this.t(mode === MISSING ? 'piecesLabelMissing' : 'piecesLabelPlaced'));
+
+            if (read.empty) {
+                html = `<span class="text-muted small">${escapeHtml(this.t(mode === MISSING ? 'missingHint' : 'piecesHint'))}${pieces ? ` · ${escapeHtml(this.t('piecesOf', { '%pieces%': pieces }))}` : ''}</span>`;
+            } else {
+                html = read.error && mode !== MISSING
+                    ? `<span class="text-danger">${escapeHtml(this.t('piecesInvalid'))}</span>`
+                    : this.countText(read, pieces, 'missingInvalid', pieces - 1);
+            }
+
+            this.piecesInputTarget.classList.toggle('is-invalid', read.error);
+        }
+
         this.piecesParsedTarget.innerHTML = html;
         this.rememberDraft();
     }
 
+    /**
+     * The chosen puzzles in solving order: a switch finished / not finished, a count per one not finished with its
+     * "missing → placed" line. The rows are built again only when their shape changes - never under the judge's thumb.
+     */
+    renderPickRows(format, pick) {
+        const labels = new Map(puzzleChips(format, this.choice).map((chip) => [chip.id, chip.label]));
+        const shape = JSON.stringify(pick.rows.map((row) => [row.id, row.open, row.mode]));
+
+        if (this.piecesRowsTarget.dataset.shape !== shape) {
+            this.piecesRowsTarget.dataset.shape = shape;
+            this.piecesRowsTarget.innerHTML = pick.rows.map((row, index) => {
+                const label = escapeHtml(labels.get(row.id) ?? '?');
+                const what = escapeHtml(this.t(row.mode === MISSING ? 'piecesLabelMissing' : 'piecesLabelPlaced'));
+                const field = row.open
+                    ? `<input class="form-control lr-time-input" data-id="${escapeHtml(row.id)}" value="${escapeHtml(row.text)}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off" placeholder="${what}" aria-label="${label} - ${what}" data-action="input->live-results#pieceRowTyped">`
+                    : '<span></span>';
+
+                return `<div class="lr-prow"><button type="button" class="lr-chip${row.open ? '' : ' lr-chip-on'}" data-id="${escapeHtml(row.id)}" data-action="live-results#toggleOpenPuzzle" aria-pressed="${!row.open}"><span class="lr-chip-order">${index + 1}</span><span class="lr-chip-text"><strong>${label}</strong><span class="lr-chip-name">${escapeHtml(this.t(row.open ? 'missingNotFinished' : 'missingFinished'))}</span></span></button>${field}<div class="lr-pparsed" data-parsed="${escapeHtml(row.id)}"></div></div>`;
+            }).join('');
+        }
+
+        for (const row of pick.rows) {
+            const parsed = this.piecesRowsTarget.querySelector(`[data-parsed="${CSS.escape(row.id)}"]`);
+            const input = this.piecesRowsTarget.querySelector(`input[data-id="${CSS.escape(row.id)}"]`);
+            let html = '';
+
+            if (row.open && row.empty) {
+                html = `<span class="text-muted">${escapeHtml(this.t(row.mode === MISSING ? 'missingRowHint' : 'missingRowHintPlaced', { '%pieces%': row.pieces ?? '?' }))}</span>`;
+            } else if (row.open && row.placed === 0 && !row.error) {
+                html = `<strong>${escapeHtml(this.t('missingRowPlaced', { '%placed%': 0, '%pieces%': row.pieces ?? '?' }))}</strong>`;
+            } else if (row.open) {
+                html = this.countText(row, row.pieces, 'missingRowInvalid', row.pieces ?? '');
+            }
+
+            parsed.innerHTML = html;
+            input?.classList.toggle('is-invalid', row.error);
+        }
+    }
+
     reviewPieces(event) {
         event.preventDefault();
-        const text = this.piecesInputTarget.value.trim();
-        const value = /^\d+$/.test(text) ? parseInt(text, 10) : null;
-        const max = this.piecesLimit();
+        const value = this.piecesValue();
 
-        if (value === null || value < 1 || (max !== null && value > max)) {
+        if (value === null) {
             this.piecesTyped();
-            this.piecesInputTarget.focus();
+            this.focusPieces();
 
             return;
         }
 
-        this.review(this.piecesResult(value));
+        this.review(value);
     }
 
     /**
-     * The unfinished result of the pieces typed - on a pick round those of the last chosen puzzle, the ones before it
-     * counted in full (official_results_puzzles.js total()).
+     * The unfinished result typed - null while it cannot be read. A pick round with a choice: Σ the finished puzzles'
+     * pieces + the open ones' placed (official_results_puzzles.js total()); without a choice the pieces typed.
      */
-    piecesResult(pieces) {
-        const format = pickFormat(this.round);
+    piecesValue() {
+        const pick = this.pickRows();
 
-        return format === null ? { piecesPlaced: pieces } : unfinishedResult(format, this.choice, pieces);
+        if (pick !== null) {
+            return pick.result;
+        }
+
+        const pieces = pickFormat(this.round) === null ? (this.round?.piecesCount ?? null) : null;
+        const read = typedPieces(this.piecesInputTarget.value, piecesMode(this.piecesPref, pieces), pieces, { max: this.piecesLimit() });
+
+        return read.placed !== null ? { piecesPlaced: read.placed } : null;
+    }
+
+    /** The puzzles the judge marked not finished, with their pieces - for the record that goes with an unfinished result. */
+    notDone(value) {
+        const pick = Number.isInteger(value?.piecesPlaced) && !this.piecesFormTarget.classList.contains('lr-hidden') ? this.pickRows() : null;
+
+        return pick !== null && pick.result !== null ? pick.notDone : null;
     }
 
     pickPuzzle(event) {
@@ -2660,6 +2842,7 @@ export default class extends Controller {
         }
 
         this.choice = togglePick(this.choice, event.currentTarget.dataset.id, format.toSolve);
+        this.openPuzzles = openFor(this.choice, this.openPuzzles);
         this.proposalNeedsChoice = false;
 
         // Unfinished: the total depends on the puzzles chosen
@@ -2667,14 +2850,16 @@ export default class extends Controller {
             this.piecesTyped();
 
             if (this.view === 'confirm' && this.pendingValue?.piecesPlaced !== undefined) {
-                const value = /^\d+$/.test(this.piecesInputTarget.value.trim()) ? parseInt(this.piecesInputTarget.value.trim(), 10) : null;
-                const max = this.piecesLimit();
+                const value = this.piecesValue();
 
-                if (value === null || value < 1 || (max !== null && value > max)) {
+                if (value === null) {
                     this.backToEntry();
                 } else {
-                    this.review(this.piecesResult(value), { finishedNow: this.pendingFinishedNow, tappedAt: this.pendingTappedAt });
+                    this.review(value, { finishedNow: this.pendingFinishedNow, tappedAt: this.pendingTappedAt });
                 }
+            } else if (this.choice.length === format.toSolve) {
+                // All chosen: on to the first puzzle not finished
+                this.focusPieces();
             }
         }
 
@@ -2778,7 +2963,7 @@ export default class extends Controller {
         this.rememberDraft();
 
         if (!this.piecesFormTarget.classList.contains('lr-hidden')) {
-            this.piecesInputTarget.focus();
+            this.focusPieces();
         } else {
             this.timeInputTarget.focus();
         }
@@ -2809,7 +2994,7 @@ export default class extends Controller {
         const value = this.pendingValue;
         // The result, and on a pick round the puzzle record that fits it - one group (toolkit C10, A rule 7)
         const format = pickFormat(this.round);
-        let { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all());
+        let { fields, record } = saveFields(format, this.choice, value, entry, this.outbox.all(), this.notDone(value));
         // Change on a proposal (toolkit C9): the judge's value confirms it - the result carries the proposal
         const editing = this.proposalEditing !== null ? this.openProposal(this.proposalEditing) : null;
 

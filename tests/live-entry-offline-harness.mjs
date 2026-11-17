@@ -466,6 +466,23 @@ const scenarios = {
         assert.equal(draft.pieces, '480');
     },
 
+    async 'missing pieces keep their mode, the puzzles not finished and each count (T1)'() {
+        const session = fakeStorage();
+
+        writeDraft(session, ANNA, { roundId: ROUND_A, ref: 'team:7', view: 'entry', mode: 'pieces', typed: '', pieces: '', piecesMode: 'missing', open: ['p3', 'p1', 7], texts: { p3: '1000', p1: '37', p2: 5 }, choice: ['p2', 'p3', 'p1'] }, T0);
+        const draft = readDraft(session, ANNA, ROUND_A, T0);
+        assert.equal(draft.piecesMode, 'missing');
+        assert.deepEqual(draft.open, ['p3', 'p1']);
+        assert.deepEqual(draft.texts, { p3: '1000', p1: '37' });
+        assert.deepEqual(draft.choice, ['p2', 'p3', 'p1']);
+
+        writeDraft(session, ANNA, { roundId: ROUND_A, ref: 'team:7', view: 'entry', mode: 'pieces', piecesMode: 'all', texts: ['x'] }, T0);
+        const older = readDraft(session, ANNA, ROUND_A, T0);
+        assert.equal(older.piecesMode, null);
+        assert.deepEqual(older.open, []);
+        assert.deepEqual(older.texts, {});
+    },
+
     async 'a value waiting on the confirm view comes back, each kind'() {
         const session = fakeStorage();
 
@@ -546,17 +563,17 @@ const scenarios = {
         const local = fakeStorage({ [LEGACY_KEYBOARD_KEY]: 'numeric' });
         const prefs = readPrefs(local);
 
-        assert.deepEqual(prefs, { v: 1, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: false, myTables: [] });
+        assert.deepEqual(prefs, { v: 1, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null });
         assert.equal(local.getItem(LEGACY_KEYBOARD_KEY), null);
         assert.equal(JSON.parse(local.getItem(PREFS_KEY)).keyboard, 'numeric');
 
         assert.equal(writePrefs(local, { keyboard: 'text', scanAfterSave: true }).keyboard, 'text');
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: 'text', autoOpenTable: true, scanAfterSave: true, myTables: [] });
+        assert.deepEqual(readPrefs(local), { v: 1, keyboard: 'text', autoOpenTable: true, scanAfterSave: true, myTables: [], piecesMode: null });
 
         local.setItem(PREFS_KEY, JSON.stringify({ keyboard: 'qwerty', autoOpenTable: 'yes', myTables: [3, -1, 'x', 4] }));
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [3, 4] });
+        assert.deepEqual(readPrefs(local), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [3, 4], piecesMode: null });
 
-        assert.deepEqual(readPrefs(fakeStorage()), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [] });
+        assert.deepEqual(readPrefs(fakeStorage()), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null });
         assert.equal(readPrefs(brokenStorage()).keyboard, null);
         assert.equal(writePrefs(brokenStorage(), { keyboard: 'numeric' }).keyboard, 'numeric', 'this page keeps it');
     },

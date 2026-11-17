@@ -8,7 +8,7 @@
  * - Cleared on Save, Back and Undo (the page goes back to finding); other players' drafts go when the page starts and
  *   after a sign-out (live_entry_device.js).
  * - The referee's preferences: one localStorage key `msp.liveResults.prefs`, the older `msp.liveResults.keyboard`
- *   taken over on the first read.
+ *   taken over on the first read; `piecesMode` = Didn't finish counted as Missing (default) or Placed (T1).
  *
  * Pure functions over an injected Storage - tests/live-entry-offline-harness.mjs runs them under node.
  */
@@ -19,7 +19,7 @@ export const DRAFT_MAX_AGE_MS = 10 * 60 * 1000;
 export const PREFS_KEY = 'msp.liveResults.prefs';
 export const LEGACY_KEYBOARD_KEY = 'msp.liveResults.keyboard';
 
-const PREFS_DEFAULTS = { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [] };
+const PREFS_DEFAULTS = { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null };
 
 export function draftKey(playerId) {
     return DRAFT_KEY_PREFIX + String(playerId).toLowerCase();
@@ -39,6 +39,10 @@ function isResultValue(value) {
         || value.didNotStart === true;
 }
 
+function ids(list) {
+    return Array.isArray(list) ? list.filter((id) => typeof id === 'string').slice(0, 20).map((id) => id.slice(0, 36)) : [];
+}
+
 /**
  * A draft as stored, checked field by field - null when anything does not fit (a draft of an older page, a hand edit).
  */
@@ -47,7 +51,7 @@ export function normaliseDraft(raw) {
         return null;
     }
 
-    const { playerId, roundId, ref, view, mode, typed, pieces, choice, proposalId, pending, finishedNow, savedAt } = raw;
+    const { playerId, roundId, ref, view, mode, typed, pieces, piecesMode, open, texts, choice, proposalId, pending, finishedNow, savedAt } = raw;
 
     if (typeof playerId !== 'string' || typeof roundId !== 'string' || typeof ref !== 'string' || ref === '' || typeof savedAt !== 'number') {
         return null;
@@ -66,8 +70,14 @@ export function normaliseDraft(raw) {
         mode: mode === 'pieces' ? 'pieces' : 'time',
         typed: typeof typed === 'string' ? typed.slice(0, 40) : '',
         pieces: typeof pieces === 'string' ? pieces.slice(0, 10) : '',
+        // Didn't finish (reliability hardening T1): Missing | Placed, a pick round's puzzles not finished + their counts
+        piecesMode: piecesMode === 'missing' || piecesMode === 'placed' ? piecesMode : null,
+        open: ids(open),
+        texts: texts !== null && typeof texts === 'object' && !Array.isArray(texts)
+            ? Object.fromEntries(Object.entries(texts).filter(([id, text]) => typeof text === 'string').slice(0, 20).map(([id, text]) => [id.slice(0, 36), text.slice(0, 10)]))
+            : {},
         // A pick round's puzzle choice (round puzzle ids, solving order - toolkit C10), null elsewhere
-        choice: Array.isArray(choice) ? choice.filter((id) => typeof id === 'string').slice(0, 20).map((id) => id.slice(0, 36)) : null,
+        choice: Array.isArray(choice) ? ids(choice) : null,
         // The time proposal a Change edits (toolkit C9) - its Save confirms it
         proposalId: typeof proposalId === 'string' && proposalId !== '' ? proposalId.slice(0, 36) : null,
         pending: null,
@@ -202,6 +212,7 @@ export function readPrefs(storage) {
         autoOpenTable: typeof stored.autoOpenTable === 'boolean' ? stored.autoOpenTable : PREFS_DEFAULTS.autoOpenTable,
         scanAfterSave: typeof stored.scanAfterSave === 'boolean' ? stored.scanAfterSave : PREFS_DEFAULTS.scanAfterSave,
         myTables: Array.isArray(stored.myTables) ? stored.myTables.filter((table) => Number.isInteger(table) && table > 0).slice(0, 200) : [],
+        piecesMode: stored.piecesMode === 'missing' || stored.piecesMode === 'placed' ? stored.piecesMode : null,
     };
 }
 

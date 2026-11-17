@@ -176,6 +176,19 @@
     proposalReason_not_finished: 'live_results.proposals.reason.not_finished'|trans,
     proposalReason_wrong_entry: 'live_results.proposals.reason.wrong_entry'|trans,
     proposalReason_other: 'live_results.proposals.reason.other'|trans,
+    piecesLabelPlaced: 'live_results.entry.pieces_placed'|trans,
+    piecesLabelMissing: 'competition_toolkit.round_format.missing.label'|trans,
+    missingHint: 'competition_toolkit.round_format.missing.hint'|trans,
+    missingPreview: 'competition_toolkit.round_format.missing.preview'|trans,
+    missingInvalid: 'competition_toolkit.round_format.missing.invalid'|trans,
+    missingRowHint: 'competition_toolkit.round_format.missing.row_hint'|trans,
+    missingRowHintPlaced: 'competition_toolkit.round_format.missing.row_hint_placed'|trans,
+    missingRowPlaced: 'competition_toolkit.round_format.missing.row_placed'|trans,
+    missingRowInvalid: 'competition_toolkit.round_format.missing.row_invalid'|trans,
+    missingFinished: 'competition_toolkit.round_format.missing.finished'|trans,
+    missingNotFinished: 'competition_toolkit.round_format.missing.not_finished'|trans,
+    missingTotal: 'competition_toolkit.round_format.missing.total'|trans,
+    missingTypeAll: 'competition_toolkit.round_format.missing.type_all'|trans,
 } %}
 
 {% block title %}{{ 'live_results.title'|trans }}{% endblock %}
@@ -238,6 +251,13 @@
         .lr-scanner .lr-overlay-head { background: rgba(0,0,0,.6); border-color: transparent; }
         .lr-scanner video { flex: 1 1 auto; width: 100%; min-height: 0; object-fit: cover; }
         .lr-scanner-hint { padding: .75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); text-align: center; }
+        .lr-seg { display: flex; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; overflow: hidden; }
+        .lr-seg button { flex: 1 1 0; min-height: 2.75rem; border: 0; background: var(--bs-body-bg, #fff); color: inherit; font-weight: 500; }
+        .lr-seg button[aria-pressed="true"] { background: var(--bs-dark, #222934); color: #fff; }
+        .lr-prow { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: .25rem .5rem; align-items: center; margin-bottom: .5rem; }
+        .lr-prow .lr-chip { min-height: 2.75rem; }
+        .lr-prow .lr-time-input { height: 3rem; font-size: 1.5rem; padding: .25rem .5rem; }
+        .lr-prow .lr-pparsed { grid-column: 1 / -1; font-size: .875rem; text-align: right; font-variant-numeric: tabular-nums; }
         .lr-chips { display: flex; flex-wrap: wrap; gap: .375rem; }
         .lr-chip { flex: 1 1 6rem; display: flex; align-items: center; gap: .375rem; min-height: 3rem; min-width: 0; padding: .25rem .5rem; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; background: var(--bs-body-bg, #fff); color: inherit; text-align: left; }
         .lr-chip-on { border-color: var(--bs-success, #198754); box-shadow: 0 0 0 1px var(--bs-success, #198754); background: #e9f7ef; }
@@ -412,7 +432,15 @@
             </form>
 
             <form class="lr-hidden lr-entry-step" data-live-results-target="piecesForm" data-action="submit->live-results#reviewPieces" novalidate>
-                <label for="lr-pieces" class="form-label mb-1">{{ 'live_results.entry.pieces_placed'|trans }}</label>
+                {# Count what is missing or what is placed (reliability hardening T1): this phone's last choice, Missing only
+                   while the piece count is known - shown by the controller #}
+                <div class="lr-seg mb-2" role="group" data-live-results-target="piecesSwitch" hidden>
+                    <button type="button" data-mode="missing" data-action="live-results#setPiecesMode" aria-pressed="false">{{ 'competition_toolkit.round_format.missing.mode_missing'|trans }}</button>
+                    <button type="button" data-mode="placed" data-action="live-results#setPiecesMode" aria-pressed="false">{{ 'competition_toolkit.round_format.missing.mode_placed'|trans }}</button>
+                </div>
+                {# A pick round's chosen puzzles: finished or not, a count per one not finished - put in by the controller #}
+                <div data-live-results-target="piecesRows" hidden></div>
+                <label for="lr-pieces" class="form-label mb-1" data-live-results-target="piecesLabel">{{ 'live_results.entry.pieces_placed'|trans }}</label>
                 <input type="text"
                        id="lr-pieces"
                        class="form-control lr-time-input"

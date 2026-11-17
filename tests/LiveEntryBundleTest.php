@@ -26,13 +26,16 @@ use Symfony\Component\Process\Process;
  *   which leaves C9 (proposals) its room. 2026-11-17 (toolkit C9): 185 KB / 50.8 KB gzip - time proposals on the card
  *   (panel with Confirm / Change / Not right, late and link hints, the "Proposals waiting" list, outcome annotations)
  *   need live_entry_proposals.js (3.2 KB) + 7.7 KB in the controller after compacting its markup; budget 190 KB /
- *   52 KB gzip;
+ *   52 KB gzip. 2026-11-17 (reliability hardening T1): 186.2 → 194.7 KB / 51.1 → 53.5 KB gzip - "Didn't finish" counted
+ *   as missing pieces (official_results_missing.js 2.2 KB, shared with the results desk), a pick round's per-puzzle
+ *   rows (several puzzles not finished, a count each), the Missing | Placed switch kept per phone, the time's-up open;
+ *   budget 197 KB / 54 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 190_000;
-    private const int GZIP_BUDGET_BYTES = 52_000;
+    private const int MINIFIED_BUDGET_BYTES = 197_000;
+    private const int GZIP_BUDGET_BYTES = 54_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

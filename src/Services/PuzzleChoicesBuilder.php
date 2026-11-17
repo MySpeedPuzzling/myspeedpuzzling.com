@@ -58,6 +58,38 @@ readonly final class PuzzleChoicesBuilder
      */
     public function build(iterable $puzzles, string $locale): array
     {
+        return $this->options($puzzles, $locale, withBrand: false);
+    }
+
+    /**
+     * The options of a search across every brand (PuzzleSearchAutocompleteController): each names its brand in its
+     * text and carries it (`brand` - the brand picker's value, `brandName`) - the picker then selects both.
+     *
+     * @param iterable<PuzzleOverview> $puzzles
+     *
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, brand: string, brandName: string}>
+     */
+    public function buildWithBrands(iterable $puzzles, string $locale): array
+    {
+        $puzzles = is_array($puzzles) ? array_values($puzzles) : iterator_to_array($puzzles, false);
+        $options = $this->options($puzzles, $locale, withBrand: true);
+
+        foreach ($puzzles as $index => $puzzle) {
+            $options[$index]['brand'] = $puzzle->manufacturerId;
+            $options[$index]['brandName'] = $puzzle->manufacturerName;
+        }
+
+        /** @var list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, brand: string, brandName: string}> $options */
+        return $options;
+    }
+
+    /**
+     * @param iterable<AutocompletePuzzle|PuzzleOverview> $puzzles
+     *
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
+     */
+    private function options(iterable $puzzles, string $locale, bool $withBrand): array
+    {
         // Translated once and split around the number: the number can be highlighted as a match, the label not.
         // The label is translation markup (&nbsp;), never player input.
         [$piecesLabelBefore, $piecesLabelAfter] = explode('%count%', $this->translator->trans('pieces_count', ['%count%' => '%count%'], locale: $locale), 2) + ['', ''];
@@ -85,6 +117,11 @@ readonly final class PuzzleChoicesBuilder
                 ? '<small class="text-muted ms-2">EAN: ' . self::escape($eans) . '</small>'
                 : '';
 
+            // A search across brands says whose puzzle it is
+            $brand = $withBrand && $puzzle instanceof PuzzleOverview
+                ? '<span class="fw-semibold me-2" data-puzzle-option-brand>' . self::escape($puzzle->manufacturerName) . '</span>'
+                : '';
+
             // "no-highlight" keeps Tom Select from marking a typed "pieces" in the label
             $text = <<<HTML
 <div class="py-1 d-flex low-line-height">
@@ -94,7 +131,7 @@ readonly final class PuzzleChoicesBuilder
             <span class="h6">{$name}</span>
             <small class="text-muted">{$identificationNumber}</small>
         </div>
-        <div class="description"><small><span class="no-highlight">{$piecesLabelBefore}</span>{$puzzle->piecesCount}<span class="no-highlight">{$piecesLabelAfter}</span></small>{$ean}</div>
+        <div class="description"><small>{$brand}<span class="no-highlight">{$piecesLabelBefore}</span>{$puzzle->piecesCount}<span class="no-highlight">{$piecesLabelAfter}</span></small>{$ean}</div>
     </div>
 </div>
 HTML;

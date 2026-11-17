@@ -12,7 +12,8 @@
              data-time-form-autocomplete-optional-value="true"
              data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
              data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
-             data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}">
+             data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}"
+             data-action="puzzle-search-picker:picked->time-form-autocomplete#pickFound">
             {{ form_start(form) }}
             {# The automatic reveal named under "Keep it secret" - a secret puzzle is added only while the round still has
                it (AddPuzzleToCompetitionRound) #}
@@ -57,8 +58,12 @@
                     <p class="form-label mt-3 mb-2">{{ 'event_wizard.puzzle.add_another_label'|trans }}</p>
                 {% endif %}
 
-                {{ form_row(form.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}}) }}
-                {{ form_row(form.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+                <div data-controller="puzzle-search-picker" data-puzzle-search-picker-url-value="{{ path('puzzle_search_autocomplete') }}" data-puzzle-search-picker-no-results-label-value="{{ 'event_wizard_more.puzzle_search.no_results'|trans }}">
+{{ include('event_wizard/_puzzle_search.html.twig', {search_id: form.vars.id ~ '_search'}, with_context = false) }}
+<div data-puzzle-search-picker-target="brandPath">
+                    {{ form_row(form.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}}) }}
+                    {{ form_row(form.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+                </div></div>
                 <p class="form-text mt-n2 mb-3" data-event-wizard-decide-later><i class="ci-time me-1"></i>{{ 'event_wizard.puzzle.decide_later'|trans }}</p>
 
                 <div data-time-form-autocomplete-target="newPuzzle" class="d-none">

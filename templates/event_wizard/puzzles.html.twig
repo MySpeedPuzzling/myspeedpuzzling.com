@@ -12,11 +12,16 @@
          data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
          data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
          data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}"
+         data-action="puzzle-search-picker:picked->time-form-autocomplete#pickFound"
          data-event-wizard-puzzles-slot-picker>
+        <div data-controller="puzzle-search-picker" data-puzzle-search-picker-url-value="{{ path('puzzle_search_autocomplete') }}" data-puzzle-search-picker-no-results-label-value="{{ 'event_wizard_more.puzzle_search.no_results'|trans }}">
+{{ include('event_wizard/_puzzle_search.html.twig', {search_id: slot.vars.id ~ '_search'}, with_context = false) }}
+<div data-puzzle-search-picker-target="brandPath">
         <div class="row g-2">
             <div class="col-12 col-sm-6">{{ form_row(slot.brand, {attr: {'data-time-form-autocomplete-target': 'brand'}, help: false}) }}</div>
             <div class="col-12 col-sm-6">{{ form_row(slot.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}, help: false}) }}</div>
         </div>
+        </div></div>
         <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
             <div class="row g-2 align-items-end">
                 <div class="col-6 col-sm-4">{{ form_row(slot.piecesCount) }}</div>

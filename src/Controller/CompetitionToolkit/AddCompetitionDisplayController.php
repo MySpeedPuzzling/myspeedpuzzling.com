@@ -61,7 +61,7 @@ final class AddCompetitionDisplayController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            assert($data->kind !== null && $data->name !== null && $data->locale !== null);
+            assert($data->kind !== null && $data->preset !== null && $data->name !== null && $data->locale !== null);
 
             try {
                 $this->messageBus->dispatch(new AddCompetitionDisplay(
@@ -71,6 +71,7 @@ final class AddCompetitionDisplayController extends AbstractController
                     name: $data->name,
                     locale: $data->locale,
                     actorPlayerId: $this->retrieveLoggedUserProfile->getProfile()?->playerId,
+                    presetKey: $data->preset,
                 ));
             } catch (CompetitionDisplayLimitReached) {
                 // The event has the most displays it can have (another add may have taken the last place meanwhile)

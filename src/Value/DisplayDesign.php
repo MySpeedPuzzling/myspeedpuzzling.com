@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * The stored design of a competition display - schema v1 (docs/features/competitions-management/toolkit/
- * D-displays-overlays.md §4). D1 stores only the "blank" design a new display starts from; the sanitizer, the presets
- * and the save endpoint (D2) validate and normalise everything else against the same shape.
+ * D-displays-overlays.md §4). The blank design is already in the normalised form of DisplayDesignSanitizer (it is the
+ * Blank preset); the other presets live in DisplayPresets.
  */
 final readonly class DisplayDesign
 {
@@ -20,11 +20,12 @@ final readonly class DisplayDesign
     public const string DEFAULT_ACCENT_COLOR = '#fe696a';
 
     /**
-     * An empty canvas: opaque dark background for a hall screen, transparent for a stream overlay, no elements.
+     * An empty canvas (normalised - the sanitizer returns it unchanged): opaque dark background for a hall screen,
+     * transparent for a stream overlay, no elements.
      *
      * @return array{
      *     schema: int,
-     *     canvas: array{aspect: string, background: array{type: string, color: string, chroma: string}},
+     *     canvas: array{aspect: string, background: array{type: string, color: string, chroma: string, image: null}},
      *     theme: array{font: string, color: string, accent: string},
      *     elements: list<array<string, mixed>>,
      * }
@@ -39,6 +40,7 @@ final readonly class DisplayDesign
                     'type' => $kind === DisplayKind::Overlay ? 'transparent' : 'color',
                     'color' => self::DEFAULT_BACKGROUND_COLOR,
                     'chroma' => self::DEFAULT_CHROMA_COLOR,
+                    'image' => null,
                 ],
             ],
             'theme' => [

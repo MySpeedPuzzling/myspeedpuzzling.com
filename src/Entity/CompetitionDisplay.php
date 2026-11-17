@@ -16,6 +16,7 @@ use InvalidArgumentException;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Exceptions\DisplayDesignConflict;
 use SpeedPuzzling\Web\Value\DisplayFollowMode;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\OnlineToken;
@@ -23,7 +24,8 @@ use SpeedPuzzling\Web\Value\OnlineToken;
 /**
  * A timer screen or stream overlay of one event (docs/features/competitions-management/toolkit/D-displays-overlays.md
  * §3.1): opened by its token URL without signing in - the token is the capability, regenerating it kills the old URL
- * at once. The design (schema v1, §4) is validated by DisplayDesignSanitizer (D2) on every save. Spotlight and message
+ * at once. The design (schema v1, §4) is normalised by DisplayDesignSanitizer on every save
+ * (SaveCompetitionDisplayDesign), which also derives uses_results / uses_live_results from it. Spotlight and message
  * of D's live control are deferred to v2 (R-review-and-plan.md §3) and have no columns yet.
  */
 #[Entity]
@@ -177,6 +179,47 @@ class CompetitionDisplay
             usesLiveResults: $this->usesLiveResults,
             usesResults: $this->usesResults,
         );
+    }
+
+    /**
+     * A new design from the editor (D §3.1): saved only on top of the version the editor started from, so two tabs never
+     * overwrite each other unnoticed. An identical design changes nothing (no new version - open displays do not reload).
+     *
+     * @param array<string, mixed> $normalised the design as DisplayDesignSanitizer returned it
+     * @return bool whether anything changed
+     * @throws DisplayDesignConflict
+     */
+    public function saveDesign(array $normalised, int $baseVersion, bool $usesLiveResults, bool $usesResults, DateTimeImmutable $at): bool
+    {
+        if ($baseVersion !== $this->designVersion) {
+            throw new DisplayDesignConflict($this->designVersion);
+        }
+
+        // jsonb keeps its own key order - compared without it
+        if (self::canonical($normalised) === self::canonical($this->design) && $usesLiveResults === $this->usesLiveResults && $usesResults === $this->usesResults) {
+            return false;
+        }
+
+        $this->design = $normalised;
+        $this->usesLiveResults = $usesLiveResults;
+        $this->usesResults = $usesResults;
+        $this->designVersion++;
+        $this->updatedAt = $at;
+
+        return true;
+    }
+
+    /**
+     * @param array<mixed> $value
+     * @return array<mixed>
+     */
+    private static function canonical(array $value): array
+    {
+        if (!array_is_list($value)) {
+            ksort($value);
+        }
+
+        return array_map(static fn (mixed $item): mixed => is_array($item) ? self::canonical($item) : $item, $value);
     }
 
     /**

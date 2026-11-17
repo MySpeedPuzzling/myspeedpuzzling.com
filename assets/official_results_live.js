@@ -30,6 +30,11 @@ export function valueKey(value) {
         return '';
     }
 
+    // A pick round's puzzle record (competition toolkit C10): its items in solving order
+    if (Array.isArray(value)) {
+        return value.length === 0 ? '' : `z:${JSON.stringify(value.map((item) => [String(item.roundPuzzleId).toLowerCase(), item.done === true, item.atSeconds ?? null, item.piecesPlaced ?? null]))}`;
+    }
+
     if (typeof value === 'object') {
         if (typeof value.seconds === 'number') {
             return `s:${value.seconds}`;
@@ -63,6 +68,10 @@ export function entryValue(entry, field) {
 
     if (field === 'table_number') {
         return entry.tableNumber ?? null;
+    }
+
+    if (field === 'puzzles') {
+        return entry.puzzles ?? null;
     }
 
     return entry.qualified === true;

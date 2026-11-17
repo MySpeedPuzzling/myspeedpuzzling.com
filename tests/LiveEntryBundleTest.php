@@ -19,13 +19,17 @@ use Symfony\Component\Process\Process;
  *   modules - independent of whether public/build holds a dev or a production build. 2026-11-17: 128 KB minified /
  *   35 KB gzip (a production build: 144 KB for live_entry.js after Babel, + 6 KB runtime.js). Raise the budget only
  *   on purpose, saying why in the commit. 2026-11-17 (toolkit C7): 160 KB after C3-C6 (155 KB), C7 added 5 KB - outbox
- *   groups that are never split (R §1.1), the O(1) entries view and find rows, the unique-table open - budget 170 KB;
+ *   groups that are never split (R §1.1), the O(1) entries view and find rows, the unique-table open - budget 170 KB.
+ *   2026-11-17 (toolkit C10): 174 KB / 47.6 KB gzip after C8 (44.7 KB gzip) - the puzzle choice of pick rounds pulls in
+ *   official_results_puzzles.js (the record's rules, shared with the server's twin - imported, never re-implemented)
+ *   and live_entry_puzzles.js (chips, K-of-N taps, the grouped save, "Puzzle missing"); budget 180 KB / 50 KB gzip,
+ *   which leaves C9 (proposals) its room;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 170_000;
-    private const int GZIP_BUDGET_BYTES = 45_000;
+    private const int MINIFIED_BUDGET_BYTES = 180_000;
+    private const int GZIP_BUDGET_BYTES = 50_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

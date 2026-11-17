@@ -39,6 +39,9 @@ import {
     urlWithoutLanding,
 } from '../assets/live_entry_page.js';
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
+import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick, unfinishedResult } from '../assets/live_entry_puzzles.js';
+import { normaliseDraft } from '../assets/live_entry_draft.js';
+import { validate } from '../assets/official_results_puzzles.js';
 
 const ROUND_A = '018d0020-0000-0000-0000-000000000101';
 const ROUND_B = '018d0020-0000-0000-0000-000000000102';
@@ -1456,7 +1459,198 @@ const scenarios = {
         assert.ok(lookup < 1, `300 lookups: ${lookup.toFixed(3)} ms`);
         assert.equal(outboxByEntry(items).get(entries[0].ref).length, items.filter((item) => item.entryRef === entries[0].ref).length);
     },
+    // ---- Puzzle choice on pick rounds (competition toolkit C10) ----
+
+    'puzzle chips: labels always, names and pictures only of a puzzle that is out - a name sent for a hidden slot stays unshown'() {
+        const format = pickRound(1);
+        format.puzzles[1] = { ...format.puzzles[1], hidden: true, name: 'Leaked name', imageUrl: 'https://img.example/leak.jpg' };
+        format.puzzles[2] = { ...format.puzzles[2], hidden: false, name: 'Lighthouse', imageUrl: 'javascript:alert(1)' };
+        const chips = puzzleChips(format, [P_B]);
+
+        assert.deepEqual(chips.map((chip) => chip.label), ['A', 'B', 'C']);
+        assert.equal(chips[0].name, 'Harbour');
+        assert.equal(chips[0].imageUrl, 'https://img.example/a.jpg');
+        assert.equal(chips[1].name, null, 'hidden: never the name, whatever came');
+        assert.equal(chips[1].imageUrl, null);
+        assert.equal(chips[1].hidden, true);
+        assert.equal(chips[1].order, 1);
+        assert.equal(chips[2].imageUrl, null, 'only https or own paths as a picture');
+        assert.equal(pickFormat({ puzzleFormat: null }), null);
+        assert.equal(pickFormat({}), null);
+        assert.equal(describeChoice(format, [{ roundPuzzleId: P_C }, { roundPuzzleId: P_A }]), 'C → A');
+    },
+
+    'puzzle taps: one of N picks (tap again none); K of N in solving order, tap again removes, one more replaces the last'() {
+        assert.deepEqual(togglePick([], P_A, 1), [P_A]);
+        assert.deepEqual(togglePick([P_A], P_B, 1), [P_B]);
+        assert.deepEqual(togglePick([P_B], P_B, 1), []);
+
+        let choice = togglePick([], P_C, 2);
+        choice = togglePick(choice, P_A, 2);
+        assert.deepEqual(choice, [P_C, P_A], 'the tap order is the solving order');
+        assert.deepEqual(togglePick(choice, P_B, 2), [P_C, P_B], 'a third tap replaces the last');
+        assert.deepEqual(togglePick(choice, P_C, 2), [P_A], 'tap again removes - the rest moves up');
+        assert.deepEqual(togglePick([], P_A.toUpperCase(), 2), [P_A], 'ids compared lower case');
+    },
+
+    'puzzle choice is preselected from what is known: the server, else this device\'s waiting change'() {
+        const format = pickRound(1);
+        const anna = entry(ANNA, 'Anna', 1, { puzzles: [{ roundPuzzleId: P_B, done: false }] });
+
+        assert.deepEqual(choiceOf(format, shownValue(anna, 'puzzles', []).value), [P_B]);
+
+        const waiting = [{ entryRef: ANNA, field: 'puzzles', seq: 1, state: 'pending', to: [{ roundPuzzleId: P_C, done: true }] }];
+        assert.deepEqual(choiceOf(format, shownValue(anna, 'puzzles', waiting).value), [P_C]);
+        assert.deepEqual(choiceOf(format, [{ roundPuzzleId: 'not-of-this-round', done: true }]), []);
+    },
+
+    async 'Finished now on a pick round saves the result and the record as one group - never split, even one change per batch'() {
+        const format = pickRound(1);
+        const anna = entry(ANNA, 'Anna', 1, { puzzles: [{ roundPuzzleId: P_B, done: false }] });
+        const { fields, record } = saveFields(format, [P_B], { seconds: 2710 }, anna, []);
+
+        assert.deepEqual(fields.map((field) => field.field), ['puzzles', 'result']);
+        assert.deepEqual(record, [{ roundPuzzleId: P_B, done: true }]);
+        assert.equal(validate(record, format, { seconds: 2710 }), null, 'what the server takes (rule 6)');
+
+        const { outbox, server } = setup({ batchSize: 1 });
+        outbox.enqueue({ roundId: ROUND_A, entryRef: BEN, field: 'result', to: { seconds: 99 } });
+        const { persisted } = outbox.enqueueGroup(fields.map(({ field, to }) => ({ roundId: ROUND_A, entryRef: ANNA, field, serverValue: field === 'puzzles' ? anna.puzzles : null, to })));
+        await persisted;
+        await outbox.flush();
+
+        const sentTogether = server.requests.find((request) => request.changes.some((change) => change.entry === ANNA));
+        assert.deepEqual(sentTogether.changes.map((change) => change.field), ['puzzles', 'result'], 'both in one request');
+        assert.deepEqual(sentTogether.changes[0].from, [{ roundPuzzleId: P_B, done: false }]);
+    },
+
+    async 'a refused group: both changes come back refused and show their reasons; Undo takes both back'() {
+        const { outbox, server } = setup();
+        server.decide = (change) => (change.field === 'puzzles'
+            ? { status: 'rejected', reason: 'puzzles_mismatch', message: 'The result does not match the puzzles' }
+            : { status: 'rejected', reason: 'group_refused', message: 'Saved together with another change' });
+        const { items, persisted } = outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', to: [{ roundPuzzleId: P_A, done: true }] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', to: { seconds: 100 } },
+        ]);
+        await persisted;
+        await outbox.flush();
+
+        assert.deepEqual(outbox.all().map((item) => [item.field, item.state, item.reason]), [['puzzles', 'rejected', 'puzzles_mismatch'], ['result', 'rejected', 'group_refused']]);
+
+        await outbox.undo(items[0]);
+        assert.equal(outbox.hasUnsent(), false, 'Undo of one change of the group takes the group back');
+    },
+
+    async 'Undo of a pick round Save already sent takes back the result and the record, as one group'() {
+        const { outbox, server } = setup();
+        const { items, persisted } = outbox.enqueueGroup([
+            { roundId: ROUND_A, entryRef: ANNA, field: 'puzzles', serverValue: null, to: [{ roundPuzzleId: P_A, done: false, piecesPlaced: 640 }] },
+            { roundId: ROUND_A, entryRef: ANNA, field: 'result', serverValue: { piecesPlaced: 850 }, to: { piecesPlaced: 640 } },
+        ]);
+        await persisted;
+        await outbox.flush();
+        assert.equal(outbox.hasUnsent(), false);
+
+        // The page hands Undo every change of the Save (the sent ones are no longer on the device to be found)
+        await outbox.undo(items);
+        await outbox.flush();
+
+        const back = server.requests[1].changes;
+        assert.deepEqual(back.map((change) => [change.field, change.to]), [['puzzles', null], ['result', { piecesPlaced: 850 }]]);
+    },
+
+    'unfinished on a K-of-N round: the pieces typed are the last puzzle\'s, the ones before count in full (shared total())'() {
+        const format = pickRound(2);
+        const choice = [P_A, P_C];
+
+        assert.equal(piecesLimit(format, choice), 999, 'the last puzzle (C, 1000) - 1');
+        assert.equal(piecesLimit(format, []), 2 * 1000 - 1, 'nothing chosen: unfinishedMaximum()');
+
+        const result = unfinishedResult(format, choice, 312);
+        assert.deepEqual(result, { piecesPlaced: 812 });
+
+        const { record, refusal } = recordFor(format, choice, result);
+        assert.equal(refusal, null);
+        assert.deepEqual(record, [{ roundPuzzleId: P_A, done: true }, { roundPuzzleId: P_C, done: false, piecesPlaced: 312 }]);
+        assert.equal(validate(record, format, result), null);
+        assert.deepEqual(unfinishedResult(format, [], 300), { piecesPlaced: 300 });
+    },
+
+    'a finished result without all K chosen goes without a record (Puzzle missing); did not start drops a known record'() {
+        const format = pickRound(2);
+        const anna = entry(ANNA, 'Anna', 1, { puzzles: [{ roundPuzzleId: P_A, done: false }] });
+        const finished = saveFields(format, [P_A], { seconds: 3000 }, anna, []);
+
+        assert.equal(finished.record, null);
+        assert.deepEqual(finished.fields, [{ field: 'puzzles', to: null }, { field: 'result', to: { seconds: 3000 } }], 'the incomplete choice would refuse the time');
+
+        assert.deepEqual(saveFields(format, [P_A], { didNotStart: true }, anna, []).fields, [{ field: 'puzzles', to: null }, { field: 'result', to: { didNotStart: true } }]);
+
+        const ben = entry(BEN, 'Ben', 2);
+        assert.deepEqual(saveFields(format, [], { seconds: 3000 }, ben, []).fields, [{ field: 'result', to: { seconds: 3000 } }], 'a result alone is allowed');
+
+        // The choice alone at the table: chosen, not done
+        assert.deepEqual(saveFields(format, [P_C, P_B], null, ben, []).fields, [{ field: 'puzzles', to: [{ roundPuzzleId: P_C, done: false }, { roundPuzzleId: P_B, done: false }] }]);
+        // Nothing changed: nothing to send
+        assert.deepEqual(saveFields(format, [P_A], null, anna, []).fields, []);
+    },
+
+    'a known split from the desk is kept when it still fits, dropped when it does not'() {
+        const format = pickRound(2);
+        const previous = [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }, { roundPuzzleId: P_C, done: false }];
+
+        assert.deepEqual(recordFor(format, [P_A, P_C], { seconds: 3000 }, previous).record, [{ roundPuzzleId: P_A, done: true, atSeconds: 1500 }, { roundPuzzleId: P_C, done: true }]);
+        assert.deepEqual(recordFor(format, [P_A, P_C], { seconds: 1200 }, previous).record, [{ roundPuzzleId: P_A, done: true }, { roundPuzzleId: P_C, done: true }]);
+    },
+
+    'a total round sends the result alone, exactly as before'() {
+        const anna = entry(ANNA, 'Anna', 1);
+
+        assert.deepEqual(saveFields(null, [], { seconds: 100 }, anna, []), { fields: [{ field: 'result', to: { seconds: 100 } }], record: undefined, refusal: null });
+        assert.deepEqual(saveFields(null, [], null, anna, []).fields, []);
+        assert.equal(sameValue([{ roundPuzzleId: P_A, done: true }], null), false, 'a record is a value of its own');
+        assert.equal(sameValue([], null), true);
+    },
+
+    'Puzzle missing: entries with a time or pieces but no puzzle chosen'() {
+        const format = pickRound(1);
+        const entries = [
+            entry(ANNA, 'Anna', 1, { result: { seconds: 100 }, puzzles: null }),
+            entry(BEN, 'Ben', 2, { result: { seconds: 200 }, puzzles: [{ roundPuzzleId: P_A, done: true }] }),
+            entry(CARA, 'Cara', 3, { result: { didNotStart: true }, puzzles: null }),
+            entry('participant_round:dan', 'Dan', 4, { result: null, puzzles: null }),
+        ];
+
+        assert.deepEqual(missingChoice(entries, format, outboxByEntry([])).map((item) => item.ref), [ANNA]);
+
+        const waiting = [{ entryRef: ANNA, field: 'puzzles', seq: 1, state: 'pending', to: [{ roundPuzzleId: P_B, done: true }] }];
+        assert.deepEqual(missingChoice(entries, format, outboxByEntry(waiting)), [], 'this device\'s waiting choice counts');
+        assert.deepEqual(missingChoice(entries, null, outboxByEntry([])), [], 'never on a total round');
+    },
+
+    'the draft keeps the puzzle choice across a reload'() {
+        const draft = normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', choice: [P_C, 7, P_A], savedAt: 1 });
+        assert.deepEqual(draft.choice, [P_C, P_A]);
+        assert.equal(normaliseDraft({ playerId: 'p', roundId: ROUND_A, ref: ANNA, view: 'entry', savedAt: 1 }).choice, null);
+    },
 };
+
+const P_A = '018d0020-0000-0000-0000-00000000a001';
+const P_B = '018d0020-0000-0000-0000-00000000b002';
+const P_C = '018d0020-0000-0000-0000-00000000c003';
+
+function pickRound(toSolve) {
+    return {
+        mode: 'pick',
+        toSolve,
+        puzzles: [
+            { roundPuzzleId: P_A, position: 1, label: 'A', hidden: false, puzzleId: 'x', name: 'Harbour', imageUrl: 'https://img.example/a.jpg', piecesCount: 500 },
+            { roundPuzzleId: P_B, position: 2, label: 'B', hidden: true, puzzleId: null, name: null, imageUrl: null, piecesCount: 500 },
+            { roundPuzzleId: P_C, position: 3, label: 'C', hidden: true, puzzleId: null, name: null, imageUrl: null, piecesCount: 1000 },
+        ],
+    };
+}
 
 function entry(ref, name, tableNumber, extra = {}) {
     return {

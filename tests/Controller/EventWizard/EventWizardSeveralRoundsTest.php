@@ -271,7 +271,8 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
             $ids[0] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]],
             $ids[6] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_02]],
         ], overrides: [$ids[6] => 'public']);
-        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+        // The Extras step comes next (W6) - before Review on every competition path
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/extras', 303);
 
         $puzzles = $this->database()->fetchAllAssociative(
             'SELECT crp.round_id, crp.puzzle_id, crp.hide_until_round_starts, crp.reveal_mode, crp.reveal_at FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id ORDER BY cr.starts_at',

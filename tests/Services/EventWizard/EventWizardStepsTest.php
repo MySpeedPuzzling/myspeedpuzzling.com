@@ -36,7 +36,6 @@ final class EventWizardStepsTest extends TestCase
         $withExtras = $steps->of(self::state(roundsCount: 1, puzzles: 1, extrasOn: true));
         self::assertTrue($withExtras->isDone(EventWizardStep::Extras));
         self::assertSame(EventWizardStep::Review, $withExtras->firstNotDone());
-
     }
 
     /**
@@ -50,16 +49,17 @@ final class EventWizardStepsTest extends TestCase
 
         $noRounds = $steps->of(self::state(roundsCount: 0, puzzles: 0));
         self::assertSame(EventWizardPath::SeveralRounds, $noRounds->path);
-        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Review], $noRounds->steps);
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Extras, EventWizardStep::Review], $noRounds->steps);
         self::assertSame(EventWizardStep::Structure, $noRounds->firstNotDone());
 
         $withoutPuzzles = $steps->of(self::state(roundsCount: 3, puzzles: 1, roundsWithoutPuzzle: 2));
         self::assertTrue($withoutPuzzles->isDone(EventWizardStep::Structure));
         self::assertSame(EventWizardStep::Puzzles, $withoutPuzzles->firstNotDone());
-        self::assertSame(EventWizardStep::Review, $withoutPuzzles->next(EventWizardStep::Puzzles));
+        self::assertSame(EventWizardStep::Extras, $withoutPuzzles->next(EventWizardStep::Puzzles));
 
-        self::assertSame(EventWizardStep::Review, $steps->of(self::state(roundsCount: 3, puzzles: 3))->firstNotDone());
-        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::SeveralRounds)->steps);
+        self::assertSame(EventWizardStep::Extras, $steps->of(self::state(roundsCount: 3, puzzles: 3))->firstNotDone());
+        self::assertSame(EventWizardStep::Review, $steps->of(self::state(roundsCount: 3, puzzles: 3, extrasOn: true))->firstNotDone());
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Extras, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::SeveralRounds)->steps);
     }
 
     public function testTheSeriesPathHasNoStepsYet(): void

@@ -46,6 +46,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetCompetitionDisplayState.php' => 'A competition display is found by its token only (the organiser\'s capability URL, D-displays-overlays.md §2): it works for a draft on purpose - a rehearsal before publishing - and is never listed anywhere.',
         'Query/GetCompetitionDisplayImagePaths.php' => 'Storage clean-up: the uploaded display pictures of an event or series being deleted - nothing is shown to anybody.',
         'Query/GetCompetitionPermissions.php' => self::ORGANISER,
+        'Query/GetCompetitionReferees.php' => self::ORGANISER . ' Reads only the country of the event (and its series) of a referee\'s last result, for the round\'s time zone (judge-speed J1).',
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,
         'Query/GetCompetitorPageSettings.php' => self::ORGANISER,
         'Query/GetEditionRounds.php' => self::PAGE_GATED,

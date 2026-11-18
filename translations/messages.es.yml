@@ -8726,6 +8726,7 @@ participants_sheet_people:
   "add_my_time": "Añadir mi tiempo"
   "more_puzzles": "Más puzzles de este evento"
   "taking_part": "Participación"
+  competitors_link: "Participantes"
   "facts":
     "next": "Próxima %date%"
     "with_results": "%count% ronda con resultados|%count% rondas con resultados"
@@ -14159,6 +14160,18 @@ competitor_page:
     print:
         scan_page: "Cualquier otra persona que lo escanee abre la página pública del participante."
         scan_event: "Cualquier otra persona que lo escanee llega a la página del evento."
+    list:
+        title: "Participantes"
+        meta_title: "Participantes - %event%"
+        lead: "Encuentra a un participante y sigue sus rondas en directo."
+        search: "Buscar por nombre o #código"
+        people: "Personas"
+        lineups: "Parejas y equipos"
+        none: "Nadie coincide"
+        empty: "Aún no hay participantes."
+        you: "Tú"
+        tag_unknown: "Esta acreditación no está (ya) en el evento: búscate abajo."
+        link: "Todos los participantes"
 competition_display:
     copy_name: "%name% (copia)"
     kind:

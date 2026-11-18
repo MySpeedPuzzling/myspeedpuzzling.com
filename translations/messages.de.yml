@@ -8725,6 +8725,7 @@ participants_sheet_people:
   "add_my_time": "Meine Zeit hinzufügen"
   "more_puzzles": "Weitere Puzzles dieser Veranstaltung"
   "taking_part": "Teilnahme"
+  competitors_link: "Teilnehmer"
   "facts":
     "next": "Nächste %date%"
     "with_results": "%count% Runde mit Ergebnissen|%count% Runden mit Ergebnissen"
@@ -14158,6 +14159,18 @@ competitor_page:
     print:
         scan_page: "Alle anderen, die ihn scannen, öffnen die öffentliche Teilnehmerseite."
         scan_event: "Alle anderen, die ihn scannen, landen auf der Veranstaltungsseite."
+    list:
+        title: "Teilnehmer"
+        meta_title: "Teilnehmer - %event%"
+        lead: "Finden Sie einen Teilnehmer und verfolgen Sie seine Runden live."
+        search: "Nach Name oder #Code suchen"
+        people: "Personen"
+        lineups: "Paare & Teams"
+        none: "Keine Treffer"
+        empty: "Noch keine Teilnehmer."
+        you: "Sie"
+        tag_unknown: "Dieses Namensschild gehört (nicht mehr) zur Veranstaltung - finden Sie sich unten."
+        link: "Alle Teilnehmer"
 competition_display:
     copy_name: "%name% (Kopie)"
     kind:

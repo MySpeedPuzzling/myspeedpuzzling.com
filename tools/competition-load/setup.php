@@ -11,6 +11,11 @@ declare(strict_types=1);
  * 018d0098-…-000000000NNN), the stopwatch running since 10 minutes ago, a 600-minute limit; 6 referees "Load Judge 1..6";
  * competitor pages + time proposals on; no other round of the event runs.
  *
+ * `setup.php realevents` (real events load, README "Real events"): three rounds of the same event running AT ONCE -
+ * "Load Solo" (solo, `pick` 2 of 2 - "Solve all 2", per-puzzle splits; 350 entrants at tables 1..350), "Load Teams A"
+ * and "Load Teams B" (team of 4, `total`, 150 teams each at tables 1..150; 600 members each), 18 referees (6 per round)
+ * and 6 displays (per round a live-board screen and a leaderboard overlay, pinned to it).
+ *
  * Prints the credentials as JSON (stdout): per judge and competitor the remember-me cookie the site itself would mint
  * (Symfony's SignatureHasher over the same signature properties and kernel.secret - config/packages/security.php), per
  * competitor the heartbeat token the state JSON would hand out (CompetitorHeartbeatToken). They are access rights to
@@ -48,7 +53,9 @@ function id(string $kind, int $n): string
     return '018d0098-0000-0000-' . $kind . '-' . str_pad((string) $n, 12, '0', STR_PAD_LEFT);
 }
 
-$format = ($argv[1] ?? 'pick') === 'total' ? 'total' : 'pick';
+$mode = $argv[1] ?? 'pick';
+$format = $mode === 'total' ? 'total' : 'pick';
+$realEvents = $mode === 'realevents';
 
 (new Dotenv())->bootEnv(dirname(__DIR__, 2) . '/.env');
 
@@ -70,6 +77,12 @@ $connection = $entityManager->getConnection();
 assert($connection instanceof Connection);
 $secret = (string) $container->getParameter('kernel.secret');
 $now = new DateTimeImmutable();
+
+if ($realEvents) {
+    require __DIR__ . '/setup_realevents.php';
+
+    exit(0);
+}
 
 // --- the accounts (created once, kept between runs)
 $people = [];

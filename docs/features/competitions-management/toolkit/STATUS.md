@@ -213,3 +213,76 @@ Open items (participant linking):
 - Phone list / person editor have no claim-link, suggestion or invitation actions (desktop grid only) - docs/TODO.md.
 - Jan's call: whether managed-registration events should also default to "Ask me first" (designed: no); whether the organiser should ever learn that an invitation could not be delivered (built: never - privacy).
 - `EXPLAIN ANALYZE` of the suggestions statement on a big production event once one uses it.
+
+## Real events: SPWS, Carnival (2026-11-17/18; orchestrator: sub-session; brief `cm-delivery/brief-real-events-orchestrator.md`)
+Two real events to run end to end by the organisers' demo on ~2 Dec 2026: the **Speed Puzzle World Series** (Toronto,
+2-5 June 2027: Individual / Pairs / Teams championships, cumulative time, back-to-back challenges, penalties, no-shows,
+the same table all day) and the **St. Paul Winter Carnival** (6-7 Feb 2027: one puzzle across Teams CHALLENGE / OPEN #1
+/ OPEN #2, divisions Regular / Senior 55+ / Junior, parallel Sunday rounds). Designs of record (architect + independent
+review each; "Review amendments" binding): [shared-puzzles-and-divisions.md](../shared-puzzles-and-divisions.md),
+[world-series-rules.md](../world-series-rules.md). Delivered to main = production; from 2026-11-17 ~23:00 under
+**no-Docker mode** (Jan): PRs with CI as the gate, nothing run locally beyond node harnesses and `php -l`.
+
+| Pkg | PR | What |
+|---|---|---|
+| W1 | #417 | Standings no-show `missing_rule = as_zero_pieces` (limit + penalty × all pieces, stays ranked; DNS at once, no result once published), substitute warning, publish-dialog no-show line, desk "only penalised pieces" help line |
+| W2 | #418 | Unboxed rounds: the box picture hidden on every surface until the round's results are first published (`RoundPuzzleReveal::sqlImageHidden()`) |
+| W3 | #419 | Seating "Same tables as round X" + "Use these tables in later rounds" (one write, all or nothing); tents print once for the event |
+| W5 | #420 | Judge "Finished now" per puzzle on solve-all/pick rounds (split at the tap, offline outbox, K-th split + result in one group) |
+| W4 | #425 | Challenges of a back-to-back block: own times per puzzle (split − previous), `?challenge=` rankings, desk/standing cells |
+| S1 | #416 | One round rule for solving times when a puzzle is in several rounds of a category (`SolvingTimeRoundMatch`, exclusions → entries → result, never a guess; **A3b sticky link**: an ambiguous time keeps the round it holds) + `round_chosen` |
+| S3 | #427 | Explicit round: Add to my profile names it, unfinished results, "This is my time - link it", the round picker on the result detail |
+| S2 | #432 | Rounds of one category may share a puzzle (refusal lifted; notices; internal API `sharedWithRounds`) |
+| D1+D2 | #421 | Divisions: event list + round subsets, division per round entry, organiser page + hub card, internal API (list + bulk entry divisions), division ranks on the desk + export |
+| D5 | #444 | Divisions on the public round page (`?division=`, division ranks before hidden rows are dropped), competitor page, tags/tents |
+| DM | #445 | `myspeedpuzzling:sandbox:demo-events` - the two demo events on the sandbox (below) |
+| TR | in each PR | cs/de/es/fr/ja for every new key |
+
+Moved to the participant-linking orchestrator (their files): the sheet Division column (D3), the import Division field
+(D4) and Ticket Tailor-style team rows (handoff: `cm-delivery/linking-handoff-divisions.md`). Built for v2 by this lane:
+`as_zero_pieces` (agreed with v2) and v2's item 5 (judge split times, W5).
+
+**Production data:** the 2026 Carnival event (`019a11a9-…`) had an empty slug → `st-paul-winter-carnival-2026` (internal
+API PATCH, page answers 200). Its `link` points at wintercarnival.com's `/events/2025/puzzle-competition` page; the
+`/events/2026/…` URL is a 404 there - left as is (for Jan). S1 dry run on production (read-only SQL
+`../shared-puzzles-dry-run.sql`): one event already shares a puzzle (Dutch Jigsaw Nationals 2026, Pairs round 1/2, from
+a puzzle merge) - with the sticky rule **0 links change**; its 50 times stay in Pairs round 1 and their players can move
+a time to round 2 from the result detail (S3).
+
+**Chaos suite (in a short Docker window, 2026-11-18):** `s14_puzzle_splits` PASS after a scenario fix (it read the
+pinned toast wrong - no product bug): split 1 tapped offline at 603 s, sent 8 s later after an offline reload, recorded
+602; split 2 = result 614; s13/s02/s08/s04 PASS; the full run passed s01-s12c (15/15; s10 at CPU 6x: ready 0.6 s, table →
+card p95 96 ms, Save → sent p95 266 ms) and was stopped before s13/s14 when Docker was paused again.
+
+**Demo events on the SANDBOX** (`myspeedpuzzling:sandbox:demo-events --date=2026-12-02`, run 2026-11-18 on the box; a
+re-run changes nothing; how to run + the 5-minute demo scripts: `docs/features/sandbox/README.md` "Demo events"; sign in
+as the made-up organiser `test-user+1@myspeedpuzzling.com` / `sandbox`, or Jan's own admin account):
+- World Series: https://sandbox.myspeedpuzzling.com/en/events/speed-puzzle-world-series-demo - standings
+  `/standings/pairs-championship` (+ individual/teams), a block round with `?challenge=1`
+  (`/results/pairs-challenges-1-2?challenge=1`), toolkit hub `/en/manage-event-toolkit/01a1edde-97b5-7066-ae78-ced0d83a70a2`,
+  displays `/display/Fnj3Tpess6BxRoBMcBSKgr` (hall timer) and `/display/QTwsp1pqPxYjG8XVp1v6RP` (stream overlay).
+- Winter Carnival: https://sandbox.myspeedpuzzling.com/en/events/winter-carnival-jigsaw-demo - shared puzzle
+  `/results/500-teams-challenge`, `/results/500-teams-open-1`, `/results/500-teams-open-2`; divisions
+  `/results/500-solo?division=S`; toolkit hub `/en/manage-event-toolkit/01a1edde-9efd-7991-a57e-73768a176fd5`.
+- 5-minute script (both): event page → round results (`?challenge=` / `?division=`) → standing → toolkit hub (divisions,
+  standings with the no-show rule, round formats incl. unboxed) → seating ("Same tables as") → results desk → judge page
+  on a phone (Finished now per puzzle) → competitor page → displays → analytics studio. Press Start on a running
+  round's stopwatch page on the day (no stopwatch is started by the command).
+
+**Unverified (no Docker):** the rest of the full chaos run (s13, s14_* in the full suite); every browser walk (each PR body lists what to look at); the load test of item 8 (350 entrants
+per round, 3 rounds × 150+ teams at once) with `tools/competition-load/` - T4's numbers stand (300 entrants, 6 judges:
+save p95 42 ms, 100 proposals in 1 s p95 106 ms); the S1 reconcile timing on a production-size copy (+20 % budget).
+
+**Defaults taken - open for Jan / the organisers:** back to back = ONE "Solve all 2" round on one stopwatch, challenge 2
+= split₂ − split₁ (taking puzzle 1 apart counts; a per-round deduction or a "bag opened" tap only if SPWS says so; one
+time limit per block); the chained-round design (two rounds, per-entrant start) is kept as v2 in world-series-rules.md
+with the review's blockers; defect pieces (2+ adjacent missing) = the judge simply doesn't record them (help line, no
+field); a no-show counts once the round is published; pick-round no-show pieces = the K largest puzzles; unboxed =
+until the first publish (catalogue pictures stay - use a new secret puzzle); same tables = copy per category (separate
+table ranges when championships overlap); divisions per round entry (a person may be Senior in Solo and Regular in
+Pairs), no eligibility check, standings per division after the demo; `?challenge=` and `?division=` exclusive; ties
+undefined by SPWS = shared rank.
+
+**v3 / left:** standings per division (D7); displays "rank by challenge" + division filter on displays/studio (D6);
+judge-card help line for penalised pieces; a desk Division cell for walk-ins; the embeddable standings widget for the
+SPWS Wix site (iframe route) and country flags on SPWS tags (nice to have, not started); chained rounds (above).

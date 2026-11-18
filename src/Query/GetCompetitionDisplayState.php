@@ -58,12 +58,15 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * - **Standings** (v2 S2): for a shown `standings` element the published standing as a guest sees it (DisplayStandings,
  *   cached per generation of the event's standings - 0 statements warm).
  *
- * - **Live control** (v2 L1/L2): for a shown `message` element the event's live message (read with the display).
+ * - **Live control** (v2 L1/L2): for a shown `message` element the event's live message (read with the display); for a
+ *   shown `spotlight` element the shown round's spotlight (its ref read with the rounds) as a results row from the same
+ *   entries statement - the name, table, members and flags always (the organiser chose to show them), its result and
+ *   rank only as the element's source allows; did not start, removed or waitlisted = nobody.
  *
  * Three statements (display + event, rounds, visible puzzles), a fourth for the results entries only when the design
  * shows results that may be shown now.
  *
- * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable}
+ * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable, spotlight_ref: null|string}
  * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string, control_message: null|string}
  */
 readonly final class GetCompetitionDisplayState
@@ -122,9 +125,10 @@ readonly final class GetCompetitionDisplayState
 
         $design = $display['design'];
         $results = null;
+        $spotlight = null;
 
         if ($round !== null && $display['uses_results']) {
-            $results = $this->results($round, $design, $display['uses_live_results'], $display['token'], $slots);
+            [$results, $spotlight] = $this->results($round, $design, $display['uses_live_results'], $display['token'], $slots);
         }
 
         // Published standings (v2 S2) - guest snapshots, cached per generation; a failure is an empty element, never a
@@ -139,9 +143,10 @@ readonly final class GetCompetitionDisplayState
         // The live control (v2 L1, displays-standings.md §5.2) - only for a design with a shown message element, read
         // with the display itself (statement 1): every other design's answer stays as it was
         $control = null;
+        $picks = DisplayDesignSanitizer::spotlightPicks($design);
 
-        if (DisplayDesignSanitizer::showsMessage($design)) {
-            $control = ['message' => $display['control_message'], 'spotlight' => null];
+        if (DisplayDesignSanitizer::showsMessage($design) || $picks['chosen'] || $picks['latest']) {
+            $control = ['message' => $display['control_message'], 'spotlight' => $spotlight];
         }
 
         // The design's own uploads by the display preset (original until lily's imgproxy has it - DisplayImages)
@@ -318,8 +323,10 @@ SELECT
     cr.stopwatch_status,
     cr.stopwatch_started_at,
     cr.stopwatch_stopped_at,
-    cr.results_published_at
+    cr.results_published_at,
+    sp.entry_ref AS spotlight_ref
 FROM competition_round cr
+LEFT JOIN competition_round_spotlight sp ON sp.round_id = cr.id
 WHERE cr.competition_id = :competitionId
 ORDER BY cr.starts_at, cr.id
 SQL,
@@ -329,7 +336,7 @@ SQL,
         $rounds = [];
 
         foreach ($rows as $position => $row) {
-            /** @var array{id: string, name: string, slug: null|string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string} $row */
+            /** @var array{id: string, name: string, slug: null|string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, spotlight_ref: null|string} $row */
             $rounds[] = [
                 'id' => strtolower($row['id']),
                 'name' => $row['name'],
@@ -343,6 +350,7 @@ SQL,
                 'stopwatch_started_at' => self::date($row['stopwatch_started_at']),
                 'stopwatch_stopped_at' => self::date($row['stopwatch_stopped_at']),
                 'results_published_at' => self::date($row['results_published_at']),
+                'spotlight_ref' => $row['spotlight_ref'],
             ];
         }
 
@@ -441,14 +449,16 @@ SQL,
      * @param Round $round
      * @param array<string, mixed> $design
      * @param list<RoundPuzzleSlot> $slots the round's puzzles as RoundPuzzlesVisibleNow gives them now
+     * @return array{0: null|DisplayResults, 1: null|DisplayResultRow} the results part and the chosen spotlight's row
+     *                                                              (v2 L2) - one entries statement for both
      */
-    private function results(array $round, array $design, bool $usesLiveResults, string $token, array $slots): null|DisplayResults
+    private function results(array $round, array $design, bool $usesLiveResults, string $token, array $slots): array
     {
         $demand = DisplayDesignSanitizer::resultsDemand($design);
         $views = DisplayDesignSanitizer::resultsViews($design);
 
         if ($demand === [] && $views === []) {
-            return null;
+            return [null, null];
         }
 
         $published = $round['results_published_at'] !== null;
@@ -457,9 +467,15 @@ SQL,
         $allowedViews = array_filter($views, static fn (array $view): bool => $published || ($usesLiveResults && $view['live']));
         // `views` only for a design that has an element showing a division or a challenge (real events L2b)
         $emptyViews = $views === [] ? null : [];
+        // The live control's spotlight (v2 L2): the chosen entry is shown by the organiser's choice - its name even before
+        // publishing; the latest finisher is a result, so only when results may show
+        $picks = DisplayDesignSanitizer::spotlightPicks($design);
+        $chosenRef = $picks['chosen'] && $round['spotlight_ref'] !== null ? strtolower($round['spotlight_ref']) : null;
+        $latestPick = $picks['latest'] && $allowed('spotlight');
+        $anyResults = $allowed('finished_count') || $allowed('leaderboard') || $allowed('ticker') || $allowedViews !== [] || $latestPick;
 
-        if (!$allowed('finished_count') && !$allowed('leaderboard') && !$allowed('ticker') && $allowedViews === []) {
-            return new DisplayResults($published, null, null, [], [], $emptyViews);
+        if (!$anyResults && $chosenRef === null) {
+            return [new DisplayResults($published, null, null, [], [], $emptyViews), null];
         }
 
         // What the views need of the round (one statement, only for a design with an allowed view)
@@ -475,6 +491,7 @@ SQL,
 
         $rows = [];
         $total = 0;
+        $spotlight = null;
 
         foreach ($entries as $index => $entry) {
             if ($entry['result']->didNotStart) {
@@ -484,6 +501,10 @@ SQL,
             $total++;
             $rank = $ranks[$index];
 
+            if ($chosenRef !== null && $entry['ref']->toString() === $chosenRef) {
+                $spotlight = self::spotlightRow($entry, $rank, $allowed('spotlight'), $token);
+            }
+
             if ($rank === null) {
                 continue;
             }
@@ -491,14 +512,20 @@ SQL,
             $rows[$index] = self::row($entry, $rank, $token);
         }
 
+        if (!$anyResults) {
+            return [new DisplayResults($published, null, null, [], [], $emptyViews), $spotlight];
+        }
+
         $top = [];
         if ($allowed('leaderboard')) {
             $top = self::best($rows, $demand['leaderboard']['rows']);
         }
 
+        // The ticker's rows - and at least the newest one for a spotlight following the latest finisher (v2 L2)
+        $latestRows = max($allowed('ticker') ? $demand['ticker']['rows'] : 0, $latestPick ? 1 : 0);
         $latest = [];
-        if ($allowed('ticker')) {
-            $latest = self::newest($rows, $demand['ticker']['rows']);
+        if ($latestRows > 0) {
+            $latest = self::newest($rows, $latestRows);
         }
 
         $viewRows = $emptyViews;
@@ -512,14 +539,17 @@ SQL,
             }
         }
 
-        return new DisplayResults(
-            published: $published,
-            finished: $allowed('finished_count') ? count($rows) : null,
-            total: $allowed('finished_count') ? $total : null,
-            top: $top,
-            latest: $latest,
-            views: $viewRows,
-        );
+        return [
+            new DisplayResults(
+                published: $published,
+                finished: $allowed('finished_count') ? count($rows) : null,
+                total: $allowed('finished_count') ? $total : null,
+                top: $top,
+                latest: $latest,
+                views: $viewRows,
+            ),
+            $spotlight,
+        ];
     }
 
     /**
@@ -661,6 +691,27 @@ SQL,
             didNotFinish: $ownSeconds !== null ? false : $entry['result']->isUnfinished(),
             tableNumber: $entry['table_number'],
             enteredAtMs: $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
+        );
+    }
+
+    /**
+     * The spotlit entry (v2 L2) - who and where always, the result and rank only when its source allows.
+     *
+     * @param array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles} $entry
+     */
+    private static function spotlightRow(array $entry, null|int $rank, bool $resultShown, string $token): DisplayResultRow
+    {
+        return new DisplayResultRow(
+            key: substr(hash_hmac('sha256', $entry['ref']->toString(), $token), 0, 16),
+            rank: $resultShown ? $rank : null,
+            name: $entry['name'],
+            members: $entry['members'],
+            countries: $entry['countries'],
+            resultSeconds: $resultShown ? $entry['result']->seconds : null,
+            piecesPlaced: $resultShown ? $entry['result']->piecesPlaced : null,
+            didNotFinish: $resultShown && $entry['result']->isUnfinished(),
+            tableNumber: $entry['table_number'],
+            enteredAtMs: $resultShown && $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
         );
     }
 

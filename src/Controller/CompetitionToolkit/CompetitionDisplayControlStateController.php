@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetDisplayControlState;
+use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayControlEntries;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,7 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The live control's data (competition toolkit v2 L1/L2, displays-standings.md §5.3) - `?round=` one of the event's
  * rounds, else the current one (LiveResultsCurrentRound): `{roundId, message, recentMessages, displays, elements:
- * {message, spotlight}}`. Organisers only (COMPETITION_TOOLKIT_MANAGE), `private, no-store`, 401/403 as JSON.
+ * {message, spotlight}, spotlight: {entryRef, name, table}|null, entries: [{ref, table, name, members, finishedAtMs}]}` -
+ * the round's entries for the spotlight picker with the organiser's names (did not start left out). Organisers only (COMPETITION_TOOLKIT_MANAGE), `private, no-store`, 401/403 as JSON.
  */
 final class CompetitionDisplayControlStateController extends AbstractController
 {
@@ -27,6 +30,7 @@ final class CompetitionDisplayControlStateController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly GetDisplayControlState $getDisplayControlState,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
+        private readonly GetRoundResultEntries $getRoundResultEntries,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -63,10 +67,25 @@ final class CompetitionDisplayControlStateController extends AbstractController
         }
 
         $round ??= LiveResultsCurrentRound::pick($rounds, $this->clock->now());
+        $entries = [];
+        $spotlight = null;
+
+        if ($round !== null) {
+            $entries = DisplayControlEntries::forPicker($this->getRoundResultEntries->forRound($round->roundId));
+            $ref = $this->getDisplayControlState->spotlightRef($round->roundId);
+
+            if ($ref !== null) {
+                $entry = array_values(array_filter($entries, static fn (array $chip): bool => $chip['ref'] === $ref))[0] ?? null;
+                // An entry gone meanwhile (removed from the event): the displays show nobody - the picker names nobody
+                $spotlight = ['entryRef' => $ref, 'name' => $entry['name'] ?? null, 'table' => $entry['table'] ?? null];
+            }
+        }
 
         return OfficialResultsApi::json([
             'roundId' => $round?->roundId,
             ...$this->getDisplayControlState->ofCompetition($competitionId),
+            'spotlight' => $spotlight,
+            'entries' => $entries,
         ]);
     }
 }

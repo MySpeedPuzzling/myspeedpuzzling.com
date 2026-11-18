@@ -458,6 +458,11 @@ check('preview: a sample live message for message elements only (v2 L1)', () => 
     equal(state.control, { message: 'Pauza', spotlight: null }, 'sample message in the display language');
     equal(previewState(BASE, { mode: 'sample', phase: 'running', published: false, revealed: false, nowMs: now, design: { elements: [] } }).state.control, undefined, 'none without an element');
     assert(CATALOGUE.find((group) => group.group === 'text').types.includes('message'), 'in the text group');
+
+    // A spotlight (L2): a results element - sample results, and a sample entry "chosen"
+    const spotlight = previewState(BASE, { mode: 'sample', phase: 'running', published: false, revealed: false, nowMs: now, design: { elements: [{ id: 'spot0001', type: 'spotlight' }] } }).state;
+    equal(spotlight.control.spotlight.key, spotlight.results.top[1].key, 'the sample spotlight');
+    assert(CATALOGUE.find((group) => group.group === 'results').types.includes('spotlight'), 'in the results group');
 });
 
 check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, display mode keeps the real state', () => {

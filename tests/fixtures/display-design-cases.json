@@ -6449,6 +6449,453 @@
         "results": false,
         "live": false
       }
+    },
+    {
+      "name": "spotlight: defaults, values normalised, a results element on the published source",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "spot0001",
+            "type": "spotlight",
+            "frame": {}
+          },
+          {
+            "id": "spot0002",
+            "type": "spotlight",
+            "frame": {},
+            "props": {
+              "pick": "latest_finisher",
+              "show": [
+                "rank",
+                "result",
+                "members",
+                "name",
+                "table",
+                "flag",
+                "photo",
+                "rank"
+              ],
+              "whenUnpublished": "text",
+              "unpublishedText": " Results soon ",
+              "whenEmpty": "text",
+              "emptyText": "  <i>Nobody</i>\nyet\u0007 ",
+              "entryRef": "team:x"
+            }
+          },
+          {
+            "id": "spot0003",
+            "type": "spotlight",
+            "frame": {},
+            "props": {
+              "pick": "random",
+              "show": "name",
+              "source": "everything",
+              "whenEmpty": "html"
+            }
+          },
+          {
+            "id": "spot0004",
+            "type": "spotlight",
+            "frame": {},
+            "props": {
+              "show": []
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "spot0001",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "chosen",
+              "show": [
+                "table",
+                "name",
+                "flag",
+                "result"
+              ],
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "spot0002",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "latest_finisher",
+              "show": [
+                "table",
+                "name",
+                "members",
+                "flag",
+                "result",
+                "rank"
+              ],
+              "source": "published",
+              "whenUnpublished": "text",
+              "unpublishedText": "Results soon",
+              "whenEmpty": "text",
+              "emptyText": "<i>Nobody</i> yet"
+            }
+          },
+          {
+            "id": "spot0003",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "chosen",
+              "show": [
+                "table",
+                "name",
+                "flag",
+                "result"
+              ],
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "spot0004",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "chosen",
+              "show": [],
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "spotlight: a live one asks for live results, a hidden or never shown one for nothing",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "spot0011",
+            "type": "spotlight",
+            "frame": {},
+            "hidden": true,
+            "props": {
+              "source": "live"
+            }
+          },
+          {
+            "id": "spot0012",
+            "type": "spotlight",
+            "frame": {},
+            "when": {
+              "phases": []
+            },
+            "props": {
+              "source": "live"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "spot0011",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": true,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "chosen",
+              "show": [
+                "table",
+                "name",
+                "flag",
+                "result"
+              ],
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "spot0012",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "chosen",
+              "show": [
+                "table",
+                "name",
+                "flag",
+                "result"
+              ],
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": false,
+        "live": false
+      }
+    },
+    {
+      "name": "spotlight: a shown live one",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "spot0021",
+            "type": "spotlight",
+            "frame": {},
+            "props": {
+              "source": "live",
+              "pick": "latest_finisher"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "spot0021",
+            "type": "spotlight",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "pick": "latest_finisher",
+              "show": [
+                "table",
+                "name",
+                "flag",
+                "result"
+              ],
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": true
+      }
     }
   ]
 }

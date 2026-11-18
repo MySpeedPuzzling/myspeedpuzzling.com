@@ -14823,6 +14823,7 @@ competition_display:
             ticker: "Latest finishers"
             standings: "Standings"
             message: "Live message"
+            spotlight: "Spotlight"
         section:
             general: "Element"
             position: "Position and size (% of the screen)"
@@ -14911,6 +14912,11 @@ competition_display:
             message:
                 whenEmpty: "Without a message"
                 emptyText: "Text without a message"
+            pick: "Shows"
+            spotlight:
+                show: "Show"
+                whenEmpty: "Nobody in the spotlight"
+                emptyText: "Text with nobody in the spotlight"
         style:
             font: "Font"
             fontSize: "Font size (px at 1080p)"
@@ -15024,13 +15030,29 @@ competition_display:
             500: "Medium"
             700: "Bold"
             900: "Black"
+            chosen: "Whom you choose in the live control"
+            latest_finisher: "The latest finisher"
 competition_display_control:
     title: "Live control"
     round: "Round"
     no_displays: "This event has no displays yet - add one first."
     offline: "No connection - nothing was changed. Try again."
+    open: "Live control"
+    stopwatch_card: "Spotlight on displays"
     no_elements:
         message: "No display shows a message yet - add a Live message element to a display design."
+        spotlight: "No display shows the spotlight yet - add a Spotlight element to a display design."
+    spotlight:
+        title: "Spotlight"
+        current: "In the spotlight now"
+        none: "Nobody"
+        gone: "Not in this round any more"
+        clear: "Clear the spotlight"
+        filter: "Table or name"
+        just_finished: "Just finished"
+        empty: "Nobody is entered in this round yet."
+        unknown_entry: "This entry is no longer in the round. Pick another one."
+        failed: "The spotlight could not be changed. Try again."
     message:
         title: "Message on the displays"
         label: "New message"

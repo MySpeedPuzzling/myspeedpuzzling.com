@@ -66,4 +66,17 @@ SQL,
             ],
         ];
     }
+
+    /**
+     * The entry ref a round's displays spotlight - null while nobody is in it.
+     */
+    public function spotlightRef(string $roundId): null|string
+    {
+        $ref = $this->database->fetchOne(
+            'SELECT entry_ref FROM competition_round_spotlight WHERE round_id = :roundId',
+            ['roundId' => $roundId],
+        );
+
+        return is_string($ref) ? $ref : null;
+    }
 }

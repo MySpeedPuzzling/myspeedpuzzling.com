@@ -27,6 +27,7 @@
          data-display-control-config-value="{{ {
              stateUrl: path('competition_display_control_state', {competitionId: competition.id}),
              messageUrl: path('set_display_message', {competitionId: competition.id}),
+             spotlightUrl: path('set_round_spotlight', {roundId: '00000000-0000-0000-0000-000000000000'})|replace({'00000000-0000-0000-0000-000000000000': '__ROUND__'}),
              csrfToken: csrf_token,
              roundId: round_id,
              texts: {
@@ -56,6 +57,16 @@
                     {% endfor %}
                 </select>
             </div>
+        {% endif %}
+
+        {# The round's spotlight - one tap on a chip (L2) #}
+        {% if rounds is not empty %}
+            <section class="card shadow-sm mb-3" data-display-control-spotlight>
+                <div class="card-body">
+                    <h2 class="h5">{{ 'competition_display_control.spotlight.title'|trans }}</h2>
+                    {{ include('competition_toolkit/_display_spotlight_picker.html.twig') }}
+                </div>
+            </section>
         {% endif %}
 
         {# The message every display with a Message element shows (L1) #}

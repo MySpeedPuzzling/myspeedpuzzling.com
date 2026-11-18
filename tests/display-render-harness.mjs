@@ -668,6 +668,77 @@ check('message: the live message, else the own text, else nothing at all (not ev
     equal(renderer.nextChangeMs(baseState({ control: { message: 'x', spotlight: null } }), START), null, 'no timer of its own');
 });
 
+const SPOT_ROW = { key: 'k12', rank: 2, name: 'Jane Doe', members: [], countries: ['cz'], resultSeconds: 3725, piecesPlaced: null, didNotFinish: false, tableNumber: 12, enteredAtMs: START - 5_000 };
+
+check('spotlight chosen: the name always, the result and rank only as the source allows', () => {
+    const { document, root } = dom();
+    const elements = [
+        element('sp000001', 'spotlight', { pick: 'chosen', show: ['rank', 'flag', 'name', 'table', 'result'] }),
+        element('sp000002', 'spotlight', { pick: 'chosen', show: ['name', 'result'], source: 'live' }),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'overlay' });
+    const [published, live] = root.querySelectorAll('.msp-el');
+    const round = (resultsPublished) => ({ ...baseState().round, resultsPublished });
+
+    // Not published: the published one shows who and where, the live one the time too
+    renderer.render(baseState({ round: round(false), results: { published: false, finished: null, total: null, top: [], latest: [] }, control: { message: null, spotlight: SPOT_ROW } }), START);
+    equal(published.querySelector('.msp-spotlight__name').textContent, 'Jane Doe', 'name');
+    equal(published.querySelector('.msp-spotlight__detail').textContent, 'Table 12', 'table, no time');
+    assert(!visible(published.querySelector('.msp-spotlight__rank')), 'no rank');
+    equal(published.querySelector('.fi').className, 'fi fi-cz', 'flag');
+    equal(live.querySelector('.msp-spotlight__detail').textContent, '1:02:05', 'live time');
+
+    // Published: everything
+    renderer.render(baseState({ round: round(true), results: { published: true, finished: null, total: null, top: [], latest: [] }, control: { message: null, spotlight: SPOT_ROW } }), START);
+    equal(published.querySelector('.msp-spotlight__rank').textContent, '2.', 'rank');
+    equal(published.querySelector('.msp-spotlight__detail').textContent, 'Table 12 · 1:02:05', 'table + time');
+
+    // Cleared: nothing at all
+    renderer.render(baseState({ control: { message: null, spotlight: null } }), START);
+    equal(published.style.visibility, 'hidden', 'no panel');
+});
+
+check('spotlight latest finisher: the newest result, whenUnpublished before publishing, own text without one', () => {
+    const { document, root } = dom();
+    const elements = [
+        element('sp000001', 'spotlight', { pick: 'latest_finisher', whenUnpublished: 'text', unpublishedText: 'Results soon', whenEmpty: 'text', emptyText: 'Nobody yet' }),
+        element('sp000002', 'spotlight', { pick: 'latest_finisher', source: 'live' }),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'overlay' });
+    const [first, second] = root.querySelectorAll('.msp-el');
+    const latest = { ...SPOT_ROW, key: 'newest', name: 'Ben Steady', tableNumber: 3 };
+
+    renderer.render(baseState({ results: { published: false, finished: null, total: null, top: [], latest: [latest] } }), START);
+    equal(first.querySelector('.msp-spotlight__empty').textContent, 'Results soon', 'unpublished text');
+    equal(second.querySelector('.msp-spotlight__name').textContent, 'Ben Steady', 'live: the newest');
+
+    renderer.render(baseState({ results: { published: true, finished: null, total: null, top: [], latest: [] } }), START);
+    equal(first.querySelector('.msp-spotlight__empty').textContent, 'Nobody yet', 'no result yet');
+    equal(second.style.visibility, 'hidden', 'nothing');
+
+    renderer.render(baseState({ results: { published: true, finished: null, total: null, top: [], latest: [latest] } }), START);
+    equal(first.querySelector('.msp-spotlight__name').textContent, 'Ben Steady', 'published: the newest');
+    assert(!visible(first.querySelector('.msp-spotlight__empty')), 'text gone');
+});
+
+check('xss: a spotlight fed evil data', () => {
+    const { document, root, window } = dom();
+    const show = ['table', 'name', 'members', 'flag', 'result', 'rank'];
+    const elements = [
+        element('sp000001', 'spotlight', { pick: 'chosen', show, source: 'live', whenEmpty: 'text', emptyText: EVIL }),
+        element('sp000002', 'spotlight', { pick: 'latest_finisher', show, whenUnpublished: 'text', unpublishedText: EVIL }),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    renderer.render(evilState(), START);
+    renderer.render(baseState({ control: { message: null, spotlight: EVIL } }), START);
+    renderer.render(evilState(), START + 1_000);
+    const problem = injected(root);
+    assert(problem === null, problem);
+    assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
+    assert(window.document.querySelectorAll('script').length === 0, 'no script');
+    equal([...root.querySelectorAll('.fi')].map((flag) => flag.className), ['fi fi-cz', 'fi fi-cz'], 'flags');
+});
+
 check('xss: a message fed evil data', () => {
     const { document, root, window } = dom();
     const elements = [element('ms000001', 'message', { whenEmpty: 'text', emptyText: EVIL }), element('ms000002', 'message')];

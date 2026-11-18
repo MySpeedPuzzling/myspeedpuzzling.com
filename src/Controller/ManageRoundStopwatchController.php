@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
 use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -35,6 +36,7 @@ final class ManageRoundStopwatchController extends AbstractController
         private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly ClockInterface $clock,
         private readonly SecretRevealPreview $secretRevealPreview,
+        private readonly CompetitionDisplaysPresence $displaysPresence,
     ) {
     }
 
@@ -79,6 +81,9 @@ final class ManageRoundStopwatchController extends AbstractController
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
             'stopwatch_reveal' => $stopwatchReveal,
             'stopwatch_reveal_hash' => $stopwatchReveal !== [] ? SecretRevealPreview::stopwatchStartHash($stopwatchReveal, $round) : null,
+            // "Spotlight on displays" (competition toolkit v2 L2): only for an event with displays - the cached answer the
+            // display signals keep warm (0 statements); COMPETITION_EDIT above is exactly COMPETITION_TOOLKIT_MANAGE
+            'display_spotlight' => $this->displaysPresence->forRound($round->id->toString())->displays,
         ]);
     }
 

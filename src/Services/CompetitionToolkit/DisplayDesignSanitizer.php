@@ -12,7 +12,8 @@ use stdClass;
 /**
  * The boundary of a display design - schema v1 (docs/features/competitions-management/toolkit/D-displays-overlays.md
  * §4, §4.1, §5 with the v1 cuts of R-review-and-plan.md §3: 4 fonts) + the `standings` element of competition toolkit
- * v2 S2 (displays-standings.md §3.2) and the live control's `message` element (v2 L1, displays-standings.md §5.2).
+ * v2 S2 (displays-standings.md §3.2) and the live control's `message` / `spotlight` elements (v2 L1/L2,
+ * displays-standings.md §5.2).
  *
  * A strict whitelist: only the known element types, keys and value ranges come out; there is no field for raw CSS,
  * HTML, SVG, classes or URLs except this event's own uploaded pictures and one https link for a QR code.
@@ -36,11 +37,14 @@ final readonly class DisplayDesignSanitizer
 
     public const array ELEMENT_TYPES = [
         'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-        'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message',
+        'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight',
     ];
 
     /** Elements that show official results - each has a `source` (published | live) */
-    public const array RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
+    public const array RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker', 'spotlight'];
+
+    /** What the spotlight element shows of its entry (competition toolkit v2 L2) */
+    public const array SPOTLIGHT_SHOW = ['table', 'name', 'members', 'flag', 'result', 'rank'];
 
     /** Results elements that may show one view of the round (real events L2b): a division, a challenge (leaderboard only) */
     public const array RESULTS_VIEW_TYPES = ['leaderboard', 'ticker'];
@@ -159,6 +163,25 @@ final readonly class DisplayDesignSanitizer
         }
 
         return false;
+    }
+
+    /**
+     * Which spotlights the shown `spotlight` elements show (competition toolkit v2 L2, displays-standings.md §5.2): the
+     * entry chosen on the live control (the round's spotlight) and / or the latest finisher (the newest result).
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @return array{chosen: bool, latest: bool}
+     */
+    public static function spotlightPicks(array $design): array
+    {
+        $picks = ['chosen' => false, 'latest' => false];
+
+        foreach (self::shownElementsOfType($design, 'spotlight') as $element) {
+            $props = is_array($element['props'] ?? null) ? $element['props'] : [];
+            $picks[($props['pick'] ?? null) === 'latest_finisher' ? 'latest' : 'chosen'] = true;
+        }
+
+        return $picks;
     }
 
     /**
@@ -732,6 +755,15 @@ final readonly class DisplayDesignSanitizer
                 'whenEmpty' => self::enum(self::get($input, 'whenEmpty'), ['nothing', 'text'], 'nothing'),
                 'emptyText' => self::plain(self::get($input, 'emptyText'), 80, multiline: false, trim: true),
                 'maxLines' => self::integer(self::get($input, 'maxLines'), 1, 4, 2),
+            ],
+            // The live control's spotlight (competition toolkit v2 L2): the entry chosen on the live control or the latest
+            // finisher; its result and rank only as the source allows (a results type)
+            'spotlight' => [
+                'pick' => self::enum(self::get($input, 'pick'), ['chosen', 'latest_finisher'], 'chosen'),
+                'show' => self::subset(self::get($input, 'show'), self::SPOTLIGHT_SHOW, ['table', 'name', 'flag', 'result']),
+                ...self::resultsSource($input),
+                'whenEmpty' => self::enum(self::get($input, 'whenEmpty'), ['nothing', 'text'], 'nothing'),
+                'emptyText' => self::plain(self::get($input, 'emptyText'), 80, multiline: false, trim: true),
             ],
             default => [], // box
         };

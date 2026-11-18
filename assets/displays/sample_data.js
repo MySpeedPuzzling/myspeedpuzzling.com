@@ -195,10 +195,16 @@ export function previewState(base, options) {
         state.texts = { ...state.texts, ...standingTexts };
     }
 
-    // The live control (v2 L1/L2): a sample message for every message element - the organiser sets the real one on the
+    // The live control (v2 L1/L2): a sample message and spotlight for message / spotlight elements - the organiser sets the real one on the
     // live control page
-    if ((design?.elements ?? []).some((element) => element.type === 'message')) {
-        state.control = { message: labels.message ?? 'Break - next round 14:30', spotlight: null };
+    const elements = design?.elements ?? [];
+
+    if (elements.some((element) => element.type === 'message' || element.type === 'spotlight')) {
+        state.control = {
+            message: labels.message ?? 'Break - next round 14:30',
+            // A spotlight "chosen" on the live control - the sample results' second row
+            spotlight: state.results !== null ? state.results.top[1] : null,
+        };
     }
 
     state.puzzles = revealed

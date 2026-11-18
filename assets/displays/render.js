@@ -442,6 +442,42 @@ export function messageText(props, state) {
 }
 
 /**
+ * The entry a spotlight element shows - {row, text}: the row (null = nobody) and the text to show instead. `chosen` = the
+ * round's spotlight from the live control (its name always; its result and rank only as the element's source allows -
+ * the state may carry them for another, live element); `latest_finisher` = the newest result (a results element: before
+ * publishing only with `source: live`, else its `whenUnpublished`).
+ */
+export function spotlightFor(props, state) {
+    const emptyText = props.whenEmpty === 'text' && typeof props.emptyText === 'string' ? props.emptyText : '';
+
+    if (props.pick === 'latest_finisher') {
+        const { results, text } = resultsFor(props, state);
+
+        if (results === null) {
+            return { row: null, text };
+        }
+
+        const row = Array.isArray(results.latest) && results.latest[0] && typeof results.latest[0] === 'object' ? results.latest[0] : null;
+
+        return { row, text: row === null ? emptyText : '' };
+    }
+
+    const chosen = state.control?.spotlight;
+
+    if (chosen === null || typeof chosen !== 'object') {
+        return { row: null, text: emptyText };
+    }
+
+    const published = state.results?.published === true || state.round?.resultsPublished === true;
+
+    if (props.source !== 'live' && !published) {
+        return { row: { ...chosen, rank: null, resultSeconds: null, piecesPlaced: null, didNotFinish: false }, text: '' };
+    }
+
+    return { row: chosen, text: '' };
+}
+
+/**
  * The visibility of an element: not hidden, shown in the phase, and its results / puzzle conditions.
  */
 export function isShown(element, context) {
@@ -707,6 +743,17 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                 break;
             case 'qr':
                 view.refs.signature = null;
+                break;
+            case 'spotlight':
+                body.style.flexDirection = 'column';
+                view.refs.top = el('div', 'msp-spotlight__top', body);
+                view.refs.rank = el('span', 'msp-spotlight__rank', view.refs.top);
+                view.refs.flags = el('span', 'msp-spotlight__flags', view.refs.top);
+                view.refs.name = el('span', 'msp-spotlight__name', view.refs.top);
+                view.refs.members = el('div', 'msp-spotlight__members', body);
+                view.refs.detail = el('div', 'msp-spotlight__detail', body);
+                view.refs.empty = el('span', 'msp-el__line msp-spotlight__empty', body);
+                view.refs.flagSignature = null;
                 break;
             case 'message':
                 // At most maxLines lines, cut with an ellipsis - "shrink" (style.fit) makes a long one smaller first
@@ -1329,6 +1376,58 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         });
     }
 
+    function updateSpotlight(view, element, state) {
+        const { show } = element.props;
+        const { row, text } = spotlightFor(element.props, state);
+        const texts = state.texts ?? {};
+        const visibleRow = row !== null;
+        const shows = (part) => visibleRow && show.includes(part);
+
+        setText(view, 'empty', view.refs.empty, visibleRow ? '' : text);
+        view.refs.empty.style.display = visibleRow || text === '' ? 'none' : '';
+        // Nobody and no own text: nothing at all - not even the element's panel
+        setStyle(view.node, 'visibility', !visibleRow && text === '' ? 'hidden' : '');
+
+        setText(view, 'rank', view.refs.rank, shows('rank') && typeof row.rank === 'number' ? `${row.rank}.` : '');
+        view.refs.rank.style.display = view.texts.rank === '' ? 'none' : '';
+
+        setText(view, 'name', view.refs.name, shows('name') && typeof row.name === 'string' ? row.name : '');
+        view.refs.name.style.display = view.texts.name === '' ? 'none' : '';
+
+        const members = shows('members') && Array.isArray(row.members) ? row.members.filter((name) => typeof name === 'string').join(', ') : '';
+        setText(view, 'members', view.refs.members, members);
+        view.refs.members.style.display = members === '' ? 'none' : '';
+
+        const detail = [];
+        if (shows('table') && typeof row.tableNumber === 'number') {
+            detail.push((texts.table ?? '%number%').split('%number%').join(String(row.tableNumber)));
+        }
+        if (shows('result')) {
+            const result = resultText(row, texts);
+            if (result !== '') {
+                detail.push(result);
+            }
+        }
+        setText(view, 'detail', view.refs.detail, detail.join(' · '));
+        view.refs.detail.style.display = detail.length === 0 ? 'none' : '';
+
+        const countries = shows('flag') && Array.isArray(row.countries)
+            ? row.countries.filter((code) => typeof code === 'string' && COUNTRY_PATTERN.test(code)).slice(0, 4)
+            : [];
+        const signature = countries.join(',');
+
+        if (view.refs.flagSignature !== signature) {
+            view.refs.flagSignature = signature;
+            view.refs.flags.replaceChildren();
+
+            for (const code of countries) {
+                el('span', `fi fi-${code}`, view.refs.flags);
+            }
+        }
+
+        view.refs.flags.style.display = countries.length === 0 ? 'none' : '';
+    }
+
     function updateQr(view, element, state) {
         const props = element.props;
         const code = state.qr?.[element.id] ?? null;
@@ -1457,6 +1556,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                     break;
                 case 'standings':
                     updateStandings(view, element, state);
+                    break;
+                case 'spotlight':
+                    updateSpotlight(view, element, state);
                     break;
                 case 'message': {
                     const text = messageText(element.props, state);

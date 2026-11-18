@@ -1,0 +1,34 @@
+{#
+    The spotlight picker (competition toolkit v2 L2, displays-standings.md §5.3) - inside a display-control controller
+    (the live control page and the stopwatch page's card). Filled by display_control_controller.js; one tap on a chip
+    sets the round's spotlight at once.
+#}
+{#- The picker's own texts (both pages carry them with the picker) -#}
+<div hidden data-display-control-target="spotlightTexts" data-texts="{{ {
+    spotlightNone: 'competition_display_control.spotlight.none'|trans,
+    spotlightGone: 'competition_display_control.spotlight.gone'|trans,
+    spotlightFailed: 'competition_display_control.spotlight.failed'|trans,
+    spotlight_unknown_entry: 'competition_display_control.spotlight.unknown_entry'|trans,
+    spotlight_no_displays: 'competition_display_control.no_displays'|trans,
+    spotlight_offline: 'competition_display_control.offline'|trans,
+}|json_encode|e('html_attr') }}"></div>
+<p class="mb-2">
+    <span class="small text-muted d-block">{{ 'competition_display_control.spotlight.current'|trans }}</span>
+    <span class="fs-5 fw-semibold text-break" data-display-control-target="spotlightCurrent" aria-live="polite"></span>
+</p>
+<button type="button" class="btn btn-sm btn-outline-danger mb-3" data-display-control-target="spotlightClear" data-action="display-control#clearSpotlight" disabled>
+    <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ 'competition_display_control.spotlight.clear'|trans }}
+</button>
+<div class="alert alert-danger py-1 px-2 small mb-2" role="alert" data-display-control-target="spotlightError" hidden></div>
+
+<div class="mb-3" data-display-control-target="justFinishedWrap" hidden>
+    <div class="small text-muted mb-1">{{ 'competition_display_control.spotlight.just_finished'|trans }}</div>
+    <div class="d-flex flex-wrap gap-2" data-display-control-target="justFinished"></div>
+</div>
+
+<input type="search" class="form-control mb-2" inputmode="search" autocomplete="off"
+       placeholder="{{ 'competition_display_control.spotlight.filter'|trans }}" aria-label="{{ 'competition_display_control.spotlight.filter'|trans }}"
+       data-display-control-target="spotlightFilter" data-action="input->display-control#filterChanged">
+<div class="d-flex flex-wrap gap-2" data-display-control-target="chips"></div>
+<p class="small text-muted mb-0" data-display-control-target="spotlightEmpty" hidden>{{ 'competition_display_control.spotlight.empty'|trans }}</p>
+<p class="small text-muted mt-2 mb-0" data-display-control-target="spotlightHint" hidden>{{ 'competition_display_control.no_elements.spotlight'|trans }}</p>

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\OfficialRoundEntrants;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -32,6 +33,10 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * - Names are the organiser's participant names. A linked player carries their profile (`playerId`, avatar, country)
  *   only when the viewer may see them; a private player the viewer may not see (PrivateProfileAccess) keeps the
  *   organiser's name, nothing of the profile.
+ * - A round that uses divisions (shared-puzzles-and-divisions.md D5): each entry carries its division and its rank
+ *   within it (OfficialResultsRanking::rankWithin()) - computed with the overall rank, before the hidden rows are dropped,
+ *   never renumbered (A13). The round's divisions ride on the entries statement as one JSON column (RoundDivisionsJson)
+ *   - no statement more, and a round without divisions reads what it always did.
  * - A `pick` round's per-puzzle record (`result_puzzles`) comes along as stored - ids of round puzzles only; what of
  *   them a page may name is RoundPuzzlesVisibleNow's business (PublishedEntryPuzzle::listOf()).
  *
@@ -40,7 +45,7 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * At most two statements for any number of rounds - one for the solo rounds, one for the pair/team rounds (bringing
  * their members along as JSON); a single round runs one.
  *
- * @phpstan-type Row array{round_id: string, ref: RoundEntryRef, result: RoundEntryResult, missing_pieces: null|int, puzzles: null|RoundEntryPuzzles, qualified: bool, team_name: null|string, entrants: list<PublishedRoundEntrant>, participant_ids: list<string>, round_puzzles_count: int, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string}
+ * @phpstan-type Row array{round_id: string, ref: RoundEntryRef, division_id: null|string, round_divisions: null|string, result: RoundEntryResult, missing_pieces: null|int, puzzles: null|RoundEntryPuzzles, qualified: bool, team_name: null|string, entrants: list<PublishedRoundEntrant>, participant_ids: list<string>, round_puzzles_count: int, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string}
  */
 readonly final class OfficialEntrantsView
 {
@@ -105,19 +110,42 @@ readonly final class OfficialEntrantsView
      */
     private function round(string $roundId, array $rows, null|string $viewerPlayerId, bool $keepHidden, bool $asGuest): OfficialRoundEntrants
     {
-        $ranks = OfficialResultsRanking::rank(array_map(
+        $results = array_map(
             static fn (array $row): RoundEntryResult => $row['result'],
             $rows,
-        ));
+        );
+        $ranks = OfficialResultsRanking::rank($results);
+
+        // The divisions the round uses (D5) - none: every entry is exactly what it was
+        $divisions = [];
+        foreach (RoundDivision::listFromJson($rows[0]['round_divisions'] ?? null) as $division) {
+            $divisions[$division->id] = $division;
+        }
+
+        $divisionOf = array_map(
+            static fn (array $row): null|RoundDivision => $row['division_id'] !== null ? $divisions[$row['division_id']] ?? null : null,
+            $rows,
+        );
+        // Within each division by the overall rules, over every entry - before the hidden rows are dropped (A13)
+        $divisionRanks = $divisions !== []
+            ? OfficialResultsRanking::rankWithin($results, array_map(static fn (null|RoundDivision $division): null|string => $division?->id, $divisionOf))
+            : [];
 
         $entries = [];
         $rankedCount = 0;
+        $rankedCountByDivision = [];
 
         foreach ($rows as $index => $row) {
             $rank = $ranks[$index];
 
             if ($rank !== null) {
                 $rankedCount++;
+
+                $division = $divisionOf[$index];
+
+                if ($division !== null && ($divisionRanks[$index] ?? null) !== null) {
+                    $rankedCountByDivision[$division->id] = ($rankedCountByDivision[$division->id] ?? 0) + 1;
+                }
             }
 
             if ($rank === null) {
@@ -144,6 +172,8 @@ readonly final class OfficialEntrantsView
                 participantIds: $row['participant_ids'],
                 hiddenFromViewer: $hidden,
                 missingPieces: $row['missing_pieces'],
+                division: $divisionOf[$index],
+                divisionRank: $divisionRanks[$index] ?? null,
             );
         }
 
@@ -159,6 +189,8 @@ readonly final class OfficialEntrantsView
             viewerHasEntry: $rows[0]['viewer_has_entry'] ?? false,
             viewerName: $rows[0]['viewer_name'] ?? null,
             viewerCountry: $rows[0]['viewer_country'] ?? null,
+            divisions: array_values($divisions),
+            rankedCountByDivision: $rankedCountByDivision,
         );
     }
 
@@ -172,6 +204,7 @@ readonly final class OfficialEntrantsView
             return [];
         }
 
+        $roundDivisions = RoundDivisionsJson::sql('official_round.id');
         $rows = $this->database->executeQuery(
             <<<SQL
 SELECT
@@ -182,6 +215,8 @@ SELECT
     cpr.result_missing_pieces,
     cpr.result_puzzles,
     cpr.qualified_at IS NOT NULL AS qualified,
+    cpr.division_id,
+    {$roundDivisions} AS round_divisions,
     cp.id AS participant_id,
     cp.name AS participant_name,
     cp.country AS participant_country,
@@ -206,10 +241,12 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_id: string, id: string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, round_puzzles_count: int|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
+            /** @var array{round_id: string, id: string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, division_id: null|string, round_divisions: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, round_puzzles_count: int|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
             $entries[] = [
                 'round_id' => strtolower($row['round_id']),
                 'ref' => RoundEntryRef::participantRound($row['id']),
+                'division_id' => $row['division_id'] !== null ? strtolower($row['division_id']) : null,
+                'round_divisions' => $row['round_divisions'],
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], false),
                 'missing_pieces' => $row['result_seconds'] !== null ? $row['result_missing_pieces'] : null,
                 'puzzles' => RoundEntryPuzzles::fromStored($row['result_puzzles']),
@@ -237,6 +274,7 @@ SQL,
             return [];
         }
 
+        $roundDivisions = RoundDivisionsJson::sql('official_round.id');
         $rows = $this->database->executeQuery(
             <<<SQL
 SELECT
@@ -248,6 +286,8 @@ SELECT
     ct.result_missing_pieces,
     ct.result_puzzles,
     ct.qualified_at IS NOT NULL AS qualified,
+    ct.division_id,
+    {$roundDivisions} AS round_divisions,
     (SELECT COUNT(*) FROM competition_round_puzzle crp WHERE crp.round_id = ct.round_id) AS round_puzzles_count,
     {$this->sqlViewer('ct', true)},
     (
@@ -278,13 +318,15 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_id: string, id: string, name: null|string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, round_puzzles_count: int|string, members: null|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
+            /** @var array{round_id: string, id: string, name: null|string, result_seconds: null|int, result_pieces_placed: null|int, result_missing_pieces: null|int, result_puzzles: null|string, qualified: bool, division_id: null|string, round_divisions: null|string, round_puzzles_count: int|string, members: null|string, viewer_has_entry: bool, viewer_name: null|string, viewer_country: null|string} $row */
             /** @var list<array{participant_id: string, name: string, country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool}> $members */
             $members = $row['members'] !== null ? json_decode($row['members'], true, flags: JSON_THROW_ON_ERROR) : [];
 
             $entries[] = [
                 'round_id' => strtolower($row['round_id']),
                 'ref' => RoundEntryRef::team($row['id']),
+                'division_id' => $row['division_id'] !== null ? strtolower($row['division_id']) : null,
+                'round_divisions' => $row['round_divisions'],
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], false),
                 'missing_pieces' => $row['result_seconds'] !== null ? $row['result_missing_pieces'] : null,
                 'puzzles' => RoundEntryPuzzles::fromStored($row['result_puzzles']),

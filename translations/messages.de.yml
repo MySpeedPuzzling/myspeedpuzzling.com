@@ -175,6 +175,13 @@
     no_split: "Fertig, Zeit nicht erfasst"
     not_recorded: "Nicht erfasst"
     round_result: "Runde: %rank%. · %result%"
+  division:
+    filter_label: "Wertungsklassen"
+    all: "Alle"
+    place: "%division% · %place%"
+    ranked: "{0}%count% gewertet in %division%|{1}%count% gewertet in %division%|]1,Inf[%count% gewertet in %division%"
+    overall: "%rank% gesamt"
+    overall_title: "Offizielle Platzierung unter allen Einträgen der Runde"
 "badge":
   "relax": "Relax"
   "suspicious": "Überprüfung erforderlich"

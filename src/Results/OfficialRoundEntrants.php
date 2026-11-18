@@ -14,6 +14,10 @@ readonly final class OfficialRoundEntrants
 {
     /**
      * @param list<PublishedRoundEntry> $entries the ranked entries the viewer may see, in ranking order (ties by name)
+     * @param list<RoundDivision> $divisions the divisions the round uses, in the event's order - none for a round without
+     *     them (shared-puzzles-and-divisions.md D5)
+     * @param array<string, int> $rankedCountByDivision division id => its ranked entries, whoever the viewer is (the rows
+     *     hidden from them included) - a division with none is left out
      */
     public function __construct(
         public string $roundId,
@@ -28,6 +32,8 @@ readonly final class OfficialRoundEntrants
         // The viewer's own name and country - what "Add to my profile" compares unlinked names with
         public null|string $viewerName,
         public null|string $viewerCountry,
+        public array $divisions = [],
+        public array $rankedCountByDivision = [],
     ) {
     }
 

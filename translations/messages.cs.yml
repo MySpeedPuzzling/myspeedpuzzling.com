@@ -196,6 +196,13 @@ live_refresh:
     no_split: "Dokončeno, čas nezaznamenán"
     not_recorded: "Nezaznamenáno"
     round_result: "Kolo: %rank%. · %result%"
+  division:
+    filter_label: "Divize"
+    all: "Vše"
+    place: "%division% · %place%"
+    ranked: "{0}%count% v pořadí v divizi %division%|{1}%count% v pořadí v divizi %division%|[2,Inf[%count% v pořadí v divizi %division%"
+    overall: "%rank% celkově"
+    overall_title: "Oficiální umístění mezi všemi záznamy kola"
 "badge":
   "relax": "Relax"
   "suspicious": "Vyžaduje ověření"

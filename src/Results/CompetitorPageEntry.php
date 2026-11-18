@@ -39,6 +39,10 @@ readonly final class CompetitorPageEntry implements \JsonSerializable
         public null|int $piecesCount,
         // A person put into a pair/team round who has no pair/team yet
         public bool $unpaired = false,
+        // A published round that uses divisions (shared-puzzles-and-divisions.md D5): the entry's division and its rank
+        // within it - the round page's (OfficialEntrantsView)
+        public null|RoundDivision $division = null,
+        public null|int $divisionRank = null,
     ) {
     }
 
@@ -74,6 +78,12 @@ readonly final class CompetitorPageEntry implements \JsonSerializable
                 ], $this->puzzleChips),
             ],
         ];
+
+        // Only an entry with a division - every other entry's JSON stays as it was
+        if ($this->division !== null) {
+            $json['division'] = $this->division;
+            $json['divisionRank'] = $this->divisionRank;
+        }
 
         // Which entry it is - only the viewer's own (what their own page acts on later, B-qr-competitor-page.md §4.4)
         if ($this->isViewers) {

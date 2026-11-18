@@ -11,7 +11,10 @@ namespace SpeedPuzzling\Web\Results;
 readonly final class PublishedRoundResults
 {
     /**
-     * @param list<PublishedRoundEntry> $entries the ranked entries the viewer may see, in ranking order
+     * @param list<PublishedRoundEntry> $entries the ranked entries the viewer may see, in ranking order - of the chosen
+     *     division only when one is chosen
+     * @param list<RoundDivision> $divisions the divisions the round uses (shared-puzzles-and-divisions.md D5) - none: no
+     *     filter, no labels
      * @param list<PublishedChallengeRow> $challengeRows the `?challenge=` view (real events W4): the entries the viewer may
      *     see by their place in that challenge, the unranked after - empty without one
      */
@@ -21,7 +24,8 @@ readonly final class PublishedRoundResults
         public null|int $piecesCount,
         // The puzzle "Add to my profile" logs a time on - null when the round offers none (several puzzles, not revealed)
         public null|string $profilePuzzleId,
-        // Every ranked entry of the round, whoever the viewer is (the rows hidden from them included)
+        // Every ranked entry of the round - of the chosen division (A12) -, whoever the viewer is (the rows hidden from
+        // them included)
         public int $rankedCount = 0,
         // "Is your name here? Connect it": the viewer is linked to no entry of the round, and some names are nobody's
         public bool $offersConnecting = false,
@@ -35,6 +39,9 @@ readonly final class PublishedRoundResults
          * @var array<string, string>
          */
         public array $linkableTimeIds = [],
+        public array $divisions = [],
+        // The division the page is filtered to (`?division=`) - null: every entry
+        public null|RoundDivision $division = null,
     ) {
     }
 
@@ -52,6 +59,25 @@ readonly final class PublishedRoundResults
         }
 
         return false;
+    }
+
+    /**
+     * What `?division=` carries for a division's chip: its short label when no other division of the round shares it,
+     * else its id
+     */
+    public function divisionFilterValue(RoundDivision $division): string
+    {
+        if ($division->shortName === null) {
+            return $division->id;
+        }
+
+        $short = mb_strtolower($division->shortName);
+        $sharing = array_filter(
+            $this->divisions,
+            static fn (RoundDivision $other): bool => mb_strtolower($other->shortName ?? $other->name) === $short,
+        );
+
+        return count($sharing) === 1 ? $division->shortName : $division->id;
     }
 
     public function entry(string $ref): null|PublishedRoundEntry

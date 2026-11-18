@@ -54,7 +54,7 @@ final class EventRoundResultsController extends AbstractController
             ], Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name, $request->query->getString('challenge'));
+        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name, $request->query->getString('challenge'), $request->query->getString('division'));
 
         return $this->render('round_results.html.twig', [
             'page' => $page,

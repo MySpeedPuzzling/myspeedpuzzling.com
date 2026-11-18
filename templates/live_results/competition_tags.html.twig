@@ -229,7 +229,7 @@
                                     {% if item.heading is not null %}
                                         <div class="tent-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
                                     {% endif %}
-                                    {{ _self.members(item) }}
+                                    {{ _self.members(item) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                                     {% if item.table_number is not null %}
                                         <div class="tent-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
                                     {% endif %}
@@ -267,7 +267,7 @@
                             {% if item.heading is not null %}
                                 <div class="tag-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
                             {% endif %}
-                            {{ _self.members(item) }}
+                            {{ _self.members(item) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                             {% if item.table_number is not null %}
                                 <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
                             {% endif %}

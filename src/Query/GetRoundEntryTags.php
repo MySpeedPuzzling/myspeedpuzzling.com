@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Results\CompetitionTagMember;
  * resolves (`/live/{cid}/e/{entryId}`, GetCompetitionTagEntries::entry()).
  *
  * Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no blocklist; a linked player's
- * #CODE only for a public profile, whoever prints (the name tags' rule, GetCompetitionNameTags). One statement.
+ * #CODE only for a public profile, whoever prints (the name tags' rule, GetCompetitionNameTags). The entry's division
+ * label rides along (EntryDivisionLabel, shared-puzzles-and-divisions.md D5). One statement.
  */
 readonly final class GetRoundEntryTags
 {
@@ -42,14 +43,18 @@ json_build_object(
     )
 SQL;
 
-        /** @var list<array{id: string, team_name: null|string, table_number: null|int, members: string}> $rows */
+        $soloDivision = EntryDivisionLabel::sql('cpr.division_id', 'cr.id');
+        $teamDivision = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+
+        /** @var list<array{id: string, team_name: null|string, table_number: null|int, members: string, division: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
     cpr.id,
     NULL AS team_name,
     CASE WHEN cr.table_numbers_off THEN NULL ELSE cpr.table_number END AS table_number,
-    json_build_array({$member})::text AS members
+    json_build_array({$member})::text AS members,
+    {$soloDivision} AS division
 FROM competition_participant_round cpr
 INNER JOIN competition_round cr ON cr.id = cpr.round_id AND cr.category = 'solo'
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
@@ -61,7 +66,8 @@ SELECT
     ct.id,
     ct.name AS team_name,
     CASE WHEN cr.table_numbers_off THEN NULL ELSE ct.table_number END AS table_number,
-    (COALESCE(json_agg({$member} ORDER BY LOWER(cp.name), cp.id) FILTER (WHERE cp.id IS NOT NULL), '[]'::json))::text AS members
+    (COALESCE(json_agg({$member} ORDER BY LOWER(cp.name), cp.id) FILTER (WHERE cp.id IS NOT NULL), '[]'::json))::text AS members,
+    {$teamDivision} AS division
 FROM competition_team ct
 INNER JOIN competition_round cr ON cr.id = ct.round_id AND cr.category <> 'solo'
 LEFT JOIN competition_participant_round cpr ON cpr.team_id = ct.id
@@ -83,6 +89,7 @@ SQL,
                 teamName: $row['team_name'],
                 members: array_map(CompetitionTagMember::fromRow(...), $members),
                 tableNumber: $row['table_number'],
+                division: $row['division'],
             );
         }, $rows);
 

@@ -408,6 +408,58 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * One division of a round's published official results (`?division=`, shared-puzzles-and-divisions.md D5): the
+     * blocked player's row is not there either, and the division ranks of everybody else stay (A13).
+     */
+    public function testBlockedPlayerIsNowhereInOneDivisionOfPublishedOfficialResults(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-a?division=S';
+        $database = self::getContainer()->get(Connection::class);
+
+        // "Ben Steady" and "Cara Tied" (tied second) are Seniors; Ben is the blocked player
+        $division = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            "INSERT INTO competition_division (id, competition_id, name, short_name, position, created_at) VALUES (:id, :competition, 'Senior 55+', 'S', 0, " . TestClock::SQL_NOW . ')',
+            ['id' => $division, 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
+        );
+        $database->executeStatement(
+            'INSERT INTO competition_round_division (id, round_id, division_id) VALUES (:id, :round, :division)',
+            ['id' => Uuid::uuid7()->toString(), 'round' => OfficialResultsFixture::ROUND_GROUP_A, 'division' => $division],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant_round SET division_id = :division WHERE id IN (:ben, :cara)',
+            ['division' => $division, 'ben' => OfficialResultsFixture::ENTRY_A_BEN, 'cara' => OfficialResultsFixture::ENTRY_A_CARA],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the division\'s official results do not link the player.');
+        self::assertStringContainsString('Ben Steady', $content);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['1'], $crawler->filter('[data-official-results] tbody tr')->each(
+            static fn (Crawler $row): string => (string) $row->attr('data-official-division-rank'),
+        ));
+    }
+
+    /**
      * A `pick` round's published official results (competition toolkit A5): the blocked player's row with its chosen
      * puzzles is not there either - the chips ride on the row the blocklist drops (OfficialEntrantsView).
      */

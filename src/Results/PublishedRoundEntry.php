@@ -44,6 +44,10 @@ readonly final class PublishedRoundEntry
         public bool $hiddenFromViewer = false,
         // Finished with pieces missing (competition toolkit T6): a note next to the time - the round's order stays by time
         public null|int $missingPieces = null,
+        // A round that uses divisions (shared-puzzles-and-divisions.md D5): the entry's division (null = none - the overall
+        // rank only) and its rank within it, computed with the overall rank before hidden rows were dropped (A13)
+        public null|RoundDivision $division = null,
+        public null|int $divisionRank = null,
     ) {
     }
 
@@ -75,6 +79,8 @@ readonly final class PublishedRoundEntry
             participantIds: $this->participantIds,
             hiddenFromViewer: $this->hiddenFromViewer,
             missingPieces: $this->missingPieces,
+            division: $this->division,
+            divisionRank: $this->divisionRank,
         );
     }
 
@@ -98,6 +104,8 @@ readonly final class PublishedRoundEntry
             participantIds: $this->participantIds,
             hiddenFromViewer: $this->hiddenFromViewer,
             missingPieces: $this->missingPieces,
+            division: $this->division,
+            divisionRank: $this->divisionRank,
         );
     }
 

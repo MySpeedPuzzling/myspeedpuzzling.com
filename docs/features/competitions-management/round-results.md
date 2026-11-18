@@ -180,6 +180,10 @@ Once the organiser publishes a round's official results, they lead the page and 
 by puzzlers" - see [official-results.md § Public round page](official-results.md#public-round-page-as-built). Until then
 the page is exactly what this section describes.
 
+A round that uses divisions (St. Paul's Regular / Senior 55+ / Junior) adds division chips and labels to the official
+results and filters them with `?division=<id, short label or name>` - one division's entries, its ranks and its ranked
+count; see [shared-puzzles-and-divisions.md "As built: D5"](shared-puzzles-and-divisions.md#as-built-d5-public-round-page-competitor-page-name-tags---2026-11-18).
+
 ### URLs
 
 - Standalone: `/en/events/{eventSlug}/results/{roundSlug}` (route `event_round_results`)

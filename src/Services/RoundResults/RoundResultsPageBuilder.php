@@ -45,9 +45,10 @@ readonly final class RoundResultsPageBuilder
     /**
      * @param null|string $seriesName the series of an edition - the page titles name it with the edition
      * @param null|string $challenge `?challenge=` - one challenge's ranking of a pick round (real events W4)
+     * @param null|string $division `?division=` - one division's official results (shared-puzzles-and-divisions.md D5)
      * @throws CompetitionRoundNotFound
      */
-    public function build(string $competitionId, string $roundSlug, null|string $seriesName = null, null|string $challenge = null): RoundResultsPage
+    public function build(string $competitionId, string $roundSlug, null|string $seriesName = null, null|string $challenge = null, null|string $division = null): RoundResultsPage
     {
         // Results of a competition nobody can pick in the add-time form are not public either
         if ($this->isCompetitionPubliclyVisible->check($competitionId) === false) {
@@ -113,7 +114,7 @@ readonly final class RoundResultsPageBuilder
                 array_filter($round->puzzles, static fn (EditionRoundPuzzle $puzzle): bool => $puzzle->puzzleImage !== null),
             )),
             // Queried only for a published round - any other round page runs exactly what it ran before
-            officialResults: $round->resultsPublished ? $this->getPublishedRoundResults->forRound($round, $viewer?->playerId, $challenge) : null,
+            officialResults: $round->resultsPublished ? $this->getPublishedRoundResults->forRound($round, $viewer?->playerId, $challenge, $division) : null,
             relayResults: $relayResults,
         );
     }

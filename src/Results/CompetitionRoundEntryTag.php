@@ -19,6 +19,8 @@ readonly final class CompetitionRoundEntryTag
         public null|string $teamName,
         public array $members,
         public null|int $tableNumber,
+        // The entry's division label (shared-puzzles-and-divisions.md D5) - null without one
+        public null|string $division = null,
     ) {
     }
 

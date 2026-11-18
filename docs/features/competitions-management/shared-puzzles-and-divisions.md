@@ -783,3 +783,39 @@ in, otherwise divisions are set in the sheet or through the internal API.
 - **Tests**: `tests/CompetitionToolkit/Divisions/DivisionsInTheSheetTest.php`, `DivisionsInTheImportTest.php`,
   `CompetitionDivisionsTest` (accents), `ColumnMappingTest`, `GetParticipantsSheetVersionTest`, node suite
   `tests/participants-sheet-round/divisions.mjs` (`ParticipantsSheetRoundScriptsTest`), the texts tests.
+
+
+
+## As built: D5 (public round page, competitor page, name tags - 2026-11-18)
+
+- **Read side**: `OfficialEntrantsView` (the one place for public official entries) reads `division_id` and the round's
+  divisions (`RoundDivisionsJson::sql('official_round.id')`) as **columns of its two existing statements** - no
+  statement more (`DetailPagesQueryBudgetTest`, `CompetitorPageQueryBudgetTest` unchanged). An entry's division counts only
+  when its round uses it. Division ranks by `OfficialResultsRanking::rankWithin()` over every ranked entry before the
+  rows hidden from the viewer are dropped, never renumbered (A13); `OfficialRoundEntrants::$rankedCountByDivision` counts
+  them the same way. `PublishedRoundEntry::$division` / `$divisionRank`.
+- **Round page** (`GetPublishedRoundResults::forRound(..., $division)`, `RoundResultsPageBuilder::build(..., $division)`,
+  both round controllers read `?division=`): chips "All · <each division the round uses>" (`round_results/_divisions.html.twig`;
+  the URL carries the short label when no other division of the round shares it, else the id - `PublishedRoundResults::
+  divisionFilterValue()`); `?division=` accepts id, short label or name (case-insensitive); unknown, or on a round without
+  divisions = every entry, page unchanged. Unfiltered: a badge per row "S · 2nd" (label + ordinal via
+  `format_number(style: ordinal)`, title = full name); filtered: only that division, the division rank as the big number,
+  "4 overall" small under it (`_division_overall.html.twig`), "N ranked in Senior 55+" and the meta description count
+  follow the division (A12). Every addition is appended to an existing line with a print expression (never a block tag
+  that would eat a newline) - `OfficialRoundResultsGoldenTest` unchanged. Filter links are `rel="nofollow"`. **With W4's `?challenge=`** (a puzzle's own ranking of a pick round) the two are exclusive: a challenge view ignores `?division=` and shows no division chips; the challenge links and the division chips each drop the other parameter.
+- **Competitor page**: `CompetitorPageEntry::$division` / `$divisionRank` from the round page's entry (published rounds
+  only) - "Senior 55+ · 2nd" next to the place; JSON `division` + `divisionRank` only for an entry with a division.
+  **Deviation**: an unpublished round shows no division yet (the entries statement is not touched).
+- **Tags**: `EntryDivisionLabel::sql()` (short label, else name; only a division the round uses) as a scalar subquery
+  of the one statement of `GetRoundEntryTags` (kind `e`), `GetCompetitionLineupTags` (kind `g`, the printed round's
+  pair/team) and `GetCompetitionNameTags` (people tags + the legacy name tags page - the entry whose table is printed:
+  the chosen round, else the first by schedule). Printed by `live_results/_tag_division.html.twig` on tags and both tent
+  faces. **Deviation from §3.4**: person tags print the one division of the printed round, not a "Solo: Senior 55+"
+  list over all rounds. `CompetitionNameTagsGoldenTest` unchanged.
+- **Canaries**: `BlocklistCanaryTest::testBlockedPlayerIsNowhereInOneDivisionOfPublishedOfficialResults`,
+  `PrivateProfileCanaryTest::testOneDivisionOfPublishedOfficialResultsLinksHerProfileForTheFriendOnly`,
+  `DraftCanaryTest::testOneDivisionOfADraftsRoundResultsIsNotThere`.
+- **Tests**: `tests/Controller/CompetitionToolkit/PublicDivisionsPagesTest.php` (labels + ranks, filter by short label /
+  id / name, counts, empty division, unknown value, hidden player keeps ranks, pair round, round without divisions,
+  competitor page + JSON, tags/tents/line-ups/legacy tags).
+- Keys `round_results.division.*` (English; the other locales in package H).

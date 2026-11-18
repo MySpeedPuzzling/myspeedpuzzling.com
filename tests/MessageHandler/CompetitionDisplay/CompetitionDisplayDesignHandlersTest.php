@@ -124,8 +124,8 @@ final class CompetitionDisplayDesignHandlersTest extends KernelTestCase
         $before = $this->row($displayId);
 
         try {
-            $this->save($displayId, (object) ['schema' => 1, 'elements' => [(object) ['id' => 'spot0001', 'type' => 'spotlight', 'frame' => new stdClass()]]], 1);
-            self::fail('A cut element type must be refused');
+            $this->save($displayId, (object) ['schema' => 1, 'elements' => [(object) ['id' => 'scene001', 'type' => 'scene', 'frame' => new stdClass()]]], 1);
+            self::fail('An element type that is not built must be refused');
         } catch (InvalidDisplayDesign $invalid) {
             self::assertSame([['path' => '/elements/0/type', 'code' => 'unknown_type']], array_map(static fn (DisplayDesignError $error): array => $error->toArray(), $invalid->errors));
         }

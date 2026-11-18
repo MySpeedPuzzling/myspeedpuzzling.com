@@ -14769,6 +14769,12 @@ time_proposal:
         result_recorded: "審判がすでにあなたの結果を記録しています。"
         already_proposed: "すでにタイムが審判の確認待ちです。"
         proposal_not_found: "このタイム申告は存在しません。"
+        puzzles_changed: "このラウンドのパズルが変更されました。もう一度選んでください。"
+        puzzles_not_used: "このラウンドにはパズルの選択がありません。"
+        unknown_round_puzzle: "選んだパズルの1つがこのラウンドにもうありません。もう一度選んでください。"
+        puzzle_listed_twice: "同じパズルが2回選ばれました。もう一度選んでください。"
+        too_many_puzzles: "このラウンドで解く数より多くのパズルが選ばれました。もう一度選んでください。"
+        invalid_puzzles: "パズルの選択を読み取れませんでした。もう一度選んでください。"
 competition_standing:
     challenge_time: "%label% %time%"
     rounds_count: "{0}ラウンドなし|{1}%count%ラウンド|]1,Inf[%count%ラウンド"

@@ -361,3 +361,22 @@ using the live control; copy/paste and grouping in the editor; `every` as its ow
 format/labels; "drop worst round" / season standings; the `cards` tag layout; a 90-day prune of decided proposals; a
 per-entry private Mercure topic for competitor pages (polling works); the one-tap proposal sweep (Jan ruled out
 one-tap confirm from a list).
+
+## Follow-ups 2026-11-18 (orchestrator: sub-session; brief `cm-delivery/brief-followups-orchestrator.md`)
+
+Jan's decisions of 2026-11-18, delivered under no-Docker mode (CI as the gate), then walked + chaos-checked once Docker
+was back.
+
+| Pkg | PR | What |
+|---|---|---|
+| FU-W | #471 (reviewed) | Classic "add event" create retired: `add_competition` (incl. `?classic=1`, `?recurring=1`), `add_edition`, `add_editions` redirect to the wizard (GET 302, POST 303, nothing created; `?organization=` and the series kept); no "Use the classic form"; every create entry point → wizard; "Add edition"/"Add several dates" = the wizard's "Add the next dates" (already several dates); new calendar path for "Something else" (Basics → Review, no rounds, derived - no new column); dead classic create code removed; the classic form = edit form only (`creation-wizard.md` "Classic create retired" + "Calendar path") |
+| FU-S | #469 | Analytics studio: an unpublished round shows the live ranking of the recorded (judge/desk-entered) results (`OfficialResultsRanking`, ties share), whatever the competitor page settings; no official/live labels; proposals never read; every result write signals; `round.liveResults` removed; public pages unchanged (`analytics-studio.md` "As built: FU-S") |
+| FU-L | #470 | Link suggestions on the phone People list (filter, dialog, card line) and in the person editor ([Link] per candidate, R7-refused disabled), one read per page; "Help people link their profiles" = a Get ready tip (`ParticipantLinksTip`, ≤ 14 days, someone not linked → hub `#participant-links`) - not the sheet's setup checklist, which is gone by the time it applies (`participant-linking.md` as built) |
+| FU-M | #468 | `myspeedpuzzling:prune-decided-time-proposals` (90 days by `decided_at`, pending never; lily cron 03:27, lily.srv `6851a4f`); JS twin `shapeRefusal()` = `RoundEntryPuzzles::fromWire()` shape rules (parity test; float `100.0` and object-as-list stay server-only, `round-formats.md`); chaos `s14_puzzle_splits` waits for an enabled "Finished now" |
+
+Note for Jan: the studio needs no sign-in, so a running round's judge-entered times are visible there for every event
+(read as his intent: "what judges entered is at the moment considered to be official").
+
+Verified with Docker back (2026-11-18): judge-chaos `all` on main with #468-#471 - 18/18 PASS, incl.
+`s14_puzzle_splits` (split 1 at 602 s for a tap at 603, sent 30 s later after an outage) and `s12c` (10 min frozen,
+caught up at once).

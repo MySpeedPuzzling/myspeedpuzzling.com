@@ -115,6 +115,82 @@ Run on lily (Claude Code over ssh): `/srv/msp-sandbox/copy-account.sh <email>` =
 endpoint**: production's internal API would hand out password hashes to whoever holds its token, and the caller would
 see the hash; the pipe keeps it inside the box (never on disk, in a log, a terminal or the network).
 
+### Demo events (real events DM, 2026-11-18)
+
+Two made-up events for showing the competition toolkit to organisers (Jan's demo ~2 Dec 2026). Invented names,
+people and results - modelled on the formats only, never on a real event's data:
+
+| Slug | Event | Zone |
+|---|---|---|
+| `speed-puzzle-world-series-demo` | "Speed Puzzle World Series - demo", Toronto: Individual (5 one-puzzle rounds, 75 min), Pairs (Challenges 1 + 2 and 3 + 4 = one round "Solve all 2 (order recorded)" each, 90 min, 500 pcs; Challenge 5 one 250-piece puzzle - wooden when the catalogue has one - 45 min, **unboxed**), Teams of 4 (two blocks of 2 × 1000 pcs, 90 min). One sum standing per championship: 5 s per missing piece, total only, finished-with-missing penalised, no-show = nothing placed (`as_zero_pieces`). Tables by name on each championship's first round (pairs 1.., teams 101.., individuals 201..), copied to the later rounds ("Use these tables in later rounds"). A hall timer screen (live top 10) and an OBS overlay (live board + the v2 standings element). | `America/Toronto` |
+| `winter-carnival-jigsaw-demo` | "Winter Carnival Jigsaw - demo", Saint Paul MN: Saturday "500 Teams CHALLENGE" (90 min), "1000 Teams" (3 h, same teams and tables), "500 Teams OPEN #1" (2 h); Sunday "500 PAIRS" (divisions Regular / Senior 55+), "500 SOLO" (Regular / Senior 55+ / Junior under 16), "500 Teams OPEN #2" and "500 FAMILY" at the same time (15:00-17:00). CHALLENGE, OPEN #1 and OPEN #2 share one puzzle (shared puzzles S2). | `America/Chicago` |
+
+`--date` is the demo day: everything of the day before is recorded and **published** (World Series: the first block
+of each championship; Carnival: Saturday), the demo day's first rounds run with some results in (a third finished, on
+a block another third with only its first challenge's split) and are unpublished, the rest is planned. In every
+published round the last entrant by name did not start (the no-show), the one before ran out of time with pieces
+missing, the 3rd and 6th finished with 1 and 2 pieces missing. Carnival Sunday: PAIRS and SOLO published, OPEN #2 and
+FAMILY running.
+
+People: the made-up players `test-user+3..` (linked to their profiles - sign in as one to see "your" competitor page),
+then made-up guests (`SandboxPeople` names) - ~126 World Series and ~240 Carnival participants. **Organiser:
+`test-user+1@myspeedpuzzling.com`**, **referee: `test-user+2@myspeedpuzzling.com`** (password `sandbox`); Jan's admin
+account sees every organiser page too. Competitor pages on (QR mode: a tag per competitor, live results before
+publishing, time proposals).
+
+**Run it on the box** (after `myspeedpuzzling:sandbox:seed`; safe to repeat - it completes what exists, never
+duplicates and never overwrites a recorded result):
+
+```bash
+cd /srv/msp-sandbox && docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events --date=2026-12-02
+```
+
+It prints every URL (event page, toolkit hub, participants sheet, competitor list, standings, displays, and per round
+the desk, the judge page, the stopwatch, the round results and the analytics studio). Options: `--organizer=<email>`,
+`--referee=<email>` (empty = none). A line starting with `TODO:` says what could not be built (no catalogue puzzle for a
+round - import the catalogue first).
+Rehearsal leftovers: a result typed during a rehearsal stays; to start over, delete the two events (admin) and run it
+again.
+
+Code: `SandboxDemoEventsConsoleCommand` → `Services\Sandbox\SandboxDemoEvents` (dispatches the organiser's and judge's
+own messages one by one: `AddCompetition`, `AddCompetitionRound`, `SetCompetitionRoundPuzzles`, `EditCompetitionRound`
+(pick), `ArrangeRoundPuzzles`, `ChangeRoundUnboxed`, `ImportCompetitionParticipants` (a CSV with `external_id`),
+`SetCompetitionDivisions` + `SetRoundEntryDivisions`, `AssignTableNumbers`, `CopyRoundTableNumbers`,
+`RecordRoundResults`, `PublishRoundResults`, `CreateCompetitionStanding` + `PublishCompetitionStanding`,
+`AddCompetitionDisplay` + `SaveCompetitionDisplayDesign`, `ChangeCompetitorPageSettings`, `AddCompetitionReferee`),
+the events in `SandboxDemoEventDefinitions`, results in `SandboxDemoResultPlanner` (deterministic from the entrant's
+name), reads in `Query\GetSandboxDemoData`. Test: `tests/Services/Sandbox/SandboxDemoEventsTest.php`.
+
+#### Demo script - World Series (5 minutes)
+
+1. **Event page** (`/en/events/speed-puzzle-world-series-demo`): three championships in the rounds timeline, the
+   standings links. Challenge 5 shows no box picture (unboxed).
+2. **Round results** of "Pairs - Challenges 1 + 2": per-challenge chips and times, then `?challenge=1` and
+   `?challenge=2` - each challenge's own ranking; the no-show, the time's up with pieces missing, "+ 1 piece missing".
+3. **Standing** "Pairs championship": provisional after 1 of 3 rounds, penalties in the totals, the no-show ranked.
+4. Sign in as `test-user+1` → **toolkit hub** → standings page (rules: 5 s, total only, as_zero_pieces) → **seating**
+   of "Pairs - Challenges 3 + 4" (same tables as round 1).
+5. **Results desk** of "Pairs - Challenges 3 + 4": some finished, some with only Challenge 3's split, the standing
+   preview; **stopwatch** page → Start.
+6. **Judge page** (`/en/live-results/<roundId>`) on a phone: "Finished now" on Challenge 3, then Challenge 4; "+ Pieces
+   missing"; a time's up.
+7. **Displays**: the hall timer screen running with the live board, the OBS overlay with the championship standing.
+8. **Competitor page** (competitor list → a pair) and the **analytics studio** of the running block.
+
+#### Demo script - Winter Carnival (5 minutes)
+
+1. **Event page** (`/en/events/winter-carnival-jigsaw-demo`): Saturday and Sunday, OPEN #2 and FAMILY at the same time.
+2. **Round results** of "500 SOLO": the division labels, then `?division=S55` and `?division=U16` (D5 - the short
+   labels or the division id); "500 PAIRS" with `?division=REG`.
+3. **Round results** of "500 Teams OPEN #1": the same puzzle as CHALLENGE (shared puzzle), unfinished teams ranked by
+   pieces placed.
+4. Sign in as `test-user+1` → toolkit hub → **Divisions** card (event divisions, which round uses which) →
+   **participants sheet**.
+5. **Results desk** of "500 Teams OPEN #2" (running; division-free) and "500 SOLO" (division column, ranks per
+   division); **stopwatch** of OPEN #2 + FAMILY → Start both.
+6. **Judge page** of "500 FAMILY" on a phone: record a finish; the **competitor page** of a family team.
+7. **Analytics studio** of "500 SOLO".
+
 ## 5. Membership, payments
 
 - **Everybody is a member through data**, not a code switch: a `membership.granted_until` far in the future
@@ -212,10 +288,11 @@ All behind a marker file (`/var/lib/msp-sandbox/cron.on`), created only after th
 | Membership | `EventSubscriber\SandboxMembershipOnLoginSubscriber` → `GrantSandboxMembership`, `Services\Sandbox\SandboxMembership` |
 | Catalogue | `Services\Sandbox\SandboxCatalogue`, commands `myspeedpuzzling:sandbox:export-catalogue` / `import-catalogue`, `ImportSandboxCatalogue` |
 | People + results | `CreateSandboxPlayers`, `Services\Sandbox\SandboxPeople`, `SandboxTimeModel`, `SandboxResultPlanner`, `Query\GetSandboxSimulationData`, `Value\SandboxPlayer`/`SandboxPuzzle`/`SandboxPlannedResult`, commands `myspeedpuzzling:sandbox:seed` / `simulate-activity` |
+| Demo events | `myspeedpuzzling:sandbox:demo-events`, `Services\Sandbox\SandboxDemoEvents` / `SandboxDemoEventDefinitions` / `SandboxDemoResultPlanner`, `Query\GetSandboxDemoData`, `Value\SandboxDemo{Event,Round,Group}` ("Demo events" above) |
 | Copying a real account | `Services\Sandbox\SandboxAccountExport`, `CopyAccountToSandbox`, commands `myspeedpuzzling:sandbox:export-account` / `import-account`, lily `apps/msp-sandbox/copy-account.sh` |
 | Sentry environment | `config/packages/sentry.php` |
 | Deploy | `.github/workflows/test.yml` job `deploy-sandbox` (after a production deploy; a notice until the GitHub secret `DEPLOY_WEBHOOK_SECRET_SANDBOX` exists) |
-| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest`, `SandboxGateTest`, `CopyAccountToSandboxHandlerTest` |
+| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest`, `SandboxGateTest`, `CopyAccountToSandboxHandlerTest`, `SandboxDemoEventsTest` |
 
 A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMNS` with its export query —
 **public data only**. A new member feature needs nothing: the sandbox's members are ordinary members.

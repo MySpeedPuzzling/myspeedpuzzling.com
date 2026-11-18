@@ -9,7 +9,6 @@ use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\SandboxModeIsOff;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
@@ -57,7 +56,6 @@ use SpeedPuzzling\Web\Value\SandboxDemoRound;
 use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -334,16 +332,9 @@ final readonly class SandboxDemoEvents
             return;
         }
 
-        try {
-            $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId, [$sharedPuzzleId]));
-            $say(sprintf('"%s" shares the puzzle of "%s"', $round->name, $event->round($round->sharesPuzzleOf ?? '')->name));
-        } catch (\Throwable $e) {
-            if (!self::unwrapped($e) instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                throw $e;
-            }
-
-            $say(sprintf('TODO: "%s" has no puzzle yet - rounds of one category cannot share a puzzle before "shared puzzles" (S2) is deployed; run the command again once it is', $round->name));
-        }
+        // Rounds of one category may share a puzzle (shared puzzles S2)
+        $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId, [$sharedPuzzleId]));
+        $say(sprintf('"%s" shares the puzzle of "%s"', $round->name, $event->round($round->sharesPuzzleOf ?? '')->name));
     }
 
     /**
@@ -836,17 +827,5 @@ final readonly class SandboxDemoEvents
         [$hours, $minutes] = array_map('intval', explode(':', $round->time));
 
         return self::localDay($day, $round->dayOffset, $timezone)->setTime($hours, $minutes)->setTimezone(new DateTimeZone('UTC'));
-    }
-
-    /**
-     * The exception a handler threw - a Messenger wrapper unwrapped
-     */
-    private static function unwrapped(\Throwable $e): \Throwable
-    {
-        while ($e instanceof HandlerFailedException && $e->getPrevious() !== null) {
-            $e = $e->getPrevious();
-        }
-
-        return $e;
     }
 }

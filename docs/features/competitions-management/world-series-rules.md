@@ -638,6 +638,13 @@ challenge, the display's shared clock, a competitor phone's per-entrant clock.
 
 ---
 
+**As built (real events DM, 2026-11-18):** the demo data is `myspeedpuzzling:sandbox:demo-events` on the sandbox -
+the event "Speed Puzzle World Series - demo" with blocks as "Solve all 2" rounds (the review amendment, not the chained
+round), standings, same tables, unboxed challenge 5, displays; run line and the 5-minute script in
+`docs/features/sandbox/README.md` "Demo events".
+
+---
+
 ## 10. Open questions
 
 ### For the organisers (defaults chosen so either answer works)

@@ -14921,6 +14921,8 @@ public_standing:
     flash:
         published: "The standing “%name%” is public now."
         unpublished: "The standing “%name%” is no longer public."
+    live:
+        updated: "Updated at %time%"
 advancement_step:
     card:
         none: "No advancement steps yet. A step declares who moves on: “the best 8 of each group go to the semifinal”."

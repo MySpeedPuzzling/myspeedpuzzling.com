@@ -557,6 +557,8 @@ final class DraftCanaryTest extends WebTestCase
         $url = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/standings/night-overall';
         // The public JSON of the standing (public_standing_state, competition toolkit v2 S1)
         $json = '/api/competition-standings/' . $standingId;
+        // The table fragment an open standing page reloads (public_standing_table, competition toolkit v2 S4)
+        $fragment = '/en/standing-table/' . $standingId;
 
         foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
             $browser->restart();
@@ -572,12 +574,16 @@ final class DraftCanaryTest extends WebTestCase
             self::assertStringContainsString($url . '<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the standing');
             $browser->request('GET', $json);
             self::assertResponseIsSuccessful('No canary: the standing JSON is not there once published');
+            $browser->request('GET', $fragment);
+            self::assertResponseIsSuccessful('No canary: the standing table fragment is not there once published');
 
             $this->setDraft(self::COMPETITION, $draftNight, true);
             $browser->request('GET', $url);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing is public');
             $browser->request('GET', $json);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing JSON is public');
+            $browser->request('GET', $fragment);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing table fragment is public');
             $browser->request('GET', self::SITEMAP);
             self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
         }

@@ -14666,6 +14666,8 @@ public_standing:
     flash:
         published: "Le classement « %name% » est désormais public."
         unpublished: "Le classement « %name% » n'est plus public."
+    live:
+        updated: "Mis à jour à %time%"
 advancement_step:
     card:
         none: "Pas encore d'étapes de qualification. Une étape déclare qui avance : « les 8 meilleurs de chaque groupe vont en demi-finale »."

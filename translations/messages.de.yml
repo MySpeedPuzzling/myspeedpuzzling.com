@@ -14670,6 +14670,8 @@ public_standing:
     flash:
         published: "Die Gesamtwertung „%name%“ ist jetzt öffentlich."
         unpublished: "Die Gesamtwertung „%name%“ ist nicht mehr öffentlich."
+    live:
+        updated: "Aktualisiert um %time%"
 advancement_step:
     card:
         none: "Noch keine Qualifikationsschritte. Ein Schritt legt fest, wer weiterkommt: „die besten 8 jeder Gruppe kommen ins Halbfinale“."

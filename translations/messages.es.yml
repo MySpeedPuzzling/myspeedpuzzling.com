@@ -14671,6 +14671,8 @@ public_standing:
     flash:
         published: "La clasificación general «%name%» ya es pública."
         unpublished: "La clasificación general «%name%» ya no es pública."
+    live:
+        updated: "Actualizado a las %time%"
 advancement_step:
     card:
         none: "Aún no hay pasos de avance. Un paso indica quién pasa: «los 8 mejores de cada grupo van a la semifinal»."

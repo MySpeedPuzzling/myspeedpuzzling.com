@@ -14673,6 +14673,8 @@ public_standing:
     flash:
         published: "Celkové pořadí „%name%“ je teď veřejné."
         unpublished: "Celkové pořadí „%name%“ už není veřejné."
+    live:
+        updated: "Aktualizováno v %time%"
 advancement_step:
     card:
         none: "Zatím žádné kroky postupu. Krok určuje, kdo jde dál: „nejlepších 8 z každé skupiny jde do semifinále“."

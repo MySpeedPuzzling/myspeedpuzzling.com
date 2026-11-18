@@ -182,6 +182,7 @@ Also important:
 | `/competition-display/{competitionId}` (private, signal-only) | `display.signal` | D5 | only when the competition has displays (`CompetitionDisplaysPresence`, memoised, `ResetInterface`) |
 | `/analytics-studio-signal/{roundId}` (public, signal-only) | `analytics_studio.signal` `{type, roundId}` only | studio v2 V1 | only for a round whose studio computed a state in the last 180 s (`AnalyticsStudioWatch`), the round publicly visible at publish time; results signals only while the results are public (analytics-studio.md R21-R24) |
 | standings | **none in v1** | - | A's `official_results.standing` is deferred. Organiser and public standings pages refetch (60 s visible-only, plus on `official_results.entries` of an included round on the organiser view) |
+| `/competition-standings/{competitionId}` (public, signal-only) | `standing.signal` | v2 S4 | after the guest snapshots' generation bump, only when a published standing is affected; no data - the public standing page reloads its table fragment, external tools the public JSON (`standings.md` "Live push") |
 | `/competitor-entry/...` | **none in v1** | - | §1.2 |
 
 ### 1.7 Encore entries

@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -437,6 +438,48 @@ final class PrivateProfileCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::FRIEND);
         foreach ($pages as $url) {
             self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary: ' . $url);
+        }
+    }
+
+    /**
+     * The table fragment of the public standing page (`public_standing_table`, competition toolkit v2 S4): like the page -
+     * her organiser's name only for guests and strangers, her profile for the allowed friend. The friend asking first must
+     * not leave his view in the guests' cached render.
+     */
+    public function testTheStandingTableFragmentLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        // The guests' render is cached per generation: one kernel and a pool a reset does not empty, as on production
+        $browser->disableReboot();
+        self::getContainer()->set('competition_standings_cache', new FilesystemAdapter('s4_' . bin2hex(random_bytes(6)), 0, sys_get_temp_dir() . '/standing-table-canary'));
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:b, :pairs)', ['b' => OfficialResultsFixture::ROUND_GROUP_B, 'pairs' => OfficialResultsFixture::ROUND_PAIRS]);
+        $fragments = [
+            '/en/standing-table/' . PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B]),
+            '/en/standing-table/' . PublishedStanding::insert($database, $cup, 'overall-pairs', 'Overall pairs', 'duo', [OfficialResultsFixture::ROUND_PAIRS]),
+        ];
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        foreach ($fragments as $url) {
+            self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the fragment is no canary: ' . $url);
+        }
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ($fragments as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString($profileLink, $content, 'A stranger or guest is shown a private player: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+                self::assertStringNotContainsString('PLAYER2', $content, $url);
+            }
         }
     }
 

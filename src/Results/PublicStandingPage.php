@@ -13,6 +13,7 @@ readonly final class PublicStandingPage
 {
     /**
      * @param list<PublishedStandingRef> $standings every published standing of the event - the page's tabs
+     * @param string $liveTopic the event's public standings topic (CompetitionStandingsLiveUpdates::topic(), v2 S4)
      */
     public function __construct(
         public CompetitionEvent $event,
@@ -20,6 +21,7 @@ readonly final class PublicStandingPage
         public PublishedStandingRef $standing,
         public array $standings,
         public PublicStandingTable $table,
+        public string $liveTopic,
     ) {
     }
 }

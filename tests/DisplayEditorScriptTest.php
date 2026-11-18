@@ -12,7 +12,9 @@ use Symfony\Component\Process\Process;
  * The display editor's pure modules under node (competition toolkit D6) - tests/display-editor-harness.mjs: geometry.js
  * (move, resize from each handle, grid + centre snapping, clamping, nudges, the kept ratio of pictures and QR codes,
  * hit test), editor_state.js (add / remove / reorder / hide / lock / duplicate, undo and redo, the save payload equal to
- * normaliseDesign()'s output) and sample_data.js (preview phases, sample results, never a real puzzle).
+ * normaliseDesign()'s output, v2 E1: the multi-selection and its one-undo-step group writes), arrange.js (v2 E1: group
+ * move/resize/nudge, align, distribute, marquee), sibling snapping, the panel's multi-selection view (jsdom) and
+ * sample_data.js (preview phases, sample results, never a real puzzle).
  * The scenarios live in the harness; every one must report "ok".
  */
 final class DisplayEditorScriptTest extends TestCase
@@ -30,7 +32,7 @@ final class DisplayEditorScriptTest extends TestCase
         /** @var array<string, string> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
-        self::assertGreaterThanOrEqual(46, count($results));
+        self::assertGreaterThanOrEqual(64, count($results));
 
         foreach ($results as $scenario => $result) {
             self::assertSame('ok', $result, $scenario);

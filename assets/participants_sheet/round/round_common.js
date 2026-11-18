@@ -35,7 +35,7 @@ import {
     wordList,
 } from '../sheet_results.js';
 import { SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
-import { recordCellText } from '../sheet_puzzles.js';
+import { recordCellText, sheetPuzzlesPopover, sheetPuzzlesPopoverHtml } from '../sheet_puzzles.js';
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;
@@ -650,6 +650,8 @@ export class RoundDialog {
      *        the hint when Enter found no highlighted option ("Pick one with ↓ and Enter")
      * @param {{label: string, value?: string, placeholder?: string, submitLabel: string}} [options.form] one text
      *        field (rename) - resolves {value}
+     * @param {string} [options.content]          read-only markup instead (escaped by the caller - the Puzzles cell's
+     *        record, v2 C5); a link in it closes the dialog when followed - resolves null
      * @param {HTMLElement|null} [options.anchor]   desktop: shown next to it
      * @param {boolean} [options.sheet]             phone: bottom sheet / full screen
      * @param {string} options.closeLabel
@@ -667,7 +669,7 @@ export class RoundDialog {
     }
 
     open() {
-        const { title, description, items, picker, form, sheet, closeLabel } = this.options;
+        const { title, description, items, picker, form, content, sheet, closeLabel } = this.options;
         this.returnTo = document.activeElement;
         const dialog = document.createElement('dialog');
         dialog.className = `sheet-round-dialog${sheet ? ' is-sheet' : ''}${picker ? ' is-picker' : ''}`;
@@ -680,7 +682,7 @@ export class RoundDialog {
                 <button type="submit" class="btn btn-primary w-100">${escapeHtml(form.submitLabel)}</button>
             </form>`
             : '';
-        const body = form ? formBody : picker
+        const body = typeof content === 'string' ? content : form ? formBody : picker
             ? `${picker.extra ? `<label class="form-label small mb-1" for="${this.id}-extra">${escapeHtml(picker.extra.label)}</label>
                 <input type="text" class="form-control sheet-round-dialog-extra mb-2" id="${this.id}-extra" autocomplete="off" placeholder="${escapeHtml(picker.extra.placeholder ?? '')}">` : ''}
                 <label class="form-label small mb-1" for="${this.id}-input">${escapeHtml(picker.label)}</label>
@@ -739,6 +741,8 @@ export class RoundDialog {
         } else if (picker) {
             this.renderOptions();
             (this.extra ?? this.input).focus();
+        } else if (typeof content === 'string') {
+            (dialog.querySelector('.sheet-round-dialog-body a[href]') ?? dialog.querySelector('[data-dialog-close]'))?.focus();
         } else {
             (dialog.querySelector('.sheet-round-dialog-item:not([aria-disabled="true"])') ?? dialog.querySelector('[data-dialog-close]'))?.focus();
         }
@@ -840,6 +844,13 @@ export class RoundDialog {
     onClick(event) {
         if (event.target === this.dialog || event.target.closest('[data-dialog-close]')) {
             this.finish(null);
+
+            return;
+        }
+
+        if (typeof this.options.content === 'string' && event.target.closest('a[href]')) {
+            // Followed (a new tab): the dialog closes after the browser took the link
+            setTimeout(() => this.finish(null), 0);
 
             return;
         }
@@ -992,11 +1003,40 @@ export class RoundResultsCells {
         return { text, html, copy: text, marker: this.marker(ref, 'result'), readonly, className: 'sheet-col-result' };
     }
 
-    /** The "Puzzles" cell of a `pick` round entry (competition toolkit A4): its record by label, read-only. */
+    /**
+     * The "Puzzles" cell of a `pick` round entry (competition toolkit A4): its record by label, read-only. Enter, Space,
+     * a double click or the icon open its popover (v2 C5 - puzzlesDialog()): the cell is an action of the grid.
+     */
     puzzlesCell(ref) {
         const text = recordCellText(this.model, this.roundId, ref, ref === null ? null : this.pending(), { pieces: this.t('result_pieces_placed') });
 
-        return { text, html: escapeHtml(text), copy: text, readonly: true, className: 'sheet-col-puzzles' };
+        if (ref === null) {
+            return { text, html: escapeHtml(text), copy: text, readonly: true, className: 'sheet-col-puzzles' };
+        }
+
+        const title = this.t('puzzles_popover_title');
+        const open = `<span class="sheet-puzzles-open" data-puzzles-open title="${escapeHtml(title)}" aria-hidden="true"><i class="bi bi-list-ol"></i></span>`;
+
+        return { text, html: `${open}<span class="sheet-puzzles-text">${escapeHtml(text)}</span>`, copy: text, kind: 'action', className: 'sheet-col-puzzles' };
+    }
+
+    /** The options of the Puzzles cell's read-only popover (RoundDialog) for an entry - `name` = who it is. */
+    puzzlesDialog(ref, name) {
+        const popover = sheetPuzzlesPopover(this.model, this.roundId, ref, this.pending());
+
+        return {
+            title: this.t('puzzles_popover_title'),
+            description: name,
+            content: sheetPuzzlesPopoverHtml(popover, {
+                none: this.t('puzzles_popover_none'),
+                done: this.t('puzzles_popover_done'),
+                pieces: this.t('result_pieces_placed_of'),
+                piecesOnly: this.t('result_pieces_placed'),
+                ownTime: this.t('puzzles_popover_own_time'),
+                editOnDesk: this.t('puzzles_popover_edit_on_desk'),
+                newTab: this.t('new_tab'),
+            }),
+        };
     }
 
     tableCell(ref, server, { readonly = false } = {}) {

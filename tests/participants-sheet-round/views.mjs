@@ -517,4 +517,63 @@ export default function (test) {
         assert.match(text, /count_listed_twice 1/);
         view.destroy();
     });
+
+    test('v2 C5: Enter on a Puzzles cell opens its read-only popover, Esc gives the cell its focus back, the icon opens it too', async () => {
+        const state = smallState();
+        const format = { mode: 'pick', toSolve: 2, puzzles: [
+            { roundPuzzleId: 'rp-a', position: 1, label: 'A', hidden: false, name: 'Lighthouse', piecesCount: 500 },
+            { roundPuzzleId: 'rp-b', position: 2, label: 'B', hidden: true, name: null, piecesCount: 500 },
+        ] };
+        state.rounds = state.rounds.map((round) => (round.id === ROUND_PAIRS ? { ...round, piecesCount: null, puzzleFormat: format } : round));
+        state.teams = state.teams.map((entry) => (entry.id === 't-corners' ? { ...entry, result: { seconds: 4000 }, puzzles: [{ roundPuzzleId: 'rp-b', done: true, atSeconds: 2470 }, { roundPuzzleId: 'rp-a', done: true }] } : entry));
+        const { view, root } = await mount('team', { state });
+        const grid = view.grid;
+        const cell = () => grid.cellElement('t-corners', 'puzzles');
+
+        assert.ok(cell().classList.contains('sheet-kind-action'));
+        assert.match(cell().textContent, /B ✓ 0:41:10 · A/);
+        grid.focusCell('t-corners', 'puzzles');
+        key(cell(), 'Enter');
+        let dialog = root.querySelector('dialog.sheet-round-dialog');
+        assert.ok(dialog, 'the popover opened');
+        assert.match(dialog.textContent, /puzzles_popover_title/);
+        assert.deepEqual([...dialog.querySelectorAll('.sheet-puzzles-popover-item strong')].map((label) => label.textContent), ['B', 'A']);
+        assert.match(dialog.textContent, /Lighthouse/);
+        // Read-only: nothing to type into
+        assert.equal(dialog.querySelector('input, select, textarea'), null);
+
+        dialog.dispatchEvent(new window.Event('cancel', { cancelable: true }));
+        assert.equal(root.querySelector('dialog.sheet-round-dialog'), null);
+        assert.equal(document.activeElement, cell());
+        // The grid has its keys again: an arrow moves to the next cell
+        key(cell(), 'ArrowRight');
+        assert.notEqual(grid.active.col, 'puzzles');
+
+        cell().querySelector('[data-puzzles-open]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+        dialog = root.querySelector('dialog.sheet-round-dialog');
+        assert.ok(dialog, 'the icon opens it');
+        dialog.querySelector('[data-dialog-close]').click();
+        view.destroy();
+    });
+
+    test('v2 C5: the solo tab - a person\'s Puzzles cell opens the same popover, titled by the person', async () => {
+        const state = smallState();
+        const format = { mode: 'pick', toSolve: 1, puzzles: [
+            { roundPuzzleId: 'rp-a', position: 1, label: 'A', hidden: false, name: 'Lighthouse', piecesCount: 500 },
+            { roundPuzzleId: 'rp-b', position: 2, label: 'B', hidden: true, name: null, piecesCount: 500 },
+        ] };
+        state.rounds = state.rounds.map((round) => (round.id === ROUND_SOLO ? { ...round, puzzleFormat: format } : round));
+        state.places = state.places.map((entry) => (entry.id === 'e-kim-solo' ? { ...entry, puzzles: [{ roundPuzzleId: 'rp-b', done: true }] } : entry));
+        const { view, root } = await mount('solo', { state, roundId: ROUND_SOLO });
+
+        view.activate('p-kim', 'puzzles');
+        const dialog = root.querySelector('dialog.sheet-round-dialog');
+        assert.ok(dialog);
+        assert.match(dialog.textContent, /Kim Example/);
+        assert.deepEqual([...dialog.querySelectorAll('.sheet-puzzles-popover-item strong')].map((label) => label.textContent), ['B']);
+        assert.doesNotMatch(dialog.textContent, /Lighthouse/);
+        dialog.querySelector('[data-dialog-close]').click();
+        assert.equal(document.activeElement, view.grid.cellElement('p-kim', 'puzzles'));
+        view.destroy();
+    });
 }

@@ -1,9 +1,10 @@
 // The results desk's per-puzzle editor of `pick` rounds (competition toolkit A4): official_results_desk_puzzles.js
 // (the outcome the editor saves, the chips, the participants sheet's consistent record) and the groups of
-// PendingChanges (a `result` + `puzzles` pair is never split, keep mine / try again / discard act on both).
+// PendingChanges (a `result` + `puzzles` pair is never split, keep mine / try again / discard act on both), and the
+// desk's `?entry=<ref>` deep link from the participants sheet's Puzzles popover (v2 C5).
 
 import assert from 'node:assert/strict';
-import { consistentRecord, editorOutcome, editorRows, puzzleOptions, recordChips, recordText } from '../../assets/official_results_desk_puzzles.js';
+import { consistentRecord, deskEntryFromQuery, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, puzzleOptions, recordChips, recordText } from '../../assets/official_results_desk_puzzles.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 
 const A = 'rp-a';
@@ -175,5 +176,31 @@ export default function (test) {
         assert.deepEqual(pending.take(newId, 2).map((change) => change.entry), ['a', 'b']);
         pending.discard('c', 'result');
         assert.equal(pending.list().length, 2);
+    });
+
+    test('?entry= deep link (v2 C5): a team or solo entry ref by its uuid, anything else ignored', () => {
+        const uuid = '0195f3a2-7c1d-7e4a-9b2c-1d2e3f4a5b6c';
+
+        assert.equal(deskEntryFromQuery(`?entry=team:${uuid}`), `team:${uuid}`);
+        assert.equal(deskEntryFromQuery(`?x=1&entry=participant_round%3A${uuid.toUpperCase()}`), `participant_round:${uuid}`);
+
+        for (const search of ['', '?', '?entry=', '?entry=team:t-flat', `?entry=person:${uuid}`, `?entry=team:${uuid}x`, `?entry=team:${uuid}%0A`, '?entry=<script>', `?other=team:${uuid}`]) {
+            assert.equal(deskEntryFromQuery(search), null, search);
+        }
+
+        assert.equal(deskEntryFromQuery(null), null);
+        assert.equal(deskEntryRef(42), null);
+    });
+
+    test('the sheet\'s link to the desk: ?entry= appended once, nothing for an unknown desk or a bad ref', () => {
+        const uuid = '0195f3a2-7c1d-7e4a-9b2c-1d2e3f4a5b6c';
+
+        assert.equal(deskEntryUrl('/en/manage-round-results/r1', `team:${uuid}`), `/en/manage-round-results/r1?entry=team%3A${uuid}`);
+        assert.equal(deskEntryUrl('/en/manage-round-results/r1?a=b', `participant_round:${uuid}`), `/en/manage-round-results/r1?a=b&entry=participant_round%3A${uuid}`);
+        // What it builds, the desk reads back
+        assert.equal(deskEntryFromQuery(new URL(deskEntryUrl('/x', `team:${uuid}`), 'https://example.test').search), `team:${uuid}`);
+        assert.equal(deskEntryUrl('', `team:${uuid}`), null);
+        assert.equal(deskEntryUrl(null, `team:${uuid}`), null);
+        assert.equal(deskEntryUrl('/x', 'team:t-flat'), null);
     });
 }

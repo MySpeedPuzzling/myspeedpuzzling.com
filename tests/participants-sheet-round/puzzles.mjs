@@ -1,13 +1,13 @@
 // sheet_puzzles.js (competition toolkit A4) - on a `pick` round a result edit takes the per-puzzle record along in one
 // group (never a `puzzles_mismatch` dead end), the "Puzzles" column, live updates carrying `puzzles`; total rounds
-// unchanged.
+// unchanged. The Puzzles cell's read-only popover and its link to the results desk (v2 C5).
 
 import assert from 'node:assert/strict';
 import { officialEdit, officialEdits } from '../../assets/participants_sheet/sheet_results.js';
-import { recordCellText, serverRecord, withPickRecords } from '../../assets/participants_sheet/sheet_puzzles.js';
+import { recordCellText, serverRecord, sheetPuzzlesPopover, sheetPuzzlesPopoverHtml, withPickRecords } from '../../assets/participants_sheet/sheet_puzzles.js';
 import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
-import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, smallState } from '../participants-sheet-core/fixture.mjs';
+import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
 const A = 'rp-a';
 const B = 'rp-b';
@@ -169,5 +169,57 @@ export default function (test) {
         // A total round's entry never gets the key
         model.mergeEntries([{ ref: 'team:t-corners', tableNumber: 2, result: { seconds: 3000 }, qualified: false, enteredAt: '2026-10-08T08:30:00+00:00', enteredBy: null }]);
         assert.equal('puzzles' in model.team('t-corners'), false);
+    });
+
+    test('the popover (v2 C5): solving order, a secret puzzle by its label only, split + own time, pieces of the count', () => {
+        const uuid = '0195f3a2-7c1d-7e4a-9b2c-1d2e3f4a5b6c';
+        const state = pickState();
+        state.rounds = state.rounds.map((round) => (round.id === ROUND_TEAMS ? { ...round, urls: { ...(round.urls ?? {}), resultsDesk: '/en/manage-round-results/r-teams' } } : round));
+        // A name sent for a hidden puzzle anyway is never shown; splits as the judge page records them (W5)
+        state.rounds = state.rounds.map((round) => (round.id === ROUND_TEAMS ? { ...round, puzzleFormat: { ...FORMAT, toSolve: 3, puzzles: FORMAT.puzzles.map((puzzle) => (puzzle.roundPuzzleId === C ? { ...puzzle, name: 'Secret' } : puzzle)) } } : round));
+        state.teams.push(team(uuid, ROUND_TEAMS, 'Split', { result: { seconds: 5000 }, puzzles: [{ roundPuzzleId: C, done: true, atSeconds: 1500 }, { roundPuzzleId: A, done: true, atSeconds: 3100 }, { roundPuzzleId: B, done: true, atSeconds: 5000 }] }));
+        const model = new SheetModel(state, { now: () => 0 });
+        const popover = sheetPuzzlesPopover(model, ROUND_TEAMS, `team:${uuid}`, new PendingChanges());
+
+        assert.deepEqual(popover.items.map((item) => [item.label, item.name, item.done, item.atSeconds, item.duration]), [
+            ['C', null, true, 1500, 1500],
+            ['A', 'Lighthouse', true, 3100, 1600],
+            ['B', null, true, 5000, 1900],
+        ]);
+        assert.equal(popover.deskUrl, `/en/manage-round-results/r-teams?entry=team%3A${uuid}`);
+
+        const texts = { none: 'None', done: 'Finished', pieces: '%placed% / %pieces% pcs', piecesOnly: '%placed% pcs', ownTime: 'own %time%', editOnDesk: 'Edit on desk', newTab: '(new tab)' };
+        const html = sheetPuzzlesPopoverHtml(popover, texts);
+        assert.match(html, /<strong>C<\/strong><\/span><span class="sheet-puzzles-popover-state"><i class="bi bi-check-lg text-success" aria-hidden="true"><\/i><span class="visually-hidden">Finished<\/span> 0:25:00 <span class="text-body-secondary">own 0:25:00<\/span>/);
+        assert.match(html, /<strong>A<\/strong> <span class="text-body-secondary">Lighthouse<\/span>.* 0:51:40 <span class="text-body-secondary">own 0:26:40/);
+        assert.doesNotMatch(html, /Secret/);
+        assert.match(html, /href="\/en\/manage-round-results\/r-teams\?entry=team%3A0195f3a2-7c1d-7e4a-9b2c-1d2e3f4a5b6c" target="_blank" rel="noopener" data-puzzles-desk/);
+
+        // Unfinished: "312 / 500 pcs"; unsaved values shown; a puzzle without a split has no own time
+        const flat = sheetPuzzlesPopover(model, ROUND_TEAMS, 'team:t-flat', new PendingChanges());
+        assert.deepEqual(flat.items.map((item) => [item.label, item.piecesPlaced, item.piecesCount]), [['B', null, 500], ['A', 312, 500]]);
+        assert.equal(flat.deskUrl, null, 'a ref the desk would ignore gets no link');
+        assert.match(sheetPuzzlesPopoverHtml(flat, texts), /<strong>A<\/strong> <span class="text-body-secondary">Lighthouse<\/span><\/span><span class="sheet-puzzles-popover-state">312 \/ 500 pcs<\/span>/);
+        const pending = new PendingChanges();
+        pending.set('team:t-flat', 'puzzles', [{ roundPuzzleId: A, done: true }], RECORD);
+        const unsaved = sheetPuzzlesPopoverHtml(sheetPuzzlesPopover(model, ROUND_TEAMS, 'team:t-flat', pending), texts);
+        assert.match(unsaved, /Finished<\/span><\/span><\/li>/);
+        assert.doesNotMatch(unsaved, /own/);
+    });
+
+    test('the popover: no record = "None" + the desk link; a total round or no entry = nothing', () => {
+        const uuid = '0195f3a2-7c1d-7e4a-9b2c-1d2e3f4a5b6d';
+        const state = pickState();
+        state.rounds = state.rounds.map((round) => (round.id === ROUND_TEAMS ? { ...round, urls: { resultsDesk: '/desk' } } : round));
+        state.teams.push(team(uuid, ROUND_TEAMS, 'Empty', { puzzles: null }));
+        const model = new SheetModel(state, { now: () => 0 });
+        const texts = { none: 'None', done: 'Finished', pieces: '%placed% / %pieces% pcs', piecesOnly: '%placed% pcs', ownTime: 'own %time%', editOnDesk: 'Edit on desk', newTab: '(new tab)' };
+        const popover = sheetPuzzlesPopover(model, ROUND_TEAMS, `team:${uuid}`, null);
+
+        assert.deepEqual(popover.items, []);
+        assert.match(sheetPuzzlesPopoverHtml(popover, texts), /^<p class="sheet-puzzles-popover-none[^"]*">None<\/p><a [^>]*href="\/desk\?entry=team%3A/);
+        assert.equal(sheetPuzzlesPopover(model, ROUND_PAIRS, 'team:t-corners', null), null);
+        assert.equal(sheetPuzzlesPopover(model, ROUND_TEAMS, null, null), null);
+        assert.equal(sheetPuzzlesPopoverHtml(null, texts), '');
     });
 }

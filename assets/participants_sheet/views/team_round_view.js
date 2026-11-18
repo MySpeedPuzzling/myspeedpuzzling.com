@@ -211,6 +211,7 @@ export class TeamRoundView {
             activate: (row, col) => this.activate(row, col),
         });
         this.on(this.grid.table, 'contextmenu', (event) => this.onContextMenu(event));
+        this.on(this.grid.table, 'click', (event) => this.onPuzzlesClick(event));
     }
 
     /** What the columns depend on: a change means a new grid (the member count, table numbers, results, the name). */
@@ -1394,7 +1395,36 @@ export class TeamRoundView {
     activate(row, col) {
         if (row !== NEW_ROW && col === 'actions') {
             this.openRowMenu(row, this.grid.cellElement(row, 'actions'));
+        } else if (row !== NEW_ROW && col === 'puzzles') {
+            this.openPuzzles(row);
         }
+    }
+
+    /** The Puzzles cell's icon: one click opens the popover (Enter, Space and a double click go through activate()). */
+    onPuzzlesClick(event) {
+        const icon = event.target.closest?.('[data-puzzles-open]');
+        const position = icon ? this.grid?.positionOf(icon) : null;
+
+        if (position && position.row !== NEW_ROW) {
+            this.openPuzzles(position.row);
+        }
+    }
+
+    /** The read-only per-puzzle record of a team (competition toolkit v2 C5), next to its cell; Esc returns to it. */
+    openPuzzles(teamId) {
+        if (this.model.team(teamId) === null || roundPickFormat(this.model, this.roundId) === null) {
+            return;
+        }
+
+        this.openDialog({
+            ...this.results.puzzlesDialog(`team:${teamId}`, teamShortLabel(this.model, teamId, this.texts)),
+            anchor: this.grid.cellElement(teamId, 'puzzles'),
+            returnFocus: () => {
+                if (this.grid && !this.grid.focusCell(teamId, 'puzzles')) {
+                    this.grid.focusActive();
+                }
+            },
+        });
     }
 
     onContextMenu(event) {

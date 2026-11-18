@@ -8538,6 +8538,11 @@ participants_sheet_core:
         keys_ime: "Enter, then type"
         does_ime: "With a Japanese or other input method on, start editing with Enter or F2 first."
         mac: "On a Mac use Cmd instead of Ctrl."
+    puzzles_popover:
+        title: "Per-puzzle record"
+        none: "No per-puzzle record"
+        edit_on_desk: "Edit on the results desk"
+        own_time: "own %time%"
 # end participants_sheet_core
 
 participants_sheet_round:

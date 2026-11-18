@@ -168,6 +168,7 @@ export class SoloRoundView {
             activate: (row, col) => this.activate(row, col),
             openPanel: (row) => this.openPerson(row),
         });
+        this.on(this.grid.table, 'click', (event) => this.onPuzzlesClick(event));
     }
 
     columnsKey() {
@@ -837,7 +838,42 @@ export class SoloRoundView {
             this.openPerson(row);
         } else if (col === 'actions') {
             this.openRowMenu(row, this.grid.cellElement(row, 'actions'));
+        } else if (col === 'puzzles') {
+            this.openPuzzles(row);
         }
+    }
+
+    /** The Puzzles cell's icon: one click opens the popover (Enter, Space and a double click go through activate()). */
+    onPuzzlesClick(event) {
+        const icon = event.target.closest?.('[data-puzzles-open]');
+        const position = icon ? this.grid?.positionOf(icon) : null;
+
+        if (position && position.row !== NEW_ROW) {
+            this.openPuzzles(position.row);
+        }
+    }
+
+    /** The read-only per-puzzle record of a person's entry (competition toolkit v2 C5), next to its cell; Esc returns to it. */
+    openPuzzles(personId) {
+        const person = this.model.person(personId);
+        const ref = person === null ? null : (this.entryOf(personId)?.ref ?? null);
+
+        if (ref === null || roundPickFormat(this.model, this.roundId) === null) {
+            return;
+        }
+
+        this.dialog?.close();
+        this.dialog = new RoundDialog({
+            host: this.context.root,
+            closeLabel: this.t('dialog_close'),
+            ...this.results.puzzlesDialog(ref, person.name),
+            anchor: this.grid.cellElement(personId, 'puzzles'),
+            returnFocus: () => {
+                if (this.grid && !this.grid.focusCell(personId, 'puzzles')) {
+                    this.grid.focusActive();
+                }
+            },
+        }).open();
     }
 
     /** The person editor (stream E) when there is one, else the People tab at that person. */

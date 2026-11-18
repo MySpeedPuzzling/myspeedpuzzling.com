@@ -22,6 +22,9 @@ function key(id) {
     return String(id ?? '').toLowerCase();
 }
 
+// An entry of the desk: `team:<uuid>` / `participant_round:<uuid>` (the participants sheet's per-puzzle link, v2 C5)
+const ENTRY_REF = /^(team|participant_round):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 function record(value) {
     return Array.isArray(value) && value.length > 0 ? value : null;
 }
@@ -182,4 +185,40 @@ export function consistentRecord(format, result, shown) {
     const next = refusal === null ? record(recomputed) : null;
 
     return { changed: !sameValue(next, before), record: next, cleared: next === null };
+}
+
+/**
+ * An entry ref as the results desk knows it - `team:<uuid>` or `participant_round:<uuid>` (lower case) - else null.
+ */
+export function deskEntryRef(value) {
+    const ref = typeof value === 'string' ? value.toLowerCase() : '';
+
+    return ENTRY_REF.test(ref) ? ref : null;
+}
+
+/**
+ * The entry the results desk opens the editor of (`?entry=<ref>` - the participants sheet's "Edit on the results desk",
+ * competition toolkit v2 C5): a valid ref, else null (anything else is ignored).
+ *
+ * @param {string} search `location.search`
+ */
+export function deskEntryFromQuery(search) {
+    if (typeof search !== 'string' || search === '') {
+        return null;
+    }
+
+    return deskEntryRef(new URLSearchParams(search).get('entry'));
+}
+
+/**
+ * The results desk's URL with one entry's editor open - null without a desk URL or for a ref the desk would ignore.
+ */
+export function deskEntryUrl(deskUrl, ref) {
+    const entry = deskEntryRef(ref);
+
+    if (typeof deskUrl !== 'string' || deskUrl === '' || entry === null) {
+        return null;
+    }
+
+    return `${deskUrl}${deskUrl.includes('?') ? '&' : '?'}entry=${encodeURIComponent(entry)}`;
 }

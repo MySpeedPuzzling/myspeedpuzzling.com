@@ -546,3 +546,41 @@
 .sheet-cards-foot {
     margin-top: .25rem;
 }
+
+// ---------------------------------------------------------------- the Puzzles cell's popover (competition toolkit v2 C5)
+
+.sheet-puzzles-open {
+    float: right;
+    margin-left: .375rem;
+    color: $gray-600;
+    cursor: pointer;
+
+    &:hover {
+        color: $sheet-focus;
+    }
+}
+
+.sheet-puzzles-popover {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.sheet-puzzles-popover-item {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .375rem 0;
+    border-bottom: 1px solid $sheet-line;
+    overflow-wrap: anywhere;
+
+    &:last-child {
+        border-bottom: 0;
+    }
+}
+
+.sheet-puzzles-popover-state {
+    flex: none;
+    text-align: right;
+    white-space: nowrap;
+}

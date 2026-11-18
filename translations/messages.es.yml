@@ -15536,6 +15536,18 @@ participant_linking:
         reason:
             request_not_found: "Esta solicitud se decidió o se retiró mientras tanto."
             claimant_registration_paid: "%name% es la inscripción pagada del propio jugador y no aceptó renunciar a ella. Pídele que vuelva a elegir el nombre marcando esa casilla, o resuélvelo antes con él."
+    find:
+        card_title: "¿Eres tú?"
+        card_on_list: "En la lista de participantes del organizador"
+        card_yes: "Sí, soy yo"
+        card_no: "No, voy por mi cuenta"
+        card_find: "Buscar mi nombre en la lista"
+        same_name: "En la lista hay %count% personas llamadas %name%; elige la tuya."
+        this_is_me: "Soy yo"
+        this_is_me_named: "Soy yo: %name%"
+        confirm: "¿Vincular a %name% de la lista de participantes con tu perfil?"
+        flash_linked: "Hecho: este nombre de la lista de participantes está vinculado a tu perfil."
+        flash_already_yours: "Este nombre ya está vinculado a tu perfil."
 event_wizard_more:
     puzzle_search:
         label: "Buscar el puzzle"

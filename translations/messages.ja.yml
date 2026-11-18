@@ -15525,6 +15525,18 @@ participant_linking:
         reason:
             request_not_found: "この依頼はすでに処理されたか取り下げられました。"
             claimant_registration_paid: "%name% はプレイヤー本人の支払い済み登録で、本人は手放すことに同意していません。チェックボックスをオンにしてもう一度名前を選んでもらうか、先に本人と調整してください。"
+    find:
+        card_title: "これはあなたですか？"
+        card_on_list: "主催者の参加者リストに掲載"
+        card_yes: "はい、私です"
+        card_no: "いいえ、自分として参加します"
+        card_find: "リストで自分の名前を探す"
+        same_name: "リストに %name% という名前の人が %count% 人います。あなたの名前を選んでください。"
+        this_is_me: "私です"
+        this_is_me_named: "私です: %name%"
+        confirm: "参加者リストの %name% をあなたのプロフィールと連携しますか？"
+        flash_linked: "完了しました。参加者リストのこの名前はあなたのプロフィールと連携しました。"
+        flash_already_yours: "この名前はすでにあなたのプロフィールと連携しています。"
 event_wizard_more:
     puzzle_search:
         label: "パズルを探す"

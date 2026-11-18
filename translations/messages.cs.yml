@@ -15538,6 +15538,18 @@ participant_linking:
         reason:
             request_not_found: "Tato žádost byla mezitím vyřízena nebo vzata zpět."
             claimant_registration_paid: "%name% je vlastní zaplacená registrace hráče – nesouhlasil(a) s jejím uvolněním. Požádejte ho/ji, ať jméno vybere znovu se zaškrtnutým políčkem, nebo to s ním/ní nejdřív vyřešte."
+    find:
+        card_title: "Jste to vy?"
+        card_on_list: "Na seznamu účastníků od organizátora"
+        card_yes: "Ano, to jsem já"
+        card_no: "Ne – jdu sám/sama za sebe"
+        card_find: "Najít své jméno na seznamu"
+        same_name: "Na seznamu je více lidí se jménem %name% (%count%) – vyberte toho svého."
+        this_is_me: "To jsem já"
+        this_is_me_named: "To jsem já: %name%"
+        confirm: "Propojit %name% na seznamu účastníků s vaším profilem?"
+        flash_linked: "Hotovo – toto jméno na seznamu účastníků je propojené s vaším profilem."
+        flash_already_yours: "Toto jméno už je propojené s vaším profilem."
 event_wizard_more:
     puzzle_search:
         label: "Najít puzzle"

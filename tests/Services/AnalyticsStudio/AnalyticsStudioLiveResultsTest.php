@@ -22,8 +22,9 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * The studio's results (analytics-studio.md §6 as amended by FU-S): one ranking, no "official"/"unofficial" difference.
  * A published round shows exactly what the competitor page shows (the official rows); a round not published yet is
- * ranked live from the recorded results - what the judges and the desk entered - whatever the event's competitor page
- * settings, and a competitor's time proposal is never a result until a judge confirms it.
+ * ranked live from the recorded results - what the judges and the desk entered - only while the event shows live
+ * results (competitor pages AND their live results, FU-R2), else nothing until publishing; a competitor's time
+ * proposal is never a result until a judge confirms it.
  */
 final class AnalyticsStudioLiveResultsTest extends KernelTestCase
 {
@@ -70,37 +71,51 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
         self::assertSame([F::ENTRY_A_ANNA, F::ENTRY_A_BEN, F::ENTRY_A_CARA, F::ENTRY_A_DAN], array_keys($studio), 'rank order');
     }
 
-    public function testARoundNotPublishedYetIsRankedLiveFromTheRecordedResultsWhateverTheCompetitorPageSettings(): void
+    public function testARoundNotPublishedYetShowsNothingWhileTheEventShowsNoLiveResults(): void
     {
         self::bootKernel();
         $database = self::getContainer()->get(Connection::class);
 
-        // Competitor pages and their live results off (the fixture) - and on: the same live ranking
-        foreach ([false, true] as $pagesOn) {
+        // Off (the fixture), pages without their live results, live results without the pages (the setting does
+        // nothing then - the competitor page rule): no results until publishing
+        foreach ([[false, false], [true, false], [false, true]] as [$pages, $live]) {
             $database->executeStatement(
-                'UPDATE competition SET competitor_pages = :on, competitor_pages_live_results = :on WHERE id = :id',
-                ['on' => $pagesOn, 'id' => F::COMPETITION_RESULTS_CUP],
-                ['on' => ParameterType::BOOLEAN],
+                'UPDATE competition SET competitor_pages = :pages, competitor_pages_live_results = :live WHERE id = :id',
+                ['pages' => $pages, 'live' => $live, 'id' => F::COMPETITION_RESULTS_CUP],
+                ['pages' => ParameterType::BOOLEAN, 'live' => ParameterType::BOOLEAN],
             );
 
-            $groupB = $this->studio(F::ROUND_GROUP_B);
-            self::assertSame([
-                F::ENTRY_B_GINA => ['state' => 'official', 'seconds' => 3900, 'rank' => 1, 'qualified' => false],
-                F::ENTRY_B_HUGO => ['state' => 'official', 'seconds' => 4500, 'rank' => 2, 'qualified' => false],
-                F::ENTRY_B_IVAN => ['state' => 'official', 'seconds' => 5000, 'rank' => 3, 'qualified' => false],
-            ], array_map(static fn (array $row): array => array_intersect_key($row, ['state' => 1, 'seconds' => 1, 'rank' => 1, 'qualified' => 1]), $groupB));
-
-            // Pairs: finished times first, then the unfinished one by pieces; a pair without a result is not listed
-            $pairs = $this->studio(F::ROUND_PAIRS);
-            self::assertSame([F::TEAM_SHARKS, F::TEAM_EDGES, F::TEAM_CORNERS], array_keys($pairs));
-            self::assertSame([1, 2, 3], array_column($pairs, 'rank'));
-            self::assertSame(['piecesPlaced' => 1700, 'piecesCount' => 2000], array_intersect_key($pairs[F::TEAM_CORNERS] ?? [], ['piecesPlaced' => 1, 'piecesCount' => 1]));
+            self::assertSame([], $this->studio(F::ROUND_GROUP_B), json_encode([$pages, $live], JSON_THROW_ON_ERROR));
+            self::assertSame([], $this->studio(F::ROUND_PAIRS));
         }
+
+        // Published: the official rows, whatever the setting
+        self::assertCount(4, $this->studio(F::ROUND_GROUP_A));
+    }
+
+    public function testARoundNotPublishedYetIsRankedLiveFromTheRecordedResultsWhileTheEventShowsLiveResults(): void
+    {
+        self::bootKernel();
+        self::liveResultsOn();
+
+        $groupB = $this->studio(F::ROUND_GROUP_B);
+        self::assertSame([
+            F::ENTRY_B_GINA => ['state' => 'official', 'seconds' => 3900, 'rank' => 1, 'qualified' => false],
+            F::ENTRY_B_HUGO => ['state' => 'official', 'seconds' => 4500, 'rank' => 2, 'qualified' => false],
+            F::ENTRY_B_IVAN => ['state' => 'official', 'seconds' => 5000, 'rank' => 3, 'qualified' => false],
+        ], array_map(static fn (array $row): array => array_intersect_key($row, ['state' => 1, 'seconds' => 1, 'rank' => 1, 'qualified' => 1]), $groupB));
+
+        // Pairs: finished times first, then the unfinished one by pieces; a pair without a result is not listed
+        $pairs = $this->studio(F::ROUND_PAIRS);
+        self::assertSame([F::TEAM_SHARKS, F::TEAM_EDGES, F::TEAM_CORNERS], array_keys($pairs));
+        self::assertSame([1, 2, 3], array_column($pairs, 'rank'));
+        self::assertSame(['piecesPlaced' => 1700, 'piecesCount' => 2000], array_intersect_key($pairs[F::TEAM_CORNERS] ?? [], ['piecesPlaced' => 1, 'piecesCount' => 1]));
     }
 
     public function testTiesShareAPlaceAndADidNotStartIsNotListed(): void
     {
         self::bootKernel();
+        self::liveResultsOn();
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement('UPDATE competition_participant_round SET result_seconds = 3900 WHERE id = :id', ['id' => F::ENTRY_B_HUGO]);
         $database->executeStatement('UPDATE competition_participant_round SET result_seconds = NULL, result_did_not_start = true WHERE id = :id', ['id' => F::ENTRY_B_IVAN]);
@@ -114,6 +129,7 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
     {
         self::bootKernel();
         self::runningRounds();
+        self::liveResultsOn();
 
         // Anna tapped Stop on her phone: a proposal, not a result
         $answer = self::propose(self::ANNA_FINAL);
@@ -139,6 +155,14 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
 
         self::record([self::resultChange(self::ANNA_FINAL, ['seconds' => 610], null)]);
         self::assertSame([], $this->studio(F::ROUND_FINAL));
+    }
+
+    private static function liveResultsOn(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id',
+            ['id' => F::COMPETITION_RESULTS_CUP],
+        );
     }
 
     /**

@@ -23,8 +23,8 @@ use Symfony\Component\Mercure\Update;
 /**
  * The analytics studio's public data-free signal (analytics-studio.md R21-R24, AnalyticsStudioSignals): a round whose
  * studio was opened (a state computed - AnalyticsStudioWatch) hears of its writes on `/analytics-studio-signal/{roundId}`
- * - public, `{type, roundId}` only; results whether the round is published or not (the studio ranks them live, FU-S);
- * never for a draft; nothing for a round nobody watches, a refused write or a hub that is down (the write answers as
+ * - public, `{type, roundId}` only; results only while they are visible (published, or the event's live results on -
+ * the studio then ranks them live, FU-S/FU-R2); never for a draft; nothing for a round nobody watches, a refused write or a hub that is down (the write answers as
  * always).
  *
  * The markers are static in tests and emptied before every test (AnalyticsStudioWatchPool): they survive the browser's
@@ -59,14 +59,43 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
         self::assertSame(['{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_A . '"}'], self::signals());
     }
 
-    public function testAResultRecordedEditedOrClearedInAnUnpublishedRoundSignals(): void
+    public function testAResultInAnUnpublishedRoundDoesNotSignalWhileTheEventShowsNoLiveResults(): void
+    {
+        $browser = $this->organiser();
+        $this->watch($browser, F::ROUND_GROUP_B);
+
+        // Group B: not published, competitor pages + live results off (the fixture) - the studio shows no results until
+        // publishing, so a signal would tell that a result was just recorded
+        foreach ([[['seconds' => 5000], ['seconds' => 4100]], [['seconds' => 4100], null], [null, ['seconds' => 4800]]] as [$from, $to]) {
+            self::hub()->reset();
+            $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, $from, $to)]]);
+
+            self::assertResponseIsSuccessful();
+            self::assertSame([], self::signals(), json_encode($to, JSON_THROW_ON_ERROR));
+        }
+
+        // Competitor pages on, their live results off: still nothing
+        $this->studioDatabase()->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
+        self::hub()->reset();
+        $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, ['seconds' => 4800], ['seconds' => 4700])]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], self::signals());
+
+        self::assertSame(4700, $this->studioDatabase()->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => F::ENTRY_B_IVAN]));
+    }
+
+    public function testAResultRecordedEditedOrClearedInAnUnpublishedRoundSignalsWhileTheEventShowsLiveResults(): void
     {
         $browser = $this->organiser();
         $this->watch($browser, F::ROUND_GROUP_B);
         $signal = '{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_B . '"}';
+        $this->studioDatabase()->executeStatement(
+            'UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id',
+            ['id' => F::COMPETITION_RESULTS_CUP],
+        );
 
-        // Group B: not published, competitor pages off - the studio ranks the recorded results live (FU-S), so every
-        // judge's write is its news: an edit, a clear, a new result
+        // Group B: not published, live results on - the studio ranks the recorded results live (FU-S), so every judge's
+        // write is its news: an edit, a clear, a new result
         foreach ([[['seconds' => 5000], ['seconds' => 4100]], [['seconds' => 4100], null], [null, ['seconds' => 4800]]] as [$from, $to]) {
             self::hub()->reset();
             $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, $from, $to)]]);

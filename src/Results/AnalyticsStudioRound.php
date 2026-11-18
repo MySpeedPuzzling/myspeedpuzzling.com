@@ -37,6 +37,9 @@ readonly final class AnalyticsStudioRound
         public null|string $eventSlug,
         public null|string $seriesName,
         public null|string $seriesSlug,
+        // The event shows recorded results before publishing: competitor pages AND their live results (the setting does
+        // nothing while the pages are off - the competitor page rule); off = an unpublished round shows no results
+        public bool $liveResults,
         public array $eventRounds,
     ) {
     }
@@ -44,6 +47,14 @@ readonly final class AnalyticsStudioRound
     public function published(): bool
     {
         return $this->resultsPublishedAt !== null;
+    }
+
+    /**
+     * Whether the public may see this round's results now: published, or the event shows live results (FU-R2).
+     */
+    public function resultsVisible(): bool
+    {
+        return $this->published() || $this->liveResults;
     }
 
     public function isPick(): bool

@@ -48,7 +48,9 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         );
         $this->seedStudioTime(PlayerFixture::PLAYER_REGULAR, self::X, 2900, '2026-09-01 10:00:00');
         $this->seedStudioTime(PlayerFixture::PLAYER_REGULAR, self::X, 2500, '2026-10-10 10:00:00');
-        // The round is not published: its recorded results are ranked live (FU-S) - Hugo's unfinished one among them
+        // The round is not published, the event shows live results: its recorded results are ranked live (FU-S, FU-R2) -
+        // Hugo's unfinished one among them
+        $database->executeStatement('UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
         $database->executeStatement('UPDATE competition_participant_round SET result_seconds = NULL, result_pieces_placed = 600 WHERE id = :id', ['id' => F::ENTRY_B_HUGO]);
 
         $withX = $this->answers($browser);

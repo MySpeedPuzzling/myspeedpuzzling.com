@@ -70,6 +70,52 @@ final class AcceptLinkSuggestionsTest extends KernelTestCase
         self::assertSame($seeded['players']['zoe'], $this->row($self)['player_id']);
     }
 
+    /**
+     * R7 on the server: the dialog's answer may be stale - a self-joined row that became a registration of an event
+     * managing registration, or got a place in a round, is never merged away; the organiser merges it by hand.
+     */
+    public function testAMergeOfARegistrationOrARoundPlaceIsRefused(): void
+    {
+        $seeded = $this->seedLinkSuggestions($this->database);
+        $zoe = $seeded['participants']['zoe'];
+        $self = $seeded['participants']['zoeSelf'];
+        $merge = [self::sheetGroup(
+            ['op' => 'remove', 'participant' => $self],
+            ['op' => 'player', 'participant' => $zoe, 'from' => null, 'to' => $seeded['players']['zoe']],
+        )];
+
+        // A registration status counts only while the event manages registration
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'paid' WHERE id = :id", ['id' => $self]);
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => $seeded['event']]);
+
+        $applied = $this->applySheetChanges($merge, competitionId: $seeded['event']);
+
+        self::assertSame(['refused'], self::groupStatuses($applied));
+        self::assertSame(['skipped', 'refused:merge_by_hand'], self::changeStatuses($applied));
+        self::assertSame('participant_link_suggestions.sheet.reason.merge_by_hand', $applied->groups[0]->changes[1]->messageKey());
+        self::assertNull($this->row($self)['deleted_at']);
+        self::assertNull($this->row($zoe)['player_id']);
+
+        // Not managed, but in a round (no result)
+        $this->database->executeStatement('UPDATE competition SET registration_managed = false WHERE id = :id', ['id' => $seeded['event']]);
+        $this->database->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id) VALUES (:id, :participant, :round)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $self, 'round' => $seeded['round']],
+        );
+
+        $applied = $this->applySheetChanges([self::sheetGroup(
+            ['op' => 'remove', 'participant' => $self],
+            ['op' => 'player', 'participant' => $zoe, 'from' => null, 'to' => $seeded['players']['zoe']],
+        )], competitionId: $seeded['event']);
+
+        self::assertSame(['skipped', 'refused:merge_by_hand'], self::changeStatuses($applied));
+        self::assertNull($this->row($self)['deleted_at']);
+
+        // Removing the row alone (by hand) still works
+        $applied = $this->applySheetChanges([self::sheetGroup(['op' => 'remove', 'participant' => $self])], competitionId: $seeded['event']);
+        self::assertSame(['applied'], self::groupStatuses($applied));
+    }
+
     public function testOneRefusedPersonNeverStopsTheOthers(): void
     {
         $seeded = $this->seedLinkSuggestions($this->database);

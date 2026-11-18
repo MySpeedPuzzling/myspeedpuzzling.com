@@ -77,6 +77,9 @@ final class SheetPlanRun
     /** SheetChangeOutcome::$cause - only people on the waitlist would be left in a pair/team with a result */
     public const string CAUSE_WAITLISTED_ONLY = 'waitlisted_only';
 
+    /** A link that merges a self-joined row the same group removed, while that row holds a registration or a round place */
+    public const string REASON_MERGE_BY_HAND = 'merge_by_hand';
+
     /** @var array<string, Person> participant id => person, every participant of the event incl. removed ones */
     private array $people = [];
 
@@ -519,6 +522,12 @@ final class SheetPlanRun
                 return $this->refused($change, $index, 'player_not_found');
             }
 
+            $merge = $this->mergeRefusal($to, $change, $index);
+
+            if ($merge !== null) {
+                return $merge;
+            }
+
             // The import's rule: a player is linked to one active participant of the event at most
             $other = ParticipantRules::playerLinkedTo($to, $id, $this->people);
 
@@ -861,6 +870,36 @@ final class SheetPlanRun
         $this->deleteTeam($id);
 
         return $this->outcome($change, $index, SheetChangeStatus::Applied);
+    }
+
+    /**
+     * "Joined by themselves" accepted (participant-linking.md §5.3, R7): the group removed the player's own self-joined
+     * row and now links the player to another row - a merge. Refused while that row is a registration of an event
+     * managing registration (reserved, paid, on the waitlist) or is in a round: the organiser merges it by hand. The
+     * suggestions say it before (`mergeRefusal`), this holds when the dialog's answer was stale.
+     */
+    private function mergeRefusal(string $playerId, SheetChange $change, int $index): null|SheetChangeOutcome
+    {
+        foreach (array_keys($this->removedInGroup) as $removedId) {
+            $before = $this->start['people'][$removedId] ?? null;
+
+            if ($before === null || $before['selfJoined'] === false || $before['playerId'] !== $playerId) {
+                continue;
+            }
+
+            $registered = $this->registrationManaged && ($this->registrationStatuses[$removedId] ?? null) !== null;
+            $inRound = false;
+
+            foreach ($this->start['entries'][$removedId] ?? [] as $entry) {
+                $inRound = $inRound || $entry['present'];
+            }
+
+            if ($registered || $inRound) {
+                return $this->refused($change, $index, self::REASON_MERGE_BY_HAND, ['name' => $before['name']]);
+            }
+        }
+
+        return null;
     }
 
     private function remove(SheetChange $change, int $index): SheetChangeOutcome

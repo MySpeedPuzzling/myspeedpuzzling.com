@@ -178,6 +178,16 @@ html.standing-embed-root,
         border-color: $embed-dark-line !important;
     }
 
+    // The site's faint stripe (#f9fafb on every even row, _leaderboard.scss) would put light text on a light row:
+    // a subtle dark shade instead, light and muted text stay readable
+    .lb-table,
+    .ps-table {
+        > tbody > tr:nth-of-type(even):not(.table-active-player) > * {
+            background-color: #262b33;
+            color: $embed-dark-text;
+        }
+    }
+
     .table-active-player > * {
         background: #2a2540 !important;
     }

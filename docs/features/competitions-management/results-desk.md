@@ -104,6 +104,8 @@ and "published since" are shown in the round's zone (like the export), not the d
   (`deskRecordChips()` of official_results_desk_puzzles.js: `own` + `title`) is a rounded rectangle whose label, ✓ split
   and own time wrap one under the other only when the column is narrow, the label cut at 7.5em below `md` with the
   whole text in the chip's title. Desktop shows the same one-line chips as before.
+  A round with divisions (L5): the Division column is hidden below `sm` too - the division chip sits under the
+  entrant's name and the rank cell's "· REG 1" drops to a second line, so Result and Qualified show at 375 px.
 - **`?entry=<ref>`** (competition toolkit v2 C5 - the participants sheet's "Edit on the results desk"): `team:<uuid>` /
   `participant_round:<uuid>` (`deskEntryFromQuery()` of official_results_desk_puzzles.js) opens that entry's result
   editor - the per-puzzle editor on a `pick` round - once the page's state is there, scrolled into view. An invalid or

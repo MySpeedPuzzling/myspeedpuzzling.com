@@ -312,7 +312,7 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
 - Tests: `tests/competitor-proposals-harness.mjs` → `CompetitorProposalsScriptTest`,
   `tests/Controller/CompetitorPage/CompetitorPageProposalsTest.php`.
 
-### Puzzle choice with the proposal (competition toolkit v2 C2 - server; the phone's chips and the judge's pre-select are C3)
+### Puzzle choice with the proposal (competition toolkit v2 C2 - server, C3 - the phone's chips and the judge's pre-select)
 
 Design of record: `design-v2/competitors-splits.md` §2.2, decision D3 (in the delivery worktree). On a `pick` round the
 competitor may say which puzzles they finished - optional, partial allowed, **never at the tap's cost**, never applied
@@ -355,6 +355,26 @@ without the judge's Confirm, never public.
   0 round-puzzle reads without a choice, change/clear, owner, late link, decided → known, other event, views, delete),
   `TimeProposalPuzzlesEndpointsTest` (wire, unreadable, 401/403/409/400/404/429, competitor state labels only),
   `SerializedByLockMessagesTest`.
+- **The phone (C3)** - `competitor_page_controller.js` (`puzzles-url`), pure `competitor_proposals_view.js` /
+  `competitor_proposals_outbox.js`, the chip-tap rule `round_puzzle_pick.js` (shared with the judge's card):
+  - "Propose 0:49:12?" on a pick round carries chips ("Which puzzle did you finish?" / "Tap the 2 puzzles you finished,
+    in the order you finished them" - label, a name only once the puzzle is out, the solving order as a badge) and
+    "You can also tell the judge later." **Optional**: Propose is never held back; a chip tap never moves the tap's
+    moment (frozen at Stop) and the open sheet still counts as a held tap in the heartbeat (T2 unchanged).
+  - The tap's item carries `puzzles` + `chosenAtMs` (= the tap) and its body `puzzles` (only with a choice - a tap
+    without one keeps its body). While it waits (sending, offline, pending) the slot says "… · Puzzles: B → A" and offers
+    **Change puzzles** / **Tell the judge which puzzle** (the chips with Save / Cancel; not while signed out or stale).
+  - Save: a tap still on the phone (not being sent) is changed **in place** (same id - idempotency); else an outbox item
+    `<proposalId>:puzzles` (`action: 'puzzles'`, body `{puzzles | null, chosenAtMs, expectedPlayerId}`) - never sent
+    before its tap is answered (it plans no run of its own while the tap waits), a newer one replaces an unsent older
+    one, an answer to a version changed meanwhile is ignored. Not a tap: `itemOf()` / `outboxSummary()` leave it out.
+  - A resend answered `known` whose stored `proposal.puzzles` is not the phone's choice (a change made in place after an
+    earlier send arrived) sends the phone's as such an item. Undo drops an unsent change.
+  - Answers: `puzzlesRefused` on a stored tap, or a refused change → "Your time was sent - the puzzle choice was not:
+    <reason>" + the link; `puzzles_changed` (either way) fetches the state, a refused change reopens the chips with
+    its message; `chosen` fetches the state - until it arrives the slot shows the answer's choice (newer than the state).
+  - Harness: `tests/competitor-proposals-harness.mjs` (C3 scenarios) → `CompetitorProposalsScriptTest`.
+- **The judge's card (C3)** - live-results.md "Time proposals".
 
 ## Proposals end to end (B8 → P1 → C9 → B8)
 

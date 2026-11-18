@@ -1152,3 +1152,34 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   `NOT_LOCKED` like account deletion): addresses of events whose last day ended (`RegistrationAvailability::eventEndsAt`
   in the registration zone, else the event's / series' country) more than 60 days ago; events without dates keep them.
 - Not here: the person editor's / phone list's e-mail field and invitation action, a per-event daily cap (cut by R8).
+
+### FU-L - link suggestions on the phone and in the person editor, "Help people link their profiles" (2026-11-18)
+
+- One read per page, shared by every surface: `link_suggestions.js` keeps the endpoint's answer per model
+  (`rememberSuggested()` now keeps the entries; `suggestionFor(model, personId)` = one person's entry, re-checked with
+  `currentSuggestions()`; `onSuggested()` tells the person editor; `loadSuggestions()` = read + keep what is still
+  true + remember, the read on its way known to `ensureSuggestions()` - no second request while one runs). The dialog's
+  texts come from one builder, `suggestionLabels(context)` (`views/people_view.js`), for the grid, the phone list and
+  the editor.
+- **Phone list** (`views/people_list_view.js`): reads the suggestions when it renders (like the grid), offers the
+  "Suggestions (N)" filter (hidden while empty); choosing it - or `?filter=suggestions` - reads again and opens the
+  same dialog as the desktop (same pre-tick rule R2, same groups, one undo step, refusals said). A card of a person
+  with a suggestion says who they may be: "May be Jo D. #JO01" / "3 profiles may fit" (`sug_card`,
+  `sug_card_several`).
+- **Person editor** (`views/person_editor.js`, desktop panel and phone sheet alike): under the profile field of a
+  person without a profile, "May already have a profile - check the #code, the country and the dates first:" and per
+  candidate the tier, who (`candidateHtml()`: MSP name, #CODE, country, signals) and **[Link]** - the dialog's group
+  for that one person (`suggestionAction()`: a "Joined by themselves" merge = remove the self-joined row + link, one
+  atomic group), never pre-chosen; a merge refused by R7 (or a withheld profile) is disabled with "Merge by hand:
+  <reason>". Opened from a round tab (no People view read them yet), the editor reads them once for the page
+  (`ensureSuggestions()`), never once per person. No new endpoint or message - the accept path is the sheet's
+  `ApplyParticipantSheetChanges` as before, with R7 re-checked on the server (`merge_by_hand`).
+- **"Help people link their profiles"** = a row of the event's **"Get ready" checklist** on the edit page
+  (`ParticipantLinksTip`, order 65), not of the sheet's setup checklist: that one goes as soon as the event has a
+  round and a person (BR15) - exactly when this row would apply - and knows no dates. Shown while somebody on the list
+  (not removed) has no profile linked (`GetReadyFacts::$participantsNotLinked`, a scalar subquery of
+  `GetEventGetReadyFacts`' first statement - still 2 statements, pinned) and the event starts within 14 days or has
+  started (`ParticipantLinksTip::DAYS_BEFORE`); not for a draft or an event without a date. A tip without a tick
+  (linking is the players' act - it never holds "n of m done" back), note "N people on your list have no
+  MySpeedPuzzling profile linked yet - hand out claim links or review the suggestions.", **Open** → the toolkit hub's
+  "Participants & profiles" card (`competition_toolkit#participant-links`, the card has the id now).

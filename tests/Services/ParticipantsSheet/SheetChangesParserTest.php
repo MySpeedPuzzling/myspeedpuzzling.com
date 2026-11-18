@@ -96,7 +96,7 @@ final class SheetChangesParserTest extends TestCase
         yield 'unknown op' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'merge'])]], 'unknown_op'];
         yield 'missing participant' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'remove'])]], 'missing_field'];
         yield 'missing from' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'field', 'participant' => self::ID, 'field' => 'name', 'to' => 'X'])]], 'missing_field'];
-        yield 'unknown field' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'field', 'participant' => self::ID, 'field' => 'email', 'from' => null, 'to' => 'x'])]], 'missing_field'];
+        yield 'unknown field' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'field', 'participant' => self::ID, 'field' => 'shirtSize', 'from' => null, 'to' => 'x'])]], 'missing_field'];
         yield 'a place that is none' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'place', 'participant' => self::ID, 'round' => self::ID, 'from' => 'out', 'to' => 'maybe'])]], 'missing_field'];
         yield 'a team size that is no number' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'teamSize', 'round' => self::ID, 'from' => null, 'to' => '4'])]], 'missing_field'];
         yield 'an id that is no uuid' => [['changesetId' => self::ID, 'groups' => [$group(['op' => 'remove', 'participant' => '42'])]], 'invalid_id'];

@@ -63,15 +63,16 @@ final class ParticipantClaimInvitationsTest extends KernelTestCase
         $this->database->executeStatement('UPDATE competition_participant SET claim_invited_at = ' . TestClock::SQL_NOW . " - INTERVAL '2 hours' WHERE id = :id", ['id' => Cup::PARTICIPANT_EVA]);
         $this->email(Cup::PARTICIPANT_FILIP, 'filip@example.test');
         $this->suppress('filip@example.test', 'hard_bounce');
-        $this->email(Cup::PARTICIPANT_GINA, 'gina@example.test');
-        $this->suppress('gina@example.test', 'invitation_complaint');
+        // Gina and Hugo are linked to profiles - Ivan is not
+        $this->email(Cup::PARTICIPANT_IVAN, 'ivan@example.test');
+        $this->suppress('ivan@example.test', 'invitation_complaint');
 
         $result = $this->send([
             Cup::PARTICIPANT_BEN, Cup::PARTICIPANT_ANNA, Cup::PARTICIPANT_CARA, Cup::PARTICIPANT_DAN, Cup::PARTICIPANT_EVA,
-            Cup::PARTICIPANT_FILIP, Cup::PARTICIPANT_GINA, Uuid::uuid7()->toString(),
+            Cup::PARTICIPANT_FILIP, Cup::PARTICIPANT_IVAN, Uuid::uuid7()->toString(),
         ]);
 
-        // Filip's and Gina's addresses take no e-mail from us: dropped silently, counted as sent - nothing tells the
+        // Filip's and Ivan's addresses take no e-mail from us: dropped silently, counted as sent - nothing tells the
         // organiser what we know of an address (D10)
         self::assertSame(3, $result->sent);
         self::assertEquals(['linked' => 1, 'no_email' => 1, 'said_no' => 1, 'invited_recently' => 1, 'not_on_list' => 1], $result->skipped);
@@ -90,8 +91,8 @@ final class ParticipantClaimInvitationsTest extends KernelTestCase
         // Nobody else got anything
         self::assertNull($this->column(Cup::PARTICIPANT_CARA, 'claim_token'));
         self::assertNull($this->column(Cup::PARTICIPANT_FILIP, 'claim_invited_at'));
-        self::assertNull($this->column(Cup::PARTICIPANT_GINA, 'claim_invited_at'));
-        self::assertFalse($this->database->fetchOne("SELECT 1 FROM participant_link_log WHERE action = 'invitation_sent' AND participant_id IN (:filip, :gina)", ['filip' => Cup::PARTICIPANT_FILIP, 'gina' => Cup::PARTICIPANT_GINA]));
+        self::assertNull($this->column(Cup::PARTICIPANT_IVAN, 'claim_invited_at'));
+        self::assertFalse($this->database->fetchOne("SELECT 1 FROM participant_link_log WHERE action = 'invitation_sent' AND participant_id IN (:filip, :ivan)", ['filip' => Cup::PARTICIPANT_FILIP, 'ivan' => Cup::PARTICIPANT_IVAN]));
     }
 
     /**
@@ -194,7 +195,6 @@ final class ParticipantClaimInvitationsTest extends KernelTestCase
         self::assertSame('List-Unsubscribe=One-Click', $withAccount->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
         self::assertStringContainsString('/claim-invitations/no-more/' . Cup::PARTICIPANT_BEN, (string) $withAccount->getHeaders()->get('List-Unsubscribe')?->getBodyAsString());
         self::assertSame([], $withAccount->getReplyTo());
-        self::assertSame('emails/participant_claim_invitation.html.twig', $withAccount->getHtmlTemplate());
     }
 
     public function testTheSenderChecksAgain(): void
@@ -297,6 +297,8 @@ final class ParticipantClaimInvitationsTest extends KernelTestCase
 
         $message = $mailer->sent[0];
         self::assertInstanceOf(TemplatedEmail::class, $message);
+        // Read before rendering - the renderer clears it
+        self::assertSame('emails/participant_claim_invitation.html.twig', $message->getHtmlTemplate());
         $container->get('twig.mime_body_renderer')->render($message);
 
         return $message;

@@ -107,6 +107,6 @@ final class ParticipantEmailTest extends KernelTestCase
     {
         $translator = self::getContainer()->get(TranslatorInterface::class);
 
-        return array_values(array_map(static fn (TranslatableMessage $message): string => $message->trans($translator, 'en'), $messages));
+        return array_map(static fn (TranslatableMessage $message): string => $message->trans($translator, 'en'), $messages);
     }
 }

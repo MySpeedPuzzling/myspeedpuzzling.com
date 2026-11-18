@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
@@ -224,8 +225,9 @@ readonly final class CompetitionParticipantRepository
             $builder->andWhere('participant.id IN (:ids)')->setParameter('ids', $participantIds);
         }
 
+        // As the rows are now, under the caller's lock - not as an earlier read of this request left them in the identity map
         /** @var list<CompetitionParticipant> $participants */
-        $participants = $builder->getQuery()->getResult();
+        $participants = $builder->getQuery()->setHint(Query::HINT_REFRESH, true)->getResult();
 
         return $participants;
     }

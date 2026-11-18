@@ -4594,6 +4594,7 @@ qr_code:
         "external_id": "外部ID"
         "status": "ステータス"
         email: "メールアドレス（非公開、連携の招待用）"
+        division: "部門"
       "confirm":
         "nothing_saved_yet": "まだ何も保存されていません。"
         "button": "インポートを確定"
@@ -7676,6 +7677,39 @@ participants_sheet_server:
     team_size: "チームの人数（チームラウンドのみ）"
     team_size_help: "人数が少なすぎる・多すぎるチームを知らせるために使います。何かを妨げることはありません。"
     team_size_placeholder: "例：%size%（最も多い人数）"
+entry_divisions:
+    sheet:
+        column: "部門"
+        none: "部門なし"
+        current: "現在"
+        change: "変更"
+        set: "部門を%division%に設定しました。"
+        all_set: "すべてのエントリーに部門があります"
+        without: "{0}部門なし%count%件|]0,Inf[部門なし%count%件"
+        fill_empty: "空欄をまとめて設定…"
+        filled: "部門のないエントリーを%division%に設定しました。"
+        unknown: "「%value%」はこのラウンドの部門ではありません。このラウンドの部門：%divisions%。"
+        not_in_round: "%round%は部門%value%を使用していません。このラウンドの部門：%divisions%。"
+        op: "部門"
+        action: "部門を設定"
+        action_many: "部門を設定"
+        reason:
+            not_in_round: "%round%は部門%division%を使用していません。"
+            unknown_division: "「%division%」はこのイベントの部門ではありません。"
+            division_of_team: "%round%では部門はペア/チームに付きます。ペア/チームで設定してください。"
+            division_not_entered: "%name%は%round%に参加していません。先にラウンドに追加してください。"
+    import:
+        division_in_round: "%round%の部門"
+        division_round_twice: "1つのラウンドの部門が複数の列に選ばれています。"
+        header_read_as_division: "このイベントには部門があるため、列「%column%」は各エントリーの部門として読み込まれます。ラウンドが記載されている場合は、「ラウンド（リスト）」を選んでください。"
+        preview_line: "%round%の部門"
+        unknown: "%row% 行目: 「%value%」はこのイベントの部門ではありません（部門：%divisions%）。部門は設定しません。"
+        not_in_round: "%row% 行目: %round%は部門%division%を使用していないため、そのラウンドは変更しません。"
+        not_entered: "%row% 行目: %name%は%round%に参加していないため、そこでは部門%division%を設定しません。"
+        no_round: "%row% 行目: %name%はどのラウンドにも参加していないため、部門%division%を設定しません。"
+        conflict_in_file: "%name%の行で%round%の部門が食い違っているため、部門は変更しません。"
+        no_team: "%row% 行目: %name%には%round%のペアもチームもありません。ペアやチームの部門は、ペアまたはチームで設定します。"
+        members_disagree: "%team%のメンバーは%round%で部門が異なるため、ペアまたはチームの部門は変更しません。"
 
 participants_sheet_core:
   loading: "参加者を読み込んでいます…"

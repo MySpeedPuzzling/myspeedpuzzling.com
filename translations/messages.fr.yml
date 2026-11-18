@@ -4671,6 +4671,7 @@ competition:
         "external_id": "ID externe"
         "status": "Statut"
         email: "E-mail (privé, pour l'invitation de rattachement)"
+        division: "Division"
       "confirm":
         "nothing_saved_yet": "Rien n'est encore enregistré."
         "button": "Confirmer l'importation"
@@ -7769,6 +7770,39 @@ participants_sheet_server:
     team_size: "Membres par équipe (manches en équipe uniquement)"
     team_size_help: "Sert à signaler les équipes qui ont trop peu ou trop de personnes - cela ne bloque jamais rien."
     team_size_placeholder: "p. ex. %size% (la taille la plus courante)"
+entry_divisions:
+    sheet:
+        column: "Division"
+        none: "Sans division"
+        current: "actuelle"
+        change: "Modifier"
+        set: "Division définie sur %division%."
+        all_set: "Chaque concurrent a une division"
+        without: "{0}%count% sans division|{1}1 sans division|]1,Inf[%count% sans division"
+        fill_empty: "Remplir les vides avec…"
+        filled: "Les concurrents sans division sont maintenant dans %division%."
+        unknown: "« %value% » n'est pas une division de cette manche - elle a : %divisions%."
+        not_in_round: "%round% n'utilise pas la division %value% - elle a : %divisions%."
+        op: "Division"
+        action: "définir une division"
+        action_many: "définir les divisions"
+        reason:
+            not_in_round: "%round% n'utilise pas la division %division%."
+            unknown_division: "« %division% » n'est pas une division de cet événement."
+            division_of_team: "Dans %round%, la division appartient au duo/à l'équipe - définissez-la sur le duo/l'équipe."
+            division_not_entered: "%name% n'est pas dans %round% - inscrivez d'abord cette personne à la manche."
+    import:
+        division_in_round: "Division dans %round%"
+        division_round_twice: "La division d'une même manche est choisie pour plus d'une colonne."
+        header_read_as_division: "Cet événement a des divisions, la colonne « %column% » est donc lue comme la division de chaque concurrent. Si elle liste des manches, choisissez « Manches (liste) » pour elle."
+        preview_line: "Division dans %round%"
+        unknown: "Ligne %row% : « %value% » n'est pas une division de cet événement - il a : %divisions%. La division n'est pas définie."
+        not_in_round: "Ligne %row% : %round% n'utilise pas la division %division% - laissé tel quel dans cette manche."
+        not_entered: "Ligne %row% : %name% n'est pas dans %round% - la division %division% n'y est pas définie."
+        no_round: "Ligne %row% : %name% n'est dans aucune manche - la division %division% n'est pas définie."
+        conflict_in_file: "Les lignes de %name% indiquent des divisions différentes dans %round% - la division est laissée telle quelle."
+        no_team: "Ligne %row% : %name% n'a ni duo ni équipe dans %round% - la division d'un duo ou d'une équipe se définit sur le duo ou l'équipe."
+        members_disagree: "Les membres de %team% sont dans des divisions différentes dans %round% - la division du duo ou de l'équipe est laissée telle quelle."
 
 participants_sheet_core:
   loading: "Chargement des participants…"

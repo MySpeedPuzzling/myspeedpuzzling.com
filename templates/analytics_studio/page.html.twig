@@ -42,6 +42,7 @@
              data-analytics-url="{{ path('analytics_studio_analytics', {roundId: page.round.id}) }}"
              data-entrant-url="{{ path('analytics_studio_entrant', {roundId: page.round.id, entryId: entry_placeholder}) }}"
              data-predictions-url="{{ path('analytics_studio_predictions', {roundId: page.round.id}) }}"
+             data-round-predictions-url="{{ path('analytics_studio_round_predictions', {roundId: page.round.id}) }}"
              data-entry-placeholder="{{ entry_placeholder }}"
              data-labels="{{ page.labels|json_encode|e('html_attr') }}">
             <p class="as-boot" data-analytics-studio-boot>{{ 'analytics_studio.loading'|trans }}</p>

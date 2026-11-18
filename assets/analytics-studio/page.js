@@ -1,13 +1,13 @@
 // Analytics Studio (docs/features/competitions-management/analytics-studio.md §7, S3) - the page adapter: the only module
 // with the real DOM, the network, timers and history. It wires the pure modules together:
-// - refresh.js fetches state / analytics / entrant / predictions (the planner decides when);
+// - refresh.js fetches state / analytics / entrant / predictions / round-predictions (the planner decides when);
 // - model.js applyAction() is the view reducer, keys.js turns key presses into its actions, url.js keeps the view in
 //   the address (history.replaceState);
 // - render.js draws everything (created at the first state - before it the shell's "Loading…" stays).
 // Clicks are read from the renderer's `data-as-*` attributes. On phones the entrant sheet gets a history entry, so the
 // back button closes it. No Stimulus, no Turbo (the entry is standalone - AnalyticsStudioBundleTest).
 
-import { applyAction, initialView } from './model.js';
+import { applyAction, initialView, mergeRoundPredictions } from './model.js';
 import { keyAction } from './keys.js';
 import { decodeView, encodeView, resolveView } from './url.js';
 import { AnalyticsStudioRefresh } from './refresh.js';
@@ -83,7 +83,7 @@ export function startAnalyticsStudio(root, { window: win = window } = {}) {
     let shownKeys = [];
     let selectTimer = null;
 
-    const model = { state: null, analytics: null, entrant: null, predictions: null };
+    const model = { state: null, analytics: null, entrant: null, predictions: null, roundPredictions: null };
 
     const refresh = new AnalyticsStudioRefresh({
         serverNowMs: Number(data.serverNowMs) || null,
@@ -107,6 +107,11 @@ export function startAnalyticsStudio(root, { window: win = window } = {}) {
 
             return answer.status === 'ok' ? { status: 'ok', predictions: answer.body } : answer;
         },
+        fetchRoundPredictions: data.roundPredictionsUrl ? async (hash) => {
+            const answer = await getJson(withQuery(data.roundPredictionsUrl, { v: hash }), { noStore: true });
+
+            return answer.status === 'ok' ? { status: 'ok', roundPredictions: answer.body } : answer;
+        } : null,
         onState: (state) => {
             model.state = state;
 
@@ -133,6 +138,10 @@ export function startAnalyticsStudio(root, { window: win = window } = {}) {
         },
         onPredictions: (predictions) => {
             model.predictions = predictions;
+            render();
+        },
+        onRoundPredictions: (answer) => {
+            model.roundPredictions = mergeRoundPredictions(model.roundPredictions, answer);
             render();
         },
         onGone: () => {

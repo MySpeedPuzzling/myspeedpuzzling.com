@@ -19,9 +19,11 @@ import {
     clockPhase,
     compareTable,
     entrantRows,
+    hasPredictionColumn,
     officialRanking,
     predictionOf,
     resultsCount,
+    roundSource,
     slotsOf,
     visibleRows,
 } from './model.js';
@@ -42,7 +44,7 @@ import { KEYMAP } from './keys.js';
 // Every label the renderer reads - S3 adds `analytics_studio.<name>` for each to the catalogue
 export const LABEL_NAMES = [
     'search_placeholder', 'sort', 'sort.name', 'sort.table', 'sort.solves', 'sort.best', 'sort.rating', 'sort.rank',
-    'filter.all', 'filter.solved', 'filter.never', 'filter.nohistory',
+    'sort.prediction', 'filter.all', 'filter.solved', 'filter.never', 'filter.nohistory',
     'tab.entrants', 'tab.puzzle', 'tab.live',
     'clock.idle', 'clock.scheduled', 'clock.running', 'clock.times_up', 'clock.stopped', 'clock.left',
     'live.count', 'official.count', 'slot.hidden', 'slot.reveals_in', 'slot.image_later',
@@ -57,6 +59,7 @@ export const LABEL_NAMES = [
     'history.solves', 'history.first', 'history.best', 'history.last', 'history.first_try', 'history.place',
     'history.unfinished', 'history.as_group', 'history.lineup', 'history.members_solved',
     'prediction', 'prediction.solo', 'prediction.range', 'prediction.method.personal', 'prediction.method.general',
+    'prediction.cell_title', 'prediction.warming', 'prediction.unavailable',
     'similar.brand', 'similar.size', 'similar.count', 'similar.median', 'similar.best',
     'attempts', 'attempt.first', 'attempt.unboxed', 'attempt.solo', 'attempt.pair', 'attempt.team', 'attempt.unfinished',
     'recent_similar', 'recent_form', 'recent_form.median', 'earlier_rounds',
@@ -245,6 +248,9 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
     sortSelect.setAttribute('data-as-sort', '');
     sortSelect.setAttribute('aria-label', t('sort'));
     const filters = el('div', 'as-filters', controls);
+    // The round's predictions while they are calculated / when they do not come (v2 R31-R33)
+    const listStatus = el('span', 'as-list__status as-muted', controls);
+    listStatus.setAttribute('role', 'status');
     const compareBar = el('div', 'as-compare-bar', entrantsPanel);
     const list = el('ol', 'as-list', entrantsPanel);
 
@@ -284,6 +290,8 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
     // Countdowns drawn by renderClock() between renders
     let current = null;
     let countdowns = [];
+    // The predictions of the entrant answer, the compare set's answer and the round's (in that order - predictionOf)
+    const sourcesOf = (model) => ({ entrant: model.entrant, predictions: model.predictions, round: roundSource(model.state, model.roundPredictions) });
 
     // ---- top bar
 
@@ -366,12 +374,39 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         return cell;
     }
 
-    function renderList(state, rows, shown, slot, view) {
+    function predictionCell(row, parent, stalled) {
+        const cell = el('span', 'as-row__prediction', parent);
+
+        switch (row.predictionStatus) {
+            case 'value':
+                cell.textContent = `≈ ${duration(row.predictionSeconds)}`;
+                cell.setAttribute('title', t('prediction.cell_title'));
+                break;
+            case 'pending':
+                if (!stalled) {
+                    el('span', 'as-muted', cell, '…').setAttribute('title', t('prediction.warming'));
+                }
+                break;
+            case 'optedOut':
+                optedOut(cell);
+                break;
+            default:
+                break;
+        }
+    }
+
+    function renderList(state, rows, shown, slot, view, roundPredictions) {
         if (search.value !== view.query && document.activeElement !== search) {
             search.value = view.query;
         }
 
-        const sorts = availableSorts(state, slot);
+        const sorts = availableSorts(state, slot, roundPredictions);
+        const column = hasPredictionColumn(state, slot);
+        const round = column ? roundSource(state, roundPredictions) : null;
+        const stalled = round?.stalled === true && round.status !== 'ready';
+        list.classList.toggle('as-list--predictions', column);
+        list.classList.toggle('as-list--by-prediction', column && view.sort === 'prediction' && sorts.includes('prediction'));
+        listStatus.textContent = column && round?.status !== 'ready' && round?.status !== 'none' ? t(stalled ? 'prediction.unavailable' : 'prediction.warming') : '';
         sortSelect.replaceChildren();
 
         for (const sort of sorts) {
@@ -450,6 +485,10 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
             }
 
             el('span', 'as-row__best', item, slot?.visible && row.bestSeconds !== null ? duration(row.bestSeconds) : '');
+
+            if (column) {
+                predictionCell(row, item, stalled);
+            }
 
             const rating = el('span', 'as-row__rating', item);
 
@@ -699,7 +738,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
 
         const entrantMember = model.entrant?.key === row.key && Array.isArray(model.entrant.members) ? model.entrant.members[index] : null;
         historyBlock(block, member, slot, model.analytics?.puzzles?.[slot.key] ?? null);
-        predictionBlock(facts, { entrant: model.entrant, predictions: model.predictions }, row, index, slot, { solo: row.isTeam });
+        predictionBlock(facts, sourcesOf(model), row, index, slot, { solo: row.isTeam });
         similarBlock(block, member, slot);
 
         if (model.entrant?.key === row.key) {
@@ -816,7 +855,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         const body = el('tbody', '', table);
         const pieces = slot?.visible && isNumber(slot.puzzle?.pieces) ? slot.puzzle.pieces : '';
 
-        for (const metric of compareTable(rows, slot?.visible ? slot.key : null, { entrant: model.entrant, predictions: model.predictions })) {
+        for (const metric of compareTable(rows, slot?.visible ? slot.key : null, sourcesOf(model))) {
             // Nothing about a hidden puzzle: its rows are left out
             if (!slot?.visible && !['rating', 'skill', 'result'].includes(metric.id)) {
                 continue;
@@ -828,7 +867,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
                 const cell = el('td', `as-compare__cell${index >= 2 ? ' as-compare__col--extra' : ''}${metric.best.includes(index) ? ' as-compare__cell--best' : ''}`, tr);
 
                 if (metric.id === 'prediction' && value === null && !rows[index].isTeam && rows[index].members[0]?.analysable) {
-                    const prediction = predictionOf({ entrant: model.entrant, predictions: model.predictions }, rows[index].key, 0, slot?.key ?? null);
+                    const prediction = predictionOf(sourcesOf(model), rows[index].key, 0, slot?.key ?? null);
 
                     if (prediction.status === 'pending') {
                         spinner(cell);
@@ -1068,23 +1107,24 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         search,
 
         /**
-         * @param {{state: object|null, analytics: object|null, entrant: object|null, predictions: object|null, view: object, nowMs: number}} model
+         * @param {{state: object|null, analytics: object|null, entrant: object|null, predictions: object|null, roundPredictions?: object|null, view: object, nowMs: number}} model
          */
         render(model) {
             current = model;
             countdowns = [];
             const { state, view } = model;
             const slot = activeSlot(state, view.puzzle);
-            const rows = entrantRows(state, model.analytics, slot?.visible ? slot.key : null);
-            const shown = visibleRows(rows, { query: view.query, sort: view.sort, filter: view.filter, state, slot });
+            const rows = entrantRows(state, model.analytics, slot?.visible ? slot.key : null, sourcesOf(model));
+            const shown = visibleRows(rows, { query: view.query, sort: view.sort, filter: view.filter, state, slot, roundPredictions: model.roundPredictions ?? null });
 
             root.setAttribute('data-as-tab', ['entrants', 'puzzle', 'live'].includes(view.tab) ? view.tab : 'entrants');
             root.classList.toggle('as--sheet-open', view.open === true && view.selected !== null);
             root.classList.toggle('as--comparing', view.compare.length >= 2);
+            root.classList.toggle('as--predictions', hasPredictionColumn(state, slot));
             tabButtons.forEach((node) => node.setAttribute('aria-pressed', node.getAttribute('data-as-tab') === view.tab ? 'true' : 'false'));
 
             renderTop(state, slot, view);
-            renderList(state, rows, shown, slot, view);
+            renderList(state, rows, shown, slot, view, model.roundPredictions ?? null);
             renderDetailPanel(rows, slot, model);
             renderPuzzle(slot, model, rows);
             renderLive(state, rows);

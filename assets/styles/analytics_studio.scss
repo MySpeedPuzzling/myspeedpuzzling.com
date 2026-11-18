@@ -525,6 +525,10 @@ body.as-body {
     gap: 4px;
 }
 
+.as-list__status {
+    font-size: 11px;
+}
+
 .as-chip {
     flex: none;
     padding: 3px 9px;
@@ -681,6 +685,26 @@ body.as-body {
     font-family: var(--as-mono);
     font-size: 12px;
     text-align: right;
+}
+
+// The prediction column (v2 R31): solo rounds with a visible puzzle; ≥ 1280 px its own column, below only on a phone
+// while sorted by it - in place of the best time, so the row stays one line
+.as-list--predictions .as-row {
+    grid-template-columns: minmax(0, 1fr) 52px 44px 50px 56px 40px 70px 22px;
+}
+
+// The list's column grows by the cell, so the names keep their room
+@media (min-width: 1280px) {
+    .as--predictions .as-columns {
+        grid-template-columns: 500px minmax(0, 1fr) 340px;
+    }
+}
+
+.as-row__prediction {
+    font-family: var(--as-mono);
+    font-size: 12px;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .as-row .as-result {
@@ -1596,12 +1620,14 @@ a.as-person__name:hover {
         grid-template-columns: 360px minmax(0, 1fr) 300px;
     }
 
-    .as-row {
+    .as-row,
+    .as-list--predictions .as-row {
         grid-template-columns: minmax(0, 1fr) 44px 50px 70px 22px;
     }
 
     .as-row__rating,
-    .as-row__table {
+    .as-row__table,
+    .as-row__prediction {
         display: none;
     }
 }
@@ -1764,9 +1790,18 @@ a.as-person__name:hover {
         font-size: 16px; // no zoom on focus (iOS)
     }
 
-    .as-row {
+    .as-row,
+    .as-list--predictions .as-row {
         grid-template-columns: minmax(0, 1fr) 44px 54px 68px 30px;
         min-height: 40px;
+    }
+
+    .as-list--by-prediction .as-row__best {
+        display: none;
+    }
+
+    .as-list--by-prediction .as-row__prediction {
+        display: block;
     }
 
     .as-row__table,

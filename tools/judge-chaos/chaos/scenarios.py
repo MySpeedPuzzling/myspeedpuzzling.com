@@ -1173,6 +1173,239 @@ def s14_puzzle_splits(context):
                             % (puzzles[0].get('atSeconds'), want_1, wait_s, final['seconds'], want_2))
 
 
+
+# ---------------------------------------------------------------- 14 (J4)
+
+SCAN_TABLES = (191, 192, 193)
+SCAN_SHIM_TABLES = (194, 195, 196)
+SECONDS_PER_TAG = 3
+
+# getUserMedia counted, every stream kept - the page's camera calls and whether their tracks ended
+GUM_COUNTER = """(() => {
+    const md = navigator.mediaDevices;
+    if (!md || !md.getUserMedia) { return; }
+    const original = md.getUserMedia.bind(md);
+    window.__chaosGum = 0;
+    window.__chaosStreams = [];
+    md.getUserMedia = (constraints) => { window.__chaosGum += 1;
+        return original(constraints).then((stream) => { window.__chaosStreams.push(stream); return stream; }); };
+})();"""
+
+CAMERA_JS = r"""
+const streams = window.__chaosStreams || [];
+const button = document.querySelector('[data-live-results-target="scanButton"]');
+return {gum: window.__chaosGum || 0,
+        live: streams.reduce((n, s) => n + s.getTracks().filter((t) => t.readyState === 'live').length, 0),
+        ended: streams.reduce((n, s) => n + s.getTracks().filter((t) => t.readyState === 'ended').length, 0),
+        states: streams.map((s) => s.getVideoTracks().every((t) => t.readyState === 'ended') ? 'ended' : 'live'),
+        dot: !!button && button.classList.contains('lr-camera-ready')};
+"""
+
+# Save tapped in the page: how long until the scanner is back over Find, and whether the toast is on top of it
+SAVE_TO_SCANNER_JS = r"""
+const done = arguments[arguments.length - 1];
+const q = (t) => document.querySelector(`[data-live-results-target="${t}"]`);
+const started = performance.now();
+q('saveButton').click();
+const look = () => {
+    const scanner = q('scanner'), toast = q('toast');
+    if (!scanner.hidden) {
+        let toastOnTop = false;
+        if (!toast.hidden) {
+            const r = toast.getBoundingClientRect();
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            toastOnTop = !!hit && !!hit.closest('[data-live-results-target="toast"]');
+        }
+        done({ms: Math.round(performance.now() - started), toastOnTop, hint: q('scanHint').textContent.trim()});
+    } else if (performance.now() - started > 3000) {
+        done({ms: null, find: !q('findView').hidden});
+    } else {
+        requestAnimationFrame(look);
+    }
+};
+look();
+"""
+
+
+def write_y4m_sequence(png_list, path, seconds_each=SECONDS_PER_TAG, gap_seconds=1):
+    """Several tags filmed one after the other (each `seconds_each` s, then `gap_seconds` s of white) - Chrome loops it."""
+    from PIL import Image
+
+    with open(path, 'wb') as out:
+        out.write(b'YUV4MPEG2 W640 H480 F15:1 Ip A1:1 C420jpeg\n')
+        for png in png_list:
+            qr = Image.open(io.BytesIO(png)).convert('L').resize((300, 300), Image.NEAREST)
+            frame = Image.new('L', (640, 480), 255)
+            frame.paste(qr, (170, 90))
+            white = Image.new('L', (640, 480), 255)
+            for image, count in ((frame, 15 * seconds_each), (white, 15 * gap_seconds)):
+                for _ in range(count):
+                    out.write(b'FRAME\n')
+                    out.write(image.tobytes())
+                    out.write(bytes([128]) * (320 * 240 * 2))
+
+
+def make_tables_video(context, tables, name='tables3.y4m'):
+    """The table tags of `tables` from the real print page (tents), filmed into media/<name>. Returns {table: url}."""
+    browser = Browser('printer-tables', mobile=False)
+    context['browsers'].append(browser)
+    urls, pngs = {}, []
+    browser.login('organiser')
+    browser.go('/en/name-tags/%s?kind=tables&layout=tents' % COMPETITION)
+    for table in tables:
+        selector = '[data-qr-url$="/t/%d"]' % table
+        element = browser.wait(lambda: (lambda els: els[0] if els else None)(browser.driver.find_elements(By.CSS_SELECTOR, selector)),
+                               timeout=20, message='the tag of table %d on the print page' % table)
+        browser.js('arguments[0].scrollIntoView({block: "center"})', element)
+        urls[table] = element.get_attribute('data-qr-url')
+        pngs.append(element.find_element(By.CSS_SELECTOR, 'svg').screenshot_as_png)
+    write_y4m_sequence(pngs, '/chaos/media/%s' % name)
+    browser.quit()
+    context['browsers'].remove(browser)
+    return urls
+
+
+def table_of(info):
+    for text in (info.get('entryTable') or '', info.get('entryName') or ''):
+        digits = ''.join(c if c.isdigit() else ' ' for c in text).split()
+        if digits:
+            return int(digits[-1])
+    return None
+
+
+def continuous_run(context, browser, tables, label):
+    """Scan → card → typed time → Save → straight back to the warm scanner, until every table of `tables` is saved once.
+    A card of a table already saved may open only after its tag was out of view (the loop shows it again after the
+    others) - never while it stayed in front of the lens."""
+    saved, opened, backs = {}, [], []
+    browser.back_to_find()
+    browser.click('[data-live-results-target="scanButton"]')
+    deadline = time.time() + 120
+    while len(saved) < len(tables):
+        check(time.time() < deadline, '%s: %d of %d tables saved in 120 s (opened %s)' % (label, len(saved), len(tables), opened))
+        info = browser.wait(lambda: (lambda i: i if i['entry'] and not i['scanner'] else None)(browser.info()),
+                            timeout=30, interval=0.1, message='%s: a card opened by the scanner' % label)
+        table = table_of(info)
+        opened.append((table, round(time.time(), 1)))
+        check(table in tables, '%s: the scan opened %r (table %s) - not one of the filmed tags %s'
+              % (label, info['entryName'], table, list(tables)))
+        if table in saved:
+            since = time.time() - saved[table]
+            check(since >= 4, '%s: table %d opened again %.1f s after its Save - its tag was still in view' % (label, table, since))
+            browser.back_to_find()
+            browser.click('[data-live-results-target="scanButton"]')
+            continue
+        browser.type_time(seconds_for(table))
+        time.sleep(0.45)  # Save ignores a tap within 350 ms of the confirm step (C7)
+        back = browser.js_async(SAVE_TO_SCANNER_JS)
+        backs.append(back)
+        saved[table] = time.time()
+        check(back.get('ms') is not None, '%s: after the Save of table %d the scanner did not come back: %s' % (label, table, back))
+        check(back['ms'] <= 300, '%s: the scanner came back %d ms after the Save of table %d (budget 300 ms)' % (label, back['ms'], table))
+        check(back['toastOnTop'], '%s: the Saved toast is not visible over the scanner (table %d)' % (label, table))
+    context['evidence']['%s_opened' % label] = opened
+    context['evidence']['%s_save_to_scanner' % label] = backs
+    return saved
+
+
+def s14_continuous_scanning(context):
+    """14. Judge-speed J4 - continuous scanning with a warm camera: 3 table tags filmed into one looped video, the page
+    prepared and reloaded OFFLINE (shell), Scan → card → Save → the scanner back at once (<= 300 ms, toast on top), the
+    just-saved tag never reopened while in view, until 3 distinct entries are saved; getUserMedia exactly once, online
+    → 3 applied receipts (exactly once), values + entered by; idle 95 s → the track ended (not QUICK); a tab over it
+    (hidden) → ended; the same with a BarcodeDetector shim (no zbar)."""
+    db, proxy = context['db'], context['proxy']
+    urls = make_tables_video(context, SCAN_TABLES)
+    context['evidence']['tag_urls'] = urls
+    since = db.now()
+
+    browser = Browser('scan-continuous', video='tables3.y4m')
+    context['browsers'].append(browser)
+    browser.cdp('Page.addScriptToEvaluateOnNewDocument', {'source': GUM_COUNTER})
+    browser.login('referee')
+    browser.open_live()
+    browser.wait_offline_ready()
+    browser.wait_snapshot()
+    network_down(proxy, browser)
+    browser.driver.refresh()
+    info = browser.wait_live(20)
+    check(info['shell'], 'the offline reload did not get the shell')
+
+    continuous_run(context, browser, SCAN_TABLES, 'zbar')
+    camera = browser.js(CAMERA_JS)
+    context['evidence']['camera_after_3'] = camera
+    check(camera['gum'] == 1, 'getUserMedia called %d times for 3 scans in a row (expected exactly 1)' % camera['gum'])
+    check(camera['live'] >= 1 and camera['dot'], 'the camera is not warm after the third Save: %s' % camera)
+    check(len(browser.outbox()) == 3, 'outbox offline: %s' % browser.outbox())
+
+    network_up(proxy, browser)
+    browser.wait_saved(60)
+    assert_results(context, list(SCAN_TABLES), REFEREE)
+    receipts = db.receipts_since(since)
+    context['evidence']['receipts'] = receipts
+    check(receipts == {'applied': 3}, 'receipts %s - expected 3 applied (each Save exactly once)' % receipts)
+
+    # The camera turns itself off: 90 s without a scan (QUICK skips the wait)
+    browser.click('[data-live-results-target="scanner"] [data-action="live-results#closeOverlays"]')
+    if not QUICK:
+        time.sleep(95)
+        camera = browser.js(CAMERA_JS)
+        context['evidence']['camera_after_idle'] = camera
+        check(camera['live'] == 0 and not camera['dot'], 'the camera is still on 95 s after the last scan: %s' % camera)
+
+    # Hidden (another tab in front): released at once - and asked again when the page is back with the scanner open
+    browser.click('[data-live-results-target="scanButton"]')
+    browser.wait(lambda: browser.js(CAMERA_JS)['live'] >= 1, timeout=15, message='the camera on again')
+    before = browser.js(CAMERA_JS)
+    page = browser.driver.current_window_handle
+    browser.driver.switch_to.new_window('tab')
+    time.sleep(1.5)
+    browser.driver.close()
+    browser.driver.switch_to.window(page)
+    time.sleep(1.5)
+    camera = browser.js(CAMERA_JS)
+    context['evidence']['camera_hidden'] = {'before': before, 'after': camera}
+    if camera['gum'] > before['gum']:
+        # visibilitychange reached the page: every stream but the new one ended
+        check(camera['states'][:-1] == ['ended'] * (len(camera['states']) - 1), 'a hidden page kept its camera: %s' % camera)
+        hidden_note = 'hidden → released, asked again when shown'
+    else:
+        hidden_note = 'no visibilitychange in this Chrome - hidden release proven by the node harness only'
+    browser.quit()
+    context['browsers'].remove(browser)
+
+    # BarcodeDetector path: a shim reading the 3 other tables' tags in turn (3 s each, 1 s nothing) - no zbar
+    shim_urls = [urls[SCAN_TABLES[0]].rsplit('/', 1)[0] + '/%d' % table for table in SCAN_SHIM_TABLES]
+    shim = """window.BarcodeDetector = class { static async getSupportedFormats() { return ['qr_code']; }
+        constructor(o) { window.__chaosDetector = (window.__chaosDetector || 0) + 1; }
+        async detect(source) { const urls = %r; const slot = Math.floor(Date.now() / 1000) %% 12;
+            return slot %% 4 === 3 ? [] : [{rawValue: urls[Math.floor(slot / 4)], format: 'qr_code'}]; } };""" % shim_urls
+    since = db.now()
+    browser = Browser('scan-continuous-shim', video='tables3.y4m')
+    context['browsers'].append(browser)
+    browser.cdp('Page.addScriptToEvaluateOnNewDocument', {'source': shim + GUM_COUNTER})
+    browser.login('referee')
+    browser.open_live()
+    browser.wait_offline_ready()
+    browser.wait_snapshot()
+    network_down(proxy, browser)
+    browser.driver.refresh()
+    browser.wait_live(20)
+    continuous_run(context, browser, SCAN_SHIM_TABLES, 'shim')
+    calls = browser.js('return {constructed: window.__chaosDetector || 0, zbar: typeof window.zbarWasm, gum: window.__chaosGum || 0}')
+    context['evidence']['shim_calls'] = calls
+    check(calls['constructed'] == 1, 'BarcodeDetector built %d times (one per page expected)' % calls['constructed'])
+    check(calls['zbar'] == 'undefined', 'zbar was loaded although BarcodeDetector exists')
+    check(calls['gum'] == 1, 'getUserMedia called %d times (shim run)' % calls['gum'])
+    network_up(proxy, browser)
+    browser.wait_saved(60)
+    assert_results(context, list(SCAN_SHIM_TABLES), REFEREE)
+    receipts = db.receipts_since(since)
+    check(receipts == {'applied': 3}, 'shim run receipts %s - expected 3 applied' % receipts)
+    backs = context['evidence']['zbar_save_to_scanner'] + context['evidence']['shim_save_to_scanner']
+    context['notes'].append('6 saves, scanner back in %s ms, getUserMedia 1 per page; %s'
+                            % ([b['ms'] for b in backs], hidden_note))
+
 SCENARIOS = {
     's01_flapping': (s01_flapping, range(1, 31)),
     's02_refresh_mid_save': (s02_refresh_mid_save, range(31, 36)),
@@ -1191,4 +1424,5 @@ SCENARIOS = {
     's12c_background_tab': (s12c_background_tab, [175, 176]),
     's13_tap_moment_kept': (s13_tap_moment_kept, [180, 181, 300]),
     's14_puzzle_splits': (s14_puzzle_splits, []),
+    's14_continuous_scanning': (s14_continuous_scanning, list(SCAN_TABLES + SCAN_SHIM_TABLES)),
 }

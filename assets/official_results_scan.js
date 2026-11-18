@@ -5,6 +5,8 @@
  * BarcodeDetector where it reads QR codes, else zbar-wasm + its polyfill - from our own server first (the EAN scanner's
  * order and files, README §5.9 of the barcode scanner; the service worker keeps them on a referee's device, toolkit C6,
  * so an iPhone scans after an offline reload), jsdelivr only when ours does not work.
+ * The building blocks of a scan (judge-speed J4): openQrCamera() / cameraOf(), the page's one qrReader(), detectLoop() -
+ * live_entry_scan_session.js keeps the camera warm between scans with them.
  */
 
 import { parseLiveEntryRoute } from './live_entry_route.js';
@@ -166,7 +168,10 @@ async function loadZbar() {
     }
 }
 
-async function qrDetector() {
+let reader = null;
+let readerLoading = null;
+
+async function qrDetectorClass() {
     if (detectorClass === undefined) {
         if (await nativeReadsQr()) {
             detectorClass = window.BarcodeDetector;
@@ -188,99 +193,164 @@ async function qrDetector() {
         return null;
     }
 
-    return new detectorClass({ formats: ['qr_code'] });
+    return detectorClass;
 }
 
 /**
- * Starts the camera into `video` and reads QR codes until one is found (onResult(rawValue)) or stop() is called.
- * onError(reason): 'camera' (no camera / permission refused) | 'decoder' (no QR reader could be loaded).
+ * The page's one QR reader (judge-speed J4): the browser's own BarcodeDetector where it reads `qr_code`, else the zbar
+ * polyfill - built once and kept for every scan of the page; null when no decoder could be loaded (asked again next
+ * time). Calls while it loads share the one load.
  *
- * @returns {Promise<function(): void>} stop
+ * @returns {Promise<{detect: function(*): Promise<Array<{rawValue: string}>>}|null>}
  */
-export async function startQrScan({ video, onResult, onError }) {
-    let stopped = false;
-    let stream = null;
+export function qrReader() {
+    if (reader !== null) {
+        return Promise.resolve(reader);
+    }
 
-    const stop = () => {
-        stopped = true;
+    if (readerLoading === null) {
+        readerLoading = qrDetectorClass()
+            .then((Detector) => {
+                if (Detector !== null && reader === null) {
+                    reader = new Detector({ formats: ['qr_code'] });
+                }
 
-        if (stream !== null) {
-            stream.getTracks().forEach((track) => track.stop());
-            stream = null;
-        }
+                return Detector === null ? null : reader;
+            })
+            .catch(() => null)
+            .finally(() => {
+                readerLoading = null;
+            });
+    }
 
-        video.srcObject = null;
+    return readerLoading;
+}
+
+export const QR_CAMERA = {
+    audio: false,
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+};
+
+/**
+ * A started camera (judge-speed J4): shown in a <video> while scanning, taken off it while parked (the tracks stay
+ * live - no second permission question), stopped on release. `ended` is the browser ending the capture itself (iOS
+ * on a call, another app, Siri) - stopping the tracks ourselves does not fire it.
+ */
+export function cameraOf(stream) {
+    const videoTracks = () => (typeof stream.getVideoTracks === 'function' ? stream.getVideoTracks() : stream.getTracks());
+    let released = false;
+
+    return {
+        stream,
+        attach(video) {
+            video.setAttribute('playsinline', '');
+            video.muted = true;
+
+            if (video.srcObject !== stream) {
+                video.srcObject = stream;
+            }
+
+            // Always again: Safari stops a <video> that was hidden or taken off its stream
+            const playing = video.play();
+
+            if (playing && typeof playing.catch === 'function') {
+                playing.catch(() => {});
+            }
+        },
+        detach(video) {
+            try {
+                video.pause();
+            } catch (e) {
+                // Not playing
+            }
+
+            video.srcObject = null;
+        },
+        alive() {
+            const tracks = videoTracks();
+
+            return !released && tracks.length > 0 && tracks.every((track) => track.readyState === 'live');
+        },
+        release() {
+            released = true;
+            stream.getTracks().forEach((track) => {
+                try {
+                    track.stop();
+                } catch (e) {
+                    // Already stopped
+                }
+            });
+        },
+        onEnded(callback) {
+            videoTracks().forEach((track) => track.addEventListener('ended', () => callback(), { once: true }));
+        },
     };
+}
 
-    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-        onError('camera');
-
-        return stop;
+/**
+ * Asks for the back camera: `{ok: true, camera}` | `{ok: false, reason: 'camera'}` (no camera, permission refused).
+ * getUserMedia is called before anything is awaited - inside the tap that asked for it (iOS asks only then).
+ */
+export async function openQrCamera({ mediaDevices }) {
+    if (!mediaDevices || typeof mediaDevices.getUserMedia !== 'function') {
+        return { ok: false, reason: 'camera' };
     }
 
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        });
+        return { ok: true, camera: cameraOf(await mediaDevices.getUserMedia(QR_CAMERA)) };
     } catch (e) {
-        onError('camera');
-
-        return stop;
+        return { ok: false, reason: 'camera' };
     }
+}
 
-    if (stopped) {
-        stop();
+// About ten reads a second - enough for a QR held still, light on a phone's battery
+function nextRead(read) {
+    setTimeout(() => requestAnimationFrame(read), 100);
+}
 
-        return stop;
-    }
+/**
+ * Reads QR codes from `video` until stop(): onCode(rawValue) for every frame with a code - what to do with it is the
+ * caller's (live_entry_scan_session.js); never stops the camera. A read still running when stop() is called is
+ * dropped, never handed on.
+ *
+ * @returns {function(): void} stop
+ */
+export function detectLoop({ video, reader: qr, onCode, schedule = nextRead }) {
+    let stopped = false;
 
-    video.setAttribute('playsinline', '');
-    video.muted = true;
-    video.srcObject = stream;
-    video.play().catch(() => {});
-
-    const detector = await qrDetector();
-
-    if (detector === null) {
-        stop();
-        onError('decoder');
-
-        return stop;
-    }
-
-    let busy = false;
-
-    const tick = async () => {
+    const read = async () => {
         if (stopped) {
             return;
         }
 
-        if (!busy && video.readyState >= 2) {
-            busy = true;
+        if (video.readyState >= 2) {
+            let raw = null;
 
             try {
-                const codes = await detector.detect(video);
-                const code = codes.find((candidate) => typeof candidate.rawValue === 'string' && candidate.rawValue !== '');
-
-                if (code && !stopped) {
-                    stop();
-                    onResult(code.rawValue);
-
-                    return;
-                }
+                const codes = await qr.detect(video);
+                const code = (codes ?? []).find((candidate) => typeof candidate?.rawValue === 'string' && candidate.rawValue !== '');
+                raw = code ? code.rawValue : null;
             } catch (e) {
                 // A frame that could not be read - the next one may
             }
 
-            busy = false;
+            if (stopped) {
+                return;
+            }
+
+            if (raw !== null) {
+                onCode(raw);
+            }
         }
 
-        // About ten reads a second - enough for a QR held still, light on a phone's battery
-        setTimeout(() => requestAnimationFrame(tick), 100);
+        if (!stopped) {
+            schedule(read);
+        }
     };
 
-    requestAnimationFrame(tick);
+    schedule(read);
 
-    return stop;
+    return () => {
+        stopped = true;
+    };
 }

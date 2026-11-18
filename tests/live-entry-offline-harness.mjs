@@ -646,18 +646,26 @@ const scenarios = {
         const local = fakeStorage({ [LEGACY_KEYBOARD_KEY]: 'numeric' });
         const prefs = readPrefs(local);
 
-        assert.deepEqual(prefs, { v: 1, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null });
+        assert.deepEqual(prefs, { v: 2, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null });
         assert.equal(local.getItem(LEGACY_KEYBOARD_KEY), null);
         assert.equal(JSON.parse(local.getItem(PREFS_KEY)).keyboard, 'numeric');
 
-        assert.equal(writePrefs(local, { keyboard: 'text', scanAfterSave: true }).keyboard, 'text');
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: 'text', autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null });
+        assert.equal(writePrefs(local, { keyboard: 'text', scanAfterSave: false }).keyboard, 'text');
+        assert.deepEqual(readPrefs(local), { v: 2, keyboard: 'text', autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null });
 
         local.setItem(PREFS_KEY, JSON.stringify({ keyboard: 'qwerty', autoOpenTable: 'yes', myTables: [3, -1, 'x', 4] }));
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null }, 'the never written list of the first version is no tables');
+        assert.deepEqual(readPrefs(local), { v: 2, keyboard: null, autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null }, 'the never written list of the first version is no tables');
 
-        assert.deepEqual(readPrefs(fakeStorage()), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null });
+        assert.deepEqual(readPrefs(fakeStorage()), { v: 2, keyboard: null, autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null });
         assert.equal(readPrefs(brokenStorage()).keyboard, null);
+
+        // Continuous scanning (judge-speed J4): on by default - the `false` every v1 write stored was the old default
+        local.setItem(PREFS_KEY, JSON.stringify({ v: 1, keyboard: 'text', autoOpenTable: false, scanAfterSave: false }));
+        assert.equal(readPrefs(local).scanAfterSave, true, 'a v1 false is nobody\'s choice');
+        assert.equal(readPrefs(local).autoOpenTable, false, 'everything else of v1 kept');
+        assert.equal(writePrefs(local, { scanAfterSave: false }).scanAfterSave, false);
+        assert.equal(JSON.parse(local.getItem(PREFS_KEY)).v, 2);
+        assert.equal(readPrefs(local).scanAfterSave, false, 'switched off on this phone - kept');
         assert.equal(writePrefs(brokenStorage(), { keyboard: 'numeric' }).keyboard, 'numeric', 'this page keeps it');
     },
 

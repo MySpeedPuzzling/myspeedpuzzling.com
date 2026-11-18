@@ -52,7 +52,7 @@ Data (`seed.sql`): the fixtures' Results Cup gets "Chaos Round" - solo, 300 made
 tables 1-300, the stopwatch running, a 600-minute limit; referee PLAYER_WITH_FAVORITES (Michael), organiser
 PLAYER_WITH_STRIPE (Sarah); competitor pages + time proposals on, entrants 300/299/298 linked to John / Jane / Admin;
 every fixture account gets the password `judge-chaos-1`. A second round "Chaos Solve All" (pick 2 of 2, "Challenge 1/2",
-the same running stopwatch, Chaos Testers 241-245 at tables 241-245) serves `s14_puzzle_splits`. Each scenario uses its own tables and clears them first, so
+the same running stopwatch, Chaos Testers 241-245 at tables 241-245) serves `s14_puzzle_splits`; tables 191-196 of the Chaos Round are `s14_continuous_scanning`'s. Each scenario uses its own tables and clears them first, so
 any scenario runs alone and again. The login limiter (5 a minute per address) is reset in the stack's Redis before
 every sign-in.
 
@@ -91,6 +91,7 @@ every sign-in.
 | `s12c_background_tab` | the tab frozen 10 min (QUICK: 2) while another judge saves: catches up, "Finished now" right |
 | `s13_tap_moment_kept` | Jan's rule - a stopped time is the tap's moment: judge's "Finished now" offline (saved / left in confirm), 65 s, reload, online; competitor's Stop offline, 65 s, reload, online, judge's one-tap Confirm - every stored value = the tap |
 | `s14_puzzle_splits` | real events W5 - "Finished now" per puzzle on the seed's "Chaos Solve All" (pick 2 of 2): puzzle 1 tapped offline, reload offline (card + waiting split back), online → sent; puzzle 2 tapped online → confirm → Save: both splits = the taps, last split = the result, 3 applied receipts (exactly once) |
+| `s14_continuous_scanning` | judge-speed J4 - the table tags 191-193 filmed into one looped `media/tables3.y4m` (3 s each + 1 s white), page prepared and reloaded **offline**: Scan → card → typed time → Save → the scanner back over Find in ≤ 300 ms with the Saved toast visible on top, a saved table never reopened while its tag is still in view, until 3 distinct entries are saved; `getUserMedia` exactly once (counted by an injected wrapper); online → 3 applied receipts, values, entered by; 95 s idle → the track ended (not QUICK); a tab over the page → released (when Chrome sends `visibilitychange`); the same for tables 194-196 through a `BarcodeDetector` shim (one detector, no zbar) |
 
 ## What it cannot prove (needs a real phone)
 

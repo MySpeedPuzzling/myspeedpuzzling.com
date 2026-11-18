@@ -45,13 +45,17 @@ use Symfony\Component\Process\Process;
  *   - the judge's "Finished now" per puzzle on pick rounds (live_entry_splits.js + the card's split rows, tap, typed
  *   correction); budget 216 KB / 59 KB gzip. 2026-11-18 (toolkit v2 J3): 215.4 → 221.4 KB / 59.0 → 60.7 KB gzip - "My
  *   tables" per phone and event (live_entry_my_tables.js 2.0 KB: the range parser, mine-first lists, To-do, the stored
- *   per-event preference; the chip, To-do and sheet field in the controller); budget 223 KB / 61.5 KB gzip;
+ *   per-event preference; the chip, To-do and sheet field in the controller); budget 223 KB / 61.5 KB gzip. 2026-11-18
+ *   (toolkit v2 J4): 221.4 → 227.5 KB / 60.7 → 62.4 KB gzip - continuous scanning with a warm camera
+ *   (live_entry_scan_session.js: the camera's state machine, the just-saved tag ignored in view; the scanner split into
+ *   camera / one reader / read loop; the resume after Save, Try again, the camera-ready dot in the controller); budget
+ *   229 KB / 63.5 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 223_000;
-    private const int GZIP_BUDGET_BYTES = 61_500;
+    private const int MINIFIED_BUDGET_BYTES = 229_000;
+    private const int GZIP_BUDGET_BYTES = 63_500;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */
@@ -64,6 +68,7 @@ final class LiveEntryBundleTest extends TestCase
         self::assertContains('assets/controllers/live_results_controller.js', $modules);
         self::assertContains('assets/official_results_outbox.js', $modules);
         self::assertContains('assets/official_results_scan.js', $modules, 'the name tag scanner - statically, not as a lazy chunk');
+        self::assertContains('assets/live_entry_scan_session.js', $modules, 'the warm camera (judge-speed J4)');
         self::assertContains('assets/live_entry_page.js', $modules);
     }
 

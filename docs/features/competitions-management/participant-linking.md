@@ -955,3 +955,33 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   event manages registration; a removal supersedes the person's requests in the plan too (a decline in the same set
   is a conflict); the sheet shows R1's release of the claimant's other rows at once (`Working::releaseClaimant()`).
 - Not built here: notifications and "Not me" (L2b), the "Is this you?" card and the "This is me" surfaces (L3).
+
+### L2b - notifications and "Not me" (2026-11-18)
+
+- `NotificationType` `ParticipantLinkRequested` / `ParticipantLinkApproved` / `ParticipantLinkDeclined` (target
+  `notification.target_participant_link_request_id`) and `ParticipantListedYou` (target
+  `target_competition_participant_id`), both FK CASCADE with partial `custom_notification_fk_*` indexes
+  (`Version20261118000200`, hand-written under no-Docker mode). In-app only, no e-mail. Written by
+  `ParticipantLinkNotifications`, called from `ParticipantLinks` only, in the transaction of the change (persist only):
+  - `request()` (a new request, claim or dispute) → every organiser (`GetCompetitionOrganisers`: creator + maintainers of
+    the event, its series and its organization - admins only when on that team; never the claimant) **without an unread
+    one of this event** (`NotificationRepository::hasUnreadParticipantLinkRequested()`). Re-asking the same row creates
+    nothing.
+  - `link()`: the claimant's request approved by somebody else → Approved; other pending requests on the row superseded →
+    Declined (R10, the same neutral text); the player's own request for another row and `request()`'s superseding stay
+    silent, so does `participantRemoved()` (§11). A link `organiser` / `import` that approves no request, by somebody
+    else than the player, while `Competition::isPubliclyVisible()` → ListedYou. An unchanged link returns before all of
+    it (R12: a re-import, the import naming the player of their own row).
+  - `decline()` → Declined (no reason, no who).
+- `GetNotifications`: one UNION branch (`participant_link_*` columns, NULL in the others); the event's name + slugs, the
+  participant's name (the organiser's record - nobody else is named, nothing to hide or mask). The row: organisers →
+  "Review" to `participants_sheet?tab=people&filter=asks` (the L2a filter is `asks`, not `requests`); players → the
+  event page; ListedYou → "Not me" while the organiser's link of the reader stands (`participant_link_not_me`: still
+  linked to the reader, not removed, not self-joined, `connected_via` organiser / import / NULL).
+- "Not me" = POST `leave_competition` with `not_me=1`, `participant`, its own CSRF token
+  (`LeaveCompetitionController::CSRF_NOT_ME_PREFIX` + participant id) → `LeaveCompetition(…, notMeParticipantId)` (under
+  the participants lock as before) → `unlink(not_me)` of that row only (a refused pair: claims → `ask_organiser`, the
+  import → `link_refused_before`); the partner listing closes only when no other row links the player. Refused (handler
+  returns false, flash "nothing changed") for another event's participant, somebody else's, the player's own self-joined
+  row or a link the player made themselves. 303 + flash. The event page's Disconnect / Leave are unchanged (`unlinked`).
+- The sheet's decline confirmation says the player is told.

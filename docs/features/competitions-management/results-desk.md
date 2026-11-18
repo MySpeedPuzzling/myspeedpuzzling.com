@@ -99,6 +99,11 @@ and "published since" are shown in the round's zone (like the export), not the d
 - **`pick` rounds** (competition toolkit A4): the result cell opens the per-puzzle editor and a row shows the record's
   chips; the result and the record are saved as one group - see round-formats.md "Results desk, participants sheet and export of
   `pick` rounds".
+- **Phone width** (real events L1): the result column shows at 375 px without a sideways scroll - Country is hidden below
+  `sm` (the flags float next to the entrant's name) and Entered below `md` (the line under the result); a record chip
+  (`deskRecordChips()` of official_results_desk_puzzles.js: `own` + `title`) is a rounded rectangle whose label, ✓ split
+  and own time wrap one under the other only when the column is narrow, the label cut at 7.5em below `md` with the
+  whole text in the chip's title. Desktop shows the same one-line chips as before.
 - **`?entry=<ref>`** (competition toolkit v2 C5 - the participants sheet's "Edit on the results desk"): `team:<uuid>` /
   `participant_round:<uuid>` (`deskEntryFromQuery()` of official_results_desk_puzzles.js) opens that entry's result
   editor - the per-puzzle editor on a `pick` round - once the page's state is there, scrolled into view. An invalid or

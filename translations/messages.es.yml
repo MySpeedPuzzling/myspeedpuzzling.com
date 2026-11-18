@@ -4606,6 +4606,8 @@ fair_use_policy:
         "status": "Estado"
         email: "Correo electrónico (privado, para la invitación de vinculación)"
         division: "División"
+        member_name: "Miembro del equipo (una columna por miembro)"
+        ticket_type: "Tipo de entrada (qué ronda)"
       "confirm":
         "nothing_saved_yet": "Todavía no se ha guardado nada."
         "button": "Confirmar importación"
@@ -7721,6 +7723,32 @@ entry_divisions:
         conflict_in_file: "Las filas de %name% indican divisiones distintas en %round%; la división se deja como está."
         no_team: "Fila %row%: %name% no tiene pareja ni equipo en %round%; la división de una pareja o un equipo se asigna en la pareja o el equipo."
         members_disagree: "Los miembros de %team% están en divisiones distintas en %round%; la división de la pareja o el equipo se deja como está."
+team_tickets:
+    mapping:
+        name_with_members: "Con columnas de miembros del equipo, cada fila es un equipo: elige «Ignorar» para las columnas Nombre, Nombre de pila y Apellido."
+        per_person_column: "«%field%» tiene un valor por persona, pero una fila de miembros del equipo tiene varias personas: elige «Ignorar» para ella."
+        too_many_member_columns: "Como máximo %max% columnas pueden contener miembros del equipo."
+    plan:
+        ticket_skipped: "Fila %row%: el tipo de entrada «%ticket%» no se importa."
+        ticket_without_round: "Elige una ronda para el tipo de entrada «%ticket%» (filas %rows%)."
+        too_many_members: "Fila %row%: %count% personas para «%team%» en %round%, que tiene equipos de %size%; la fila no se importa. Revisa la fila o cambia el tamaño de equipo de la ronda."
+        too_few_members: "Fila %row%: solo %count% de %size% personas para «%team%» en %round%."
+        person_in_two_teams: "Fila %row%: %name% está en más de un equipo en %round% (filas %rows%); estas filas no se importan."
+        blocker:
+            rows_not_imported: "{0}%count% filas del archivo no se importan (filas %rows%)|{1}1 fila del archivo no se importa (fila %rows%)|]1,Inf[%count% filas del archivo no se importan (filas %rows%)"
+    preview:
+        tickets_title: "Tipos de entrada"
+        tickets_intro: "Elige para qué ronda es cada tipo de entrada. «No importar» deja fuera sus filas."
+        ticket_type: "Tipo de entrada"
+        imported_into: "Importar en"
+        ticket_rows: "{0}%count% filas|{1}1 fila|]1,Inf[%count% filas"
+        choose_round: "Elige una ronda…"
+        skip: "No importar"
+        guessed: "Elegida por su nombre; cámbiala si no es correcta."
+        no_team: "Sin equipo"
+        no_round: "Sin ronda"
+        people: "{0}%count% personas|{1}1 persona|]1,Inf[%count% personas"
+        member: "Miembro %number%"
 
 participants_sheet_core:
   loading: "Cargando los participantes…"

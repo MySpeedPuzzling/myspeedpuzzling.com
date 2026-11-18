@@ -4605,6 +4605,8 @@ qr_code:
         "status": "Status"
         email: "E-Mail (privat, für die Verknüpfungseinladung)"
         division: "Wertungsklasse"
+        member_name: "Teammitglied (eine Spalte pro Mitglied)"
+        ticket_type: "Ticketart (welche Runde)"
       "confirm":
         "nothing_saved_yet": "Noch ist nichts gespeichert."
         "button": "Import bestätigen"
@@ -7720,6 +7722,32 @@ entry_divisions:
         conflict_in_file: "Die Zeilen von %name% nennen in %round% unterschiedliche Wertungsklassen – die Wertungsklasse bleibt, wie sie ist."
         no_team: "Zeile %row%: %name% hat in %round% kein Paar und kein Team – die Wertungsklasse eines Paars oder Teams wird beim Paar oder Team gesetzt."
         members_disagree: "Die Mitglieder von %team% sind in %round% in unterschiedlichen Wertungsklassen – die Wertungsklasse des Paars oder Teams bleibt, wie sie ist."
+team_tickets:
+    mapping:
+        name_with_members: "Mit Spalten für Teammitglieder ist jede Zeile ein Team – wählen Sie für die Spalten Name, Vorname und Nachname „Ignorieren“."
+        per_person_column: "„%field%“ enthält einen Wert pro Person, eine Zeile mit Teammitgliedern hat aber mehrere Personen – wählen Sie dafür „Ignorieren“."
+        too_many_member_columns: "Höchstens %max% Spalten können Teammitglieder enthalten."
+    plan:
+        ticket_skipped: "Zeile %row%: Die Ticketart „%ticket%“ wird nicht importiert."
+        ticket_without_round: "Wählen Sie eine Runde für die Ticketart „%ticket%“ (Zeilen %rows%)."
+        too_many_members: "Zeile %row%: %count% Personen für „%team%“ in %round%, die Teams zu %size% hat – die Zeile wird nicht importiert. Prüfen Sie die Zeile oder ändern Sie die Teamgröße der Runde."
+        too_few_members: "Zeile %row%: nur %count% von %size% Personen für „%team%“ in %round%."
+        person_in_two_teams: "Zeile %row%: %name% ist in %round% in mehr als einem Team (Zeilen %rows%) – diese Zeilen werden nicht importiert."
+        blocker:
+            rows_not_imported: "{0}%count% Zeilen der Datei werden nicht importiert (Zeilen %rows%)|{1}1 Zeile der Datei wird nicht importiert (Zeile %rows%)|]1,Inf[%count% Zeilen der Datei werden nicht importiert (Zeilen %rows%)"
+    preview:
+        tickets_title: "Ticketarten"
+        tickets_intro: "Wählen Sie, für welche Runde jede Ticketart ist. „Nicht importieren“ lässt ihre Zeilen weg."
+        ticket_type: "Ticketart"
+        imported_into: "Importieren in"
+        ticket_rows: "{0}%count% Zeilen|{1}1 Zeile|]1,Inf[%count% Zeilen"
+        choose_round: "Runde wählen…"
+        skip: "Nicht importieren"
+        guessed: "Nach dem Namen gewählt – ändern Sie es, wenn es falsch ist."
+        no_team: "Kein Team"
+        no_round: "Keine Runde"
+        people: "{0}%count% Personen|{1}1 Person|]1,Inf[%count% Personen"
+        member: "Mitglied %number%"
 
 participants_sheet_core:
   loading: "Teilnehmer werden geladen…"

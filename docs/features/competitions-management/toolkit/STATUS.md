@@ -299,6 +299,7 @@ already sends DENY outside `/embed/`).
 | S1 perf | #461 | Reconcile LINK select on production 221 → 64 ms (before S1: 42 ms): evidence only for times with several candidates; same answers (8,071 rows, identical md5) |
 | W5 fix | #462 | After an offline reload the per-puzzle "Finished now" waits for the outbox (no second split); a tap never overwrites a split - found by v2's chaos run |
 | L5 | this PR | Dark embed rows readable; desk Division column folded at phone width |
+| L6 | this PR | 375 px polish: standing tabs wrap (`.standing-tabs`, desktop one row as before); judge pick chips show the label on one line, the name in up to 2 lines (full name in `title`), the order badge on the picture; per-puzzle split rows keep the label, the time wraps below |
 | load | (tools) | `tools/competition-load` `MIX=real` |
 
 **Chaos (full run, main 4c55c16a7):** all PASS (s01-s13, s14_continuous_scanning) except s14_puzzle_splits = the W5 bug; on
@@ -309,5 +310,6 @@ the fix (re/w5fix, QUICK) s14_puzzle_splits / s13 / s02 / s08 PASS.
 waits 0.4 % (1.2 % in the burst, max queue 14). Saves ≈ 2 × T4 (three rounds share one event lock) - all far below 500 ms.
 **Sandbox walk (Selenium, 1280 + 375 px, `cm-delivery/shots/re-walk/`):** both demos OK except the dark embed's even
 rows and the SOLO desk's Division column at 375 px (both fixed in L5). Notes for the demo: the pairs standing's
-championship tabs clip at 375 px; the judge page's puzzle picker cards cut long names at 375 px; OPEN #2 shows "starts in
+championship tabs clip at 375 px and the judge page's puzzle picker cards cut long names at 375 px (both fixed in L6,
+`cm-delivery/shots/re-l6/`); OPEN #2 shows "starts in
 14 days" (demo date 2 Dec - re-run the command with `--date` of the demo day).

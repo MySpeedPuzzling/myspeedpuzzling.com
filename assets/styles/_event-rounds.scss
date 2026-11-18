@@ -391,3 +391,10 @@ a.ev-round-puzzle-name {
         margin-inline: auto;
     }
 }
+
+// ---- public standing page: the event's standings as tabs (real events L6) ---------------------------------------------
+// Bootstrap's .nav wraps; at phone width "Individual championship" / "Pairs championship" go to a second row instead of
+// being cut. On desktop they fit in one row, so nothing changes there.
+.standing-tabs {
+    row-gap: .375rem;
+}

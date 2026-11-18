@@ -32,15 +32,15 @@ Ops steps of the rollout:
 - [x] Open the toolkit to every organiser - the organiser flag was retired on 2026-11-17 (`feature_flags.md` "Retired")
 
 Analytics studio v2 (`competitions-management/analytics-studio.md` R3, R10, §11):
-- [ ] A prediction column / sort in the entrant list (round-wide predictions need an async warm - cut from v1)
-- [ ] A public data-free signal on results and "Reveal now" instead of the 10 s poll (§11 Q4)
+- [x] A prediction column / sort in the entrant list - **done in v2 V2/V3 (#426, #430, #434: warm on its own `analytics_studio` queue + lily `studio-consumer`)**
+- [x] A public data-free signal on results and "Reveal now" instead of the 10 s poll (§11 Q4) - **done in v2 V1 (#424)**
 - [ ] S3 walk gaps: a stopwatch push through Mercure reaching the page in a browser (the walk relied on the polls and the reveal timer), real phones/tablets, a 300-entrant round on screen
 
 Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [x] Duplicate: rounds are copied without puzzles, so a `pick` round's copy is `total` - **said on the copy in G3 (form notice + flash; copying puzzles not built - secret reveal moments, `round-formats.md` "Known edges")**
 - [x] C8 edges: a waitlisted member makes the line-up hash differ between phone and server (`live_entry_tag.js` vs `CompetitionLineupId`); "Open their round" from a tag URL asks "leave?" (`linkNavigation()` one-liner) - **done in H1 (line-up id from the server; tag links stay in the tool)**
 - [ ] Panther `tests/Panther/LiveEntryOfflineTest.php` (R §4.4 step 4, C §7.4) does not exist - the offline flows were walked by hand only; write it or drop it from the plan
-- [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3); preferences `scanAfterSave` / `myTables` are stored but unused (deferred features); `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build")
+- [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3) - the conditional `entriesKnown` (v2 J2) replaced its purpose; `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build"). ~~`scanAfterSave` / `myTables` unused~~ - **used since v2 J3/J4**
 - [x] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales - **done in G3 (also `TimeProposalResolverTest`)**
 - [ ] A3 review leftovers: the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
 - [x] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed" - **done in H1 (name on pair/team cards only) + H3 (an undone confirmation supersedes the proposal)**
@@ -55,12 +55,19 @@ From A1 (reveal at the stopwatch start):
 - [x] Results desk: "Still hidden: the stopwatch was never started with Reveal" once the round's time is over (A §4.4) - **done in G3**
 - [x] `PublishRoundResults` on a round with such hidden rows: "reveal them now?" checkbox after the publish (A §4.4, R §2.1.5) - **done in G3 (`RevealPuzzlesTheStopwatchMissed`, all rows or none under the round's locks, confirmed hash)**
 
+v2 leftovers (`toolkit/STATUS.md` "v2", 2026-11-18):
+- [ ] Real phones: continuous scanning on iPhone Safari + Android Chrome (camera stays warm, 90 s idle release, Low Power Mode, lock/unlock - `judge-device-checklist.md` 6a-6d); proposal puzzle chips on a phone (C3)
+- [ ] OBS walk: standings, bracket, message + spotlight elements over a colour source (transparent); browser walk of C3 + S6
+- [ ] Load: 500 viewers on one live standings page (`tools/competition-load/`, goal fragment p95 < 50 ms); a 300-entrant studio warm on production
+- [ ] chaos `s14_puzzle_splits` fails on a scenario race (reads the card once before the waiting split renders) - real events team
+- [ ] v3 list in `toolkit/STATUS.md` "v2" (table ranges per referee, typed splits, sheet per-puzzle editing, studio pair/team predictions, editor copy/paste/groups, per-display message overrides, live control for referees)
+
 Deferred by design (R §3):
-- [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); the participants sheet's per-puzzle popover (read-only chips; `puzzles_mismatch` points to the desk); internal API **writes** of format/labels (read-only output ships)
-- [ ] Standings: the `stages` classification and `numbered_across_stages` (final classification across the bracket); `missing_rule = as_zero_pieces`; a standings Mercure topic; public `public_standing_state` JSON; "drop worst round" / season standings
-- [ ] QR / competitor pages: the `cards` layout (tags + tents ship); a `competitor_list` page (fallback = the event page); proposal puzzle choice (`ChangeTimeProposalPuzzles`); a per-entry private Mercure topic (polling today); a 90-day prune of decided proposals (`competition_time_proposal`)
-- [ ] Judge page: ETag/304 on the round state; continuous scanning with a warm camera; a "My tables" filter; a referees-page activity column; organiser-assigned table ranges; the one-tap proposal sweep
-- [ ] Displays: the standings/bracket overlay element (first v2 item - cheap once a public standing JSON exists); multi-select / align / distribute; snapping to siblings; live control (spotlight + message elements and page); "Copy from another event"; ticker `marquee`; more fonts; scenes, animations, 4:3/portrait, a series library
+- [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); ~~the participants sheet's per-puzzle popover~~ (done v2 C5 #439, read-only + desk deep link); internal API **writes** of format/labels (read-only output ships)
+- [ ] Standings: ~~the `stages` classification and `numbered_across_stages`~~ (v2 S5 #447/#450); ~~`missing_rule = as_zero_pieces`~~ (real events W1); ~~a standings Mercure topic~~ (v2 S4 #428); ~~public `public_standing_state` JSON~~ (v2 S1); "drop worst round" / season standings
+- [ ] QR / competitor pages: the `cards` layout (tags + tents ship); ~~a `competitor_list` page~~ (v2 C1 #429/#437); ~~proposal puzzle choice (`ChangeTimeProposalPuzzles`)~~ (v2 C2 #436 + C3 #459); a per-entry private Mercure topic (polling today); a 90-day prune of decided proposals (`competition_time_proposal`)
+- [ ] Judge page: ~~ETag/304 on the round state~~ (v2 J2: conditional entries instead of a 304); ~~continuous scanning with a warm camera~~ (v2 J4 #440); ~~a "My tables" filter~~ (v2 J3 #435); ~~a referees-page activity column~~ (v2 J1); organiser-assigned table ranges (v3); the one-tap proposal sweep (ruled out by Jan)
+- [ ] Displays: ~~the standings/bracket overlay element~~ (v2 S2 #423, S6 #460); ~~multi-select / align / distribute; snapping to siblings~~ (v2 E1 #449); ~~live control (spotlight + message elements and page)~~ (v2 L1+L2 #451); "Copy from another event"; ticker `marquee`; more fonts; scenes, animations, 4:3/portrait, a series library
 
 Event creation wizard (`docs/features/competitions-management/creation-wizard.md`, built 2026-11-17, W1-W6 + WF on main):
 - [x] W4: Duplicate asks for the new date; editing an event's date moves its rounds

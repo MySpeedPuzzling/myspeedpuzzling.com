@@ -313,3 +313,51 @@ rows and the SOLO desk's Division column at 375 px (both fixed in L5). Notes for
 championship tabs clip at 375 px and the judge page's puzzle picker cards cut long names at 375 px (both fixed in L6,
 `cm-delivery/shots/re-l6/`); OPEN #2 shows "starts in
 14 days" (demo date 2 Dec - re-run the command with `--date` of the demo day).
+
+## v2 - the deferred items (2026-11-17/18; orchestrator: sub-session; brief `cm-delivery/brief-v2-orchestrator.md`)
+Jan: "leftovers/unfinished - continue on implementation"; reliability and performance first; no flags. Design notes per
+area (architect agents, `cm-delivery/design-v2/{judge-speed,displays-standings,studio,competitors-splits,editor}.md`);
+the main session moved standings-on-the-stream to the front for the Speed Puzzle World Series demo (~2 Dec); the real
+events team took `as_zero_pieces` (W1) and judge split times (W5). Delivered as PRs with CI as the gate (most of the
+night was no-Docker mode); independent review agent on every risky package; a Docker window later ran the chaos suite
+and browser walks (`cm-delivery/shots/v2/verify/`).
+
+| Pkg | PR / commit | What |
+|---|---|---|
+| J1 | 2db77ef48 (direct) | Referees page: activity per referee ("23 results · last 10:42 (Group A)"), same statement count |
+| J2 | 2db77ef48 (direct, reviewed) | Round state `entriesKnown=<hash>` → `entriesUnchanged` without entries (quiet 300-entry poll 171 KB → 4.8 KB); no HTTP 304 (a 3xx means "signed out" to the page); anything writing `serverEntries` calls `entriesValidator.changed()` |
+| S1 | f89f89fe0 + ba960909b | Cached guest snapshot of a published standing (`PublicStandingSnapshots`, generation per event, `asGuest`: no blocklist, no allow-list unmasking) + public JSON `GET /api/competition-standings/{standingId}` (ETag/304, no ids, statuses passed through) |
+| S2 | #423 | `standings` display element (auto pick, provisional/final, per-round columns, penalised total + missing pieces, row diff) |
+| S4 | #428 (reviewed) | Public data-free topic `/competition-standings/{competitionId}`, live public standings table (fragment `public_standing_table`, guest HTML per generation, jitter 0-4 s, 5-min safety poll while live, 60 s without stream) |
+| V1 | #424 (reviewed) | Analytics Studio public data-free signal `/analytics-studio-signal/{roundId}`, only for watched rounds; poll 30 s live / 10 s without |
+| V2 | #426 + #434 (reviewed) | Round-wide prediction warm `WarmAnalyticsStudioPredictions` on its OWN queue `analytics_studio` (never `imports` = players' spreadsheet imports, never `async` = e-mails) + `round-predictions` answer; lily.srv `studio-consumer` (88696ca) |
+| V3 | #430 | Studio prediction column + sort (solo, offered when `ready`) |
+| C1 | #429 + #437 (reviewed) | Public competitor list `/{_locale}/competitor/{competitionId}` (search, 2 statements, canaries); unknown tag → list; competitor pages, list and proposals of events that are not publicly visible (draft, waiting for approval, rejected) are their team's only (closed a gap: unapproved events had public competitor pages) |
+| J3 | #435 | "My tables" per phone + event: chip, "To do at my tables", Recent filtered; proposals/Puzzle missing never hidden |
+| C5 | #439 | Participants sheet per-puzzle popover (read-only) + results desk deep link `?entry=` |
+| J4 | #440 (reviewed) | Continuous scanning: warm camera, back to the scanner after a scanned Save, just-saved tag ignored, ambiguous frames ignored, released after 90 s idle / hidden; chaos `s14_continuous_scanning` |
+| S5 | #447 + #450 (reviewed) | Standing mode `stages` (final classification across the bracket) + `numbered_across_stages`; displays show stage places/headers (S5b) |
+| C2 | #436 (reviewed) | Proposal puzzle choice server: `puzzles` with the tap (a bad choice never costs the tap), `ChangeTimeProposalPuzzles` + endpoint (owner, pending, proposals on, before end + grace, `chosenAtMs` replay guard) |
+| E1 | #449 + #463 | Displays editor: multi-select (shift/ctrl, marquee, Ctrl+A), align ×6 / distribute ×2, snapping to siblings, 3 px dead zone |
+| L1+L2 | #451 (reviewed) | Live control: message per event + spotlight per round (chosen / latest finisher), phone page `competition_display_control`, stopwatch-page card, data-free `control` signal (overlay ~0.1 s after a tap); displays lock, never the participants lock |
+| S6 | #460 | `bracket` display element (guest rule, SVG connectors) |
+| fixes | #458, #463 | Scanner close button X visible; sheet Puzzles icon clickable; editor Arrange row fits at 1280 |
+| C3 | #459 (reviewed) | Proposal puzzle choice on the competitor page (chips, outbox changes) + judge card pre-select (nothing saved until Confirm) |
+
+Verified on main (Docker window): chaos QUICK all scenarios - s14_continuous_scanning PASS (scanner back in 4-16 ms,
+getUserMedia once per page), s07 a flake (3/3 alone), s14_puzzle_splits fails on a scenario race (reported to real
+events); walks OK for S2/S4 (live table 2.1 s after Publish), C1, J3, J4, V3, C5, E1, L1+L2 (private player masked).
+All 6 locales for every new key (translated by the orchestrator).
+
+Not verified: real phones (iOS camera warmth, Low Power), OBS over a colour source, the 500-viewer standings herd
+(`tools/competition-load/`), a 300-entrant studio warm on production, C3 + S6 in a browser.
+
+**v3 (consciously deferred, with reason):** organiser-assigned table ranges (per-phone My tables first; needs a referee
+table model); typed per-puzzle split times on the judge card (Finished-now splits ship); editable per-puzzle record in the
+sheet (the desk is the editor; a second editor = a second conflict path); a server-side revision counter for the round
+state (the hash validator needed no migration); a studio signal dedupe (a 1 s dedupe could drop a burst's last save);
+pair/team predictions (analytics-studio §11 Q2); per-display message/spotlight overrides and message expiry; referees
+using the live control; copy/paste and grouping in the editor; `every` as its own round format; internal API writes of
+format/labels; "drop worst round" / season standings; the `cards` tag layout; a 90-day prune of decided proposals; a
+per-entry private Mercure topic for competitor pages (polling works); the one-tap proposal sweep (Jan ruled out
+one-tap confirm from a list).

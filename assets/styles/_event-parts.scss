@@ -297,6 +297,11 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
     flex: none;
 }
 
+// The space after the city's comma (a flex item's leading space does not render)
+.ev-place-city + .ev-place-country {
+    margin-left: .25em;
+}
+
 // When above the star and ⋯ on phones, beside them from 992 px
 .ev-row-side {
     display: flex;

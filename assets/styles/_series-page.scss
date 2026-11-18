@@ -127,6 +127,26 @@ a.ev-next-title {
         margin-left: 0;
         white-space: normal;
     }
+
+    // The card has room for a second line: the place wraps as text instead of shortening the city mid-word (FU-R2)
+    .ev-place {
+        display: block;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .ev-place-city {
+        overflow: visible;
+    }
+
+    .ev-place-city + .ev-place-country {
+        margin-left: 0;
+    }
+
+    .ev-flag {
+        vertical-align: -.0625rem;
+        margin-right: .3125rem;
+    }
 }
 
 .ev-next-when {

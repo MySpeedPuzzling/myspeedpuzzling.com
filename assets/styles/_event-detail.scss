@@ -263,6 +263,26 @@
         margin: 0;
         min-width: 0;
     }
+
+    // The side card has room for a second line: the place wraps as text (`City, Country`) instead of shortening the city
+    .ev-place {
+        display: inline;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .ev-place-city {
+        overflow: visible;
+    }
+
+    // Inline: the country's own leading space separates it
+    .ev-place-city + .ev-place-country {
+        margin-left: 0;
+    }
+
+    .ev-flag {
+        vertical-align: -.0625rem;
+    }
 }
 
 .ev-side-note {

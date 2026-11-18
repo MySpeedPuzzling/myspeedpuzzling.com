@@ -103,10 +103,12 @@ final readonly class CompetitionTagLanding
         // Competitor pages on (toolkit B): the tag's own page - for a tag of nobody in the event (any more), the event's
         // competitor list saying so (toolkit v2 D2), where they find themselves. Only where they answer this viewer
         // (CompetitorPageLoader): a publicly visible event, or its team - anybody else lands on the event page as before
-        if ($canEnterResults === false && $competition->competitorPages && (
-            $competition->isPubliclyVisible()
-            || $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)
-        )) {
+        // (the voter is asked only with pages on and an event that is not public - an untouched event pays nothing)
+        $competitorPages = $canEnterResults === false
+            && $competition->competitorPages
+            && ($competition->isPubliclyVisible() || $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId));
+
+        if ($competitorPages) {
             if ($this->competitionTagResolver->knows($competitionId, $tag)) {
                 return $this->competitorPageUrl->of($competitionId, $tag, $locale);
             }

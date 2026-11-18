@@ -94,6 +94,28 @@ final class GetReadyChecklistTest extends WebTestCase
         self::assertStringContainsString('/en/manage-round-stopwatch/' . $secretRound, (string) $crawler->filter('[data-get-ready-row="stopwatch_test"] a')->attr('href'));
     }
 
+    public function testHelpPeopleLinkTheirProfilesWithinTwoWeeksWhileSomebodyIsNotLinked(): void
+    {
+        $this->client = self::createClient();
+        $database = $this->database();
+        $database->executeStatement("UPDATE competition SET date_from = DATE '2026-10-20', date_to = DATE '2026-10-20' WHERE id = :id", ['id' => self::EVENT]);
+        $database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, 'Ada', 'cz', :competition, 'imported')",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT],
+        );
+
+        $crawler = $this->editPage(self::EVENT, self::ORGANISER, newClient: false);
+
+        self::assertSame('tip', self::rows($crawler)['participant_links'] ?? null);
+        self::assertSelectorTextContains('[data-get-ready-row="participant_links"]', 'Help people link their profiles');
+        self::assertSelectorTextContains('[data-get-ready-row="participant_links"]', '1 person on your list has no MySpeedPuzzling profile linked yet');
+        $href = (string) $crawler->filter('[data-get-ready-row="participant_links"] a')->attr('href');
+        self::assertStringContainsString(self::EVENT, $href);
+        self::assertStringEndsWith('#participant-links', $href);
+        // A tip: "n of m done" is not held back by it
+        self::assertSelectorTextContains('[data-get-ready-count]', '1 of 2 done');
+    }
+
     public function testTheChecklistIsGoneOnceTheLastRoundFinished(): void
     {
         $this->client = self::createClient();

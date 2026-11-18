@@ -7,7 +7,7 @@
 #}
 {% set sheet_url = path('participants_sheet', {competitionId: competition.id}) %}
 <div class="col-lg-6">
-    <div class="card shadow-sm h-100" data-toolkit-card="participant-links">
+    <div class="card shadow-sm h-100" id="participant-links" data-toolkit-card="participant-links">
         <div class="card-body">
             <h3 class="h5"><i class="bi bi-person-check me-2"></i>{{ 'participant_linking.hub.title'|trans }}</h3>
             <p class="small text-muted">{{ 'participant_linking.hub.help'|trans }}</p>

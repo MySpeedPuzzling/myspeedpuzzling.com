@@ -921,6 +921,14 @@ $people-panel-width: 24rem;
     color: $sheet-danger-text;
 }
 
+// Who a person without a profile may be (participant-linking.md §7.2) - linked in the editor the card opens
+.sheet-pcard-suggestion {
+    display: block;
+    color: $primary;
+    font-size: $font-size-sm;
+    overflow-wrap: anywhere;
+}
+
 .sheet-pcard-go {
     position: absolute;
     top: 50%;
@@ -986,6 +994,29 @@ button.sheet-request-chip {
 
 // Phones (the editor as a sheet): 44 px targets
 .sheet-person.is-modal .sheet-person-request-actions .btn {
+    min-height: 2.75rem;
+}
+
+// The person editor's link suggestions (participant-linking.md §7.2): per candidate who it is and [Link]
+.sheet-person-suggestion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .25rem;
+
+    .badge {
+        font-weight: 500;
+    }
+}
+
+.sheet-person-suggestion-who {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sheet-person.is-modal .sheet-person-suggestion .btn {
     min-height: 2.75rem;
 }
 

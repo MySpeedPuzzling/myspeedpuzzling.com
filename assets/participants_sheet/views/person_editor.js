@@ -12,6 +12,11 @@
  *   In/Out and a pair/team picker - teams labelled `Corners · Table 2 · Kim Example, Pat Sample` (O1), "No pair yet",
  *   "+ New pair" - with "with Kim Example" under it), the registration of a managed event (status and the actions its
  *   state allows), Remove from event / Restore.
+ * - A person without a profile shows the link suggestions of the sheet (participant-linking.md §7.2, link_suggestions.js
+ *   - the People views' answer, else read once per page when the editor first opens on such a person): per candidate
+ *   the tier, who (name, #CODE, country, signals) and [Link] - the same groups as the dialog (a "Joined by themselves"
+ *   merge = remove the self-joined row + link, one group), never pre-chosen (R2), a merge refused by R7 disabled with
+ *   "Merge by hand: <reason>".
  * - Every field saves like a cell edit (the same sheet_changes.js builders and context.act(); text on change / blur /
  *   Enter) and shows its marker next to it: saving, changed meanwhile (Keep mine / Use theirs), not saved (the reason -
  *   also shown as a toast, `context.notify`). A text field's change is sent with `from` = the value shown when the
@@ -38,7 +43,8 @@ import {
 } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { allowedActions, paidBefore, performRegistrationAction, registrationStatus, waitlistPositions } from '../registration_actions.js';
-import { formatDate, linkedViaText, notify, reasonFor, requestedBy, searchPlayers, teamLabelText } from './people_view.js';
+import { canMerge, candidateHtml, ensureSuggestions, onSuggested, suggestionAction, suggestionFor } from '../link_suggestions.js';
+import { formatDate, linkedViaText, notify, reasonFor, requestedBy, searchPlayers, suggestionLabels, teamLabelText } from './people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
 const TEXT_FIELDS = ['name', 'externalId', 'note'];
@@ -122,6 +128,7 @@ export class PersonEditor {
         }
 
         this.show(personId);
+        this.readSuggestions();
 
         // Desktop: straight into the name; a phone: the title (no keyboard popping up over half the screen)
         (this.phone ? this.dialog.querySelector(`#${this.id}-title`) : this.dialog.querySelector('[data-field="name"]'))?.focus({ preventScroll: true });
@@ -201,6 +208,9 @@ export class PersonEditor {
                 this.placePanel();
             }
         });
+
+        // The link suggestions came (or were read again): the person shown follows
+        this.cleanups.push(onSuggested(this.model, () => this.update()));
 
         // A fetched state may change the event itself (registration management) and nothing about the person
         if (typeof this.context.queue?.subscribe === 'function') {
@@ -528,7 +538,52 @@ export class PersonEditor {
     }
 
     playerHtml(person) {
-        return this.linkedHtml(person) + this.requestsHtml(person);
+        return this.linkedHtml(person) + this.requestsHtml(person) + this.suggestionsHtml(person);
+    }
+
+    /**
+     * The sheet's link suggestions are read once per page (the People views read them when they render): the editor
+     * opened elsewhere (a round tab) on a person without a profile asks for them - nothing said when that fails.
+     */
+    readSuggestions() {
+        const url = this.context.urls?.linkSuggestions;
+        const person = this.model.person(this.personId);
+
+        if (url && person !== null && (person.player ?? null) === null && person.removedAt === null) {
+            ensureSuggestions(this.model, { url });
+        }
+    }
+
+    /**
+     * Who the person may be (participant-linking.md §7.2): per candidate the tier, the profile and [Link] - nothing
+     * chosen for the organiser (R2); a merge the self-joined row refuses (R7) is "Merge by hand" with the reason.
+     */
+    suggestionsHtml(person) {
+        if (person.removedAt !== null || (person.player ?? null) !== null) {
+            return '';
+        }
+
+        const entry = suggestionFor(this.model, person.id);
+
+        if (entry === null) {
+            return '';
+        }
+
+        const labels = suggestionLabels(this.context);
+        const lines = entry.candidates.map((candidate) => {
+            const playerId = escapeHtml(candidate.player.id);
+            const disabled = canMerge(candidate) ? '' : ' disabled';
+
+            return `<li class="sheet-person-suggestion" data-person-suggestion="${playerId}">
+                    <span class="sheet-person-suggestion-who"><span class="badge text-bg-light" data-tier="${escapeHtml(candidate.tier)}">${escapeHtml(labels.tier[candidate.tier] ?? candidate.tier)}</span> ${candidateHtml(candidate, labels)}</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-accept-suggestion="${playerId}" data-focus-key="suggestion-${playerId}"${disabled}><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>${escapeHtml(this.say('sug_editor_link'))}</button>
+                </li>`;
+        });
+
+        return `<div class="sheet-person-suggestions" data-person-suggestions>
+                <span class="small text-body-secondary d-block mt-2">${escapeHtml(this.say('sug_editor_title'))}</span>
+                <ul class="list-unstyled mb-0">${lines.join('')}</ul>
+            </div>`;
     }
 
     /**
@@ -717,6 +772,31 @@ export class PersonEditor {
 
     builderOptions() {
         return { countries: this.context.countryCodes };
+    }
+
+    /** [Link] on a suggestion: the dialog's group for this one person (a merge = remove the self-joined row + link). */
+    acceptSuggestion(person, playerId, anchor) {
+        const entry = suggestionFor(this.model, person.id);
+
+        if (entry === null || !entry.candidates.some((candidate) => candidate.player.id === playerId)) {
+            return;
+        }
+
+        const action = suggestionAction(this.model, [entry], new Map([[person.id, playerId]]), this.builderOptions());
+
+        if (action.groups.length === 0 && action.errors.length === 0) {
+            return;
+        }
+
+        const error = this.perform(action);
+
+        if (error !== null) {
+            this.notify(error, anchor);
+        } else {
+            this.context.announce(this.sayCount('sug_done', action.groups.length));
+            this.sync();
+            this.body.querySelector('[data-section="player"] [data-focus-key]')?.focus({ preventScroll: true });
+        }
     }
 
     showError(key, message) {
@@ -1007,6 +1087,14 @@ export class PersonEditor {
                     this.notify(error, decline);
                 }
             }
+
+            return;
+        }
+
+        const accept = target.closest('[data-accept-suggestion]');
+
+        if (accept) {
+            this.acceptSuggestion(person, accept.dataset.acceptSuggestion, accept);
 
             return;
         }

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\EventWizard\GetReady\EventGetReadyChecklist;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\JudgesItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\NameTagsItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\OverlayTip;
+use SpeedPuzzling\Web\Services\EventWizard\GetReady\ParticipantLinksTip;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\RegistrationItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\RoundsAndPuzzlesItem;
 use SpeedPuzzling\Web\Services\EventWizard\GetReady\StopwatchTestRunTip;
@@ -170,6 +171,30 @@ final class GetReadyItemsTest extends TestCase
         self::assertSame(['roundId' => 'r2'], $tip->routeParameters);
     }
 
+    public function testHelpPeopleLinkTheirProfilesOnceSomebodyIsNotLinkedWithin14Days(): void
+    {
+        $tip = new ParticipantLinksTip();
+        // NOW = 2026-10-14 12:00: 14 days ahead = 2026-10-28 12:00
+        $soon = '2026-10-28';
+
+        $row = $tip->row(self::facts(toolkit: true, dateFrom: $soon, notLinked: 3));
+        self::assertNotNull($row);
+        self::assertSame('participant_links', $row->key);
+        self::assertNull($row->done, 'a tip: linking is the players\' act');
+        self::assertSame('competition_toolkit', $row->route);
+        self::assertSame(['competitionId' => self::EVENT, '_fragment' => 'participant-links'], $row->routeParameters);
+        self::assertSame(['%count%' => 3], $row->noteParameters);
+        // Started already (the checklist itself goes once it is over)
+        self::assertNotNull($tip->row(self::facts(toolkit: true, dateFrom: '2026-10-13', notLinked: 1)));
+
+        // Everybody linked, too early, no date, a draft, without the toolkit: no row
+        self::assertNull($tip->row(self::facts(toolkit: true, dateFrom: $soon)));
+        self::assertNull($tip->row(self::facts(toolkit: true, dateFrom: '2026-10-29', notLinked: 3)));
+        self::assertNull($tip->row(self::facts(toolkit: true, notLinked: 3)));
+        self::assertNull($tip->row(self::facts(toolkit: true, dateFrom: $soon, notLinked: 3, draft: true)));
+        self::assertNull($tip->row(self::facts(dateFrom: $soon, notLinked: 3)));
+    }
+
     public function testTheChecklistIsGoneOnceTheEventIsOver(): void
     {
         // Without rounds: after its last day
@@ -208,10 +233,12 @@ final class GetReadyItemsTest extends TestCase
         null|string $dateTo = null,
         int $overlays = 0,
         null|QrTagMode $qrTagMode = null,
+        int $notLinked = 0,
+        bool $draft = false,
     ): GetReadyFacts {
         return new GetReadyFacts(
             competitionId: self::EVENT,
-            isDraft: false,
+            isDraft: $draft,
             isOnline: $online,
             dateFrom: $dateFrom !== null ? new DateTimeImmutable($dateFrom) : null,
             dateTo: $dateTo !== null ? new DateTimeImmutable($dateTo) : null,
@@ -225,6 +252,7 @@ final class GetReadyItemsTest extends TestCase
             now: new DateTimeImmutable(self::NOW),
             overlayDisplaysCount: $overlays,
             qrTagMode: $qrTagMode,
+            participantsNotLinked: $notLinked,
         );
     }
 

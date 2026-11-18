@@ -37,6 +37,8 @@ readonly final class GetReadyFacts
         public int $overlayDisplaysCount = 0,
         // The chosen QR tag mode (competitor pages & QR) - null = name tags as before
         public null|QrTagMode $qrTagMode = null,
+        // People on the list (not removed) without a MySpeedPuzzling profile linked (participant-linking.md §7.5)
+        public int $participantsNotLinked = 0,
     ) {
     }
 

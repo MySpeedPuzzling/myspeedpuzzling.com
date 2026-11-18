@@ -93,9 +93,9 @@ import {
     NAME_COUNTRY,
     currentSuggestions,
     isSuggested,
+    loadSuggestions,
     openSuggestionsDialog,
     rememberSuggested,
-    requestSuggestions,
     suggestionAction,
 } from '../link_suggestions.js';
 import { SKIP_REASONS, invitationPlan, invitationSkip, requestInvitations } from '../claim_invitations.js';
@@ -2707,7 +2707,7 @@ export class PeopleView {
             return null;
         }
 
-        const result = await requestSuggestions({ url });
+        const result = await loadSuggestions(this.model, { url });
 
         if (this.grid === null) {
             return null;
@@ -2721,8 +2721,7 @@ export class PeopleView {
             return null;
         }
 
-        const entries = currentSuggestions(result.people, this.model);
-        rememberSuggested(this.model, entries);
+        const { entries } = result;
 
         if (this.filter === 'suggestions') {
             this.grid.setRows(this.rowKeys({ fresh: true }));
@@ -2742,39 +2741,9 @@ export class PeopleView {
     }
 
     openSuggestions(entries) {
-        const country = (code) => this.context.countries?.[code] ?? String(code).toUpperCase();
-
         openSuggestionsDialog(this.host, {
             entries,
-            labels: {
-                title: this.say('sug_title'),
-                help: this.say('sug_help'),
-                empty: this.say('sug_empty'),
-                submit: this.say('sug_submit'),
-                cancel: this.say('sug_cancel'),
-                several: this.say('sug_several'),
-                notNow: this.say('sug_not_now'),
-                follows: this.say('sug_follows'),
-                joinedAt: this.say('sug_joined_at'),
-                linkedAt: this.say('sug_linked_at'),
-                hiddenProfile: this.t('people_profile_hidden'),
-                mergeByHand: this.say('sug_merge_by_hand'),
-                tier: {
-                    [JOINED_THEMSELVES]: this.say('sug_tier_joined_themselves'),
-                    [LINKED_BEFORE]: this.say('sug_tier_linked_before'),
-                    [NAME_COUNTRY]: this.say('sug_tier_name_country'),
-                },
-                refusal: {
-                    official_data: this.say('sug_refusal_official_data'),
-                    round_entries: this.say('sug_refusal_round_entries'),
-                    paid: this.say('sug_refusal_paid'),
-                    waitlisted: this.say('sug_refusal_waitlisted'),
-                    registered: this.say('sug_refusal_registered'),
-                    profile_hidden: this.say('sug_refusal_profile_hidden'),
-                },
-                country,
-                date: (value) => formatDate(value, this.context.locale, false),
-            },
+            labels: suggestionLabels(this.context),
             onSubmit: (selection) => this.acceptSuggestions(entries, selection),
         });
     }
@@ -3797,6 +3766,45 @@ export async function searchPlayers(context, model, text, personId, signal) {
  * themselves" for the player's own acts, "import", "personal link"; null for the organiser's links and links made before
  * the method was recorded.
  */
+/**
+ * The texts of the link suggestions (link_suggestions.js - the dialog, the person editor's lines) - one place for the
+ * People grid, the phone list and the person editor (participant-linking.md §7.2).
+ */
+export function suggestionLabels(context) {
+    const say = (key, params) => context.texts.people.t(key, params);
+    const t = (key, params) => context.texts.core.t(key, params);
+
+    return {
+        title: say('sug_title'),
+        help: say('sug_help'),
+        empty: say('sug_empty'),
+        submit: say('sug_submit'),
+        cancel: say('sug_cancel'),
+        several: say('sug_several'),
+        notNow: say('sug_not_now'),
+        follows: say('sug_follows'),
+        joinedAt: say('sug_joined_at'),
+        linkedAt: say('sug_linked_at'),
+        hiddenProfile: t('people_profile_hidden'),
+        mergeByHand: say('sug_merge_by_hand'),
+        tier: {
+            [JOINED_THEMSELVES]: say('sug_tier_joined_themselves'),
+            [LINKED_BEFORE]: say('sug_tier_linked_before'),
+            [NAME_COUNTRY]: say('sug_tier_name_country'),
+        },
+        refusal: {
+            official_data: say('sug_refusal_official_data'),
+            round_entries: say('sug_refusal_round_entries'),
+            paid: say('sug_refusal_paid'),
+            waitlisted: say('sug_refusal_waitlisted'),
+            registered: say('sug_refusal_registered'),
+            profile_hidden: say('sug_refusal_profile_hidden'),
+        },
+        country: (code) => context.countries?.[code] ?? String(code).toUpperCase(),
+        date: (value) => formatDate(value, context.locale, false),
+    };
+}
+
 export function linkedViaText(linkedVia, t) {
     switch (linkedVia) {
         case 'self_join':

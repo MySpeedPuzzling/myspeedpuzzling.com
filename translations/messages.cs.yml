@@ -15353,6 +15353,8 @@ event_wizard:
         overlay: "Přidat overlay pro stream do OBS"
         timer_screen: "Vyzkoušet obrazovku s časomírou na televizi v sále"
         stopwatch_test: "Zkušební běh: spusťte stopky bez zaškrtnutého „Odhalit“"
+        participant_links: "Pomozte lidem propojit jejich profily"
+        participant_links_note: "{1}1 osoba na vašem seznamu ještě nemá propojený profil MySpeedPuzzling – rozdejte odkazy k propojení nebo projděte návrhy.|[2,4]%count% osoby na vašem seznamu ještě nemají propojený profil MySpeedPuzzling – rozdejte odkazy k propojení nebo projděte návrhy.|[5,Inf[%count% osob na vašem seznamu ještě nemá propojený profil MySpeedPuzzling – rozdejte odkazy k propojení nebo projděte návrhy."
         continue: "Pokračovat v nastavení"
         continue_text: "Tento koncept ještě není hotový – průvodce vás vezme na další krok."
         link:
@@ -15912,6 +15914,10 @@ participant_link_suggestions:
         reason:
             merge_by_hand: "%name% se přihlásil(a) sám/sama a má registraci nebo místo v kole – řádky nebyly sloučeny. Slučte je ručně."
         done: "{0}Nikdo nepropojen|{1}1 osoba propojena|[2,4]%count% osoby propojeny|[5,Inf[%count% osob propojeno"
+        editor_title: "Možná už má profil – nejdřív zkontrolujte #kód, zemi a data:"
+        editor_link: "Propojit"
+        card: "Možná %player%"
+        card_several: "{1}Může sedět 1 profil|[2,4]Mohou sedět %count% profily|[5,Inf[Může sedět %count% profilů"
 event_wizard_more:
     puzzle_search:
         label: "Najít puzzle"

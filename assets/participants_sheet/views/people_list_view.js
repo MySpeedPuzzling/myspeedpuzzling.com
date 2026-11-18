@@ -6,6 +6,10 @@
  * A tap opens the person editor full screen, with previous/next through the list as filtered. `?filter=<key>` in the
  * page URL opens the list with that filter on (like the desktop grid).
  *
+ * Link suggestions (participant-linking.md §7.2, as on the desktop grid): read when the list renders (one read), the
+ * "Suggestions (N)" filter - choosing it (or `?filter=suggestions`) opens the same dialog as the desktop's; a card of a
+ * person with a suggestion says who they may be, and their editor offers [Link] per candidate.
+ *
  * A long list stays fast: cards are rendered in chunks of 50 ("Show 50 more"), an update re-renders only the cards of
  * the people it names (the list when who is shown changed). Native controls, 44 px targets, no sideways scroll.
  */
@@ -14,6 +18,7 @@ import { escapeHtml } from '../sheet_grid.js';
 import { addPerson } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { performRegistrationAction, registrationStatus } from '../registration_actions.js';
+import { currentSuggestions, loadSuggestions, openSuggestionsDialog, rememberSuggested, suggestionAction, suggestionFor } from '../link_suggestions.js';
 import {
     FILTERS,
     HIDDEN_WHEN_EMPTY,
@@ -25,6 +30,7 @@ import {
     reasonFor,
     registrationSummaryHtml,
     replaceKeepingFocus,
+    suggestionLabels,
     takeUrlFilter,
     visiblePeople,
 } from './people_view.js';
@@ -77,7 +83,7 @@ export class PeopleListView {
     }
 
     offeredFilters() {
-        return offeredFor(FILTERS, this.competition, this.model.rounds());
+        return offeredFor(FILTERS, this.competition, this.model.rounds(), { suggestions: Boolean(this.context.urls?.linkSuggestions) });
     }
 
     // ---------------------------------------------------------------- the view interface
@@ -126,7 +132,14 @@ export class PeopleListView {
             clearTimeout(this.searchTimer);
             this.searchTimer = setTimeout(() => this.setFilter(this.filter, this.searchInput.value), SEARCH_DELAY_MS);
         });
-        this.listen(this.filterSelect, 'change', () => this.setFilter(this.filterSelect.value, this.query));
+        this.listen(this.filterSelect, 'change', () => {
+            this.setFilter(this.filterSelect.value, this.query);
+
+            // The suggestions are read again and shown to decide on, as on the desktop (participant-linking.md §7.2)
+            if (this.filter === 'suggestions') {
+                this.readSuggestions({ open: true });
+            }
+        });
         this.listen(this.roundSelect, 'change', () => this.setFilter(this.filter, this.query, this.roundSelect.value));
         this.listen(root.querySelector('[data-plist-add]'), 'submit', (event) => {
             event.preventDefault();
@@ -167,6 +180,8 @@ export class PeopleListView {
         this.ids = this.visibleIds();
         this.renderControls();
         this.renderList();
+        // The count of the "Suggestions" filter - `?filter=suggestions` (the hub, the import's flash) opens them too
+        this.readSuggestions({ open: this.filter === 'suggestions' });
 
         // A fetched state can change the event itself (managed registration, the capacity) and nothing else
         if (typeof this.context.queue?.subscribe === 'function') {
@@ -225,6 +240,7 @@ export class PeopleListView {
     }
 
     destroy() {
+        this.destroyed = true;
         clearTimeout(this.searchTimer);
         cancelAnimationFrame(this.frame);
         this.cleanups.forEach((cleanup) => cleanup?.());
@@ -394,6 +410,8 @@ export class PeopleListView {
         const asks = requests.length === 1
             ? ` <span class="sheet-request-chip">${escapeHtml(this.t(requests[0].kind === 'dispute' ? 'link_request_dispute' : 'link_request_asks', { player: requestedBy(requests[0]) }))}</span>`
             : (requests.length > 1 ? ` <span class="sheet-request-chip">${escapeHtml(this.sayCount('link_requests_count', requests.length))}</span>` : '');
+        // Who they may be (participant-linking.md §7.2) - linked in the editor the card opens
+        const suggestion = person.removedAt === null && (person.player ?? null) === null ? this.suggestionText(id) : null;
         const marks = this.model.marks.withPrefix(`person:${id}:`).concat(this.model.marks.withPrefix(`place:${id}:`));
         const attention = marks.find((mark) => mark.state === 'conflict' || mark.state === 'refused');
         const saving = marks.some((mark) => mark.state === 'saving' || mark.state === 'waiting');
@@ -401,11 +419,100 @@ export class PeopleListView {
         return `<button type="button" class="sheet-pcard${person.removedAt !== null ? ' is-removed' : ''}" data-open="${escapeHtml(id)}">
                 <span class="sheet-pcard-name">${person.removedAt !== null ? `<s>${escapeHtml(person.name)}</s>` : escapeHtml(person.name)}${flag}${removed}${joined}${asks}</span>
                 <span class="sheet-pcard-summary">${summary.length > 0 ? escapeHtml(summary.join(' · ')) : escapeHtml(this.say('no_round_yet'))}</span>
+                ${suggestion !== null ? `<span class="sheet-pcard-suggestion" data-pcard-suggestion><i class="bi bi-person-check" aria-hidden="true"></i> ${escapeHtml(suggestion)}</span>` : ''}
                 ${problems.length > 0 ? `<span class="sheet-pcard-problems"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(problems.join(' · '))}</span>` : ''}
                 ${attention ? `<span class="sheet-pcard-problems sheet-pcard-refused"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i> ${escapeHtml(this.context.markerFor(attention.key)?.text ?? '')}</span>` : ''}
                 ${saving ? `<span class="visually-hidden">${escapeHtml(this.t('marker_saving'))}</span>` : ''}
                 <i class="bi bi-chevron-right sheet-pcard-go" aria-hidden="true"></i>
             </button>`;
+    }
+
+    // ---------------------------------------------------------------- link suggestions (participant-linking.md §7.2)
+
+    /**
+     * The suggestions from their endpoint (the same read as the desktop grid's): the filter's people and the cards'
+     * lines follow; `open` = the dialog too. A failed read is said only when the organiser asked (`open`).
+     */
+    async readSuggestions({ open = false } = {}) {
+        const url = this.context.urls?.linkSuggestions;
+
+        if (!url) {
+            return null;
+        }
+
+        const result = await loadSuggestions(this.model, { url });
+
+        if (this.destroyed) {
+            return null;
+        }
+
+        if (!result.ok) {
+            if (open) {
+                notify(this.context, this.say('sug_failed'), { kind: 'error' });
+            }
+
+            return null;
+        }
+
+        this.ids = this.visibleIds();
+        this.renderList();
+        this.renderControls();
+
+        if (open) {
+            this.openSuggestions(result.entries);
+        }
+
+        return result.entries;
+    }
+
+    openSuggestions(entries) {
+        openSuggestionsDialog(this.context.root, {
+            entries,
+            labels: suggestionLabels(this.context),
+            onSubmit: (selection) => this.acceptSuggestions(entries, selection),
+        });
+    }
+
+    /** [Link N people]: one group per person, one undo step - the refused ones are said (the first one's reason). */
+    acceptSuggestions(entries, selection) {
+        const action = suggestionAction(this.model, currentSuggestions(entries, this.model), selection, { countries: this.context.countryCodes });
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            this.context.announce(this.sayCount('sug_done', action.groups.length));
+            rememberSuggested(this.model, currentSuggestions(entries, this.model));
+            this.ids = this.visibleIds();
+            this.renderList();
+            this.renderControls();
+        } else if (action.errors.length === 0) {
+            notify(this.context, this.say('bulk_nothing'), { kind: 'warning' });
+        }
+
+        if (action.errors.length > 0) {
+            const first = this.model.person(action.errors[0].change.participant ?? action.errors[0].change.id)?.name ?? '';
+            notify(this.context, action.errors.length === 1
+                ? reasonFor(this.context, action.errors[0])
+                : this.sayCount('bulk_refused', action.errors.length, { name: first, reason: reasonFor(this.context, action.errors[0]) }));
+        }
+    }
+
+    /** "May be Jo D. #JO01" / "3 profiles may fit" on the card of a person with a suggestion. */
+    suggestionText(id) {
+        const entry = suggestionFor(this.model, id);
+
+        if (entry === null) {
+            return null;
+        }
+
+        if (entry.candidates.length > 1) {
+            return this.sayCount('sug_card_several', entry.candidates.length);
+        }
+
+        const player = entry.candidates[0].player ?? {};
+        const code = player.code ? `#${String(player.code).toUpperCase()}` : '';
+        const who = player.visible === true ? [player.name, code].filter(Boolean).join(' ') : this.t('people_profile_hidden');
+
+        return this.say('sug_card', { player: who });
     }
 
     // ---------------------------------------------------------------- adding, opening

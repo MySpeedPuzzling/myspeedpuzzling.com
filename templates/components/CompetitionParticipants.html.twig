@@ -171,6 +171,14 @@
                                     <span class="badge text-light" style="background: {{ this.competitionRounds[participant_round].color }} !important;color: {{ this.competitionRounds[participant_round].textColor }} !important;">{{ this.competitionRounds[participant_round].name }}</span>
                                 {% endfor %}
                             </td>
+                            {% if this.viewerMayClaim %}
+                                {#- The join page with this name pre-selected - a GET that never links (participant-linking.md §6.3) -#}
+                                <td class="text-end text-nowrap" style="width: 1px;">
+                                    <a href="{{ path('join_competition', {'competitionId': competitionId, 'participant': participant.id}) }}" class="btn btn-sm btn-outline-primary py-0" data-participant-this-is-me="{{ participant.id }}">
+                                        {{ 'participant_linking.find.this_is_me'|trans }}
+                                    </a>
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                     </tbody>

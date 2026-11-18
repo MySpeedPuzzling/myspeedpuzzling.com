@@ -148,7 +148,15 @@ final class EditionDetailController extends AbstractController
                 && ($isPubliclyVisible || $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)),
         );
 
-        $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);
+        // With the "Is this you?" card (participant-linking.md §6.1) - `?participant=` is a scanned name tag's (§6.4),
+        // checked by the statement like any other candidate (+0 statements)
+        $attendance = $this->getEventAttendance->forEvent(
+            $competitionEvent,
+            $loggedPlayer?->playerId,
+            $isPubliclyVisible,
+            withClaimMatch: true,
+            focusParticipantId: $request->query->getString('participant') !== '' ? $request->query->getString('participant') : null,
+        );
 
         // Marketplace card: one query on a marketplace event, none anywhere else (docs/features/marketplace/11-events.md)
         $eventOffers = $this->getEventOffers->forEventPage($competitionEvent, $isPubliclyVisible, $loggedPlayer?->playerId);

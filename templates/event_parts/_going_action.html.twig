@@ -12,6 +12,9 @@
     {% elseif attendance.pendingRequestParticipantName is not null %}
         {# A link request waiting for the organiser (participant-linking.md §6.1) - said down in Taking part #}
         <a class="ev-action-button" href="#taking-part" data-participant-link-pending-action><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'participant_linking.attendance.waiting_short'|trans }}</a>
+    {% elseif attendance.claimCandidate is not null %}
+        {# "Is this you?" waits down in Taking part (participant-linking.md §6.1) - the answer is there, not a GET #}
+        <a class="ev-action-button ev-action-primary" href="#taking-part" data-participant-claim-action>{{ 'competition.join.im_going'|trans }}</a>
     {% else %}
         <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: competition_id}) }}">{{ 'competition.join.im_going'|trans }}</a>
     {% endif %}

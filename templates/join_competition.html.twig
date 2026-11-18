@@ -20,6 +20,10 @@
         <div class="p-4 mt-4 shadow mx-auto" style="max-width: 500px;">
             {% if not managed or not_connected_participants is not empty %}
             <p class="mb-3">{{ 'competition.join.picker_description'|trans }}</p>
+            {% if same_name_count|default(0) > 1 and profile.playerName is not null %}
+                {# participant-linking.md §6.1: no "Is this you?" card for an ambiguous name - the list says why #}
+                <p class="small mb-3" data-same-name-hint>{{ 'participant_linking.find.same_name'|trans({'%count%': same_name_count, '%name%': profile.playerName}) }}</p>
+            {% endif %}
             {% if claims_need_approval|default(false) %}
                 {# participant-linking.md §6.2: picks wait for the organiser here #}
                 <p class="small mb-3" data-claims-need-approval>{{ 'participant_linking.join.organiser_confirms'|trans }}</p>

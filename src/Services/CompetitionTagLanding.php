@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
+use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Query\GetScanClaimTarget;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Value\CompetitionTag;
 use SpeedPuzzling\Web\Value\CompetitionTagKind;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
@@ -31,7 +34,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *    nobody in the event the competitor list with `?notice=tag_unknown` (CompetitorListController) - only where they
  *    answer them (a publicly visible event, or its team), else the event page.
  * 3. Anybody else otherwise - signed out, a puzzler: the event page; a draft's tag (or an unknown event's) the events
- *    list.
+ *    list. A signed-in scanner of a person's name tag nobody is linked to, who is not going themselves, lands on the
+ *    event page with `?participant=<id>#taking-part` - its "Is this you?" card for that person (participant-linking.md
+ *    §6.4; one statement, GetScanClaimTarget, only then).
  *
  * An event with competitor pages off answers exactly as before the toolkit (LiveResultsScanRedirectMatrixTest).
  */
@@ -46,6 +51,8 @@ final readonly class CompetitionTagLanding
         private UrlGeneratorInterface $urlGenerator,
         private RequestStack $requestStack,
         private TranslatorInterface $translator,
+        private Security $security,
+        private GetScanClaimTarget $getScanClaimTarget,
     ) {
     }
 
@@ -121,10 +128,27 @@ final readonly class CompetitionTagLanding
         }
 
         try {
-            return $this->competitionDetailUrl->of($competitionId, $locale);
+            $eventPage = $this->competitionDetailUrl->of($competitionId, $locale);
         } catch (CompetitionNotFound) {
             return $this->urlGenerator->generate('events', ['_locale' => $locale]);
         }
+
+        // "Is this you?" for the scanned person (participant-linking.md §6.4) - competitor pages off, a person tag, a
+        // publicly visible event, a signed-in scanner who enters no results here
+        if (
+            $canEnterResults === false
+            && $competition->competitorPages === false
+            && $tag->kind === CompetitionTagKind::Participant
+            && $competition->isPubliclyVisible()
+        ) {
+            $user = $this->security->getUser();
+
+            if ($user instanceof UserAccount && $this->getScanClaimTarget->offersClaim($competitionId, $tag->id, $user->getUserIdentifier())) {
+                return $eventPage . '?' . http_build_query(['participant' => strtolower($tag->id)]) . '#taking-part';
+            }
+        }
+
+        return $eventPage;
     }
 
     /**

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\CompetitorPageEntry;
 use SpeedPuzzling\Web\Results\CompetitorPageRound;
 use SpeedPuzzling\Web\Results\CompetitorPageView;
 use SpeedPuzzling\Web\Results\OfficialRoundEntrants;
+use SpeedPuzzling\Web\Results\ParticipantClaimCandidate;
 use SpeedPuzzling\Web\Results\PublishedEntryPuzzle;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\RoundPuzzlesNow;
@@ -26,6 +27,7 @@ use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\CompetitionTag;
 use SpeedPuzzling\Web\Value\CompetitionTagKind;
 use SpeedPuzzling\Web\Value\CompetitorResultState;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventTime;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
@@ -60,8 +62,11 @@ use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
  * signed-in competitor's own time proposals (0-1: only with time proposals on and an own entry shown - B8). The
  * heartbeat token of an own entry (T2) is an HMAC - no statement.
  *
+ * "This is me" (participant-linking.md §6.4, R9): a signed-in viewer who is not on the page's person or line-up gets
+ * the header's people nobody is linked to - from the entries statement (+0). Never for a guest, a table or an entry tag.
+ *
  * @phpstan-type RoundRow array{id: string, name: string, category: RoundCategory, starts_at: DateTimeImmutable, zone: string, zone_assumed: bool, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, published: bool, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int}
- * @phpstan-type EntryRow array{kind: string, id: string, round_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, puzzles: null|RoundEntryPuzzles, team_name: null|string, entrants: list<PublishedRoundEntrant>}
+ * @phpstan-type EntryRow array{kind: string, id: string, round_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, puzzles: null|RoundEntryPuzzles, team_name: null|string, entrants: list<PublishedRoundEntrant>, unlinked: list<ParticipantClaimCandidate>}
  */
 readonly final class GetCompetitorPage
 {
@@ -197,6 +202,15 @@ readonly final class GetCompetitorPage
             || array_any($entryRows, static fn (array $row): bool => OfficialEntrantsView::isViewers($row['entrants'], $viewerPlayerId))
         );
 
+        // A person or a line-up only (a table or one round's entry is not a person - §6.4); the handler decides the rest
+        $claimable = $viewerPlayerId !== null
+            && $viewerIsEntrant === false
+            && $competition['is_draft'] === false
+            && $headerRow !== null
+            && in_array($tag->kind, [CompetitionTagKind::Participant, CompetitionTagKind::Lineup], true)
+            ? $headerRow['unlinked']
+            : [];
+
         return new CompetitorPageView(
             competitionId: $competitionId,
             competition: new CompetitionReference(
@@ -216,6 +230,7 @@ readonly final class GetCompetitorPage
             rounds: $pageRounds,
             serverNow: $now,
             timeProposals: $timeProposals,
+            claimable: $claimable,
         );
     }
 
@@ -597,6 +612,15 @@ SQL,
                 'result_did_not_start' => $row['result_did_not_start'],
                 'puzzles' => RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 'team_name' => $row['team_name'],
+                // The organiser's record of the people nobody is linked to - "This is me" (participant-linking.md §6.4)
+                'unlinked' => array_values(array_map(
+                    static fn (array $member): ParticipantClaimCandidate => new ParticipantClaimCandidate(
+                        participantId: strtolower($member['participant_id']),
+                        name: $member['name'],
+                        country: CountryCode::fromCode($member['country']),
+                    ),
+                    array_filter($members, static fn (array $member): bool => $member['player_id'] === null),
+                )),
                 'entrants' => array_map(
                     static fn (array $member): PublishedRoundEntrant => OfficialEntrantsView::entrant(
                         $member['name'],

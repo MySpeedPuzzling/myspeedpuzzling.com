@@ -6,10 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 use SpeedPuzzling\Web\Results\EventAttendance;
 use SpeedPuzzling\Web\Results\EventRegistration;
+use SpeedPuzzling\Web\Results\ParticipantClaimCandidate;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\LinkRequestStatus;
+use SpeedPuzzling\Web\Value\ParticipantLinkAction;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -35,11 +39,21 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * always ran.
  *
  * And the viewer's pending link request (participant-linking.md §6.1 "Waiting for the organiser") - in the same statement.
+ *
+ * With `$withClaimMatch` (the event and edition pages) also the "Is this you?" card (participant-linking.md §6.1, §8.3) -
+ * in the same statement again (+0): the one active unlinked participant whose name key (the join page's -
+ * GetCompetitionParticipants::sqlNameKey()) and country fit the viewer's profile, or - `$focusParticipantId`, a scanned
+ * name tag's `?participant=` (§6.4, R12) - that participant whatever its name. Never a refused pair, never for a player
+ * the organiser refused 3 times at the event (D11). Only the organiser's record is read of the participant; of the
+ * player table only the viewer's own name and country.
  */
 readonly final class GetEventAttendance
 {
     // The personal link's columns, from the `online_link` join (sqlOnlineLinkJoin())
     private const string SQL_ONLINE_LINK_COLUMNS = ",\n    online_link.id AS online_participant_id,\n    online_link.online_token AS online_token";
+
+    // The "Is this you?" match's columns, from the `claim_match` join (sqlClaimMatchJoin())
+    private const string SQL_CLAIM_MATCH_COLUMNS = ",\n    claim_match.match_count AS claim_match_count,\n    claim_match.participant_id AS claim_participant_id,\n    claim_match.name AS claim_participant_name,\n    claim_match.country AS claim_participant_country";
 
     public function __construct(
         private Connection $database,
@@ -47,13 +61,24 @@ readonly final class GetEventAttendance
     ) {
     }
 
-    public function forEvent(CompetitionEvent $event, null|string $playerId, bool $publiclyVisible): EventAttendance
-    {
+    /**
+     * @param bool $withClaimMatch the "Is this you?" card's match (event and edition pages) - only on a publicly visible event
+     * @param null|string $focusParticipantId a scanned name tag's participant (`?participant=`, a valid UUID) - the card for it
+     */
+    public function forEvent(
+        CompetitionEvent $event,
+        null|string $playerId,
+        bool $publiclyVisible,
+        bool $withClaimMatch = false,
+        null|string $focusParticipantId = null,
+    ): EventAttendance {
+        $withClaimMatch = $withClaimMatch && $publiclyVisible;
+
         if ($event->registrationManaged === false) {
-            return $this->forPlayer($event->id, $playerId, self::mayBeOnline($event));
+            return $this->forPlayer($event->id, $playerId, self::mayBeOnline($event), $withClaimMatch, $focusParticipantId);
         }
 
-        return $this->withRegistration($event, $playerId, $publiclyVisible);
+        return $this->withRegistration($event, $playerId, $publiclyVisible, $withClaimMatch, $focusParticipantId);
     }
 
     /**
@@ -66,17 +91,44 @@ readonly final class GetEventAttendance
 
     /**
      * @param bool $withOnlineLink an event that may be online - read the viewer's personal link too
+     * @param bool $withClaimMatch the "Is this you?" card's match - the caller knows the event is publicly visible
      */
-    public function forPlayer(string $competitionId, null|string $playerId, bool $withOnlineLink = false): EventAttendance
-    {
+    public function forPlayer(
+        string $competitionId,
+        null|string $playerId,
+        bool $withOnlineLink = false,
+        bool $withClaimMatch = false,
+        null|string $focusParticipantId = null,
+    ): EventAttendance {
         if ($playerId === null) {
             return EventAttendance::notGoing();
         }
 
         $going = CompetitionParticipantGoing::sql('competition_participant');
-        [$onlineColumns, $onlineJoin] = $withOnlineLink
-            ? [self::SQL_ONLINE_LINK_COLUMNS, "\nFROM (SELECT 1) AS viewer\n" . $this->sqlOnlineLinkJoin()]
-            : ['', ''];
+        $onlineColumns = '';
+        $joins = [];
+        $parameters = [
+            'competitionId' => $competitionId,
+            'playerId' => $playerId,
+        ];
+
+        if ($withOnlineLink) {
+            $onlineColumns = self::SQL_ONLINE_LINK_COLUMNS;
+            $joins[] = $this->sqlOnlineLinkJoin();
+        }
+
+        $focusParticipantId = self::validFocus($focusParticipantId);
+
+        if ($withClaimMatch) {
+            $onlineColumns .= self::SQL_CLAIM_MATCH_COLUMNS;
+            $joins[] = $this->sqlClaimMatchJoin($focusParticipantId !== null);
+
+            if ($focusParticipantId !== null) {
+                $parameters['focusParticipantId'] = $focusParticipantId;
+            }
+        }
+
+        $onlineJoin = $joins !== [] ? "\nFROM (SELECT 1) AS viewer\n" . implode("\n", $joins) : '';
 
         $query = <<<SQL
 SELECT
@@ -98,12 +150,9 @@ SELECT
     {$this->sqlPendingRequestName()} AS pending_request_participant_name{$onlineColumns}{$onlineJoin}
 SQL;
 
-        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, pending_request_participant_name: null|string, online_participant_id?: null|string, online_token?: null|string} $row */
+        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, pending_request_participant_name: null|string, online_participant_id?: null|string, online_token?: null|string, claim_match_count?: null|int|string, claim_participant_id?: null|string, claim_participant_name?: null|string, claim_participant_country?: null|string} $row */
         $row = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-                'playerId' => $playerId,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchAssociative();
 
         return new EventAttendance(
@@ -113,6 +162,9 @@ SQL;
             onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
             onlineToken: $row['online_token'] ?? null,
             pendingRequestParticipantName: $row['pending_request_participant_name'],
+            claimCandidate: $row['is_going'] === false && $row['pending_request_participant_name'] === null
+                ? self::claimCandidate($row, $focusParticipantId !== null)
+                : null,
         );
     }
 
@@ -183,14 +235,36 @@ SQL;
         return $id !== null ? strtolower($id) : null;
     }
 
-    private function withRegistration(CompetitionEvent $event, null|string $playerId, bool $publiclyVisible): EventAttendance
-    {
+    private function withRegistration(
+        CompetitionEvent $event,
+        null|string $playerId,
+        bool $publiclyVisible,
+        bool $withClaimMatch,
+        null|string $focusParticipantId,
+    ): EventAttendance {
         $takenGoing = CompetitionParticipantGoing::sql('taken');
         $listedGoing = CompetitionParticipantGoing::sql('listed');
         $waitlisted = RegistrationStatus::Waitlisted->value;
         [$onlineColumns, $onlineJoin] = self::mayBeOnline($event)
             ? [self::SQL_ONLINE_LINK_COLUMNS, "\n" . $this->sqlOnlineLinkJoin()]
             : ['', ''];
+        $parameters = [
+            'competitionId' => $event->id,
+            'playerId' => $playerId,
+        ];
+
+        // A visitor has no name to match - the registration card's statement stays as it was for them
+        $focusParticipantId = self::validFocus($focusParticipantId);
+        $withClaimMatch = $withClaimMatch && $playerId !== null;
+
+        if ($withClaimMatch) {
+            $onlineColumns .= self::SQL_CLAIM_MATCH_COLUMNS;
+            $onlineJoin .= "\n" . $this->sqlClaimMatchJoin($focusParticipantId !== null);
+
+            if ($focusParticipantId !== null) {
+                $parameters['focusParticipantId'] = $focusParticipantId;
+            }
+        }
 
         // The viewer's row: a going one first, when a player somehow holds two
         $query = <<<SQL
@@ -255,13 +329,14 @@ SQL;
          *     pending_request_participant_name: null|string,
          *     online_participant_id?: null|string,
          *     online_token?: null|string,
+         *     claim_match_count?: null|int|string,
+         *     claim_participant_id?: null|string,
+         *     claim_participant_name?: null|string,
+         *     claim_participant_country?: null|string,
          * } $row
          */
         $row = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $event->id,
-                'playerId' => $playerId,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchAssociative();
 
         $connected = $row['player_participant_id'] !== null;
@@ -303,7 +378,88 @@ SQL;
             onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
             onlineToken: $row['online_token'] ?? null,
             pendingRequestParticipantName: $row['pending_request_participant_name'],
+            claimCandidate: $isGoing === false && $row['pending_request_participant_name'] === null
+                ? self::claimCandidate($row, $focusParticipantId !== null)
+                : null,
         );
+    }
+
+    /**
+     * The card's participant (participant-linking.md §6.1): exactly one - two people of that name are the join page's
+     * pick ("2 people on the list are called …").
+     *
+     * @param array{claim_match_count?: null|int|string, claim_participant_id?: null|string, claim_participant_name?: null|string, claim_participant_country?: null|string} $row
+     */
+    private static function claimCandidate(array $row, bool $fromScan): null|ParticipantClaimCandidate
+    {
+        $id = $row['claim_participant_id'] ?? null;
+        $name = $row['claim_participant_name'] ?? null;
+
+        if ((int) ($row['claim_match_count'] ?? 0) !== 1 || $id === null || $name === null) {
+            return null;
+        }
+
+        return new ParticipantClaimCandidate(
+            participantId: strtolower($id),
+            name: $name,
+            country: CountryCode::fromCode($row['claim_participant_country'] ?? null),
+            fromScan: $fromScan,
+        );
+    }
+
+    private static function validFocus(null|string $focusParticipantId): null|string
+    {
+        return $focusParticipantId !== null && Uuid::isValid($focusParticipantId) ? strtolower($focusParticipantId) : null;
+    }
+
+    /**
+     * participant-linking.md §8.3: the active unlinked participants of the event that are the viewer's by name (the join
+     * page's name key, a compatible country) - or, for a scanned tag, the one asked for - counted, with the first one's
+     * columns: the card shows only when exactly one came back. A refused pair (D11) is none, and a player the organiser
+     * refused 3 times at the event gets no card at all. Joined to `viewer`; aggregate, so always one row.
+     */
+    private function sqlClaimMatchJoin(bool $focused): string
+    {
+        $going = CompetitionParticipantGoing::sql('candidate');
+        $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
+        $declined = ParticipantLinkAction::Declined->value;
+        $notThisPerson = ParticipantLinkAction::NotThisPerson->value;
+        $limit = GetRefusedParticipantLinks::REFUSALS_UNTIL_NO_MORE_CLAIMS;
+        $match = $focused
+            ? 'candidate.id = :focusParticipantId'
+            : GetCompetitionParticipants::sqlNameKey('candidate.name') . ' = ' . GetCompetitionParticipants::sqlNameKey('claimant.name') . "
+        AND (candidate.country IS NULL OR claimant.country IS NULL OR candidate.country = claimant.country)";
+
+        return <<<SQL
+LEFT JOIN LATERAL (
+    SELECT
+        COUNT(*) AS match_count,
+        MIN(candidate.id::text) AS participant_id,
+        MIN(candidate.name) AS name,
+        MIN(candidate.country) AS country
+    FROM competition_participant candidate
+    INNER JOIN player claimant ON claimant.id = :playerId
+    WHERE candidate.competition_id = :competitionId
+        AND candidate.player_id IS NULL
+        AND {$going}
+        AND {$match}
+        AND NOT EXISTS (
+            SELECT 1
+            FROM participant_link_log refusal
+            WHERE refusal.competition_id = :competitionId
+                AND refusal.participant_id = candidate.id
+                AND refusal.player_id = :playerId
+                AND refusal.action IN ({$refusing})
+        )
+        AND (
+            SELECT COUNT(*)
+            FROM participant_link_log organiser_refusal
+            WHERE organiser_refusal.competition_id = :competitionId
+                AND organiser_refusal.player_id = :playerId
+                AND organiser_refusal.action IN ('{$declined}', '{$notThisPerson}')
+        ) < {$limit}
+) AS claim_match ON TRUE
+SQL;
     }
 
     /**

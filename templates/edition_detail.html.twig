@@ -90,7 +90,7 @@
                     participants - nothing at all without them -#}
                 {% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
 
-                <twig:CompetitionParticipants competitionId="{{ event.id }}" class="ev-participants" />
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" class="ev-participants" :viewerMayClaim="is_publicly_visible and logged_user.profile is not null and not attendance.isGoing and attendance.pendingRequestParticipantName is null" />
             </div>
             {{ include('event_parts/_detail_side.html.twig') }}
         </div>

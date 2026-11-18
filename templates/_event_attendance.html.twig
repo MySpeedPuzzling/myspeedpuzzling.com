@@ -11,6 +11,9 @@
     docs/features/competitions-management/registration.md).
 
     A pending link request (participant-linking.md §6.1, D4) says so first - the viewer is not going by it.
+
+    "Is this you?" (participant-linking.md §6.1, attendance.claimCandidate): in place of "I'm going" - on an event that
+    manages registration above its registration card.
 #}
 {% if attendance.pendingRequestParticipantName is not null %}
     <div class="alert alert-warning small py-2 px-3 mb-2 d-flex flex-wrap align-items-center gap-2" role="status" data-participant-link-pending>
@@ -25,6 +28,9 @@
             </button>
         </form>
     </div>
+{% endif %}
+{% if attendance.claimCandidate is not null %}
+    {{ include('_event_claim_card.html.twig', {competition_id: competition_id, candidate: attendance.claimCandidate, registration: attendance.registration}) }}
 {% endif %}
 {% if attendance.registration is not null %}
     {{ include('_event_registration_card.html.twig', {competition_id: competition_id, attendance: attendance, registration: attendance.registration}) }}
@@ -42,7 +48,7 @@
             {{ 'competition.join.leave'|trans }}
         </button>
     </form>
-{% elseif attendance.pendingRequestParticipantName is null %}
+{% elseif attendance.pendingRequestParticipantName is null and attendance.claimCandidate is null %}
     <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-primary">
         <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
     </a>

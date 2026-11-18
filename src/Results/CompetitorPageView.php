@@ -19,6 +19,7 @@ readonly final class CompetitorPageView implements \JsonSerializable
      * @param list<PublishedRoundEntrant> $entrants who the page is about (the header) - the person, the line-up's or the
      *     entry's people; empty on a table page (whoever sits there changes by the round)
      * @param list<CompetitorPageRound> $rounds in schedule order; a table page puts the current round first
+     * @param list<ParticipantClaimCandidate> $claimable
      */
     public function __construct(
         public string $competitionId,
@@ -38,6 +39,9 @@ readonly final class CompetitorPageView implements \JsonSerializable
         public DateTimeImmutable $serverNow,
         // The event takes time proposals from competitors (competitor pages on, in person) - B8
         public bool $timeProposals = false,
+        // "This is me" (participant-linking.md §6.4): the header's people nobody is linked to, for a signed-in viewer who
+        // is not on this person or line-up - server HTML only, never in the JSON
+        public array $claimable = [],
     ) {
     }
 
